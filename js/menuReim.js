@@ -2,27 +2,8 @@ function loadDashboard() {
     // Fetch status counts from API
     fetchStatusCounts();
     
-    // Load documents from localStorage (keeping this functionality for now)
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    
-    const recentDocs = documents.slice().reverse();
-    const tableBody = document.getElementById("recentDocs");
-    tableBody.innerHTML = "";
-    recentDocs.forEach(doc => {
-        const row = `<tr class='border-b'>
-            <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
-            <td class='p-2'>${doc.docNumber}</td>
-            <td class='p-2'>${doc.prno}</td>
-            <td class='p-2'>${doc.requester}</td>
-            <td class='p-2'>${doc.department}</td>
-            <td class='p-2'>${doc.postingDate}</td>
-            <td class='p-2'>${doc.docStatus}</td>
-            <td class='p-2'>
-                <button onclick="detailDoc('${doc.docNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
-            </td>
-        </tr>`;
-        tableBody.innerHTML += row;
-    });
+    // Fetch reimbursements from API
+    fetchReimbursements();
 }
 
 // Function to fetch status counts from API
@@ -47,6 +28,64 @@ function fetchStatusCounts() {
         .catch(error => {
             console.error('Error fetching status counts:', error);
         });
+}
+
+// Function to fetch reimbursements from API
+function fetchReimbursements() {
+    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const endpoint = "/api/reimbursements";
+    
+    fetch(`${baseUrl}${endpoint}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status && data.code === 200) {
+                displayReimbursements(data.data);
+            } else {
+                console.error('API returned an error:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching reimbursements:', error);
+        });
+}
+
+// Function to display reimbursements in the table
+function displayReimbursements(reimbursements) {
+    const tableBody = document.getElementById("recentDocs");
+    tableBody.innerHTML = "";
+    
+    // Display the reimbursements in reverse order to show most recent first
+    const recentReimbursements = reimbursements.slice().reverse();
+    
+    recentReimbursements.forEach(reim => {
+        // Format the submission date if needed
+        let formattedDate = reim.submissionDate;
+        if (reim.submissionDate) {
+            const date = new Date(reim.submissionDate);
+            if (!isNaN(date)) {
+                formattedDate = date.toLocaleDateString();
+            }
+        }
+        
+        const row = `<tr class='border-b'>
+            <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
+            <td class='p-2'>${reim.id}</td>
+            <td class='p-2'>${reim.voucherNo}</td>
+            <td class='p-2'>${reim.requesterName}</td>
+            <td class='p-2'>${reim.department}</td>
+            <td class='p-2'>${formattedDate}</td>
+            <td class='p-2'>${reim.status}</td>
+            <td class='p-2'>
+                <button onclick="detailReim('${reim.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            </td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
 }
 
 // Function to update the status counts on the page
@@ -84,6 +123,7 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
+function goToDetailReim() { window.location.href = "DetailReim.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }

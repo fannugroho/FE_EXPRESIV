@@ -33,7 +33,15 @@
                     <button onclick="goToMenuInvoice()" class="submenu-btn"><i class="fas fa-file-invoice"></i> AR Invoice Approval</button>
                 </div>
             </div>
-            <button onclick="goToMenuRegist()" class="menu-btn"><i class="fas fa-user-plus"></i> Register User</button>
+            <button onclick="goToMenuRegist()" class="menu-btn"><i class="fas fa-user-plus"></i>Register User</button>
+            <div>
+                <button onclick="toggleSubMenu('setting')" class="menu-btn">
+                    <i class="fas fa-gear"></i>Setting ▼
+                </button>
+                <div id="setting" class="hidden pl-4">
+                    <button onclick="goToMenuSetting()" class="submenu-btn"><i class="fas fa-sliders-h"></i>Classification</button>
+                </div>
+            </div>
             <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </aside>
 

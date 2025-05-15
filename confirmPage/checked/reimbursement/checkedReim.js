@@ -86,26 +86,4 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-    function confirmDelete() {
-        Swal.fire({
-            title: 'Apakah dokumen ini akan dihapus?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                deleteDocument(); // Memanggil fungsi delete setelah konfirmasi
-            }
-        });
-    }
-
-    function deleteDocument() {
-        // Tambahkan logika penghapusan dokumen di sini
-        console.log("Dokumen dihapus");
-        Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success');
-    }
-
     
