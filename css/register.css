@@ -1,0 +1,14 @@
+/* Contoh styling tambahan */
+.bg-gray-50 {
+    background-color: #f9fafb;
+  }
+  
+  /* Gaya tabel */
+  table {
+    border: 1px solid #ccc;
+  }
+  
+  th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+  }

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Menu - Kansai Paint</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" /> 
+  <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+      <!-- Library untuk Excel -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+      <!-- Library untuk PDF -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+</head>
+
+<body class="bg-gradient-to-r from-blue-500 to-red-500">
+  <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
+    <i class="fas fa-bars text-white text-2xl"></i>
+  </button>
+  
+  <div class="flex min-h-screen">
+    <aside id="sidebar" class="w-64 bg-white shadow-md p-6 space-y-4 transform transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0 md:static fixed inset-y-0 left-0 z-40">
+      <img src="Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
+      <br />
+
+      <button onclick="goToMenu()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-home"></i> Dashboard
+      </button>
+      <button onclick="goToMenuPR()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-file-invoice-dollar"></i> Purchase Request
+      </button>
+      <button onclick="goToMenuReim()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-hand-holding-usd"></i> Reimbursement
+      </button>
+      <button onclick="goToMenuCash()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-wallet"></i> Cash Advance
+      </button>
+      <button onclick="goToMenuSettle()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-balance-scale"></i> Settlement
+      </button>
+
+      <div>
+        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+          <i class="fas fa-check-circle"></i> Approval Decision Report ▼
+        </button>
+        <div id="ApprovalReport" class="hidden pl-4">
+          <button onclick="goToMenuPO()" class="submenu-btn"><i class="fas fa-file-contract"></i> PO Approval</button>
+          <button onclick="goToMenuBanking()" class="submenu-btn"><i class="fas fa-university"></i> Outgoing Approval</button>
+          <button onclick="goToMenuInvoice()" class="submenu-btn"><i class="fas fa-file-invoice"></i> AR Invoice Approval</button>
+        </div>
+      </div>
+      <button onclick="goToMenuRegist()" class="menu-btn"><i class="fas fa-user-plus"></i>Register User</button>
+      <button onclick="logout()" class="menu-btn hover:border-l-4 hover:border-r-4 hover:border-purple-300">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </aside>
+
+    <div class="flex-1 p-6 pb-20 md:pb-6">
+      <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
+        Dashboard Settlement
+      </h2>
+      
+      <div class="hidden md:grid grid-cols-7 gap-4 mb-6">
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Total Documents</h3>
+          <p id="totalDocs" class="text-2xl font-bold text-blue-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Draft</h3>
+          <p id="pendingDocs" class="text-2xl font-bold text-yellow-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Checked</h3>
+          <p id="checkedDocs" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Acknowledged</h3>
+          <p id="checkedDocs" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Approved</h3>
+          <p id="approvedDocs" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Settled</h3>
+          <p id="closeDocs" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+          <h3 class="text-lg font-semibold">Rejected</h3>
+          <p id="rejectDocs" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+      </div>
+
+      <!-- Recent Documents -->
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-xl font-semibold mb-4">Recent Documents</h3>
+        <div class="overflow-x-auto">
+          <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="p-2 text-left">
+                  <input type="checkbox" id="selectAll" />
+                </th>
+                <th class="p-2 text-left">Doc Number</th>
+                <th class="p-2 text-left">Voucher Number</th>
+                <th class="p-2 text-left">Requester</th>
+                <th class="p-2 text-left">Department</th>
+                <th class="p-2 text-left">Submission Date</th>
+                <th class="p-2 text-left">Paid to Employee</th>
+                <th class="p-2 text-left">Returned to Company</th>
+                <th class="p-2 text-left">Status</th>
+                <th class="p-2 text-left">Tools</th>
+              </tr>
+            </thead>
+            <tbody id="recentDocs"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="flex justify-between mt-4">
+        <button onclick="goToAddSettle()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+          Create Settlement
+        </button>
+        <div class="flex justify-end mt-4">
+          <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-excel"></i></button>
+          <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-pdf"></i></button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation -->
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
+    <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-file-alt text-xl"></i>
+      <span>Total</span>
+    </button>
+    <button onclick="goToDraftDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-file text-xl"></i>
+      <span>Draft</span>
+    </button>
+    <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-check text-xl"></i>
+      <span>Checked</span>
+    </button>
+    <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-thumbs-up text-xl"></i>
+      <span>Approved</span>
+    </button>
+    <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-times text-xl"></i>
+      <span>Close</span>
+    </button>
+    <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+      <i class="fas fa-ban text-xl"></i>
+      <span>Reject</span>
+    </button>
+  </nav>
+
+  <script>
+    // Load data
+    function loadDashboard() {
+      const documents = JSON.parse(localStorage.getItem("documents")) || [];
+
+      // Hitung summary
+      document.getElementById("totalDocs").textContent = documents.length;
+      document.getElementById("pendingDocs").textContent =
+        documents.filter(doc => doc.docStatus === "Pending").length;
+      document.getElementById("checkedDocs").textContent =
+        documents.filter(doc => doc.docStatus === "Checked").length;
+      document.getElementById("approvedDocs").textContent =
+        documents.filter(doc => doc.docStatus === "Approved").length;
+      document.getElementById("closeDocs").textContent =
+        documents.filter(doc => doc.docStatus === "Close").length;
+      document.getElementById("rejectDocs").textContent =
+        documents.filter(doc => doc.docStatus === "Reject").length;
+
+      // Tampilkan Recent Docs di tabel
+      const recentDocs = documents.slice().reverse();
+      const tableBody = document.getElementById("recentDocs");
+      tableBody.innerHTML = "";
+
+      recentDocs.forEach(doc => {
+        const row = `
+          <tr class="border-b">
+            <td class="p-2 text-left">
+              <input type="checkbox" class="rowCheckbox" />
+            </td>
+            <td class="p-2">${doc.docNumber}</td>
+            <td class="p-2">${doc.prno}</td>
+            <td class="p-2">${doc.requester}</td>
+            <td class="p-2">${doc.department}</td>
+            <td class="p-2">${doc.postingDate}</td>
+            <td class="p-2">${doc.paidtoEmployee}</td>
+            <td class="p-2">${doc.returnedtoCompany}</td>
+            <td class="p-2">${doc.docStatus}</td>
+            <td class="p-2">
+              <button onclick="detailDoc('${doc.docNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+                Detail
+              </button>
+            </td>
+          </tr>
+        `;
+        tableBody.innerHTML += row;
+      });
+    }
+
+    // Select All
+    document.getElementById("selectAll").addEventListener("change", function() {
+      let checkboxes = document.querySelectorAll(".rowCheckbox");
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+    });
+
+    // Toggle Sidebar (mobile)
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    }
+    
+    // Toggle Submenu
+    function toggleSubMenu(menuId) {
+      document.getElementById(menuId).classList.toggle("hidden");
+    }
+
+    // Fungsi Navigasi
+    function goToMenu() { window.location.href = "Menu.html"; }
+    function goToAddDoc() { window.location.href = "AddDoc.html"; }
+    function goToAddReim() { window.location.href = "AddReim.html"; }
+    function goToAddCash() { window.location.href = "AddCash.html"; }
+    function goToAddSettle() { window.location.href = "AddSettle.html"; }
+    function goToAddPO() { window.location.href = "AddPO.html"; }
+    function goToMenuPR() { window.location.href = "MenuPR.html"; }
+    function goToMenuReim() { window.location.href = "MenuReim.html"; }
+    function goToMenuCash() { window.location.href = "MenuCash.html"; }
+    function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+    function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+    function goToMenuPO() { window.location.href = "MenuPO.html"; }
+    function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+    function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+    function logout() {
+      localStorage.removeItem("loggedInUser");
+      window.location.href = "Login.html";
+    }
+    
+    window.onload = loadDashboard;
+  </script>
+
+  <style>
+    /* Styling tombol */
+    .menu-btn, .submenu-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      padding: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      transition: background 0.3s ease, transform 0.2s;
+    }
+    .menu-btn {
+      background: white;
+      color: #333;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .submenu-btn {
+      background: #f8f9fa;
+      color: #555;
+    }
+    /* Hover effect */
+    .menu-btn:hover {
+      background: #f1f1f1;
+      transform: translateX(5px);
+    }
+    .submenu-btn:hover {
+      background: #e2e2e2;
+    }
+  </style>
+</body>
+</html>
+8
