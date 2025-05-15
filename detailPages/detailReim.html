@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2 @11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/detailReim.js"></script>
 </head>
 
@@ -56,6 +54,7 @@
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" /> <!-- ini dari reimbursementAttachments-->
+                <div id="attachmentsList" class="mt-2"></div>
                 
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
                 <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded">
@@ -80,25 +79,7 @@
                 </tr>
             </thead>
             <tbody id="reimbursementDetails">
-                <tr>
-                    <td class="p-2 border">
-                        <input id="description" type="text" maxlength="200" class="w-full" required />
-                    </td>
-                    <td class="p-2 border">
-                        <input id="glAccount" type="number" maxlength="10" class="w-full" required />
-                    </td>
-                    <td class="p-2 border">
-                        <input id="accountName" type="text" maxlength="30" class="w-full" required />
-                    </td>
-                    <td class="p-2 border">
-                        <input id="amount" type="number" maxlength="10" class="w-full" required />
-                    </td>
-                    <td class="p-2 border text-center">
-                        <button id="id" type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700"> <!-- ID : nanti get ID dari API pada reimbursementDetails-->
-                            🗑
-                        </button>
-                    </td>
-                </tr>
+                <!-- Rows will be added dynamically -->
             </tbody>
         </table>
         
@@ -114,28 +95,28 @@
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" checked id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
+                <label><input type="checkbox" id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <select id="preparedBy" class="w-full p-1 border rounded">
                     <option value="Admin1">Admin 1</option>
                     <option value="Admin2">Admin 2</option>
                 </select>
             </div>
             <div>
-            <label><input type="checkbox" id="acknowledgedBy" class="mr-1"><strong>Acknowledged by :</strong></label>
+            <label><input type="checkbox" id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
             <select id="acknowledgedBy" class="w-full p-1 border rounded">
                 <option value="Supervisor1">Supervisor 1</option>
                 <option value="Supervisor2">Supervisor 2</option>
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+            <label><input type="checkbox" id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
             <select id="checkedBy" class="w-full p-1 border rounded">
                 <option value="Finance1">Finance 1</option>
                 <option value="Finance2">Finance 2</option>
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+            <label><input type="checkbox" id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
             <select id="approvedBy" class="w-full p-1 border rounded">
                 <option value="Manager1">Manager 1</option>
                 <option value="Manager2">Manager 2</option>
@@ -154,5 +135,165 @@
         </div>
 </div>
     </div>
+    <script>
+        const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+        let reimbursementId = '';
+        
+        // Get reimbursement ID from URL
+        function getReimbursementIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('reim.id');
+        }
+        
+        // Fetch reimbursement data from API
+        async function fetchReimbursementData() {
+            reimbursementId = getReimbursementIdFromUrl();
+            if (!reimbursementId) {
+                console.error('No reimbursement ID found in URL');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}`);
+                const result = await response.json();
+                
+                if (result.status && result.code === 200) {
+                    populateFormData(result.data);
+                } else {
+                    console.error('Failed to fetch reimbursement data:', result.message);
+                }
+            } catch (error) {
+                console.error('Error fetching reimbursement data:', error);
+            }
+        }
+        
+        // Populate form fields with data
+        function populateFormData(data) {
+            // Main form fields
+            document.getElementById('voucherNo').value = data.voucherNo || '';
+            document.getElementById('requesterName').value = data.requesterName || '';
+            document.getElementById('department').value = data.department || '';
+            document.getElementById('currency').value = data.currency || '';
+            document.getElementById('payTo').value = data.payTo || '';
+            
+            // Format date for the date input (YYYY-MM-DD)
+            if (data.submissionDate) {
+                const date = new Date(data.submissionDate);
+                const formattedDate = date.toISOString().split('T')[0];
+                document.getElementById('submissionDate').value = formattedDate;
+            }
+            
+            document.getElementById('status').value = data.status || '';
+            document.getElementById('referenceDoc').value = data.referenceDoc || '';
+            document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+            document.getElementById('remarks').value = data.remarks || '';
+            
+            // Approvers information
+            document.getElementById('preparedBy').value = data.preparedBy || '';
+            document.getElementById('checkedBy').value = data.checkedBy || '';
+            document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
+            document.getElementById('approvedBy').value = data.approvedBy || '';
+            
+            // Set checkbox states based on if values exist
+            document.getElementById('preparedByCheck').checked = data.preparedBy ? true : false;
+            document.getElementById('checkedByCheck').checked = data.checkedBy ? true : false;
+            document.getElementById('acknowledgedByCheck').checked = data.acknowledgedBy ? true : false;
+            document.getElementById('approvedByCheck').checked = data.approvedBy ? true : false;
+            
+            // Handle reimbursement details (table rows)
+            populateReimbursementDetails(data.reimbursementDetails);
+            
+            // Display attachment information
+            displayAttachments(data.reimbursementAttachments);
+        }
+        
+        // Populate reimbursement details table
+        function populateReimbursementDetails(details) {
+            const tableBody = document.getElementById('reimbursementDetails');
+            tableBody.innerHTML = ''; // Clear existing rows
+            
+            if (details && details.length > 0) {
+                details.forEach(detail => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-2 border">
+                            <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                        </td>
+                        <td class="p-2 border">
+                            <input type="number" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                        </td>
+                        <td class="p-2 border">
+                            <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                        </td>
+                        <td class="p-2 border">
+                            <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
+                        </td>
+                        <td class="p-2 border text-center">
+                            <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
+                                🗑
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                // Add an empty row if no details
+                addRow();
+            }
+        }
+        
+        // Display attachments
+        function displayAttachments(attachments) {
+            const attachmentsList = document.getElementById('attachmentsList');
+            attachmentsList.innerHTML = ''; // Clear existing attachments
+            
+            if (attachments && attachments.length > 0) {
+                attachments.forEach(attachment => {
+                    const attachmentItem = document.createElement('div');
+                    attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+                    attachmentItem.innerHTML = `
+                        <span>${attachment.fileName}</span>
+                        <a href="${baseUrl}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                    `;
+                    attachmentsList.appendChild(attachmentItem);
+                });
+            }
+        }
+        
+        // Add a new empty row to the reimbursement details table
+        function addRow() {
+            const tableBody = document.getElementById('reimbursementDetails');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" maxlength="200" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" maxlength="30" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(newRow);
+        }
+        
+        // Delete a row from the reimbursement details table
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+        }
+        
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', fetchReimbursementData);
+    </script>
 </body>
 </html>
