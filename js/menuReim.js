@@ -1,13 +1,10 @@
 function loadDashboard() {
+    // Fetch status counts from API
+    fetchStatusCounts();
+    
+    // Load documents from localStorage (keeping this functionality for now)
     const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    document.getElementById("totalDocs").textContent = documents.length;
-    document.getElementById("draftCount").textContent = documents.filter(doc => doc.docStatus === "Pending").length;
-    document.getElementById("checkedCount").textContent = documents.filter(doc => doc.docStatus === "Checked").length;  
-    document.getElementById("approvedCount").textContent = documents.filter(doc => doc.docStatus === "Approved").length;
-    document.getElementById("paidCount").textContent = documents.filter(doc => doc.docStatus === "Paid").length;
-    document.getElementById("closeCount").textContent = documents.filter(doc => doc.docStatus === "Close").length;
-    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.docStatus === "Rejected").length;
-
+    
     const recentDocs = documents.slice().reverse();
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
@@ -26,6 +23,41 @@ function loadDashboard() {
         </tr>`;
         tableBody.innerHTML += row;
     });
+}
+
+// Function to fetch status counts from API
+function fetchStatusCounts() {
+    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const endpoint = "/api/reimbursements/status-counts";
+    
+    fetch(`${baseUrl}${endpoint}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status && data.code === 200) {
+                updateStatusCounts(data.data);
+            } else {
+                console.error('API returned an error:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching status counts:', error);
+        });
+}
+
+// Function to update the status counts on the page
+function updateStatusCounts(data) {
+    document.getElementById("totalCount").textContent = data.totalCount || 0;
+    document.getElementById("draftCount").textContent = data.draftCount || 0;
+    document.getElementById("checkedCount").textContent = data.checkedCount || 0;
+    document.getElementById("approvedCount").textContent = data.approvedCount || 0;
+    document.getElementById("paidCount").textContent = data.paidCount || 0;
+    document.getElementById("closeCount").textContent = data.closedCount || 0; // Note: API returns closedCount but HTML uses closeCount
+    document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
 document.getElementById("selectAll").addEventListener("change", function () {
