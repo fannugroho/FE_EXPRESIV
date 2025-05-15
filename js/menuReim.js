@@ -133,4 +133,9 @@ function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
+// Function to redirect to detail page with reimbursement ID
+function detailReim(reimId) {
+    window.location.href = `/detailPages/detailReim.html?${reimId}`;
+}
+
 window.onload = loadDashboard;
