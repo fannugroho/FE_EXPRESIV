@@ -123,7 +123,9 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToDetailReim() { window.location.href = "DetailReim.html"; }
+function goToDetailReim(reimId) {
+    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+}
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -135,7 +137,7 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?${reimId}`;
+    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
 }
 
 window.onload = loadDashboard;
