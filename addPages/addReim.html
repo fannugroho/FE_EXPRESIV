@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="../js/addReim.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -40,7 +37,7 @@
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
-                <input type="submissionDate" id="postingDate" class="w-full p-2 border rounded">
+                <input type="date" id="postingDate" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded">
                     <option value="Open">Open</option>
@@ -75,16 +72,16 @@
             <tbody id="tableBody">
                 <tr>
                     <td class="p-2 border">
-                        <input id="description" type="text" maxlength="200" class="w-full" required />
+                        <input type="text" maxlength="200" class="w-full" required />
                     </td>
                     <td class="p-2 border">
-                        <input id="glAccount" type="number" maxlength="10" class="w-full" required />
+                        <input type="number" maxlength="10" class="w-full" required />
                     </td>
                     <td class="p-2 border">
-                        <input id="accountName" type="text" maxlength="30" class="w-full" required />
+                        <input type="text" maxlength="30" class="w-full" required />
                     </td>
                     <td class="p-2 border">
-                        <input id="amount" type="number" maxlength="10" class="w-full" required />
+                        <input type="number" maxlength="10" class="w-full" required />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -108,28 +105,28 @@
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><input type="checkbox" checked id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedBy" class="w-full p-1 border rounded">
+                <select id="preparedBySelect" class="w-full p-1 border rounded">
                     <option value="Admin 1">Admin 1</option>
                     <option value="Admin 2">Admin 2</option>
                 </select>
             </div>
             <div>
             <label><input type="checkbox" id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBy" class="w-full p-1 border rounded">
+            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
                 <option value="Supervisor 1">Supervisor 1</option>
                 <option value="Supervisor 2">Supervisor 2</option>
             </select>
             </div>
             <div>
             <label><input type="checkbox" id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBy" class="w-full p-1 border rounded">
+            <select id="checkedBySelect" class="w-full p-1 border rounded">
                 <option value="Finance 1">Finance 1</option>
                 <option value="Finance 2">Finance 2</option>
             </select>
             </div>
             <div>
             <label><input type="checkbox" id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBy" class="w-full p-1 border rounded">
+            <select id="approvedBySelect" class="w-full p-1 border rounded">
                 <option value="Manager 1">Manager 1</option>
                 <option value="Manager 2">Manager 2</option>
             </select>
@@ -145,5 +142,6 @@
     </button> -->
 </div>
     </div>
+    <script src="../js/addReim.js"></script>
 </body>
 </html>
