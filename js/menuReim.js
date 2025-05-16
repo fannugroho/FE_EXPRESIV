@@ -118,14 +118,16 @@ function toggleSubMenu(menuId) {
 
 function goToMenu() { window.location.href = "Menu.html"; }
 function goToAddDoc() {window.location.href = "AddDoc.html"; }
-function goToAddReim() {window.location.href = "AddReim.html"; }
+function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
+
 function goToDetailReim(reimId) {
     window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
 }
+
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }

@@ -6,23 +6,21 @@ function saveDocument() {
 
     const documentData = {
         docNumber,
-        outno: document.getElementById("outgoingNo").value,
-                requester: document.getElementById("requester").value,
+                voucherNo: document.getElementById("voucherNo").value,
+                requesterName: document.getElementById("requesterName").value,
                 department: document.getElementById("department").value,
-                toOrderOf : document.getElementById("toOrderOf").value,
-                payTo : document.getElementById("PayTo").value,
-                docCurrency : document.getElementById("docCurrency").value,
-                Reference : document.getElementById("reference").value,
+                payTo : document.getElementById("payTo").value,
+                currency : document.getElementById("currency").value,
+                filePath : document.getElementById("filePath").value,
                 ReferenceDoc : document.getElementById("referenceDoc").value,
-                postingDate: document.getElementById("postingDate").value,
-                classification: document.getElementById("classification").value,
-                type: document.getElementById("type").value,
-                docStatus: document.getElementById("docStatus").value,
+                submissionDate: document.getElementById("submissionDate").value,
+                typeOfTransaction: document.getElementById("typeOfTransaction").value,
+                status: document.getElementById("status").value,
                 approvals: {
-                    prepared: document.getElementById("prepared").checked,
-                    checked: document.getElementById("checked").checked,
-                    approved: document.getElementById("approved").checked,
-                    knowledge: document.getElementById("knowledge").checked,
+                    preparedBy: document.getElementById("preparedBy").checked,
+                    checkedBy: document.getElementById("checkedBy").checked,
+                    approvedBy: document.getElementById("approvedBy").checked,
+                    acknowledgeBy: document.getElementById("acknowledgeBy").checked,
                 }
     };
 
@@ -43,8 +41,8 @@ function updateApprovalStatus(docNumber, statusKey) {
 
 
 document.getElementById("docType")?.addEventListener("change", function () {
-    const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "Pilih" ? "none" : "table";
+    const reimTable = document.getElementById("reimTable");
+    reimTable.style.display = this.value === "Pilih" ? "none" : "table";
 });
 
 function previewPDF(event) {
@@ -86,4 +84,20 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-    
+function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
+function goToAddDoc() {window.location.href = "../addPages/addPR.html"; }
+function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
+function goToAddCash() {window.location.href = "AddCash.html"; }
+function goToAddSettle() {window.location.href = "AddSettle.html"; }
+function goToAddPO() {window.location.href = "AddPO.html"; }
+function goToMenuPR() { window.location.href = "MenuPR.html"; }
+function goToMenuReim() { window.location.href = "../pages/menuReim.html"; }
+function goToMenuCash() { window.location.href = "MenuCash.html"; }
+function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+function goToMenuPO() { window.location.href = "MenuPO.html"; }
+function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+
+window.onload = loadDashboard;    
