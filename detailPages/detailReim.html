@@ -292,6 +292,127 @@
             row.remove();
         }
         
+        // Update reimbursement data
+        function updateReim() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You are about to update this reimbursement",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, update it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitReimbursementUpdate();
+                }
+            });
+        }
+        
+        // Submit reimbursement update to API
+        async function submitReimbursementUpdate() {
+            // Get reimbursement ID from URL
+            const id = getReimbursementIdFromUrl();
+            if (!id) {
+                Swal.fire('Error', 'No reimbursement ID found', 'error');
+                return;
+            }
+            
+            // Collect reimbursement details from table
+            const detailsTable = document.getElementById('reimbursementDetails');
+            const rows = detailsTable.querySelectorAll('tr');
+            const reimbursementDetails = [];
+            
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const deleteButton = row.querySelector('button');
+                const detailId = deleteButton.getAttribute('data-id') || null;
+                
+                reimbursementDetails.push({
+                    id: detailId,
+                    description: inputs[0].value,
+                    glAccount: inputs[1].value,
+                    accountName: inputs[2].value,
+                    amount: parseFloat(inputs[3].value) || 0
+                });
+            });
+            
+            // Build request data
+            const requestData = {
+                requesterName: document.getElementById('requesterName').value,
+                department: document.getElementById('department').value,
+                currency: document.getElementById('currency').value,
+                payTo: document.getElementById('payTo').value,
+                referenceDoc: document.getElementById('referenceDoc').value,
+                typeOfTransaction: document.getElementById('typeOfTransaction').value,
+                remarks: document.getElementById('remarks').value,
+                reimbursementDetails: reimbursementDetails
+            };
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/reimbursements/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Updated!',
+                        'Reimbursement has been updated successfully.',
+                        'success'
+                    ).then(() => {
+                        // Reload the data to show the latest changes
+                        fetchReimbursementData();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to update reimbursement',
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Error updating reimbursement:', error);
+                Swal.fire(
+                    'Error',
+                    'An error occurred while updating the reimbursement',
+                    'error'
+                );
+            }
+        }
+        
+        // Function to go back to menu
+        function goToMenuReim() {
+            window.location.href = '../menuReim.html';
+        }
+        
+        // Function to confirm deletion
+        function confirmDelete() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Call delete API here
+                    Swal.fire(
+                        'Deleted!',
+                        'Your file has been deleted.',
+                        'success'
+                    );
+                }
+            });
+        }
+        
         // Load data when page loads
         document.addEventListener('DOMContentLoaded', fetchReimbursementData);
     </script>
