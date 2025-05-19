@@ -1,18 +1,18 @@
 function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
 function goToAddPR() {window.location.href = "../addPages/addPR.html"; }
-function goToAddReim() {window.location.href = "AddReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
+function goToAddReim() {window.location.href = "../addPages/AddReim.html"; }
+function goToAddCash() {window.location.href = "../addPages/AddCash.html"; }
+function goToAddSettle() {window.location.href = "../addPages/AddSettle.html"; }
+function goToAddPO() {window.location.href = "../addPages/AddPO.html"; }
 
 function goToDetailReim(reimId) {
     window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
 }
 
-function goToMenuAPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+function goToMenuAPR() { window.location.href = "menuPR.html"; }
+function goToMenuReim() { window.location.href = "menuReim.html"; }
+function goToMenuCash() { window.location.href = "menuCash.html"; }
+function goToMenuSettle() { window.location.href = "menuSettle.html"; }
 function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
 function goToMenuPO() { window.location.href = "MenuPO.html"; }
 function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
