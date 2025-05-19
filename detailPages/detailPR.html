@@ -12,7 +12,7 @@
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuPR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Purchase Request</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Purchase Request</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -181,13 +181,16 @@
         <br>
         <!-- Action Buttons -->
 <!-- Action Buttons -->
-<div class="flex justify-start space-x-4 mt-6">
-    <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Save
-    </button>
-    <button onclick="goToMenuPR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Submit
-    </button>
+    <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="confirmDelete()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Delete
+            </button> <!-- ID : nanti get ID dari url parameter-->
+
+            <button onclick="updatePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Update
+            </button> <!-- ID : TBD-->
+        </div>
+
 </div>
     </div>
 </body>
