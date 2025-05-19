@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Document - Japanese Themed CRUD</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script>
+        function saveDocument() {
+            const docNumber = (JSON.parse(localStorage.getItem("documents")) || []).length + 1;
+            const documentData = {
+                docNumber,
+                invno: document.getElementById("Invoice no").value,
+                requester: document.getElementById("requester").value,
+                department: document.getElementById("department").value,
+
+                vendor: document.getElementById("vendor").value,
+                name: document.getElementById("name").value,
+                contactPerson: document.getElementById("contactPerson").value,
+                vendorRefNo: document.getElementById("vendorRefNo").value,
+
+                postingDate: document.getElementById("postingDate").value,
+                dueDate: document.getElementById("dueDate").value,
+                requiredDate: document.getElementById("requiredDate").value,
+                purposed: document.getElementById("purposed").value,
+                docType: document.getElementById("docType").value,
+                docStatus: document.getElementById("docStatus").value,
+                approvals: {
+                    prepared: document.getElementById("prepared").checked,
+                    checked: document.getElementById("checked").checked,
+                    approved: document.getElementById("approved").checked,
+                    knowledge: document.getElementById("knowledge").checked,
+                }
+            };
+            
+            let documents = JSON.parse(localStorage.getItem("documents")) || [];
+            documents.push(documentData);
+            localStorage.setItem("documents", JSON.stringify(documents));
+            alert("Dokumen berhasil disimpan!");
+        }
+
+        function goToMenuSettle() {
+            window.location.href = "MenuSettle.html";
+        }
+
+
+    document.getElementById("docType").addEventListener("change", function() {
+    const selectedValue = this.value;
+    const prTable = document.getElementById("prTable");
+
+    if (selectedValue === "Pilih") {
+        prTable.style.display = "none";
+    } else {
+        prTable.style.display = "table";
+    }
+});
+
+function previewPDF(event) {
+      const files = event.target.files;
+      if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
+        return;
+      }
+      Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+          uploadedFiles.push(file);
+        } else {
+          alert('Please upload a valid PDF file');
+        }
+      });
+      displayFileList();
+    }
+
+        function addRow() {
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
+
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <input type="text" maxlength="30" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+            <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+            <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+            <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+            <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
+        </td>
+    `;
+
+    tableBody.appendChild(newRow);
+}
+
+function deleteRow(button) {
+    button.closest("tr").remove(); // Hapus baris tempat tombol diklik
+}
+
+    </script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuSettle()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Settlement</h2>
+        <br>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Settlement No.</h3>
+                <input type="text" id="invno" placeholder="Settlement No." class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
+                <input type="text" id="Employee" placeholder="Employee NIK" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
+                <input type="text" id="Employee name" placeholder="Employee Name" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Settlement Ref. No.</h3>
+                <input type="text" id="contactPerson" placeholder="Settlement Ref. No" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Purpose</h3>
+                <input type="text" id="purposed" placeholder="Purpose" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
+                <select id="type" class="w-full p-2 border rounded">
+                    <option value="Medical">Medical</option>
+                    <option value="Transport">Transport</option>
+                </select>            
+            </div>
+            
+            <div>
+
+                <h3 class="text-lg font-semibold mb-2">Department</h3>
+                <select id="department" class="w-full p-2 border rounded">
+                    <option value="Production">Production</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Admninistration">Admninistration</option>
+                    <option value="QA/QC">QA/QC</option>
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Posting Date</h3>
+                <input type="date" id="postingDate" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <select id="docStatus" class="w-full p-2 border rounded" class="bg-gray-100" disabled>
+                    <option value="Open">Draft</option>
+                    <option value="Closed">Approved</option>
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
+                <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
+                <select type="" id="requiredDate" class="w-full p-2 border rounded">
+                    <option value="Pilih" disabled selected>Select Cash Advance</option>
+                    <option value="INVAP001">INVAP001</option>
+                    <option value="INVAR002">INVAR002</option>
+                </select>
+            </div>
+        </div>
+        
+        <table id="prTable" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+
+                    <th id="thDescription" class="p-2">Description</th>
+                    <th id="thGLAccount" class="p-2">G/L Account</th>
+                    <th id="thAccountName" class="p-2">Account Name</th>
+                    <th id="thAmount" class="p-2">Amount</th>
+                    <th id="thActions" class="p-2">Action</th>
+           
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>                    
+                    <td id="tdDescription" class="p-2 border">
+                        <input type="text" id="Description" maxlength="200" class="w-full" readonly />
+                    <td id="tdGLAccount" class="p-2 border">
+                        <input type="text" id="GLAccount" maxlength="200" class="w-full" readonly />
+                    <td id="tdAccountName" class="p-2 border">
+                        <input type="text" id="AccountName" maxlength="200" class="w-full" readonly />
+                    <td id="tdAmount" class="p-2 border">
+                        <input type="text" id="Amount" maxlength="200" class="w-full" readonly />
+                    </td>
+                    <td id="tdActions" class="p-2 border text-center">
+                        <button type="button" id="servicePrice" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                            🗑
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Tombol Tambah Baris -->
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
+
+            <div class="mt-4">
+              <label>Remarks</label>
+              <textarea class="w-full p-2 border rounded-md"></textarea>
+            </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label><input type="checkbox" id="prepared" class="mr-1"><strong>Prepared by :</strong></label>
+                <select id="prepared" class="w-full p-1 border rounded">
+                    <option value="Admin1">Admin 1</option>
+                    <option value="Admin2">Admin 2</option>
+                </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="checked" class="mr-1"><strong>Checked by :</strong></label>
+            <select id="Checked" class="w-full p-1 border rounded">
+                <option value="Finance1">Finance 1</option>
+                <option value="Finance2">Finance 2</option>
+            </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="approved" class="mr-1"><strong>Approved by :</strong></label>
+            <select id="Approved" class="w-full p-1 border rounded">
+                <option value="Manager1">Manager 1</option>
+                <option value="Manager2">Manager 2</option>
+            </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="purchasing" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <select id="Approved" class="w-full p-1 border rounded">
+                    <option value="Requester">Requester</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            
+        </div>
+        <br>
+        <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            Save
+            </button>
+            <button onclick="goToMenuSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            Update
+            </button>
+        </div>
+        </div>
+</body>
+</html>
