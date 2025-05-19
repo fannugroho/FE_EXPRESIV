@@ -46,10 +46,37 @@
         </aside>
 
         <!-- User Avatar -->
-        <div class="absolute top-4 right-4">
-            <img id="dashboardUserIcon" src="" alt="User Avatar"
-                 class="w-12 h-12 rounded-full border-2 border-gray-300 cursor-pointer"
-                 onclick="goToProfile()">
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Bell with Badge -->
+            <div class="relative">
+                <button id="notificationBtn" class="relative text-white focus:outline-none">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-red-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                </button>
+                <!-- Notification Dropdown -->
+        <div id="notificationDropdown" class="hidden absolute right-0 mt-2 min-w-max w-auto max-w-xs bg-white rounded-lg shadow-xl z-20">
+            <div class="p-4 font-bold border-b">Notifikasi</div>
+            <ul class="py-2 text-sm text-gray-700">
+                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                    Purchase Request document requires approval
+                </li>
+                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                    Reimbursement document requires approval
+                </li>
+            </ul>
+            <div class="border-t p-2 text-right">
+                <a href="#" class="text-blue-500 text-sm hover:underline">See Details</a>
+            </div>
+        </div>
+            </div>
+        
+            <!-- User Avatar + Name -->
+            <div class="flex items-center space-x-2 text-white">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer"
+                     onclick="goToProfile()">
+                <span id="userNameDisplay" class="font-semibold"></span>
+            </div>
         </div>
 
         <!-- Main Content -->

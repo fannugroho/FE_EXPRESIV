@@ -5,21 +5,21 @@ function saveDocument() {
     const docNumber = `PR${Date.now()}`; // Gunakan timestamp agar unik
 
     const documentData = {
-        docNumber,
-        prno: document.getElementById("prno").value,
-        requester: document.getElementById("requester").value,
+        id: document.getElementById("id").value,
+        prno: document.getElementById("purchaseRequestNo").value,
+        requester: document.getElementById("requesterName").value,
         department: document.getElementById("department").value,
-        postingDate: document.getElementById("postingDate").value,
+        postingDate: document.getElementById("submissionDate").value,
         requiredDate: document.getElementById("requiredDate").value,
         classification: document.getElementById("classification").value,
-        docType: document.getElementById("docType").value,
-        docStatus: document.getElementById("docStatus").value,
+        prType: document.getElementById("prType").value,
+        status: document.getElementById("status").value,
         approvals: {
-            prepared: document.getElementById("prepared").checked,
-            checked: document.getElementById("checked").checked,
-            approved: document.getElementById("approved").checked,
-            knowledge: document.getElementById("knowledge").checked,
-            purchasing: document.getElementById("purchasing").checked,
+            prepared: document.getElementById("preparedByName").checked,
+            checked: document.getElementById("checkedByName").checked,
+            approved: document.getElementById("approvedByName").checked,
+            acknowledge: document.getElementById("acknowledgeByName").checked,
+            purchasing: document.getElementById("purchasingByName").checked,
         }
     };
 
@@ -28,9 +28,9 @@ function saveDocument() {
     alert("Dokumen berhasil disimpan!");
 }
 
-function updateApprovalStatus(docNumber, statusKey) {
+function updateApprovalStatus(id, statusKey) {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    let docIndex = documents.findIndex(doc => doc.docNumber === docNumber);
+    let docIndex = documents.findIndex(doc => doc.id === id);
     if (docIndex !== -1) {
         documents[docIndex].approvals[statusKey] = true;
         localStorage.setItem("documents", JSON.stringify(documents));
@@ -39,21 +39,21 @@ function updateApprovalStatus(docNumber, statusKey) {
 }
 
 function toggleFields() {
-    const typePR = document.getElementById("docType").value;
+    const prType = document.getElementById("prType").value;
     const itemFields = ["thItemCode", "thItemName", "thDetail", "thQuantity", "thPurposed", "thAction", "tdItemCode", "tdItemName", "tdDetail", "tdQuantity", "tdPurposed", "tdAction"];
     const serviceFields = ["thDescription", "thPurpose", "thQty" ,"thActions", "tdDescription", "tdPurpose", "tdQty" ,"tdActions"];
 
-    if (typePR === "Item") {
+    if (prType === "Item") {
         itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
         serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
-    } else if (typePR === "Service") {
+    } else if (prType === "Service") {
         itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
         serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
     }
 }
 
 function fillItemDetails() {
-    const itemCode = document.getElementById("itemCode").value;
+    const itemCode = document.getElementById("itemNo").value;
     const itemName = document.getElementById("itemName");
     const itemPrice = document.getElementById("itemPrice");
 
@@ -64,18 +64,18 @@ function fillItemDetails() {
     };
 
     if (itemData[itemCode]) {
-        itemName.value = itemData[itemCode].name;
-        itemPrice.value = itemData[itemCode].price;
+        itemName.value = itemData[itemNo].name;
+        itemPrice.value = itemData[itemNo].price;
     } else {
         itemName.value = "";
         itemPrice.value = "";
-        alert("Item Code not found!");
+        alert("Item No not found!");
     }
 }
 
 document.getElementById("docType")?.addEventListener("change", function () {
     const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "Pilih" ? "none" : "table";
+    prTable.style.display = this.value === "choose" ? "none" : "table";
 });
 
 function previewPDF(event) {
