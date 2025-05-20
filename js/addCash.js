@@ -36,12 +36,12 @@ function goToMenuCash() {
 
 document.getElementById("docType").addEventListener("change", function() {
 const selectedValue = this.value;
-const prTable = document.getElementById("prTable");
+const cashTable = document.getElementById("cashTable");
 
 if (selectedValue === "Pilih") {
-prTable.style.display = "none";
+cashTable.style.display = "none";
 } else {
-prTable.style.display = "table";
+cashTable.style.display = "table";
 }
 });
 
@@ -71,21 +71,6 @@ newRow.innerHTML = `
     <input type="text" maxlength="30" class="w-full" required />
 </td>
 <td class="p-2 border">
-    <input type="text" maxlength="200" class="w-full" required />
-</td>
-<td class="p-2 border">
-    <input type="number" maxlength="10" class="w-full" required />
-</td>
-    <td class="p-2 border">
-    <input type="number" maxlength="10" class="w-full" required />
-</td>
-    <td class="p-2 border">
-    <input type="number" maxlength="10" class="w-full" required />
-</td>
-    <td class="p-2 border">
-    <input type="number" maxlength="10" class="w-full" required />
-</td>
-    <td class="p-2 border">
     <input type="number" maxlength="10" class="w-full" required />
 </td>
 <td class="p-2 border text-center">

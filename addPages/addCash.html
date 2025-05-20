@@ -58,34 +58,23 @@
             </div>
         </div>
         
-        <table id="prTable" class="w-full text-left border mt-2">
+        <table id="cashTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
-                <br>
                 <tr>
-
-                    <th id="thDescription" class="p-2">Description</th>
-                <!--    <th id="thGLAccount" class="p-2">G/L Account</th>
-                    <th id="thGLAccountName" class="p-2">Account Name</th> -->
-                    <th id="thTotal" class="p-2">Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
-           
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Amount</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="Description" maxlength="200" class="w-full" readonly />
+                    <td class="p-2 border">
+                        <input type="text" class="description w-full" maxlength="200" readonly />
                     </td>
-            <!--    <td id="tdGLAccont" class="p-2 border">
-                        <input type="number" id="GLAccount" maxlength="10" class="w-full" required />
+                    <td class="p-2 border">
+                        <input type="number" class="total w-full" maxlength="10" required />
                     </td>
-                    <td id="tdGLAccontName" class="p-2 border">
-                        <input type="text" id="AccountName" maxlength="10" class="w-full" required /> 
-                    </td>                                                                               -->
-                    <td id="tdTotal" class="p-2 border">
-                        <input type="number" id="Total" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdAction" class="p-2 border text-center">
+                    <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
                             🗑
                         </button>
@@ -93,6 +82,7 @@
                 </tr>
             </tbody>
         </table>
+        
         
         <!-- Tombol Tambah Baris -->
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
