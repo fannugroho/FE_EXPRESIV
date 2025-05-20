@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Document - Japanese Themed CRUD</title>
+    <title>Acknowledge Document</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="../js/addSettle.js"></script>
-    <script src="../pages/utils/toMenu.js"></script>
+    <script src="acknowledgeSettle.js"></script>
+    <script src="../utils/toMenu.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuSettle()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Settlement</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Settlement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -61,7 +61,7 @@
             </div>
         </div>
         
-        <table id="settleTable" class="w-full text-left border mt-2">
+        <table id="prTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
                 <tr>
@@ -79,11 +79,11 @@
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="Description" maxlength="200" class="w-full" required />
                     <td id="tdGLAccount" class="p-2 border">
-                        <input type="text" id="GLAccount" maxlength="200" class="w-full" required />
+                        <input type="number" id="GLAccount" maxlength="200" class="w-full" required />
                     <td id="tdAccountName" class="p-2 border">
                         <input type="text" id="AccountName" maxlength="200" class="w-full" required />
                     <td id="tdAmount" class="p-2 border">
-                        <input type="text" id="Amount" maxlength="200" class="w-full" required />
+                        <input type="number" id="Amount" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdActions" class="p-2 border text-center">
                         <button type="button" id="servicePrice" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -138,12 +138,12 @@
         <br>
         <div class="flex justify-start space-x-4 mt-6">
             <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-            Save
+                Reject
             </button>
-            <button onclick="goToMenuSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-            Update
+            <button onclick="goToMenuReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Acknowledge
             </button>
         </div>
-        </div>
+    </div>
 </body>
 </html>

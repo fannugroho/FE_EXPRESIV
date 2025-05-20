@@ -72,19 +72,10 @@ function previewPDF(event) {
             <input type="text" maxlength="30" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <input type="number" maxlength="10" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
-            <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
-            <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
-            <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="text" maxlength="200" class="w-full" required />
         </td>
             <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />
