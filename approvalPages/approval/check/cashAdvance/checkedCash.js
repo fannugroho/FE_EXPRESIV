@@ -31,17 +31,17 @@ function saveDocument() {
 }
 
 function goToMenuCash() {
-    window.location.href = "../pages/MenuCash.html";
+    window.location.href = "MenuCash.html";
 }
 
 document.getElementById("docType").addEventListener("change", function() {
 const selectedValue = this.value;
-const cashTable = document.getElementById("cashTable");
+const prTable = document.getElementById("prTable");
 
 if (selectedValue === "Pilih") {
-cashTable.style.display = "none";
+prTable.style.display = "none";
 } else {
-cashTable.style.display = "table";
+prTable.style.display = "table";
 }
 });
 
@@ -71,6 +71,21 @@ newRow.innerHTML = `
     <input type="text" maxlength="30" class="w-full" required />
 </td>
 <td class="p-2 border">
+    <input type="text" maxlength="200" class="w-full" required />
+</td>
+<td class="p-2 border">
+    <input type="number" maxlength="10" class="w-full" required />
+</td>
+    <td class="p-2 border">
+    <input type="number" maxlength="10" class="w-full" required />
+</td>
+    <td class="p-2 border">
+    <input type="number" maxlength="10" class="w-full" required />
+</td>
+    <td class="p-2 border">
+    <input type="number" maxlength="10" class="w-full" required />
+</td>
+    <td class="p-2 border">
     <input type="number" maxlength="10" class="w-full" required />
 </td>
 <td class="p-2 border text-center">

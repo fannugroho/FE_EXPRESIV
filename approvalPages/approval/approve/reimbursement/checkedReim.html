@@ -1,25 +1,26 @@
+
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Document Reimbursement</title>
+    <title>Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="../js/detailReim.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Reimbursement</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Document Reimbursement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
-                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded">
-                
+                <input type="text" id="outgoingNo" placeholder="Voucher no" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester" class="w-full p-2 border rounded">
-                
+                <input type="text" id="requester" placeholder="Requester" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded">
                     <option value="Production">Production</option>
@@ -29,37 +30,34 @@
                     <option value="QA/QC">QA/QC</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded">
-                
+                <input type="text" id="docCurrency" placeholder="docCurrency" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="payTo" placeholder="payTo" class="w-full p-2 border rounded">        
+                <input type="text" id="payTo" placeholder="outno" class="w-full p-2 border rounded">        
             </div>
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="postingDate" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="status" class="w-full p-2 border rounded">
+                <select id="docStatus" class="w-full p-2 border rounded">
                     <option value="Open">Open</option>
                     <option value="Closed">Approved</option>
                     <option value="Paid">Paid</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
-                
+                <input type="file" id="reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
                 <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded">
-                
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeOfTransaction" class="w-full p-2 border rounded">
+                <select id="type" class="w-full p-2 border rounded">
                     <option value="Medical">Medical</option>
                     <option value="Transport">Transport</option>
                 </select>
             </div>
         </div>
         
-        <table id="reimTable" class="w-full text-left border mt-2">
-            <thead class="bg-purple-100">
+        <table id="prTable" class="w-full text-left border mt-2">
+            <thead class="bg-grey-100">
                 <br>
                 <tr>
                     <th class="p-2">Description</th>
@@ -99,49 +97,27 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
+              <textarea class="w-full p-2 border rounded-md"></textarea>
             </div>
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" checked id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedBySelect" class="w-full p-1 border rounded">
-                    <option value="Admin 1">Admin 1</option>
-                    <option value="Admin 2">Admin 2</option>
+                <label><input type="checkbox" checked id="preparedby" class="mr-1"><strong>Prepared by :</strong></label>
+                <select id="prepared" class="w-full p-1 border rounded">
+                    <option value="Admin1">Admin 1</option>
+                    <option value="Admin2">Admin 2</option>
                 </select>
-            </div>
-            <div>
-            <label><input type="checkbox" id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
-                <option value="Supervisor 1">Supervisor 1</option>
-                <option value="Supervisor 2">Supervisor 2</option>
-            </select>
-            </div>
-            <div>
-            <label><input type="checkbox" id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBySelect" class="w-full p-1 border rounded">
-                <option value="Finance 1">Finance 1</option>
-                <option value="Finance 2">Finance 2</option>
-            </select>
-            </div>
-            <div>
-            <label><input type="checkbox" id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBySelect" class="w-full p-1 border rounded">
-                <option value="Manager 1">Manager 1</option>
-                <option value="Manager 2">Manager 2</option>
-            </select>
             </div>
         </div>
         <br>
 <div class="flex justify-start space-x-4 mt-6">
     <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Save
+        Reject
     </button>
     <button onclick="goToMenuReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Update
+        Checked
     </button>
 </div>
     </div>
-    <script src="../js/addReim.js"></script>
 </body>
 </html>
