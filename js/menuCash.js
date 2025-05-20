@@ -43,7 +43,7 @@
         function goToMenu() { window.location.href = "Menu.html"; }
         function goToAddDoc() {window.location.href = "AddDoc.html"; }
         function goToAddReim() {window.location.href = "AddReim.html"; }
-        function goToAddCash() {window.location.href = "AddCash.html"; }
+        function goToAddCash() {window.location.href = "../addPages/AddCash.html"; }
         function goToAddSettle() {window.location.href = "AddSettle.html"; }
         function goToAddPO() {window.location.href = "AddPO.html"; }
         function goToMenuPR() { window.location.href = "MenuPR.html"; }

@@ -31,7 +31,7 @@ function saveDocument() {
 }
 
 function goToMenuCash() {
-    window.location.href = "MenuCash.html";
+    window.location.href = "../pages/MenuCash.html";
 }
 
 document.getElementById("docType").addEventListener("change", function() {
