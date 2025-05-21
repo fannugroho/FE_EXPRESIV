@@ -124,9 +124,9 @@ function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
 
-function goToDetailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
-}
+// function goToDetailReim(reimId) {
+//     window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+// }
 
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }

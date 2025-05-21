@@ -85,11 +85,11 @@
         function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
         function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; } 
 
-        function detailDoc(docId) {
+        function detailDoc(caId) {
             // Store the selected document ID in localStorage for the detail page to use
-            localStorage.setItem("selectedCashAdvanceId", docId);
+            localStorage.setItem("selectedCashAdvanceId", caId);
             // Navigate to detail page
-            window.location.href = "CashAdvanceDetail.html";
+            window.location.href = `/detailPages/detailCash.html?ca-id=${caId}`;
         }
 
         function downloadExcel() {
