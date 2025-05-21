@@ -100,3 +100,73 @@ tableBody.appendChild(newRow);
 function deleteRow(button) {
 button.closest("tr").remove(); // Hapus baris tempat tombol diklik
 }
+
+function confirmDelete() {
+    Swal.fire({
+        title: 'Apakah dokumen ini akan dihapus?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            deleteDocument(); // Memanggil fungsi delete setelah konfirmasi
+            // Swal.fire(
+            //     'Deleted!',
+            //     'Your file has been deleted.',
+            //     'success'
+            // );
+        }
+    });
+}
+
+function deleteDocument() {
+    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+    
+    // Get the ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('ca-id');
+    
+    if (!id) {
+        Swal.fire('Error!', 'ID reimbursement tidak ditemukan.', 'error');
+        return;
+    }
+    
+    // Call the DELETE API
+    fetch(`${baseUrl}/api/cash-advance/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.status === 204) {
+            // 204 No Content - Success case
+            Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
+            .then(() => {
+                // Redirect to previous page or list page after successful deletion
+                window.history.back();
+            });
+        } else if (response.ok) {
+            // If there's a response body, try to parse it
+            return response.json().then(data => {
+                if (data.status) {
+                    Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
+                    .then(() => {
+                        window.history.back();
+                    });
+                } else {
+                    Swal.fire('Error!', data.message || 'Gagal menghapus dokumen karena status dokumen sudah bukan draft.', 'error');
+                }
+            });
+        } else {
+            Swal.fire('Error!', `Gagal menghapus dokumen. Status: ${response.status}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error!', 'Terjadi kesalahan saat menghapus dokumen.', 'error');
+    });
+}
