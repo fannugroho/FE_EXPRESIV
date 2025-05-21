@@ -14,14 +14,14 @@
                         
                         // Update dashboard counts
                         document.getElementById("totalDocs").textContent = documents.length;
-                        document.getElementById("draftDocs").textContent = documents.filter(doc => doc.status === " Draft").length;
-                        document.getElementById("submittedDocs").textContent = documents.filter(doc => doc.status === " Submitted").length;
-                        document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.status === " Checked").length;
-                        document.getElementById("acknowledgedDocs").textContent = documents.filter(doc => doc.status === " Acknowledged").length;
-                        document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.status === " Approved").length;
-                        document.getElementById("paidDocs").textContent = documents.filter(doc => doc.status === " Paid").length;
-                        document.getElementById("rejectedDocs").textContent = documents.filter(doc => doc.status === " Rejected").length;
-                        document.getElementById("settledDocs").textContent = documents.filter(doc => doc.status === " Settled").length;
+                        document.getElementById("draftDocs").textContent = documents.filter(doc => doc.status === "Draft").length;
+                        document.getElementById("submittedDocs").textContent = documents.filter(doc => doc.status === "Submitted").length;
+                        document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.status === "Checked").length;
+                        document.getElementById("acknowledgedDocs").textContent = documents.filter(doc => doc.status === "Acknowledged").length;
+                        document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.status === "Approved").length;
+                        document.getElementById("paidDocs").textContent = documents.filter(doc => doc.status === "Paid").length;
+                        document.getElementById("rejectedDocs").textContent = documents.filter(doc => doc.status === "Rejected").length;
+                        document.getElementById("settledDocs").textContent = documents.filter(doc => doc.status === "Settled").length;
                         
                         // Display documents in table
                         const tableBody = document.getElementById("recentDocs");
