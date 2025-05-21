@@ -1,13 +1,12 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Reimbursement</title>
+    <title>Approve Page</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="../js/detailReim.js"></script>
+    <script src="approveReim.js"></script>
+    <script src="../../../../js/util.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -102,11 +101,32 @@
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" checked id="preparedby" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
-                    <option value="Admin1">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
+                <label><input type="checkbox" checked id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
+                <select id="preparedBySelect" class="w-full p-1 border rounded">
+                    <option value="Admin 1">Admin 1</option>
+                    <option value="Admin 2">Admin 2</option>
                 </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
+                <option value="Supervisor 1">Supervisor 1</option>
+                <option value="Supervisor 2">Supervisor 2</option>
+            </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+            <select id="checkedBySelect" class="w-full p-1 border rounded">
+                <option value="Finance 1">Finance 1</option>
+                <option value="Finance 2">Finance 2</option>
+            </select>
+            </div>
+            <div>
+            <label><input type="checkbox" id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+            <select id="approvedBySelect" class="w-full p-1 border rounded">
+                <option value="Manager 1">Manager 1</option>
+                <option value="Manager 2">Manager 2</option>
+            </select>
             </div>
         </div>
         <br>
@@ -115,7 +135,7 @@
         Reject
     </button>
     <button onclick="goToMenuReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Checked
+        Approved
     </button>
 </div>
     </div>

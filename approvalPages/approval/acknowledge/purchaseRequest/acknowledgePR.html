@@ -6,6 +6,7 @@
     <title>Acknowledge Document</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="acknowledgePR.js"></script>
+    <script src="../../../pages/utils/toMenu.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -80,12 +81,11 @@
                     <th id="thPurposes" class="p-2">Purpose</th>
                     <th id="thQty" class="p-2">Qty</th>
                     <th id="thActions" class="p-2">Action</th>
-           
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdItemCode" maxlength="30" class="p-2 border">
+                    <td id="tdItemCode" class="p-2 border">
                         <select id="itemCode" class="w-full p-2 border rounded" onchange="fillItemDetails()">
                             <option value="" disabled selected>Pilih Kode Item</option>
                             <option value="ITM001">ITM001 - Laptop</option>
@@ -99,26 +99,25 @@
                     <td id="tdDetail" class="p-2 border">
                         <input type="number" id="itemDetail" maxlength="10" class="w-full" required />
                     </td>
-                    <td id="tdQuantity" class="p-2 border">
-                        <input type="number" id="itemQuantity" maxlength="10" class="w-full" required />
-                    </td>
                     <td id="tdPurposed" class="p-2 border">
                         <input type="text" id="itemPurposed" maxlength="10" class="w-full" required />
                     </td>
-                    
+                    <td id="tdQuantity" class="p-2 border">
+                        <input type="number" id="itemQuantity" maxlength="10" class="w-full" required />
+                    </td>
+                    <td id="tdAction" class="p-2 border text-center">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                            🗑
+                        </button>
+                    </td>
                     <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="serviceDescription" maxlength="200" class="w-full" readonly />
+                        <input type="text" id="serviceDescription" maxlength="200" class="w-full" />
                     </td>
                     <td id="tdPurposeds" class="p-2 border">
                         <input type="text" id="itemPurposeds" maxlength="10" class="w-full" required />
                     </td>
                     <td id="tdQty" class="p-2 border">
                         <input type="text" id="itemQtys" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdAction" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
                     </td>
                     <td id="tdActions" class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
