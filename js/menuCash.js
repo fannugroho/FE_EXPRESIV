@@ -10,15 +10,15 @@
             recentDocs.forEach(doc => {
                 const row = `<tr class='border-b'>
                     <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
-                    <td class='p-2'>${doc.docNumber}</td>
-                    <td class='p-2'>${doc.prno}</td>
-                    <td class='p-2'>${doc.requester}</td>
-                    <td class='p-2'>${doc.department}</td>
+                    <td class='p-2'>${doc.id}</td>
+                    <td class='p-2'>${doc.cashAdvanceNo}</td>
+                    <td class='p-2'>${doc.requesterName}</td>
+                    <td class='p-2'>${doc.departmentName}</td>
                     <td class='p-2'>${doc.purpose}</td>
-                    <td class='p-2'>${doc.postingDate}</td>
-                    <td class='p-2'>${doc.docStatus}</td>
+                    <td class='p-2'>${doc.submissionDate}</td>
+                    <td class='p-2'>${doc.status}</td>
                     <td class='p-2'>
-                        <button onclick="detailDoc('${doc.docNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                        <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                     </td>
                 </tr>`;
                 tableBody.innerHTML += row;
