@@ -1,258 +1,370 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Menu - Kansai Paint</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" /> 
-  <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
-      <!-- Library untuk Excel -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-      <!-- Library untuk PDF -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
-      <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-      <script src="../js/menuSettle.js"></script>
-      <script src="../pages/utils/toMenu.js"></script>
-      <link rel="stylesheet" href="../css/menuSettle.css">
-      
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Kansai Paint Supplier</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Library untuk Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Library untuk PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/shared-menu.css">
+    <link rel="stylesheet" href="../css/menuSettle.css">
+    <!-- Navigation Script -->
+    <script src="../pages/utils/toMenu.js"></script>
 </head>
-
-<body class="bg-gray-100">
-  <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
-      <i class="fas fa-bars text-white text-2xl"></i>
-    </button>
-  
-    <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
-      <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
-      <br>
-      
-     <button onclick="goToMenu()" class="menu-btn"><i class="fas fa-home"></i> Dashboard</button>
-
-     <div>
-     <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn">
-              <i class="fas fa-file-invoice-dollar"></i> Purchase Request
-          </button>
-      <div id="MenuPurchaseReq" class="hidden pl-4">
-              <button onclick="goToMenuPR()" class="submenu-btn"> Add Purchase Request</button>
-              <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Purchase Request</button>
-              <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Purchase Request</button>
-              <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Purchase Request</button>
-              <button onclick="goToMenuReceivePR()" class="submenu-btn"> Receive Purchase Request</button>
-      </div>            
-      </div>
-
-      <div>
-     <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn">
-              <i class="fas fa-hand-holding-usd"></i> Reimbursement
-          </button>
-      <div id="MenuReimbursement" class="hidden pl-4">
-              <button onclick="goToMenuReim()" class="submenu-btn"> Add Reimbursement</button>
-              <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Reimbursement</button>
-              <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Reimbursement</button>
-              <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Reimbursement</button>
-      </div>            
-      </div>
-
-       <div>
-     <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn">
-              <i class="fas fa-wallet"></i> Cash Advance
-          </button>
-      <div id="MenuCashAdvance" class="hidden pl-4">
-              <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-              <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-              <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-              <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
-      </div>            
-      </div>
-
-      <div>
-     <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn">
-              <i class="fas fa-balance-scale"></i> Settlement
-          </button>
-      <div id="MenuSettlement" class="hidden pl-4">
-              <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-              <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-              <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-              <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
-      </div>            
-      </div>
-
-      <!--approval decesion report-->
-  
-      <div>
-          <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn">
-              <i class="fas fa-check-circle"></i> Approval Decision Report
-          </button>
-          <div id="ApprovalReport" class="hidden pl-4">
-              <button onclick="goToMenuAPR()" class="submenu-btn"> PR Approval</button>
-              <button onclick="goToMenuPO()" class="submenu-btn"> PO Approval</button>
-              <button onclick="goToMenuBanking()" class="submenu-btn"> Outgoing Approval</button>
-              <button onclick="goToMenuInvoice()" class="submenu-btn"> AR Invoice Approval</button>
-          </div>
-      </div>
-
-      <!--approval decesion report-->
-
-      <div>
-          <button onclick="toggleSubMenu('settings')" class="menu-btn">
-              <i class="fas fa-cog"></i> Settings
-          </button>
-          <div id="settings" class="hidden pl-4">
-      <button onclick="goToMenuRegist()" class="menu-btn"> Register User</button>
-      <button onclick="goToMenuUser()" class="menu-btn"> User List</button>
-      <button onclick="goToMenuRole()" class="menu-btn"> Role List</button>
-      </div>
-      </div>
-
-      <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-  </aside>
-
-    <div class="flex-1 p-6 pb-20 md:pb-6">
-      <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-        Dashboard Settlement
-      </h2>
-      
-      <div class="hidden md:grid grid-cols-7 gap-4 mb-6">
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Total Documents</h3>
-          <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Draft</h3>
-          <p id="draftCount" class="text-2xl font-bold text-yellow-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Checked</h3>
-          <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Acknowledged</h3>
-          <p id="acknowledgedCount" class="text-2xl font-bold text-green-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Approved</h3>
-          <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Settled</h3>
-          <p id="settledCount" class="text-2xl font-bold text-green-600">0</p>
-        </div>
-        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-          <h3 class="text-lg font-semibold">Rejected</h3>
-          <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
-        </div>
-      </div>
-
-      <!-- Recent Documents -->
-      <div class="bg-white p-6 rounded-lg shadow-lg">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-          <h3 class="text-xl font-semibold">Recent Documents</h3>
-          <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0">
-            <div class="relative">
-              <input
-                type="text"
-                id="searchInput"
-                placeholder="Search by Settlement "
-                class="w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+<body>
+    <div class="flex min-h-screen bg-gradient">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white shadow-lg transition-all duration-300 relative">
+            <div class="sidebar-logo-container">
+                <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-12 w-auto max-w-full mx-auto" />
             </div>
             
-            <!-- Tab buttons -->
-            <div class="flex border-b w-full md:w-auto">
-              <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
-                <i class="fas fa-file-alt mr-2"></i>All Documents
-              </button>
-              <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
-                <i class="fas fa-file mr-2"></i>Draft
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
-            <thead class="bg-gray-200">
-              <tr>
-                <th class="p-2 text-left">
-                  <input type="checkbox" id="selectAll" />
-                </th>
-                <th class="p-2 text-left">Doc Number</th>
-                <th class="p-2 text-left">Voucher Number</th>
-                <th class="p-2 text-left">Requester</th>
-                <th class="p-2 text-left">Department</th>
-                <th class="p-2 text-left">Submission Date</th>
-                <th class="p-2 text-left">Paid to Employee</th>
-                <th class="p-2 text-left">Returned to Company</th>
-                <th class="p-2 text-left">Status</th>
-                <th class="p-2 text-left">Tools</th>
-              </tr>
-            </thead>
-            <tbody id="recentDocs"></tbody>
-          </table>
-        </div>
-        
-        <!-- Pagination Controls -->
-        <div class="flex justify-between items-center mt-4">
-          <div class="text-sm text-gray-600">
-            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
-          </div>
-          <div class="flex space-x-2">
-            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <span id="currentPage" class="px-3 py-1">1</span>
-            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="flex justify-between mt-4">
-        <button onclick="goToAddSettle()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-          Create Settlement
-        </button>
-        <div class="flex gap-2">
-          <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-            <i class="fa-regular fa-file-excel mr-2"></i>Export Excel
-          </button>
-          <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-            <i class="fa-regular fa-file-pdf mr-2"></i>Export PDF
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+            <div class="px-3 py-4">
+                <button onclick="goToMenu()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 rounded mb-1">
+                    <span class="menu-icon"><i class="fas fa-home"></i></span>
+                    <span class="ml-3">Dashboard</span>
+                </button>
+                
+                <div class="menu-category">Request Management</div>
+                
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                            <span class="ml-3">Purchase Request</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuPurchaseReq" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Purchase Request</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Purchase Request</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Purchase Request</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Purchase Request</button>
+                        <button onclick="goToMenuReceivePR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Purchase Request</button>
+                    </div>            
+                </div>
 
-  <!-- Mobile Navigation -->
-  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-    <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-file-alt text-xl"></i>
-      <span>Total</span>
-    </button>
-    <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-file text-xl"></i>
-      <span>Draft</span>
-    </button>
-    <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-check text-xl"></i>
-      <span>Checked</span>
-    </button>
-    <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-thumbs-up text-xl"></i>
-      <span>Approved</span>
-    </button>
-    <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-times text-xl"></i>
-      <span>Close</span>
-    </button>
-    <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-      <i class="fas fa-ban text-xl"></i>
-      <span>Reject</span>
-    </button>
-  </nav>
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-hand-holding-usd"></i></span>
+                            <span class="ml-3">Reimbursement</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuReimbursement" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Reimbursement</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Reimbursement</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Reimbursement</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Reimbursement</button>
+                    </div>            
+                </div>
+
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-wallet"></i></span>
+                            <span class="ml-3">Cash Advance</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuCashAdvance" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Cash Advance</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Cash Advance</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Cash Advance</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Cash Advance</button>
+                    </div>            
+                </div>
+
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-balance-scale"></i></span>
+                            <span class="ml-3">Settlement</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuSettlement" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Settlement</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Settlement</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Settlement</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Settlement</button>
+                    </div>            
+                </div>
+
+                <div class="menu-category">Approval Center</div>
+            
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                            <span class="ml-3">Decision Report</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+                        <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+                        <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
+                        <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+                    </div>
+                </div>
+
+                <div class="menu-category">Administration</div>
+
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('settings')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-cog"></i></span>
+                            <span class="ml-3">Settings</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="settings" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuRegist()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Register User</button>
+                        <button onclick="goToMenuUser()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> User List</button>
+                        <button onclick="goToMenuRole()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Role List</button>
+                    </div>
+                </div>
+
+                <div class="pt-4 mt-6 border-t border-gray-200">
+                    <button onclick="logout()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 text-red-500 rounded">
+                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span class="ml-3">Logout</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="sidebarToggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+        </aside>
+
+        <!-- User Avatar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Bell with Badge -->
+            <div class="relative">
+                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                </button>
+                <!-- Notification Dropdown -->
+                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
+                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
+                        <i class="fas fa-bell text-blue-500 mr-2"></i>
+                        <span>Notifikasi</span>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Purchase Request document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Reimbursement document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
+                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
+                            <span>See All Notifications</span>
+                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- User Avatar + Name -->
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
+                     onclick="goToProfile()">
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8 pb-20 md:pb-6">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Dashboard Settlement
+            </h2>
+            
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
+                <h3 class="text-white text-xl font-semibold mb-4">Status Overview</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
+                        <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
+                        <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
+                        <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
+                        <p id="approvedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
+                        <p id="paidCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Close</h3>
+                        <p id="closeCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
+                        <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Recent Documents</h3>
+                        <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0">
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    id="searchInput"
+                                    placeholder="Search by Settlement"
+                                    class="w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                            </div>
+                            
+                            <!-- Tab buttons -->
+                            <div class="flex border-b w-full md:w-auto">
+                                <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
+                                    <i class="fas fa-file-alt mr-2"></i>All Documents
+                                </button>
+                                <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
+                                    <i class="fas fa-file mr-2"></i>Draft
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="p-2 text-left">
+                                        <input type="checkbox" id="selectAll" />
+                                    </th>
+                                    <th class="p-2 text-left">Doc Number</th>
+                                    <th class="p-2 text-left">Settlement Number</th>
+                                    <th class="p-2 text-left">Requester</th>
+                                    <th class="p-2 text-left">Department</th>
+                                    <th class="p-2 text-left">Submission Date</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Tools</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentDocs"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentPage" class="px-3 py-1">1</span>
+                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button onclick="goToAddSettle()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Settlement</button>
+                    <div class="flex gap-2">
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fa-regular fa-file-excel mr-2"></i>Export Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fa-regular fa-file-pdf mr-2"></i>Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
+        <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file-alt text-xl"></i>
+            <span>Total</span>
+        </button>
+        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file text-xl"></i>
+            <span>Draft</span>
+        </button>
+        <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check text-xl"></i>
+            <span>Checked</span>
+        </button>
+        <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-thumbs-up text-xl"></i>
+            <span>Approved</span>
+        </button>
+        <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-times text-xl"></i>
+            <span>Close</span>
+        </button>
+        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-ban text-xl"></i>
+            <span>Reject</span>
+        </button>
+    </nav>
+
+    <!-- External JS -->
+    <script src="../js/shared-menu.js"></script>
+    <script src="../js/menuSettle.js"></script>
 </body>
 </html>

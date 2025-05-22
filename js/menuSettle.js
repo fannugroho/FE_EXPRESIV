@@ -55,7 +55,8 @@
   
       // Toggle Sidebar (mobile)
       function toggleSidebar() {
-        document.getElementById("sidebar").classList.toggle("-translate-x-full");
+        // No-op function - sidebar toggle is disabled to keep it permanently open
+        return;
       }
       
       // Toggle Submenu
