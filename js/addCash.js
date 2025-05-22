@@ -3,7 +3,7 @@ function saveDocument() {
     const documentData = {
         // docNumber,
         CashAdvanceNo: document.getElementById("CashAdvanceNo").value,
-        requester: document.getElementById("requester").value,
+        RequesterId: document.getElementById("RequesterId").value,
         department: document.getElementById("department").value,
 
         vendor: document.getElementById("vendor").value,
