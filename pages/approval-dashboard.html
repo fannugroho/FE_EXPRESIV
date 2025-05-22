@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Approval Dashboard - Kansai Paint Supplier</title>
+
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/dashboard-users.css" rel="stylesheet" />
+  <link href="../css/approval-dashboard.css" rel="stylesheet" />
+</head>
+<body class="font-[Poppins] bg-gray-100 min-h-screen">
+  <!-- Top Navigation Bar -->
+  <nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <div class="flex-shrink-0 flex items-center">
+            <img class="h-8 w-auto" src="../image/kansai-logo.png" alt="Kansai Paint">
+            <h1 class="ml-2 text-xl font-bold text-blue-900">Kansai Paint</h1>
+          </div>
+          <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <a href="dashboard.html" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              Dashboard
+            </a>
+            <a href="dashboard-users.html" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              User Management
+            </a>
+            <a href="approval-dashboard.html" class="border-blue-500 text-blue-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              Approval Dashboard
+            </a>
+            <a href="#" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              Settings
+            </a>
+          </div>
+        </div>
+        <div class="hidden sm:ml-6 sm:flex sm:items-center">
+          <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <span class="sr-only">View notifications</span>
+            <i class="fas fa-bell"></i>
+          </button>
+
+          <!-- Profile dropdown -->
+          <div class="ml-3 relative">
+            <div class="flex items-center">
+              <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+              <span class="ml-2 text-sm font-medium text-gray-700">Admin User</span>
+              <i class="fas fa-chevron-down ml-1 text-xs text-gray-400"></i>
+            </div>
+          </div>
+        </div>
+        <div class="-mr-2 flex items-center sm:hidden">
+          <!-- Mobile menu button -->
+          <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-expanded="false">
+            <span class="sr-only">Open main menu</span>
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- Page Header -->
+    <div class="md:flex md:items-center md:justify-between bg-white p-4 rounded-lg shadow-sm mb-6">
+      <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+          Approval Dashboard
+        </h2>
+        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+          <div class="mt-2 flex items-center text-sm text-gray-500">
+            <i class="fas fa-clock flex-shrink-0 mr-1.5 h-5 w-5 text-yellow-500"></i>
+            Pending Approvals: <span id="pendingCount" class="ml-1 font-semibold">0</span>
+          </div>
+          <div class="mt-2 flex items-center text-sm text-gray-500">
+            <i class="fas fa-check-circle flex-shrink-0 mr-1.5 h-5 w-5 text-green-500"></i>
+            Approved: <span id="approvedCount" class="ml-1 font-semibold">0</span>
+          </div>
+          <div class="mt-2 flex items-center text-sm text-gray-500">
+            <i class="fas fa-times-circle flex-shrink-0 mr-1.5 h-5 w-5 text-red-500"></i>
+            Rejected: <span id="rejectedCount" class="ml-1 font-semibold">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="dashboard-users.html" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <i class="fas fa-users mr-2"></i>
+          Back to User Management
+        </a>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <div class="flex space-x-4">
+          <button id="all-btn" class="filter-btn active-filter px-4 py-2 text-sm font-medium rounded-md">
+            All
+          </button>
+          <button id="pending-btn" class="filter-btn px-4 py-2 text-sm font-medium rounded-md">
+            <i class="fas fa-clock mr-1 text-yellow-500"></i> Pending
+          </button>
+          <button id="approved-btn" class="filter-btn px-4 py-2 text-sm font-medium rounded-md">
+            <i class="fas fa-check-circle mr-1 text-green-500"></i> Approved
+          </button>
+          <button id="rejected-btn" class="filter-btn px-4 py-2 text-sm font-medium rounded-md">
+            <i class="fas fa-times-circle mr-1 text-red-500"></i> Rejected
+          </button>
+        </div>
+        <div class="mt-4 sm:mt-0">
+          <div class="relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input type="text" id="approval-search" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="Search by name or ID...">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Approval Table -->
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="approval-table">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                User
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Department/Position
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Submitted
+              </th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200" id="approval-table-body">
+            <!-- Table rows will be populated via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden bg-white rounded-lg shadow-sm p-8 text-center">
+      <div class="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-blue-100">
+        <i class="fas fa-clipboard-check text-4xl text-blue-600"></i>
+      </div>
+      <h3 class="mt-5 text-lg leading-6 font-medium text-gray-900">No pending approvals</h3>
+      <p class="mt-2 text-sm text-gray-500">
+        There are no user registrations waiting for approval at this time.
+      </p>
+      <div class="mt-6">
+        <a href="register.html" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <i class="fas fa-user-plus mr-2"></i>
+          Register New User
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Detail Modal -->
+  <div id="approvalModal" class="fixed inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+              <i class="fas fa-user-circle text-blue-600"></i>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                User Registration Details
+              </h3>
+              <div class="mt-4">
+                <div id="modal-content" class="text-sm text-gray-500">
+                  <!-- Will be populated via JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex justify-between">
+          <div class="approval-actions">
+            <button type="button" id="reject-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+              Reject
+            </button>
+            <button type="button" id="approve-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+              Approve
+            </button>
+          </div>
+          <button type="button" id="close-modal-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="../js/approval-dashboard.js"></script>
+</body>
+</html> 
