@@ -19,12 +19,12 @@
       
 </head>
 
-<body class="bg-gradient-to-r from-blue-500 to-red-500">
-  <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
-    <i class="fas fa-bars text-white text-2xl"></i>
-  </button>
+<body class="bg-gray-100">
+  <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
+      <i class="fas fa-bars text-white text-2xl"></i>
+    </button>
   
-  <div class="flex min-h-screen">
     <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
       <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
       <br>
@@ -118,37 +118,60 @@
       <div class="hidden md:grid grid-cols-7 gap-4 mb-6">
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Total Documents</h3>
-          <p id="totalDocs" class="text-2xl font-bold text-blue-600">0</p>
+          <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Draft</h3>
-          <p id="pendingDocs" class="text-2xl font-bold text-yellow-600">0</p>
+          <p id="draftCount" class="text-2xl font-bold text-yellow-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Checked</h3>
-          <p id="checkedDocs" class="text-2xl font-bold text-green-600">0</p>
+          <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Acknowledged</h3>
-          <p id="checkedDocs" class="text-2xl font-bold text-green-600">0</p>
+          <p id="acknowledgedCount" class="text-2xl font-bold text-green-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Approved</h3>
-          <p id="approvedDocs" class="text-2xl font-bold text-green-600">0</p>
+          <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Settled</h3>
-          <p id="closeDocs" class="text-2xl font-bold text-green-600">0</p>
+          <p id="settledCount" class="text-2xl font-bold text-green-600">0</p>
         </div>
         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
           <h3 class="text-lg font-semibold">Rejected</h3>
-          <p id="rejectDocs" class="text-2xl font-bold text-green-600">0</p>
+          <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
         </div>
       </div>
 
       <!-- Recent Documents -->
       <div class="bg-white p-6 rounded-lg shadow-lg">
-        <h3 class="text-xl font-semibold mb-4">Recent Documents</h3>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold">Recent Documents</h3>
+          <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0">
+            <div class="relative">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search by Settlement "
+                class="w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+            </div>
+            
+            <!-- Tab buttons -->
+            <div class="flex border-b w-full md:w-auto">
+              <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
+                <i class="fas fa-file-alt mr-2"></i>All Documents
+              </button>
+              <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
+                <i class="fas fa-file mr-2"></i>Draft
+              </button>
+            </div>
+          </div>
+        </div>
         <div class="overflow-x-auto">
           <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
             <thead class="bg-gray-200">
@@ -170,27 +193,47 @@
             <tbody id="recentDocs"></tbody>
           </table>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div class="flex justify-between items-center mt-4">
+          <div class="text-sm text-gray-600">
+            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+          </div>
+          <div class="flex space-x-2">
+            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="currentPage" class="px-3 py-1">1</span>
+            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
       </div>
       
       <div class="flex justify-between mt-4">
         <button onclick="goToAddSettle()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
           Create Settlement
         </button>
-        <div class="flex justify-end mt-4">
-          <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-excel"></i></button>
-          <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-pdf"></i></button>
-      </div>
+        <div class="flex gap-2">
+          <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+            <i class="fa-regular fa-file-excel mr-2"></i>Export Excel
+          </button>
+          <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+            <i class="fa-regular fa-file-pdf mr-2"></i>Export PDF
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Mobile Navigation -->
   <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-    <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+    <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
       <i class="fas fa-file-alt text-xl"></i>
       <span>Total</span>
     </button>
-    <button onclick="goToDraftDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+    <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
       <i class="fas fa-file text-xl"></i>
       <span>Draft</span>
     </button>
@@ -211,7 +254,5 @@
       <span>Reject</span>
     </button>
   </nav>
-
- 
 </body>
 </html>
