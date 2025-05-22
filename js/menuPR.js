@@ -1,39 +1,106 @@
+const BASE_URL = "http://localhost:5246";
 
 function loadDashboard() {
     const documents = JSON.parse(localStorage.getItem("documents")) || [];
     document.getElementById("totalDocs").textContent = documents.length;
-    document.getElementById("openDocs").textContent = documents.filter(doc => doc.status === "Open").length;
-    document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.status === "Checked").length;
-    document.getElementById("acknowledgeDocs").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
-    document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.status === "Approved").length;
-    document.getElementById("rejectDocs").textContent = documents.filter(doc => doc.status === "Reject").length;
-    document.getElementById("closeDocs").textContent = documents.filter(doc => doc.status === "Close").length;
-
-
+    document.getElementById("openDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
+    document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Checked").length;
+    document.getElementById("acknowledgeDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
+    document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Approved").length;
+    document.getElementById("rejectDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
+    document.getElementById("closeDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Closed").length;
 
     const recentDocs = documents.slice().reverse();
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
-    recentDocs.forEach(doc => {
+    recentDocs.forEach((doc, index) => {
+        // Format dates for display
+        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
+        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
+        
+        // PO number may be null, handle that case
+        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
+        
+        // Get status from approval object
+        const status = doc.approval ? doc.approval.status : "Open";
+        
+        // GR date currently not in the JSON, leaving empty for now
+        const grDate = '';
+        
         const row = `<tr class='w-full border-b'>
-            
-            <td class='p-2'>${doc.id}</td>
+            <td class='p-2'>${index + 1}</td>
             <td class='p-2'>${doc.purchaseRequestNo}</td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
-            <td class='p-2'>${doc.submissionDate}</td>
-            <td class='p-2'>${doc.requiredDate}</td>
-            <td class='p-2'>${doc.poNumber}</td>
-            <td class='p-2'>${doc.status}</td>
+            <td class='p-2'>${submissionDate}</td>
+            <td class='p-2'>${requiredDate}</td>
+            <td class='p-2'>${poNumber}</td>
+            <td class='p-2'>${status}</td>
             <td class='p-2'>
-                <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
-            <td class='p-2'>${doc.grDate}</td>
+            <td class='p-2'>${grDate}</td>
         </tr>`;
         tableBody.innerHTML += row;
     });
 }
 
+async function fetchPurchaseRequests() {
+    fetch(`${BASE_URL}/api/pr`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.data) {
+                populatePurchaseRequests(data.data);
+                updateDashboardCounts(data.data);
+            }
+        })
+        .catch(error => console.error('Error fetching purchase requests:', error));
+}
+
+function updateDashboardCounts(data) {
+    document.getElementById("totalDocs").textContent = data.length;
+    document.getElementById("openDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
+    document.getElementById("checkedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Checked").length;
+    document.getElementById("acknowledgeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
+    document.getElementById("approvedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Approved").length;
+    document.getElementById("rejectDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
+    document.getElementById("closeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Closed").length;
+}
+
+function populatePurchaseRequests(data) {
+    const tableBody = document.getElementById("recentDocs");
+    tableBody.innerHTML = "";
+    data.forEach((doc, index) => {
+        // Format dates for display
+        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
+        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
+        
+        // PO number may be null, handle that case
+        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
+        
+        // Get status from approval object
+        const status = doc.approval ? doc.approval.status : "Open";
+        
+        // GR date currently not in the JSON, leaving empty for now
+        const grDate = '';
+        
+        const row = `<tr class='w-full border-b'>
+            <td class='p-2'>${index + 1}</td>
+            <td class='p-2'>${doc.purchaseRequestNo}</td>
+            <td class='p-2'>${doc.requesterName}</td>
+            <td class='p-2'>${doc.departmentName}</td>
+            <td class='p-2'>${submissionDate}</td>
+            <td class='p-2'>${requiredDate}</td>
+            <td class='p-2'>${poNumber}</td>
+            <td class='p-2'>${status}</td>
+            <td class='p-2'>
+                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            </td>
+            <td class='p-2'>${grDate}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+}
 
 function updateDoc(id) {
     alert(`Update document: ${id}`);
@@ -94,4 +161,13 @@ startY: 20
 
 doc.save("Recent_Documents.pdf");
 }
-;
+
+// Add window.onload event listener
+window.onload = function() {
+    fetchPurchaseRequests();
+    
+};
+
+function detailDoc(id, prType) {
+    window.location.href = `../detailPages/detailPR.html?pr-id=${id}&pr-type=${prType}`;
+}
