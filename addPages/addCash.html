@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Document - Japanese Themed CRUD</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/addCash.js"></script>
 </head>
 
@@ -20,7 +21,7 @@
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="EmployeeNIK" placeholder="Employee NIK" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
-                <input type="text" id="employeeName" placeholder="Employee Name" class="w-full p-2 border rounded"> 
+                <input type="text" id="EmployeeName" placeholder="Employee Name" class="w-full p-2 border rounded"> 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
                 <div class="relative">
                     <input type="text" id="requesterSearch" placeholder="Search requester" class="w-full p-2 border rounded" onkeyup="filterRequesters()" autocomplete="off">
@@ -101,7 +102,7 @@
                     }
                 </script>
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
-                <input type="text" id="purposed" placeholder="Purpose" class="w-full p-2 border rounded">    
+                <input type="text" id="Purpose" placeholder="Purpose" class="w-full p-2 border rounded">    
                 <h3 class="text-lg font-semibold mb-2">Paid To</h3>
                 <input  type="text" id="paidTo" placeholder="Paid to" class="w-full p-2 border rounded bg-gray-100" readonly>        
             </div>
@@ -111,22 +112,22 @@
                 <select id="department" class="w-full p-2 border rounded">
                     <option value="Production">Production</option>
                     <option value="Marketing">Marketing</option>
-                    <option value="Technical">Technical</option>
+                    <option value="a400a6f1-9944-4c42-a622-1b8d7be8563e">Technical</option>
                     <option value="Admninistration">Admninistration</option>
                     <option value="QA/QC">QA/QC</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
-                <input type="date" id="postingDate" class="w-full p-2 border rounded">
+                <input type="date" id="SubmissionDate" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="docStatus" class="w-full p-2 border rounded" class="bg-gray-100">
+                <select id="Status" class="w-full p-2 border rounded" class="bg-gray-100">
                     <option value="Open">Pending</option>
                     <option value="Closed">Approved</option>
                     <option value="Settled">Settled</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <input type="file" id="Attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeTransaction" class="w-full p-2 border rounded">
+                <select id="TransactionType" class="w-full p-2 border rounded">
                     <option value="Medical">Medical</option>
                     <option value="Entertainment">Entertainment</option>
                     <option value="Transport">Transport</option>
@@ -146,10 +147,12 @@
             <tbody id="tableBody">
                 <tr>
                     <td class="p-2 border">
-                        <input type="text" class="description w-full" maxlength="200" readonly />
+                        <input id="Description" type="text" class="description w-full" maxlength="200" />
+                        <!-- Ini dari form-data dengan key CashAdvanceDetails[0].Description -->
                     </td>
                     <td class="p-2 border">
-                        <input type="number" class="total w-full" maxlength="10" required />
+                        <input id="Amount" type="number" class="total w-full" maxlength="10" required />
+                        <!-- Ini dari form-data dengan key CashAdvanceDetails[0].Amount -->
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -168,35 +171,35 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea class="w-full p-2 border rounded-md"></textarea>
+              <textarea id="Remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><input type="checkbox" id="prepared" class="mr-1"><strong>Proposed by :</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
-                    <option value="Admin1">Admin 1</option>
+                <select id="Approval.PreparedById" class="w-full p-1 border rounded">
+                    <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Admin 1</option>
                     <option value="Admin2">Admin 2</option>
                 </select>`
             </div>
             <div>
             <label><input type="checkbox" id="checked" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="Checked" class="w-full p-1 border rounded">
-                <option value="Finance1">Finance 1</option>
+            <select id="Approval.CheckedById" class="w-full p-1 border rounded">
+                <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Finance 1</option>
                 <option value="Finance2">Finance 2</option>
             </select>
             </div>
             <div>
             <label><input type="checkbox" id="approved" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="Approved" class="w-full p-1 border rounded">
-                <option value="Manager1">Manager 1</option>
+            <select id="Approval.ApprovedById" class="w-full p-1 border rounded">
+                <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Manager 1</option>
                 <option value="Manager2">Manager 2</option>
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="approved" class="mr-1"><strong>Acknowledged by :</strong></label>
-            <select id="Approved" class="w-full p-1 border rounded">
-                <option value="Manager1">General Manager 1</option>
+            <label><input type="checkbox" id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+            <select id="Approval.AcknowledgedById" class="w-full p-1 border rounded">
+                <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">General Manager 1</option>
                 <option value="Manager2">General Manager 2</option>
             </select>
             </div>
