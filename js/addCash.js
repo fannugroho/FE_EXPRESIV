@@ -1,8 +1,8 @@
 function saveDocument() {
-    const docNumber = (JSON.parse(localStorage.getItem("documents")) || []).length + 1;
+    // const docNumber = (JSON.parse(localStorage.getItem("documents")) || []).length + 1;
     const documentData = {
-        docNumber,
-        invno: document.getElementById("Invoice no").value,
+        // docNumber,
+        CashAdvanceNo: document.getElementById("CashAdvanceNo").value,
         requester: document.getElementById("requester").value,
         department: document.getElementById("department").value,
 
