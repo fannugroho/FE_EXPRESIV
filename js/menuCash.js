@@ -9,8 +9,8 @@
                     return response.json();
                 })
                 .then(data => {
-                    if (data.success && data.result) {
-                        const documents = data.result;
+                    if (data.status && data.data) {
+                        const documents = data.data;
                         
                         // Update dashboard counts
                         document.getElementById("totalDocs").textContent = documents.length;
@@ -98,8 +98,8 @@
             fetch(`${baseUrl}/api/cash-advance`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.result) {
-                        const documents = data.result;
+                    if (data.status && data.data) {
+                        const documents = data.data;
                         
                         // Create worksheet data
                         const worksheetData = [
@@ -141,8 +141,8 @@
             fetch(`${baseUrl}/api/cash-advance`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.result) {
-                        const documents = data.result;
+                    if (data.status && data.data) {
+                        const documents = data.data;
                         
                         // Create document data
                         const docData = [];
