@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'Checked'; // Default tab
+let currentTab = 'draft'; // Default tab
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -37,15 +37,14 @@ function loadDashboard() {
     
     // Update counters
     document.getElementById("totalCount").textContent = documents.length;
-    document.getElementById("draftCount").textContent = documents.filter(doc => doc.status === "Draft").length;
-    document.getElementById("checkedCount").textContent = documents.filter(doc => doc.status === "Checked").length;
-
+    document.getElementById("acknowledgeCount").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
+    document.getElementById("approveCount").textContent = documents.filter(doc => doc.status === "Approved").length;
     // Filter documents based on the current tab
     let filteredDocs = [];
-    if (currentTab === 'draft') {
-        filteredDocs = documents.filter(doc => doc.status === "Draft");
-    } else if (currentTab === 'checked') {
-        filteredDocs = documents.filter(doc => doc.status === "Checked");
+    if (currentTab === 'acknowledge') {
+        filteredDocs = documents.filter(doc => doc.status === "Acknowledge");
+    } else if (currentTab === 'approve') {
+        filteredDocs = documents.filter(doc => doc.status === "Approved");
     }
 
     // Sort the filtered docs (newest first)
@@ -88,10 +87,10 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-    } else if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    if (tabName === 'acknowledge') {
+        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
+    } else if (tabName === 'approve') {
+        document.getElementById('approveTabBtn').classList.add('tab-active');
     }
     
     // Reload dashboard with the new filter
