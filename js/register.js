@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let excelFileInput = document.getElementById("excelFile");
     let dropArea = excelFileInput ? excelFileInput.parentElement : null;
   
+    // Add download template button functionality
+    addDownloadTemplateButton();
+  
     // Add drag and drop functionality
     if (dropArea) {
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -66,13 +69,13 @@ document.addEventListener("DOMContentLoaded", function () {
       if (tableBody) {
         tableBody.innerHTML = `
           <tr class="text-center">
-            <td colspan="9" class="py-8">
+            <td colspan="8" class="py-8">
               <div class="flex justify-center items-center">
                 <svg class="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Memproses file Excel...
+                Processing Excel file...
               </div>
             </td>
           </tr>
@@ -83,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const fileExtension = file.name.split('.').pop().toLowerCase();
       
       if (!['xlsx', 'xls', 'csv'].includes(fileExtension)) {
-        showNotification('Format file tidak didukung. Silakan gunakan file Excel (.xlsx, .xls) atau CSV.', 'error');
+        showNotification('Unsupported file format. Please use Excel (.xlsx, .xls) or CSV files.', 'error');
         resetTableBody(tableBody);
         return;
       }
@@ -106,14 +109,14 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("Workbook berhasil dibaca. Sheet names:", workbook.SheetNames);
           } catch (xlsxError) {
             console.error("Error saat membaca workbook:", xlsxError);
-            showNotification('Error saat memproses file Excel. Coba dengan format file yang berbeda.', 'error');
+            showNotification('Error processing Excel file. Try a different file format.', 'error');
             resetTableBody(tableBody);
             return;
           }
           
           if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
             console.error("Tidak ada sheet dalam workbook");
-            showNotification('File Excel tidak memiliki sheet data.', 'error');
+            showNotification('Excel file has no data sheets.', 'error');
             resetTableBody(tableBody);
             return;
           }
@@ -123,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
           
           if (!firstSheet) {
             console.error("Sheet pertama tidak ditemukan");
-            showNotification('Sheet data tidak ditemukan dalam file Excel.', 'error');
+            showNotification('Data sheet not found in Excel file.', 'error');
             resetTableBody(tableBody);
             return;
           }
@@ -141,13 +144,13 @@ document.addEventListener("DOMContentLoaded", function () {
             
             if (excelData.length <= 1) {
               console.warn("File Excel hanya berisi header atau kosong");
-              showNotification('File Excel tidak berisi data atau hanya berisi header.', 'warning');
+              showNotification('Excel file contains no data or only headers.', 'warning');
               resetTableBody(tableBody, `
                 <tr class="text-center text-yellow-500">
-                  <td colspan="9" class="py-8">
+                  <td colspan="8" class="py-8">
                     <div class="flex flex-col items-center">
                       <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                      <p>File Excel tidak berisi data atau hanya berisi header.</p>
+                      <p>Excel file contains no data or only headers.</p>
                     </div>
                   </td>
                 </tr>
@@ -156,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           } catch (jsonError) {
             console.error("Error saat mengkonversi sheet ke JSON:", jsonError);
-            showNotification('Error saat mengekstrak data dari file Excel.', 'error');
+            showNotification('Error extracting data from Excel file.', 'error');
             resetTableBody(tableBody);
             return;
           }
@@ -169,21 +172,25 @@ document.addEventListener("DOMContentLoaded", function () {
           if (!validateExcelStructure(headerRow)) {
             const errorMessage = `
               <tr class="text-center text-red-500">
-                <td colspan="9" class="py-8">
+                <td colspan="8" class="py-8">
                   <div class="flex flex-col items-center">
                     <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
-                    <p class="font-semibold mb-1">Format file Excel tidak valid</p>
-                    <p class="text-sm mb-3">File yang diunggah tidak memiliki kolom yang diperlukan</p>
+                    <p class="font-semibold mb-1">Invalid Excel file format</p>
+                    <p class="text-sm mb-3">The uploaded file does not have the required columns</p>
                     <div class="text-left text-xs bg-red-50 p-3 rounded-md border border-red-200 max-w-md">
-                      <p class="font-semibold mb-1">Kolom yang diperlukan:</p>
+                      <p class="font-semibold mb-1">Required columns:</p>
                       <ul class="list-disc pl-4 space-y-1">
-                        <li>Employee ID (atau ID)</li>
-                        <li>NIK (atau National ID)</li>
-                        <li>Name (atau First Name, Middle Name, Last Name)</li>
-                        <li>Department</li>
-                        <li>Position (atau Job Title)</li>
+                        <li>Username</li>
+                        <li>Email</li>
+                        <li>Password</li>
+                        <li>First Name</li>
+                        <li>Last Name</li>
+                        <li>Kansai Employee ID</li>
+                        <li>Position</li>
+                        <li>Department Name</li>
                       </ul>
-                      <p class="mt-2">Opsional tapi disarankan: Phone, Email</p>
+                      <p class="mt-2">Optional: Middle Name, Phone Number, Roles</p>
+                      <p class="mt-2 font-semibold">Please download the template for the correct format.</p>
                     </div>
                   </div>
                 </td>
@@ -191,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
             
             resetTableBody(tableBody, errorMessage);
-            showNotification('File Excel tidak memiliki kolom yang diperlukan. Periksa format file.', 'error');
+            showNotification('Excel file does not have the required columns. Please download the template for the correct format.', 'error');
             return;
           }
           
@@ -209,14 +216,14 @@ document.addEventListener("DOMContentLoaded", function () {
           showNotification(`File "${originalFileName}" berhasil diproses!`, 'success');
         } catch (error) {
           console.error("Error memproses file Excel:", error);
-          showNotification('Error saat memproses file. Periksa format file.', 'error');
+          showNotification('Error processing file. Please check file format.', 'error');
           resetTableBody(tableBody);
         }
       };
       
       reader.onerror = function(event) {
         console.error("FileReader error:", event);
-        showNotification('Error saat membaca file', 'error');
+        showNotification('Error reading file', 'error');
         resetTableBody(tableBody);
       };
       
@@ -224,44 +231,63 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     function validateExcelStructure(headerRow) {
-      if (!headerRow || headerRow.length < 3) return false;
+      if (!headerRow || headerRow.length < 8) return false;
       
-      // Convert header row to lowercase for case-insensitive comparison
       const headerLower = headerRow.map(h => String(h).toLowerCase());
       
-      // Check for required columns with flexible matching
+      // Required columns for the new API
       const requiredFields = [
-        // Need either employee ID or some ID field
-        { 
-          alternatives: ['employee id', 'employeeid', 'id', 'emp id', 'emp. id'] 
-        },
-        // Need either NIK or some kind of identification number
-        { 
-          alternatives: ['nik', 'national id', 'identification', 'id number'] 
-        },
-        // Need some form of name (either full name or at least first name)
-        { 
-          alternatives: ['name', 'full name', 'first name', 'firstname'] 
-        },
-        // Need department info
-        { 
-          alternatives: ['department', 'dept', 'division'] 
-        },
-        // Need position info
-        { 
-          alternatives: ['position', 'job title', 'title', 'role'] 
-        }
+        'username',
+        'email', 
+        'password',
+        'first name',
+        'last name',
+        'kansai employee id',
+        'position',
+        'department name'
       ];
       
-      // Check if each required field has at least one match in the headers
-      const missingFields = requiredFields.filter(field => {
-        return !field.alternatives.some(alt => 
-          headerLower.some(h => h.includes(alt))
-        );
-      });
+      // Check if all required fields exist
+      const missingFields = requiredFields.filter(field => 
+        !headerLower.some(h => h.includes(field.toLowerCase()))
+      );
       
       if (missingFields.length > 0) {
         console.warn('Missing required fields:', missingFields);
+        
+        // Show detailed error message with correct format
+        const errorMessage = `
+          <tr class="text-center text-red-500">
+            <td colspan="8" class="py-8">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                <p class="font-semibold mb-1">Invalid Excel file format</p>
+                <p class="text-sm mb-3">The uploaded file does not have the required columns</p>
+                <div class="text-left text-xs bg-red-50 p-3 rounded-md border border-red-200 max-w-md">
+                  <p class="font-semibold mb-1">Required columns:</p>
+                  <ul class="list-disc pl-4 space-y-1">
+                    <li>Username</li>
+                    <li>Email</li>
+                    <li>Password</li>
+                    <li>First Name</li>
+                    <li>Last Name</li>
+                    <li>Kansai Employee ID</li>
+                    <li>Position</li>
+                    <li>Department Name</li>
+                  </ul>
+                  <p class="mt-2">Optional: Middle Name, Phone Number, Roles</p>
+                  <p class="mt-2 font-semibold">Please download the template for the correct format.</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+        
+        const tableBody = document.getElementById("employeeTableBody");
+        if (tableBody) {
+          tableBody.innerHTML = errorMessage;
+        }
+        
         return false;
       }
       
@@ -337,7 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
           tableBody.innerHTML = `
             <tr class="text-center text-gray-500">
-              <td colspan="9" class="px-4 py-8">Upload an Excel file to preview data</td>
+              <td colspan="8" class="px-4 py-8">Upload Excel file to preview data</td>
             </tr>
           `;
         }
@@ -361,205 +387,60 @@ document.addEventListener("DOMContentLoaded", function () {
   
     function displayExcelData(data) {
       let tableBody = document.getElementById("employeeTableBody");
-      if (!tableBody) {
-        console.error("Elemen table body tidak ditemukan");
+      if (!tableBody || !data || data.length <= 1) {
         return;
       }
       
-      tableBody.innerHTML = ""; // Clear table before adding new data
+      tableBody.innerHTML = "";
       
-      if (!data || data.length === 0) {
-        console.warn("Tidak ada data untuk ditampilkan");
-        tableBody.innerHTML = `
-          <tr class="text-center text-gray-500">
-            <td colspan="9" class="py-8">Tidak ada data ditemukan dalam file Excel</td>
-          </tr>
-        `;
-        return;
+      const header = data[0];
+      const colMap = mapColumns(header);
+      
+      let displayedRowCount = 0;
+      
+      for (let i = 1; i < data.length; i++) {
+        let row = data[i];
+        if (!row || !row.length || row.every(cell => !cell)) continue;
+        
+        let tr = document.createElement("tr");
+        tr.className = "hover:bg-gray-50 transition-colors";
+        
+        // Create table cells based on the column mapping (8 columns)
+        const cellData = [
+          row[colMap.kansaiEmployeeId] || "—",      // Kansai Employee ID
+          row[colMap.username] || "—",              // Username
+          `${row[colMap.firstName] || ""} ${row[colMap.middleName] || ""} ${row[colMap.lastName] || ""}`.trim() || "—", // Full Name
+          row[colMap.email] || "—",                 // Email
+          row[colMap.departmentName] || "—",        // Department
+          row[colMap.position] || "—",              // Position
+          row[colMap.phoneNumber] || "—",           // Phone
+          row[colMap.roles] || "User"               // Roles
+        ];
+        
+        cellData.forEach(cellText => {
+          let td = document.createElement("td");
+          td.className = "px-4 py-3 whitespace-nowrap";
+          td.textContent = cellText;
+          tr.appendChild(td);
+        });
+        
+        tableBody.appendChild(tr);
+        displayedRowCount++;
       }
       
-      if (data.length <= 1) {
-        console.warn("Hanya ada baris header, tidak ada data");
-        tableBody.innerHTML = `
-          <tr class="text-center text-gray-500">
-            <td colspan="9" class="py-8">Tidak ada data ditemukan dalam file Excel</td>
-          </tr>
-        `;
-        return;
+      // Update count
+      const totalUsersElement = document.getElementById("totalUsers");
+      if (totalUsersElement) {
+        totalUsersElement.textContent = displayedRowCount;
       }
       
-      try {
-        // Get the header row to map columns
-        const headerRow = data[0];
-        console.log("Header row untuk mapping:", headerRow);
-        
-        // Map expected column indices
-        const columnMap = {
-          employeeId: headerRow.findIndex(col => String(col || '').toLowerCase().includes('employee') && String(col || '').toLowerCase().includes('id')),
-          nik: headerRow.findIndex(col => String(col || '').toLowerCase().includes('nik')),
-          firstName: headerRow.findIndex(col => String(col || '').toLowerCase().includes('first') && String(col || '').toLowerCase().includes('name')),
-          middleName: headerRow.findIndex(col => String(col || '').toLowerCase().includes('middle') && String(col || '').toLowerCase().includes('name')),
-          lastName: headerRow.findIndex(col => String(col || '').toLowerCase().includes('last') && String(col || '').toLowerCase().includes('name')),
-          fullName: headerRow.findIndex(col => String(col || '').toLowerCase() === 'name' || String(col || '').toLowerCase() === 'full name' || String(col || '').toLowerCase() === 'nama'),
-          department: headerRow.findIndex(col => String(col || '').toLowerCase().includes('depart')),
-          position: headerRow.findIndex(col => String(col || '').toLowerCase().includes('position') || String(col || '').toLowerCase().includes('jabatan')),
-          phone: headerRow.findIndex(col => String(col || '').toLowerCase().includes('phone') || String(col || '').toLowerCase().includes('mobile') || String(col || '').toLowerCase().includes('telepon')),
-          email: headerRow.findIndex(col => String(col || '').toLowerCase().includes('email'))
-        };
-        
-        console.log("Hasil mapping kolom:", columnMap);
-        
-        // Check if we have a full name but not individual name parts
-        const hasFullNameOnly = columnMap.fullName !== -1 && 
-                              columnMap.firstName === -1 && 
-                              columnMap.middleName === -1 && 
-                              columnMap.lastName === -1;
-        
-        if (hasFullNameOnly) {
-          console.log("Hanya kolom nama lengkap yang ditemukan, akan memisahkan nama");
-        }
-        
-        // Skip header row (index 0) and display data rows
-        let displayedRowCount = 0;
-        
-        for (let i = 1; i < data.length; i++) {
-          let row = data[i];
-          if (!row || !row.length || row.every(cell => !cell)) {
-            console.warn(`Baris ${i} kosong, dilewati`);
-            continue; // Skip empty rows
-          }
-          
-          console.log(`Memproses baris ${i}:`, row);
-          
-          let tr = document.createElement("tr");
-          tr.className = "hover:bg-gray-50 transition-colors";
-          
-          // Create cells for each expected column in the table
-          const tableCells = [];
-          
-          // 1. Employee ID
-          let cellEmployeeId = document.createElement("td");
-          cellEmployeeId.className = "px-4 py-3 whitespace-nowrap";
-          cellEmployeeId.textContent = columnMap.employeeId !== -1 ? (row[columnMap.employeeId] || "—") : "—";
-          tableCells.push(cellEmployeeId);
-          
-          // 2. NIK
-          let cellNik = document.createElement("td");
-          cellNik.className = "px-4 py-3 whitespace-nowrap";
-          cellNik.textContent = columnMap.nik !== -1 ? (row[columnMap.nik] || "—") : "—";
-          tableCells.push(cellNik);
-          
-          // Handle name fields (3-5: First, Middle, Last)
-          if (hasFullNameOnly && columnMap.fullName !== -1) {
-            // Split full name into parts
-            const fullName = row[columnMap.fullName] || "";
-            const nameParts = fullName.split(' ');
-            
-            // 3. First Name
-            let cellFirstName = document.createElement("td");
-            cellFirstName.className = "px-4 py-3 whitespace-nowrap";
-            cellFirstName.textContent = nameParts[0] || "—";
-            tableCells.push(cellFirstName);
-            
-            // 4. Middle Name
-            let cellMiddleName = document.createElement("td");
-            cellMiddleName.className = "px-4 py-3 whitespace-nowrap";
-            cellMiddleName.textContent = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : "—";
-            tableCells.push(cellMiddleName);
-            
-            // 5. Last Name
-            let cellLastName = document.createElement("td");
-            cellLastName.className = "px-4 py-3 whitespace-nowrap";
-            cellLastName.textContent = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "—";
-            tableCells.push(cellLastName);
-          } else {
-            // Use separate name columns if available
-            
-            // 3. First Name
-            let cellFirstName = document.createElement("td");
-            cellFirstName.className = "px-4 py-3 whitespace-nowrap";
-            cellFirstName.textContent = columnMap.firstName !== -1 ? (row[columnMap.firstName] || "—") : "—";
-            tableCells.push(cellFirstName);
-            
-            // 4. Middle Name
-            let cellMiddleName = document.createElement("td");
-            cellMiddleName.className = "px-4 py-3 whitespace-nowrap";
-            cellMiddleName.textContent = columnMap.middleName !== -1 ? (row[columnMap.middleName] || "—") : "—";
-            tableCells.push(cellMiddleName);
-            
-            // 5. Last Name
-            let cellLastName = document.createElement("td");
-            cellLastName.className = "px-4 py-3 whitespace-nowrap";
-            cellLastName.textContent = columnMap.lastName !== -1 ? (row[columnMap.lastName] || "—") : "—";
-            tableCells.push(cellLastName);
-          }
-          
-          // 6. Department
-          let cellDepartment = document.createElement("td");
-          cellDepartment.className = "px-4 py-3 whitespace-nowrap";
-          cellDepartment.textContent = columnMap.department !== -1 ? (row[columnMap.department] || "—") : "—";
-          tableCells.push(cellDepartment);
-          
-          // 7. Position
-          let cellPosition = document.createElement("td");
-          cellPosition.className = "px-4 py-3 whitespace-nowrap";
-          cellPosition.textContent = columnMap.position !== -1 ? (row[columnMap.position] || "—") : "—";
-          tableCells.push(cellPosition);
-          
-          // 8. Phone
-          let cellPhone = document.createElement("td");
-          cellPhone.className = "px-4 py-3 whitespace-nowrap";
-          cellPhone.textContent = columnMap.phone !== -1 ? (row[columnMap.phone] || "—") : "—";
-          tableCells.push(cellPhone);
-          
-          // 9. Email
-          let cellEmail = document.createElement("td");
-          cellEmail.className = "px-4 py-3 whitespace-nowrap";
-          cellEmail.textContent = columnMap.email !== -1 ? (row[columnMap.email] || "—") : "—";
-          tableCells.push(cellEmail);
-          
-          // Add all cells to the row
-          tableCells.forEach(cell => tr.appendChild(cell));
-          
-          // Add row to table
-          tableBody.appendChild(tr);
-          displayedRowCount++;
-        }
-        
-        console.log(`Total ${displayedRowCount} baris ditampilkan dari ${data.length - 1} baris data`);
-        
-        // Update the count display
-        const totalUsersElement = document.getElementById("totalUsers");
-        if (totalUsersElement) {
-          totalUsersElement.textContent = displayedRowCount;
-        } else {
-          console.warn("Element totalUsers tidak ditemukan");
-        }
-        
-        // Add animation
-        tableBody.classList.add('fade-in');
-        
-        if (displayedRowCount === 0) {
-          tableBody.innerHTML = `
-            <tr class="text-center text-yellow-500">
-              <td colspan="9" class="py-8">
-                <div class="flex flex-col items-center">
-                  <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                  <p>Tidak ada data valid dalam file Excel yang dapat ditampilkan.</p>
-                </div>
-              </td>
-            </tr>
-          `;
-        }
-      } catch (error) {
-        console.error("Error saat menampilkan data:", error);
+      if (displayedRowCount === 0) {
         tableBody.innerHTML = `
-          <tr class="text-center text-red-500">
-            <td colspan="9" class="py-8">
+          <tr class="text-center text-yellow-500">
+            <td colspan="8" class="py-8">
               <div class="flex flex-col items-center">
-                <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
-                <p>Terjadi kesalahan saat menampilkan data. Silakan coba lagi.</p>
-                <p class="text-xs mt-1">${error.message}</p>
+                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                <p>No valid data found in Excel file.</p>
               </div>
             </td>
           </tr>
@@ -567,39 +448,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   
-    // Check if there's already data in localStorage and display it
-    function loadSavedData() {
-      const savedData = localStorage.getItem("supplierData");
-      const savedMeta = localStorage.getItem("supplierDataMeta");
-      
-      if (savedData && savedMeta) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          const parsedMeta = JSON.parse(savedMeta);
-          
-          // Create a complete dataset with header
-          const fullData = [parsedMeta.columns, ...parsedData];
-          excelData = fullData;
-          originalFileName = parsedMeta.fileName;
-          
-          // Display the data
-          displayExcelData(fullData);
-          
-          // Show info notification
-          showNotification(`Loaded ${parsedData.length} records from "${parsedMeta.fileName}"`, 'info');
-        } catch (error) {
-          console.error("Error loading saved data:", error);
-        }
-      }
-    }
-    
-    // Call this function to load data when the page loads
-    loadSavedData();
-  
-    // Form Submission
+    // Form Submission with API Integration
     let registerForm = document.getElementById("registerForm");
     if (registerForm) {
-      registerForm.addEventListener("submit", function(event) {
+      registerForm.addEventListener("submit", async function(event) {
         event.preventDefault();
         
         if (!validateForm()) {
@@ -615,112 +467,257 @@ document.addEventListener("DOMContentLoaded", function () {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          Memproses...
+          Processing...
         `;
         
-        // Create user data objects from Excel data
-        const userData = prepareUserData();
+        const userData = prepareUserDataForAPI();
+        console.log(`🚀 Starting registration process for ${userData.length} users`);
+        console.log('User data prepared:', userData);
         
-        // Simulate API call
-        setTimeout(() => {
-          // Save additional data to localStorage
-          const timestamp = new Date().toISOString();
-          const registrationData = {
-            excelData: excelData.slice(1), // without header
-            userData: userData,
-            originalFileName: originalFileName,
-            timestamp: timestamp,
-            status: "pending" // For approval process
-          };
+        const results = {
+          successful: [],
+          failed: []
+        };
+        
+        try {
+          // Register users one by one
+          for (let i = 0; i < userData.length; i++) {
+            const user = userData[i];
+            
+            // Update progress
+            submitBtn.innerHTML = `
+              <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Registering user ${i + 1} of ${userData.length}...
+            `;
+            
+            try {
+              console.log(`Registering user ${i + 1}:`, JSON.stringify(user, null, 2));
+              
+              const response = await fetch('http://localhost:5246/api/authentication/register', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify(user)
+              });
+              
+              console.log(`Response status for ${user.username}:`, response.status, response.statusText);
+              
+              const result = await response.json();
+              console.log(`Response data for ${user.username}:`, result);
+              
+              if (response.ok && result.status && result.code === 200) {
+                console.log(`✅ Successfully registered: ${user.username}`);
+                results.successful.push({
+                  user: user,
+                  response: result
+                });
+              } else {
+                // Extract error message from backend response
+                let errorMessage = 'Registration failed';
+                
+                if (result.Message) {
+                  // Backend returns error with 'Message' property
+                  errorMessage = result.Message;
+                } else if (result.message) {
+                  // Fallback to lowercase 'message'
+                  errorMessage = result.message;
+                } else if (result.errors) {
+                  // Handle validation errors array
+                  errorMessage = Array.isArray(result.errors) 
+                    ? result.errors.join(', ') 
+                    : result.errors;
+                } else {
+                  // Fallback to HTTP status
+                  errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                
+                console.error(`❌ Failed to register ${user.username}:`, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  statusCode: result.StatusCode,
+                  message: result.Message,
+                  fullResponse: result
+                });
+                
+                results.failed.push({
+                  user: user,
+                  error: errorMessage
+                });
+              }
+            } catch (error) {
+              console.error(`💥 Exception during registration of ${user.username}:`, error);
+              results.failed.push({
+                user: user,
+                error: error.message
+              });
+            }
+            
+            // Small delay between requests to avoid overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
           
-          localStorage.setItem("registrationData", JSON.stringify(registrationData));
+          // Show final results
+          const successCount = results.successful.length;
+          const failCount = results.failed.length;
           
-          // Show success message
-          showNotification("Pendaftaran berhasil! Mengalihkan...", "success");
+          console.log(`📊 Registration Summary:`, {
+            total: userData.length,
+            successful: successCount,
+            failed: failCount,
+            successfulUsers: results.successful.map(r => r.user.username),
+            failedUsers: results.failed.map(r => `${r.user.username}: ${r.error}`)
+          });
           
-          // Redirect after delay
-          setTimeout(() => {
-            window.location.href = "dashboard-users.html"; // Redirect to the new dashboard
-          }, 1500);
-        }, 800);
+          if (successCount > 0 && failCount === 0) {
+            showNotification(`Successfully registered ${successCount} users!`, "success");
+          } else if (successCount > 0 && failCount > 0) {
+            showNotification(`Registered ${successCount} users successfully, ${failCount} failed. Check console for details.`, "warning");
+          } else {
+            showNotification(`Registration failed for all ${failCount} users. Check console for details.`, "error");
+          }
+          
+          // Save results to localStorage for review
+          localStorage.setItem("registrationResults", JSON.stringify({
+            timestamp: new Date().toISOString(),
+            totalUsers: userData.length,
+            successful: results.successful,
+            failed: results.failed
+          }));
+          
+          // Clear form if all successful
+          if (failCount === 0) {
+            clearForm();
+          }
+          
+          // Show detailed results if there were failures
+          if (failCount > 0) {
+            showFailureDetails(results.failed);
+          }
+          
+        } catch (error) {
+          console.error('Registration process error:', error);
+          showNotification(`Registration process failed: ${error.message}`, "error");
+        } finally {
+          // Reset button state
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        }
       });
     }
     
-    function prepareUserData() {
-      // Skip header (index 0) and prepare user objects from the Excel data
+    function prepareUserDataForAPI() {
       if (!excelData || excelData.length <= 1) return [];
       
       const header = excelData[0];
+      const colMap = mapColumns(header);
+      console.log('📋 Column mapping:', colMap);
+      console.log('📋 Excel headers:', header);
+      
       const userData = [];
       
-      // Map column indices
-      const colIndexMap = {
-        employeeId: header.findIndex(col => String(col).toLowerCase().includes('employee id')),
-        nik: header.findIndex(col => String(col).toLowerCase().includes('nik')),
-        firstName: header.findIndex(col => String(col).toLowerCase().includes('first name')),
-        middleName: header.findIndex(col => String(col).toLowerCase().includes('middle name')),
-        lastName: header.findIndex(col => String(col).toLowerCase().includes('last name')),
-        department: header.findIndex(col => String(col).toLowerCase().includes('department')),
-        position: header.findIndex(col => String(col).toLowerCase().includes('position')),
-        phone: header.findIndex(col => String(col).toLowerCase().includes('phone')),
-        email: header.findIndex(col => String(col).toLowerCase().includes('email'))
-      };
-      
-      // If we don't have separate name fields, look for a general name field
-      if (colIndexMap.firstName === -1) {
-        colIndexMap.name = header.findIndex(col => String(col).toLowerCase().includes('name'));
-      }
-      
-      // Process each data row
       for (let i = 1; i < excelData.length; i++) {
         const row = excelData[i];
-        if (!row || !row.length) continue;
+        if (!row || !row.length || row.every(cell => !cell)) continue;
         
-        // Create user object with mapped data
+        // Parse roles (can be comma-separated)
+        const rolesStr = row[colMap.roles] || 'User';
+        const roles = rolesStr.split(',').map(role => role.trim()).filter(role => role);
+        
+        console.log(`👤 Processing row ${i}:`, {
+          rawRow: row,
+          username: row[colMap.username],
+          email: row[colMap.email],
+          rolesStr: rolesStr,
+          parsedRoles: roles
+        });
+        
         const user = {
-          id: row[colIndexMap.employeeId] || `EMP${i.toString().padStart(3, '0')}`,
-          nik: row[colIndexMap.nik] || '',
-          department: row[colIndexMap.department] || '',
-          position: row[colIndexMap.position] || '',
-          phone: row[colIndexMap.phone] || '',
-          email: row[colIndexMap.email] || ''
+          username: row[colMap.username] || '',
+          email: row[colMap.email] || '',
+          password: row[colMap.password] || 'DefaultPass123!',
+          employee: {
+            firstName: row[colMap.firstName] || '',
+            middleName: row[colMap.middleName] || '',
+            lastName: row[colMap.lastName] || '',
+            kansaiEmployeeId: row[colMap.kansaiEmployeeId] || '',
+            position: row[colMap.position] || '',
+            phoneNumber: row[colMap.phoneNumber] || '',
+            departmentName: row[colMap.departmentName] || ''
+          },
+          roles: roles
         };
-        
-        // Handle name fields
-        if (colIndexMap.firstName !== -1) {
-          user.firstName = row[colIndexMap.firstName] || '';
-          user.middleName = colIndexMap.middleName !== -1 ? (row[colIndexMap.middleName] || '') : '';
-          user.lastName = colIndexMap.lastName !== -1 ? (row[colIndexMap.lastName] || '') : '';
-          user.fullName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`.trim();
-        } else if (colIndexMap.name !== -1) {
-          user.fullName = row[colIndexMap.name] || '';
-          
-          // Try to parse the full name into components
-          const nameParts = user.fullName.split(' ');
-          user.firstName = nameParts[0] || '';
-          user.lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-          user.middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
-        }
         
         userData.push(user);
       }
       
       return userData;
     }
+
+    function clearForm() {
+      excelData = [];
+      originalFileName = "";
+      
+      const tableBody = document.getElementById("employeeTableBody");
+      if (tableBody) {
+        tableBody.innerHTML = `
+          <tr class="text-center text-gray-500">
+            <td colspan="8" class="px-4 py-8">Upload Excel file to preview data</td>
+          </tr>
+        `;
+      }
+      
+      document.getElementById("totalUsers").textContent = "0";
+      if (document.getElementById("excelFile")) {
+        document.getElementById("excelFile").value = "";
+      }
+    }
+
+    function showFailureDetails(failedUsers) {
+      // Create a more detailed error display
+      let errorDetails = "Registration Failures:\n\n";
+      
+      failedUsers.forEach((item, index) => {
+        errorDetails += `${index + 1}. ${item.user.username} (${item.user.email})\n`;
+        errorDetails += `   Error: ${item.error}\n\n`;
+      });
+      
+      // Also log to console for debugging
+      console.error('📋 Detailed Registration Failures:', failedUsers);
+      
+      // Show in alert (you could replace this with a modal later)
+      alert(errorDetails);
+      
+      // Also show a notification with summary
+      const totalFailed = failedUsers.length;
+      const firstError = failedUsers[0]?.error || 'Unknown error';
+      
+      if (totalFailed === 1) {
+        showNotification(`Registration failed: ${firstError}`, 'error');
+      } else {
+        showNotification(`${totalFailed} registrations failed. Click to see details.`, 'error');
+      }
+    }
   
     function validateForm() {
-      // Check if we have Excel data
       if (!excelData || excelData.length <= 1) {
-        showNotification("Silakan unggah file Excel dengan data karyawan", "error");
+        showNotification("Please upload Excel file with employee data", "error");
         return false;
       }
       
-      // Hapus validasi dokumen pendukung karena sudah tidak diperlukan
+      // Validate Excel structure for new API format
+      if (!validateExcelStructure(excelData[0])) {
+        showNotification('Excel file does not have required columns. Please download the template for the correct format.', 'error');
+        return false;
+      }
       
       return true;
     }
   
-    // Notification system
     function showNotification(message, type = "info") {
       // Remove existing notifications
       const existingNotifications = document.querySelectorAll('.notification');
@@ -787,6 +784,111 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 4000);
     }
     
-    // Check for previously saved data
-    loadSavedData();
+    // Function to add download template button
+    function addDownloadTemplateButton() {
+      const uploadSection = document.querySelector('.bg-gray-50');
+      if (uploadSection) {
+        const templateButton = document.createElement('button');
+        templateButton.className = 'mt-3 w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-green-700 transition-colors duration-300';
+        templateButton.innerHTML = '<i class="fas fa-download mr-2"></i>Download Excel Template';
+        templateButton.onclick = downloadExcelTemplate;
+        
+        const uploadArea = uploadSection.querySelector('.relative');
+        uploadArea.parentNode.insertBefore(templateButton, uploadArea.nextSibling);
+      }
+    }
+
+    // Function to generate and download Excel template
+    function downloadExcelTemplate() {
+      const templateData = [
+        // Header row with required columns
+        [
+          'Username',
+          'Email', 
+          'Password',
+          'First Name',
+          'Middle Name',
+          'Last Name',
+          'Kansai Employee ID',
+          'Position',
+          'Phone Number',
+          'Department Name',
+          'Roles'
+        ],
+        // Sample data row
+        [
+          'john.doe',
+          'john.doe@company.com',
+          'DefaultPass123!',
+          'John',
+          'Michael',
+          'Doe',
+          'EMP001',
+          'Software Developer',
+          '+6281234567890',
+          'IT Department',
+          'User'
+        ],
+        // Additional sample row
+        [
+          'jane.smith',
+          'jane.smith@company.com',
+          'DefaultPass123!',
+          'Jane',
+          '',
+          'Smith',
+          'EMP002',
+          'HR Manager',
+          '+6281234567891',
+          'Human Resources',
+          'User,Admin'
+        ]
+      ];
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+      
+      // Set column widths
+      const colWidths = [
+        { wch: 15 }, // Username
+        { wch: 25 }, // Email
+        { wch: 15 }, // Password
+        { wch: 15 }, // First Name
+        { wch: 15 }, // Middle Name
+        { wch: 15 }, // Last Name
+        { wch: 20 }, // Kansai Employee ID
+        { wch: 20 }, // Position
+        { wch: 18 }, // Phone Number
+        { wch: 20 }, // Department Name
+        { wch: 15 }  // Roles
+      ];
+      worksheet['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Employee Registration');
+      
+      // Generate and download file
+      XLSX.writeFile(workbook, 'Employee_Registration_Template.xlsx');
+      
+      showNotification('Excel template downloaded successfully!', 'success');
+    }
+
+    function mapColumns(header) {
+      const headerLower = header.map(h => String(h).toLowerCase());
+      
+      return {
+        username: headerLower.findIndex(h => h.includes('username')),
+        email: headerLower.findIndex(h => h.includes('email')),
+        password: headerLower.findIndex(h => h.includes('password')),
+        firstName: headerLower.findIndex(h => h.includes('first name')),
+        middleName: headerLower.findIndex(h => h.includes('middle name')),
+        lastName: headerLower.findIndex(h => h.includes('last name')),
+        kansaiEmployeeId: headerLower.findIndex(h => h.includes('kansai employee id') || h.includes('employee id')),
+        position: headerLower.findIndex(h => h.includes('position')),
+        phoneNumber: headerLower.findIndex(h => h.includes('phone')),
+        departmentName: headerLower.findIndex(h => h.includes('department')),
+        roles: headerLower.findIndex(h => h.includes('roles'))
+      };
+    }
   });
