@@ -1,3 +1,12 @@
+let uploadedFiles = [];
+
+// Function to display the list of uploaded files
+function displayFileList() {
+    // This function can be implemented to show uploaded files if needed
+    // For now, it's a placeholder to prevent errors
+    console.log('Files uploaded:', uploadedFiles.length);
+}
+
 async function saveDocument() {
     const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
     
@@ -5,7 +14,7 @@ async function saveDocument() {
         // Basic validation
         const settlementNumber = document.getElementById("invno").value;
         const kansaiEmployeeId = document.getElementById("Employee").value;
-        const cashAdvanceReferenceId = document.getElementById("requiredDate").value;
+        const cashAdvanceReferenceId = document.getElementById("cashAdvanceDoc").value;
         
         if (!settlementNumber) {
             Swal.fire({
@@ -27,7 +36,7 @@ async function saveDocument() {
             return;
         }
         
-        if (!cashAdvanceReferenceId || cashAdvanceReferenceId === 'Pilih') {
+        if (!cashAdvanceReferenceId || cashAdvanceReferenceId === '') {
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation Error!',
@@ -159,17 +168,17 @@ function goToMenuSettle() {
     window.location.href = "MenuSettle.html";
 }
 
+// Commented out because docType element doesn't exist in this HTML
+// document.getElementById("docType").addEventListener("change", function() {
+// const selectedValue = this.value;
+// const prTable = document.getElementById("settleTable");
 
-document.getElementById("docType").addEventListener("change", function() {
-const selectedValue = this.value;
-const prTable = document.getElementById("settleTable");
-
-if (selectedValue === "Pilih") {
-    prTable.style.display = "none";
-} else {
-    prTable.style.display = "table";
-}
-});
+// if (selectedValue === "Pilih") {
+//     prTable.style.display = "none";
+// } else {
+//     prTable.style.display = "table";
+// }
+// });
 
 function previewPDF(event) {
       const files = event.target.files;
@@ -217,3 +226,54 @@ function previewPDF(event) {
 function deleteRow(button) {
     button.closest("tr").remove(); // Hapus baris tempat tombol diklik
 }
+
+// Add function to fetch and populate cash advance dropdown
+async function loadCashAdvanceOptions() {
+    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+    const dropdown = document.getElementById('cashAdvanceDoc');
+    
+    try {
+        // Show loading state
+        dropdown.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        
+        const response = await fetch(`${baseUrl}/api/cash-advance`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        
+        // Clear dropdown and add default option
+        dropdown.innerHTML = '<option value="" disabled selected>Select Cash Advance</option>';
+        
+        // Populate dropdown with API data
+        if (responseData.status && responseData.data && Array.isArray(responseData.data)) {
+            responseData.data.forEach(cashAdvance => {
+                const option = document.createElement('option');
+                option.value = cashAdvance.id;
+                option.textContent = cashAdvance.cashAdvanceNo;
+                dropdown.appendChild(option);
+            });
+        } else {
+            dropdown.innerHTML = '<option value="" disabled selected>No data available</option>';
+        }
+        
+    } catch (error) {
+        console.error('Error loading cash advance options:', error);
+        dropdown.innerHTML = '<option value="" disabled selected>Error loading data</option>';
+        
+        // Show error alert
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Failed to load cash advance options. Please refresh the page and try again.',
+            confirmButtonColor: '#d33'
+        });
+    }
+}
+
+// Load cash advance options when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadCashAdvanceOptions();
+});
