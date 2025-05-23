@@ -29,20 +29,22 @@
     function applyLanguage(lang) {
       document.getElementById("welcomeText").innerText = translations[lang].welcome;
       document.getElementById("signInText").innerText = translations[lang].signIn;
-      document.getElementById("ExtEmpNo").placeholder = translations[lang].usercode;
+      document.getElementById("ExtEmpNo").placeholder = translations[lang].ExtEmpNo;
       document.getElementById("password").placeholder = translations[lang].password;
       document.getElementById("createAccount").innerText = translations[lang].createAccount;
       document.getElementById("loginButton").innerText = translations[lang].loginButton;
     }
 
     function updateFlag(lang) {
-      const flagImg = document.getElementById("flagIcon");
+      const flagElement = document.getElementById("flagIcon");
+      const langText = document.getElementById("langText");
+      
       if (lang === "en") {
-        flagImg.src = "English.png"; // Ganti dengan URL gambar bendera UK 🇬🇧
-        flagImg.alt = "English";
+        flagElement.className = "flag flag-en";
+        langText.innerText = "EN";
       } else {
-        flagImg.src = "Indonesia.png"; // Ganti dengan URL gambar bendera Indonesia 🇮🇩
-        flagImg.alt = "Indonesia";
+        flagElement.className = "flag flag-id";
+        langText.innerText = "ID";
       }
     }
 
@@ -62,7 +64,7 @@
 
       if (user) {
         alert("Login Success! Welcome, " + usercode);
-        window.location.href = "menu.html";
+        window.location.href = "dashboard.html";
       } else {
         alert("Incorrect user code or password!");
       }
