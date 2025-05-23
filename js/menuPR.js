@@ -58,13 +58,15 @@ async function fetchPurchaseRequests() {
 }
 
 function updateDashboardCounts(data) {
-    document.getElementById("totalDocs").textContent = data.length;
-    document.getElementById("openDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
-    document.getElementById("checkedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Checked").length;
-    document.getElementById("acknowledgeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
-    document.getElementById("approvedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Approved").length;
-    document.getElementById("rejectDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
-    document.getElementById("closeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Closed").length;
+    console.log(data)
+    console.log("hellor")
+    document.getElementById("totalCount").textContent = data.length;
+    document.getElementById("draftCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
+    document.getElementById("checkedCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Checked").length;
+    document.getElementById("acknowledgedCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
+    document.getElementById("approvedCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Approved").length;
+    document.getElementById("receivedCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Received").length;
+    document.getElementById("rejectedCount").textContent = data.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
 }
 
 function populatePurchaseRequests(data) {

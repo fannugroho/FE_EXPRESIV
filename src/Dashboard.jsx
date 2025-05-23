@@ -12,6 +12,7 @@ const Dashboard = () => {
     usercode: '',
     avatar: ''
   });
+  const [greeting, setGreeting] = useState('');
   const [stats, setStats] = useState({
     totalDocs: 0,
     openDocs: 0,
@@ -27,6 +28,7 @@ const Dashboard = () => {
     loadUserGreeting();
     loadDashboardAvatar();
     loadDashboard();
+    setGreetingMessage();
 
     // Close notification dropdown when clicking outside
     const handleClickOutside = (e) => {
@@ -40,6 +42,23 @@ const Dashboard = () => {
     window.addEventListener("click", handleClickOutside);
     return () => window.removeEventListener("click", handleClickOutside);
   }, []);
+
+  const setGreetingMessage = () => {
+    const currentHour = new Date().getHours();
+    let greetingMessage = "";
+    
+    if (currentHour >= 5 && currentHour < 12) {
+      greetingMessage = "Good Morning";
+    } else if (currentHour >= 12 && currentHour < 17) {
+      greetingMessage = "Good Afternoon";
+    } else if (currentHour >= 17 && currentHour < 21) {
+      greetingMessage = "Good Evening";
+    } else {
+      greetingMessage = "Good Night";
+    }
+    
+    setGreeting(greetingMessage);
+  };
 
   const loadUserGreeting = () => {
     const usersData = localStorage.getItem("users");
@@ -92,10 +111,15 @@ const Dashboard = () => {
   };
 
   const toggleSubMenu = (menuId) => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      [menuId]: !prev[menuId]
-    }));
+    setExpandedMenus(prev => {
+      // Close all other submenus when opening a new one
+      const newState = {};
+      Object.keys(prev).forEach(key => {
+        newState[key] = key === menuId ? !prev[key] : false;
+      });
+      newState[menuId] = !prev[menuId];
+      return newState;
+    });
   };
 
   const toggleNotification = () => {
@@ -118,9 +142,9 @@ const Dashboard = () => {
   const goToMenuAcknowPR = () => navigate('/acknow-pr');
   const goToMenuApprovPR = () => navigate('/approv-pr');
   const goToMenuReceivePR = () => navigate('/receive-pr');
-  const goToMenuReim = () => navigate('/menu-reim');
-  const goToMenuCash = () => navigate('/menu-cash');
-  const goToMenuSettle = () => navigate('/menu-settle');
+  const goToMenuReim = () => navigate('/add-reim');
+  const goToMenuCash = () => navigate('/add-cash');
+  const goToMenuSettle = () => navigate('/add-settle');
   const goToMenuAPR = () => navigate('/menu-apr');
   const goToMenuPO = () => navigate('/menu-po');
   const goToMenuBanking = () => navigate('/menu-banking');
@@ -135,6 +159,13 @@ const Dashboard = () => {
       <aside 
         id="sidebar" 
         className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 relative`}
+        style={{
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
+          overflowY: 'auto',
+          scrollbarWidth: 'thin'
+        }}
       >
         <div className="sidebar-logo-container">
           <img src="../image/Seiho.png" alt="Dentsu Soken" className="h-12 w-auto max-w-full mx-auto" />
@@ -299,7 +330,23 @@ const Dashboard = () => {
         <div 
           id="sidebarToggle" 
           onClick={toggleSidebar} 
-          className="absolute bottom-4 right-[-12px] bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-md cursor-pointer z-10 text-gray-500 text-xs"
+          style={{
+            position: 'absolute',
+            bottom: '1rem',
+            right: '-12px',
+            background: 'white',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            zIndex: 10,
+            fontSize: '0.7rem',
+            color: '#6B7280'
+          }}
         >
           <i className={`fas fa-chevron-${isSidebarCollapsed ? 'right' : 'left'}`}></i>
         </div>
@@ -321,7 +368,7 @@ const Dashboard = () => {
           {/* Notification Dropdown */}
           <div 
             id="notificationDropdown" 
-            className={`notification-dropdown ${notificationVisible ? '' : 'hidden'} absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20`}
+            className={`notification-dropdown ${notificationVisible ? '' : 'hidden'} absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20 rounded-xl border border-gray-200 shadow-lg`}
           >
             <div className="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
               <i className="fas fa-bell text-blue-500 mr-2"></i>
@@ -388,7 +435,7 @@ const Dashboard = () => {
       <div className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
           <h2 id="greeting" className="text-5xl font-bold text-white mb-2">
-            Hii {userData.name} {userData.usercode ? `(${userData.usercode})` : ''}
+            {greeting}
           </h2>
           <h2 className="text-2xl font-medium text-white opacity-80 mb-8">Welcome to Dashboard Expressiv System</h2>
           
