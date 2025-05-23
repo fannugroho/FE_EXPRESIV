@@ -8,168 +8,453 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../css/dashboard.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .bg-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #ef4444 100%);
+            position: relative;
+        }
+        .bg-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .menu-btn {
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+        }
+        .menu-btn:hover {
+            background-color: #f3f4f6;
+            padding-left: 0.75rem;
+        }
+        .submenu-btn {
+            transition: all 0.3s ease;
+        }
+        .submenu-btn:hover {
+            color: #2563eb;
+            padding-left: 0.5rem;
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .stat-card:hover {
+            border-left-color: #2563eb;
+        }
+        #sidebar {
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            transition: width 0.3s ease;
+        }
+        #sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        #sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #sidebar::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+        }
+        .menu-category {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6B7280;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.75rem;
+        }
+        .active-menu-item {
+            background-color: #EBF5FF;
+            color: #2563eb;
+            font-weight: 500;
+        }
+        .active-menu-item i {
+            color: #2563eb;
+        }
+        .sidebar-logo-container {
+            padding: 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .menu-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            min-width: 1.75rem;
+        }
+        #sidebarToggle {
+            position: absolute;
+            bottom: 1rem;
+            right: -12px;
+            background: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            z-index: 10;
+            font-size: 0.7rem;
+            color: #6B7280;
+        }
+        .bg-white {
+            background-color: rgba(255, 255, 255, 0.98);
+        }
+        .bg-opacity-10 {
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        .notification-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .notification-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .notification-badge {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transform: scale(1);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+        .user-profile {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .user-avatar {
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .user-avatar:hover {
+            transform: scale(1.05);
+            border-color: white;
+        }
+        .notification-dropdown {
+            border-radius: 0.75rem;
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .notification-item {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .notification-item:hover {
+            border-left-color: #3b82f6;
+            background-color: #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="flex min-h-screen bg-gradient">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
-            <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
-            <br>
+        <aside id="sidebar" class="w-64 bg-white shadow-lg transition-all duration-300 relative">
+            <div class="sidebar-logo-container">
+                <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-12 w-auto max-w-full mx-auto" />
+            </div>
             
-           <button onclick="goToMenu()" class="menu-btn"><i class="fas fa-home"></i> Dashboard</button>
-
-           <div>
-           <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn">
-                    <i class="fas fa-file-invoice-dollar"></i> Purchase Request
+            <div class="px-3 py-4">
+                <button onclick="goToMenu()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 rounded mb-1 active-menu-item">
+                    <span class="menu-icon"><i class="fas fa-home"></i></span>
+                    <span class="ml-3">Dashboard</span>
                 </button>
-            <div id="MenuPurchaseReq" class="hidden pl-4">
-                    <button onclick="goToMenuPR()" class="submenu-btn"> Add Purchase Request</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Purchase Request</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Purchase Request</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Purchase Request</button>
-                    <button onclick="goToMenuReceivePR()" class="submenu-btn"> Receive Purchase Request</button>
-            </div>            
-            </div>
+                
+                <div class="menu-category">Request Management</div>
+                
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                            <span class="ml-3">Purchase Request</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuPurchaseReq" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Purchase Request</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Purchase Request</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Purchase Request</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Purchase Request</button>
+                        <button onclick="goToMenuReceivePR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Purchase Request</button>
+                    </div>            
+                </div>
 
-            <div>
-           <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn">
-                    <i class="fas fa-hand-holding-usd"></i> Reimbursement
-                </button>
-            <div id="MenuReimbursement" class="hidden pl-4">
-                    <button onclick="goToMenuReim()" class="submenu-btn"> Add Reimbursement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Reimbursement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Reimbursement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Reimbursement</button>
-            </div>            
-            </div>
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-hand-holding-usd"></i></span>
+                            <span class="ml-3">Reimbursement</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuReimbursement" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Reimbursement</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Reimbursement</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Reimbursement</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Reimbursement</button>
+                    </div>            
+                </div>
 
-             <div>
-           <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn">
-                    <i class="fas fa-wallet"></i> Cash Advance
-                </button>
-            <div id="MenuCashAdvance" class="hidden pl-4">
-                    <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
-            </div>            
-            </div>
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-wallet"></i></span>
+                            <span class="ml-3">Cash Advance</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuCashAdvance" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Cash Advance</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Cash Advance</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Cash Advance</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Cash Advance</button>
+                    </div>            
+                </div>
 
-            <div>
-           <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn">
-                    <i class="fas fa-balance-scale"></i> Settlement
-                </button>
-            <div id="MenuSettlement" class="hidden pl-4">
-                    <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
-            </div>            
-            </div>
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-balance-scale"></i></span>
+                            <span class="ml-3">Settlement</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="MenuSettlement" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Settlement</button>
+                        <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Settlement</button>
+                        <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Settlement</button>
+                        <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Settlement</button>
+                    </div>            
+                </div>
 
-            <!--approval decesion report-->
-        
-            <div>
-                <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn">
-                    <i class="fas fa-check-circle"></i> Approval Decision Report
-                </button>
-                <div id="ApprovalReport" class="hidden pl-4">
-                    <button onclick="goToMenuAPR()" class="submenu-btn"> PR Approval</button>
-                    <button onclick="goToMenuPO()" class="submenu-btn"> PO Approval</button>
-                    <button onclick="goToMenuBanking()" class="submenu-btn"> Outgoing Approval</button>
-                    <button onclick="goToMenuInvoice()" class="submenu-btn"> AR Invoice Approval</button>
+                <div class="menu-category">Approval Center</div>
+            
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                            <span class="ml-3">Decision Report</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+                        <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+                        <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
+                        <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+                    </div>
+                </div>
+
+                <div class="menu-category">Administration</div>
+
+                <div class="mb-1">
+                    <button onclick="toggleSubMenu('settings')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                        <div class="flex items-center">
+                            <span class="menu-icon"><i class="fas fa-cog"></i></span>
+                            <span class="ml-3">Settings</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="settings" class="hidden pl-10 mt-1 mb-1">
+                        <button onclick="goToMenuRegist()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Register User</button>
+                        <button onclick="goToMenuUser()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> User List</button>
+                        <button onclick="goToMenuRole()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Role List</button>
+                    </div>
+                </div>
+
+                <div class="pt-4 mt-6 border-t border-gray-200">
+                    <button onclick="logout()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 text-red-500 rounded">
+                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span class="ml-3">Logout</span>
+                    </button>
                 </div>
             </div>
-
-            <!--approval decesion report-->
-
-            <div>
-                <button onclick="toggleSubMenu('settings')" class="menu-btn">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
-                <div id="settings" class="hidden pl-4">
-            <button onclick="goToMenuRegist()" class="menu-btn"> Register User</button>
-            <button onclick="goToMenuUser()" class="menu-btn"> User List</button>
-            <button onclick="goToMenuRole()" class="menu-btn"> Role List</button>
+            
+            <div id="sidebarToggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
             </div>
-            </div>
-
-            <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </aside>
 
         <!-- User Avatar -->
         <div class="absolute top-4 right-4 flex items-center space-x-4">
             <!-- Notification Bell with Badge -->
             <div class="relative">
-                <button id="notificationBtn" class="relative text-white focus:outline-none">
+                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
                     <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute -top-1 -right-1 bg-red-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
                 </button>
                 <!-- Notification Dropdown -->
-        <div id="notificationDropdown" class="hidden absolute right-0 mt-2 min-w-max w-auto max-w-xs bg-white rounded-lg shadow-xl z-20">
-            <div class="p-4 font-bold border-b">Notifikasi</div>
-            <ul class="py-2 text-sm text-gray-700">
-                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                    Purchase Request document requires approval
-                </li>
-                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                    Reimbursement document requires approval
-                </li>
-            </ul>
-            <div class="border-t p-2 text-right">
-                <a href="#" class="text-blue-500 text-sm hover:underline">See Details</a>
-            </div>
-        </div>
+                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
+                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
+                        <i class="fas fa-bell text-blue-500 mr-2"></i>
+                        <span>Notifikasi</span>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Purchase Request document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Reimbursement document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
+                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
+                            <span>See All Notifications</span>
+                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
         
             <!-- User Avatar + Name -->
-            <div class="flex items-center space-x-2 text-white">
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
-                     class="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
                      onclick="goToProfile()">
-                <span id="userNameDisplay" class="font-semibold"></span>
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
             </div>
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 p-6">
-            <h2 id="greeting" class="text-5xl font-bold text-white mb-4"></h2>
-            <h2 class="text-3xl font-bold text-white mb-4">Welcome to Dashboard Expressiv System</h2>
-            <br><br><br><br>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 mx-auto max-w-4xl justify-center">
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Purchase Request Documents</h3>
-                    <p id="totalDocs" class="text-2xl font-bold text-blue-600">0</p>
+        <div class="flex-1 p-8">
+            <div class="max-w-6xl mx-auto">
+                <h2 id="greeting" class="text-5xl font-bold text-white mb-2"></h2>
+                <h2 class="text-2xl font-medium text-white opacity-80 mb-8">Welcome to Dashboard Expressiv System</h2>
+                
+                <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
+                    <h3 class="text-white text-xl font-semibold mb-4">System Overview</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Purchase Request</h3>
+                            <p id="totalDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Total Documents</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Reimbursement</h3>
+                            <p id="openDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Total Documents</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-blue-600 mb-2"><i class=" text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Cash Advance</h3>
+                            <p id="preparedDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Total Documents</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-blue-600 mb-2"><i class=" text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Settlement</h3>
+                            <p id="checkedDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Total Documents</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Reimbursement Documents</h3>
-                    <p id="openDocs" class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Cash Advance Documents</h3>
-                    <p id="preparedDocs" class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Settlement Documents</h3>
-                    <p id="checkedDocs" class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Purchase Request Approval</h3>
-                    <p id="acknowledgeDocs" class="text-2xl font-bold text-green-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Purchase Order Approval</h3>
-                    <p id="approvedDocs" class="text-2xl font-bold text-green-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Outgoing Payment Approval</h3>
-                    <p id="receivedDocs" class="text-2xl font-bold text-green-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">AR Invoice Approval</h3>
-                    <p id="rejectDocs" class="text-2xl font-bold text-green-600">0</p>
+                
+                <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                    <h3 class="text-white text-xl font-semibold mb-4">Approval Overview</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-green-600 mb-2"><i class=" text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">PR Approval</h3>
+                            <p id="acknowledgeDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Pending Approvals</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">PO Approval</h3>
+                            <p id="approvedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Pending Approvals</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Outgoing Payment</h3>
+                            <p id="receivedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Pending Approvals</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                            <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                            <h3 class="text-lg font-semibold text-gray-800">AR Invoice</h3>
+                            <p id="rejectDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            <p class="text-gray-500 text-sm mt-1">Pending Approvals</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -177,5 +462,70 @@
 
     <!-- External JS -->
     <script src="../js/dashboard.js"></script>
+    <script>
+        // Toggle sidebar collapse/expand
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            if (sidebar.classList.contains('w-64')) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-20');
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                
+                // Hide text, show only icons
+                document.querySelectorAll('#sidebar .ml-3, .menu-category, #sidebar .fa-chevron-right').forEach(el => {
+                    el.classList.add('hidden');
+                });
+                
+                // Center icons
+                document.querySelectorAll('.menu-icon').forEach(el => {
+                    el.classList.add('mx-auto');
+                });
+            } else {
+                sidebar.classList.remove('w-20');
+                sidebar.classList.add('w-64');
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                
+                // Show text and arrows again
+                document.querySelectorAll('#sidebar .ml-3, .menu-category, #sidebar .fa-chevron-right').forEach(el => {
+                    el.classList.remove('hidden');
+                });
+                
+                // Reset icon alignment
+                document.querySelectorAll('.menu-icon').forEach(el => {
+                    el.classList.remove('mx-auto');
+                });
+            }
+        }
+        
+        // Show/hide submenu and rotate chevron
+        function toggleSubMenu(id) {
+            const submenu = document.getElementById(id);
+            const button = submenu.previousElementSibling;
+            const chevron = button.querySelector('.fa-chevron-right');
+            
+            if (submenu.classList.contains('hidden')) {
+                submenu.classList.remove('hidden');
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                submenu.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+            
+            // Close other submenus
+            const allSubmenus = document.querySelectorAll('div[id^="Menu"], #settings, #ApprovalReport');
+            const allChevrons = document.querySelectorAll('.fa-chevron-right');
+            
+            allSubmenus.forEach(menu => {
+                if (menu.id !== id && !menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    const menuButton = menu.previousElementSibling;
+                    const menuChevron = menuButton.querySelector('.fa-chevron-right');
+                    menuChevron.style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

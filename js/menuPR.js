@@ -134,7 +134,8 @@ alert("Update Document: " + id);
 
 
 function toggleSidebar() {
-    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    // No-op function - sidebar toggle is disabled to keep it permanently open
+    return;
 }
 
 function toggleSubMenu(menuId) {
@@ -143,23 +144,64 @@ function toggleSubMenu(menuId) {
 
 // Fungsi Download Excel
 function downloadExcel() {
-let table = document.getElementById("recentDocs").parentElement; // Ambil elemen tabel
-let wb = XLSX.utils.table_to_book(table, { sheet: "Recent Documents" });
-XLSX.writeFile(wb, "Recent_Documents.xlsx");
+    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+    
+    // Membuat workbook baru
+    const workbook = XLSX.utils.book_new();
+    
+    // Mengonversi data ke format worksheet
+    const wsData = documents.map(doc => ({
+        'Document Number': doc.id,
+        'PR Number': doc.purchaseRequestNo,
+        'Requester': doc.requesterName,
+        'Department': doc.departmentName,
+        'Submission Date': doc.submissionDate,
+        'Required Date': doc.requiredDate,
+        'PO Number': doc.poNumber,
+        'Status': doc.status,
+        'GR Date': doc.grDate
+    }));
+    
+    // Membuat worksheet dan menambahkannya ke workbook
+    const worksheet = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
+    
+    // Menghasilkan file Excel
+    XLSX.writeFile(workbook, 'purchase_request_list.xlsx');
 }
 
 // Fungsi Download PDF
 function downloadPDF() {
-const { jsPDF } = window.jspdf;
-let doc = new jsPDF();
-
-doc.text("Recent Documents", 14, 10);
-doc.autoTable({ 
-html: "#recentDocs", 
-startY: 20 
-});
-
-doc.save("Recent_Documents.pdf");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Menambahkan judul
+    doc.setFontSize(16);
+    doc.text('Purchase Request Report', 14, 15);
+    
+    // Membuat data tabel dari documents
+    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+    const tableData = documents.map(doc => [
+        doc.id,
+        doc.purchaseRequestNo,
+        doc.requesterName,
+        doc.departmentName,
+        doc.submissionDate,
+        doc.requiredDate,
+        doc.poNumber,
+        doc.status,
+        doc.grDate
+    ]);
+    
+    // Menambahkan tabel
+    doc.autoTable({
+        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+        body: tableData,
+        startY: 25
+    });
+    
+    // Menyimpan PDF
+    doc.save('purchase_request_list.pdf');
 }
 
 // Add window.onload event listener

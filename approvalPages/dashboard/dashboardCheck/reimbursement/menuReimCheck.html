@@ -12,9 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="menuReimAck.css">
-
-
+    <link rel="stylesheet" href="menuReimCheck.css">
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -24,7 +22,7 @@
 
 
         <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
-            <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
+            <img src="../../../../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
             <br>
             
            <button onclick="goToMenu()" class="menu-btn"><i class="fas fa-home"></i> Dashboard</button>
@@ -113,7 +111,7 @@
                         Dashboard Reimbursement
                     </h2>
             
-                    <div class="hidden md:grid grid-cols-7 gap-4 mb-6">
+                    <div class="hidden md:grid grid-cols-3 gap-4 mb-6">
                         <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                           <h3 class="text-lg font-semibold">Total Documents</h3>
                           <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
@@ -126,26 +124,21 @@
                           <h3 class="text-lg font-semibold">Checked</h3>
                           <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
                         </div>
-                        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                          <h3 class="text-lg font-semibold">Approved</h3>
-                          <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
-                        </div>
-                        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                          <h3 class="text-lg font-semibold">Paid</h3>
-                          <p id="paidCount" class="text-2xl font-bold text-green-600">0</p>
-                        </div>
-                        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                          <h3 class="text-lg font-semibold">Close</h3>
-                          <p id="closeCount" class="text-2xl font-bold text-green-600">0</p>
-                        </div>
-                        <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                          <h3 class="text-lg font-semibold">Rejected</h3>
-                          <p id="rejectedCount" class="text-2xl font-bold text-green-600">0</p>
-                        </div>
                       </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-4">Recent Documents</h3>
+                    <h3 class="text-xl font-semibold mb-4">List Documents</h3>
+                    
+                    <!-- Tab buttons for switching views -->
+                    <div class="flex mb-4 border-b">
+                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Draft
+                        </button>
+                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Checked
+                        </button>
+                    </div>
+                    
                     <div class="overflow-x-auto">
                       <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                         <thead class="bg-gray-200">
@@ -165,14 +158,35 @@
                         <tbody id="recentDocs"></tbody>
                       </table>
                     </div>
+                    
+                    <!-- Pagination controls -->
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentPage" class="px-3 py-1">1</span>
+                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
                   </div>
 
             <div class="flex justify-between mt-4">
-                <!--<button onclick="window.location.href='Menu.html'" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 shadow-md transform hover:scale-105 transition-transform duration-300">Back</button>-->
-                <button onclick="goToAddReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
-                <div class="flex justify-end mt-4">
-                  <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-excel"></i></button>
-                  <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300"><i class="fa-regular fa-file-pdf"></i></button>
+              <!--
+                <button onclick="goToMenuReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
+            -->
+                <div class="flex justify-end space-x-2">
+                  <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                    <i class="fas fa-file-excel mr-2"></i>Excel
+                  </button>
+                  <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                    <i class="fas fa-file-pdf mr-2"></i>PDF
+                  </button>
               </div>
               </div>
         </div>
@@ -182,34 +196,18 @@
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="goToDraftDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file text-xl"></i>
           <span>Draft</span>
         </button>
-        <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-check text-xl"></i>
           <span>Checked</span>
         </button>
-        <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-thumbs-up text-xl"></i>
-          <span>Approved</span>
-        </button>
-        <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-times text-xl"></i>
-          <span>Close</span>
-        </button>
-        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-ban text-xl"></i>
-          <span>Reject</span>
-        </button>
       </nav>
 
-    <!--<button onclick="toggleSidebar()" class="fixed top-4 left-4 bg-gray-800 text-white p-2 rounded">☰</button>-->
-
-    <script src="menuReimAck.js"></script>
+    <script src="menuReimCheck.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
-
-
 
 </body>
 </html>

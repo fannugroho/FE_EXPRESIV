@@ -1,0 +1,240 @@
+/* Approval Dashboard Styles */
+
+/* Filter buttons */
+.filter-btn {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.active-filter {
+  background-color: #dbeafe;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+/* Approval Cards */
+.approval-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.approval-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.approval-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.approval-body {
+  padding: 1rem;
+}
+
+.approval-footer {
+  padding: 0.75rem 1rem;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Status Indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-approved {
+  background-color: #def7ec;
+  color: #03543e;
+}
+
+.status-rejected {
+  background-color: #fee2e2;
+  color: #9b1c1c;
+}
+
+/* Table Styles */
+#approval-table {
+  width: 100%;
+}
+
+#approval-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f9fafb;
+  z-index: 10;
+}
+
+#approval-table tbody tr {
+  transition: all 0.15s ease-in-out;
+}
+
+#approval-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Make table more responsive */
+@media (max-width: 1024px) {
+  .overflow-x-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+  }
+}
+
+/* Action Buttons */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.approve-button {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.approve-button:hover {
+  background-color: #d1fae5;
+}
+
+.reject-button {
+  background-color: #fef2f2;
+  color: #b91c1c;
+}
+
+.reject-button:hover {
+  background-color: #fee2e2;
+}
+
+.view-button {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.view-button:hover {
+  background-color: #dbeafe;
+}
+
+/* Data Label/Value Pairs */
+.data-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.data-value {
+  font-size: 0.875rem;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+}
+
+/* Document List */
+.document-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.document-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.document-item i {
+  margin-right: 0.25rem;
+}
+
+/* Modal Styles */
+.modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.modal-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.modal-data-item {
+  margin-bottom: 0.75rem;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Notification System */
+#notification-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 640px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
+  }
+} 

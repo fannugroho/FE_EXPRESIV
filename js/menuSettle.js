@@ -55,12 +55,73 @@
   
       // Toggle Sidebar (mobile)
       function toggleSidebar() {
-        document.getElementById("sidebar").classList.toggle("-translate-x-full");
+        // No-op function - sidebar toggle is disabled to keep it permanently open
+        return;
       }
       
       // Toggle Submenu
       function toggleSubMenu(menuId) {
         document.getElementById(menuId).classList.toggle("hidden");
+      }
+  
+      // Fungsi Download Excel
+      function downloadExcel() {
+        const documents = JSON.parse(localStorage.getItem("documents")) || [];
+        
+        // Membuat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Mengonversi data ke format worksheet
+        const wsData = documents.map(doc => ({
+          'Document Number': doc.docNumber,
+          'Voucher Number': doc.prno,
+          'Requester': doc.requester,
+          'Department': doc.department,
+          'Submission Date': doc.postingDate,
+          'Paid to Employee': doc.paidtoEmployee,
+          'Returned to Company': doc.returnedtoCompany,
+          'Status': doc.docStatus
+        }));
+        
+        // Membuat worksheet dan menambahkannya ke workbook
+        const worksheet = XLSX.utils.json_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Settlement');
+        
+        // Menghasilkan file Excel
+        XLSX.writeFile(workbook, 'settlement_list.xlsx');
+      }
+
+      // Fungsi Download PDF
+      function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Menambahkan judul
+        doc.setFontSize(16);
+        doc.text('Settlement Report', 14, 15);
+        
+        // Membuat data tabel dari documents
+        const documents = JSON.parse(localStorage.getItem("documents")) || [];
+        const tableData = documents.map(doc => [
+          doc.docNumber,
+          doc.prno,
+          doc.requester,
+          doc.department,
+          doc.postingDate,
+          doc.paidtoEmployee,
+          doc.returnedtoCompany,
+          doc.docStatus
+        ]);
+        
+        // Menambahkan tabel
+        doc.autoTable({
+          head: [['Doc Number', 'Voucher Number', 'Requester', 'Department', 'Submission Date', 'Paid to Employee', 'Returned to Company', 'Status']],
+          body: tableData,
+          startY: 25
+        });
+        
+        // Menyimpan PDF
+        doc.save('settlement_list.pdf');
       }
   
       // Fungsi Navigasi
