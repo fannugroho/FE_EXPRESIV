@@ -1,11 +1,13 @@
 let uploadedFiles = [];
+const BASE_URL = 'http://localhost:5246/api'; // Update with your actual API base URL
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const docNumber = `PR${Date.now()}`; // Gunakan timestamp agar unik
-
+    const itemDataArray = []; // Array to hold the extracted item data
+    const rows = document.querySelectorAll("#tableBody tr"); // Select all rows in the table body
+    document.getElementById("requesterId").value = "deda05c6-8688-4d19-8f52-c0856a5752f4";
     const documentData = {
-        id: document.getElementById("id").value,
+        id: document.getElementById("requesterId").value,
         prno: document.getElementById("purchaseRequestNo").value,
         requester: document.getElementById("requesterName").value,
         department: document.getElementById("department").value,
@@ -24,6 +26,7 @@ function saveDocument() {
     };
 
     documents.push(documentData);
+    console.log(documents);
     localStorage.setItem("documents", JSON.stringify(documents));
     alert("Dokumen berhasil disimpan!");
 }
@@ -40,15 +43,17 @@ function updateApprovalStatus(id, statusKey) {
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
-    const itemFields = ["thItemCode", "thItemName", "thDetail", "thQuantity", "thPurposed", "thAction", "tdItemCode", "tdItemName", "tdDetail", "tdQuantity", "tdPurposed", "tdAction"];
-    const serviceFields = ["thDescription", "thPurpose", "thQty" ,"thActions", "tdDescription", "tdPurpose", "tdQty" ,"tdActions"];
+    console.log("PR Type selected:", prType);
+    
+    const itemFields = document.querySelectorAll('.item-field');
+    const serviceFields = document.querySelectorAll('.service-field');
 
     if (prType === "Item") {
-        itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
-        serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
+        itemFields.forEach(field => field.style.display = "table-cell");
+        serviceFields.forEach(field => field.style.display = "none");
     } else if (prType === "Service") {
-        itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
-        serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
+        itemFields.forEach(field => field.style.display = "none");
+        serviceFields.forEach(field => field.style.display = "table-cell");
     }
 }
 
@@ -96,22 +101,80 @@ function previewPDF(event) {
     displayFileList();
 }
 
+function displayFileList() {
+    const fileListContainer = document.getElementById("fileList");
+    if (fileListContainer) {
+        fileListContainer.innerHTML = '';
+        uploadedFiles.forEach((file, index) => {
+            const fileItem = document.createElement("div");
+            fileItem.className = "flex justify-between items-center p-2 border-b";
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                    Remove
+                </button>
+            `;
+            fileListContainer.appendChild(fileItem);
+        });
+    }
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
+}
+
 function addRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
-
-    newRow.innerHTML = `
-        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-        </td>
-    `;
+    const prType = document.getElementById("prType").value;
+    
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td class="p-2 border item-field">
+                <select class="w-full p-2 border rounded item-no">
+                    <option value="" disabled selected>Select Item</option>
+                </select>
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-detail" maxlength="100" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-purpose" maxlength="100" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="number" class="w-full item-quantity" min="1" required />
+            </td>
+            <td class="p-2 border text-center item-field">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-purpose" maxlength="100" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="number" class="w-full service-quantity" min="1" required />
+            </td>
+            <td class="p-2 border text-center service-field">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    }
 
     tableBody.appendChild(newRow);
+    
+    // If we just added an item row, populate its dropdown
+    if (prType === "Item") {
+        fetchItemOptions(newRow.querySelector('.item-no'));
+    }
 }
 
 function deleteRow(button) {
@@ -124,7 +187,7 @@ function goToAddReim() {window.location.href = "AddReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
-// function goToMenuPR() { window.location.href = "MenuPR.html"; }
+function goToMenuPR() { window.location.href = "MenuPR.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -346,7 +409,6 @@ async function submitPurchaseRequest() {
             body: formData
         });
         
-        console.log(response);
         if (!response.ok) {
             console.log("Response:", response);
             throw new Error(`API error: ${response.status}`);
@@ -354,8 +416,8 @@ async function submitPurchaseRequest() {
 
         
         
-        // const result = await response.json();
-        // console.log("Submit result:", result);
+        const result = await response.json();
+        console.log("Submit result:", result);
         
         alert("Purchase Request submitted successfully!");
         window.location.href = "../pages/menuPR.html";
