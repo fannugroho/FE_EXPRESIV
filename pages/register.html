@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pendaftaran - Kansai Paint Supplier</title>
+  <title>Register - Kansai Paint Supplier</title>
 
   <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -27,26 +27,26 @@
     <!-- Header with Logo -->
     <div class="flex items-center justify-between mb-6 border-b pb-4">
       <div class="flex items-center space-x-3">
-        <img src="../image/Seiho.png" alt="Logo Kansai Paint" class="h-10">
-        <h1 class="text-2xl font-bold text-blue-900">Portal Supplier Kansai Paint</h1>
+        <img src="../image/Seiho.png" alt="Kansai Paint Logo" class="h-10">
+        
       </div>
       
       <!-- Breadcrumb Navigation -->
       <nav class="flex text-sm font-medium text-gray-600">
-        <a href="index.html" class="hover:text-blue-500 flex items-center">
-          <i class="fas fa-home mr-1"></i> Beranda
+        <a href="dashboard.html" class="hover:text-blue-500 flex items-center">
+          <i class="fas fa-home mr-1"></i> Dashboard
         </a>
         <span class="mx-2">/</span>
-        <a href="RegisterMenu.html" class="hover:text-blue-500">Menu Pendaftaran</a>
+        <a href="RegisterMenu.html" class="hover:text-blue-500">Registration Menu</a>
         <span class="mx-2">/</span>
-        <span class="text-blue-600 font-semibold">Pendaftaran Pengguna</span>
+        <span class="text-blue-600 font-semibold">User Registration</span>
       </nav>
     </div>
 
     <!-- Form Title -->
     <div class="text-center mb-6">
-      <h2 class="text-2xl md:text-3xl font-bold text-blue-900">Daftar Pengguna Baru</h2>
-      <p class="text-gray-600 mt-1">Unggah data karyawan dan dokumen yang diperlukan</p>
+      <h2 class="text-2xl md:text-3xl font-bold text-blue-900">Register New User</h2>
+      <p class="text-gray-600 mt-1">Upload employee data and required documents</p>
     </div>
     
     <!-- Main Content -->
@@ -54,22 +54,22 @@
       <!-- Left Column - Upload Excel -->
       <div class="lg:col-span-1 bg-gray-50 p-5 rounded-xl shadow-sm">
         <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-          <i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Data Karyawan
+          <i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Employee Data
         </h3>
-        <p class="text-sm text-gray-600 mb-4">Unggah file Excel yang berisi informasi karyawan</p>
+        <p class="text-sm text-gray-600 mb-4">Upload Excel file containing employee information</p>
         
         <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center hover:border-blue-500 transition duration-300 bg-white">
           <i class="fas fa-cloud-upload-alt text-3xl text-blue-500 mb-2"></i>
-          <p class="text-sm text-gray-600 mb-2">Tarik dan letakkan atau klik untuk memilih file</p>
+          <p class="text-sm text-gray-600 mb-2">Drag and drop or click to select file</p>
           <input type="file" id="excelFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".xlsx, .xls, .csv">
-          <button class="mt-2 bg-blue-600 text-white py-1 px-4 rounded-lg text-sm">Pilih File</button>
+          <button class="mt-2 bg-blue-600 text-white py-1 px-4 rounded-lg text-sm">Choose File</button>
         </div>
         
         <div class="mt-4">
           <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <p class="text-xs text-blue-800">
               <i class="fas fa-info-circle mr-1"></i> 
-              Pastikan file Excel Anda berisi kolom: Employee ID, NIK, Nama, Departemen, Posisi, Telepon, dan Email.
+              Make sure your Excel file contains columns: Employee ID, NIK, Name, Department, Position, Phone, and Email.
             </p>
           </div>
         </div>
@@ -79,35 +79,35 @@
       <div class="lg:col-span-2">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
           <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-            <i class="fas fa-table text-blue-600 mr-2"></i> Preview Data Karyawan
+            <i class="fas fa-table text-blue-600 mr-2"></i> Employee Data Preview
           </h3>
-          <p class="text-sm text-gray-600 mb-4">Tinjau informasi karyawan yang diimpor sebelum pengiriman</p>
+          <p class="text-sm text-gray-600 mb-4">Review imported employee information before submission</p>
           
           <!-- User count display -->
           <div class="flex items-center mb-3 text-sm text-gray-600 bg-blue-50 p-2 rounded-md">
             <i class="fas fa-users text-blue-500 mr-2"></i>
-            <span>Jumlah karyawan: <span id="totalUsers" class="font-semibold text-blue-700">0</span></span>
+            <span>Employee count: <span id="totalUsers" class="font-semibold text-blue-700">0</span></span>
           </div>
           
           <div class="overflow-x-auto rounded-lg border border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">ID Karyawan</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Employee ID</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">NIK</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nama Depan</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nama Tengah</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nama Belakang</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Departemen</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Posisi</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Telepon</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">First Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Middle Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Last Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Department</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Position</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Phone</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Email</th>
                 </tr>
               </thead>
               <tbody id="employeeTableBody" class="bg-white divide-y divide-gray-200 text-sm">
                 <!-- Data from Excel will appear here -->
                 <tr class="text-center text-gray-500">
-                  <td colspan="9" class="px-4 py-8">Unggah file Excel untuk melihat preview data</td>
+                  <td colspan="9" class="px-4 py-8">Upload Excel file to preview data</td>
                 </tr>
               </tbody>
             </table>
@@ -117,12 +117,12 @@
         <!-- Submit Section -->
         <div class="mt-6 flex justify-between items-center">
           <button type="button" onclick="window.location.href='RegisterMenu.html'" class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition duration-300">
-            <i class="fas fa-arrow-left mr-2"></i> Kembali
+            <i class="fas fa-arrow-left mr-2"></i> Back
           </button>
           
           <form id="registerForm" class="flex-1 ml-4">
             <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-              <i class="fas fa-user-plus mr-2"></i> Daftarkan Pengguna
+              <i class="fas fa-user-plus mr-2"></i> Register Users
             </button>
           </form>
         </div>
