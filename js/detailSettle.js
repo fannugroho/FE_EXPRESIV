@@ -267,8 +267,8 @@ async function loadCashAdvanceOptions() {
     }
 }
 
-function confirmDelete() {
-    Swal.fire({
+async function confirmDelete() {
+    const result = await Swal.fire({
         title: 'Are you sure?',
         text: 'You are about to delete this settlement. This action cannot be undone!',
         icon: 'warning',
@@ -277,30 +277,77 @@ function confirmDelete() {
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const settlementId = getSettlementIdFromUrl();
-            if (settlementId) {
-                // TODO: Implement delete API call
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'Settlement has been deleted successfully.',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    // Redirect to menu after successful deletion
-                    window.location.href = "../pages/MenuSettle.html";
+    });
+
+    if (result.isConfirmed) {
+        const settlementId = getSettlementIdFromUrl();
+        if (settlementId) {
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the settlement.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                // Implement delete API call
+                const response = await fetch(`${baseUrl}/api/settlements/${settlementId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
                 });
-            } else {
+
+                if (response.status === 204) {
+                    // Success - Settlement deleted
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Settlement has been deleted successfully.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Redirect to menu after successful deletion
+                        window.location.href = "../pages/MenuSettle.html";
+                    });
+                } else if (response.status === 500) {
+                    // Note: API currently returns 500 for not found cases, should be 404
+                    // TODO: Update API to return 404 status code when settlement ID is not found
+                    const errorData = await response.json();
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorData.Message || 'Failed to delete settlement.',
+                        icon: 'error'
+                    });
+                } else {
+                    // Other error status codes
+                    Swal.fire({
+                        title: 'Error!',
+                        text: `Failed to delete settlement. Status: ${response.status}`,
+                        icon: 'error'
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting settlement:', error);
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Settlement ID not found.',
+                    text: 'Network error occurred while deleting settlement.',
                     icon: 'error'
                 });
             }
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Settlement ID not found.',
+                icon: 'error'
+            });
         }
-    });
+    }
 }
 
 function updateSettle() {
