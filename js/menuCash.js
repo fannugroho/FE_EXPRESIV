@@ -87,7 +87,7 @@
 
         function detailDoc(caId) {
             // Store the selected document ID in localStorage for the detail page to use
-            localStorage.setItem("selectedCashAdvanceId", caId);
+            // localStorage.setItem("selectedCashAdvanceId", caId);
             // Navigate to detail page
             window.location.href = `/detailPages/detailCash.html?ca-id=${caId}`;
         }

@@ -114,5 +114,11 @@
         localStorage.removeItem("loggedInUser");
         window.location.href = "Login.html";
       }
+      function detailDoc(settleId) {
+        // Store the selected document ID in localStorage for the detail page to use
+        // localStorage.setItem("selectedCashAdvanceId", caId);
+        // Navigate to detail page
+        window.location.href = `/detailPages/detailSettle.html?settle-id=${settleId}`;
+    }
       
       window.onload = loadDashboard;
