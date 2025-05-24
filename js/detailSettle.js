@@ -268,18 +268,78 @@ async function loadCashAdvanceOptions() {
 }
 
 function confirmDelete() {
-    if (confirm('Are you sure you want to delete this settlement?')) {
-        const settlementId = getSettlementIdFromUrl();
-        if (settlementId) {
-            // TODO: Implement delete API call
-            alert('Settlement deleted successfully!');
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'You are about to delete this settlement. This action cannot be undone!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const settlementId = getSettlementIdFromUrl();
+            if (settlementId) {
+                // TODO: Implement delete API call
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Settlement has been deleted successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Redirect to menu after successful deletion
+                    window.location.href = "../pages/MenuSettle.html";
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Settlement ID not found.',
+                    icon: 'error'
+                });
+            }
         }
-    }
+    });
 }
 
 function updateSettle() {
-    // TODO: Implement update API call
-    alert('Settlement updated successfully!');
+    Swal.fire({
+        title: 'Update Settlement',
+        text: 'Are you sure you want to update this settlement?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, update it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Updating...',
+                text: 'Please wait while we update the settlement.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // TODO: Implement update API call
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Settlement has been updated successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }, 1500);
+        }
+    });
 }
 
 // Initialize page when DOM is loaded
