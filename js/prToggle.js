@@ -1,42 +1,8 @@
-let uploadedFiles = [];
-
-function saveDocument() {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const docNumber = `PR${Date.now()}`; // Gunakan timestamp agar unik
-
-    const documentData = {
-        id: document.getElementById("id").value,
-        prno: document.getElementById("purchaseRequestNo").value,
-        requester: document.getElementById("requesterName").value,
-        department: document.getElementById("department").value,
-        postingDate: document.getElementById("submissionDate").value,
-        requiredDate: document.getElementById("requiredDate").value,
-        classification: document.getElementById("classification").value,
-        prType: document.getElementById("prType").value,
-        status: document.getElementById("status").value,
-        approvals: {
-            prepared: document.getElementById("preparedByName").checked,
-            checked: document.getElementById("checkedByName").checked,
-            approved: document.getElementById("approvedByName").checked,
-            acknowledge: document.getElementById("acknowledgeByName").checked,
-            purchasing: document.getElementById("purchasingByName").checked,
-        }
-    };
-
-    documents.push(documentData);
-    localStorage.setItem("documents", JSON.stringify(documents));
-    alert("Dokumen berhasil disimpan!");
-}
-
-function updateApprovalStatus(id, statusKey) {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    let docIndex = documents.findIndex(doc => doc.id === id);
-    if (docIndex !== -1) {
-        documents[docIndex].approvals[statusKey] = true;
-        localStorage.setItem("documents", JSON.stringify(documents));
-        alert(`Document ${statusKey} updated!`);
-    }
-}
+/**
+ * PR Type Toggle Functionality
+ * This script handles toggling between Item and Service PR types
+ * It's designed to be used by all PR-related pages
+ */
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
@@ -99,58 +65,11 @@ function toggleFields() {
 
 function clearTableRows() {
     const tableBody = document.getElementById("tableBody");
-    while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
-    }
-}
-
-function fillItemDetails() {
-    // Get the selected item code
-    const itemCode = this.value;
-    
-    // Find the row containing this select element
-    const row = this.closest('tr');
-    
-    // Find the item name input in the same row
-    const itemName = row.querySelector('td#tdItemName input');
-    
-    const itemData = {
-        "ITM001": { name: "Laptop" },
-        "ITM002": { name: "Printer" },
-        "ITM003": { name: "Scanner" }
-    };
-
-    if (itemData[itemCode] && itemName) {
-        itemName.value = itemData[itemCode].name;
-    } else if (itemName) {
-        itemName.value = "";
-        if (!itemData[itemCode]) {
-            alert("Item No not found!");
+    if (tableBody) {
+        while (tableBody.firstChild) {
+            tableBody.removeChild(tableBody.firstChild);
         }
     }
-}
-
-document.getElementById("docType")?.addEventListener("change", function () {
-    const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "choose" ? "none" : "table";
-});
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
-
-    displayFileList();
 }
 
 function addRow() {
@@ -166,6 +85,8 @@ function addRow() {
 
 function addItemRow() {
     const tableBody = document.getElementById("tableBody");
+    if (!tableBody) return;
+    
     const newRow = document.createElement("tr");
     
     // Create Item No cell
@@ -181,7 +102,7 @@ function addItemRow() {
     defaultOption.value = "";
     defaultOption.disabled = true;
     defaultOption.selected = true;
-    defaultOption.innerText = "Pilih Kode Item";
+    defaultOption.innerText = "Select Item Code";
     itemSelect.appendChild(defaultOption);
     
     const items = [
@@ -219,7 +140,7 @@ function addItemRow() {
     tdDetail.id = "tdDetail";
     const detailInput = document.createElement("input");
     detailInput.type = "text";
-    detailInput.maxLength = 10;
+    detailInput.maxLength = 100;
     detailInput.className = "w-full";
     detailInput.required = true;
     tdDetail.appendChild(detailInput);
@@ -231,7 +152,7 @@ function addItemRow() {
     tdPurpose.id = "tdPurposed";
     const purposeInput = document.createElement("input");
     purposeInput.type = "text";
-    purposeInput.maxLength = 10;
+    purposeInput.maxLength = 100;
     purposeInput.className = "w-full";
     purposeInput.required = true;
     tdPurpose.appendChild(purposeInput);
@@ -261,26 +182,14 @@ function addItemRow() {
     tdAction.appendChild(deleteButton);
     newRow.appendChild(tdAction);
     
-    // Add service cells (hidden)
-    for (let i = 0; i < 4; i++) {
-        const td = document.createElement("td");
-        td.style.display = "none";
-        newRow.appendChild(td);
-    }
-
     tableBody.appendChild(newRow);
 }
 
 function addServiceRow() {
     const tableBody = document.getElementById("tableBody");
+    if (!tableBody) return;
+    
     const newRow = document.createElement("tr");
-
-    // Create the cells for Item columns (hidden)
-    for (let i = 0; i < 6; i++) {
-        const td = document.createElement("td");
-        td.style.display = "none";
-        newRow.appendChild(td);
-    }
     
     // Create Description cell
     const tdDescription = document.createElement("td");
@@ -334,44 +243,46 @@ function addServiceRow() {
 }
 
 function deleteRow(button) {
-    button.closest("tr").remove();
+    if (button && button.closest) {
+        const row = button.closest("tr");
+        if (row) row.remove();
+    }
 }
 
-function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
-function goToAddDoc() {window.location.href = "../addPages/addPR.html"; }
-function goToAddReim() {window.location.href = "AddReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
-
-// Call toggleFields on page load to initialize the table correctly
-window.onload = function() {
-    const prType = document.getElementById("prType");
-    const prTable = document.getElementById("prTable");
+function fillItemDetails() {
+    // Get the selected item code
+    const itemCode = this.value;
     
+    // Find the row containing this select element
+    const row = this.closest('tr');
+    if (!row) return;
+    
+    // Find the item name input in the same row
+    const itemName = row.querySelector('td#tdItemName input');
+    if (!itemName) return;
+    
+    const itemData = {
+        "ITM001": { name: "Laptop" },
+        "ITM002": { name: "Printer" },
+        "ITM003": { name: "Scanner" }
+    };
+
+    if (itemData[itemCode]) {
+        itemName.value = itemData[itemCode].name;
+    } else {
+        itemName.value = "";
+        alert("Item No not found!");
+    }
+}
+
+// Initialize table on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const prType = document.getElementById("prType");
     if (prType) {
-        // Set default value to "Item" instead of "choose"
+        // Set default value to "Item"
         prType.value = "Item";
         
-        // Add event listener to make sure toggleFields is called when prType changes
-        prType.addEventListener("change", toggleFields);
-        
-        // Call toggleFields immediately to set up the table for Item type
+        // Call toggleFields to initialize the table
         toggleFields();
     }
-    
-    // We don't need to hide the table now since toggleFields will show it
-    // Initially show the add row button
-    const addRowButton = document.querySelector("button[onclick='addRow()']");
-    if (addRowButton) {
-        addRowButton.style.display = "block";
-    }
-};
+}); 
