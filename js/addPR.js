@@ -187,7 +187,7 @@ function goToAddReim() {window.location.href = "AddReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
+// function goToMenuPR() { window.location.href = "MenuPR.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -410,14 +410,40 @@ async function submitPurchaseRequest() {
         });
         
         if (!response.ok) {
-            console.log("Response:", response);
-            throw new Error(`API error: ${response.status}`);
+            // Parse the error response to get the actual error message
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                console.log("Error response status:", response.status);
+                console.log("Error response headers:", response.headers.get('content-type'));
+                
+                const responseText = await response.text();
+                console.log("Raw error response:", responseText);
+                
+                const errorData = JSON.parse(responseText);
+                console.log("Parsed error data:", errorData);
+                
+                if (errorData.Message) {
+                    // Format 1: { "StatusCode": 404, "Message": "..." }
+                    errorMessage = errorData.Message;
+                } else if (errorData.message) {
+                    // Format 1 (lowercase): { "message": "..." }
+                    errorMessage = errorData.message;
+                } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                    // Format 2: { "success": false, "errors": ["error1", "error2", ...] }
+                    errorMessage = "Validation errors:\n" + errorData.errors.join("\n");
+                } else {
+                    console.log("No Message property found in error response");
+                }
+            } catch (parseError) {
+                console.log("Could not parse error response:", parseError);
+            }
+            throw new Error(errorMessage);
         }
 
         
         
-        const result = await response.json();
-        console.log("Submit result:", result);
+        // const result = await response.json();
+        // console.log("Submit result:", result);
         
         alert("Purchase Request submitted successfully!");
         window.location.href = "../pages/menuPR.html";

@@ -171,7 +171,7 @@ function fetchClassifications() {
 
 // Function to fetch items from API
 function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/item`)
+    fetch(`${BASE_URL}/api/items`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -289,7 +289,6 @@ function toggleEditableFields(isEditable) {
         'submissionDate',
         'requiredDate',
         // 'status',
-        'filePath',
         'remarks',
         'PO',
         'NonPO'
@@ -299,7 +298,7 @@ function toggleEditableFields(isEditable) {
     inputFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
-            if (field.tagName === 'INPUT' && field.type !== 'checkbox') {
+            if ((field.tagName === 'INPUT' && field.type !== 'checkbox') || field.tagName === 'TEXTAREA') {
                 field.readOnly = !isEditable;
             } else {
                 field.disabled = !isEditable;
@@ -467,6 +466,7 @@ function populateItemDetails(items) {
     }
     
     items.forEach(item => {
+        console.log(item);
         addItemRow(item);
     });
 }
@@ -476,25 +476,25 @@ function addItemRow(item = null) {
     const row = document.createElement('tr');
     
     row.innerHTML = `
-        <td class="p-2 border">
+        <td class="p-2 border item-field">
             <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
                 <option value="" disabled ${!item ? 'selected' : ''}>Select Item</option>
                 ${item ? `<option value="${item.itemCode}" selected>${item.itemCode}</option>` : ''}
             </select>
         </td>
-        <td class="p-2 border">
-            <input type="text" value="${item?.itemName || ''}" class="w-full item-description" maxlength="200" readonly />
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.description || ''}" class="w-full item-description" maxlength="200" required />
         </td>
-        <td class="p-2 border">
-            <input type="number" value="${item?.detail || ''}" class="w-full item-detail" maxlength="10" required />
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.detail || ''}" class="w-full item-detail" maxlength="100" required />
         </td>
-        <td class="p-2 border">
-            <input type="number" value="${item?.quantity || ''}" class="w-full item-quantity" maxlength="10" required />
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.purpose || ''}" class="w-full item-purpose" maxlength="100" required />
         </td>
-        <td class="p-2 border">
-            <input type="text" value="${item?.purpose || ''}" class="w-full item-purpose" maxlength="10" required />
+        <td class="p-2 border item-field">
+            <input type="number" value="${item?.quantity || ''}" class="w-full item-quantity" min="1" required />
         </td>
-        <td class="p-2 border text-center">
+        <td class="p-2 border text-center item-field">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
     `;
@@ -612,6 +612,7 @@ function updatePR() {
         // Add basic fields
         formData.append('Id', prId);
         formData.append('PurchaseRequestNo', document.getElementById('purchaseRequestNo').value);
+        formData.append('RequesterId', "deda05c6-8688-4d19-8f52-c0856a5752f4"); // Add RequesterId
         
         // Use the department ID from the select
         const departmentSelect = document.getElementById('department');
@@ -625,7 +626,7 @@ function updatePR() {
         
         const submissionDate = document.getElementById('submissionDate').value;
         if (submissionDate) {
-            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
+            formData.append('PostingDate', new Date(submissionDate).toISOString()); // Use PostingDate instead of SubmissionDate
         }
         
         // Use the classification text from the select
@@ -724,6 +725,31 @@ function previewPDF(event) {
             alert('Please upload a valid PDF file');
         }
     });
+
+    displayFileList();
+}
+
+function displayFileList() {
+    const fileListContainer = document.getElementById("fileList");
+    if (fileListContainer) {
+        fileListContainer.innerHTML = '';
+        uploadedFiles.forEach((file, index) => {
+            const fileItem = document.createElement("div");
+            fileItem.className = "flex justify-between items-center p-2 border-b";
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                    Remove
+                </button>
+            `;
+            fileListContainer.appendChild(fileItem);
+        });
+    }
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
 }
 
 function saveDocument() {

@@ -57,7 +57,7 @@
                 </select>  
                 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" disabled />
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 <div id="fileList" class="mt-2 border rounded p-2 max-h-32 overflow-y-auto"></div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
@@ -93,7 +93,7 @@
         <!-- Remarks section -->
         <div class="mt-4">
             <label class="font-semibold">Remarks</label>
-            <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
+            <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
         </div>
 
         <!-- Approval section -->
