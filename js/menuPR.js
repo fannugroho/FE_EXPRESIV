@@ -1,50 +1,5 @@
 const BASE_URL = "http://localhost:5246";
 
-function loadDashboard() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    document.getElementById("totalDocs").textContent = documents.length;
-    document.getElementById("openDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
-    document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Checked").length;
-    document.getElementById("acknowledgeDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
-    document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Approved").length;
-    document.getElementById("rejectDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
-    document.getElementById("closeDocs").textContent = documents.filter(doc => doc.approval && doc.approval.status === "Closed").length;
-
-    const recentDocs = documents.slice().reverse();
-    const tableBody = document.getElementById("recentDocs");
-    tableBody.innerHTML = "";
-    recentDocs.forEach((doc, index) => {
-        // Format dates for display
-        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
-        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
-        
-        // PO number may be null, handle that case
-        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
-        
-        // Get status from approval object
-        const status = doc.approval ? doc.approval.status : "Open";
-        
-        // GR date currently not in the JSON, leaving empty for now
-        const grDate = '';
-        
-        const row = `<tr class='w-full border-b'>
-            <td class='p-2'>${index + 1}</td>
-            <td class='p-2'>${doc.purchaseRequestNo}</td>
-            <td class='p-2'>${doc.requesterName}</td>
-            <td class='p-2'>${doc.departmentName}</td>
-            <td class='p-2'>${submissionDate}</td>
-            <td class='p-2'>${requiredDate}</td>
-            <td class='p-2'>${poNumber}</td>
-            <td class='p-2'>${status}</td>
-            <td class='p-2'>
-                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
-            </td>
-            <td class='p-2'>${grDate}</td>
-        </tr>`;
-        tableBody.innerHTML += row;
-    });
-}
-
 async function fetchPurchaseRequests() {
     fetch(`${BASE_URL}/api/pr`)
         .then(response => response.json())
@@ -58,13 +13,51 @@ async function fetchPurchaseRequests() {
 }
 
 function updateDashboardCounts(data) {
-    document.getElementById("totalDocs").textContent = data.length;
-    document.getElementById("openDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Submitted").length;
-    document.getElementById("checkedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Checked").length;
-    document.getElementById("acknowledgeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Acknowledged").length;
-    document.getElementById("approvedDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Approved").length;
-    document.getElementById("rejectDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Rejected").length;
-    document.getElementById("closeDocs").textContent = data.filter(doc => doc.approval && doc.approval.status === "Closed").length;
+    // Update total count
+    document.getElementById("totalCount").textContent = data.length;
+    
+    // Count documents by status
+    const statusCounts = {
+        draft: 0,
+        checked: 0,
+        acknowledged: 0,
+        approved: 0,
+        received: 0,
+        rejected: 0
+    };
+    
+    data.forEach(doc => {
+        const status = doc.approval ? doc.approval.status.toLowerCase() : 'draft';
+        
+        switch(status) {
+            case 'draft':
+                statusCounts.draft++;
+                break;
+            case 'checked':
+                statusCounts.checked++;
+                break;
+            case 'acknowledged':
+                statusCounts.acknowledged++;
+                break;
+            case 'approved':
+                statusCounts.approved++;
+                break;
+            case 'received':
+                statusCounts.received++;
+                break;
+            case 'rejected':
+                statusCounts.rejected++;
+                break;
+        }
+    });
+    
+    // Update the dashboard cards with correct IDs
+    document.getElementById("draftCount").textContent = statusCounts.draft;
+    document.getElementById("checkedCount").textContent = statusCounts.checked;
+    document.getElementById("acknowledgedCount").textContent = statusCounts.acknowledged;
+    document.getElementById("approvedCount").textContent = statusCounts.approved;
+    document.getElementById("receivedCount").textContent = statusCounts.received;
+    document.getElementById("rejectedCount").textContent = statusCounts.rejected;
 }
 
 function populatePurchaseRequests(data) {
@@ -85,6 +78,7 @@ function populatePurchaseRequests(data) {
         const grDate = '';
         
         const row = `<tr class='w-full border-b'>
+            <td class='p-2'></td>
             <td class='p-2'>${index + 1}</td>
             <td class='p-2'>${doc.purchaseRequestNo}</td>
             <td class='p-2'>${doc.requesterName}</td>

@@ -12,13 +12,17 @@ window.onload = function() {
     fetchPRDetails(prId, prType);
 };
 
-function populateUserSelects(users) {
+function populateUserSelects(users, approvalData = null) {
     const selects = [
-        'prepared', 'checkedBy', 'acknowledgeBy', 'approvedBy', 'receivedBy'
+        { id: 'prepared', approvalKey: 'preparedById' },
+        { id: 'checkedBy', approvalKey: 'checkedById' },
+        { id: 'acknowledgeBy', approvalKey: 'acknowledgedById' },
+        { id: 'approvedBy', approvalKey: 'approvedById' },
+        { id: 'receivedBy', approvalKey: 'receivedById' }
     ];
     
-    selects.forEach(selectId => {
-        const select = document.getElementById(selectId);
+    selects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
         if (select) {
             // Store the currently selected value
             const currentValue = select.value;
@@ -26,14 +30,18 @@ function populateUserSelects(users) {
             select.innerHTML = '<option value="" disabled>Select User</option>';
             
             users.forEach(user => {
+                // console.log("user", user);
                 const option = document.createElement("option");
                 option.value = user.id;
                 option.textContent = user.name || `${user.firstName} ${user.lastName}`;
                 select.appendChild(option);
             });
             
-            // Restore the selected value if it exists
-            if (currentValue) {
+            // Set the value from approval data if available
+            if (approvalData && approvalData[selectInfo.approvalKey]) {
+                select.value = approvalData[selectInfo.approvalKey];
+            } else if (currentValue) {
+                // Restore the selected value if it exists
                 select.value = currentValue;
             }
         }
@@ -82,7 +90,7 @@ function fetchPRDetails(prId, prType) {
                 toggleFields();
                 
                 // Always fetch dropdown options
-                fetchDropdownOptions();
+                fetchDropdownOptions(response.data.approval);
                 
                 // Enable fields only if status is Draft
                 const isEditable = response.data.approval && response.data.approval.status === 'Draft';
@@ -106,9 +114,9 @@ function fetchPRDetails(prId, prType) {
 }
 
 // Function to fetch all dropdown options
-function fetchDropdownOptions() {
+function fetchDropdownOptions(approvalData = null) {
     fetchDepartments();
-    fetchUsers();
+    fetchUsers(approvalData);
     fetchClassifications();
     if (document.getElementById("prType").value === "Item") {
         fetchItemOptions();
@@ -134,7 +142,7 @@ function fetchDepartments() {
 }
 
 // Function to fetch users from API
-function fetchUsers() {
+function fetchUsers(approvalData = null) {
     fetch(`${BASE_URL}/api/users`)
         .then(response => {
             if (!response.ok) {
@@ -143,8 +151,8 @@ function fetchUsers() {
             return response.json();
         })
         .then(data => {
-            console.log("User data:", data);
-            populateUserSelects(data.data);
+            // console.log("User data:", data);
+            populateUserSelects(data.data, approvalData);
         })
         .catch(error => {
             console.error('Error fetching users:', error);
