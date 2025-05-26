@@ -387,9 +387,9 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
-          <h2 id="greeting" className="text-5xl font-bold text-white mb-2">
+          {/* <h2 id="greeting" className="text-5xl font-bold text-white mb-2">
             Hii {userData.name} {userData.usercode ? `(${userData.usercode})` : ''}
-          </h2>
+          </h2> */}
           <h2 className="text-2xl font-medium text-white opacity-80 mb-8">Welcome to Dashboard Expressiv System</h2>
           
           <div className="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">

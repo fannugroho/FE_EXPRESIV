@@ -1,6 +1,6 @@
 window.onload = function () {
     loadUserGreeting();
-    loadDashboardAvatar();
+    // loadDashboardAvatar();
     loadDashboard();
 };
 
