@@ -9,7 +9,6 @@ function loadDashboard() {
     document.getElementById("closeDocs").textContent = documents.filter(doc => doc.status === "Close").length;
 
 
-
     const recentDocs = documents.slice().reverse();
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
@@ -33,6 +32,33 @@ function loadDashboard() {
     });
 }
 
+
+
+async function fetchPurchaseRequests() {
+    fetch(`${BASE_URL}/pr`)
+        .then(response => response.json())
+        .then(data => populatePurchaseRequests(data.data))
+        .catch(error => console.error('Error fetching purchase requests:', error));
+    console.log(data);
+}
+
+function populatePurchaseRequests(data) {
+    const tableBody = document.getElementById("recentDocs");
+    tableBody.innerHTML = "";
+    data.forEach(doc => {
+        const row = `<tr class='w-full border-b'>
+            <td class='p-2'>${doc.id}</td>
+            <td class='p-2'>${doc.purchaseRequestNo}</td>
+            <td class='p-2'>${doc.requesterName}</td>
+            <td class='p-2'>${doc.departmentName}</td>
+            <td class='p-2'>${doc.submissionDate}</td>
+            <td class='p-2'>${doc.requiredDate}</td>
+            <td class='p-2'>${doc.poNumber}</td>
+            <td class='p-2'>${doc.status}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+}
 
 function updateDoc(id) {
     alert(`Update document: ${id}`);

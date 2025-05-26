@@ -1,11 +1,13 @@
 let uploadedFiles = [];
+const BASE_URL = 'http://localhost:5246/api'; // Update with your actual API base URL
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const docNumber = `PR${Date.now()}`; // Gunakan timestamp agar unik
-
+    const itemDataArray = []; // Array to hold the extracted item data
+    const rows = document.querySelectorAll("#tableBody tr"); // Select all rows in the table body
+    document.getElementById("requesterId").value = "deda05c6-8688-4d19-8f52-c0856a5752f4";
     const documentData = {
-        id: document.getElementById("id").value,
+        id: document.getElementById("requesterId").value,
         prno: document.getElementById("purchaseRequestNo").value,
         requester: document.getElementById("requesterName").value,
         department: document.getElementById("department").value,
@@ -24,6 +26,7 @@ function saveDocument() {
     };
 
     documents.push(documentData);
+    console.log(documents);
     localStorage.setItem("documents", JSON.stringify(documents));
     alert("Dokumen berhasil disimpan!");
 }
@@ -150,6 +153,29 @@ function previewPDF(event) {
         }
     });
 
+    displayFileList();
+}
+
+function displayFileList() {
+    const fileListContainer = document.getElementById("fileList");
+    if (fileListContainer) {
+        fileListContainer.innerHTML = '';
+        uploadedFiles.forEach((file, index) => {
+            const fileItem = document.createElement("div");
+            fileItem.className = "flex justify-between items-center p-2 border-b";
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                    Remove
+                </button>
+            `;
+            fileListContainer.appendChild(fileItem);
+        });
+    }
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
     displayFileList();
 }
 
@@ -331,6 +357,11 @@ function addServiceRow() {
     newRow.appendChild(tdAction);
 
     tableBody.appendChild(newRow);
+    
+    // If we just added an item row, populate its dropdown
+    if (prType === "Item") {
+        fetchItemOptions(newRow.querySelector('.item-no'));
+    }
 }
 
 function deleteRow(button) {
