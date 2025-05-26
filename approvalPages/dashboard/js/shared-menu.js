@@ -31,9 +31,10 @@ function initializeSidebar() {
 
 // Toggle sidebar collapse/expand - modified to always keep sidebar open
 function toggleSidebar() {
-    // No-op function - sidebar toggle is disabled to keep it permanently open
-    // This function is kept for compatibility with existing code
-    return;
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('hidden');
+    }
 }
 
 // Show/hide submenu and rotate chevron
@@ -44,10 +45,14 @@ function toggleSubMenu(id) {
     
     if (submenu.classList.contains('hidden')) {
         submenu.classList.remove('hidden');
-        chevron.style.transform = 'rotate(90deg)';
+        if (chevron) {
+            chevron.style.transform = 'rotate(90deg)';
+        }
     } else {
         submenu.classList.add('hidden');
-        chevron.style.transform = 'rotate(0deg)';
+        if (chevron) {
+            chevron.style.transform = 'rotate(0deg)';
+        }
     }
     
     // Close other submenus
@@ -105,35 +110,31 @@ function setActiveMenuItem() {
         document.querySelector('button[onclick="goToMenuCash()"]').classList.add('active-menu-item');
     } else if (filename === 'menuSettle.html') {
         document.querySelector('button[onclick="goToMenuSettle()"]').classList.add('active-menu-item');
+    } else if (filename === 'menuPRReceive.html') {
+        document.querySelector('button[onclick="goToMenuReceivePR()"]').classList.add('active-menu-item');
     }
 }
 
 // Load user information
 function loadUserInfo() {
-    try {
-        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        const userNameDisplay = document.getElementById('userNameDisplay');
-        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+    
+    if (loggedInUser) {
+        if (userNameDisplay) {
+            userNameDisplay.textContent = loggedInUser.name;
+        }
         
-        if (loggedInUser) {
-            if (userNameDisplay) {
-                userNameDisplay.textContent = loggedInUser.name;
-            }
-            
-            if (dashboardUserIcon) {
-                if (loggedInUser.profilePicture) {
-                    dashboardUserIcon.src = loggedInUser.profilePicture;
-                } else {
-                    // Default profile picture with user initials
-                    const initials = loggedInUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                    dashboardUserIcon.src = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff`;
-                }
+        if (dashboardUserIcon) {
+            if (loggedInUser.profilePicture) {
+                dashboardUserIcon.src = loggedInUser.profilePicture;
+            } else {
+                // Default profile picture with user initials
+                const initials = loggedInUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                dashboardUserIcon.src = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff`;
             }
         }
-    } catch (error) {
-        console.error("Error parsing user data from localStorage:", error);
-        // Clear invalid data
-        localStorage.removeItem("loggedInUser");
     }
 }
 
@@ -152,6 +153,76 @@ function setGreeting() {
         
         greeting.textContent = greetingText;
     }
+}
+
+// Navigation functions
+function goToMenu() {
+    window.location.href = "../../../../pages/dashboard.html";
+}
+
+function goToMenuPR() {
+    window.location.href = "../../../../pages/purchaseRequest/menuPR.html";
+}
+
+function goToMenuCheckPR() {
+    window.location.href = "../../../../approvalPages/dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html";
+}
+
+function goToMenuAcknowPR() {
+    window.location.href = "../../../../approvalPages/dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html";
+}
+
+function goToMenuApprovPR() {
+    window.location.href = "../../../../approvalPages/dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
+}
+
+function goToMenuReceivePR() {
+    window.location.href = "../../../../approvalPages/dashboard/dashboardReceive/menuPRReceive.html";
+}
+
+function goToMenuReim() {
+    window.location.href = "../../../../pages/reimbursement/menuReim.html";
+}
+
+function goToMenuCash() {
+    window.location.href = "../../../../pages/cashAdvance/menuCash.html";
+}
+
+function goToMenuSettle() {
+    window.location.href = "../../../../pages/settlement/menuSettle.html";
+}
+
+function goToMenuAPR() {
+    window.location.href = "../../../../pages/report/menuApproval.html";
+}
+
+function goToMenuPO() {
+    window.location.href = "../../../../pages/report/menuPO.html";
+}
+
+function goToMenuBanking() {
+    window.location.href = "../../../../pages/report/menuBanking.html";
+}
+
+function goToMenuInvoice() {
+    window.location.href = "../../../../pages/report/menuInvoice.html";
+}
+
+function goToMenuRegist() {
+    window.location.href = "../../../../pages/user/menuRegistration.html";
+}
+
+function goToMenuUser() {
+    window.location.href = "../../../../pages/user/menuUserList.html";
+}
+
+function goToMenuRole() {
+    window.location.href = "../../../../pages/user/menuRoleList.html";
+}
+
+function logout() {
+    localStorage.removeItem("loggedInUser");
+    window.location.href = "../../../../pages/login.html";
 }
 
 // Initialize common UI elements

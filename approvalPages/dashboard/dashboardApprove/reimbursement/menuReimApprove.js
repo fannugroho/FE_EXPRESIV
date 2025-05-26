@@ -14,7 +14,7 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
-let currentTab = 'draft'; // Default tab
+let currentTab = 'acknowledge'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
@@ -83,18 +83,43 @@ function displayReimbursements(reimbursements) {
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("draftCount").textContent = data.draftCount || 0;
-    document.getElementById("checkedCount").textContent = data.checkedCount || 0;
+    document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
+    document.getElementById("approvedCount").textContent = data.approvedCount || 0;
+    document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
 // Set up events for tab switching and pagination
 function setupTabsAndPagination() {
-    // Removed the "select all" checkbox functionality since it no longer exists in HTML
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboard();
+        
+        // Add event listener to close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('[onclick="toggleSidebar()"]');
+            
+            // Check if we're on mobile view (using a media query)
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            
+            if (isMobile && 
+                sidebar.classList.contains('active') && 
+                !sidebar.contains(event.target) && 
+                event.target !== toggleBtn) {
+                sidebar.classList.remove('active');
+            }
+        });
+    });
 }
 
 function toggleSidebar() {
-    // No-op function - sidebar toggle is disabled to keep it permanently open
-    return;
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('active');
+    
+    // If on desktop, don't use the 'active' class
+    if (window.matchMedia('(min-width: 769px)').matches) {
+        sidebar.classList.remove('active');
+    }
 }
 
 function toggleSubMenu(menuId) {
@@ -102,7 +127,7 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "Menu.html"; }
+function goToMenu() { window.location.href = "../../../../pages/Menu.html"; }
 function goToAddDoc() {window.location.href = "AddDoc.html"; }
 function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
@@ -121,11 +146,11 @@ function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
 function goToMenuPO() { window.location.href = "MenuPO.html"; }
 function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "../../../../pages/Login.html"; }
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+    window.location.href = `../../../../detailPages/detailReim.html?reim-id=${reimId}`;
 }
 
 // Sample data for testing when API is not available
@@ -133,7 +158,15 @@ let sampleData = [];
 function generateSampleData() {
     sampleData = [];
     for (let i = 1; i <= 35; i++) {
-        const status = i <= 20 ? 'Draft' : 'Checked';
+        let status;
+        if (i <= 15) {
+            status = 'Acknowledge';
+        } else if (i <= 25) {
+            status = 'Approved';
+        } else {
+            status = 'Rejected';
+        }
+
         sampleData.push({
             id: i,
             docNumber: `DOC-${1000 + i}`,
@@ -157,25 +190,26 @@ function useSampleData() {
 function updateSampleCounts() {
     const data = generateSampleData();
     document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("draftCount").textContent = data.filter(item => item.status === 'Draft').length;
-    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
+    document.getElementById("acknowledgeCount").textContent = data.filter(item => item.status === 'Acknowledge').length;
+    document.getElementById("approvedCount").textContent = data.filter(item => item.status === 'Approved').length;
+    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between Draft and Checked tabs
+// Switch between Acknowledge and Approved tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
-    document.getElementById('draftTabBtn').classList.remove('tab-active');
-    document.getElementById('checkedTabBtn').classList.remove('tab-active');
+    document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
+    document.getElementById('approvedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Draft');
-    } else if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Checked');
+    if (tabName === 'acknowledge') {
+        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
+    } else if (tabName === 'approved') {
+        document.getElementById('approvedTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Approved');
     }
     
     // Update table and pagination
@@ -203,6 +237,16 @@ function updateTable() {
             }
         }
         
+        // Determine status class for styling
+        let statusClass = '';
+        if (item.status === 'Acknowledge') {
+            statusClass = 'status-acknowledge';
+        } else if (item.status === 'Approved') {
+            statusClass = 'status-approved';
+        } else if (item.status === 'Rejected') {
+            statusClass = 'status-rejected';
+        }
+        
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
@@ -213,7 +257,7 @@ function updateTable() {
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${item.status === 'Draft' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                <span class="px-2 py-1 rounded-full text-xs ${statusClass}">
                     ${item.status}
                 </span>
             </td>
@@ -257,8 +301,8 @@ function updatePagination() {
 
 // Change the current page
 function changePage(direction) {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const newPage = currentPage + direction;
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
@@ -267,96 +311,77 @@ function changePage(direction) {
     }
 }
 
-// Function to show all documents
+// Function for mobile view to show total documents
 function goToTotalDocs() {
-    filteredData = allReimbursements;
-    currentPage = 1;
-    updateTable();
-    updatePagination();
+    alert(`Total Documents: ${document.getElementById('totalCount').textContent}`);
 }
 
-// Export to Excel function
+// Function to download the current data as Excel
 function downloadExcel() {
-    // Get status text for filename
-    const statusText = currentTab === 'draft' ? 'Draft' : 'Checked';
-    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
-    // Prepare data for export - no changes needed here as it already doesn't include checkbox data
-    const data = filteredData.map(item => ({
-        'Doc Number': item.id || '',
-        'Reimbursement Number': item.voucherNo || '',
-        'Requester': item.requesterName || '',
-        'Department': item.department || '',
-        'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-        'Status': item.status || ''
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => {
+        return {
+            'Doc Number': item.id,
+            'Reimbursement Number': item.voucherNo,
+            'Requester': item.requesterName,
+            'Department': item.department,
+            'Submission Date': new Date(item.submissionDate).toLocaleDateString(),
+            'Status': item.status
+        };
     }));
     
-    // Create a worksheet
-    const ws = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reimbursements');
     
-    // Create a workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Reimbursements');
-    
-    // Generate Excel file and trigger download
-    XLSX.writeFile(wb, fileName);
+    // Generate Excel file
+    XLSX.writeFile(workbook, `Reimbursements_${currentTab}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-// Export to PDF function
+// Function to download the current data as PDF
 function downloadPDF() {
-    // Get status text for filename
-    const statusText = currentTab === 'draft' ? 'Draft' : 'Checked';
-    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    
-    // Create PDF document
+    // Initialize jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
     // Add title
-    doc.setFontSize(18);
-    doc.text(`Reimbursement ${statusText} Documents`, 14, 22);
+    doc.setFontSize(16);
+    doc.text(`Reimbursement Report - ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`, 14, 20);
     
     // Add date
     doc.setFontSize(12);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    // Prepare table data - column headers are already correct without checkbox column
-    const tableColumn = ['Doc Number', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
-    const tableRows = [];
+    // Define the columns for the table
+    const columns = [
+        { header: 'Doc No', dataKey: 'id' },
+        { header: 'Reim No', dataKey: 'voucherNo' },
+        { header: 'Requester', dataKey: 'requesterName' },
+        { header: 'Department', dataKey: 'department' },
+        { header: 'Date', dataKey: 'date' },
+        { header: 'Status', dataKey: 'status' }
+    ];
     
-    filteredData.forEach(item => {
-        const dataRow = [
-            item.id || '',
-            item.voucherNo || '',
-            item.requesterName || '',
-            item.department || '',
-            item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            item.status || ''
-        ];
-        tableRows.push(dataRow);
+    // Prepare the data
+    const data = filteredData.map(item => {
+        return {
+            id: item.id,
+            voucherNo: item.voucherNo,
+            requesterName: item.requesterName,
+            department: item.department,
+            date: new Date(item.submissionDate).toLocaleDateString(),
+            status: item.status
+        };
     });
     
-    // Add table
+    // Generate the table
     doc.autoTable({
-        head: [tableColumn],
-        body: tableRows,
         startY: 40,
-        theme: 'grid',
-        styles: {
-            fontSize: 8,
-            cellPadding: 2
-        },
-        headStyles: {
-            fillColor: [66, 153, 225],
-            textColor: 255
-        },
-        alternateRowStyles: {
-            fillColor: [240, 240, 240]
-        }
+        columns: columns,
+        body: data
     });
     
-    // Save PDF
-    doc.save(fileName);
+    // Save the PDF
+    doc.save(`Reimbursements_${currentTab}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-window.onload = loadDashboard;
+// Initialize the dashboard on page load
+document.addEventListener('DOMContentLoaded', loadDashboard); 

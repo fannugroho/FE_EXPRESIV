@@ -1,15 +1,68 @@
-const BASE_URL = "http://localhost:5246";
+const BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
+
+// Pagination variables
+let currentPage = 1;
+const itemsPerPage = 10;
+let allPurchaseRequests = [];
+let filteredPurchaseRequests = [];
+let currentTab = 'all'; // Track the current active tab
 
 async function fetchPurchaseRequests() {
     fetch(`${BASE_URL}/api/pr`)
         .then(response => response.json())
         .then(data => {
             if (data && data.data) {
-                populatePurchaseRequests(data.data);
-                updateDashboardCounts(data.data);
+                // Store all purchase requests
+                allPurchaseRequests = data.data;
+                filterPurchaseRequests(); // Apply current filters
             }
         })
         .catch(error => console.error('Error fetching purchase requests:', error));
+}
+
+// Function to filter purchase requests based on tab and search term
+function filterPurchaseRequests(searchTerm = '') {
+    // Reset to page 1 when filtering
+    currentPage = 1;
+    
+    // Apply tab filter
+    if (currentTab === 'draft') {
+        filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
+            (!doc.approval || doc.approval.status.toLowerCase() === 'draft')
+        );
+    } else {
+        // 'all' tab or default
+        filteredPurchaseRequests = [...allPurchaseRequests];
+    }
+    
+    // Apply search filter if there's a search term
+    if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => 
+            doc.purchaseRequestNo?.toLowerCase().includes(term)
+        );
+    }
+    
+    // Update the table and dashboard counts
+    populatePurchaseRequests(filteredPurchaseRequests);
+    updateDashboardCounts(allPurchaseRequests);
+}
+
+// Function to switch between tabs
+function switchTab(tabName) {
+    currentTab = tabName;
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
+    
+    if (tabName === 'draft') {
+        document.getElementById('draftTabBtn').classList.add('tab-active');
+    } else {
+        document.getElementById('allTabBtn').classList.add('tab-active');
+    }
+    
+    // Filter documents based on the new tab
+    filterPurchaseRequests();
 }
 
 function updateDashboardCounts(data) {
@@ -63,7 +116,14 @@ function updateDashboardCounts(data) {
 function populatePurchaseRequests(data) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
-    data.forEach((doc, index) => {
+    
+    // Calculate pagination indices
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, data.length);
+    const paginatedData = data.slice(startIndex, endIndex);
+    
+    // Display paginated data
+    paginatedData.forEach((doc, index) => {
         // Format dates for display
         const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
         const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
@@ -79,7 +139,7 @@ function populatePurchaseRequests(data) {
         
         const row = `<tr class='w-full border-b'>
             <td class='p-2'></td>
-            <td class='p-2'>${index + 1}</td>
+            <td class='p-2'>${startIndex + index + 1}</td>
             <td class='p-2'>${doc.purchaseRequestNo}</td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
@@ -94,6 +154,46 @@ function populatePurchaseRequests(data) {
         </tr>`;
         tableBody.innerHTML += row;
     });
+    
+    // Update pagination info
+    updatePaginationInfo(data.length);
+}
+
+// Function to update pagination information
+function updatePaginationInfo(totalItems) {
+    const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    
+    document.getElementById('startItem').textContent = startItem;
+    document.getElementById('endItem').textContent = endItem;
+    document.getElementById('totalItems').textContent = totalItems;
+    
+    // Update pagination buttons
+    updatePaginationButtons(totalItems);
+}
+
+// Function to update pagination buttons state
+function updatePaginationButtons(totalItems) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    document.getElementById('currentPage').textContent = currentPage;
+    
+    // Update prev/next button states
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    prevBtn.classList.toggle('disabled', currentPage <= 1);
+    nextBtn.classList.toggle('disabled', currentPage >= totalPages);
+}
+
+// Function to change page
+function changePage(direction) {
+    const totalPages = Math.ceil(filteredPurchaseRequests.length / itemsPerPage);
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        populatePurchaseRequests(filteredPurchaseRequests);
+    }
 }
 
 function updateDoc(id) {
@@ -202,7 +302,18 @@ function downloadPDF() {
 window.onload = function() {
     fetchPurchaseRequests();
     
+    // Add event listener for search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+    }
 };
+
+// Function to handle search input
+function handleSearch(event) {
+    const searchTerm = event.target.value.trim();
+    filterPurchaseRequests(searchTerm);
+}
 
 function detailDoc(id, prType) {
     window.location.href = `../detailPages/detailPR.html?pr-id=${id}&pr-type=${prType}`;

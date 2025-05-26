@@ -60,5 +60,3 @@ function navigateWithParams(page, params) {
 function goBack() {
     window.history.back();
 }
-
-window.onload = loadDashboard;

@@ -4,6 +4,15 @@
     background: #f3f4f6;
     z-index: 10;
 }
+
+/* Fixed sidebar */
+#sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 40;
+}
     
 /* Styling tombol */
 .menu-btn, .submenu-btn {
@@ -38,7 +47,7 @@
 
 .submenu-btn:hover {
     background: #e2e2e2;
-}  
+}
 
 /* Responsive table styles */
 @media (max-width: 1024px) {
@@ -52,6 +61,17 @@
 }
 
 @media (max-width: 768px) {
+    #sidebar {
+        position: fixed;
+        left: -100%;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    #sidebar.active {
+        left: 0;
+    }
+    
     .bg-white.p-6 {
         padding: 1rem;
     }
@@ -107,33 +127,20 @@
     cursor: not-allowed;
 }
 
-/* Notification Styles */
-.notification-btn {
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
+/* Status Colors */
+.status-acknowledge {
+    background-color: #FEF3C7;
+    color: #92400E;
 }
 
-.notification-btn:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+.status-approved {
+    background-color: #D1FAE5;
+    color: #065F46;
 }
 
-.notification-badge {
-    background-color: #EF4444;
-}
-
-.notification-dropdown {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid #E5E7EB;
-    overflow: hidden;
-}
-
-.notification-item {
-    transition: background-color 0.2s;
-}
-
-.notification-item:hover {
-    background-color: #F3F4F6;
+.status-rejected {
+    background-color: #FEE2E2;
+    color: #991B1B;
 }
 
 /* Improving small screen experience */

@@ -1,7 +1,7 @@
 // Authentication utilities for handling JWT tokens and API calls
 
 // API Configuration
-const API_BASE_URL = "http://localhost:5246";
+const API_BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
 
 // Helper function to get access token from localStorage
 function getAccessToken() {

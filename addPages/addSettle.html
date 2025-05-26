@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Document - Japanese Themed CRUD</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/addSettle.js"></script>
     <script src="../pages/utils/toMenu.js"></script>
 </head>
@@ -53,10 +54,8 @@
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
-                <select type="" id="requiredDate" class="w-full p-2 border rounded">
-                    <option value="Pilih" disabled selected>Select Cash Advance</option>
-                    <option value="INVAP001">INVAP001</option>
-                    <option value="INVAR002">INVAR002</option>
+                <select type="" id="cashAdvanceDoc" class="w-full p-2 border rounded">
+                    <option value="" disabled selected>Loading...</option>
                 </select>
             </div>
         </div>
@@ -86,7 +85,7 @@
                         <input type="text" id="Amount" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdActions" class="p-2 border text-center">
-                        <button type="button" id="servicePrice" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
                             🗑
                         </button>
                     </td>
@@ -101,35 +100,35 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea class="w-full p-2 border rounded-md"></textarea>
+              <textarea id="Remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><input type="checkbox" id="prepared" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
-                    <option value="Admin1">Admin 1</option>
+                <select id="preparedDropdown" class="w-full p-1 border rounded">
+                    <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Admin 1</option>
                     <option value="Admin2">Admin 2</option>
                 </select>
             </div>
             <div>
             <label><input type="checkbox" id="checked" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="Checked" class="w-full p-1 border rounded">
-                <option value="Finance1">Finance 1</option>
+            <select id="checkedDropdown" class="w-full p-1 border rounded">
+                <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Finance 1</option>
                 <option value="Finance2">Finance 2</option>
             </select>
             </div>
             <div>
             <label><input type="checkbox" id="approved" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="Approved" class="w-full p-1 border rounded">
-                <option value="Manager1">Manager 1</option>
+            <select id="approvedDropdown" class="w-full p-1 border rounded">
+                <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Manager 1</option>
                 <option value="Manager2">Manager 2</option>
             </select>
             </div>
             <div>
             <label><input type="checkbox" id="purchasing" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <select id="Approved" class="w-full p-1 border rounded">
-                    <option value="Requester">Requester</option>
+                <select id="acknowledgedDropdown" class="w-full p-1 border rounded">
+                    <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">Requester</option>
                     <option value="Admin">Admin</option>
                 </select>
             </div>
@@ -140,9 +139,9 @@
             <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Save
             </button>
-            <button onclick="goToMenuSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <!-- <button onclick="goToMenuSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Update
-            </button>
+            </button> -->
         </div>
         </div>
 </body>

@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'Checked'; // Default tab
+let currentTab = 'approved'; // Default tab
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -37,15 +37,15 @@ function loadDashboard() {
     
     // Update counters
     document.getElementById("totalCount").textContent = documents.length;
-    document.getElementById("draftCount").textContent = documents.filter(doc => doc.status === "Draft").length;
-    document.getElementById("checkedCount").textContent = documents.filter(doc => doc.status === "Checked").length;
-
+    document.getElementById("approvedCount").textContent = documents.filter(doc => doc.status === "Approved").length;
+    document.getElementById("receivedCount").textContent = documents.filter(doc => doc.status === "Received").length;
+    
     // Filter documents based on the current tab
     let filteredDocs = [];
-    if (currentTab === 'draft') {
-        filteredDocs = documents.filter(doc => doc.status === "Draft");
-    } else if (currentTab === 'checked') {
-        filteredDocs = documents.filter(doc => doc.status === "Checked");
+    if (currentTab === 'approved') {
+        filteredDocs = documents.filter(doc => doc.status === "Approved");
+    } else if (currentTab === 'received') {
+        filteredDocs = documents.filter(doc => doc.status === "Received");
     }
 
     // Sort the filtered docs (newest first)
@@ -71,6 +71,7 @@ function loadDashboard() {
                 <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
                 <td class='p-2'>
                     <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                    ${currentTab === 'approved' ? `<button onclick="receiveDoc('${doc.id}')" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ml-1">Receive</button>` : ''}
                 </td>
             </tr>`;
             tableBody.innerHTML += row;
@@ -88,10 +89,10 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-    } else if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    if (tabName === 'approved') {
+        document.getElementById('approvedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'received') {
+        document.getElementById('receivedTabBtn').classList.add('tab-active');
     }
     
     // Reload dashboard with the new filter
@@ -105,6 +106,7 @@ function getStatusClass(status) {
         case 'Checked': return 'bg-green-100 text-green-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Received': return 'bg-purple-100 text-purple-800';
         case 'Reject': return 'bg-red-100 text-red-800';
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';
@@ -133,22 +135,19 @@ function goToTotalDocs() {
     console.log('Navigate to total documents view');
 }
 
-function updateDoc(id) {
-    alert(`Update document: ${id}`);
-}
-
-function deleteDoc(id) {
-    if (confirm("Are you sure you want to delete this document?")) {
+// Function to handle document receiving
+function receiveDoc(id) {
+    if (confirm("Are you sure you want to mark this document as received?")) {
         let documents = JSON.parse(localStorage.getItem("documents")) || [];
-        documents = documents.filter(doc => doc.id !== id);
-        localStorage.setItem("documents", JSON.stringify(documents));
-        loadDashboard(); // Refresh tabel setelah menghapus
+        const docIndex = documents.findIndex(doc => doc.id === id);
+        
+        if (docIndex !== -1) {
+            documents[docIndex].status = "Received";
+            documents[docIndex].receivedDate = new Date().toISOString().split('T')[0]; // Today's date
+            localStorage.setItem("documents", JSON.stringify(documents));
+            loadDashboard(); // Refresh the table
+        }
     }
-}
-
-function editDoc(detail) {
-    alert("Edit Document: " + detail);
-    // Di sini kamu bisa menambahkan kode untuk membuka modal edit atau halaman edit
 }
 
 function detailDoc(id) {
@@ -171,11 +170,19 @@ function toggleSubMenu(menuId) {
 function downloadExcel() {
     const documents = JSON.parse(localStorage.getItem("documents")) || [];
     
+    // Filter documents based on current tab
+    let filteredDocs = [];
+    if (currentTab === 'approved') {
+        filteredDocs = documents.filter(doc => doc.status === "Approved");
+    } else if (currentTab === 'received') {
+        filteredDocs = documents.filter(doc => doc.status === "Received");
+    }
+    
     // Membuat workbook baru
     const workbook = XLSX.utils.book_new();
     
     // Mengonversi data ke format worksheet
-    const wsData = documents.map(doc => ({
+    const wsData = filteredDocs.map(doc => ({
         'Document Number': doc.id,
         'PR Number': doc.purchaseRequestNo,
         'Requester': doc.requesterName,
@@ -184,7 +191,7 @@ function downloadExcel() {
         'Required Date': doc.requiredDate,
         'PO Number': doc.poNumber,
         'Status': doc.status,
-        'GR Date': doc.grDate
+        'Received Date': doc.receivedDate || '-'
     }));
     
     // Membuat worksheet dan menambahkannya ke workbook
@@ -204,9 +211,17 @@ function downloadPDF() {
     doc.setFontSize(16);
     doc.text('Purchase Request Report', 14, 15);
     
-    // Membuat data tabel dari documents
+    // Filter documents based on current tab
     const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const tableData = documents.map(doc => [
+    let filteredDocs = [];
+    if (currentTab === 'approved') {
+        filteredDocs = documents.filter(doc => doc.status === "Approved");
+    } else if (currentTab === 'received') {
+        filteredDocs = documents.filter(doc => doc.status === "Received");
+    }
+    
+    // Membuat data tabel dari documents
+    const tableData = filteredDocs.map(doc => [
         doc.id,
         doc.purchaseRequestNo,
         doc.requesterName,
@@ -215,12 +230,12 @@ function downloadPDF() {
         doc.requiredDate,
         doc.poNumber,
         doc.status,
-        doc.grDate
+        doc.receivedDate || '-'
     ]);
     
     // Menambahkan tabel
     doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'Received Date']],
         body: tableData,
         startY: 25
     });
@@ -232,4 +247,4 @@ function downloadPDF() {
 // Function to navigate to user profile page
 function goToProfile() {
     window.location.href = "../../../../pages/profil.html";
-}
+} 

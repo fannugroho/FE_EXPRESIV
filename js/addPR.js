@@ -1,5 +1,5 @@
 let uploadedFiles = [];
-const BASE_URL = 'http://localhost:5246/api'; // Update with your actual API base URL
+const BASE_URL = 'https://t246vds2-5246.asse.devtunnels.ms/api'; // Update with your actual API base URL
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Purchase Request Check - Kansai Paint Supplier</title>
+    <title>Dashboard Purchase Request Approve - Kansai Paint Supplier</title>
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="shared-menu.css">
-    <link rel="stylesheet" href="menuPRCheck.css">
+    <link rel="stylesheet" href="menuPRReceive.css">
     <!-- Navigation Script -->
     <script src="../pages/utils/toMenu.js"></script>
 </head>
@@ -178,7 +178,7 @@
         <!-- Main Content -->
         <div class="flex-1 p-8 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Purchase Request Check
+                Dashboard Purchase Request Receive
             </h2>
             
             <!-- Status Cards - Improved responsive grid -->
@@ -188,12 +188,12 @@
                     <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
-                    <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
+                    <p id="approvedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
-                    <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Received</h3>
+                    <p id="receivedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                 </div>
             </div>
             
@@ -204,11 +204,11 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 mt-2 md:mt-0 border-b w-full md:w-auto">
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
-                            <i class="fas fa-file-alt mr-2"></i>Draft
+                        <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Approved
                         </button>
-                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-check mr-2"></i>Checked
+                        <button id="receivedTabBtn" onclick="switchTab('received')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-truck-loading mr-2"></i>Received
                         </button>
                     </div>
                     
@@ -252,11 +252,6 @@
                 </div>
            
                 <div class="flex justify-between mt-4">
-                    <!--
-                    <button onclick="goToAddPR()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-plus mr-2"></i>Create PR
-                    </button>
-                    -->
                     <div class="flex justify-end space-x-2">
                         <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
                           <i class="fas fa-file-excel mr-2"></i>Excel
@@ -276,13 +271,13 @@
             <i class="fas fa-file-alt text-xl"></i>
             <span>Total</span>
         </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-file text-xl"></i>
-            <span>Draft</span>
-        </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
-            <span>Checked</span>
+            <span>Approved</span>
+        </button>
+        <button onclick="switchTab('received')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-truck-loading text-xl"></i>
+            <span>Received</span>
         </button>
         <button onclick="downloadExcel()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-green-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-excel text-xl"></i>
@@ -296,6 +291,6 @@
 
     <!-- External JS -->
     <script src="../js/shared-menu.js"></script>
-    <script src="menuPRCheck.js"></script>
+    <script src="menuPRReceive.js"></script>
 </body>
 </html>

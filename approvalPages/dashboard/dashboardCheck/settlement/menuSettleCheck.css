@@ -4,7 +4,7 @@
     background: #f3f4f6;
     z-index: 10;
 }
-    
+
 /* Styling tombol */
 .menu-btn, .submenu-btn {
     display: flex;
@@ -38,7 +38,7 @@
 
 .submenu-btn:hover {
     background: #e2e2e2;
-}  
+}
 
 /* Responsive table styles */
 @media (max-width: 1024px) {
@@ -105,35 +105,6 @@
     background-color: #f9fafb;
     color: #9ca3af;
     cursor: not-allowed;
-}
-
-/* Notification Styles */
-.notification-btn {
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-}
-
-.notification-btn:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-.notification-badge {
-    background-color: #EF4444;
-}
-
-.notification-dropdown {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid #E5E7EB;
-    overflow: hidden;
-}
-
-.notification-item {
-    transition: background-color 0.2s;
-}
-
-.notification-item:hover {
-    background-color: #F3F4F6;
 }
 
 /* Improving small screen experience */

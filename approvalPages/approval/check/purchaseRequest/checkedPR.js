@@ -40,35 +40,46 @@ function updateApprovalStatus(id, statusKey) {
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
-    const itemFields = ["thItemCode", "thItemName", "thDetail", "thQuantity", "thPurposed", "thAction", "tdItemCode", "tdItemName", "tdDetail", "tdQuantity", "tdPurposed", "tdAction"];
-    const serviceFields = ["thDescription", "thPurpose", "thQty" ,"thActions", "tdDescription", "tdPurpose", "tdQty" ,"tdActions"];
+    const itemFields = ["thitemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction", 
+                        "tdItemCode", "tdItemName", "tdDetail", "tdPurposed", "tdQuantity", "tdAction"];
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
 
     if (prType === "Item") {
-        itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
-        serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
+        itemFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.style.display = "table-cell";
+        });
+        serviceFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.style.display = "none";
+        });
     } else if (prType === "Service") {
-        itemFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "none"));
-        serviceFields.forEach(id => document.getElementById(id)?.style.setProperty("display", "table-cell"));
+        itemFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.style.display = "none";
+        });
+        serviceFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.style.display = "table-cell";
+        });
     }
 }
 
 function fillItemDetails() {
-    const itemCode = document.getElementById("itemNo").value;
+    const itemCode = document.getElementById("itemCode").value;
     const itemName = document.getElementById("itemName");
-    const itemPrice = document.getElementById("itemPrice");
 
     const itemData = {
-        "ITM001": { name: "Laptop", price: "15,000,000" },
-        "ITM002": { name: "Printer", price: "3,500,000" },
-        "ITM003": { name: "Scanner", price: "2,000,000" }
+        "ITM001": { name: "Laptop" },
+        "ITM002": { name: "Printer" },
+        "ITM003": { name: "Scanner" }
     };
 
     if (itemData[itemCode]) {
-        itemName.value = itemData[itemNo].name;
-        itemPrice.value = itemData[itemNo].price;
+        itemName.value = itemData[itemCode].name;
     } else {
         itemName.value = "";
-        itemPrice.value = "";
         alert("Item No not found!");
     }
 }
@@ -99,17 +110,36 @@ function previewPDF(event) {
 function addRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
+    const prType = document.getElementById("prType").value;
 
-    newRow.innerHTML = `
-        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-        </td>
-    `;
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border">
+                <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
+                    <option value="" disabled selected>Select Item Code</option>
+                    <option value="ITM001">ITM001 - Laptop</option>
+                    <option value="ITM002">ITM002 - Printer</option>
+                    <option value="ITM003">ITM003 - Scanner</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border"><input type="text" maxlength="200" class="w-full" readonly /></td>
+            <td id="tdDetail" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdPurposed" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQuantity" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdAction" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td id="tdDescription" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdPurposeds" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQty" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdActions" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    }
 
     tableBody.appendChild(newRow);
 }
@@ -147,3 +177,20 @@ function goToCheckedPR() { window.location.href = "../confirmPage/check/purchase
 function goToCheckedReim() { window.location.href = "../confirmPage/check/reimbursement/checkedReim.html"; }
 
 window.onload = loadDashboard;
+
+// Initialize table display on page load
+window.addEventListener("DOMContentLoaded", function() {
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
+    
+    // If PR type is already selected, toggle fields accordingly
+    const prType = document.getElementById("prType");
+    if (prType && prType.value !== "choose") {
+        toggleFields();
+    }
+});
