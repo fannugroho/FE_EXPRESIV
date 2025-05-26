@@ -110,24 +110,30 @@ function setActiveMenuItem() {
 
 // Load user information
 function loadUserInfo() {
-    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    const dashboardUserIcon = document.getElementById('dashboardUserIcon');
-    
-    if (loggedInUser) {
-        if (userNameDisplay) {
-            userNameDisplay.textContent = loggedInUser.name;
-        }
+    try {
+        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
         
-        if (dashboardUserIcon) {
-            if (loggedInUser.profilePicture) {
-                dashboardUserIcon.src = loggedInUser.profilePicture;
-            } else {
-                // Default profile picture with user initials
-                const initials = loggedInUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                dashboardUserIcon.src = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff`;
+        if (loggedInUser) {
+            if (userNameDisplay) {
+                userNameDisplay.textContent = loggedInUser.name;
+            }
+            
+            if (dashboardUserIcon) {
+                if (loggedInUser.profilePicture) {
+                    dashboardUserIcon.src = loggedInUser.profilePicture;
+                } else {
+                    // Default profile picture with user initials
+                    const initials = loggedInUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    dashboardUserIcon.src = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff`;
+                }
             }
         }
+    } catch (error) {
+        console.error("Error parsing user data from localStorage:", error);
+        // Clear invalid data
+        localStorage.removeItem("loggedInUser");
     }
 }
 

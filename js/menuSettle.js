@@ -11,78 +11,197 @@
             }
             
             const documents = apiResponse.data;
+            
+            // Store documents globally for tab functionality
+            allDocuments = documents;
+            filteredDocuments = documents;
     
-            // Hitung summary
-            document.getElementById("totalDocs").textContent = documents.length;
-            document.getElementById("pendingDocs").textContent =
-              documents.filter(doc => doc.status === "Pending").length;
-            document.getElementById("checkedDocs").textContent =
-              documents.filter(doc => doc.status === "Checked").length;
-            document.getElementById("approvedDocs").textContent =
-              documents.filter(doc => doc.status === "Approved").length;
-            document.getElementById("closeDocs").textContent =
-              documents.filter(doc => doc.status === "Close").length;
-            document.getElementById("rejectDocs").textContent =
-              documents.filter(doc => doc.status === "Reject").length;
+            // Update summary counts with correct element IDs
+            const totalCountEl = document.getElementById("totalCount");
+            const draftCountEl = document.getElementById("draftCount");
+            const checkedCountEl = document.getElementById("checkedCount");
+            const approvedCountEl = document.getElementById("approvedCount");
+            const paidCountEl = document.getElementById("paidCount");
+            const closeCountEl = document.getElementById("closeCount");
+            const rejectedCountEl = document.getElementById("rejectedCount");
+            
+            if (totalCountEl) totalCountEl.textContent = documents.length;
+            if (draftCountEl) draftCountEl.textContent = documents.filter(doc => doc.status === "Draft").length;
+            if (checkedCountEl) checkedCountEl.textContent = documents.filter(doc => doc.status === "Checked").length;
+            if (approvedCountEl) approvedCountEl.textContent = documents.filter(doc => doc.status === "Approved").length;
+            if (paidCountEl) paidCountEl.textContent = documents.filter(doc => doc.status === "Paid").length;
+            if (closeCountEl) closeCountEl.textContent = documents.filter(doc => doc.status === "Close").length;
+            if (rejectedCountEl) rejectedCountEl.textContent = documents.filter(doc => doc.status === "Rejected").length;
     
-            // Tampilkan Recent Docs di tabel
-            const recentDocs = documents.slice().reverse();
-            const tableBody = document.getElementById("recentDocs");
-            tableBody.innerHTML = "";
-    
-            recentDocs.forEach(doc => {
-              // Format submission date to display only date part
-              const formattedDate = new Date(doc.submissionDate).toLocaleDateString();
-              
-              const row = `
-                <tr class="border-b">
-                  <td class="p-2 text-left">
-                    <input type="checkbox" class="rowCheckbox" />
-                  </td>
-                  <td class="p-2">${doc.id}</td>
-                  <td class="p-2">${doc.settlementNumber}</td>
-                  <td class="p-2">${doc.requesterName}</td>
-                  <td class="p-2">IT</td>
-                  <td class="p-2">${formattedDate}</td>
-                  <td class="p-2">${doc.requesterName}</td>
-                  <td class="p-2">Done</td>
-                  <td class="p-2">${doc.status}</td>
-                  <td class="p-2">
-                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
-                      Detail
-                    </button>
-                  </td>
-                </tr>
-              `;
-              tableBody.innerHTML += row;
-            });
+            // Initialize table and pagination
+            updateTable();
+            updatePagination();
+            
         } catch (error) {
             console.error("Error fetching settlements data:", error);
             // Fallback to empty state or show error message
-            document.getElementById("totalDocs").textContent = "0";
-            document.getElementById("pendingDocs").textContent = "0";
-            document.getElementById("checkedDocs").textContent = "0";
-            document.getElementById("approvedDocs").textContent = "0";
-            document.getElementById("closeDocs").textContent = "0";
-            document.getElementById("rejectDocs").textContent = "0";
+            allDocuments = [];
+            filteredDocuments = [];
+            
+            const totalCountEl = document.getElementById("totalCount");
+            const draftCountEl = document.getElementById("draftCount");
+            const checkedCountEl = document.getElementById("checkedCount");
+            const approvedCountEl = document.getElementById("approvedCount");
+            const paidCountEl = document.getElementById("paidCount");
+            const closeCountEl = document.getElementById("closeCount");
+            const rejectedCountEl = document.getElementById("rejectedCount");
+            
+            if (totalCountEl) totalCountEl.textContent = "0";
+            if (draftCountEl) draftCountEl.textContent = "0";
+            if (checkedCountEl) checkedCountEl.textContent = "0";
+            if (approvedCountEl) approvedCountEl.textContent = "0";
+            if (paidCountEl) paidCountEl.textContent = "0";
+            if (closeCountEl) closeCountEl.textContent = "0";
+            if (rejectedCountEl) rejectedCountEl.textContent = "0";
             
             const tableBody = document.getElementById("recentDocs");
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="10" class="p-4 text-center text-red-500">
-                        Failed to load settlements data. Please try again later.
-                    </td>
-                </tr>
-            `;
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="p-4 text-center text-red-500">
+                            Failed to load settlements data. Please try again later.
+                        </td>
+                    </tr>
+                `;
+            }
         }
       }
   
-      // Select All
-      document.getElementById("selectAll").addEventListener("change", function() {
-        let checkboxes = document.querySelectorAll(".rowCheckbox");
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = this.checked;
+      // Tab switching functionality
+      let currentTab = 'all';
+      let currentPage = 1;
+      const itemsPerPage = 10;
+      let allDocuments = [];
+      let filteredDocuments = [];
+
+      function switchTab(tab) {
+        currentTab = tab;
+        currentPage = 1;
+        
+        // Update tab buttons
+        document.querySelectorAll('[id$="TabBtn"]').forEach(btn => {
+          btn.classList.remove('tab-active');
         });
+        
+        if (tab === 'all') {
+          document.getElementById('allTabBtn').classList.add('tab-active');
+          filteredDocuments = allDocuments;
+        } else if (tab === 'draft') {
+          document.getElementById('draftTabBtn').classList.add('tab-active');
+          filteredDocuments = allDocuments.filter(doc => doc.status === 'Draft');
+        }
+        
+        updateTable();
+        updatePagination();
+      }
+
+      function updateTable() {
+        const tableBody = document.getElementById("recentDocs");
+        if (!tableBody) return;
+        
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+        
+        tableBody.innerHTML = "";
+        
+        pageDocuments.forEach(doc => {
+          const formattedDate = new Date(doc.submissionDate).toLocaleDateString();
+          
+          const row = `
+            <tr class="border-b">
+              <td class="p-2 text-left">
+                <input type="checkbox" class="rowCheckbox" />
+              </td>
+              <td class="p-2">${doc.id}</td>
+              <td class="p-2">${doc.settlementNumber}</td>
+              <td class="p-2">${doc.requesterName}</td>
+              <td class="p-2">IT</td>
+              <td class="p-2">${formattedDate}</td>
+              <td class="p-2">${doc.status}</td>
+              <td class="p-2">
+                <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+                  Detail
+                </button>
+              </td>
+            </tr>
+          `;
+          tableBody.innerHTML += row;
+        });
+      }
+
+      function updatePagination() {
+        const totalItems = filteredDocuments.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        const startItem = (currentPage - 1) * itemsPerPage + 1;
+        const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+        
+        document.getElementById('startItem').textContent = totalItems > 0 ? startItem : 0;
+        document.getElementById('endItem').textContent = endItem;
+        document.getElementById('totalItems').textContent = totalItems;
+        document.getElementById('currentPage').textContent = currentPage;
+        
+        // Update pagination buttons
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+        
+        if (prevBtn) {
+          prevBtn.classList.toggle('disabled', currentPage === 1);
+        }
+        if (nextBtn) {
+          nextBtn.classList.toggle('disabled', currentPage === totalPages || totalPages === 0);
+        }
+      }
+
+      function changePage(direction) {
+        const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+        const newPage = currentPage + direction;
+        
+        if (newPage >= 1 && newPage <= totalPages) {
+          currentPage = newPage;
+          updateTable();
+          updatePagination();
+        }
+      }
+
+      // Search functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm === '') {
+              filteredDocuments = currentTab === 'all' ? allDocuments : allDocuments.filter(doc => doc.status === 'Draft');
+            } else {
+              const baseDocuments = currentTab === 'all' ? allDocuments : allDocuments.filter(doc => doc.status === 'Draft');
+              filteredDocuments = baseDocuments.filter(doc => 
+                doc.settlementNumber.toLowerCase().includes(searchTerm) ||
+                doc.requesterName.toLowerCase().includes(searchTerm)
+              );
+            }
+            
+            currentPage = 1;
+            updateTable();
+            updatePagination();
+          });
+        }
+        
+        // Initialize select all checkbox
+        const selectAllCheckbox = document.getElementById("selectAll");
+        if (selectAllCheckbox) {
+          selectAllCheckbox.addEventListener("change", function() {
+            let checkboxes = document.querySelectorAll(".rowCheckbox");
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = this.checked;
+            });
+          });
+        }
       });
   
       // Toggle Sidebar (mobile)
@@ -98,21 +217,19 @@
   
       // Fungsi Download Excel
       function downloadExcel() {
-        const documents = JSON.parse(localStorage.getItem("documents")) || [];
+        const documents = filteredDocuments || [];
         
         // Membuat workbook baru
         const workbook = XLSX.utils.book_new();
         
         // Mengonversi data ke format worksheet
         const wsData = documents.map(doc => ({
-          'Document Number': doc.docNumber,
-          'Voucher Number': doc.prno,
-          'Requester': doc.requester,
-          'Department': doc.department,
-          'Submission Date': doc.postingDate,
-          'Paid to Employee': doc.paidtoEmployee,
-          'Returned to Company': doc.returnedtoCompany,
-          'Status': doc.docStatus
+          'Document Number': doc.id,
+          'Settlement Number': doc.settlementNumber,
+          'Requester': doc.requesterName,
+          'Department': 'IT',
+          'Submission Date': new Date(doc.submissionDate).toLocaleDateString(),
+          'Status': doc.status
         }));
         
         // Membuat worksheet dan menambahkannya ke workbook
@@ -133,21 +250,19 @@
         doc.text('Settlement Report', 14, 15);
         
         // Membuat data tabel dari documents
-        const documents = JSON.parse(localStorage.getItem("documents")) || [];
+        const documents = filteredDocuments || [];
         const tableData = documents.map(doc => [
-          doc.docNumber,
-          doc.prno,
-          doc.requester,
-          doc.department,
-          doc.postingDate,
-          doc.paidtoEmployee,
-          doc.returnedtoCompany,
-          doc.docStatus
+          doc.id,
+          doc.settlementNumber,
+          doc.requesterName,
+          'IT',
+          new Date(doc.submissionDate).toLocaleDateString(),
+          doc.status
         ]);
         
         // Menambahkan tabel
         doc.autoTable({
-          head: [['Doc Number', 'Voucher Number', 'Requester', 'Department', 'Submission Date', 'Paid to Employee', 'Returned to Company', 'Status']],
+          head: [['Doc Number', 'Settlement Number', 'Requester', 'Department', 'Submission Date', 'Status']],
           body: tableData,
           startY: 25
         });
@@ -171,6 +286,29 @@
       function goToMenuPO() { window.location.href = "MenuPO.html"; }
       function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
       function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+      
+      // Additional navigation functions for mobile menu
+      function goToCheckedDocs() { 
+        // Navigate to checked documents view or filter current view
+        switchTab('all');
+        // You can add specific filtering logic here
+      }
+      function goToApprovedDocs() { 
+        // Navigate to approved documents view or filter current view
+        switchTab('all');
+        // You can add specific filtering logic here
+      }
+      function goToCloseDocs() { 
+        // Navigate to closed documents view or filter current view
+        switchTab('all');
+        // You can add specific filtering logic here
+      }
+      function goToRejectDocs() { 
+        // Navigate to rejected documents view or filter current view
+        switchTab('all');
+        // You can add specific filtering logic here
+      }
+      
       function logout() {
         localStorage.removeItem("loggedInUser");
         window.location.href = "Login.html";
@@ -183,3 +321,19 @@
     }
       
       window.onload = loadDashboard;
+
+      // Initialize test user data if none exists
+      function initializeTestUser() {
+        const loggedInUser = localStorage.getItem("loggedInUser");
+        if (!loggedInUser || loggedInUser === "Vaphat01") {
+          const testUser = {
+            name: "Test User",
+            email: "test@example.com",
+            profilePicture: null
+          };
+          localStorage.setItem("loggedInUser", JSON.stringify(testUser));
+        }
+      }
+
+      // Initialize test user on page load
+      initializeTestUser();
