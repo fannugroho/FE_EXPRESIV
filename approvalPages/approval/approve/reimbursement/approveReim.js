@@ -237,6 +237,61 @@ function goToMenuReim() {
     window.location.href = '../menuReim.html';
 }
 
+function onReject() {
+    Swal.fire({
+        title: 'Reject Document',
+        input: 'textarea',
+        inputLabel: 'Remarks',
+        inputPlaceholder: 'Enter your remarks here...',
+        showCancelButton: true,
+        confirmButtonText: 'Send Reject',
+        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        preConfirm: (remarks) => {
+            // Here you can handle the rejection logic, e.g., send remarks to the server
+            console.log('Remarks:', remarks);
+            // For now, just simulate an API call
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 2000);
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire(
+                'Rejected!',
+                'The document has been rejected.',
+                'success'
+            );
+        }
+    });
+}
+
+function onApprove() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Are you sure you want to approve this document?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, Approve it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Here you can handle the approval logic
+            // For now, just simulate an API call
+            Swal.fire(
+                'Approved!',
+                'The document has been approved.',
+                'success'
+            );
+        }
+    });
+}
+
 function updateApprovalStatus(docNumber, statusKey) {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
     let docIndex = documents.findIndex(doc => doc.docNumber === docNumber);
