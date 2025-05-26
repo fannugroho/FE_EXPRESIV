@@ -43,67 +43,17 @@ function updateApprovalStatus(id, statusKey) {
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
-    const prTable = document.getElementById("prTable");
-    const addRowButton = document.querySelector("button[onclick='addRow()']");
+    console.log("PR Type selected:", prType);
     
-    // Show table and add button if a PR type is selected
-    if (prType === "Item" || prType === "Service") {
-        if (prTable) prTable.style.display = "table";
-        if (addRowButton) addRowButton.style.display = "block";
-    } else {
-        if (prTable) prTable.style.display = "none";
-        if (addRowButton) addRowButton.style.display = "none";
-        return; // Exit if no valid type is selected
-    }
-    
-    // Item fields IDs
-    const itemFieldIds = [
-        "thItemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction"
-    ];
-    
-    // Service fields IDs
-    const serviceFieldIds = [
-        "thDescription", "thPurposes", "thQty", "thActions"
-    ];
+    const itemFields = document.querySelectorAll('.item-field');
+    const serviceFields = document.querySelectorAll('.service-field');
 
     if (prType === "Item") {
-        // Show Item fields, hide Service fields
-        itemFieldIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "table-cell";
-        });
-        
-        serviceFieldIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "none";
-        });
-        
-        // Clear existing rows and add an Item row
-        clearTableRows();
-        addItemRow();
-        
+        itemFields.forEach(field => field.style.display = "table-cell");
+        serviceFields.forEach(field => field.style.display = "none");
     } else if (prType === "Service") {
-        // Hide Item fields, show Service fields
-        itemFieldIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "none";
-        });
-        
-        serviceFieldIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "table-cell";
-        });
-        
-        // Clear existing rows and add a Service row
-        clearTableRows();
-        addServiceRow();
-    }
-}
-
-function clearTableRows() {
-    const tableBody = document.getElementById("tableBody");
-    while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
+        itemFields.forEach(field => field.style.display = "none");
+        serviceFields.forEach(field => field.style.display = "table-cell");
     }
 }
 
@@ -193,168 +143,47 @@ function addRow() {
 function addItemRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
+    const prType = document.getElementById("prType").value;
     
-    // Create Item No cell
-    const tdItemCode = document.createElement("td");
-    tdItemCode.className = "p-2 border";
-    tdItemCode.id = "tdItemCode";
-    const itemSelect = document.createElement("select");
-    itemSelect.className = "w-full p-2 border rounded";
-    itemSelect.onchange = fillItemDetails;
-    
-    // Add options to select
-    const defaultOption = document.createElement("option");
-    defaultOption.value = "";
-    defaultOption.disabled = true;
-    defaultOption.selected = true;
-    defaultOption.innerText = "Pilih Kode Item";
-    itemSelect.appendChild(defaultOption);
-    
-    const items = [
-        { value: "ITM001", text: "ITM001 - Laptop" },
-        { value: "ITM002", text: "ITM002 - Printer" },
-        { value: "ITM003", text: "ITM003 - Scanner" }
-    ];
-    
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.value;
-        option.innerText = item.text;
-        itemSelect.appendChild(option);
-    });
-    
-    tdItemCode.appendChild(itemSelect);
-    newRow.appendChild(tdItemCode);
-    
-    // Create Description cell
-    const tdItemName = document.createElement("td");
-    tdItemName.className = "p-2 border";
-    tdItemName.id = "tdItemName";
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.id = "itemName" + Date.now(); // Generate unique ID
-    nameInput.maxLength = 200;
-    nameInput.className = "w-full";
-    nameInput.readOnly = true;
-    tdItemName.appendChild(nameInput);
-    newRow.appendChild(tdItemName);
-    
-    // Create Detail cell
-    const tdDetail = document.createElement("td");
-    tdDetail.className = "p-2 border";
-    tdDetail.id = "tdDetail";
-    const detailInput = document.createElement("input");
-    detailInput.type = "text";
-    detailInput.maxLength = 10;
-    detailInput.className = "w-full";
-    detailInput.required = true;
-    tdDetail.appendChild(detailInput);
-    newRow.appendChild(tdDetail);
-    
-    // Create Purpose cell
-    const tdPurpose = document.createElement("td");
-    tdPurpose.className = "p-2 border";
-    tdPurpose.id = "tdPurposed";
-    const purposeInput = document.createElement("input");
-    purposeInput.type = "text";
-    purposeInput.maxLength = 10;
-    purposeInput.className = "w-full";
-    purposeInput.required = true;
-    tdPurpose.appendChild(purposeInput);
-    newRow.appendChild(tdPurpose);
-    
-    // Create Quantity cell
-    const tdQuantity = document.createElement("td");
-    tdQuantity.className = "p-2 border";
-    tdQuantity.id = "tdQuantity";
-    const qtyInput = document.createElement("input");
-    qtyInput.type = "number";
-    qtyInput.maxLength = 10;
-    qtyInput.className = "w-full";
-    qtyInput.required = true;
-    tdQuantity.appendChild(qtyInput);
-    newRow.appendChild(tdQuantity);
-    
-    // Create Action cell
-    const tdAction = document.createElement("td");
-    tdAction.className = "p-2 border text-center";
-    tdAction.id = "tdAction";
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.onclick = function() { deleteRow(this); };
-    deleteButton.className = "text-red-500 hover:text-red-700";
-    deleteButton.innerText = "🗑";
-    tdAction.appendChild(deleteButton);
-    newRow.appendChild(tdAction);
-    
-    // Add service cells (hidden)
-    for (let i = 0; i < 4; i++) {
-        const td = document.createElement("td");
-        td.style.display = "none";
-        newRow.appendChild(td);
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td class="p-2 border item-field">
+                <select class="w-full p-2 border rounded item-no">
+                    <option value="" disabled selected>Select Item</option>
+                </select>
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-detail" maxlength="100" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="text" class="w-full item-purpose" maxlength="100" required />
+            </td>
+            <td class="p-2 border item-field">
+                <input type="number" class="w-full item-quantity" min="1" required />
+            </td>
+            <td class="p-2 border text-center item-field">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-purpose" maxlength="100" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="number" class="w-full service-quantity" min="1" required />
+            </td>
+            <td class="p-2 border text-center service-field">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
     }
-
-    tableBody.appendChild(newRow);
-}
-
-function addServiceRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-
-    // Create the cells for Item columns (hidden)
-    for (let i = 0; i < 6; i++) {
-        const td = document.createElement("td");
-        td.style.display = "none";
-        newRow.appendChild(td);
-    }
-    
-    // Create Description cell
-    const tdDescription = document.createElement("td");
-    tdDescription.className = "p-2 border";
-    tdDescription.id = "tdDescription";
-    const descInput = document.createElement("input");
-    descInput.type = "text";
-    descInput.maxLength = 200;
-    descInput.className = "w-full";
-    descInput.required = true;
-    tdDescription.appendChild(descInput);
-    newRow.appendChild(tdDescription);
-    
-    // Create Purpose cell
-    const tdPurpose = document.createElement("td");
-    tdPurpose.className = "p-2 border";
-    tdPurpose.id = "tdPurposes";
-    const purposeInput = document.createElement("input");
-    purposeInput.type = "text";
-    purposeInput.maxLength = 100;
-    purposeInput.className = "w-full";
-    purposeInput.required = true;
-    tdPurpose.appendChild(purposeInput);
-    newRow.appendChild(tdPurpose);
-    
-    // Create Qty cell
-    const tdQty = document.createElement("td");
-    tdQty.className = "p-2 border";
-    tdQty.id = "tdQty";
-    const qtyInput = document.createElement("input");
-    qtyInput.type = "number";
-    qtyInput.maxLength = 10;
-    qtyInput.className = "w-full";
-    qtyInput.required = true;
-    tdQty.appendChild(qtyInput);
-    newRow.appendChild(tdQty);
-    
-    // Create Action cell
-    const tdAction = document.createElement("td");
-    tdAction.className = "p-2 border text-center";
-    tdAction.id = "tdActions";
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.onclick = function() { deleteRow(this); };
-    deleteButton.className = "text-red-500 hover:text-red-700";
-    deleteButton.innerText = "🗑";
-    tdAction.appendChild(deleteButton);
-    newRow.appendChild(tdAction);
 
     tableBody.appendChild(newRow);
     
@@ -374,6 +203,7 @@ function goToAddReim() {window.location.href = "AddReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
+// function goToMenuPR() { window.location.href = "MenuPR.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -383,26 +213,264 @@ function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
-// Call toggleFields on page load to initialize the table correctly
-window.onload = function() {
-    const prType = document.getElementById("prType");
-    const prTable = document.getElementById("prTable");
+window.onload = function(){
+    fetchDepartments();
+    fetchUsers();
+    fetchItemOptions();
+    fetchClassifications();
+    document.getElementById("prType").value = "Item"; // Set default PR Type to Item
+    toggleFields();
+}
+
+function fetchClassifications() {
+    fetch(`${BASE_URL}/classifications`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Classification data:", data);
+            populateClassificationSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching classifications:', error);
+        });
+}
+
+function fetchDepartments() {
+    fetch(`${BASE_URL}/department`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Department data:", data);
+            populateDepartmentSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
+        });
+}
+
+function fetchUsers() {
+    fetch(`${BASE_URL}/users`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("User data:", data);
+            populateUserSelects(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+        });
+}
+
+function fetchItemOptions(selectElement = null) {
+    fetch(`${BASE_URL}/items`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Item data:", data);
+            if (selectElement) {
+                populateItemSelect(data.data, selectElement);
+            } else {
+                // Populate all item selects in the document
+                document.querySelectorAll('.item-no').forEach(select => {
+                    populateItemSelect(data.data, select);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching items:', error);
+        });
+}
+
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    departmentSelect.innerHTML = '<option value="" disabled selected>Select Department</option>';
+
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+}
+
+function populateUserSelects(users) {
+    const selects = [
+        'preparedBy', 'checkedBy', 'acknowledgeBy', 'approvedBy', 'receivedBy'
+    ];
     
-    if (prType) {
-        // Set default value to "Item" instead of "choose"
-        prType.value = "Item";
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="" disabled selected>Select User</option>';
+            
+            users.forEach(user => {
+                const option = document.createElement("option");
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                select.appendChild(option);
+            });
+        }
+    });
+}
+
+function populateItemSelect(items, selectElement) {
+    selectElement.innerHTML = '<option value="" disabled selected>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        selectElement.appendChild(option);
+    });
+}
+
+function populateClassificationSelect(classifications) {
+    const classificationSelect = document.getElementById("classification");
+    classificationSelect.innerHTML = '<option value="" disabled selected>Select Classification</option>';
+
+    classifications.forEach(classification => {
+        const option = document.createElement("option");
+        option.value = classification.id;
+        option.textContent = classification.name;
+        classificationSelect.appendChild(option);
+    });
+}
+async function submitPurchaseRequest() {
+    try {
+        const prType = document.getElementById("prType").value;
         
-        // Add event listener to make sure toggleFields is called when prType changes
-        prType.addEventListener("change", toggleFields);
+        // Create FormData object
+        const formData = new FormData();
         
-        // Call toggleFields immediately to set up the table for Item type
-        toggleFields();
+        // Add basic fields
+        formData.append('PurchaseRequestNo', document.getElementById("purchaseRequestNo").value);
+        formData.append('RequesterId', "deda05c6-8688-4d19-8f52-c0856a5752f4");
+        // formData.append('RequesterId', document.getElementById("requesterId").value);
+        formData.append('DepartmentId', document.getElementById("department").value);
+        
+        // Format dates
+        const requiredDate = document.getElementById("requiredDate").value;
+        if (requiredDate) {
+            formData.append('RequiredDate', new Date(requiredDate).toISOString());
+        }
+        
+        const submissionDate = document.getElementById("submissionDate").value;
+        if (submissionDate) {
+            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
+        }
+        
+        // formData.append('Classification', document.getElementById("classification").value);
+        const classificationSelect = document.getElementById("classification");
+        const selectedText = classificationSelect.options[classificationSelect.selectedIndex].text;
+        formData.append('Classification', selectedText);
+        formData.append('Remarks', document.getElementById("remarks").value);
+        
+        // Document type (PO or Non PO)
+        const isPO = document.getElementById("PO").checked;
+        const isNonPO = document.getElementById("NonPO").checked;
+        formData.append('DocumentType', isPO ? 'PO' : (isNonPO ? 'NonPO' : ''));
+        
+        // Approvals
+        formData.append('Approval.PreparedById', document.getElementById("preparedBy").value);
+        formData.append('Approval.CheckedById', document.getElementById("checkedBy").value);
+        formData.append('Approval.AcknowledgedById', document.getElementById("acknowledgeBy").value);
+        formData.append('Approval.ApprovedById', document.getElementById("approvedBy").value);
+        formData.append('Approval.ReceivedById', document.getElementById("receivedBy").value);
+        formData.append('Approval.Status', document.getElementById("status").value);
+        
+        // Item details
+        const rows = document.querySelectorAll("#tableBody tr");
+        
+        if (prType === "Item") {
+            rows.forEach((row, index) => {
+                formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
+                formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
+                formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
+                formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
+                formData.append(`ItemDetails[${index}].Quantity`, row.querySelector('.item-quantity').value);
+            });
+        } else if (prType === "Service") {
+            // Handle service details similarly
+            rows.forEach((row, index) => {
+                formData.append(`ServiceDetails[${index}].Description`, row.querySelector('.service-description').value);
+                formData.append(`ServiceDetails[${index}].Purpose`, row.querySelector('.service-purpose').value);
+                formData.append(`ServiceDetails[${index}].Quantity`, row.querySelector('.service-quantity').value);
+            });
+        }
+        
+        // File attachments
+        uploadedFiles.forEach(file => {
+            formData.append('Attachments', file);
+        });
+        
+        // Submit the form data
+        const response = await fetch(`${BASE_URL}/pr/${prType.toLowerCase()}`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            // Parse the error response to get the actual error message
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                console.log("Error response status:", response.status);
+                console.log("Error response headers:", response.headers.get('content-type'));
+                
+                const responseText = await response.text();
+                console.log("Raw error response:", responseText);
+                
+                const errorData = JSON.parse(responseText);
+                console.log("Parsed error data:", errorData);
+                
+                if (errorData.Message) {
+                    // Format 1: { "StatusCode": 404, "Message": "..." }
+                    errorMessage = errorData.Message;
+                } else if (errorData.message) {
+                    // Format 1 (lowercase): { "message": "..." }
+                    errorMessage = errorData.message;
+                } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                    // Format 2: { "success": false, "errors": ["error1", "error2", ...] }
+                    errorMessage = "Validation errors:\n" + errorData.errors.join("\n");
+                } else {
+                    console.log("No Message property found in error response");
+                }
+            } catch (parseError) {
+                console.log("Could not parse error response:", parseError);
+            }
+            throw new Error(errorMessage);
+        }
+
+        
+        
+        // const result = await response.json();
+        // console.log("Submit result:", result);
+        
+        alert("Purchase Request submitted successfully!");
+        window.location.href = "../pages/menuPR.html";
+    } catch (error) {
+        console.error("Error submitting form:", error);
+        alert(`Failed to submit Purchase Request: ${error.message}`);
     }
-    
-    // We don't need to hide the table now since toggleFields will show it
-    // Initially show the add row button
-    const addRowButton = document.querySelector("button[onclick='addRow()']");
-    if (addRowButton) {
-        addRowButton.style.display = "block";
-    }
-};
+}
+
+function saveAsDraft() {
+    const currentStatus = document.getElementById("status").value;
+    document.getElementById("status").value = "Draft";
+    submitPurchaseRequest();
+}

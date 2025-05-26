@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Purchase Request</title>
+    <title>Add Purchase Request</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="../js/addPR.js"></script>
     <script src="../js/prToggle.js"></script>
@@ -31,11 +32,14 @@
                 <h3 class="text-lg font-semibold mb-2">Classification</h3>
                 <select id="classification" class="w-full p-2 border rounded">
                     <option value="" disabled selected>Select Classification</option>
+                <select id="classification" class="w-full p-2 border rounded">
+                    <option value="" disabled selected>Select Classification</option>
                 </select>
+                
                 
                 <h3 class="text-lg font-semibold mb-2">Type PR</h3>
                 <select id="prType" class="w-full p-2 border rounded" onchange="toggleFields()">
-                    <option value="choose" disabled>Choose Type PR</option>
+                    <option value="" disabled>Choose Type PR</option>
                     <option value="Item" selected>Item</option>
                     <option value="Service">Service</option>
                 </select>           
@@ -72,25 +76,60 @@
         <!-- Table for Item and Service details -->
         <table id="prTable" class="w-full text-left border mt-4">
             <thead class="bg-gray-100">
-                <br>
                 <tr>
-                    <!-- Item Type Headers -->
-                    <th id="thItemCode" class="p-2" style="display:none;">Item No.</th>
-                    <th id="thItemName" class="p-2" style="display:none;">Description</th>
-                    <th id="thDetail" class="p-2" style="display:none;">Detail</th>
-                    <th id="thPurposed" class="p-2" style="display:none;">Purpose</th>
-                    <th id="thQuantity" class="p-2" style="display:none;">Quantity</th>
-                    <th id="thAction" class="p-2" style="display:none;">Action</th>
-                    
-                    <!-- Service Type Headers -->
-                    <th id="thDescription" class="p-2" style="display:none;">Description</th>
-                    <th id="thPurposes" class="p-2" style="display:none;">Purpose</th>
-                    <th id="thQty" class="p-2" style="display:none;">Qty</th>
-                    <th id="thActions" class="p-2" style="display:none;">Action</th>
+                    <!-- Item fields -->
+                    <th class="p-2 item-field">Item No.</th>
+                    <th class="p-2 item-field">Description</th>
+                    <th class="p-2 item-field">Detail</th>
+                    <th class="p-2 item-field">Purpose</th>
+                    <th class="p-2 item-field">Quantity</th>
+                    <th class="p-2 item-field">Action</th>
+
+                    <!-- Service fields -->
+                    <th class="p-2 service-field">Description</th>
+                    <th class="p-2 service-field">Purpose</th>
+                    <th class="p-2 service-field">Qty</th>
+                    <th class="p-2 service-field">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <!-- Rows will be added by JavaScript -->
+                <tr>
+                    <!-- Item row fields -->
+                    <td class="p-2 border item-field">
+                        <select class="w-full p-2 border rounded item-no">
+                            <option value="" disabled selected>Select Item</option>
+                        </select>
+                    </td>
+                    <td class="p-2 border item-field">
+                        <input type="text" class="w-full item-description" maxlength="200" />
+                    </td>
+                    <td class="p-2 border item-field">
+                        <input type="text" class="w-full item-detail" maxlength="100" />
+                    </td>
+                    <td class="p-2 border item-field">
+                        <input type="text" class="w-full item-purpose" maxlength="100" />
+                    </td>
+                    <td class="p-2 border item-field">
+                        <input type="number" class="w-full item-quantity" min="1" />
+                    </td>
+                    <td class="p-2 border text-center item-field">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+                    </td>
+                    
+                    <!-- Service row fields -->
+                    <td class="p-2 border service-field">
+                        <input type="text" class="w-full service-description" maxlength="200" />
+                    </td>
+                    <td class="p-2 border service-field">
+                        <input type="text" class="w-full service-purpose" maxlength="100" />
+                    </td>
+                    <td class="p-2 border service-field">
+                        <input type="number" class="w-full service-quantity" min="1" />
+                    </td>
+                    <td class="p-2 border text-center service-field">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+                    </td>
+                </tr>
             </tbody>
         </table>
         

@@ -1,64 +1,101 @@
-function loadDashboard() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    document.getElementById("totalDocs").textContent = documents.length;
-    document.getElementById("openDocs").textContent = documents.filter(doc => doc.status === "Open").length;
-    document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.status === "Checked").length;
-    document.getElementById("acknowledgeDocs").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
-    document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.status === "Approved").length;
-    document.getElementById("rejectDocs").textContent = documents.filter(doc => doc.status === "Reject").length;
-    document.getElementById("closeDocs").textContent = documents.filter(doc => doc.status === "Close").length;
-
-
-    const recentDocs = documents.slice().reverse();
-    const tableBody = document.getElementById("recentDocs");
-    tableBody.innerHTML = "";
-    recentDocs.forEach(doc => {
-        const row = `<tr class='w-full border-b'>
-            
-            <td class='p-2'>${doc.id}</td>
-            <td class='p-2'>${doc.purchaseRequestNo}</td>
-            <td class='p-2'>${doc.requesterName}</td>
-            <td class='p-2'>${doc.departmentName}</td>
-            <td class='p-2'>${doc.submissionDate}</td>
-            <td class='p-2'>${doc.requiredDate}</td>
-            <td class='p-2'>${doc.poNumber}</td>
-            <td class='p-2'>${doc.status}</td>
-            <td class='p-2'>
-                <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
-            </td>
-            <td class='p-2'>${doc.grDate}</td>
-        </tr>`;
-        tableBody.innerHTML += row;
-    });
-}
-
-
+const BASE_URL = "http://localhost:5246";
 
 async function fetchPurchaseRequests() {
-    fetch(`${BASE_URL}/pr`)
+    fetch(`${BASE_URL}/api/pr`)
         .then(response => response.json())
-        .then(data => populatePurchaseRequests(data.data))
+        .then(data => {
+            if (data && data.data) {
+                populatePurchaseRequests(data.data);
+                updateDashboardCounts(data.data);
+            }
+        })
         .catch(error => console.error('Error fetching purchase requests:', error));
-    console.log(data);
+}
+
+function updateDashboardCounts(data) {
+    // Update total count
+    document.getElementById("totalCount").textContent = data.length;
+    
+    // Count documents by status
+    const statusCounts = {
+        draft: 0,
+        checked: 0,
+        acknowledged: 0,
+        approved: 0,
+        received: 0,
+        rejected: 0
+    };
+    
+    data.forEach(doc => {
+        const status = doc.approval ? doc.approval.status.toLowerCase() : 'draft';
+        
+        switch(status) {
+            case 'draft':
+                statusCounts.draft++;
+                break;
+            case 'checked':
+                statusCounts.checked++;
+                break;
+            case 'acknowledged':
+                statusCounts.acknowledged++;
+                break;
+            case 'approved':
+                statusCounts.approved++;
+                break;
+            case 'received':
+                statusCounts.received++;
+                break;
+            case 'rejected':
+                statusCounts.rejected++;
+                break;
+        }
+    });
+    
+    // Update the dashboard cards with correct IDs
+    document.getElementById("draftCount").textContent = statusCounts.draft;
+    document.getElementById("checkedCount").textContent = statusCounts.checked;
+    document.getElementById("acknowledgedCount").textContent = statusCounts.acknowledged;
+    document.getElementById("approvedCount").textContent = statusCounts.approved;
+    document.getElementById("receivedCount").textContent = statusCounts.received;
+    document.getElementById("rejectedCount").textContent = statusCounts.rejected;
 }
 
 function populatePurchaseRequests(data) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
-    data.forEach(doc => {
+    data.forEach((doc, index) => {
+        // Format dates for display
+        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
+        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
+        
+        // PO number may be null, handle that case
+        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
+        
+        // Get status from approval object
+        const status = doc.approval ? doc.approval.status : "Open";
+        
+        // GR date currently not in the JSON, leaving empty for now
+        const grDate = '';
+        
         const row = `<tr class='w-full border-b'>
-            <td class='p-2'>${doc.id}</td>
+            <td class='p-2'></td>
+            <td class='p-2'>${index + 1}</td>
             <td class='p-2'>${doc.purchaseRequestNo}</td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
-            <td class='p-2'>${doc.submissionDate}</td>
-            <td class='p-2'>${doc.requiredDate}</td>
-            <td class='p-2'>${doc.poNumber}</td>
-            <td class='p-2'>${doc.status}</td>
+            <td class='p-2'>${submissionDate}</td>
+            <td class='p-2'>${requiredDate}</td>
+            <td class='p-2'>${poNumber}</td>
+            <td class='p-2'>${status}</td>
+            <td class='p-2'>
+                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            </td>
+            <td class='p-2'>${grDate}</td>
         </tr>`;
         tableBody.innerHTML += row;
     });
 }
+
 
 function updateDoc(id) {
     alert(`Update document: ${id}`);
@@ -160,4 +197,14 @@ function downloadPDF() {
     
     // Menyimpan PDF
     doc.save('purchase_request_list.pdf');
+}
+
+// Add window.onload event listener
+window.onload = function() {
+    fetchPurchaseRequests();
+    
+};
+
+function detailDoc(id, prType) {
+    window.location.href = `../detailPages/detailPR.html?pr-id=${id}&pr-type=${prType}`;
 }

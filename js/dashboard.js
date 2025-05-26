@@ -33,21 +33,22 @@ function loadUserGreeting() {
 
     // Tampilkan nama user dari localStorage
     function loadUserGreeting() {
-        const usersData = localStorage.getItem("users");
-        const loggedInUserCode = localStorage.getItem("loggedInUserCode");
+        // const usersData = localStorage.getItem("users");
+        const loggedInUserCode = localStorage.getItem("loggedInUser");
+        console.log("Cek localStorage di menu.html:", loggedInUserCode);
 
-        if (usersData && loggedInUserCode) {
+        if (loggedInUserCode) {
             try {
-                const users = JSON.parse(usersData);
-                const loggedInUser = users.find(user => user.usercode === loggedInUserCode);
+                // const users = JSON.parse(usersData);
+                // const loggedInUser = users.find(user => user.usercode === loggedInUserCode);
 
-                if (loggedInUser) {
-                    safeSetTextContent("greeting", `Hii ${loggedInUser.name} (${loggedInUser.usercode})`);
-                    document.getElementById("userNameDisplay").textContent = loggedInUser.name;
-                } else {
-                    safeSetTextContent("greeting", "Hii Guest");
-                    document.getElementById("userNameDisplay").textContent = "Guest";
-                }
+                // if (loggedInUser) {
+                //     safeSetTextContent("greeting", `Hii ${loggedInUser.name} (${loggedInUser.usercode})`);
+                //     document.getElementById("userNameDisplay").textContent = loggedInUser.name;
+                // } else {
+                    safeSetTextContent("greeting", "Hii " + loggedInUserCode);
+                    document.getElementById("userNameDisplay").textContent = loggedInUserCode;
+                // }
             } catch (error) {
                 console.error("Error parsing JSON:", error);
                 safeSetTextContent("greeting", "Hii Guest");
@@ -111,13 +112,15 @@ function toggleSubMenu(menuId) {
 }
 
 // Fungsi Navigasi
-function goToMenu() { window.location.href = "Menu.html"; }
+function goToMenu() { window.location.href = "dashboard.html"; }
 function goToAddDoc() { window.location.href = "AddDoc.html"; }
 function goToAddReim() { window.location.href = "AddReim.html"; }
 function goToAddCash() { window.location.href = "AddCash.html"; }
 function goToAddSettle() { window.location.href = "AddSettle.html"; }
 function goToAddPO() { window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
+function goToMenuRegist() { window.location.href = "register.html"; }
+function goToMenuUser() { window.location.href = "dashboard-users.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
