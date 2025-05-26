@@ -97,7 +97,7 @@
       console.log(loginData);
 
       // Make API call
-      fetch("http://localhost:5246/api/authentication/login", {
+      fetch("https://t246vds2-5246.asse.devtunnels.ms/api/authentication/login", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
