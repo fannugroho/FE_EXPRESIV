@@ -1,198 +1,146 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Document PR</title>
+    <title>Detail Purchase Request</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="../js/addPR.js"></script>
+    <script src="../js/detailPR.js"></script>
     <script src="../pages/utils/toMenu.js"></script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuPR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Purchase Request</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Purchase Request</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Purchase Request No</h3>
-                <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded">
-
+                <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester Name" class="w-full p-2 border rounded">
+                <input type="text" id="requesterName" placeholder="Requester Name" class="w-full p-2 border rounded" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded">
-                    <option value="Production">Production</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Admninistration">Admninistration</option>
-                    <option value="QA/QC">QA/QC</option>
+                <select id="department" class="w-full p-2 border rounded" disabled>
+                    <option value="" disabled selected>Select Department</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Classification</h3>
-                <select type="text" id="classification" placeholder="Classification" class="w-full p-2 border rounded">
-                    <option value="Open">Misc</option>
-                    <option value="Open">Inventory</option>
+                <select id="classification" class="w-full p-2 border rounded" disabled>
+                    <option value="" disabled selected>Select Classification</option>
                 </select>
+                
                 <h3 class="text-lg font-semibold mb-2">Type PR</h3>
-                <select id="prType" class="w-full p-2 border rounded" onchange="toggleFields()">
-                    <option value="choose" disabled selected>Choose Type PR</option>
+                <select id="prType" class="w-full p-2 border rounded" disabled>
+                    <option value="" disabled>Choose Type PR</option>
                     <option value="Item">Item</option>
                     <option value="Service">Service</option>
                 </select>           
             </div>
             
             <div>
-                <h3 class="text-lg font-semibold mb-2">Posting Date</h3>
-                <input type="date" id="submissionDate" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Issuance Date</h3>
+                <input type="date" id="submissionDate" class="w-full p-2 border rounded" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Required Date</h3>
-                <input type="date" id="requiredDate" class="w-full p-2 border rounded">
+                <input type="date" id="requiredDate" class="w-full p-2 border rounded" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="status" class="w-full p-2 border rounded">
-                    <option value="Open">Draft</option>
-                    <option value="Open">Checked</option>
-                    <option value="Open">Acknowledge</option>
-                    <option value="Open">Approved</option>
-                    <option value="Open">Rejected</option>
+                <select id="status" class="w-full p-2 border rounded" disabled>
+                    <option value="Draft">Draft</option>
+                    <option value="Checked">Checked</option>
+                    <option value="Acknowledged">Acknowledged</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
                 </select>  
+                
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <div id="fileList" class="mt-2 border rounded p-2 max-h-32 overflow-y-auto"></div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-                <label><input type="checkbox" id="PO" class="mr-1"><strong>PO</strong></label>
-                <label><input type="checkbox" id="NonPO" class="mr-1"><strong>Non PO</strong></label></div>
+                    <label><input type="checkbox" id="PO" class="mr-1" disabled><strong>PO</strong></label>
+                    <label><input type="checkbox" id="NonPO" class="mr-1" disabled><strong>Non PO</strong></label>
+                </div>
             </div>
         </div>
         
-        <table id="prTable" class="w-full text-left border mt-2">
+        <!-- Table for Item and Service details -->
+        <table id="prTable" class="w-full text-left border mt-4">
             <thead class="bg-gray-100">
-                <br>
                 <tr>
-                    <th id="thitemCode" class="p-2">Item No.</th>
-                    <th id="thItemName" class="p-2">Description</th>
-                    <th id="thDetail" class="p-2">Detail</th>
-                    <th id="thPurposed" class="p-2">Purpose</th>
-                    <th id="thQuantity" class="p-2">Quantity</th>
-                    <th id="thAction" class="p-2">Action</th>
+                    <!-- Item fields -->
+                    <th class="p-2 item-field">Item No.</th>
+                    <th class="p-2 item-field">Description</th>
+                    <th class="p-2 item-field">Detail</th>
+                    <th class="p-2 item-field">Purpose</th>
+                    <th class="p-2 item-field">Quantity</th>
+                    <th class="p-2 item-field">Action</th>
 
-                    <th id="thDescription" class="p-2">Description</th>
-                    <th id="thPurposes" class="p-2">Purpose</th>
-                    <th id="thQty" class="p-2">Qty</th>
-                    <th id="thActions" class="p-2">Action</th>
-           
+                    <!-- Service fields -->
+                    <th class="p-2 service-field">Description</th>
+                    <th class="p-2 service-field">Purpose</th>
+                    <th class="p-2 service-field">Qty</th>
+                    <th class="p-2 service-field">Action</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                <tr>
-                    <td id="tdItemCode" maxlength="30" class="p-2 border">
-                        <select id="itemCode" class="w-full p-2 border rounded" onchange="fillItemDetails()">
-                            <option value="" disabled selected>Pilih Kode Item</option>
-                            <option value="ITM001">ITM001 - Laptop</option>
-                            <option value="ITM002">ITM002 - Printer</option>
-                            <option value="ITM003">ITM003 - Scanner</option>
-                        </select>
-                    </td>
-                    <td id="tdItemName" class="p-2 border">
-                        <input type="text" id="itemName" maxlength="200" class="w-full" readonly />
-                    </td>
-                    <td id="tdDetail" class="p-2 border">
-                        <input type="number" id="itemDetail" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdQuantity" class="p-2 border">
-                        <input type="number" id="itemQuantity" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdPurposed" class="p-2 border">
-                        <input type="text" id="itemPurposed" maxlength="10" class="w-full" required />
-                    </td>
-                    
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="serviceDescription" maxlength="200" class="w-full" readonly />
-                    </td>
-                    <td id="tdPurposeds" class="p-2 border">
-                        <input type="text" id="itemPurposeds" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdQty" class="p-2 border">
-                        <input type="text" id="itemQtys" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdAction" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
-                    </td>
-                    <td id="tdActions" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
-        
-        <!-- Tombol Tambah Baris -->
-        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-            + 
-        </button>
 
-            <div class="mt-4">
-              <label>Remarks</label>
-              <textarea class="w-full p-2 border rounded-md"></textarea>
-            </div>
+        <!-- Remarks section -->
+        <div class="mt-4">
+            <label class="font-semibold">Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
+        </div>
 
+        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" checked id="prepared" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
-                    <option value="Admin1">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
+                <label><input type="checkbox" id="preparedByCheck" class="mr-1" disabled><strong>Prepared by:</strong></label>
+                <select id="prepared" class="w-full p-1 border rounded" disabled>
+                    <option value="" disabled selected>Select User</option>
                 </select>
             </div>
             <div>
-            <label><input type="checkbox" id="knowledge" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="Knowledge" class="w-full p-1 border rounded">
-                <option value="Supervisor1">Supervisor 1</option>
-                <option value="Supervisor2">Supervisor 2</option>
-            </select>
+                <label><input type="checkbox" id="acknowledgeByCheck" class="mr-1" disabled><strong>Acknowledge by:</strong></label>
+                <select id="acknowledgeBy" class="w-full p-1 border rounded" disabled>
+                    <option value="" disabled selected>Select User</option>
+                </select>
             </div>
             <div>
-            <label><input type="checkbox" id="checked" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="Checked" class="w-full p-1 border rounded">
-                <option value="Finance1">Finance 1</option>
-                <option value="Finance2">Finance 2</option>
-            </select>
+                <label><input type="checkbox" id="checkedByCheck" class="mr-1" disabled><strong>Checked by:</strong></label>
+                <select id="checkedBy" class="w-full p-1 border rounded" disabled>
+                    <option value="" disabled selected>Select User</option>
+                </select>
             </div>
             <div>
-            <label><input type="checkbox" id="approved" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="Approved" class="w-full p-1 border rounded">
-                <option value="Manager1">Manager 1</option>
-                <option value="Manager2">Manager 2</option>
-            </select>
+                <label><input type="checkbox" id="approvedByCheck" class="mr-1" disabled><strong>Approved by:</strong></label>
+                <select id="approvedBy" class="w-full p-1 border rounded" disabled>
+                    <option value="" disabled selected>Select User</option>
+                </select>
             </div>
             <div>
-                <label><input type="checkbox" id="purchasing" class="mr-1"><strong>Received by :</strong></label>
-                <select id="Approved" class="w-full p-1 border rounded">
-                    <option value="Purchasing1">Purchasing 1</option>
-                    <option value="Purchasing2">Purchasing 2</option>
+                <label><input type="checkbox" id="receivedByCheck" class="mr-1" disabled><strong>Received by:</strong></label>
+                <select id="receivedBy" class="w-full p-1 border rounded" disabled>
+                    <option value="" disabled selected>Select User</option>
                 </select>
             </div>
         </div>
-        <br>
+        
         <!-- Action Buttons -->
-         
-<!-- Action Buttons -->
-    <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="confirmDelete()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+        <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="confirmDelete()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
                 Delete
-            </button> <!-- ID : nanti get ID dari url parameter-->
-
-            <button onclick="updatePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            </button>
+            <button onclick="updatePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
                 Update
-            </button> <!-- ID : TBD-->
+            </button>
         </div>
-
-</div>
     </div>
+    
+    <script src="../js/detailPR.js"></script>
 </body>
 </html>

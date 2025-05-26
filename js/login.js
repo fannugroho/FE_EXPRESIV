@@ -20,7 +20,7 @@
 
     function toggleLanguage() {
       const currentLang = localStorage.getItem("language") || "en";
-      const newLang = currentLang === "en" ? "id" : "en"; // Toggle bahasa
+      const newLang = currentLang === "en" ? "id" : "en";
       localStorage.setItem("language", newLang);
       applyLanguage(newLang);
       updateFlag(newLang);
@@ -54,18 +54,130 @@
       updateFlag(savedLang);
     });
 
+    // Helper function to decode JWT token
+    function decodeJWT(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (error) {
+        console.error('Error decoding JWT:', error);
+        return null;
+      }
+    }
+
+    // API-based login function
     function handleLogin(event) {
       event.preventDefault();
+      
       const usercode = document.getElementById("ExtEmpNo").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      let users = JSON.parse(localStorage.getItem("users")) || [];
-      const user = users.find(user => user.usercode === usercode && user.password === password);
-
-      if (user) {
-        alert("Login Success! Welcome, " + usercode);
-        window.location.href = "dashboard.html";
-      } else {
-        alert("Incorrect user code or password!");
+      // Basic validation
+      if (!usercode || !password) {
+        alert("Please enter both usercode and password!");
+        return;
       }
+
+      // Set loading state
+      const loginButton = document.getElementById("loginButton");
+      const originalText = loginButton.innerText;
+      loginButton.disabled = true;
+      loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
+      // Prepare login request
+      const loginData = {
+        username: usercode,
+        password: password
+      };
+
+      console.log(loginData);
+
+      // Make API call
+      fetch("http://localhost:5246/api/authentication/login", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status && result.code === 200) {
+          // Login successful
+          const { accessToken, refreshToken } = result.data;
+          
+          // Store tokens in localStorage
+          localStorage.setItem("accessToken", accessToken);
+          localStorage.setItem("refreshToken", refreshToken);
+          
+          // Decode JWT to get user information
+          const userInfo = decodeJWT(accessToken);
+          
+          if (userInfo) {
+            // Store user information
+            localStorage.setItem("loggedInUser", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
+            localStorage.setItem("loggedInUserCode", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
+            localStorage.setItem("userId", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
+            localStorage.setItem("userRoles", JSON.stringify(userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]));
+            
+            // Show success message
+            alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
+            
+            // Redirect to dashboard
+            window.location.href = "dashboard.html";
+          } else {
+            alert("Failed to decode user information from token");
+          }
+        } else {
+          
+          // Login failed
+          const errorMessage = result.message || "Login failed. Please check your credentials.";
+          alert(errorMessage);
+        }
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        alert("Connection error. Please check if the server is running and try again.");
+      })
+      .finally(() => {
+        // Reset button state
+        loginButton.disabled = false;
+        loginButton.innerText = originalText;
+      });
+    }
+
+    // Function to check if user is already logged in
+    function checkExistingLogin() {
+      const accessToken = localStorage.getItem("accessToken");
+      
+      if (accessToken) {
+        const userInfo = decodeJWT(accessToken);
+        
+        // Check if token is still valid (not expired)
+        if (userInfo && userInfo.exp && Date.now() < userInfo.exp * 1000) {
+          // Token is still valid, redirect to dashboard
+          window.location.href = "dashboard.html";
+          return true;
+        } else {
+          // Token is expired, clear localStorage
+          clearLoginData();
+        }
+      }
+      
+      return false;
+    }
+
+    // Function to clear login data
+    function clearLoginData() {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("loggedInUser");
+      localStorage.removeItem("loggedInUserCode");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRoles");
     }
