@@ -30,7 +30,7 @@
                         documents.forEach(doc => {
                             const row = `<tr class='border-b'>
                                 <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
-                                <td class='p-2'>${doc.id}</td>
+                                <td class='p-2'>${doc.id.substring(0, 10)}</td>
                                 <td class='p-2'>${doc.cashAdvanceNo}</td>
                                 <td class='p-2'>${doc.requesterName}</td>
                                 <td class='p-2'>${doc.departmentName}</td>
@@ -167,7 +167,7 @@
                         
                         documents.forEach(doc => {
                             worksheetData.push([
-                                doc.id,
+                                doc.id.substring(0, 10),
                                 doc.cashAdvanceNo,
                                 doc.requesterName,
                                 doc.departmentName,
@@ -208,7 +208,7 @@
                         
                         documents.forEach(doc => {
                             docData.push([
-                                doc.id,
+                                doc.id.substring(0, 10),
                                 doc.cashAdvanceNo,
                                 doc.requesterName,
                                 doc.departmentName,
