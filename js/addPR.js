@@ -58,28 +58,23 @@ function toggleFields() {
 }
 
 function fillItemDetails() {
-    // Get the selected item code
-    const itemCode = this.value;
-    
-    // Find the row containing this select element
-    const row = this.closest('tr');
-    
-    // Find the item name input in the same row
-    const itemName = row.querySelector('td#tdItemName input');
-    
+    const itemCode = document.getElementById("itemNo").value;
+    const itemName = document.getElementById("itemName");
+    const itemPrice = document.getElementById("itemPrice");
+
     const itemData = {
-        "ITM001": { name: "Laptop" },
-        "ITM002": { name: "Printer" },
-        "ITM003": { name: "Scanner" }
+        "ITM001": { name: "Laptop", price: "15,000,000" },
+        "ITM002": { name: "Printer", price: "3,500,000" },
+        "ITM003": { name: "Scanner", price: "2,000,000" }
     };
 
-    if (itemData[itemCode] && itemName) {
-        itemName.value = itemData[itemCode].name;
-    } else if (itemName) {
+    if (itemData[itemCode]) {
+        itemName.value = itemData[itemNo].name;
+        itemPrice.value = itemData[itemNo].price;
+    } else {
         itemName.value = "";
-        if (!itemData[itemCode]) {
-            alert("Item No not found!");
-        }
+        itemPrice.value = "";
+        alert("Item No not found!");
     }
 }
 
@@ -130,17 +125,6 @@ function removeFile(index) {
 }
 
 function addRow() {
-    const prType = document.getElementById("prType").value;
-    if (prType === "Item") {
-        addItemRow();
-    } else if (prType === "Service") {
-        addServiceRow();
-    } else {
-        alert("Please select a PR Type first (Item or Service)");
-    }
-}
-
-function addItemRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
     const prType = document.getElementById("prType").value;
