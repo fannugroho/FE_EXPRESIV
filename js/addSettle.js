@@ -165,7 +165,7 @@ async function saveDocument() {
 }
 
 function goToMenuSettle() {
-    window.location.href = "MenuSettle.html";
+    window.location.href = "../pages/MenuSettle.html";
 }
 
 // Commented out because docType element doesn't exist in this HTML
