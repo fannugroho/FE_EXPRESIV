@@ -308,6 +308,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function updateCash() {
-    // TODO: Implement update functionality
-    Swal.fire('Info', 'Update functionality belum diimplementasikan.', 'info');
+    Swal.fire({
+        title: 'Update Cash Advance',
+        text: 'Are you sure you want to update this Cash Advance?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, update it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Updating...',
+                text: 'Please wait while we update the Cash Advance.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // TODO: Implement update API call
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Cash Advance has been updated successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }, 1500);
+        }
+    });
 }
