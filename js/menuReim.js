@@ -16,12 +16,12 @@ function loadDashboard() {
     document.getElementById('searchInput').addEventListener('input', handleSearch);
     
     // Set up the "select all" checkbox
-    document.getElementById('selectAll').addEventListener("change", function() {
-        const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
+    // document.getElementById('selectAll').addEventListener("change", function() {
+    //     const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
+    //     checkboxes.forEach(checkbox => {
+    //         checkbox.checked = this.checked;
+    //     });
+    // });
 }
 
 // Function to handle search
@@ -133,8 +133,8 @@ function displayReimbursements(reimbursements) {
             }
         }
         
+        // <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
         const row = `<tr class='border-b'>
-            <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
             <td class='p-2'>${reim.id}</td>
             <td class='p-2'>${reim.voucherNo}</td>
             <td class='p-2'>${reim.requesterName}</td>

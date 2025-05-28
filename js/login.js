@@ -5,7 +5,7 @@
         signIn: "Sign in to access your account",
         ExtEmpNo: "Usercode / Email",
         password: "Password",
-        createAccount: "Create Account?",
+        // createAccount: "Create Account?",
         loginButton: "Login"
       },
       id: {
@@ -13,7 +13,7 @@
         signIn: "Masuk untuk mengakses akun Anda",
         ExtEmpNo: "Kode Pengguna / Email",
         password: "Kata Sandi",
-        createAccount: "Buat Akun?",
+        // createAccount: "Buat Akun?",
         loginButton: "Masuk"
       }
     };
@@ -31,7 +31,7 @@
       document.getElementById("signInText").innerText = translations[lang].signIn;
       document.getElementById("ExtEmpNo").placeholder = translations[lang].ExtEmpNo;
       document.getElementById("password").placeholder = translations[lang].password;
-      document.getElementById("createAccount").innerText = translations[lang].createAccount;
+      // document.getElementById("createAccount").innerText = translations[lang].createAccount;
       document.getElementById("loginButton").innerText = translations[lang].loginButton;
     }
 
