@@ -197,7 +197,6 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
-    document.getElementById('rejectedTabBtn')?.classList.remove('tab-active');
     
     if (tabName === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
@@ -205,9 +204,6 @@ function switchTab(tabName) {
     } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
         filteredData = allCashAdvances.filter(item => item.status === 'Checked');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn')?.classList.add('tab-active');
-        filteredData = allCashAdvances.filter(item => item.status === 'Rejected');
     } else if (tabName === 'all') {
         // Show all documents
         filteredData = [...allCashAdvances];
