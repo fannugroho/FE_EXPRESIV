@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../../../../css/shared-menu.css">
-    <link rel="stylesheet" href="menuCashAcknow.css">
+    <link rel="stylesheet" href="menuCashApprove.css">
     <!-- Navigation Script -->
     <script src="../../../../js/utils/toMenu.js"></script>
 </head>
@@ -113,7 +113,7 @@
         <!-- Main Content -->
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Cash Advance Acknowledge
+                Dashboard Cash Advance Approval
             </h2>
             
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
@@ -123,12 +123,12 @@
                         <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Checked</h3>
-                        <p id="checkedCount" class="text-2xl font-bold text-yellow-600">0</p>
+                        <h3 class="text-lg font-semibold">Acknowledged</h3>
+                        <p id="draftCount" class="text-2xl font-bold text-yellow-600">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Acknowledged</h3>
-                        <p id="acknowledgedCount" class="text-2xl font-bold text-green-600">0</p>
+                        <h3 class="text-lg font-semibold">Approved</h3>
+                        <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                         <h3 class="text-lg font-semibold">Rejected</h3>
@@ -141,11 +141,11 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 border-b">
-                        <button id="draftTabBtn" onclick="switchTab('checked')" class="px-4 py-2 tab-active rounded-t-lg">
-                            <i class="fas fa-file-alt mr-2"></i>Checked
+                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Acknowledged
                         </button>
-                        <button id="checkedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-check mr-2"></i>Acknowledged
+                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Approved
                         </button>
                     </div>
                     
@@ -153,8 +153,8 @@
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <th class="p-2 text-left">Doc Number</th>
-                                    <th class="p-2 text-left">Cash Advance No</th>
+                                    <th class="p-2 text-left">ID</th>
+                                    <th class="p-2 text-left">Cash Advance Number</th>
                                     <th class="p-2 text-left">Requester</th>
                                     <th class="p-2 text-left">Department</th>
                                     <th class="p-2 text-left">Submission Date</th>
@@ -205,18 +205,18 @@
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file text-xl"></i>
-          <span>Checked</span>
-        </button>
-        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-check text-xl"></i>
           <span>Acknowledged</span>
+        </button>
+        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-check text-xl"></i>
+          <span>Approved</span>
         </button>
     </nav>
 
     <!-- External JS -->
     <script src="../../../../js/shared-menu.js"></script>
-    <script src="menuCashAcknow.js"></script>
+    <script src="menuCashApprove.js"></script>
 </body>
 </html>

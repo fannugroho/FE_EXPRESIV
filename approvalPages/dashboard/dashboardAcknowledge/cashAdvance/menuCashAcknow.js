@@ -1,12 +1,48 @@
 function loadDashboard() {
-    // Fetch status counts from API
-    fetchStatusCounts();
+    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
     
-    // Set up initial state for tabs and pagination
-    setupTabsAndPagination();
-    
-    // Fetch cash advances from API
-    fetchCashAdvances();
+    fetch(`${baseUrl}/api/cash-advance`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Check for different possible structures in the API response
+            let cashAdvances = [];
+            if (data.status && data.data) {
+                cashAdvances = data.data;
+            } else if (data.status && data.cashAdvances) {
+                cashAdvances = data.cashAdvances;
+            } else if (Array.isArray(data)) {
+                cashAdvances = data;
+            }
+            
+            if (cashAdvances.length > 0) {
+                allCashAdvances = cashAdvances;
+                
+                // Update dashboard counts
+                updateStatusCounts(allCashAdvances);
+                
+                // Set up initial state for tabs and pagination
+                setupTabsAndPagination();
+                
+                // Apply filtering based on current tab and display
+                switchTab(currentTab);
+            } else {
+                console.error("API response does not contain expected data");
+                // Fallback to sample data
+                useSampleData();
+                switchTab(currentTab);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+            // Fallback to sample data
+            useSampleData();
+            switchTab(currentTab);
+        });
 }
 
 // Variables for pagination and filtering
@@ -14,7 +50,7 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allCashAdvances = [];
-let currentTab = 'draft'; // Default tab is now 'draft' which corresponds to Checked status
+let currentTab = 'checked'; // Default tab is now 'checked' which corresponds to Checked status
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
@@ -81,11 +117,16 @@ function displayCashAdvances(cashAdvances) {
 }
 
 // Function to update the status counts on the page
-function updateStatusCounts(data) {
-    document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("draftCount").textContent = data.checkedCount || 0; // Changed from draftCount to checkedCount
-    document.getElementById("checkedCount").textContent = data.acknowledgedCount || 0; // Changed from checkedCount to acknowledgedCount
-    document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
+function updateStatusCounts(documents) {
+    const totalCount = documents.length;
+    const checkedCount = documents.filter(doc => doc.status === "Checked").length;
+    const acknowledgedCount = documents.filter(doc => doc.status === "Acknowledged").length;
+    const rejectedCount = documents.filter(doc => doc.status === "Rejected").length;
+    
+    document.getElementById("totalCount").textContent = totalCount;
+    document.getElementById("checkedCount").textContent = checkedCount;
+    document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
+    document.getElementById("rejectedCount").textContent = rejectedCount;
 }
 
 // Set up events for tab switching and pagination
@@ -123,12 +164,12 @@ function goToMenuRole() { window.location.href = "../../../../roleData.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "../../../../login.html"; }
 function goToTotalDocs() { 
     // Redirect to a page with all documents or just switch to checked as default
-    switchTab('draft'); 
+    switchTab('checked'); 
 }
 
 // Function to redirect to detail page with cash advance ID
-function detailCash(cashId) {
-    window.location.href = `../../../../detailPages/detailCash.html?cash-id=${cashId}`;
+function detailCash(caId) {
+    window.location.href = `../../../../detailPages/detailCash.html?ca-id=${caId}`;
 }
 
 // Sample data for testing when API is not available
@@ -139,11 +180,10 @@ function generateSampleData() {
         // For acknowledgment page, we focus on Checked and Acknowledged statuses
         const status = i <= 20 ? 'Checked' : 'Acknowledged';
         sampleData.push({
-            id: i,
-            docNumber: `DOC-${1000 + i}`,
-            cashAdvanceNumber: `CA-${2000 + i}`,
+            id: `CA${i.toString().padStart(5, '0')}`,
+            cashAdvanceNo: `CA-${2000 + i}`,
             requesterName: `User ${i}`,
-            department: `Department ${(i % 5) + 1}`,
+            departmentName: `Department ${(i % 5) + 1}`,
             submissionDate: new Date(2023, 0, i).toISOString(),
             status: status
         });
@@ -161,8 +201,8 @@ function useSampleData() {
 function updateSampleCounts() {
     const data = generateSampleData();
     document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("draftCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Acknowledged').length;
+    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
+    document.getElementById("acknowledgedCount").textContent = data.filter(item => item.status === 'Acknowledged').length;
     document.getElementById("rejectedCount").textContent = "1"; // Sample value for rejected count
 }
 
@@ -175,10 +215,10 @@ function switchTab(tabName) {
     document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'draft') {
+    if (tabName === 'checked') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
         filteredData = allCashAdvances.filter(item => item.status === 'Checked');
-    } else if (tabName === 'checked') {
+    } else if (tabName === 'acknowledged') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
         filteredData = allCashAdvances.filter(item => item.status === 'Acknowledged');
     }
@@ -200,7 +240,7 @@ function updateTable() {
         const item = filteredData[i];
         
         // Format the submission date if needed
-        let formattedDate = item.submissionDate;
+        let formattedDate = '';
         if (item.submissionDate) {
             const date = new Date(item.submissionDate);
             if (!isNaN(date)) {
@@ -212,18 +252,18 @@ function updateTable() {
         row.classList.add('border-t', 'hover:bg-gray-100');
         
         row.innerHTML = `
-            <td class="p-2">${item.docNumber || ''}</td>
-            <td class="p-2">${item.cashAdvanceNumber || ''}</td>
+            <td class="p-2">${item.id ? item.id.substring(0, 10) : ''}</td>
+            <td class="p-2">${item.cashAdvanceNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
-            <td class="p-2">${item.department || ''}</td>
+            <td class="p-2">${item.departmentName || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${item.status === 'Checked' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
-                    ${item.status}
+                    ${item.status || ''}
                 </span>
             </td>
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${item.id}')">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${item.id || ''}')">
                     Detail
                 </button>
             </td>
@@ -274,99 +314,118 @@ function changePage(direction) {
 
 // Download as Excel
 function downloadExcel() {
-    const workbook = XLSX.utils.book_new();
+    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
     
-    // Convert table data to worksheet format
-    const worksheetData = [
-        ["Doc Number", "Cash Advance Number", "Requester", "Department", "Submission Date", "Status"]
-    ];
-    
-    filteredData.forEach(item => {
-        let formattedDate = item.submissionDate;
-        if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
+    fetch(`${baseUrl}/api/cash-advance`)
+        .then(response => response.json())
+        .then(data => {
+            // Check for different possible structures in the API response
+            let cashAdvances = [];
+            if (data.status && data.data) {
+                cashAdvances = data.data;
+            } else if (data.status && data.cashAdvances) {
+                cashAdvances = data.cashAdvances;
+            } else if (Array.isArray(data)) {
+                cashAdvances = data;
             }
-        }
-        
-        worksheetData.push([
-            item.docNumber || '',
-            item.cashAdvanceNumber || '',
-            item.requesterName || '',
-            item.department || '',
-            formattedDate,
-            item.status || ''
-        ]);
-    });
-    
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Cash Advances");
-    
-    // Generate Excel file
-    XLSX.writeFile(workbook, "Cash_Advances_Report.xlsx");
+            
+            if (cashAdvances.length > 0) {
+                const documents = cashAdvances.filter(doc => 
+                    currentTab === 'checked' ? doc.status === 'Checked' : doc.status === 'Acknowledged'
+                );
+                
+                // Create worksheet data
+                const worksheetData = [
+                    ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
+                ];
+                
+                documents.forEach(doc => {
+                    worksheetData.push([
+                        doc.id ? doc.id.substring(0, 10) : '',
+                        doc.cashAdvanceNo || '',
+                        doc.requesterName || '',
+                        doc.departmentName || '',
+                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                        doc.status || ''
+                    ]);
+                });
+                
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances');
+                
+                // Save file
+                XLSX.writeFile(wb, 'Cash_Advances.xlsx');
+            } else {
+                alert('No data available to export.');
+            }
+        })
+        .catch(error => {
+            console.error('Error downloading Excel:', error);
+            alert('Failed to download Excel file. Please try again.');
+        });
 }
 
 // Download as PDF
 function downloadPDF() {
-    // Initialize jsPDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
     
-    // Add title
-    doc.setFontSize(18);
-    doc.text("Cash Advances Report", 14, 22);
-    
-    // Add date
-    doc.setFontSize(11);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-    
-    // Prepare table data
-    const tableColumn = ["Doc Number", "Cash Advance Number", "Requester", "Department", "Date", "Status"];
-    const tableRows = [];
-    
-    filteredData.forEach(item => {
-        let formattedDate = item.submissionDate;
-        if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
+    fetch(`${baseUrl}/api/cash-advance`)
+        .then(response => response.json())
+        .then(data => {
+            // Check for different possible structures in the API response
+            let cashAdvances = [];
+            if (data.status && data.data) {
+                cashAdvances = data.data;
+            } else if (data.status && data.cashAdvances) {
+                cashAdvances = data.cashAdvances;
+            } else if (Array.isArray(data)) {
+                cashAdvances = data;
             }
-        }
-        
-        const rowData = [
-            item.docNumber || '',
-            item.cashAdvanceNumber || '',
-            item.requesterName || '',
-            item.department || '',
-            formattedDate,
-            item.status || ''
-        ];
-        tableRows.push(rowData);
-    });
-    
-    // Add table to document
-    doc.autoTable({
-        head: [tableColumn],
-        body: tableRows,
-        startY: 36,
-        theme: 'grid',
-        styles: {
-            fontSize: 8,
-            cellPadding: 3
-        },
-        headStyles: {
-            fillColor: [66, 135, 245],
-            textColor: 255,
-            fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-            fillColor: [240, 240, 240]
-        }
-    });
-    
-    // Save PDF
-    doc.save("Cash_Advances_Report.pdf");
+            
+            if (cashAdvances.length > 0) {
+                const documents = cashAdvances.filter(doc => 
+                    currentTab === 'checked' ? doc.status === 'Checked' : doc.status === 'Acknowledged'
+                );
+                
+                // Create document data
+                const docData = [];
+                
+                documents.forEach(doc => {
+                    docData.push([
+                        doc.id ? doc.id.substring(0, 10) : '',
+                        doc.cashAdvanceNo || '',
+                        doc.requesterName || '',
+                        doc.departmentName || '',
+                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                        doc.status || ''
+                    ]);
+                });
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.text('Cash Advances Report', 14, 16);
+                doc.autoTable({
+                    head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
+                    body: docData,
+                    startY: 20
+                });
+                
+                // Save file
+                doc.save('Cash_Advances.pdf');
+            } else {
+                alert('No data available to export.');
+            }
+        })
+        .catch(error => {
+            console.error('Error downloading PDF:', error);
+            alert('Failed to download PDF file. Please try again.');
+        });
 }
 
 // Initialize dashboard on page load
