@@ -43,6 +43,12 @@ function loadDashboard() {
             useSampleData();
             switchTab(currentTab);
         });
+        
+    // Set up notification dropdown
+    setupNotificationDropdown();
+    
+    // Load user profile information
+    loadUserProfileInfo();
 }
 
 // Variables for pagination and filtering
@@ -135,6 +141,57 @@ function setupTabsAndPagination() {
     // No checkbox functionality needed
 }
 
+// Setup notification dropdown functionality
+function setupNotificationDropdown() {
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (notificationBtn && notificationDropdown) {
+        notificationBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('hidden');
+        });
+        
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+    }
+}
+
+// Load user profile information
+function loadUserProfileInfo() {
+    // Try to get logged in user from localStorage
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+    
+    if (loggedInUser) {
+        // Display user name if available
+        if (document.getElementById('userNameDisplay')) {
+            document.getElementById('userNameDisplay').textContent = loggedInUser.name || loggedInUser.username || 'User';
+        }
+        
+        // Set user avatar if available, otherwise use default
+        if (document.getElementById('dashboardUserIcon')) {
+            if (loggedInUser.profilePicture) {
+                document.getElementById('dashboardUserIcon').src = loggedInUser.profilePicture;
+            } else {
+                // Default avatar - can be replaced with actual default image path
+                document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+            }
+        }
+    } else {
+        // If no user found, set default values
+        if (document.getElementById('userNameDisplay')) {
+            document.getElementById('userNameDisplay').textContent = 'Guest User';
+        }
+        if (document.getElementById('dashboardUserIcon')) {
+            document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+        }
+    }
+}
+
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('hidden');
@@ -145,7 +202,7 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "../../../../menu.html"; }
+function goToMenu() { window.location.href = "../../../../Menu.html"; }
 function goToMenuPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
 function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
 function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
@@ -167,6 +224,11 @@ function goToTotalDocs() {
     switchTab('checked'); 
 }
 
+// Function to navigate to user profile page
+function goToProfile() {
+    window.location.href = "../../../../pages/profil.html";
+}
+
 // Function to redirect to detail page with cash advance ID
 function detailCash(caId) {
     window.location.href = `../../../../detailPages/detailCash.html?ca-id=${caId}`;
@@ -177,8 +239,16 @@ let sampleData = [];
 function generateSampleData() {
     sampleData = [];
     for (let i = 1; i <= 35; i++) {
-        // For acknowledgment page, we focus on Checked and Acknowledged statuses
-        const status = i <= 20 ? 'Checked' : 'Acknowledged';
+        // For acknowledgment page, we focus on Checked, Acknowledged and Rejected statuses
+        let status;
+        if (i <= 20) {
+            status = 'Checked';
+        } else if (i <= 30) {
+            status = 'Acknowledged';
+        } else {
+            status = 'Rejected';
+        }
+        
         sampleData.push({
             id: `CA${i.toString().padStart(5, '0')}`,
             cashAdvanceNo: `CA-${2000 + i}`,
@@ -203,7 +273,7 @@ function updateSampleCounts() {
     document.getElementById("totalCount").textContent = data.length;
     document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
     document.getElementById("acknowledgedCount").textContent = data.filter(item => item.status === 'Acknowledged').length;
-    document.getElementById("rejectedCount").textContent = "1"; // Sample value for rejected count
+    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
 // Switch between Checked and Acknowledged tabs
@@ -214,6 +284,9 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
+    if (document.getElementById('rejectedTabBtn')) {
+        document.getElementById('rejectedTabBtn').classList.remove('tab-active');
+    }
     
     if (tabName === 'checked') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
@@ -221,11 +294,24 @@ function switchTab(tabName) {
     } else if (tabName === 'acknowledged') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
         filteredData = allCashAdvances.filter(item => item.status === 'Acknowledged');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+        filteredData = allCashAdvances.filter(item => item.status === 'Rejected');
     }
     
     // Update table and pagination
     updateTable();
     updatePagination();
+}
+
+// Helper function to get status styling
+function getStatusClass(status) {
+    switch(status) {
+        case 'Checked': return 'bg-yellow-200 text-yellow-800';
+        case 'Acknowledged': return 'bg-green-200 text-green-800';
+        case 'Rejected': return 'bg-red-200 text-red-800';
+        default: return 'bg-gray-200 text-gray-800';
+    }
 }
 
 // Update the table with current data
@@ -258,7 +344,7 @@ function updateTable() {
             <td class="p-2">${item.departmentName || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${item.status === 'Checked' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(item.status)}">
                     ${item.status || ''}
                 </span>
             </td>
@@ -330,9 +416,12 @@ function downloadExcel() {
             }
             
             if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => 
-                    currentTab === 'checked' ? doc.status === 'Checked' : doc.status === 'Acknowledged'
-                );
+                const documents = cashAdvances.filter(doc => {
+                    if (currentTab === 'checked') return doc.status === 'Checked';
+                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
+                    if (currentTab === 'rejected') return doc.status === 'Rejected';
+                    return true;
+                });
                 
                 // Create worksheet data
                 const worksheetData = [
@@ -387,9 +476,12 @@ function downloadPDF() {
             }
             
             if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => 
-                    currentTab === 'checked' ? doc.status === 'Checked' : doc.status === 'Acknowledged'
-                );
+                const documents = cashAdvances.filter(doc => {
+                    if (currentTab === 'checked') return doc.status === 'Checked';
+                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
+                    if (currentTab === 'rejected') return doc.status === 'Rejected';
+                    return true;
+                });
                 
                 // Create document data
                 const docData = [];

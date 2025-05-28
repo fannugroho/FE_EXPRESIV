@@ -39,12 +39,16 @@ function loadDashboard() {
     document.getElementById("totalCount").textContent = documents.length;
     document.getElementById("checkedCount").textContent = documents.filter(doc => doc.status === "Checked").length;
     document.getElementById("acknowledgeCount").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
+    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.status === "Rejected").length;
+    
     // Filter documents based on the current tab
     let filteredDocs = [];
     if (currentTab === 'checked') {
         filteredDocs = documents.filter(doc => doc.status === "Checked");
     } else if (currentTab === 'acknowledge') {
         filteredDocs = documents.filter(doc => doc.status === "Acknowledge");
+    } else if (currentTab === 'rejected') {
+        filteredDocs = documents.filter(doc => doc.status === "Rejected");
     }
 
     // Sort the filtered docs (newest first)
@@ -91,6 +95,8 @@ function switchTab(tabName) {
         document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
     } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
     
     // Reload dashboard with the new filter
@@ -104,6 +110,7 @@ function getStatusClass(status) {
         case 'Checked': return 'bg-green-100 text-green-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
         case 'Reject': return 'bg-red-100 text-red-800';
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';

@@ -168,8 +168,8 @@ function goToMenuRole() { window.location.href = "../../../register/roleList.htm
 
 function goToProfile() { window.location.href = "../../../pages/profile.html"; }
 
-function detailSettle(settleId) {
-    window.location.href = `../../detailPages/settlement/detailSettle.html?settle-id=${settleId}`;
+function detailDoc(settleId) {
+    window.location.href = `../../../detailPages/detailSettle.html?settle-id=${settleId}`;
 }
 
 function logout() { 
@@ -188,16 +188,21 @@ let sampleData = [];
 function generateSampleData() {
     sampleData = [];
     const statuses = ['Draft', 'Checked', 'Approved', 'Paid', 'Close', 'Rejected'];
+    const departments = ['IT Department', 'Finance', 'Marketing', 'Operations', 'Human Resources'];
     
     for (let i = 1; i <= 50; i++) {
         const statusIndex = i % statuses.length;
+        const deptIndex = i % departments.length;
+        const month = (i % 12) + 1;
+        const day = (i % 28) + 1;
+        
         sampleData.push({
             id: i,
-            docNumber: `DOC-${1000 + i}`,
-            voucherNo: `SETTLE-${2000 + i}`,
+            docNumber: `STLC-${2023}-${String(i).padStart(3, '0')}`,
+            voucherNo: `SETTLE-${2023}-${String(i).padStart(4, '0')}`,
             requesterName: `User ${i}`,
-            department: `Department ${(i % 5) + 1}`,
-            submissionDate: new Date(2023, 0, i).toISOString(),
+            department: departments[deptIndex],
+            submissionDate: new Date(2023, month - 1, day).toISOString(),
             status: statuses[statusIndex]
         });
     }
@@ -312,11 +317,16 @@ function updateTable() {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
+        // Ensure we're getting the data from the correct properties
+        const docNumber = item.docNumber || item.document_number || item.documentNumber || '';
+        const settleNumber = item.voucherNo || item.voucher_no || item.settlement_number || item.settlementNumber || '';
+        const department = item.department || item.departmentName || 'IT Department';
+        
         row.innerHTML = `
-            <td class="p-2">${item.docNumber || ''}</td>
-            <td class="p-2">${item.voucherNo || ''}</td>
+            <td class="p-2">${docNumber}</td>
+            <td class="p-2">${settleNumber}</td>
             <td class="p-2">${item.requesterName || ''}</td>
-            <td class="p-2">${item.department || ''}</td>
+            <td class="p-2">${department}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${statusClass}">
@@ -324,8 +334,8 @@ function updateTable() {
                 </span>
             </td>
             <td class="p-2">
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-full text-xs" onclick="detailSettle('${item.id}')">
-                    <i class="fas fa-eye mr-1"></i> View
+                <button onclick="detailDoc('${item.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+                  Detail
                 </button>
             </td>
         `;

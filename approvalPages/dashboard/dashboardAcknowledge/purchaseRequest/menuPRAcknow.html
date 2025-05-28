@@ -182,7 +182,7 @@
             </h2>
             
             <!-- Status Cards - Improved responsive grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
                     <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
@@ -194,6 +194,10 @@
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                     <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
+                    <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
                 </div>
             </div>
             
@@ -209,6 +213,9 @@
                         </button>
                         <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-file-alt mr-2"></i>Acknowledge
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-times-circle mr-2"></i>Rejected
                         </button>
                     </div>
                     

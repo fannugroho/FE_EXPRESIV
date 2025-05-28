@@ -7,6 +7,12 @@ function loadDashboard() {
     
     // Fetch reimbursements from API
     fetchReimbursements();
+    
+    // Set up notification dropdown
+    setupNotificationDropdown();
+    
+    // Load user profile information
+    loadUserProfileInfo();
 }
 
 // Variables for pagination and filtering
@@ -85,6 +91,7 @@ function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
+    document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
 // Set up events for tab switching and pagination
@@ -98,9 +105,62 @@ function setupTabsAndPagination() {
     });
 }
 
+// Setup notification dropdown functionality
+function setupNotificationDropdown() {
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (notificationBtn && notificationDropdown) {
+        notificationBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('hidden');
+        });
+        
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+    }
+}
+
+// Load user profile information
+function loadUserProfileInfo() {
+    // Try to get logged in user from localStorage
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+    
+    if (loggedInUser) {
+        // Display user name if available
+        if (document.getElementById('userNameDisplay')) {
+            document.getElementById('userNameDisplay').textContent = loggedInUser.name || loggedInUser.username || 'User';
+        }
+        
+        // Set user avatar if available, otherwise use default
+        if (document.getElementById('dashboardUserIcon')) {
+            if (loggedInUser.profilePicture) {
+                document.getElementById('dashboardUserIcon').src = loggedInUser.profilePicture;
+            } else {
+                // Default avatar - can be replaced with actual default image path
+                document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+            }
+        }
+    } else {
+        // If no user found, set default values
+        if (document.getElementById('userNameDisplay')) {
+            document.getElementById('userNameDisplay').textContent = 'Guest User';
+        }
+        if (document.getElementById('dashboardUserIcon')) {
+            document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+        }
+    }
+}
+
 function toggleSidebar() {
-    // No-op function - sidebar toggle is disabled to keep it permanently open
-    return;
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('hidden');
+    }
 }
 
 function toggleSubMenu(menuId) {
@@ -133,6 +193,11 @@ function logout() {
     window.location.href = "../../../../pages/login/login.html"; 
 }
 
+// Function to navigate to user profile page
+function goToProfile() {
+    window.location.href = "../../../../pages/profil.html";
+}
+
 function goToDetailReim(reimId) {
     window.location.href = `../../../../detailPages/detailReim.html?reim-id=${reimId}`;
 }
@@ -142,7 +207,15 @@ let sampleData = [];
 function generateSampleData() {
     sampleData = [];
     for (let i = 1; i <= 35; i++) {
-        const status = i <= 20 ? 'Checked' : 'Acknowledge';
+        let status;
+        if (i <= 20) {
+            status = 'Checked';
+        } else if (i <= 30) {
+            status = 'Acknowledge';
+        } else {
+            status = 'Rejected';
+        }
+        
         sampleData.push({
             id: i,
             docNumber: `DOC-${1000 + i}`,
@@ -168,9 +241,10 @@ function updateSampleCounts() {
     document.getElementById("totalCount").textContent = data.length;
     document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
     document.getElementById("acknowledgeCount").textContent = data.filter(item => item.status === 'Acknowledge').length;
+    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between Checked and Acknowledge tabs
+// Switch between tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
@@ -178,6 +252,9 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
     document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
+    if (document.getElementById('rejectedTabBtn')) {
+        document.getElementById('rejectedTabBtn').classList.remove('tab-active');
+    }
     
     if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
@@ -185,11 +262,24 @@ function switchTab(tabName) {
     } else if (tabName === 'acknowledge') {
         document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
         filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Rejected');
     }
     
     // Update table and pagination
     updateTable();
     updatePagination();
+}
+
+// Helper function to get status styling
+function getStatusClass(status) {
+    switch(status) {
+        case 'Checked': return 'bg-yellow-200 text-yellow-800';
+        case 'Acknowledge': return 'bg-green-200 text-green-800';
+        case 'Rejected': return 'bg-red-200 text-red-800';
+        default: return 'bg-gray-200 text-gray-800';
+    }
 }
 
 // Update the table with current data
@@ -225,9 +315,7 @@ function updateTable() {
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${
-                    item.status === 'Checked' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'
-                }">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(item.status)}">
                     ${item.status}
                 </span>
             </td>
@@ -258,18 +346,14 @@ function updatePagination() {
     
     if (currentPage <= 1) {
         prevBtn.classList.add('disabled');
-        prevBtn.disabled = true;
     } else {
         prevBtn.classList.remove('disabled');
-        prevBtn.disabled = false;
     }
     
     if (currentPage >= totalPages) {
         nextBtn.classList.add('disabled');
-        nextBtn.disabled = true;
     } else {
         nextBtn.classList.remove('disabled');
-        nextBtn.disabled = false;
     }
 }
 

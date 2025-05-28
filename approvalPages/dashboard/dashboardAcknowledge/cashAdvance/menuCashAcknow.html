@@ -16,13 +16,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../../../../css/shared-menu.css">
+    <link rel="stylesheet" href="shared-menu.css">
     <link rel="stylesheet" href="menuCashAcknow.css">
     <!-- Navigation Script -->
-    <script src="../../../../js/utils/toMenu.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
 </head>
 <body>
-    <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="flex min-h-screen bg-gradient">
         <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
             <i class="fas fa-bars text-white text-2xl"></i>
         </button>
@@ -110,6 +110,71 @@
             <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </aside>
 
+        <!-- User Avatar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Bell with Badge -->
+            <div class="relative">
+                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                </button>
+                <!-- Notification Dropdown -->
+                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
+                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
+                        <i class="fas fa-bell text-blue-500 mr-2"></i>
+                        <span>Notifikasi</span>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Purchase Request document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-wallet text-green-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Cash Advance document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
+                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
+                            <span>See All Notifications</span>
+                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- User Avatar + Name -->
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
+                     onclick="goToProfile()">
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content -->
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
@@ -146,6 +211,9 @@
                         </button>
                         <button id="checkedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Acknowledged
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-times-circle mr-2"></i>Rejected
                         </button>
                     </div>
                     
@@ -195,7 +263,7 @@
                           <i class="fas fa-file-pdf mr-2"></i>PDF
                         </button>
                     </div>
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -213,10 +281,13 @@
           <i class="fas fa-check text-xl"></i>
           <span>Acknowledged</span>
         </button>
+        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-times-circle text-xl"></i>
+          <span>Rejected</span>
+        </button>
     </nav>
 
     <!-- External JS -->
-    <script src="../../../../js/shared-menu.js"></script>
     <script src="menuCashAcknow.js"></script>
 </body>
 </html>
