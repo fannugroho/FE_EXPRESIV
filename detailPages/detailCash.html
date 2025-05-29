@@ -154,10 +154,34 @@
             <button onclick="printCashAdvanceVoucher()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Print
             </button>
+            
+            <button onclick="confirmSubmit()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Submit
+            </button>
         </div>
     </div>
 
     <script>
+        function confirmSubmit() {
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Apakah dokumen sudah benar?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire(
+                        'Berhasil!',
+                        'Dokumen berhasil di-submit.',
+                        'success'
+                    );
+                }
+            });
+        }
+        
         function printCashAdvanceVoucher() {
             // Get form values
             const cashAdvanceNo = document.getElementById('cashAdvanceNo').value || '';
