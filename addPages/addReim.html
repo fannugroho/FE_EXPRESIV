@@ -137,11 +137,33 @@
     <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
         Save
     </button>
-    <button onclick="goToMenuReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Update
+    <button onclick="submitDocument()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+        Submit
     </button>
 </div>
     </div>
     <script src="../js/addReim.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function submitDocument() {
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Apakah dokumen sudah benar?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Berhasil',
+                        text: 'Dokumen berhasil di-submit.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
+    </script>
 </body>
 </html>

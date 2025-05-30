@@ -107,6 +107,35 @@
         cursor: not-allowed;
     }
 
+    /* Notification Styles */
+    .notification-btn {
+        background-color: rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .notification-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .notification-badge {
+        background-color: #EF4444;
+    }
+
+    .notification-dropdown {
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #E5E7EB;
+        overflow: hidden;
+    }
+
+    .notification-item {
+        transition: background-color 0.2s;
+    }
+
+    .notification-item:hover {
+        background-color: #F3F4F6;
+    }
+
     /* Improving small screen experience */
     @media (max-width: 480px) {
         .px-6 {
