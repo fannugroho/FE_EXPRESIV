@@ -40,6 +40,43 @@
     background: #e2e2e2;
 }  
 
+/* Sidebar Styling - Modified to be permanent and non-responsive */
+#sidebar {
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    width: 16rem;
+    z-index: 50;
+    display: block !important;
+}
+
+#sidebar.hidden {
+    display: block !important;
+    left: 0 !important;
+}
+
+#sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+}
+
+/* Main content should have margin to accommodate fixed sidebar */
+.flex-1 {
+    margin-left: 16rem;
+}
+
 /* Responsive table styles */
 @media (max-width: 1024px) {
     table th, table td {
@@ -49,9 +86,31 @@
     table {
         font-size: 0.875rem;
     }
+    
+    /* Keep sidebar visible even on small screens */
+    #sidebar {
+        display: block !important;
+        left: 0 !important;
+    }
+    
+    /* Adjust main content margin */
+    .flex-1 {
+        margin-left: 16rem;
+    }
 }
 
 @media (max-width: 768px) {
+    /* Keep sidebar visible even on small screens */
+    #sidebar {
+        display: block !important;
+        left: 0 !important;
+    }
+    
+    /* Adjust main content margin */
+    .flex-1 {
+        margin-left: 16rem;
+    }
+    
     .bg-white.p-6 {
         padding: 1rem;
     }
@@ -79,6 +138,12 @@
     
     .pagination-btn {
         padding: 0.25rem 0.5rem;
+    }
+    
+    /* Keep sidebar visible even on small screens */
+    #sidebar {
+        display: block !important;
+        left: 0 !important;
     }
 }
 
@@ -154,5 +219,11 @@
     
     .text-xl {
         font-size: 1.125rem;
+    }
+    
+    /* Keep sidebar visible even on tiny screens */
+    #sidebar {
+        display: block !important;
+        left: 0 !important;
     }
 } 

@@ -3,25 +3,67 @@ document.addEventListener('DOMContentLoaded', function() {
   let roles = [];
   let currentRoleId = null;
   
-  // Sample website pages for permissions
+  // Permission groups and pages
   const websitePages = [
-    { id: 'dashboard', name: 'Dashboard', folder: 'pages' },
-    { id: 'dashboard-users', name: 'User Management', folder: 'pages' },
-    { id: 'dashboard-roles', name: 'Role Management', folder: 'pages' },
-    { id: 'register', name: 'Registration', folder: 'pages' },
-    { id: 'approval-dashboard', name: 'Approval Dashboard', folder: 'pages' },
-    { id: 'profile', name: 'User Profile', folder: 'pages' },
-    { id: 'settings', name: 'Settings', folder: 'pages' },
-    { id: 'reports', name: 'Reports', folder: 'pages' },
-    { id: 'employees', name: 'Employee Directory', folder: 'pages' },
-    { id: 'departments', name: 'Departments', folder: 'pages' },
-    { id: 'user-edit', name: 'Edit User', folder: 'detailPages' },
-    { id: 'user-view', name: 'View User', folder: 'detailPages' },
-    { id: 'department-details', name: 'Department Details', folder: 'detailPages' },
-    { id: 'add-employee', name: 'Add Employee', folder: 'addPages' },
-    { id: 'add-department', name: 'Add Department', folder: 'addPages' },
-    { id: 'leave-approval', name: 'Leave Approval', folder: 'approvalPages' },
-    { id: 'expense-approval', name: 'Expense Approval', folder: 'approvalPages' }
+    // Dashboard & Administration
+    { id: 'dashboard', name: 'Dashboard', group: 'Dashboard & Administration' },
+    { id: 'dashboard-users', name: 'User Management', group: 'Dashboard & Administration' },
+    { id: 'dashboard-roles', name: 'Role Management', group: 'Dashboard & Administration' },
+    { id: 'approval-dashboard', name: 'Approval Dashboard', group: 'Dashboard & Administration' },
+    { id: 'profil', name: 'User Profile', group: 'Dashboard & Administration' },
+    { id: 'register', name: 'Registration', group: 'Dashboard & Administration' },
+    
+    // Menu Access
+    { id: 'menuReim', name: 'Reimbursement Menu', group: 'Menu Access' },
+    { id: 'menuSettle', name: 'Settlement Menu', group: 'Menu Access' },
+    { id: 'menuCash', name: 'Cash Advance Menu', group: 'Menu Access' },
+    { id: 'menuPR', name: 'Purchase Request Menu', group: 'Menu Access' },
+    
+    // Detail Access
+    { id: 'detailReim', name: 'Reimbursement Details', group: 'Detail Access' },
+    { id: 'detailSettle', name: 'Settlement Details', group: 'Detail Access' },
+    { id: 'detailCash', name: 'Cash Advance Details', group: 'Detail Access' },
+    { id: 'detailPR', name: 'Purchase Request Details', group: 'Detail Access' },
+    
+    // Creation Access
+    { id: 'addReim', name: 'Create Reimbursement', group: 'Creation Access' },
+    { id: 'addSettle', name: 'Create Settlement', group: 'Creation Access' },
+    { id: 'addCash', name: 'Create Cash Advance', group: 'Creation Access' },
+    { id: 'addPR', name: 'Create Purchase Request', group: 'Creation Access' },
+    
+    // PR Processing
+    { id: 'menuPRReceive', name: 'PR Receiving Menu', group: 'PR Processing' },
+    { id: 'receivePR', name: 'Receive PR', group: 'PR Processing' },
+    
+    // Checking Process
+    { id: 'menuPRCheck', name: 'PR Check Menu', group: 'Checking Process' },
+    { id: 'menuSettleCheck', name: 'Settlement Check Menu', group: 'Checking Process' },
+    { id: 'menuCashCheck', name: 'Cash Advance Check Menu', group: 'Checking Process' },
+    { id: 'menuReimCheck', name: 'Reimbursement Check Menu', group: 'Checking Process' },
+    { id: 'checkedPR', name: 'Checked PR', group: 'Checking Process' },
+    { id: 'checkedSettle', name: 'Checked Settlement', group: 'Checking Process' },
+    { id: 'checkedCash', name: 'Checked Cash Advance', group: 'Checking Process' },
+    { id: 'checkedReim', name: 'Checked Reimbursement', group: 'Checking Process' },
+    
+    // Acknowledgement Process
+    { id: 'menuPRAcknow', name: 'PR Acknowledgement Menu', group: 'Acknowledgement Process' },
+    { id: 'menuSettleAcknow', name: 'Settlement Acknowledgement Menu', group: 'Acknowledgement Process' },
+    { id: 'menuCashAcknow', name: 'Cash Advance Acknowledgement Menu', group: 'Acknowledgement Process' },
+    { id: 'menuReimAcknow', name: 'Reimbursement Acknowledgement Menu', group: 'Acknowledgement Process' },
+    { id: 'acknowledgePR', name: 'Acknowledge PR', group: 'Acknowledgement Process' },
+    { id: 'acknowledgeSettle', name: 'Acknowledge Settlement', group: 'Acknowledgement Process' },
+    { id: 'acknowledgeCash', name: 'Acknowledge Cash Advance', group: 'Acknowledgement Process' },
+    { id: 'acknowledgeReim', name: 'Acknowledge Reimbursement', group: 'Acknowledgement Process' },
+    
+    // Approval Process
+    { id: 'menuPRApprove', name: 'PR Approval Menu', group: 'Approval Process' },
+    { id: 'menuSettleApprove', name: 'Settlement Approval Menu', group: 'Approval Process' },
+    { id: 'menuCashApprove', name: 'Cash Advance Approval Menu', group: 'Approval Process' },
+    { id: 'menuReimApprove', name: 'Reimbursement Approval Menu', group: 'Approval Process' },
+    { id: 'approvePR', name: 'Approve PR', group: 'Approval Process' },
+    { id: 'approveSettle', name: 'Approve Settlement', group: 'Approval Process' },
+    { id: 'approveCash', name: 'Approve Cash Advance', group: 'Approval Process' },
+    { id: 'approveReim', name: 'Approve Reimbursement', group: 'Approval Process' }
   ];
   
   // Get stored roles data if available
@@ -60,6 +102,34 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
   const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
   const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+  const presetRolesBtn = document.getElementById('presetRolesBtn');
+  const presetRolesMenu = document.getElementById('presetRolesMenu');
+  
+  // Preset Roles dropdown
+  if (presetRolesBtn) {
+    presetRolesBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      presetRolesMenu.classList.toggle('hidden');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!presetRolesBtn.contains(e.target) && !presetRolesMenu.contains(e.target)) {
+        presetRolesMenu.classList.add('hidden');
+      }
+    });
+    
+    // Preset role item click
+    const presetRoleItems = document.querySelectorAll('.preset-role-item');
+    presetRoleItems.forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const preset = this.getAttribute('data-preset');
+        createPresetRole(preset);
+        presetRolesMenu.classList.add('hidden');
+      });
+    });
+  }
   
   // Add Role button click
   if (addRoleBtn) {
@@ -162,19 +232,33 @@ document.addEventListener('DOMContentLoaded', function() {
       return '<span class="text-gray-400 text-xs italic">No permissions</span>';
     }
     
-    // Show max 3 permissions
-    const visiblePermissions = permissions.slice(0, 3);
-    let badges = '';
-    
-    visiblePermissions.forEach(permId => {
+    // Count permissions by group
+    const groupCounts = {};
+    permissions.forEach(permId => {
       const page = websitePages.find(p => p.id === permId);
       if (page) {
-        badges += `<span class="permission-badge"><i class="fas fa-check-circle"></i> ${page.name}</span>`;
+        if (!groupCounts[page.group]) {
+          groupCounts[page.group] = 0;
+        }
+        groupCounts[page.group]++;
       }
     });
     
-    if (permissions.length > 3) {
-      badges += `<span class="permission-badge">+${permissions.length - 3} more</span>`;
+    // Display badges for groups with their counts
+    let badges = '';
+    
+    // Show at most 3 groups
+    const groups = Object.keys(groupCounts);
+    const visibleGroups = groups.slice(0, 3);
+    
+    visibleGroups.forEach(group => {
+      const count = groupCounts[group];
+      const totalInGroup = websitePages.filter(p => p.group === group).length;
+      badges += `<span class="permission-badge"><i class="fas fa-layer-group"></i> ${group}: ${count}/${totalInGroup}</span>`;
+    });
+    
+    if (groups.length > 3) {
+      badges += `<span class="permission-badge">+${groups.length - 3} more groups</span>`;
     }
     
     return badges;
@@ -190,13 +274,13 @@ document.addEventListener('DOMContentLoaded', function() {
     roleNameInput.value = '';
     permissionsContainer.innerHTML = '';
     
-    // Group pages by folder
-    const pagesByFolder = {};
+    // Group pages by group
+    const pagesByGroup = {};
     websitePages.forEach(page => {
-      if (!pagesByFolder[page.folder]) {
-        pagesByFolder[page.folder] = [];
+      if (!pagesByGroup[page.group]) {
+        pagesByGroup[page.group] = [];
       }
-      pagesByFolder[page.folder].push(page);
+      pagesByGroup[page.group].push(page);
     });
     
     // If editing existing role, populate with role data
@@ -212,26 +296,56 @@ document.addEventListener('DOMContentLoaded', function() {
       modalTitle.textContent = 'Add New Role';
     }
     
-    // Populate permissions checkboxes by folder
-    Object.keys(pagesByFolder).forEach(folder => {
-      const folderPages = pagesByFolder[folder];
+    // Populate permissions checkboxes by group
+    Object.keys(pagesByGroup).forEach(group => {
+      const groupPages = pagesByGroup[group];
       
-      // Add folder header
-      const folderHeader = document.createElement('div');
-      folderHeader.className = 'permission-category';
-      folderHeader.textContent = folder.charAt(0).toUpperCase() + folder.slice(1);
-      permissionsContainer.appendChild(folderHeader);
+      // Add group header
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'permission-category';
+      groupHeader.textContent = group;
+      
+      // Add "Select All" checkbox for this group
+      const selectAllDiv = document.createElement('div');
+      selectAllDiv.className = 'permission-checkbox select-all';
+      
+      const groupId = group.replace(/\s+/g, '-').toLowerCase();
+      const allChecked = groupPages.every(page => selectedPermissions.includes(page.id));
+      
+      selectAllDiv.innerHTML = `
+        <input type="checkbox" id="select-all-${groupId}" ${allChecked ? 'checked' : ''}>
+        <label for="select-all-${groupId}"><strong>Select All</strong></label>
+      `;
+      
+      // Add event listener to the "Select All" checkbox
+      selectAllDiv.querySelector('input').addEventListener('change', function(e) {
+        const isChecked = e.target.checked;
+        const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${group}"]`);
+        groupCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
+      });
+      
+      permissionsContainer.appendChild(groupHeader);
+      permissionsContainer.appendChild(selectAllDiv);
       
       // Add page checkboxes
-      folderPages.forEach(page => {
+      groupPages.forEach(page => {
         const checkboxDiv = document.createElement('div');
         checkboxDiv.className = 'permission-checkbox';
         
         const isChecked = selectedPermissions.includes(page.id);
         checkboxDiv.innerHTML = `
-          <input type="checkbox" id="perm-${page.id}" value="${page.id}" ${isChecked ? 'checked' : ''}>
+          <input type="checkbox" id="perm-${page.id}" value="${page.id}" data-group="${group}" ${isChecked ? 'checked' : ''}>
           <label for="perm-${page.id}">${page.name}</label>
         `;
+        
+        // Add event listener to update "Select All" when individual permissions are changed
+        checkboxDiv.querySelector('input').addEventListener('change', function() {
+          const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${group}"]`);
+          const allChecked = Array.from(groupCheckboxes).every(checkbox => checkbox.checked);
+          permissionsContainer.querySelector(`#select-all-${groupId}`).checked = allChecked;
+        });
         
         permissionsContainer.appendChild(checkboxDiv);
       });
@@ -361,5 +475,116 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       closeDeleteModal();
     };
+  };
+  
+  // Utility function to create preset roles with predefined permissions
+  window.createPresetRole = function(preset) {
+    // Close any open modals
+    closeRoleModal();
+    closeDeleteModal();
+    
+    const now = formatDate(new Date());
+    let newRole = {
+      id: generateId(),
+      createdDate: now,
+      lastModified: now,
+      permissions: []
+    };
+    
+    switch(preset) {
+      case 'admin':
+        newRole.name = 'Administrator';
+        // All permissions
+        newRole.permissions = websitePages.map(page => page.id);
+        break;
+        
+      case 'finance':
+        newRole.name = 'Finance Officer';
+        // Finance permissions: dashboards, checks, approvals for financial documents
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.group === 'Dashboard & Administration' || 
+            page.group === 'Menu Access' || 
+            page.group === 'Detail Access' ||
+            page.group === 'Checking Process'
+          )
+          .map(page => page.id);
+        break;
+        
+      case 'requester':
+        newRole.name = 'Requester';
+        // Requester permissions: can create requests but not approve
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.id === 'dashboard' || 
+            page.id === 'profil' ||
+            page.group === 'Menu Access' || 
+            page.group === 'Detail Access' ||
+            page.group === 'Creation Access'
+          )
+          .map(page => page.id);
+        break;
+        
+      case 'approver':
+        newRole.name = 'Approver';
+        // Approver permissions: can view and approve, but not create
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.id === 'dashboard' || 
+            page.id === 'approval-dashboard' ||
+            page.id === 'profil' ||
+            page.group === 'Detail Access' ||
+            page.group === 'Approval Process'
+          )
+          .map(page => page.id);
+        break;
+        
+      case 'checker':
+        newRole.name = 'Document Checker';
+        // Checker permissions: can check documents
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.id === 'dashboard' || 
+            page.id === 'profil' ||
+            page.group === 'Detail Access' ||
+            page.group === 'Checking Process'
+          )
+          .map(page => page.id);
+        break;
+        
+      case 'acknowledger':
+        newRole.name = 'Document Acknowledger';
+        // Acknowledger permissions: can acknowledge documents
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.id === 'dashboard' || 
+            page.id === 'profil' ||
+            page.group === 'Detail Access' ||
+            page.group === 'Acknowledgement Process'
+          )
+          .map(page => page.id);
+        break;
+        
+      case 'receiver':
+        newRole.name = 'PR Receiver';
+        // Receiver permissions: can receive PR
+        newRole.permissions = websitePages
+          .filter(page => 
+            page.id === 'dashboard' || 
+            page.id === 'profil' ||
+            page.id === 'detailPR' ||
+            page.group === 'PR Processing'
+          )
+          .map(page => page.id);
+        break;
+    }
+    
+    // Add the new role
+    roles.push(newRole);
+    saveRolesToStorage();
+    
+    // Update UI
+    updateUICounters();
+    populateRolesTable();
   };
 }); 

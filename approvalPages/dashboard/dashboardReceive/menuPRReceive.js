@@ -3,6 +3,12 @@ let currentTab = 'approved'; // Default tab
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Hide the remarks column initially since the default tab is 'approved'
+    const remarksHeader = document.getElementById('remarksHeader');
+    if (remarksHeader) {
+        remarksHeader.style.display = 'none';
+    }
+    
     loadDashboard();
     
     // Set up event listener for select all checkbox
@@ -30,6 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Make sure sidebar is visible
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('hidden');
+    }
 });
 
 function loadDashboard() {
@@ -39,6 +51,7 @@ function loadDashboard() {
     document.getElementById("totalCount").textContent = documents.length;
     document.getElementById("approvedCount").textContent = documents.filter(doc => doc.status === "Approved").length;
     document.getElementById("receivedCount").textContent = documents.filter(doc => doc.status === "Received").length;
+    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.status === "Rejected").length;
     
     // Filter documents based on the current tab
     let filteredDocs = [];
@@ -46,6 +59,8 @@ function loadDashboard() {
         filteredDocs = documents.filter(doc => doc.status === "Approved");
     } else if (currentTab === 'received') {
         filteredDocs = documents.filter(doc => doc.status === "Received");
+    } else if (currentTab === 'rejected') {
+        filteredDocs = documents.filter(doc => doc.status === "Rejected");
     }
 
     // Sort the filtered docs (newest first)
@@ -55,11 +70,16 @@ function loadDashboard() {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
+    // Check if remarks column should be visible (only for rejected tab)
+    const showRemarks = currentTab === 'rejected';
+    const colSpan = showRemarks ? 11 : 10;
+    
     if (sortedDocs.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No documents found</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center p-4">No documents found</td></tr>`;
     } else {
         sortedDocs.forEach(doc => {
-            const row = `<tr class='w-full border-b'>
+            // Build row based on current tab
+            let row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
                 <td class='p-2'>${doc.id}</td>
                 <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
@@ -68,12 +88,19 @@ function loadDashboard() {
                 <td class='p-2'>${doc.submissionDate || '-'}</td>
                 <td class='p-2'>${doc.requiredDate || '-'}</td>
                 <td class='p-2'>${doc.poNumber || '-'}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
-                <td class='p-2'>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>`;
+            
+            // Add remarks column only for rejected tab
+            if (showRemarks) {
+                row += `<td class='p-2'>${doc.remarks || '-'}</td>`;
+            }
+            
+            row += `<td class='p-2'>
                     <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                     ${currentTab === 'approved' ? `<button onclick="receiveDoc('${doc.id}')" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ml-1">Receive</button>` : ''}
                 </td>
             </tr>`;
+            
             tableBody.innerHTML += row;
         });
     }
@@ -91,8 +118,16 @@ function switchTab(tabName) {
     
     if (tabName === 'approved') {
         document.getElementById('approvedTabBtn').classList.add('tab-active');
+        // Hide remarks column for approved tab
+        document.getElementById('remarksHeader').style.display = 'none';
     } else if (tabName === 'received') {
         document.getElementById('receivedTabBtn').classList.add('tab-active');
+        // Hide remarks column for received tab as well
+        document.getElementById('remarksHeader').style.display = 'none';
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+        // Show remarks column only for rejected tab
+        document.getElementById('remarksHeader').style.display = 'table-cell';
     }
     
     // Reload dashboard with the new filter
@@ -107,6 +142,7 @@ function getStatusClass(status) {
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
         case 'Received': return 'bg-purple-100 text-purple-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
         case 'Reject': return 'bg-red-100 text-red-800';
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';
@@ -155,13 +191,6 @@ function detailDoc(id) {
     // Implement document detail view
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('hidden');
-    }
-}
-
 function toggleSubMenu(menuId) {
     document.getElementById(menuId).classList.toggle("hidden");
 }
@@ -176,23 +205,35 @@ function downloadExcel() {
         filteredDocs = documents.filter(doc => doc.status === "Approved");
     } else if (currentTab === 'received') {
         filteredDocs = documents.filter(doc => doc.status === "Received");
+    } else if (currentTab === 'rejected') {
+        filteredDocs = documents.filter(doc => doc.status === "Rejected");
     }
     
     // Membuat workbook baru
     const workbook = XLSX.utils.book_new();
     
     // Mengonversi data ke format worksheet
-    const wsData = filteredDocs.map(doc => ({
-        'Document Number': doc.id,
-        'PR Number': doc.purchaseRequestNo,
-        'Requester': doc.requesterName,
-        'Department': doc.departmentName,
-        'Submission Date': doc.submissionDate,
-        'Required Date': doc.requiredDate,
-        'PO Number': doc.poNumber,
-        'Status': doc.status,
-        'Received Date': doc.receivedDate || '-'
-    }));
+    const wsData = filteredDocs.map(doc => {
+        let data = {
+            'Document Number': doc.id,
+            'PR Number': doc.purchaseRequestNo,
+            'Requester': doc.requesterName,
+            'Department': doc.departmentName,
+            'Submission Date': doc.submissionDate,
+            'Required Date': doc.requiredDate,
+            'PO Number': doc.poNumber,
+            'Status': doc.status
+        };
+        
+        // Add remarks only for rejected tab
+        if (currentTab === 'rejected') {
+            data['Remarks'] = doc.remarks || '-';
+        }
+        
+        data['Received Date'] = doc.receivedDate || '-';
+        
+        return data;
+    });
     
     // Membuat worksheet dan menambahkannya ke workbook
     const worksheet = XLSX.utils.json_to_sheet(wsData);
@@ -218,24 +259,46 @@ function downloadPDF() {
         filteredDocs = documents.filter(doc => doc.status === "Approved");
     } else if (currentTab === 'received') {
         filteredDocs = documents.filter(doc => doc.status === "Received");
+    } else if (currentTab === 'rejected') {
+        filteredDocs = documents.filter(doc => doc.status === "Rejected");
     }
     
     // Membuat data tabel dari documents
-    const tableData = filteredDocs.map(doc => [
-        doc.id,
-        doc.purchaseRequestNo,
-        doc.requesterName,
-        doc.departmentName,
-        doc.submissionDate,
-        doc.requiredDate,
-        doc.poNumber,
-        doc.status,
-        doc.receivedDate || '-'
-    ]);
+    const tableData = filteredDocs.map(doc => {
+        const rowData = [
+            doc.id,
+            doc.purchaseRequestNo,
+            doc.requesterName,
+            doc.departmentName,
+            doc.submissionDate,
+            doc.requiredDate,
+            doc.poNumber,
+            doc.status
+        ];
+        
+        // Add remarks only for rejected tab
+        if (currentTab === 'rejected') {
+            rowData.push(doc.remarks || '-');
+        }
+        
+        rowData.push(doc.receivedDate || '-');
+        
+        return rowData;
+    });
+    
+    // Create headers based on current tab
+    const headers = ['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status'];
+    
+    // Add remarks header only for rejected tab
+    if (currentTab === 'rejected') {
+        headers.push('Remarks');
+    }
+    
+    headers.push('Received Date');
     
     // Menambahkan tabel
     doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'Received Date']],
+        head: [headers],
         body: tableData,
         startY: 25
     });
