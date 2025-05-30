@@ -154,6 +154,7 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
+    document.getElementById('rejectedTabBtn')?.classList.remove('tab-active');
     
     if (tabName === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
@@ -161,6 +162,14 @@ function switchTab(tabName) {
     } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
         filteredData = allCashAdvances.filter(item => item.status === 'Approved');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+        filteredData = allCashAdvances.filter(item => item.status === 'Rejected');
+        // Show remarks column for rejected items
+        document.getElementById('remarksHeader').style.display = 'table-cell';
+    } else {
+        // Hide remarks column if not on rejected tab
+        document.getElementById('remarksHeader').style.display = 'none';
     }
     
     // Update table and pagination
@@ -177,7 +186,7 @@ function updateTable() {
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
     
     if (filteredData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No data available</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">No data available</td></tr>';
         return;
     }
     
@@ -196,17 +205,36 @@ function updateTable() {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
-        row.innerHTML = `
+        let statusClass = '';
+        if (item.status === 'Acknowledged') {
+            statusClass = 'bg-yellow-200 text-yellow-800';
+        } else if (item.status === 'Approved') {
+            statusClass = 'bg-green-200 text-green-800';
+        } else if (item.status === 'Rejected') {
+            statusClass = 'bg-red-200 text-red-800';
+        }
+        
+        // Build the row HTML - add remarks column for rejected items
+        let rowHTML = `
             <td class="p-2">${item.id ? item.id.substring(0, 10) : ''}</td>
             <td class="p-2">${item.cashAdvanceNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
             <td class="p-2">${item.departmentName || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${item.status === 'Acknowledged' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                <span class="px-2 py-1 rounded-full text-xs ${statusClass}">
                     ${item.status}
                 </span>
-            </td>
+            </td>`;
+            
+        // Add remarks column if status is Rejected
+        if (item.status === 'Rejected') {
+            rowHTML += `<td class="p-2">${item.remarks || 'N/A'}</td>`;
+        } else if (currentTab === 'rejected') {
+            rowHTML += `<td class="p-2">N/A</td>`;
+        }
+        
+        rowHTML += `
             <td class="p-2">
                 <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${item.id}')">
                     Detail
@@ -214,6 +242,7 @@ function updateTable() {
             </td>
         `;
         
+        row.innerHTML = rowHTML;
         tableBody.appendChild(row);
     }
     
@@ -280,7 +309,7 @@ function downloadExcel() {
     XLSX.utils.book_append_sheet(wb, ws, 'Cash Advance Data');
     
     // Generate Excel file and trigger download
-    const status = currentTab === 'draft' ? 'Acknowledged' : 'Approved';
+    const status = currentTab === 'draft' ? 'Acknowledged' : currentTab === 'checked' ? 'Approved' : 'Rejected';
     XLSX.writeFile(wb, `Cash_Advance_${status}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
@@ -291,7 +320,7 @@ function downloadPDF() {
     const doc = new jsPDF();
     
     // Set title
-    const status = currentTab === 'draft' ? 'Acknowledged' : 'Approved';
+    const status = currentTab === 'draft' ? 'Acknowledged' : currentTab === 'checked' ? 'Approved' : 'Rejected';
     doc.text(`Cash Advance - ${status}`, 14, 16);
     
     // Prepare data for table

@@ -175,14 +175,14 @@
             </div>
         </div>
 
-        <!-- Main Content -->
+        <!--jumlah dokumen dan status-->
         <div class="flex-1 p-8 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Purchase Request Approve
+                Dashboard Purchase Request Approval
             </h2>
             
             <!-- Status Cards - Improved responsive grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
                     <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
@@ -194,6 +194,10 @@
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
                     <p id="approveCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
+                    <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
                 </div>
             </div>
             
@@ -209,6 +213,9 @@
                         </button>
                         <button id="approveTabBtn" onclick="switchTab('approve')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Approved
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-times mr-2"></i>Rejected
                         </button>
                     </div>
                     
@@ -227,6 +234,7 @@
                                     <th class="p-2 text-left">Required Date</th>
                                     <th class="p-2 text-left">PO Number</th>
                                     <th class="p-2 text-left">Status</th>
+                                    <th id="remarksHeader" class="p-2 text-left" style="display: none;">Remarks</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
@@ -251,18 +259,13 @@
                     </div>
                 </div>
            
-                <div class="flex justify-between mt-4">
-                    <!--
-                    <button onclick="goToAddPR()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-plus mr-2"></i>Create PR
-                    </button>
-                    -->
-                    <div class="flex justify-end space-x-2">
+                <div class="flex justify-end mt-4">
+                    <div class="space-x-2">
                         <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                          <i class="fas fa-file-excel mr-2"></i>Excel
+                            <i class="fas fa-file-excel mr-2"></i>Excel
                         </button>
                         <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                          <i class="fas fa-file-pdf mr-2"></i>PDF
+                            <i class="fas fa-file-pdf mr-2"></i>PDF
                         </button>
                     </div>
                 </div>

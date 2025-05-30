@@ -39,12 +39,19 @@ function loadDashboard() {
     document.getElementById("totalCount").textContent = documents.length;
     document.getElementById("acknowledgeCount").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
     document.getElementById("approveCount").textContent = documents.filter(doc => doc.status === "Approved").length;
+    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.status === "Rejected").length;
+    
     // Filter documents based on the current tab
     let filteredDocs = [];
-    if (currentTab === 'acknowledge') {
+    if (currentTab === 'draft') {
         filteredDocs = documents.filter(doc => doc.status === "Acknowledge");
+        document.getElementById('remarksHeader').style.display = 'none';
     } else if (currentTab === 'approve') {
         filteredDocs = documents.filter(doc => doc.status === "Approved");
+        document.getElementById('remarksHeader').style.display = 'none';
+    } else if (currentTab === 'rejected') {
+        filteredDocs = documents.filter(doc => doc.status === "Rejected");
+        document.getElementById('remarksHeader').style.display = 'table-cell';
     }
 
     // Sort the filtered docs (newest first)
@@ -55,10 +62,10 @@ function loadDashboard() {
     tableBody.innerHTML = "";
     
     if (sortedDocs.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No documents found</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="11" class="text-center p-4">No documents found</td></tr>`;
     } else {
         sortedDocs.forEach(doc => {
-            const row = `<tr class='w-full border-b'>
+            let row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
                 <td class='p-2'>${doc.id}</td>
                 <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
@@ -67,8 +74,14 @@ function loadDashboard() {
                 <td class='p-2'>${doc.submissionDate || '-'}</td>
                 <td class='p-2'>${doc.requiredDate || '-'}</td>
                 <td class='p-2'>${doc.poNumber || '-'}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
-                <td class='p-2'>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>`;
+                
+            // Add remarks column if status is Rejected or we're on the rejected tab
+            if (doc.status === "Rejected" || currentTab === 'rejected') {
+                row += `<td class='p-2'>${doc.remarks || 'N/A'}</td>`;
+            }
+                
+            row += `<td class='p-2'>
                     <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </td>
             </tr>`;
@@ -87,10 +100,12 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
+    if (tabName === 'draft') {
+        document.getElementById('draftTabBtn').classList.add('tab-active');
     } else if (tabName === 'approve') {
         document.getElementById('approveTabBtn').classList.add('tab-active');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
     
     // Reload dashboard with the new filter
@@ -104,6 +119,7 @@ function getStatusClass(status) {
         case 'Checked': return 'bg-green-100 text-green-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
         case 'Reject': return 'bg-red-100 text-red-800';
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';

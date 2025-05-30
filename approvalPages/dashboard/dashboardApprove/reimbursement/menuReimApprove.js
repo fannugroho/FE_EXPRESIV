@@ -203,13 +203,20 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
     document.getElementById('approvedTabBtn').classList.remove('tab-active');
+    document.getElementById('rejectedTabBtn')?.classList.remove('tab-active');
     
     if (tabName === 'acknowledge') {
         document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
         filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
+        document.getElementById('remarksHeader').style.display = 'none';
     } else if (tabName === 'approved') {
         document.getElementById('approvedTabBtn').classList.add('tab-active');
         filteredData = allReimbursements.filter(item => item.status === 'Approved');
+        document.getElementById('remarksHeader').style.display = 'none';
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Rejected');
+        document.getElementById('remarksHeader').style.display = 'table-cell';
     }
     
     // Update table and pagination
@@ -224,6 +231,11 @@ function updateTable() {
     
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+    
+    if (filteredData.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">No data available</td></tr>';
+        return;
+    }
     
     for (let i = startIndex; i < endIndex; i++) {
         const item = filteredData[i];
@@ -240,18 +252,19 @@ function updateTable() {
         // Determine status class for styling
         let statusClass = '';
         if (item.status === 'Acknowledge') {
-            statusClass = 'status-acknowledge';
+            statusClass = 'bg-yellow-200 text-yellow-800';
         } else if (item.status === 'Approved') {
-            statusClass = 'status-approved';
+            statusClass = 'bg-green-200 text-green-800';
         } else if (item.status === 'Rejected') {
-            statusClass = 'status-rejected';
+            statusClass = 'bg-red-200 text-red-800';
         }
         
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
-        row.innerHTML = `
-            <td class="p-2">${item.id || ''}</td>
+        // Build the row HTML
+        let rowHTML = `
+            <td class="p-2">${item.docNumber || ''}</td>
             <td class="p-2">${item.voucherNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
             <td class="p-2">${item.department || ''}</td>
@@ -260,7 +273,14 @@ function updateTable() {
                 <span class="px-2 py-1 rounded-full text-xs ${statusClass}">
                     ${item.status}
                 </span>
-            </td>
+            </td>`;
+            
+        // Add remarks column if status is Rejected or we're on the rejected tab
+        if (item.status === 'Rejected' || currentTab === 'rejected') {
+            rowHTML += `<td class="p-2">${item.remarks || 'N/A'}</td>`;
+        }
+        
+        rowHTML += `
             <td class="p-2">
                 <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
                     Detail
@@ -268,6 +288,7 @@ function updateTable() {
             </td>
         `;
         
+        row.innerHTML = rowHTML;
         tableBody.appendChild(row);
     }
     
@@ -316,71 +337,106 @@ function goToTotalDocs() {
     alert(`Total Documents: ${document.getElementById('totalCount').textContent}`);
 }
 
-// Function to download the current data as Excel
+// Function to download data as Excel
 function downloadExcel() {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => {
-        return {
-            'Doc Number': item.id,
-            'Reimbursement Number': item.voucherNo,
-            'Requester': item.requesterName,
-            'Department': item.department,
-            'Submission Date': new Date(item.submissionDate).toLocaleDateString(),
-            'Status': item.status
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Convert data to worksheet
+    const wsData = filteredData.map(item => {
+        const date = item.submissionDate ? new Date(item.submissionDate) : null;
+        const formattedDate = date && !isNaN(date) ? date.toLocaleDateString() : '';
+        
+        const row = {
+            'Doc Number': item.docNumber || '',
+            'Reimbursement Number': item.voucherNo || '',
+            'Requester': item.requesterName || '',
+            'Department': item.department || '',
+            'Submission Date': formattedDate,
+            'Status': item.status || ''
         };
-    }));
+        
+        // Add remarks for rejected items
+        if (item.status === 'Rejected') {
+            row['Remarks'] = item.remarks || '';
+        }
+        
+        return row;
+    });
     
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reimbursements');
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Reimbursements');
     
-    // Generate Excel file
-    XLSX.writeFile(workbook, `Reimbursements_${currentTab}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    // Generate Excel file and trigger download
+    const status = currentTab === 'acknowledge' ? 'Acknowledge' : currentTab === 'approved' ? 'Approved' : 'Rejected';
+    XLSX.writeFile(wb, `Reimbursements_${status}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-// Function to download the current data as PDF
+// Function to download data as PDF
 function downloadPDF() {
     // Initialize jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add title
-    doc.setFontSize(16);
-    doc.text(`Reimbursement Report - ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`, 14, 20);
+    // Set title
+    const status = currentTab === 'acknowledge' ? 'Acknowledge' : currentTab === 'approved' ? 'Approved' : 'Rejected';
+    doc.text(`Reimbursements - ${status}`, 14, 16);
     
-    // Add date
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-    
-    // Define the columns for the table
-    const columns = [
-        { header: 'Doc No', dataKey: 'id' },
-        { header: 'Reim No', dataKey: 'voucherNo' },
+    // Define columns based on status
+    let columns = [
+        { header: 'Doc Number', dataKey: 'docNumber' },
+        { header: 'Reimbursement Number', dataKey: 'voucherNo' },
         { header: 'Requester', dataKey: 'requesterName' },
         { header: 'Department', dataKey: 'department' },
-        { header: 'Date', dataKey: 'date' },
+        { header: 'Submission Date', dataKey: 'submissionDate' },
         { header: 'Status', dataKey: 'status' }
     ];
     
-    // Prepare the data
-    const data = filteredData.map(item => {
-        return {
-            id: item.id,
-            voucherNo: item.voucherNo,
-            requesterName: item.requesterName,
-            department: item.department,
-            date: new Date(item.submissionDate).toLocaleDateString(),
-            status: item.status
+    // Add remarks column for rejected items
+    if (currentTab === 'rejected') {
+        columns.push({ header: 'Remarks', dataKey: 'remarks' });
+    }
+    
+    // Format data for autotable
+    const tableData = filteredData.map(item => {
+        const date = item.submissionDate ? new Date(item.submissionDate) : null;
+        const formattedDate = date && !isNaN(date) ? date.toLocaleDateString() : '';
+        
+        const row = {
+            docNumber: item.docNumber || '',
+            voucherNo: item.voucherNo || '',
+            requesterName: item.requesterName || '',
+            department: item.department || '',
+            submissionDate: formattedDate,
+            status: item.status || ''
         };
+        
+        if (currentTab === 'rejected') {
+            row.remarks = item.remarks || 'N/A';
+        }
+        
+        return row;
     });
     
-    // Generate the table
+    // Generate table
     doc.autoTable({
-        startY: 40,
-        columns: columns,
-        body: data
+        head: [columns.map(col => col.header)],
+        body: tableData.map(item => columns.map(col => item[col.dataKey])),
+        startY: 20,
+        theme: 'grid',
+        headStyles: {
+            fillColor: [66, 133, 244],
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
+        },
+        margin: { top: 20 }
     });
     
-    // Save the PDF
-    doc.save(`Reimbursements_${currentTab}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    // Save PDF
+    doc.save(`Reimbursements_${status}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Initialize the dashboard on page load
