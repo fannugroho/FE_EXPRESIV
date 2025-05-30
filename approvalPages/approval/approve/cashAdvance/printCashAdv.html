@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Advance Voucher</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1cm;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .header {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        
+        .checkbox {
+            border: 1px solid #000;
+            width: 15px;
+            height: 15px;
+            display: inline-block;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        
+        .form-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .form-label {
+            width: 150px;
+        }
+        
+        .form-field {
+            flex: 1;
+            border-bottom: 1px solid #000;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .signature-box {
+            width: 23%;
+            border: 1px solid #000;
+            height: 110px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .signature-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #000;
+            padding: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table, th, td {
+            border: 1px solid #000;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .payment-method {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .print-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .footer-note {
+            font-size: 12px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+        
+        @media print {
+            .print-button {
+                display: none;
+            }
+            
+            .container {
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+            }
+            
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="print-button" onclick="window.print()">Print Voucher</button>
+        
+        <div class="header">
+            <h2>PT KANSAI PAINT INDONESIA</h2>
+            <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danauindah</p>
+            <p>Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
+            
+            <div style="position: absolute; top: 1cm; right: 2cm;">
+                <p>Batch No: <span id="batchNo"></span></p>
+                <p>Voucher No: <span id="voucherNo"></span></p>
+                <p>Submission date: <span id="submissionDate"></span></p>
+            </div>
+        </div>
+        
+        <div class="title">
+            CASH ADVANCE VOUCHER
+        </div>
+        
+        <div class="checkbox-group">
+            <div>
+                <span class="checkbox" id="productionCheck"></span> Production
+            </div>
+            <div>
+                <span class="checkbox" id="marketingCheck"></span> Marketing
+            </div>
+            <div>
+                <span class="checkbox" id="technicalCheck"></span> Technical
+            </div>
+            <div>
+                <span class="checkbox" id="administrationCheck"></span> Administration
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-label">Cash advance is paid to</div>
+            <div class="form-field" id="paidTo">:</div>
+        </div>
+        
+        <div class="signature-section">
+            <div class="signature-box">
+                <div>Proposed by:</div>
+                <div class="signature-name">
+                    Name: <span id="proposedName"></span><br>
+                    Date: <span id="proposedDate"></span>
+                </div>
+            </div>
+            
+            <div class="signature-box">
+                <div>Advance is checked by:</div>
+                <div class="signature-name">
+                    Name: <span id="checkedName"></span><br>
+                    Date: <span id="checkedDate"></span>
+                </div>
+            </div>
+            
+            <div class="signature-box">
+                <div>Advance is approved by:</div>
+                <div class="signature-name">
+                    Name: <span id="approvedName"></span><br>
+                    Date: <span id="approvedDate"></span>
+                </div>
+            </div>
+            
+            <div class="signature-box">
+                <div>Cash is received by:</div>
+                <div class="signature-name">
+                    Name: <span id="receivedName"></span><br>
+                    Date: <span id="receivedDate"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="payment-method">
+            <div>Payment through [x] :</div>
+            <div style="margin-left: 20px;">
+                <span class="checkbox" id="cashCheck"></span> Cash
+                <span style="margin-left: 20px;">
+                    <span class="checkbox" id="bankCheck"></span> Bank remittance
+                </span>
+                <span style="margin-left: 20px;">[Bank Ref: <span id="bankRef"></span>]</span>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-label">Estimated cost</div>
+            <div>Rp <span id="estimatedCost"></span></div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-label">In words :</div>
+            <div class="form-field" id="amountInWords"></div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-label">Purpose of Advance</div>
+            <div class="form-field" id="purpose"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <div>Settlement of advance :</div>
+            <div id="settlementTableContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60%;">Description</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settlementTable">
+                        <!-- Table rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noSettlementMessage" style="display: none; margin: 20px 0; font-style: italic;">
+                No settlement data available.
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: right;">
+            Return Date: <span id="returnDate"></span>
+        </div>
+        
+        <div class="form-row" style="margin-top: 20px;">
+            <div>Total cash must be returned to the Company (paid to the Employee)</div>
+        </div>
+        
+        <div class="form-row">
+            <div style="margin-right: 10px;">Rp</div>
+            <div class="form-field" id="returnAmount"></div>
+        </div>
+        
+        <div class="form-row">
+            <div>In words:</div>
+            <div class="form-field" id="returnAmountInWords"></div>
+        </div>
+        
+        <div style="display: flex; justify-content: center; margin-top: 20px; gap: 100px;">
+            <div class="signature-box" style="width: 200px;">
+                <div>Cash is received by:</div>
+                <div class="signature-name">
+                    Name: <span id="finalReceivedName"></span><br>
+                    Date: <span id="finalReceivedDate"></span>
+                </div>
+            </div>
+            
+            <div class="signature-box" style="width: 200px;">
+                <div>Settlement is approved by:</div>
+                <div class="signature-name">
+                    Name: <span id="settlementApprovedName"></span><br>
+                    Date: <span id="settlementApprovedDate"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            The payment through cash is valid, at the time you sign on the column of "Cash is received by".<br>
+            The Cash Advance Must be Settled within 1 Month, Otherwise The Company has full authority to deduct from the Salary.
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const cashAdvanceNo = urlParams.get('cashAdvanceNo') || 'CA-2024-002';
+            const employeeNik = urlParams.get('employeeNik') || 'greenss21';
+            const employeeName = urlParams.get('employeeName') || 'greenss21';
+            const requesterName = urlParams.get('requesterName') || 'redss21';
+            const purpose = urlParams.get('purpose') || 'Office Event Expenses';
+            const paidTo = urlParams.get('paidTo') || 'redss21';
+            const department = urlParams.get('department') || 'Marketing';
+            const submissionDate = urlParams.get('submissionDate') || '05/26/2025';
+            const status = urlParams.get('status') || 'Draft';
+            const transactionType = urlParams.get('transactionType') || 'Entertainment';
+            const remarks = urlParams.get('remarks') || '';
+            
+            // Get any items passed as JSON string and parse them
+            let items = [];
+            const itemsParam = urlParams.get('items');
+            if (itemsParam) {
+                try {
+                    items = JSON.parse(decodeURIComponent(itemsParam));
+                } catch (e) {
+                    console.error('Error parsing items:', e);
+                }
+            }
+            
+            // If no items were passed, create a default item
+            if (!items || items.length === 0) {
+                // Hide the table and show the no data message
+                document.getElementById('settlementTableContainer').style.display = 'none';
+                document.getElementById('noSettlementMessage').style.display = 'block';
+                
+                // Set default zero values for amount fields
+                document.getElementById('estimatedCost').textContent = '0';
+                document.getElementById('amountInWords').textContent = 'zero rupiah';
+                document.getElementById('returnAmount').textContent = '0';
+                document.getElementById('returnAmountInWords').textContent = 'zero rupiah';
+            } else {
+                // Show the table and hide the no data message
+                document.getElementById('settlementTableContainer').style.display = 'block';
+                document.getElementById('noSettlementMessage').style.display = 'none';
+                
+                // Calculate total from items
+                let totalAmount = 0;
+                items.forEach(item => {
+                    if (item.amount) {
+                        totalAmount += parseFloat(item.amount.replace(/,/g, ''));
+                    }
+                });
+                
+                document.getElementById('estimatedCost').textContent = totalAmount.toLocaleString();
+                document.getElementById('amountInWords').textContent = numberToWords(totalAmount);
+                
+                // Populate settlement table
+                const tableBody = document.getElementById('settlementTable');
+                
+                // Clear the table body
+                tableBody.innerHTML = '';
+                
+                // Add rows only for items that have data
+                items.forEach(item => {
+                    const newRow = document.createElement('tr');
+                    
+                    const descriptionCell = document.createElement('td');
+                    descriptionCell.textContent = item.description;
+                    descriptionCell.style.border = '1px solid #000';
+                    descriptionCell.style.padding = '8px';
+                    
+                    const debitCell = document.createElement('td');
+                    debitCell.textContent = parseFloat(item.amount).toLocaleString();
+                    debitCell.style.border = '1px solid #000';
+                    debitCell.style.padding = '8px';
+                    debitCell.style.textAlign = 'right';
+                    
+                    const creditCell = document.createElement('td');
+                    creditCell.textContent = '';
+                    creditCell.style.border = '1px solid #000';
+                    creditCell.style.padding = '8px';
+                    
+                    newRow.appendChild(descriptionCell);
+                    newRow.appendChild(debitCell);
+                    newRow.appendChild(creditCell);
+                    
+                    tableBody.appendChild(newRow);
+                });
+                
+                // Add the total row
+                const totalRow = document.createElement('tr');
+                
+                const totalLabelCell = document.createElement('td');
+                totalLabelCell.textContent = 'Total';
+                totalLabelCell.style.border = '1px solid #000';
+                totalLabelCell.style.padding = '8px';
+                totalLabelCell.style.fontWeight = 'bold';
+                
+                const totalDebitCell = document.createElement('td');
+                totalDebitCell.textContent = totalAmount.toLocaleString();
+                totalDebitCell.style.border = '1px solid #000';
+                totalDebitCell.style.padding = '8px';
+                totalDebitCell.style.textAlign = 'right';
+                totalDebitCell.style.fontWeight = 'bold';
+                
+                const totalCreditCell = document.createElement('td');
+                totalCreditCell.textContent = '';
+                totalCreditCell.style.border = '1px solid #000';
+                totalCreditCell.style.padding = '8px';
+                totalCreditCell.style.fontWeight = 'bold';
+                
+                totalRow.appendChild(totalLabelCell);
+                totalRow.appendChild(totalDebitCell);
+                totalRow.appendChild(totalCreditCell);
+                
+                tableBody.appendChild(totalRow);
+                
+                // Set return amount
+                document.getElementById('returnAmount').textContent = totalAmount.toLocaleString();
+                document.getElementById('returnAmountInWords').textContent = numberToWords(totalAmount);
+            }
+            
+            // Get approvals
+            const proposedBy = urlParams.get('proposedBy') || '';
+            const checkedBy = urlParams.get('checkedBy') || '';
+            const approvedBy = urlParams.get('approvedBy') || '';
+            const acknowledgedBy = urlParams.get('acknowledgedBy') || '';
+            
+            // Fill in the form fields
+            document.getElementById('voucherNo').textContent = cashAdvanceNo;
+            document.getElementById('submissionDate').textContent = submissionDate;
+            document.getElementById('paidTo').textContent = ': ' + paidTo;
+            
+            // Field 3 & 4: Employee Name / Requester Name logic
+            // If requester name is different from employee name, show both
+            const requestedBy = employeeName === requesterName ? 
+                employeeName : 
+                `${requesterName} (on behalf of ${employeeName})`;
+            document.getElementById('proposedName').textContent = requestedBy;
+            document.getElementById('proposedDate').textContent = submissionDate;
+            
+            // Add Employee NIK to purpose as note if needed
+            const purposeText = transactionType ? 
+                `${purpose} (${transactionType})` : 
+                purpose;
+            document.getElementById('purpose').textContent = purposeText;
+            
+            // Add remarks if any
+            if (remarks) {
+                const purposeElement = document.getElementById('purpose');
+                purposeElement.innerHTML = purposeText + '<br><small>Note: ' + remarks;
+                if (employeeNik) {
+                    purposeElement.innerHTML += ' - NIK: ' + employeeNik;
+                }
+                purposeElement.innerHTML += '</small>';
+            }
+            
+            // Check the appropriate department checkbox
+            if (department === 'Production') {
+                document.getElementById('productionCheck').style.backgroundColor = 'black';
+            } else if (department === 'Marketing') {
+                document.getElementById('marketingCheck').style.backgroundColor = 'black';
+            } else if (department === 'Technical') {
+                document.getElementById('technicalCheck').style.backgroundColor = 'black';
+            } else if (department === 'Administration') {
+                document.getElementById('administrationCheck').style.backgroundColor = 'black';
+            }
+            
+            // Default payment method to Cash
+            document.getElementById('cashCheck').style.backgroundColor = 'black';
+            
+            // Set approval names if provided
+            if (checkedBy) document.getElementById('checkedName').textContent = checkedBy;
+            if (approvedBy) document.getElementById('approvedName').textContent = approvedBy;
+            if (acknowledgedBy) document.getElementById('receivedName').textContent = acknowledgedBy;
+            
+            // Set return information
+            document.getElementById('returnDate').textContent = submissionDate;
+        });
+        
+        // Function to convert number to words
+        function numberToWords(number) {
+            const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+            const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+            const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+            
+            function convertLessThanOneThousand(num) {
+                if (num === 0) {
+                    return '';
+                } else if (num < 10) {
+                    return ones[num];
+                } else if (num < 20) {
+                    return teens[num - 10];
+                } else if (num < 100) {
+                    return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+                } else {
+                    return ones[Math.floor(num / 100)] + ' hundred' + (num % 100 !== 0 ? ' ' + convertLessThanOneThousand(num % 100) : '');
+                }
+            }
+            
+            if (number === 0) {
+                return 'zero rupiah';
+            }
+            
+            const num = parseFloat(number.toString().replace(/,/g, ''));
+            
+            const billion = Math.floor(num / 1000000000);
+            const million = Math.floor((num % 1000000000) / 1000000);
+            const thousand = Math.floor((num % 1000000) / 1000);
+            const remainder = Math.floor(num % 1000);
+            
+            let result = '';
+            
+            if (billion > 0) {
+                result += convertLessThanOneThousand(billion) + ' billion ';
+            }
+            
+            if (million > 0) {
+                result += convertLessThanOneThousand(million) + ' million ';
+            }
+            
+            if (thousand > 0) {
+                result += convertLessThanOneThousand(thousand) + ' thousand ';
+            }
+            
+            if (remainder > 0 || result === '') {
+                result += convertLessThanOneThousand(remainder);
+            }
+            
+            return result + ' rupiah';
+        }
+    </script>
+</body>
+</html> 

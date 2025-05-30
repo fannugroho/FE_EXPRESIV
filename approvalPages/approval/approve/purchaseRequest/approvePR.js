@@ -252,3 +252,89 @@ function goToCheckedPR() { window.location.href = "../confirmPage/check/purchase
 function goToCheckedReim() { window.location.href = "../confirmPage/check/reimbursement/checkedReim.html"; }
 
 window.onload = loadDashboard;
+
+function printPurchaseRequest() {
+    // Get form values
+    const purchaseRequestNo = document.getElementById('purchaseRequestNo').value || '';
+    const requesterName = document.getElementById('requesterName').value || '';
+    const department = document.getElementById('department').value || '';
+    const submissionDate = document.getElementById('submissionDate').value || '';
+    const classification = document.getElementById('classification').value || '';
+    const prType = document.getElementById('prType').value || '';
+    
+    // Get signatories
+    const requestedBy = document.getElementById('prepared').checked ? 
+        document.getElementById('prepared').nextElementSibling.querySelector('select').value : '';
+    const checkedBy = document.getElementById('checked').checked ? 
+        document.getElementById('Checked').value : '';
+    const acknowledgedBy = document.getElementById('knowledge').checked ? 
+        document.getElementById('Knowledge').value : '';
+    const approvedBy = document.getElementById('approved').checked ? 
+        document.getElementById('Approved').value : '';
+    const purchasingBy = document.getElementById('purchasing').checked ? 
+        document.getElementById('Approved').nextElementSibling.querySelector('select').value : '';
+    
+    // Get remarks if exists
+    const remarksElement = document.querySelector('textarea');
+    const remarks = remarksElement ? remarksElement.value : '';
+    
+    // Collect table items
+    const tableItems = [];
+    const tableBody = document.getElementById('tableBody');
+    const rows = tableBody.querySelectorAll('tr');
+    
+    if (prType === 'Item') {
+        rows.forEach(row => {
+            const itemCodeSelect = row.querySelector('select');
+            const itemNameInput = row.querySelector('#tdItemName input');
+            const detailInput = row.querySelector('#tdDetail input');
+            const purposeInput = row.querySelector('#tdPurposed input');
+            const quantityInput = row.querySelector('#tdQuantity input');
+            
+            if (itemNameInput && itemNameInput.value.trim() !== '') {
+                tableItems.push({
+                    description: itemNameInput.value,
+                    purpose: purposeInput ? purposeInput.value : '',
+                    quantity: quantityInput ? quantityInput.value : '',
+                    price: detailInput ? detailInput.value : '',
+                    eta: '' // Optional field
+                });
+            }
+        });
+    } else if (prType === 'Service') {
+        rows.forEach(row => {
+            const descriptionInput = row.querySelector('#tdDescription input');
+            const purposeInput = row.querySelector('#tdPurposeds input');
+            const qtyInput = row.querySelector('#tdQty input');
+            
+            if (descriptionInput && descriptionInput.value.trim() !== '') {
+                tableItems.push({
+                    description: descriptionInput.value,
+                    purpose: purposeInput ? purposeInput.value : '',
+                    quantity: qtyInput ? qtyInput.value : '',
+                    price: '',
+                    eta: ''
+                });
+            }
+        });
+    }
+    
+    // Convert items array to JSON string and encode for URL
+    const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
+    
+    // Create URL with parameters
+    const url = `printPR.html?purchaseRequestNo=${encodeURIComponent(purchaseRequestNo)}`
+        + `&requesterName=${encodeURIComponent(requesterName)}`
+        + `&department=${encodeURIComponent(department)}`
+        + `&dateIssued=${encodeURIComponent(submissionDate)}`
+        + `&classification=${encodeURIComponent(classification)}`
+        + `&prType=${encodeURIComponent(prType)}`
+        + `&checkedBy=${encodeURIComponent(checkedBy)}`
+        + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
+        + `&approvedBy=${encodeURIComponent(approvedBy)}`
+        + `&receivedDate=${encodeURIComponent(purchasingBy)}`
+        + `&items=${itemsParam}`;
+    
+    // Open the print page in a new tab
+    window.open(url, '_blank');
+}
