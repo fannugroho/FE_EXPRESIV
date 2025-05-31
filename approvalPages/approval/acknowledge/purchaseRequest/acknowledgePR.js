@@ -202,8 +202,87 @@ function addRow() {
     tableBody.appendChild(newRow);
 }
 
-// Initialize table display on page load
+// Fungsi untuk mendapatkan parameter dari URL
+function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+// Fungsi untuk memuat data dokumen berdasarkan ID
+function loadDocumentById() {
+    // Ambil ID dari parameter URL
+    const documentId = getUrlParameter('id');
+    
+    if (!documentId) {
+        alert('ID dokumen tidak ditemukan dalam URL');
+        return;
+    }
+    
+    // Ambil data dari localStorage
+    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+    const document = documents.find(doc => doc.id === documentId);
+    
+    if (!document) {
+        alert('Dokumen dengan ID tersebut tidak ditemukan');
+        return;
+    }
+    
+    // Isi form dengan data dokumen
+    if (document.purchaseRequestNo) document.getElementById("purchaseRequestNo").value = document.purchaseRequestNo;
+    if (document.requesterName) document.getElementById("requesterName").value = document.requesterName;
+    if (document.departmentName) document.getElementById("department").value = document.departmentName;
+    if (document.submissionDate) document.getElementById("submissionDate").value = document.submissionDate;
+    if (document.requiredDate) document.getElementById("requiredDate").value = document.requiredDate;
+    if (document.classification) document.getElementById("classification").value = document.classification;
+    if (document.prType) {
+        document.getElementById("prType").value = document.prType;
+        toggleFields(); // Tampilkan kolom yang sesuai
+    }
+    if (document.status) document.getElementById("status").value = document.status;
+    
+    // Jika ada data item, tambahkan ke tabel
+    if (document.items && document.items.length > 0) {
+        const tableBody = document.getElementById("tableBody");
+        tableBody.innerHTML = ''; // Kosongkan tabel terlebih dahulu
+        
+        document.items.forEach(item => {
+            addRow(); // Tambah baris baru
+            
+            // Isi data ke baris yang baru ditambahkan
+            const rows = tableBody.getElementsByTagName('tr');
+            const lastRow = rows[rows.length - 1];
+            
+            if (document.prType === "Item") {
+                const inputs = lastRow.querySelectorAll('input, select');
+                if (inputs[0]) inputs[0].value = item.itemCode || '';
+                if (inputs[1]) inputs[1].value = item.itemName || '';
+                if (inputs[2]) inputs[2].value = item.detail || '';
+                if (inputs[3]) inputs[3].value = item.purpose || '';
+                if (inputs[4]) inputs[4].value = item.quantity || '';
+            } else if (document.prType === "Service") {
+                const inputs = lastRow.querySelectorAll('input');
+                if (inputs[6]) inputs[6].value = item.description || '';
+                if (inputs[7]) inputs[7].value = item.purpose || '';
+                if (inputs[8]) inputs[8].value = item.quantity || '';
+            }
+        });
+    }
+    
+    // Set status approval jika ada
+    if (document.approvals) {
+        if (document.approvals.prepared) document.getElementById("prepared").checked = true;
+        if (document.approvals.checked) document.getElementById("checked").checked = true;
+        if (document.approvals.approved) document.getElementById("approved").checked = true;
+        if (document.approvals.knowledge) document.getElementById("knowledge").checked = true;
+        if (document.approvals.purchasing) document.getElementById("purchasing").checked = true;
+    }
+}
+
+// Panggil fungsi loadDocumentById saat halaman dimuat
 window.addEventListener("DOMContentLoaded", function() {
+    // Panggil fungsi untuk memuat data dokumen
+    loadDocumentById();
+    
     // Hide service fields by default
     const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
     serviceFields.forEach(id => {

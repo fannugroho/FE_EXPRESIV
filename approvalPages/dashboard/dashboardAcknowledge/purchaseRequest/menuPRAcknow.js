@@ -158,8 +158,8 @@ function editDoc(detail) {
 }
 
 function detailDoc(id) {
-    alert("View Document Details: " + id);
-    // Implement document detail view
+    // Redirect ke halaman acknowledgePR.html dengan mengirimkan id sebagai parameter
+    window.location.href = "../../../approvalPages/approval/acknowledge/purchaseRequest/acknowledgePR.html?id=" + id;
 }
 
 function toggleSidebar() {

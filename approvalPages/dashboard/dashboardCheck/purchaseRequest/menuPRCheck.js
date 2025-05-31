@@ -162,8 +162,8 @@ function editDoc(detail) {
 }
 
 function detailDoc(id) {
-    alert("View Document Details: " + id);
-    // Implement document detail view
+    // Redirect to checkedPR.html with document ID as a parameter
+    window.location.href = `../../../approvalPages/approval/check/purchaseRequest/checkedPR.html?id=${id}`;
 }
 
 function toggleSidebar() {
