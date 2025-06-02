@@ -469,7 +469,7 @@ window.onload = function() {
     if (prType && prType.value !== "choose") {
         toggleFields();
     }
-});
+};
 
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
