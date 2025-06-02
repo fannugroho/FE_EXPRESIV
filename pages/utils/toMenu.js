@@ -191,6 +191,7 @@ function goToMenuApprovReim() {
 // Cash Advance approval workflow functions
 function goToMenuCheckCash() { 
     const basePath = getRelativeBasePath();
+    console.log(basePath)
     window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/cashAdvance/menuCashCheck.html`; 
 }
 

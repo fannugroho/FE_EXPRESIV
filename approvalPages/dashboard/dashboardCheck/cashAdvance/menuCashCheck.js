@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'prepared'; // Default tab
+let currentTab = 'prepared'; // Default tab (this maps to first status in check flow)
 
 // Pagination variables
 let currentPage = 1;
@@ -145,7 +145,7 @@ function updateTable(documents = []) {
     if (documents.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="7" class="p-4 text-center text-gray-500">
+            <td colspan="8" class="p-4 text-center text-gray-500">
                 No documents found for the selected tab.
             </td>
         `;
@@ -176,6 +176,7 @@ function updateTable(documents = []) {
             <td class="p-2">${doc.cashAdvanceNo || ''}</td>
             <td class="p-2">${doc.requesterName || ''}</td>
             <td class="p-2">${doc.departmentName || ''}</td>
+            <td class="p-2">${doc.purpose || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
@@ -183,9 +184,7 @@ function updateTable(documents = []) {
                 </span>
             </td>
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${doc.id || ''}')">
-                    Detail
-                </button>
+                ${doc.id ? `<button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${doc.id}')">Detail</button>` : '<span class="text-gray-400 text-xs">No ID</span>'}
             </td>
         `;
         
@@ -283,6 +282,10 @@ function goToProfile() {
 
 // Function to redirect to detail page with cash advance ID
 function detailCash(caId) {
+    if (!caId || caId.trim() === '') {
+        alert('Invalid Cash Advance ID. Cannot open detail page.');
+        return;
+    }
     window.location.href = `../../../approval/check/cashAdvance/checkedCash.html?ca-id=${caId}&tab=${currentTab}`;
 }
 

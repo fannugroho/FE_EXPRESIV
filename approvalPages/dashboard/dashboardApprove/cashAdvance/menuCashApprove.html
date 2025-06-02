@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="../../../../css/shared-menu.css">
     <link rel="stylesheet" href="menuCashApprove.css">
     <!-- Navigation Script -->
+    <script src="../../../../js/auth.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
     
 </head>
@@ -145,10 +146,10 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 border-b">
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <button id="draftTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-file-alt mr-2"></i>Acknowledged
                         </button>
-                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                        <button id="checkedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Approved
                         </button>
                         <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
@@ -214,11 +215,11 @@
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file text-xl"></i>
           <span>Acknowledged</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-check text-xl"></i>
           <span>Approved</span>
         </button>

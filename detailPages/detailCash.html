@@ -9,6 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/detailCash.js"></script>
+    <script src="../pages/utils/toMenu.js"></script>
+
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -56,7 +58,10 @@
                 <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Draft">Draft</option>
                     <option value="Closed">Approved</option>
-                    <option value="Settled">Settled</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Prepared">Prepared</option>
+                    <option value="Checked">Checked</option>
+                    <option value="Acknowledged">Acknowledged</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
@@ -263,10 +268,7 @@
             // Open in new window
             window.open(url, '_blank');
         }
-        
-        function goToMenuCash() {
-            window.location.href = "../menuPages/menuCash.html";
-        }
+
         
         // ... existing code ...
     </script>

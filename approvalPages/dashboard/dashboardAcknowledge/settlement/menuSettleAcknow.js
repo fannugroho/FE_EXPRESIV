@@ -222,9 +222,9 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
     if (tabName === 'checked') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-    } else if (tabName === 'acknowledged') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }

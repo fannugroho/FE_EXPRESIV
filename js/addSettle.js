@@ -133,6 +133,8 @@ function populateUserSelects(users) {
                     requesterSearchInput.value = requester.fullName;
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
+
+                    window.kansaiEmployeeId = requester.kansaiEmployeeId;
                     //update department
                     const departmentSelect = document.getElementById('department');
                     if (requester.department) {
@@ -255,7 +257,14 @@ async function saveDocument(isSubmit = false) {
         
         // Basic validation
         const settlementNumber = document.getElementById("invno").value;
-        const kansaiEmployeeId = document.getElementById("Employee").value;
+        let kansaiEmployeeId;
+        if(window.kansaiEmployeeId){
+            kansaiEmployeeId = window.kansaiEmployeeId;
+        }else{
+            kansaiEmployeeId = document.getElementById("Employee").value;
+        }
+
+        console.log("Kansai Employee ID:", kansaiEmployeeId);
         const cashAdvanceReferenceId = document.getElementById("cashAdvanceDoc").value;
         
         console.log("Validation check values:", {

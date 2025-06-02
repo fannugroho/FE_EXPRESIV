@@ -47,12 +47,14 @@ function fetchCADetails(caId) {
 function populateCADetails(data) {
     // Populate basic CA information
     document.getElementById('invno').value = data.cashAdvanceNo;
-    document.getElementById('Employee').value = data.employeeNik || '';
+    // Store employeeId to be populated when users are fetched
+    window.currentEmployeeId = data.employeeId || '';
     document.getElementById('EmployeeName').value = data.employeeName || '';
     document.getElementById('requester').value = data.requesterName;
     document.getElementById('purposed').value = data.purpose;
-    document.getElementById('paidTo').value = data.paidTo || '';
-  
+    document.getElementById('paidTo').value = data.requesterName || '';
+    document.getElementById('remarks').value = data.remarks || '';
+
     // Format and set dates
     const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
     document.getElementById('postingDate').value = submissionDate;
@@ -61,6 +63,12 @@ function populateCADetails(data) {
     if (data.transactionType) {
         document.getElementById('typeTransaction').value = data.transactionType;
     }
+
+    // Store department data to be set after dropdown is populated
+    window.departmentData = {
+        departmentId: data.departmentId,
+        departmentName: data.departmentName
+    };
 
     // Set status
     if (data && data.status) {
@@ -160,6 +168,25 @@ function populateDepartmentSelect(departments) {
         option.textContent = department.name;
         departmentSelect.appendChild(option);
     });
+    
+    // Set the department value if we have stored department data
+    if (window.departmentData) {
+        // Try to match by ID first, then by name
+        if (window.departmentData.departmentId) {
+            console.log(window.departmentData.departmentId)
+            departmentSelect.value = window.departmentData.departmentId;
+        } else if (window.departmentData.departmentName) {
+            // If ID doesn't work, try to find by name
+            const matchingOption = Array.from(departmentSelect.options).find(
+                option => option.textContent === window.departmentData.departmentName
+            );
+            if (matchingOption) {
+                departmentSelect.value = matchingOption.value;
+            }
+        }
+        
+        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
+    }
 }
 
 function populateUserSelects(users, caData = null) {
@@ -188,6 +215,16 @@ function populateUserSelects(users, caData = null) {
             }
         }
     });
+    
+    // Find and populate the employee NIK using the stored employeeId
+    if (window.currentEmployeeId) {
+        const employee = users.find(user => user.id === window.currentEmployeeId);
+        if (employee) {
+            // Use kansaiEmployeeId if available, otherwise use username or id
+            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
+            document.getElementById('Employee').value = employeeIdentifier;
+        }
+    }
 }
 
 // Function to approve or reject the CA

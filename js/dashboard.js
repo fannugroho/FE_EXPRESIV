@@ -96,43 +96,43 @@ function toggleSubMenu(menuId) {
     document.getElementById(menuId).classList.toggle("hidden");
 }
 
-// Fungsi Navigasi
-function goToMenu() { window.location.href = "dashboard.html"; }
-function goToAddDoc() { window.location.href = "AddDoc.html"; }
-function goToAddReim() { window.location.href = "AddReim.html"; }
-function goToAddCash() { window.location.href = "AddCash.html"; }
-function goToAddSettle() { window.location.href = "AddSettle.html"; }
-function goToAddPO() { window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuRegist() { window.location.href = "register.html"; }
-function goToMenuUser() { window.location.href = "dashboard-users.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function goToMenuCheckPR() { window.location.href = "MenuCheckPR.html"; }
-function goToMenuAcknowPR() { window.location.href = "MenuAcknowPR.html"; }
-function goToMenuApprovPR() { window.location.href = "MenuApprovPR.html"; }
-function goToMenuReceivePR() { window.location.href = "MenuReceivePR.html"; }
-function goToMenuReimbursement() { window.location.href = "MenuReimbursement.html"; }
-function goToMenuCashAdvance() { window.location.href = "MenuCashAdvance.html"; }
-function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
-function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
-function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
-function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
-function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
-function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
-function goToMenuCheckCash() { window.location.href = "MenuCheckCash.html"; }
-function goToMenuAcknowCash() { window.location.href = "MenuAcknowCash.html"; }
-function goToMenuApprovCash() { window.location.href = "MenuApprovCash.html"; }
-function goToMenuReceiveCash() { window.location.href = "MenuReceiveCash.html"; }
-function goToMenuCheckSettle() { window.location.href = "MenuCheckSettle.html"; }
-function goToMenuAcknowSettle() { window.location.href = "MenuAcknowSettle.html"; }
-function goToMenuApprovSettle() { window.location.href = "MenuApprovSettle.html"; }
-function goToMenuReceiveSettle() { window.location.href = "MenuReceiveSettle.html"; }
+// // Fungsi Navigasi
+// function goToMenu() { window.location.href = "dashboard.html"; }
+// function goToAddDoc() { window.location.href = "AddDoc.html"; }
+// function goToAddReim() { window.location.href = "AddReim.html"; }
+// function goToAddCash() { window.location.href = "AddCash.html"; }
+// function goToAddSettle() { window.location.href = "AddSettle.html"; }
+// function goToAddPO() { window.location.href = "AddPO.html"; }
+// function goToMenuPR() { window.location.href = "MenuPR.html"; }
+// function goToMenuRegist() { window.location.href = "register.html"; }
+// function goToMenuUser() { window.location.href = "dashboard-users.html"; }
+// function goToMenuReim() { window.location.href = "MenuReim.html"; }
+// function goToMenuCash() { window.location.href = "MenuCash.html"; }
+// function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+// function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+// function goToMenuPO() { window.location.href = "MenuPO.html"; }
+// function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+// function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+// function goToMenuCheckPR() { window.location.href = "MenuCheckPR.html"; }
+// function goToMenuAcknowPR() { window.location.href = "MenuAcknowPR.html"; }
+// function goToMenuApprovPR() { window.location.href = "MenuApprovPR.html"; }
+// function goToMenuReceivePR() { window.location.href = "MenuReceivePR.html"; }
+// function goToMenuReimbursement() { window.location.href = "MenuReimbursement.html"; }
+// function goToMenuCashAdvance() { window.location.href = "MenuCashAdvance.html"; }
+// function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
+// function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
+// function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
+// function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
+// function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
+// function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
+// function goToMenuCheckCash() { window.location.href = "MenuCheckCash.html"; }
+// function goToMenuAcknowCash() { window.location.href = "MenuAcknowCash.html"; }
+// function goToMenuApprovCash() { window.location.href = "MenuApprovCash.html"; }
+// function goToMenuReceiveCash() { window.location.href = "MenuReceiveCash.html"; }
+// function goToMenuCheckSettle() { window.location.href = "MenuCheckSettle.html"; }
+// function goToMenuAcknowSettle() { window.location.href = "MenuAcknowSettle.html"; }
+// function goToMenuApprovSettle() { window.location.href = "MenuApprovSettle.html"; }
+// function goToMenuReceiveSettle() { window.location.href = "MenuReceiveSettle.html"; }
 
 
 

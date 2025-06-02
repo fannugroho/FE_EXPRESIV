@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'acknowledge'; // Default tab
+let currentTab = 'acknowledge'; // Default tab (this maps to first status in approve flow)
 
 // Pagination variables
 let currentPage = 1;
@@ -7,25 +7,6 @@ const itemsPerPage = 10;
 let filteredData = [];
 let allCashAdvances = [];
 
-// Helper function to get access token
-function getAccessToken() {
-    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-    return loggedInUser?.token || '';
-}
-
-// Helper function to extract user ID from token
-function getUserId() {
-    try {
-        const token = getAccessToken();
-        if (!token) return null;
-        
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.sub || payload.userId || payload.id;
-    } catch (error) {
-        console.error('Error extracting user ID from token:', error);
-        return null;
-    }
-}
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -165,7 +146,7 @@ function updateTable(documents = []) {
     if (documents.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="7" class="p-4 text-center text-gray-500">
+            <td colspan="8" class="p-4 text-center text-gray-500">
                 No documents found for the selected tab.
             </td>
         `;

@@ -46,6 +46,10 @@ function fetchSettleDetails(id) {
         
         if (result.status && result.data) {
             populateSettleDetails(result.data);
+            // Fetch users to populate Employee field properly and approval dropdowns
+            fetchUsers(result.data);
+            // Fetch departments to populate dropdown options
+            fetchDepartments();
         } else {
             console.error('API returned error:', result.message);
             alert('Failed to load settlement details: ' + (result.message || 'Unknown error'));
@@ -60,11 +64,23 @@ function fetchSettleDetails(id) {
 function populateSettleDetails(data) {
     // Populate basic settlement information
     document.getElementById('invno').value = data.settlementNumber || '';
-    document.getElementById('Employee').value = data.employeeNik || '';
-    document.getElementById('EmployeeName').value = data.employeeName || '';
+    
+    // Store requester ID for user lookup instead of employeeId
+    window.currentEmployeeId = data.requester || '';
+    
+    // Use the provided requesterName directly
+    document.getElementById('Employee').value = data.requesterName || '';
+    document.getElementById('EmployeeName').value = data.requesterName || '';
     document.getElementById('requester').value = data.requesterName || '';
-    document.getElementById('department').value = data.departmentName || '';
-    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber || '';
+    
+    // Store department data to be set after dropdown is populated
+    window.departmentData = {
+        departmentId: data.departmentId,
+        departmentName: data.departmentName
+    };
+    
+
+    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber  || '';
     
     // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
@@ -74,11 +90,30 @@ function populateSettleDetails(data) {
     }
     
     document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('Approved').value = data.transactionType || '';
+    const transactionType = document.getElementById('TransactionType');
+    var option = document.createElement('option');
+    option.value = data.transactionType;
+    option.textContent = data.transactionType;
+    transactionType.appendChild(option);
     
-    // Populate settlement details in table if available
-    if (data.settlementDetails && data.settlementDetails.length > 0) {
-        populateSettleDetailsTable(data.settlementDetails);
+    option.selected = true;
+    
+    // Set status
+    if (data.status) {
+        document.getElementById('docStatus').value = data.status;
+    }
+    
+    // Store approval IDs for later population when users are fetched
+    window.approvalData = {
+        preparedById: data.preparedById,
+        checkedById: data.checkedById,
+        acknowledgedById: data.acknowledgedById,
+        approvedById: data.approvedById
+    };
+    
+    // Populate settlement items in table if available (settlementItems not settlementDetails)
+    if (data.settlementItems && data.settlementItems.length > 0) {
+        populateSettleDetailsTable(data.settlementItems);
     }
     
     // Show remarks if exists
@@ -86,36 +121,39 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
+    // Make all fields read-only since this is an approval page
+    makeAllFieldsReadOnly();
+    
     console.log('Settlement details populated successfully');
 }
 
-function populateSettleDetailsTable(settlementDetails) {
+function populateSettleDetailsTable(settlementItems) {
     const tableBody = document.getElementById('tableBody');
     
     // Clear existing rows first
     tableBody.innerHTML = '';
     
-    settlementDetails.forEach((detail, index) => {
-        addSettleDetailRow(detail, index);
+    settlementItems.forEach((item, index) => {
+        addSettleDetailRow(item, index);
     });
 }
 
-function addSettleDetailRow(detail = null, index = 0) {
+function addSettleDetailRow(item = null, index = 0) {
     const tableBody = document.getElementById('tableBody');
     const newRow = document.createElement('tr');
     
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${detail ? detail.description || '' : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${detail ? detail.detail || '' : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? (item.accountName || item.glAccount || '') : ''}" readonly />
         </td>
         <td class="p-2 border">
-            <input type="number" class="w-full bg-gray-100" value="${detail ? detail.amount || '' : ''}" readonly />
+            <input type="number" class="w-full bg-gray-100" value="${item ? item.amount || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${detail ? detail.receipt || '' : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? (item.receipt || '') : ''}" readonly />
         </td>
     `;
     
@@ -144,7 +182,7 @@ function approveSettle() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('approved', remarks);
+            updateSettleStatus('approve', remarks);
         }
     });
 }
@@ -176,7 +214,7 @@ function rejectSettle() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('rejected', remarks);
+            updateSettleStatus('reject', remarks);
         }
     });
 }
@@ -194,7 +232,7 @@ function updateSettleStatus(status, remarks) {
     // Show loading
     Swal.fire({
         title: 'Processing...',
-        text: `Please wait while we ${status === 'approved' ? 'approve' : 'reject'} the settlement.`,
+        text: `Please wait while we ${status === 'approve' ? 'approve' : 'reject'} the settlement.`,
         icon: 'info',
         allowOutsideClick: false,
         showConfirmButton: false,
@@ -204,9 +242,8 @@ function updateSettleStatus(status, remarks) {
     });
     
     const requestBody = {
-        Id: settlementId,
-        ApproverId: userId,
-        ApproverRole: 'checked',
+        id: settlementId,
+        UserId: userId,
         Status: status,
         Remarks: remarks || ''
     };
@@ -214,7 +251,7 @@ function updateSettleStatus(status, remarks) {
     console.log('Sending status update request:', requestBody);
     
     fetch(`${BASE_URL}/api/settlements/status`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -235,7 +272,7 @@ function updateSettleStatus(status, remarks) {
         if (result.status) {
             Swal.fire({
                 title: 'Success!',
-                text: `Settlement has been ${status === 'approved' ? 'approved' : 'rejected'} successfully.`,
+                text: `Settlement has been ${status === 'approve' ? 'approved' : 'rejected'} successfully.`,
                 icon: 'success',
                 timer: 2000,
                 showConfirmButton: false
@@ -251,7 +288,7 @@ function updateSettleStatus(status, remarks) {
         console.error('Error updating settlement status:', error);
         Swal.fire({
             title: 'Error!',
-            text: `Failed to ${status === 'approved' ? 'approve' : 'reject'} settlement: ${error.message}`,
+            text: `Failed to ${status === 'approve' ? 'approve' : 'reject'} settlement: ${error.message}`,
             icon: 'error',
             confirmButtonText: 'OK'
         });
@@ -286,4 +323,171 @@ function previewPDF(event) {
 // Display file list function - if needed
 function displayFileList() {
     // Implementation for displaying uploaded files if needed
+}
+
+// Function to fetch users from API
+function fetchUsers(settlementData = null) {
+    fetch(`${BASE_URL}/api/users`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateEmployeeField(data.data, settlementData);
+            populateApprovalFields(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+        });
+}
+
+// Function to fetch departments from API
+function fetchDepartments() {
+    fetch(`${BASE_URL}/api/department`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateDepartmentSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
+        });
+}
+
+// Function to populate department select options
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect) return;
+    
+    // Clear and add new options
+    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
+    
+    // Create options for each department
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+    
+    // Set the department value if we have stored department data
+    if (window.departmentData) {
+        // Try to match by ID first, then by name
+        if (window.departmentData.departmentId) {
+            departmentSelect.value = window.departmentData.departmentId;
+        } else if (window.departmentData.departmentName) {
+            // If ID doesn't work, try to find by name
+            const matchingOption = Array.from(departmentSelect.options).find(
+                option => option.textContent === window.departmentData.departmentName
+            );
+            if (matchingOption) {
+                departmentSelect.value = matchingOption.value;
+            }
+        }
+        
+        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
+    }
+}
+
+// Function to populate approval fields (Prepared by, Checked by, etc.)
+function populateApprovalFields(users) {
+    const approvalSelects = [
+        { id: 'prepared', dataKey: 'preparedById' },
+        { id: 'Checked', dataKey: 'checkedById' },
+        { id: 'Approved', dataKey: 'approvedById' },
+        { id: 'Acknowledged', dataKey: 'acknowledgedById' }
+    ];
+    
+    approvalSelects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
+        if (select) {
+            // Clear existing options
+            select.innerHTML = '<option value="" disabled>Select User</option>';
+            
+            // Add user options
+            users.forEach(user => {
+                const option = document.createElement("option");
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}` || user.username;
+                select.appendChild(option);
+            });
+            
+            // Set the value from settlement approval data if available
+            if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
+                select.value = window.approvalData[selectInfo.dataKey];
+                // Also check the corresponding checkbox
+                const checkbox = select.parentElement.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+        }
+    });
+}
+
+// Function to populate the Employee field with kansaiEmployeeId
+function populateEmployeeField(users, settlementData = null) {
+    // Find and populate the employee NIK using the stored requester ID
+    if (window.currentEmployeeId) {
+        const employee = users.find(user => user.id === window.currentEmployeeId);
+        if (employee) {
+            // Use kansaiEmployeeId if available, otherwise use username or id
+            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
+            document.getElementById('Employee').value = employeeIdentifier;
+            
+            // Also update employee name if we have better data from users API
+            if (employee.name) {
+                document.getElementById('EmployeeName').value = employee.name;
+            }
+        }
+    }
+}
+
+// Function to make all fields read-only for approval view
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    inputFields.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Disable all select fields
+    const selectFields = document.querySelectorAll('select');
+    selectFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Disable all checkboxes
+    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
+    checkboxFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('cursor-not-allowed');
+    });
+    
+    // Hide add row button if it exists
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Hide all delete row buttons
+    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = 'none';
+    });
+    
+    // Disable file upload if it exists
+    const fileInput = document.getElementById('Reference');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
 }

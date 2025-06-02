@@ -1,7 +1,6 @@
 // Global variable for file uploads
 let uploadedFiles = [];
 let settlementData = null;
-const baseUrl = 'http://localhost:5246';
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(approvalData = null) {
@@ -12,7 +11,7 @@ function fetchDropdownOptions(approvalData = null) {
 
 // Function to fetch departments from API
 function fetchDepartments() {
-    fetch(`${baseUrl}/api/department`)
+    fetch(`${BASE_URL}/api/department`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -59,7 +58,7 @@ function populateDepartmentSelect(departments) {
 
 // Function to fetch users from API
 function fetchUsers(approvalData = null) {
-    fetch(`${baseUrl}/api/users`)
+    fetch(`${BASE_URL}/api/users`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -258,7 +257,7 @@ function populateUserSelects(users, approvalData = null) {
 
 // Function to fetch transaction types from API
 function fetchTransactionType() {
-    fetch(`${baseUrl}/api/transactiontypes`)
+    fetch(`${BASE_URL}/api/transactiontypes`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -266,7 +265,6 @@ function fetchTransactionType() {
             return response.json();
         })
         .then(data => {
-            console.log("Transaction Type data:", data);
             populateTransactionTypeSelect(data.data);
         })
         .catch(error => {
@@ -296,6 +294,8 @@ function populateTransactionTypeSelect(transactionTypes) {
             option.selected = true;
         }
     });
+
+    
     
     // If we have a current value and it wasn't matched by text, try to select by value
     if (currentValue && transactionTypeSelect.value !== currentValue) {
@@ -312,7 +312,7 @@ function getSettlementIdFromUrl() {
 // Fetch settlement data from API
 async function fetchSettlementData(settlementId) {
     try {
-        const response = await fetch(`${baseUrl}/api/settlements/${settlementId}`, {
+        const response = await fetch(`${BASE_URL}/api/settlements/${settlementId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -358,7 +358,9 @@ function populateFormWithData(data) {
             }
         }
     }
-    
+
+  
+    document.getElementById('transactionType').value = data.transactionType;
     if (!document.getElementById("requesterName").value) {
         document.getElementById('requesterName').value = data.requesterName || '';
     }
@@ -391,7 +393,7 @@ function populateFormWithData(data) {
     }
     
     // Set department to Finance as specified
-    document.getElementById('department').value = 'Finance';
+    document.getElementById('department').value = data.departmentId;
     
     // Format and set submission date
     if (data.submissionDate) {
@@ -582,7 +584,7 @@ async function loadCashAdvanceOptions() {
         // Show loading state
         dropdown.innerHTML = '<option value="" disabled selected>Loading...</option>';
         
-        const response = await fetch(`${baseUrl}/api/cash-advance`);
+        const response = await fetch(`${BASE_URL}/api/cash-advance`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -640,7 +642,7 @@ async function confirmDelete() {
 
             try {
                 // Implement delete API call
-                const response = await fetch(`${baseUrl}/api/settlements/${settlementId}`, {
+                const response = await fetch(`${BASE_URL}/api/settlements/${settlementId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -774,7 +776,7 @@ function updateSettle(isSubmit = false) {
             formData.append('IsSubmit', isSubmit);
             
             // Call the PUT API
-            fetch(`${baseUrl}/api/settlements/${settlementId}`, {
+            fetch(`${BASE_URL}/api/settlements/${settlementId}`, {
                 method: 'PUT',
                 body: formData
             })

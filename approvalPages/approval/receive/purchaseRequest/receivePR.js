@@ -19,6 +19,14 @@ window.onload = function() {
     if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
 };
 
 function fetchPRDetails(prId, prType) {
@@ -271,10 +279,11 @@ function populateClassificationSelect(classifications) {
 
 function populateUserSelects(users, prData = null) {
     const selects = [
-        { id: 'prepared', approvalKey: 'preparedById' },
-        { id: 'Checked', approvalKey: 'checkedById' },
-        { id: 'Knowledge', approvalKey: 'acknowledgedById' },
-        { id: 'Approved', approvalKey: 'approvedById' }
+        { id: 'preparedBy', approvalKey: 'preparedById' },
+        { id: 'checkedBy', approvalKey: 'checkedById' },
+        { id: 'knowledgeBy', approvalKey: 'knowledgeById' },
+        { id: 'approvedBy', approvalKey: 'approvedById' },
+        { id: 'receivedBy', approvalKey: 'receivedById' }
     ];
     
     selects.forEach(selectInfo => {
@@ -337,7 +346,7 @@ function updatePRStatus(status) {
     .then(response => {
         if (response.ok) {
             alert(`PR ${status === 'approve' ? 'received' : 'rejected'} successfully`);
-            // Navigate back to the dashboard
+            // Navigate back to the receive dashboard
             window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
         } else {
             return response.json().then(errorData => {
@@ -451,26 +460,6 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Initialize table display on page load
-window.onload = function() {
-    // Load document details from URL parameter
-    loadDocumentDetails();
-    
-    // Hide service fields by default
-    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
-                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
-    serviceFields.forEach(id => {
-        const elem = document.getElementById(id);
-        if (elem) elem.style.display = "none";
-    });
-    
-    // If PR type is already selected, toggle fields accordingly
-    const prType = document.getElementById("prType");
-    if (prType && prType.value !== "choose") {
-        toggleFields();
-    }
-};
-
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
@@ -533,36 +522,6 @@ function hideApprovalButtons() {
     }
 }
 
-// add pages
-function goToMenu() { window.location.href = "../../../../pages/dashboard.html"; }
-function goToMenuPR() { window.location.href = "../../../../pages/menuPR.html"; }
-function goToAddPR() {window.location.href = "../../../../addPages/addPR.html"; }
-function goToAddReim() {window.location.href = "../../../../addPages/AddReim.html"; }
-function goToAddCash() {window.location.href = "../../../../addPages/AddCash.html"; }
-function goToAddSettle() {window.location.href = "../../../../addPages/AddSettle.html"; }
-function goToAddPO() {window.location.href = "../../../../addPages/AddPO.html"; }
-
-// detail pages
-function goToDetailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
-}
-
-// menu pages
-function goToMenuAPR() { window.location.href = "menuPR.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuReim() { window.location.href = "menuReim.html"; }
-function goToMenuCash() { window.location.href = "menuCash.html"; }
-function goToMenuSettle() { window.location.href = "menuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
-
-//checked pages
-function goToCheckedPR() { window.location.href = "../confirmPage/check/purchaseRequest/checkedPR.html"; }
-function goToCheckedReim() { window.location.href = "../confirmPage/check/reimbursement/checkedReim.html"; }
-
-// Function to fetch items from API
 function fetchItemOptions() {
     fetch(`${BASE_URL}/api/items`)
         .then(response => {

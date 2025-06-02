@@ -305,6 +305,7 @@ function populateUserSelects(users) {
                     //update department
                     const departmentSelect = document.getElementById('department');
                     if (requester.department) {
+                        console.log(requester.department)
                         // Find the department option and select it
                         const departmentOptions = departmentSelect.options;
                         for (let i = 0; i < departmentOptions.length; i++) {

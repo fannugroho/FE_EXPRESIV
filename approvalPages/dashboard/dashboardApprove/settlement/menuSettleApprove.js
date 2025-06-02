@@ -118,10 +118,10 @@ async function updateCounters(userId) {
         const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
         const totalCount = acknowledgeCount + approvedCount + rejectedCount;
 
-        // Update counters - map to existing HTML elements
+        // Update counters - map to correct HTML elements
         document.getElementById("totalCount").textContent = totalCount;
-        document.getElementById("draftCount").textContent = acknowledgeCount;
-        document.getElementById("checkedCount").textContent = approvedCount;
+        document.getElementById("acknowledgeCount").textContent = acknowledgeCount;
+        document.getElementById("approvedCount").textContent = approvedCount;
         document.getElementById("rejectedCount").textContent = rejectedCount;
         
     } catch (error) {
@@ -129,8 +129,8 @@ async function updateCounters(userId) {
         
         // Fallback to zero counts
         document.getElementById("totalCount").textContent = 0;
-        document.getElementById("draftCount").textContent = 0;
-        document.getElementById("checkedCount").textContent = 0;
+        document.getElementById("acknowledgeCount").textContent = 0;
+        document.getElementById("approvedCount").textContent = 0;
         document.getElementById("rejectedCount").textContent = 0;
     }
 }
@@ -222,9 +222,9 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
     if (tabName === 'acknowledge') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
+        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
     } else if (tabName === 'approved') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
+        document.getElementById('approvedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
