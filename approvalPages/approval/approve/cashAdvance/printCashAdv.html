@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cash Advance Voucher</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="printCashAdv.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -48,6 +51,11 @@
             display: inline-block;
             margin-right: 5px;
             vertical-align: middle;
+            position: relative;
+        }
+        
+        .checkbox.checked {
+            background-color: black;
         }
         
         .form-row {
@@ -125,7 +133,7 @@
         }
         
         @media print {
-            .print-button {
+            .no-print {
                 display: none;
             }
             
@@ -144,7 +152,15 @@
 </head>
 <body>
     <div class="container">
-        <button class="print-button" onclick="window.print()">Print Voucher</button>
+        <!-- Print controls - only visible on screen -->
+        <div class="no-print mb-4 flex justify-between">
+            <button onclick="window.print();" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Print Document
+            </button>
+            <button onclick="goBack()" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Back
+            </button>
+        </div>
         
         <div class="header">
             <h2>PT KANSAI PAINT INDONESIA</h2>
@@ -533,6 +549,10 @@
             }
             
             return result + ' rupiah';
+        }
+
+        function goBack() {
+            window.close();
         }
     </script>
 </body>

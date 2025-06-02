@@ -786,3 +786,18 @@ function updateItemDescription(selectElement) {
         descriptionInput.value = '';
     }
 }
+
+// Function to print purchase request
+function printPR() {
+    // Get purchase request ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const prId = urlParams.get('pr-id');
+    
+    if (!prId) {
+        alert('No purchase request ID found');
+        return;
+    }
+    
+    // Open the print page in a new window/tab
+    window.open(`printPR.html?pr-id=${prId}`, '_blank');
+}

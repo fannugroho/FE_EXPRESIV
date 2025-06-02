@@ -4,42 +4,51 @@
 function renderNavigation() {
     // Data navigasi
     const navigationItems = [
-        { title: "Dashboard", url: "dashboard.html", icon: "fa-tachometer-alt" },
-        { title: "Approval Dashboard", url: "approval-dashboard.html", icon: "fa-check-circle" },
-        { title: "Register", url: "register.html", icon: "fa-user-plus" },
+        { title: "Dashboard", url: "/dashboard.html", icon: "fa-tachometer-alt" },
+        { title: "Approval Dashboard", url: "/approval-dashboard.html", icon: "fa-check-circle" },
+        { title: "Register", url: "/register.html", icon: "fa-user-plus" },
         
         // Menu PR (Purchase Request)
-        { title: "Menu PR", url: "menuPR.html", icon: "fa-file-invoice" },
-        { title: "PR Receive", url: "menuPRReceive.html", icon: "fa-inbox" },
-        { title: "PR Check", url: "menuPRCheck.html", icon: "fa-clipboard-check" },
-        { title: "PR Acknowledge", url: "menuPRAcknow.html", icon: "fa-thumbs-up" },
-        { title: "PR Approve", url: "menuPRApprove.html", icon: "fa-check" },
+        { title: "Menu PR", url: "/menuPR.html", icon: "fa-file-invoice" },
+        { title: "PR Receive", url: "/menuPRReceive.html", icon: "fa-inbox" },
+        { title: "PR Check", url: "/menuPRCheck.html", icon: "fa-clipboard-check" },
+        { title: "PR Acknowledge", url: "/menuPRAcknow.html", icon: "fa-thumbs-up" },
+        { title: "PR Approve", url: "/menuPRApprove.html", icon: "fa-check" },
         
         // Menu Reimbursement
-        { title: "Menu Reimbursement", url: "menuReim.html", icon: "fa-money-bill-wave" },
-        { title: "Reimbursement Check", url: "menuReimCheck.html", icon: "fa-clipboard-check" },
-        { title: "Reimbursement Acknowledge", url: "menuReimAcknow.html", icon: "fa-thumbs-up" },
-        { title: "Reimbursement Approve", url: "menuReimApprove.html", icon: "fa-check" },
+        { title: "Menu Reimbursement", url: "/menuReim.html", icon: "fa-money-bill-wave" },
+        { title: "Reimbursement Check", url: "/menuReimCheck.html", icon: "fa-clipboard-check" },
+        { title: "Reimbursement Acknowledge", url: "/menuReimAcknow.html", icon: "fa-thumbs-up" },
+        { title: "Reimbursement Approve", url: "/menuReimApprove.html", icon: "fa-check" },
         
         // Menu Cash Advance
-        { title: "Menu Cash Advance", url: "menuCash.html", icon: "fa-hand-holding-usd" },
-        { title: "Cash Advance Check", url: "menuCashCheck.html", icon: "fa-clipboard-check" },
-        { title: "Cash Advance Acknowledge", url: "menuCashAcknow.html", icon: "fa-thumbs-up" },
-        { title: "Cash Advance Approve", url: "menuCashApprove.html", icon: "fa-check" },
+        { title: "Menu Cash Advance", url: "/menuCash.html", icon: "fa-hand-holding-usd" },
+        { title: "Cash Advance Check", url: "/menuCashCheck.html", icon: "fa-clipboard-check" },
+        { title: "Cash Advance Acknowledge", url: "/menuCashAcknow.html", icon: "fa-thumbs-up" },
+        { title: "Cash Advance Approve", url: "/menuCashApprove.html", icon: "fa-check" },
         
         // Menu Settlement
-        { title: "Menu Settlement", url: "menuSettle.html", icon: "fa-file-invoice-dollar" },
-        { title: "Settlement Check", url: "menuSettleCheck.html", icon: "fa-clipboard-check" },
-        { title: "Settlement Acknowledge", url: "menuSettleAcknow.html", icon: "fa-thumbs-up" },
-        { title: "Settlement Approve", url: "menuSettleApprove.html", icon: "fa-check" },
+        { title: "Menu Settlement", url: "/menuSettle.html", icon: "fa-file-invoice-dollar" },
+        { title: "Settlement Check", url: "/menuSettleCheck.html", icon: "fa-clipboard-check" },
+        { title: "Settlement Acknowledge", url: "/menuSettleAcknow.html", icon: "fa-thumbs-up" },
+        { title: "Settlement Approve", url: "/menuSettleApprove.html", icon: "fa-check" },
         
         // Admin Menu
-        { title: "User Management", url: "dashboard-users.html", icon: "fa-users" },
-        { title: "Role Management", url: "dashboard-roles.html", icon: "fa-user-tag" }
+        { title: "User Management", url: "/dashboard-users.html", icon: "fa-users" },
+        { title: "Role Management", url: "/dashboard-roles.html", icon: "fa-user-tag" }
     ];
+
+    // Fungsi untuk mendapatkan base URL
+    function getBaseUrl() {
+        // Mendapatkan base URL dari lokasi saat ini
+        const pathArray = window.location.pathname.split('/');
+        const baseUrl = window.location.protocol + '//' + window.location.host;
+        return baseUrl;
+    }
 
     // Mendapatkan halaman aktif
     const currentPage = window.location.pathname.split('/').pop();
+    const baseUrl = getBaseUrl();
 
     // Membuat elemen navigasi
     let navHTML = `
@@ -52,10 +61,10 @@ function renderNavigation() {
 
     // Menambahkan item navigasi
     navigationItems.forEach(item => {
-        const isActive = currentPage === item.url ? 'active' : '';
+        const isActive = currentPage === item.url.split('/').pop() ? 'active' : '';
         navHTML += `
             <li class="nav-item">
-                <a class="nav-link ${isActive}" href="${item.url}">
+                <a class="nav-link ${isActive}" href="${baseUrl}${item.url}">
                     <i class="fas ${item.icon}"></i> ${item.title}
                 </a>
             </li>
