@@ -452,7 +452,10 @@ function deleteRow(button) {
 }
 
 // Initialize table display on page load
-window.addEventListener("DOMContentLoaded", function() {
+window.onload = function() {
+    // Load document details from URL parameter
+    loadDocumentDetails();
+    
     // Hide service fields by default
     const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
                           "tdDescription", "tdPurposeds", "tdQty", "tdActions"];

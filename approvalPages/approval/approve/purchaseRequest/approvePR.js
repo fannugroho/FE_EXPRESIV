@@ -1,4 +1,189 @@
 let uploadedFiles = [];
+const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+
+// Fungsi untuk mendapatkan parameter dari URL
+function getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, '\\$&');
+    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+// Fungsi untuk mengambil data dokumen dari API berdasarkan ID
+async function fetchDocumentById(id) {
+    try {
+        const response = await fetch(`${baseUrl}/api/purchase-requests/${id}`);
+        if (!response.ok) {
+            throw new Error('Gagal mengambil data dokumen');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengambil data dokumen: ' + error.message);
+    }
+}
+
+// Fungsi untuk mengisi form dengan data dokumen
+function populateFormWithDocumentData(document) {
+    // Mengisi data form
+    document.getElementById('purchaseRequestNo').value = document.purchaseRequestNo || '';
+    document.getElementById('requesterName').value = document.requesterName || '';
+    document.getElementById('department').value = document.departmentName || '';
+    document.getElementById('submissionDate').value = document.submissionDate || '';
+    document.getElementById('requiredDate').value = document.requiredDate || '';
+    document.getElementById('classification').value = document.classification || '';
+    document.getElementById('prType').value = document.prType || '';
+    document.getElementById('status').value = document.status || '';
+    
+    // Menampilkan item-item PR
+    if (document.items && document.items.length > 0) {
+        // Menghapus semua baris yang ada
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        
+        // Menambahkan baris baru untuk setiap item
+        document.items.forEach(item => {
+            addRowWithData(item);
+        });
+    }
+    
+    // Mengatur checkbox approval jika ada
+    if (document.approvals) {
+        document.getElementById('prepared').checked = document.approvals.prepared || false;
+        document.getElementById('checked').checked = document.approvals.checked || false;
+        document.getElementById('knowledge').checked = document.approvals.acknowledge || false;
+        document.getElementById('approved').checked = document.approvals.approved || false;
+        document.getElementById('purchasing').checked = document.approvals.purchasing || false;
+    }
+}
+
+// Fungsi untuk menambahkan baris tabel dengan data
+function addRowWithData(itemData) {
+    const tableBody = document.getElementById("tableBody");
+    const prType = document.getElementById("prType").value;
+    const newRow = document.createElement("tr");
+    
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border">
+                <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
+                    <option value="${itemData.itemCode}" selected>${itemData.itemCode}</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border">
+                <input type="text" maxlength="200" class="w-full" readonly value="${itemData.description || ''}" />
+            </td>
+            <td id="tdDetail" class="p-2 border">
+                <input type="number" maxlength="10" class="w-full" required value="${itemData.price || ''}" />
+            </td>
+            <td id="tdPurposed" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.purpose || ''}" />
+            </td>
+            <td id="tdQuantity" class="p-2 border">
+                <input type="number" maxlength="10" class="w-full" required value="${itemData.quantity || ''}" />
+            </td>
+            <td id="tdAction" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+            <td id="tdDescription" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="200" class="w-full" readonly />
+            </td>
+            <td id="tdPurposeds" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdQty" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdActions" class="p-2 border text-center" style="display: none;">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border" style="display: none;">
+                <select class="w-full p-2 border rounded">
+                    <option value="" disabled selected>Pilih Kode Item</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="200" class="w-full" readonly />
+            </td>
+            <td id="tdDetail" class="p-2 border" style="display: none;">
+                <input type="number" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdPurposed" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdQuantity" class="p-2 border" style="display: none;">
+                <input type="number" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdAction" class="p-2 border text-center" style="display: none;">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+            <td id="tdDescription" class="p-2 border">
+                <input type="text" maxlength="200" class="w-full" required value="${itemData.description || ''}" />
+            </td>
+            <td id="tdPurposeds" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.purpose || ''}" />
+            </td>
+            <td id="tdQty" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.quantity || ''}" />
+            </td>
+            <td id="tdActions" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+        `;
+    }
+
+    tableBody.appendChild(newRow);
+}
+
+// Inisialisasi ketika halaman dimuat
+window.addEventListener("DOMContentLoaded", async function() {
+    // Mendapatkan ID dokumen dari URL
+    const documentId = getParameterByName('id');
+    
+    if (documentId) {
+        try {
+            // Mengambil data dokumen dari API
+            const documentData = await fetchDocumentById(documentId);
+            
+            if (documentData) {
+                // Mengisi form dengan data dokumen
+                populateFormWithDocumentData(documentData);
+                
+                // Menampilkan tabel sesuai dengan tipe PR
+                toggleFields();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat memuat data dokumen: ' + error.message);
+        }
+    }
+    
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
+    
+    // If PR type is already selected, toggle fields accordingly
+    const prType = document.getElementById("prType");
+    if (prType && prType.value !== "choose") {
+        toggleFields();
+    }
+});
 
 let prId; // Declare global variable
 let prType; // Declare global variable
