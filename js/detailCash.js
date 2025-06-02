@@ -5,6 +5,313 @@ let uploadedFiles = [];
 let rowCounter = 1;
 let cashAdvanceData = null;
 
+// Helper function to get logged-in user ID
+function getUserId() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    return user ? user.id : null;
+}
+
+// Function to fetch all dropdown options
+function fetchDropdownOptions(approvalData = null) {
+    fetchDepartments();
+    fetchUsers(approvalData);
+    fetchTransactionType();
+}
+
+// Function to fetch departments from API
+function fetchDepartments() {
+    fetch(`${BASE_URL}/api/department`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Department data:", data);
+            populateDepartmentSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
+        });
+}
+
+// Function to populate department select
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("departmentId");
+    if (!departmentSelect) return;
+    
+    // Store the currently selected value
+    const currentValue = departmentSelect.value;
+    const currentText = departmentSelect.options[departmentSelect.selectedIndex]?.text;
+    
+    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
+
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+        
+        // If this department matches the current text, select it
+        if (department.name === currentText) {
+            option.selected = true;
+        }
+    });
+    
+    // If we have a current value and it wasn't matched by text, try to select by value
+    if (currentValue && departmentSelect.value !== currentValue) {
+        departmentSelect.value = currentValue;
+    }
+}
+
+// Function to fetch users from API
+function fetchUsers(approvalData = null) {
+    fetch(`${BASE_URL}/api/users`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("User data:", data);
+            populateUserSelects(data.data, approvalData);
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+        });
+}
+
+// Function to populate user selects
+function populateUserSelects(users, approvalData = null) {
+    // Store users globally for search functionality
+    window.requesters = users.map(user => ({
+        id: user.id,
+        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        department: user.department
+    }));
+    
+    // Store employees globally for reference
+    window.employees = users.map(user => ({
+        id: user.id,
+        kansaiEmployeeId: user.kansaiEmployeeId,
+        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        department: user.department
+    }));
+
+    // Populate RequesterId dropdown with search functionality (like addCash.js)
+    const requesterSelect = document.getElementById("RequesterId");
+    if (requesterSelect) {
+        // Clear existing options first
+        requesterSelect.innerHTML = '<option value="">Select a requester</option>';
+        
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            requesterSelect.appendChild(option);
+        });
+    }
+
+    // Setup search functionality for requester
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (requesterSearchInput && requesterDropdown) {
+        // Function to filter requesters
+        window.filterRequesters = function() {
+            const searchText = requesterSearchInput.value.toLowerCase();
+            populateRequesterDropdown(searchText);
+            requesterDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered requesters
+        function populateRequesterDropdown(filter = '') {
+            requesterDropdown.innerHTML = '';
+            
+            const filteredRequesters = window.requesters.filter(r => 
+                r.fullName.toLowerCase().includes(filter)
+            );
+            
+            filteredRequesters.forEach(requester => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerText = requester.fullName;
+                option.onclick = function() {
+                    requesterSearchInput.value = requester.fullName;
+                    document.getElementById('RequesterId').value = requester.id;
+                    console.log("Requester ID2:", requester.id);
+                    // Auto-fill the paidTo field with the selected requester name
+                    const paidToField = document.getElementById('paidTo');
+                    if (paidToField) {
+                        paidToField.value = requester.fullName;
+                    }
+                    requesterDropdown.classList.add('hidden');
+                    //update department
+                    const departmentSelect = document.getElementById('departmentId');
+                    if (requester.department) {
+                        // Find the department option and select it
+                        const departmentOptions = departmentSelect.options;
+                        for (let i = 0; i < departmentOptions.length; i++) {
+                            if (departmentOptions[i].textContent === requester.department) {
+                                departmentSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        // If no matching option found, create and select a new one
+                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = requester.department;
+                            newOption.textContent = requester.department;
+                            newOption.selected = true;
+                            departmentSelect.appendChild(newOption);
+                        }
+                    }
+                };
+                requesterDropdown.appendChild(option);
+            });
+            
+            if (filteredRequesters.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching requesters';
+                requesterDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+                requesterDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateRequesterDropdown();
+    }
+
+    const selects = [
+        { id: 'preparedSelect', approvalKey: 'preparedById' },
+        { id: 'checkedSelect', approvalKey: 'checkedById' },
+        { id: 'approvedSelect', approvalKey: 'approvedById' },
+        { id: 'acknowledgedSelect', approvalKey: 'acknowledgedById' }
+    ];
+    
+    selects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
+        if (select) {
+            // Store the currently selected value
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="" disabled>Select User</option>';
+            
+            users.forEach(user => {
+                const option = document.createElement("option");
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                select.appendChild(option);
+            });
+            
+            // Set the value from approval data if available
+            if (approvalData && approvalData[selectInfo.approvalKey]) {
+                select.value = approvalData[selectInfo.approvalKey];
+                // Auto-select and disable for Proposed by if it matches logged in user
+                if(selectInfo.id === "preparedSelect" && approvalData[selectInfo.approvalKey] == getUserId()){
+                    select.disabled = true;
+                }
+            } else if (currentValue) {
+                // Restore the selected value if it exists
+                select.value = currentValue;
+            }
+            
+            // Always disable and auto-select preparedSelect to logged-in user
+            if(selectInfo.id === "preparedSelect"){
+                const loggedInUserId = getUserId();
+                if(loggedInUserId) {
+                    select.value = loggedInUserId;
+                    select.disabled = true;
+                }
+            }
+        }
+    });
+    
+    // Auto-populate employee fields with logged-in user data (same as addCash)
+    const loggedInUserId = getUserId();
+    console.log("Logged in user ID:", loggedInUserId);
+    console.log("Available employees:", window.employees);
+    
+    if(loggedInUserId && window.employees) {
+        const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
+        console.log("Found logged in employee:", loggedInEmployee);
+        
+        if(loggedInEmployee) {
+            const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
+            const employeeName = loggedInEmployee.fullName || '';
+            
+            // Auto-fill employee fields
+            document.getElementById("employeeId").value = employeeNIK;
+            document.getElementById("employeeName").value = employeeName;
+            
+            console.log("Auto-populated employee fields:", {
+                employeeNIK: employeeNIK,
+                employeeName: employeeName
+            });
+        } else {
+            console.warn("Could not find logged in employee in employees array");
+        }
+    } else {
+        console.warn("Missing logged in user ID or employees array");
+    }
+}
+
+// Function to fetch transaction types from API
+function fetchTransactionType() {
+    fetch(`${BASE_URL}/api/transactiontypes`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Transaction Type data:", data);
+            populateTransactionTypeSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching transaction type:', error);
+        });
+}
+
+// Function to populate transaction type select
+function populateTransactionTypeSelect(transactionTypes) {
+    const transactionTypeSelect = document.getElementById("transactionType");
+    if (!transactionTypeSelect) return;
+    
+    // Store the currently selected value
+    const currentValue = transactionTypeSelect.value;
+    const currentText = transactionTypeSelect.options[transactionTypeSelect.selectedIndex]?.text;
+    
+    transactionTypeSelect.innerHTML = '<option value="" disabled>Select Transaction Type</option>';
+
+    transactionTypes.forEach(transactionType => {
+        const option = document.createElement("option");
+        option.value = transactionType.name;
+        option.textContent = transactionType.name;
+        transactionTypeSelect.appendChild(option);
+        
+        // If this transaction type matches the current text, select it
+        if (transactionType.name === currentText) {
+            option.selected = true;
+        }
+    });
+    
+    // If we have a current value and it wasn't matched by text, try to select by value
+    if (currentValue && transactionTypeSelect.value !== currentValue) {
+        transactionTypeSelect.value = currentValue;
+    }
+}
+
 function saveDocument() {
     const docNumber = (JSON.parse(localStorage.getItem("documents")) || []).length + 1;
     const documentData = {
@@ -119,8 +426,6 @@ function confirmDelete() {
 }
 
 function deleteDocument() {
-    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
-    
     // Get the ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('ca-id');
@@ -131,7 +436,7 @@ function deleteDocument() {
     }
     
     // Call the DELETE API
-    fetch(`${baseUrl}/api/cash-advance/${id}`, {
+    fetch(`${BASE_URL}/api/cash-advance/${id}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'
@@ -168,8 +473,6 @@ function deleteDocument() {
 }
 
 function loadCashAdvanceData() {
-    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
-    
     // Get the ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('ca-id');
@@ -180,7 +483,7 @@ function loadCashAdvanceData() {
     }
     
     // Call the GET API
-    fetch(`${baseUrl}/api/cash-advance/${id}`, {
+    fetch(`${BASE_URL}/api/cash-advance/${id}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -213,14 +516,76 @@ function loadCashAdvanceData() {
 }
 
 function populateForm(data) {
+    // Store the global cash advance data
+    cashAdvanceData = data;
+    
     // Populate basic fields with updated IDs
     document.getElementById("cashAdvanceNo").value = data.cashAdvanceNo || '';
-    document.getElementById("employeeId").value = data.employeeId || '';
-    document.getElementById("employeeName").value = data.employeeName || '';
-    document.getElementById("requesterName").value = data.requesterName || '';
+    
+    // Auto-populate employee fields with data from API (but don't override auto-filled logged-in user data)
+    if (!document.getElementById("employeeId").value) {
+        // Handle employee NIK - find user by ID and use kansaiEmployeeId
+        if (data.employeeId && window.employees) {
+            const employee = window.employees.find(emp => emp.id === data.employeeId);
+            if (employee && employee.kansaiEmployeeId) {
+                document.getElementById("employeeId").value = employee.kansaiEmployeeId;
+            } else {
+                // Fallback to original value if not found
+                document.getElementById("employeeId").value = data.employeeId;
+            }
+        }
+    }
+    
+    if (!document.getElementById("employeeName").value) {
+        document.getElementById("employeeName").value = data.employeeName || '';
+    }
+    
+    // Handle requester name with search functionality  
+    if (data.requesterName) {
+        document.getElementById("requesterSearch").value = data.requesterName;
+        // Store the requester ID if available - since options are pre-populated, we can directly set the value
+        if (data.requesterId) {
+            const requesterIdElement = document.getElementById('RequesterId');
+            // Always store in global variable as backup
+            window.cashAdvanceRequesterId = data.requesterId;
+            
+            if (requesterIdElement) {
+                requesterIdElement.value = data.requesterId;
+                console.log("Requester ID:", data.requesterId);
+                console.log("Requester ID2:", requesterIdElement.value);
+            } else {
+                console.warn("RequesterId element not found in DOM, but stored in global variable");
+            }
+        } else {
+            console.error("No requesterId found in API data - this is a business logic error");
+        }
+    }
+    
     document.getElementById("purpose").value = data.purpose || '';
     document.getElementById("paidTo").value = data.requesterName || '';
-    document.getElementById("departmentId").value = data.departmentId || '';
+    
+    // Handle department - try to set by ID first, then by name
+    const departmentSelect = document.getElementById("departmentId");
+    if (data.departmentId && data.departmentId !== "00000000-0000-0000-0000-000000000000") {
+        departmentSelect.value = data.departmentId;
+    } else if (data.departmentName) {
+        // If department ID is not valid, try to find by name
+        const departmentOptions = departmentSelect.options;
+        for (let i = 0; i < departmentOptions.length; i++) {
+            if (departmentOptions[i].textContent === data.departmentName) {
+                departmentSelect.selectedIndex = i;
+                break;
+            }
+        }
+        // If no matching option found, create and select a new one
+        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+            const newOption = document.createElement('option');
+            newOption.value = data.departmentName;
+            newOption.textContent = data.departmentName;
+            newOption.selected = true;
+            departmentSelect.appendChild(newOption);
+        }
+    }
     
     // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
@@ -235,16 +600,34 @@ function populateForm(data) {
     // Populate table with cash advance details
     populateTable(data.cashAdvanceDetails || []);
     
-    // Populate approval section
-    if (data.approval) {
-        populateApprovals(data.approval);
-    }
+    // Populate approval section using the direct fields from API response
+    const approvalData = {
+        preparedById: data.preparedById,
+        checkedById: data.checkedById,
+        approvedById: data.approvedById,
+        acknowledgedById: data.acknowledgedById
+    };
+    populateApprovals(approvalData);
     
     // Handle remarks if exists
     const remarksTextarea = document.querySelector('textarea');
     if (remarksTextarea && data.remarks) {
         remarksTextarea.value = data.remarks;
     }
+
+    // Handle attachments if they exist
+    if (data.attachments && data.attachments.length > 0) {
+        console.log('Attachments found:', data.attachments);
+        // You can implement attachment display logic here if needed
+    }
+
+    // Check if status is not Draft and make fields read-only
+    if (data.status && data.status.toLowerCase() !== 'draft') {
+        makeAllFieldsReadOnlyForNonDraft();
+    }
+
+    // Fetch dropdown options with approval data
+    fetchDropdownOptions(approvalData);
 }
 
 function populateTable(cashAdvanceDetails) {
@@ -281,52 +664,68 @@ function populateTable(cashAdvanceDetails) {
 }
 
 function populateApprovals(approval) {
-    // Proposed by
+    // Proposed by - check if there's a preparedById and mark checkbox accordingly
     const preparedCheckbox = document.getElementById("preparedCheckbox");
     if (preparedCheckbox && approval.preparedById) {
         preparedCheckbox.checked = true;
     }
     
-    // Checked by
+    // Checked by - check if there's a checkedById and mark checkbox accordingly
     const checkedCheckbox = document.getElementById("checkedCheckbox");
     if (checkedCheckbox && approval.checkedById) {
         checkedCheckbox.checked = true;
     }
     
-    // Approved by
+    // Approved by - check if there's an approvedById and mark checkbox accordingly
     const approvedCheckbox = document.getElementById("approvedCheckbox");
     if (approvedCheckbox && approval.approvedById) {
         approvedCheckbox.checked = true;
     }
     
-    // Acknowledged by
+    // Acknowledged by - check if there's an acknowledgedById and mark checkbox accordingly
     const acknowledgedCheckbox = document.getElementById("acknowledgedCheckbox");
     if (acknowledgedCheckbox && approval.acknowledgedById) {
         acknowledgedCheckbox.checked = true;
     }
 }
 
-// Load data when page loads
+// Load data when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Fetch dropdown options first
+    fetchDropdownOptions();
+    
+    // Then load cash advance data
     loadCashAdvanceData();
 });
 
-function updateCash() {
+function updateCash(isSubmit = false) {
+    const actionText = isSubmit ? 'Submit' : 'Update';
+    const actionConfirmText = isSubmit ? 'submit' : 'update';
+    
     Swal.fire({
-        title: 'Update Cash Advance',
-        text: 'Are you sure you want to update this Cash Advance?',
+        title: `${actionText} Cash Advance`,
+        text: `Are you sure you want to ${actionConfirmText} this Cash Advance?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, update it!',
+        confirmButtonText: `Yes, ${actionConfirmText} it!`,
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Get the ID from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('ca-id');
+            
+            if (!id) {
+                Swal.fire('Error!', 'ID cash advance tidak ditemukan.', 'error');
+                return;
+            }
+
             // Show loading
             Swal.fire({
-                title: 'Updating...',
-                text: 'Please wait while we update the Cash Advance.',
+                title: `${actionText.slice(0, -1)}ing...`,
+                text: `Please wait while we ${actionConfirmText} the Cash Advance.`,
                 icon: 'info',
                 allowOutsideClick: false,
                 showConfirmButton: false,
@@ -334,18 +733,109 @@ function updateCash() {
                     Swal.showLoading();
                 }
             });
+
+            // Create FormData object
+            const formData = new FormData();
+        
+            // Get RequesterId value with fallback
+            const requesterIdElement = document.getElementById('RequesterId');
+            let requesterId = '';
             
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Implement update API call
+            console.log('RequesterId element found:', requesterIdElement);
+            console.log('RequesterId element value:', requesterIdElement ? requesterIdElement.value : 'element not found');
+            console.log('Global fallback value:', window.cashAdvanceRequesterId);
+            
+            if (requesterIdElement && requesterIdElement.value) {
+                requesterId = requesterIdElement.value;
+                console.log('Using RequesterId from form element:', requesterId);
+            } else if (window.cashAdvanceRequesterId) {
+                // Use the global fallback variable
+                requesterId = window.cashAdvanceRequesterId;
+                console.warn('Using global fallback RequesterId:', requesterId);
+            } else {
+                // No valid RequesterId found - this is a business logic error
+                console.error('No valid RequesterId found - cannot proceed with update');
+                Swal.fire('Error!', 'RequesterId tidak ditemukan. Data cash advance mungkin rusak.', 'error');
+                return;
+            }
+        
+            // Add all form fields to FormData
+            formData.append('CashAdvanceNo', document.getElementById("cashAdvanceNo").value);
+            formData.append('EmployeeNIK', document.getElementById("employeeId").value);
+            formData.append('RequesterId', requesterId);
+            formData.append('Purpose', document.getElementById("purpose").value);
+            formData.append('DepartmentId', document.getElementById("departmentId").value);
+            formData.append('SubmissionDate', document.getElementById("submissionDate").value);
+            formData.append('TransactionType', document.getElementById("transactionType").value);
+            
+            // Handle remarks if exists
+            const remarksTextarea = document.querySelector('textarea');
+            if (remarksTextarea) {
+                formData.append('Remarks', remarksTextarea.value);
+            }
+            
+            // Approval fields
+            formData.append('PreparedById', document.getElementById("preparedSelect")?.value || '');
+            formData.append('CheckedById', document.getElementById("checkedSelect")?.value || '');
+            formData.append('ApprovedById', document.getElementById("approvedSelect")?.value || '');
+            formData.append('AcknowledgedById', document.getElementById("acknowledgedSelect")?.value || '');
+            
+            // Add CashAdvanceDetails - collect all rows from the table
+            const tableRows = document.querySelectorAll('#tableBody tr');
+            tableRows.forEach((row, index) => {
+                const description = row.querySelector('input[type="text"]')?.value;
+                const amount = row.querySelector('input[type="number"]')?.value;
+                
+                if (description && amount) {
+                    formData.append(`CashAdvanceDetails[${index}][Description]`, description);
+                    formData.append(`CashAdvanceDetails[${index}][Amount]`, amount);
+                }
+            });
+
+            // Set IsSubmit based on the parameter
+            formData.append('IsSubmit', isSubmit);
+            
+            // Log the data being sent for debugging
+            console.log('FormData being sent:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Call the PUT API
+            fetch(`${BASE_URL}/api/cash-advance/${id}`, {
+                method: 'PUT',
+                body: formData
+            })
+            .then(response => {
+                if (response.status === 200 || response.status === 204) {
+                    // Success
+                    Swal.fire({
+                        title: 'Success!',
+                        text: `Cash Advance has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Refresh the page to show updated data
+                        location.reload();
+                    });
+                } else {
+                    // Error handling
+                    return response.json().then(data => {
+                        console.log("Error:", data);
+                        throw new Error(data.message || `Failed to ${actionConfirmText}: ${response.status}`);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 Swal.fire({
-                    title: 'Success!',
-                    text: 'Cash Advance has been updated successfully.',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
+                    title: 'Error!',
+                    text: `Failed to ${actionConfirmText} Cash Advance: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
                 });
-            }, 1500);
+            });
         }
     });
 }
@@ -688,247 +1178,47 @@ function printCashAdvanceVoucher() {
     });
 }
 
-// Load data when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Get cash advance ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const cashAdvanceId = urlParams.get('id');
+// Function to make all fields read-only when status is not Draft
+function makeAllFieldsReadOnlyForNonDraft() {
+    console.log('Status is not Draft - making all fields read-only');
     
-    if (cashAdvanceId) {
-        loadCashAdvanceData(cashAdvanceId);
-    } else {
-        // If this is a new cash advance, initialize with default values
-        setDefaultValues();
-    }
-});
-
-// Function to load cash advance data from API/localStorage
-function loadCashAdvanceData(id) {
-    // In a real application, you would fetch data from your API
-    // For this example, we'll simulate data loading
-    
-    // Example: fetch(`/api/cashAdvance/${id}`)
-    //    .then(response => response.json())
-    //    .then(data => {
-    //        populateFormWithData(data);
-    //    });
-    
-    // Simulate API call with sample data
-    setTimeout(() => {
-        // Sample data (would come from your API)
-        cashAdvanceData = {
-            cashAdvanceNo: 'CA-2024-002',
-            employeeId: 'greenss21',
-            employeeName: 'greenss21',
-            requesterName: 'redss21',
-            purpose: 'Office Event Expenses',
-            paidTo: 'redss21',
-            departmentId: 'Marketing',
-            submissionDate: '2025-05-26',
-            status: 'Draft',
-            transactionType: 'Entertainment',
-            items: [
-                {
-                    description: 'Catering for office meeting',
-                    amount: 750000
-                },
-                {
-                    description: 'Venue decoration',
-                    amount: 250000
-                }
-            ]
-        };
-        
-        populateFormWithData(cashAdvanceData);
-    }, 300);
-}
-
-// Function to populate form with data
-function populateFormWithData(data) {
-    document.getElementById('cashAdvanceNo').value = data.cashAdvanceNo || '';
-    document.getElementById('employeeId').value = data.employeeId || '';
-    document.getElementById('employeeName').value = data.employeeName || '';
-    document.getElementById('requesterName').value = data.requesterName || '';
-    document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('paidTo').value = data.paidTo || '';
-    
-    // Set department
-    const departmentSelect = document.getElementById('departmentId');
-    for (let i = 0; i < departmentSelect.options.length; i++) {
-        if (departmentSelect.options[i].value === data.departmentId) {
-            departmentSelect.selectedIndex = i;
-            break;
-        }
-    }
-    
-    // Format date for input (yyyy-MM-dd)
-    if (data.submissionDate) {
-        document.getElementById('submissionDate').value = data.submissionDate;
-    }
-    
-    // Set status
-    const statusSelect = document.getElementById('status');
-    for (let i = 0; i < statusSelect.options.length; i++) {
-        if (statusSelect.options[i].value === data.status) {
-            statusSelect.selectedIndex = i;
-            break;
-        }
-    }
-    
-    // Set transaction type
-    const transactionTypeSelect = document.getElementById('transactionType');
-    for (let i = 0; i < transactionTypeSelect.options.length; i++) {
-        if (transactionTypeSelect.options[i].value === data.transactionType) {
-            transactionTypeSelect.selectedIndex = i;
-            break;
-        }
-    }
-    
-    // Populate items/rows
-    if (data.items && data.items.length > 0) {
-        // Clear existing rows except the first one
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = '';
-        
-        // Add rows for each item
-        data.items.forEach((item, index) => {
-            addItemRow(item);
-        });
-    }
-}
-
-// Function to set default values for a new cash advance
-function setDefaultValues() {
-    const today = new Date();
-    const formattedDate = today.toISOString().substring(0, 10);
-    document.getElementById('submissionDate').value = formattedDate;
-    
-    // Generate a new cash advance number
-    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const year = today.getFullYear();
-    document.getElementById('cashAdvanceNo').value = `CA-${year}-${randomNum}`;
-}
-
-// Function to add a new row to the table
-function addRow() {
-    addItemRow({description: '', amount: ''});
-}
-
-// Function to add an item row to the table
-function addItemRow(item) {
-    const tableBody = document.getElementById('tableBody');
-    const newRow = document.createElement('tr');
-    
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full item-description" value="${item.description || ''}" />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full item-amount" value="${item.amount || ''}" required />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
-        </td>
-    `;
-    
-    tableBody.appendChild(newRow);
-    rowCounter++;
-}
-
-// Function to delete a row from the table
-function deleteRow(button) {
-    const row = button.closest('tr');
-    const tableBody = document.getElementById('tableBody');
-    
-    // Ensure we always have at least one row
-    if (tableBody.rows.length > 1) {
-        tableBody.removeChild(row);
-    } else {
-        // Clear the inputs if it's the last row
-        const inputs = row.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.value = '';
-        });
-    }
-}
-
-// Function to update cash advance data
-function updateCash() {
-    // Collect form data
-    const formData = {
-        cashAdvanceNo: document.getElementById('cashAdvanceNo').value,
-        employeeId: document.getElementById('employeeId').value,
-        employeeName: document.getElementById('employeeName').value,
-        requesterName: document.getElementById('requesterName').value,
-        purpose: document.getElementById('purpose').value,
-        paidTo: document.getElementById('paidTo').value,
-        departmentId: document.getElementById('departmentId').value,
-        submissionDate: document.getElementById('submissionDate').value,
-        status: document.getElementById('status').value,
-        transactionType: document.getElementById('transactionType').value,
-        items: []
-    };
-    
-    // Collect items data
-    const tableBody = document.getElementById('tableBody');
-    const rows = tableBody.querySelectorAll('tr');
-    
-    rows.forEach(row => {
-        const descriptionInput = row.querySelector('.item-description');
-        const amountInput = row.querySelector('.item-amount');
-        
-        if (descriptionInput && amountInput && descriptionInput.value.trim() !== '') {
-            formData.items.push({
-                description: descriptionInput.value,
-                amount: amountInput.value
-            });
-        }
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], input[type="file"], textarea');
+    inputFields.forEach(field => {
+        field.readOnly = true;
+        field.disabled = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // In a real application, you would send this data to your API
-    console.log('Updating cash advance:', formData);
+    // Disable all select fields
+    const selectFields = document.querySelectorAll('select');
+    selectFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
     
-    // Example API call:
-    // fetch('/api/cashAdvance', {
-    //     method: 'PUT',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(formData)
-    // })
-    // .then(response => response.json())
-    // .then(data => {
-    //     showSuccessMessage('Cash advance updated successfully');
-    // })
-    // .catch(error => {
-    //     showErrorMessage('Error updating cash advance');
-    // });
+    // Disable all checkboxes
+    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
+    checkboxFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('cursor-not-allowed');
+    });
     
-    // For this example, just show a success message
-    showSuccessMessage('Cash advance updated successfully');
-}
-
-// Function to confirm delete
-function confirmDelete() {
-    if (confirm('Are you sure you want to delete this cash advance?')) {
-        // In a real application, you would call your API to delete the record
-        // Example: 
-        // fetch(`/api/cashAdvance/${cashAdvanceId}`, { method: 'DELETE' })
-        //   .then(() => {
-        //     window.location.href = "../menuPages/menuCash.html";
-        //   });
-        
-        // For this example, just redirect
-        window.location.href = "../menuPages/menuCash.html";
+    // Hide action buttons (Update, Submit, Delete)
+    const actionButtons = document.querySelectorAll('button[onclick*="updateCash"], button[onclick*="confirmDelete"]');
+    actionButtons.forEach(button => {
+        button.style.display = 'none';
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
     }
-}
-
-// Function to show success message
-function showSuccessMessage(message) {
-    alert(message); // Replace with your preferred notification method
-}
-
-// Function to show error message
-function showErrorMessage(message) {
-    alert('Error: ' + message); // Replace with your preferred notification method
+    
+    // Hide all delete row buttons in table
+    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = 'none';
+    });
 }

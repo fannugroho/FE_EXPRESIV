@@ -1,7 +1,6 @@
          function loadDashboard() {
-            const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-            
-            fetch(`${baseUrl}/api/cash-advance`)
+
+            fetch(`${BASE_URL}/api/cash-advance/dashboard`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -11,7 +10,7 @@
                 .then(data => {
                     if (data.status && data.data) {
                         const documents = data.data;
-                        
+                        console.log("Documents:", documents);
                         // Update dashboard counts
                         document.getElementById("totalDocs").textContent = documents.length;
                         document.getElementById("draftDocs").textContent = documents.filter(doc => doc.status === "Draft").length;
@@ -152,9 +151,8 @@
         }
 
         function downloadExcel() {
-            const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-            
-            fetch(`${baseUrl}/api/cash-advance`)
+
+            fetch(`${BASE_URL}/api/cash-advance`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status && data.data) {
@@ -195,9 +193,7 @@
         }
 
         function downloadPDF() {
-            const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-            
-            fetch(`${baseUrl}/api/cash-advance`)
+            fetch(`${BASE_URL}/api/cash-advance`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status && data.data) {

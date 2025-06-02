@@ -1,35 +1,4 @@
 let uploadedFiles = [];
-const BASE_URL = 'https://t246vds2-5246.asse.devtunnels.ms/api'; // Update with your actual API base URL
-
-function saveDocument() {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const itemDataArray = []; // Array to hold the extracted item data
-    const rows = document.querySelectorAll("#tableBody tr"); // Select all rows in the table body
-    document.getElementById("requesterId").value = "deda05c6-8688-4d19-8f52-c0856a5752f4";
-    const documentData = {
-        id: document.getElementById("requesterId").value,
-        prno: document.getElementById("purchaseRequestNo").value,
-        requester: document.getElementById("requesterName").value,
-        department: document.getElementById("department").value,
-        postingDate: document.getElementById("submissionDate").value,
-        requiredDate: document.getElementById("requiredDate").value,
-        classification: document.getElementById("classification").value,
-        prType: document.getElementById("prType").value,
-        status: document.getElementById("status").value,
-        approvals: {
-            prepared: document.getElementById("preparedByName").checked,
-            checked: document.getElementById("checkedByName").checked,
-            approved: document.getElementById("approvedByName").checked,
-            acknowledge: document.getElementById("acknowledgeByName").checked,
-            purchasing: document.getElementById("purchasingByName").checked,
-        }
-    };
-
-    documents.push(documentData);
-    console.log(documents);
-    localStorage.setItem("documents", JSON.stringify(documents));
-    alert("Dokumen berhasil disimpan!");
-}
 
 function updateApprovalStatus(id, statusKey) {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
@@ -43,7 +12,6 @@ function updateApprovalStatus(id, statusKey) {
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
-    console.log("PR Type selected:", prType);
     
     const itemFields = document.querySelectorAll('.item-field');
     const serviceFields = document.querySelectorAll('.service-field');
@@ -57,26 +25,6 @@ function toggleFields() {
     }
 }
 
-function fillItemDetails() {
-    const itemCode = document.getElementById("itemNo").value;
-    const itemName = document.getElementById("itemName");
-    const itemPrice = document.getElementById("itemPrice");
-
-    const itemData = {
-        "ITM001": { name: "Laptop", price: "15,000,000" },
-        "ITM002": { name: "Printer", price: "3,500,000" },
-        "ITM003": { name: "Scanner", price: "2,000,000" }
-    };
-
-    if (itemData[itemCode]) {
-        itemName.value = itemData[itemNo].name;
-        itemPrice.value = itemData[itemNo].price;
-    } else {
-        itemName.value = "";
-        itemPrice.value = "";
-        alert("Item No not found!");
-    }
-}
 
 document.getElementById("docType")?.addEventListener("change", function () {
     const prTable = document.getElementById("prTable");
@@ -102,21 +50,43 @@ function previewPDF(event) {
 }
 
 function displayFileList() {
-    const fileListContainer = document.getElementById("fileList");
-    if (fileListContainer) {
-        fileListContainer.innerHTML = '';
-        uploadedFiles.forEach((file, index) => {
-            const fileItem = document.createElement("div");
-            fileItem.className = "flex justify-between items-center p-2 border-b";
-            fileItem.innerHTML = `
-                <span>${file.name}</span>
-                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
-                    Remove
-                </button>
-            `;
-            fileListContainer.appendChild(fileItem);
-        });
+    // Get existing file list or create new one if it doesn't exist
+    let fileListContainer = document.getElementById("fileList");
+    
+    // If container doesn't exist, create it
+    if (!fileListContainer) {
+        fileListContainer = document.createElement("div");
+        fileListContainer.id = "fileList";
+        
+        // Find the file input element
+        const fileInput = document.getElementById("filePath");
+        if (fileInput && fileInput.parentNode) {
+            // Add the container after the file input
+            fileInput.parentNode.appendChild(fileListContainer);
+        }
     }
+    
+    // Clear existing content
+    fileListContainer.innerHTML = "";
+    
+    // Add header if there are files
+    if (uploadedFiles.length > 0) {
+        const header = document.createElement("div");
+        header.className = "font-bold mt-2 mb-1";
+        header.textContent = "Selected Files:";
+        fileListContainer.appendChild(header);
+    }
+    
+    // Add each file to the list
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement("div");
+        fileItem.className = "flex justify-between items-center p-2 border-b";
+        fileItem.innerHTML = `
+            <span>${file.name}</span>
+            <button type="button" onclick="removeFile(${index})" class="text-red-500">Remove</button>
+        `;
+        fileListContainer.appendChild(fileItem);
+    });
 }
 
 function removeFile(index) {
@@ -125,14 +95,34 @@ function removeFile(index) {
 }
 
 function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
     const prType = document.getElementById("prType").value;
-    
-    if (prType === "Item") {
+    if (prType === "Service") {
+        const tableBody = document.getElementById("tableBody");
+        const newRow = document.createElement("tr");
+        
+        newRow.innerHTML = `
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-purpose" maxlength="10" required />
+            </td>
+            <td class="p-2 border service-field">
+                <input type="text" class="w-full service-quantity" maxlength="10" required />
+            </td>
+            <td class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+        
+        tableBody.appendChild(newRow);
+    } else {
+        const tableBody = document.getElementById("tableBody");
+        const newRow = document.createElement("tr");
+        
         newRow.innerHTML = `
             <td class="p-2 border item-field">
-                <select class="w-full p-2 border rounded item-no">
+                <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
                     <option value="" disabled selected>Select Item</option>
                 </select>
             </td>
@@ -148,32 +138,16 @@ function addRow() {
             <td class="p-2 border item-field">
                 <input type="number" class="w-full item-quantity" min="1" required />
             </td>
-            <td class="p-2 border text-center item-field">
+            <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
             </td>
         `;
-    } else if (prType === "Service") {
-        newRow.innerHTML = `
-            <td class="p-2 border service-field">
-                <input type="text" class="w-full service-description" maxlength="200" required />
-            </td>
-            <td class="p-2 border service-field">
-                <input type="text" class="w-full service-purpose" maxlength="100" required />
-            </td>
-            <td class="p-2 border service-field">
-                <input type="number" class="w-full service-quantity" min="1" required />
-            </td>
-            <td class="p-2 border text-center service-field">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-            </td>
-        `;
-    }
-
-    tableBody.appendChild(newRow);
-    
-    // If we just added an item row, populate its dropdown
-    if (prType === "Item") {
-        fetchItemOptions(newRow.querySelector('.item-no'));
+        
+        tableBody.appendChild(newRow);
+        
+        // Populate the new item select with items
+        const newItemSelect = newRow.querySelector('.item-no');
+        fetchItemOptions(newItemSelect);
     }
 }
 
@@ -187,7 +161,6 @@ function goToAddReim() {window.location.href = "AddReim.html"; }
 function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
-// function goToMenuPR() { window.location.href = "MenuPR.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -207,7 +180,7 @@ window.onload = function(){
 }
 
 function fetchClassifications() {
-    fetch(`${BASE_URL}/classifications`)
+    fetch(`${BASE_URL}/api/classifications`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -224,7 +197,7 @@ function fetchClassifications() {
 }
 
 function fetchDepartments() {
-    fetch(`${BASE_URL}/department`)
+    fetch(`${BASE_URL}/api/department`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -240,8 +213,9 @@ function fetchDepartments() {
         });
 }
 
+
 function fetchUsers() {
-    fetch(`${BASE_URL}/users`)
+    fetch(`${BASE_URL}/api/users`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -258,7 +232,7 @@ function fetchUsers() {
 }
 
 function fetchItemOptions(selectElement = null) {
-    fetch(`${BASE_URL}/items`)
+    fetch(`${BASE_URL}/api/items`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -266,7 +240,6 @@ function fetchItemOptions(selectElement = null) {
             return response.json();
         })
         .then(data => {
-            console.log("Item data:", data);
             if (selectElement) {
                 populateItemSelect(data.data, selectElement);
             } else {
@@ -287,13 +260,103 @@ function populateDepartmentSelect(departments) {
 
     departments.forEach(department => {
         const option = document.createElement("option");
-        option.value = department.id;
+        option.value = department.name;
         option.textContent = department.name;
         departmentSelect.appendChild(option);
     });
 }
 
 function populateUserSelects(users) {
+    // Store users globally for search functionality
+    window.requesters = users.map(user => ({
+        id: user.id,
+        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        department: user.department
+    }));
+
+    // Populate RequesterId dropdown with search functionality
+    const requesterSelect = document.getElementById("RequesterId");
+    if (requesterSelect) {
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            requesterSelect.appendChild(option);
+        });
+    }
+
+    // Setup search functionality for requester
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (requesterSearchInput && requesterDropdown) {
+        // Function to filter requesters
+        window.filterRequesters = function() {
+            const searchText = requesterSearchInput.value.toLowerCase();
+            populateRequesterDropdown(searchText);
+            requesterDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered requesters
+        function populateRequesterDropdown(filter = '') {
+            requesterDropdown.innerHTML = '';
+            
+            const filteredRequesters = window.requesters.filter(r => 
+                r.fullName.toLowerCase().includes(filter)
+            );
+            
+            filteredRequesters.forEach(requester => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerText = requester.fullName;
+                option.onclick = function() {
+                    requesterSearchInput.value = requester.fullName;
+                    document.getElementById('RequesterId').value = requester.id;
+                    requesterDropdown.classList.add('hidden');
+                    //update department
+                    console.log(requester);
+                    const departmentSelect = document.getElementById('department');
+                    if (requester.department) {
+                        // Find the department option and select it
+                        const departmentOptions = departmentSelect.options;
+                        for (let i = 0; i < departmentOptions.length; i++) {
+                            if (departmentOptions[i].textContent === requester.department) {
+                                departmentSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        // If no matching option found, create and select a new one
+                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = requester.department;
+                            newOption.textContent = requester.department;
+                            newOption.selected = true;
+                            departmentSelect.appendChild(newOption);
+                        }
+                    }
+                };
+                requesterDropdown.appendChild(option);
+            });
+            
+            if (filteredRequesters.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching requesters';
+                requesterDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+                requesterDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateRequesterDropdown();
+    }
+
     const selects = [
         'preparedBy', 'checkedBy', 'acknowledgeBy', 'approvedBy', 'receivedBy'
     ];
@@ -304,10 +367,17 @@ function populateUserSelects(users) {
             select.innerHTML = '<option value="" disabled selected>Select User</option>';
             
             users.forEach(user => {
+;
                 const option = document.createElement("option");
                 option.value = user.id;
                 option.textContent = user.name || `${user.firstName} ${user.lastName}`;
                 select.appendChild(option);
+                    if(selectId == "preparedBy"){
+                       if(user.id == getUserId()){
+                        option.selected = true;
+                        select.disabled = true;
+                       }
+                    }
             });
         }
     });
@@ -320,8 +390,30 @@ function populateItemSelect(items, selectElement) {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
         option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        // Store the description as a data attribute
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
         selectElement.appendChild(option);
     });
+
+    // Add onchange event listener to auto-fill description
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
+}
+
+// Function to update description field when item is selected
+function updateItemDescription(selectElement) {
+    const row = selectElement.closest('tr');
+    const descriptionInput = row.querySelector('.item-description');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    
+    if (selectedOption && !selectedOption.disabled) {
+        // Get description from data attribute
+        const itemDescription = selectedOption.getAttribute('data-description');
+        descriptionInput.value = itemDescription || '';
+    } else {
+        descriptionInput.value = '';
+    }
 }
 
 function populateClassificationSelect(classifications) {
@@ -335,19 +427,46 @@ function populateClassificationSelect(classifications) {
         classificationSelect.appendChild(option);
     });
 }
-async function submitPurchaseRequest() {
+
+async function submitDocument(isSubmit = false) {
+    // Show confirmation dialog only for submit
+    if (isSubmit) {
+        const result = await Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Apakah dokumen sudah benar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+    }
+
     try {
         const prType = document.getElementById("prType").value;
         
-        // Create FormData object
+        // Get user ID from JWT token using auth.js function
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+        
+        // Create the Purchase Request
         const formData = new FormData();
+        
+        console.log("User ID:", userId);
+        console.log("IsSubmit:", isSubmit);
         
         // Add basic fields
         formData.append('PurchaseRequestNo', document.getElementById("purchaseRequestNo").value);
-        formData.append('RequesterId', "deda05c6-8688-4d19-8f52-c0856a5752f4");
-        // formData.append('RequesterId', document.getElementById("requesterId").value);
+        formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
         formData.append('DepartmentId', document.getElementById("department").value);
-        
+        formData.append('IsSubmit', isSubmit.toString()); // Convert boolean to string
+
         // Format dates
         const requiredDate = document.getElementById("requiredDate").value;
         if (requiredDate) {
@@ -359,7 +478,6 @@ async function submitPurchaseRequest() {
             formData.append('SubmissionDate', new Date(submissionDate).toISOString());
         }
         
-        // formData.append('Classification', document.getElementById("classification").value);
         const classificationSelect = document.getElementById("classification");
         const selectedText = classificationSelect.options[classificationSelect.selectedIndex].text;
         formData.append('Classification', selectedText);
@@ -371,12 +489,11 @@ async function submitPurchaseRequest() {
         formData.append('DocumentType', isPO ? 'PO' : (isNonPO ? 'NonPO' : ''));
         
         // Approvals
-        formData.append('Approval.PreparedById', document.getElementById("preparedBy").value);
-        formData.append('Approval.CheckedById', document.getElementById("checkedBy").value);
-        formData.append('Approval.AcknowledgedById', document.getElementById("acknowledgeBy").value);
-        formData.append('Approval.ApprovedById', document.getElementById("approvedBy").value);
-        formData.append('Approval.ReceivedById', document.getElementById("receivedBy").value);
-        formData.append('Approval.Status', document.getElementById("status").value);
+        formData.append('PreparedById', document.getElementById("preparedBy").value);
+        formData.append('CheckedById', document.getElementById("checkedBy").value);
+        formData.append('AcknowledgedById', document.getElementById("acknowledgeBy").value);
+        formData.append('ApprovedById', document.getElementById("approvedBy").value);
+        formData.append('ReceivedById', document.getElementById("receivedBy").value);
         
         // Item details
         const rows = document.querySelectorAll("#tableBody tr");
@@ -390,7 +507,6 @@ async function submitPurchaseRequest() {
                 formData.append(`ItemDetails[${index}].Quantity`, row.querySelector('.item-quantity').value);
             });
         } else if (prType === "Service") {
-            // Handle service details similarly
             rows.forEach((row, index) => {
                 formData.append(`ServiceDetails[${index}].Description`, row.querySelector('.service-description').value);
                 formData.append(`ServiceDetails[${index}].Purpose`, row.querySelector('.service-purpose').value);
@@ -404,7 +520,7 @@ async function submitPurchaseRequest() {
         });
         
         // Submit the form data
-        const response = await fetch(`${BASE_URL}/pr/${prType.toLowerCase()}`, {
+        const response = await fetch(`${BASE_URL}/api/pr/${prType.toLowerCase()}`, {
             method: 'POST',
             body: formData
         });
@@ -423,13 +539,10 @@ async function submitPurchaseRequest() {
                 console.log("Parsed error data:", errorData);
                 
                 if (errorData.Message) {
-                    // Format 1: { "StatusCode": 404, "Message": "..." }
                     errorMessage = errorData.Message;
                 } else if (errorData.message) {
-                    // Format 1 (lowercase): { "message": "..." }
                     errorMessage = errorData.message;
                 } else if (errorData.errors && Array.isArray(errorData.errors)) {
-                    // Format 2: { "success": false, "errors": ["error1", "error2", ...] }
                     errorMessage = "Validation errors:\n" + errorData.errors.join("\n");
                 } else {
                     console.log("No Message property found in error response");
@@ -439,22 +552,43 @@ async function submitPurchaseRequest() {
             }
             throw new Error(errorMessage);
         }
-
         
+        // Parse the successful response
+        const result = await response.json();
+        console.log("Submit PR result:", result);
         
-        // const result = await response.json();
-        // console.log("Submit result:", result);
+        // Show appropriate success message
+        if (isSubmit) {
+            // Show success message with SweetAlert for submit
+            await Swal.fire({
+                title: 'Berhasil',
+                text: 'dokumen sudah berhasil dibuat',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            // Show regular alert for save
+            alert("Purchase Request saved as draft successfully!");
+        }
         
-        alert("Purchase Request submitted successfully!");
+        // Redirect back to menu page
         window.location.href = "../pages/menuPR.html";
+        
     } catch (error) {
-        console.error("Error submitting form:", error);
-        alert(`Failed to submit Purchase Request: ${error.message}`);
+        console.error("Error processing Purchase Request:", error);
+        
+        if (isSubmit) {
+            // Show error message with SweetAlert for submit
+            await Swal.fire({
+                title: 'Error',
+                text: `Failed to submit Purchase Request: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            // Show regular alert for save
+            alert(`Failed to save Purchase Request: ${error.message}`);
+        }
     }
 }
 
-function saveAsDraft() {
-    const currentStatus = document.getElementById("status").value;
-    document.getElementById("status").value = "Draft";
-    submitPurchaseRequest();
-}

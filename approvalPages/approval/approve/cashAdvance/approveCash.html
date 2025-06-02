@@ -6,6 +6,8 @@
     <title>Approve Document</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../../../js/auth.js"></script>
     <script src="approveCash.js"></script>
     <!-- Menyambungkan toMenu.js -->
     <script src="../../../pages/utils/toMenu.js"></script>
@@ -129,10 +131,10 @@
         </div>
         <br>
         <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="saveDocument()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <button onclick="rejectCash()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Reject
             </button>
-            <button onclick="goToMenuCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <button onclick="approveCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Approved
             </button>
             <button onclick="console.log('Print button clicked'); printCashAdvanceVoucher();" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">

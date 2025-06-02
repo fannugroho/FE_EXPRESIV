@@ -1,5 +1,6 @@
 // Current tab state
-let currentTab = 'draft'; // Default tab
+let currentTab = 'acknowledge'; // Default tab
+
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -32,65 +33,140 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function loadDashboard() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    
-    // Update counters
-    document.getElementById("totalCount").textContent = documents.length;
-    document.getElementById("acknowledgeCount").textContent = documents.filter(doc => doc.status === "Acknowledge").length;
-    document.getElementById("approveCount").textContent = documents.filter(doc => doc.status === "Approved").length;
-    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.status === "Rejected").length;
-    
-    // Filter documents based on the current tab
-    let filteredDocs = [];
-    if (currentTab === 'draft') {
-        filteredDocs = documents.filter(doc => doc.status === "Acknowledge");
-        document.getElementById('remarksHeader').style.display = 'none';
-    } else if (currentTab === 'approve') {
-        filteredDocs = documents.filter(doc => doc.status === "Approved");
-        document.getElementById('remarksHeader').style.display = 'none';
-    } else if (currentTab === 'rejected') {
-        filteredDocs = documents.filter(doc => doc.status === "Rejected");
-        document.getElementById('remarksHeader').style.display = 'table-cell';
-    }
+async function loadDashboard() {
+    try {
+        // Get user ID for approver ID
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
 
-    // Sort the filtered docs (newest first)
-    const sortedDocs = filteredDocs.slice().reverse();
-    
-    // Update the table
+        let url;
+        
+        // Build URL based on current tab
+        if (currentTab === 'acknowledge') {
+            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`;
+        } else if (currentTab === 'approved') {
+            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`;
+        } else if (currentTab === 'rejected') {
+            url = `${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`;
+        }
+
+        console.log('Fetching dashboard data from:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Dashboard API response:', result);
+
+        if (result.status && result.data) {
+            const documents = result.data;
+            
+            // Update counters by fetching all statuses
+            await updateCounters(userId);
+            
+            // Update the table with filtered documents
+            updateTable(documents);
+            
+            // Update pagination info
+            updatePaginationInfo(documents.length);
+        } else {
+            console.error('API response error:', result.message);
+            // Fallback to empty state
+            updateTable([]);
+            updatePaginationInfo(0);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
+    }
+}
+
+// Function to update counters by fetching data for all statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status using new API endpoints
+        const acknowledgeResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const approvedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const acknowledgeData = acknowledgeResponse.ok ? await acknowledgeResponse.json() : { data: [] };
+        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        const acknowledgeCount = acknowledgeData.data ? acknowledgeData.data.length : 0;
+        const approvedCount = approvedData.data ? approvedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
+        const totalCount = acknowledgeCount + approvedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("acknowledgeCount").textContent = acknowledgeCount;
+        document.getElementById("approveCount").textContent = approvedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        // Set counters to 0 on error
+        document.getElementById("totalCount").textContent = '0';
+        document.getElementById("acknowledgeCount").textContent = '0';
+        document.getElementById("approveCount").textContent = '0';
+        document.getElementById("rejectedCount").textContent = '0';
+    }
+}
+
+// Function to update the table with documents
+function updateTable(documents) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
-    if (sortedDocs.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="11" class="text-center p-4">No documents found</td></tr>`;
+    if (documents.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No documents found</td></tr>`;
     } else {
-        sortedDocs.forEach(doc => {
-            let row = `<tr class='w-full border-b'>
+        documents.forEach((doc, index) => {
+            // Format dates
+            const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+            const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
+            
+            const row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
-                <td class='p-2'>${doc.id}</td>
+                <td class='p-2'>${index + 1}</td>
                 <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
                 <td class='p-2'>${doc.requesterName || '-'}</td>
                 <td class='p-2'>${doc.departmentName || '-'}</td>
-                <td class='p-2'>${doc.submissionDate || '-'}</td>
-                <td class='p-2'>${doc.requiredDate || '-'}</td>
+                <td class='p-2'>${submissionDate}</td>
+                <td class='p-2'>${requiredDate}</td>
                 <td class='p-2'>${doc.poNumber || '-'}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>`;
-                
-            // Add remarks column if status is Rejected or we're on the rejected tab
-            if (doc.status === "Rejected" || currentTab === 'rejected') {
-                row += `<td class='p-2'>${doc.remarks || 'N/A'}</td>`;
-            }
-                
-            row += `<td class='p-2'>
-                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
+                <td class='p-2'>
+                    <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </td>
             </tr>`;
             tableBody.innerHTML += row;
         });
     }
-
-    // Update pagination info
-    updatePaginationInfo(sortedDocs.length);
 }
 
 // Function to switch between tabs
@@ -100,9 +176,9 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'draft') {
+    if (tabName === 'acknowledge') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
-    } else if (tabName === 'approve') {
+    } else if (tabName === 'approved') {
         document.getElementById('approveTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
@@ -166,9 +242,8 @@ function editDoc(detail) {
     // Di sini kamu bisa menambahkan kode untuk membuka modal edit atau halaman edit
 }
 
-function detailDoc(id) {
-    alert("View Document Details: " + id);
-    // Implement document detail view
+function detailDoc(id, prType) {
+    window.location.href = `../../../approval/approve/purchaseRequest/approvePR.html?pr-id=${id}&pr-type=${prType}&tab=${currentTab}`;
 }
 
 function toggleSidebar() {
@@ -183,65 +258,132 @@ function toggleSubMenu(menuId) {
 }
 
 // Fungsi Download Excel
-function downloadExcel() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+async function downloadExcel() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        // Fetch all documents from all tabs
+        const acknowledgeResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const approvedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const acknowledgeData = acknowledgeResponse.ok ? await acknowledgeResponse.json() : { data: [] };
+        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Combine all documents
+        const allDocuments = [
+            ...(acknowledgeData.data || []),
+            ...(approvedData.data || []),
+            ...(rejectedData.data || [])
+        ];
     
-    // Membuat workbook baru
-    const workbook = XLSX.utils.book_new();
-    
-    // Mengonversi data ke format worksheet
-    const wsData = documents.map(doc => ({
-        'Document Number': doc.id,
-        'PR Number': doc.purchaseRequestNo,
-        'Requester': doc.requesterName,
-        'Department': doc.departmentName,
-        'Submission Date': doc.submissionDate,
-        'Required Date': doc.requiredDate,
-        'PO Number': doc.poNumber,
-        'Status': doc.status,
-        'GR Date': doc.grDate
-    }));
-    
-    // Membuat worksheet dan menambahkannya ke workbook
-    const worksheet = XLSX.utils.json_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
-    
-    // Menghasilkan file Excel
-    XLSX.writeFile(workbook, 'purchase_request_list.xlsx');
+        // Membuat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Mengonversi data ke format worksheet
+        const wsData = allDocuments.map(doc => {
+            return {
+                'Document Number': doc.id,
+                'PR Number': doc.purchaseRequestNo,
+                'Requester': doc.requesterName,
+                'Department': doc.departmentName,
+                'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                'Required Date': doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
+                'PO Number': doc.poNumber || '',
+                'Status': doc.status,
+                'GR Date': doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
+            };
+        });
+        
+        // Membuat worksheet dan menambahkannya ke workbook
+        const worksheet = XLSX.utils.json_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
+        
+        // Menghasilkan file Excel
+        XLSX.writeFile(workbook, 'purchase_request_approve_list.xlsx');
+    } catch (error) {
+        console.error('Error downloading Excel:', error);
+        alert('Failed to download Excel file. Please try again.');
+    }
 }
 
 // Fungsi Download PDF
-function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Menambahkan judul
-    doc.setFontSize(16);
-    doc.text('Purchase Request Report', 14, 15);
-    
-    // Membuat data tabel dari documents
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const tableData = documents.map(doc => [
-        doc.id,
-        doc.purchaseRequestNo,
-        doc.requesterName,
-        doc.departmentName,
-        doc.submissionDate,
-        doc.requiredDate,
-        doc.poNumber,
-        doc.status,
-        doc.grDate
-    ]);
-    
-    // Menambahkan tabel
-    doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
-        body: tableData,
-        startY: 25
-    });
-    
-    // Menyimpan PDF
-    doc.save('purchase_request_list.pdf');
+async function downloadPDF() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        // Fetch all documents from all tabs
+        const acknowledgeResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const approvedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const acknowledgeData = acknowledgeResponse.ok ? await acknowledgeResponse.json() : { data: [] };
+        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Combine all documents
+        const allDocuments = [
+            ...(acknowledgeData.data || []),
+            ...(approvedData.data || []),
+            ...(rejectedData.data || [])
+        ];
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Menambahkan judul
+        doc.setFontSize(16);
+        doc.text('Purchase Request Approve Report', 14, 15);
+        
+        // Membuat data tabel dari documents
+        const tableData = allDocuments.map(doc => {
+            return [
+                doc.id,
+                doc.purchaseRequestNo,
+                doc.requesterName,
+                doc.departmentName,
+                doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
+                doc.poNumber || '',
+                doc.status,
+                doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
+            ];
+        });
+        
+        // Menambahkan tabel
+        doc.autoTable({
+            head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+            body: tableData,
+            startY: 25
+        });
+        
+        // Menyimpan PDF
+        doc.save('purchase_request_approve_list.pdf');
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Failed to download PDF file. Please try again.');
+    }
 }
 
 // Function to navigate to user profile page

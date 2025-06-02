@@ -1,148 +1,18 @@
-function loadDashboard() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-    
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
-            
-            if (cashAdvances.length > 0) {
-                allCashAdvances = cashAdvances;
-                
-                // Update dashboard counts
-                updateStatusCounts(allCashAdvances);
-                
-                // Set up initial state for tabs and pagination
-                setupTabsAndPagination();
-                
-                // Apply filtering based on current tab and display
-                switchTab(currentTab);
-            } else {
-                console.error("API response does not contain expected data");
-                // Fallback to sample data
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-            // Fallback to sample data
-            useSampleData();
-            switchTab(currentTab);
-        });
-        
-    // Set up notification dropdown
-    setupNotificationDropdown();
-    
-    // Load user profile information
-    loadUserProfileInfo();
-}
+// Current tab state
+let currentTab = 'checked'; // Default tab
 
-// Variables for pagination and filtering
+// Pagination variables
 let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allCashAdvances = [];
-let currentTab = 'checked'; // Default tab is now 'checked' which corresponds to Checked status
 
-// Function to fetch status counts from API
-function fetchStatusCounts() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-    const endpoint = "/api/cashadvances/status-counts";
+
+// Load dashboard when page is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
     
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                updateStatusCounts(data.data);
-            } else {
-                console.error('API returned an error:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
-            updateSampleCounts();
-        });
-}
-
-// Function to fetch cash advances from API
-function fetchCashAdvances() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-    const endpoint = "/api/cashadvances";
-    
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                allCashAdvances = data.data;
-                switchTab(currentTab); // Apply filtering based on current tab
-            } else {
-                console.error('API returned an error:', data.message);
-                // Use sample data if API fails
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching cash advances:', error);
-            // Use sample data if API fails
-            useSampleData();
-            switchTab(currentTab);
-        });
-}
-
-// Function to display cash advances in the table
-function displayCashAdvances(cashAdvances) {
-    filteredData = cashAdvances;
-    updateTable();
-    updatePagination();
-}
-
-// Function to update the status counts on the page
-function updateStatusCounts(documents) {
-    const totalCount = documents.length;
-    const checkedCount = documents.filter(doc => doc.status === "Checked").length;
-    const acknowledgedCount = documents.filter(doc => doc.status === "Acknowledged").length;
-    const rejectedCount = documents.filter(doc => doc.status === "Rejected").length;
-    
-    document.getElementById("totalCount").textContent = totalCount;
-    document.getElementById("checkedCount").textContent = checkedCount;
-    document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
-    document.getElementById("rejectedCount").textContent = rejectedCount;
-}
-
-// Set up events for tab switching and pagination
-function setupTabsAndPagination() {
-    // Tab switching and pagination setup only
-    // No checkbox functionality needed
-}
-
-// Setup notification dropdown functionality
-function setupNotificationDropdown() {
+    // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
     const notificationDropdown = document.getElementById('notificationDropdown');
     
@@ -159,6 +29,261 @@ function setupNotificationDropdown() {
             }
         });
     }
+});
+
+async function loadDashboard() {
+    try {
+        // Get user ID for approver ID
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        let url;
+        
+        // Build URL based on current tab
+        if (currentTab === 'checked') {
+            url = `${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`;
+        } else if (currentTab === 'acknowledged') {
+            url = `${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`;
+        } else if (currentTab === 'rejected') {
+            url = `${BASE_URL}/api/cash-advance/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`;
+        }
+
+        console.log('Fetching dashboard data from:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Dashboard API response:', result);
+
+        if (result.status && result.data) {
+            const documents = result.data;
+            
+            // Update counters by fetching all statuses
+            await updateCounters(userId);
+            
+            // Update the table with filtered documents
+            updateTable(documents);
+            
+            // Update pagination info
+            updatePaginationInfo(documents.length);
+        } else {
+            console.error('API response error:', result.message);
+            // Fallback to empty state
+            updateTable([]);
+            updatePaginationInfo(0);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
+    }
+}
+
+// Function to update counters by fetching data for all statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status using new API endpoints
+        const checkedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const acknowledgedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const acknowledgedData = acknowledgedResponse.ok ? await acknowledgedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        const checkedCount = checkedData.data ? checkedData.data.length : 0;
+        const acknowledgedCount = acknowledgedData.data ? acknowledgedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
+        const totalCount = checkedCount + acknowledgedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        
+        // Fallback to zero counts
+        document.getElementById("totalCount").textContent = 0;
+        document.getElementById("checkedCount").textContent = 0;
+        document.getElementById("acknowledgedCount").textContent = 0;
+        document.getElementById("rejectedCount").textContent = 0;
+    }
+}
+
+// Function to update table with documents
+function updateTable(documents = []) {
+    const tableBody = document.getElementById('recentDocs');
+    tableBody.innerHTML = '';
+    
+    filteredData = documents;
+    
+    if (documents.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="7" class="p-4 text-center text-gray-500">
+                No documents found for the selected tab.
+            </td>
+        `;
+        tableBody.appendChild(row);
+        return;
+    }
+    
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
+    const paginatedDocs = documents.slice(startIndex, endIndex);
+    
+    paginatedDocs.forEach(doc => {
+        const row = document.createElement('tr');
+        row.classList.add('border-t', 'hover:bg-gray-100');
+        
+        // Format submission date
+        let formattedDate = '';
+        if (doc.submissionDate) {
+            const date = new Date(doc.submissionDate);
+            if (!isNaN(date)) {
+                formattedDate = date.toLocaleDateString();
+            }
+        }
+        
+        row.innerHTML = `
+            <td class="p-2">${doc.id ? doc.id.substring(0, 10) : ''}</td>
+            <td class="p-2">${doc.cashAdvanceNo || ''}</td>
+            <td class="p-2">${doc.requesterName || ''}</td>
+            <td class="p-2">${doc.departmentName || ''}</td>
+            <td class="p-2">${formattedDate}</td>
+            <td class="p-2">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
+                    ${doc.status || ''}
+                </span>
+            </td>
+            <td class="p-2">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${doc.id || ''}')">
+                    Detail
+                </button>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to update pagination info
+function updatePaginationInfo(totalItems) {
+    const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    
+    document.getElementById('startItem').textContent = startItem;
+    document.getElementById('endItem').textContent = endItem;
+    document.getElementById('totalItems').textContent = totalItems;
+    
+    // Update pagination buttons
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    
+    prevButton.classList.toggle('disabled', currentPage <= 1);
+    nextButton.classList.toggle('disabled', currentPage >= totalPages);
+    
+    document.getElementById('currentPage').textContent = currentPage;
+}
+
+// Function to switch between tabs
+function switchTab(tabName) {
+    currentTab = tabName;
+    currentPage = 1; // Reset to first page
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
+    
+    if (tabName === 'checked') {
+        document.getElementById('draftTabBtn').classList.add('tab-active');
+    } else if (tabName === 'acknowledged') {
+        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    }
+    
+    // Reload dashboard with the new filter
+    loadDashboard();
+}
+
+// Helper function to get status styling
+function getStatusClass(status) {
+    switch(status) {
+        case 'Prepared': return 'bg-yellow-100 text-yellow-800';
+        case 'Checked': return 'bg-green-100 text-green-800';
+        case 'Acknowledged': return 'bg-blue-100 text-blue-800';
+        case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
+        case 'Reject': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Pagination handlers
+function changePage(direction) {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        updateTable(filteredData);
+        updatePaginationInfo(filteredData.length);
+    }
+}
+
+// Function to navigate to total documents page
+function goToTotalDocs() {
+    switchTab('checked');
+}
+
+// Navigation functions
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('hidden');
+    }
+}
+
+function toggleSubMenu(menuId) {
+    document.getElementById(menuId).classList.toggle("hidden");
+}
+
+// Function to navigate to user profile page
+function goToProfile() {
+    window.location.href = "../../../../pages/profil.html";
+}
+
+// Function to redirect to detail page with cash advance ID
+function detailCash(caId) {
+    window.location.href = `../../../approval/acknowledge/cashAdvance/acknowledgeCash.html?ca-id=${caId}&tab=${currentTab}`;
 }
 
 // Load user profile information
@@ -192,333 +317,72 @@ function loadUserProfileInfo() {
     }
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('hidden');
-}
-
-function toggleSubMenu(menuId) {
-    document.getElementById(menuId).classList.toggle("hidden");
-}
-
-// Navigation functions
-function goToMenu() { window.location.href = "../../../../Menu.html"; }
-function goToMenuPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
-function goToMenuApprovPR() { window.location.href = "../../dashboardApproval/purchaseRequest/menuPRApprov.html"; }
-function goToMenuReceivePR() { window.location.href = "../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
-function goToMenuReim() { window.location.href = "../../dashboardCheck/reimbursement/menuReimCheck.html"; }
-function goToMenuCash() { window.location.href = "../../dashboardCheck/cashAdvance/menuCashCheck.html"; }
-function goToMenuSettle() { window.location.href = "../../dashboardCheck/settlement/menuSettleCheck.html"; }
-function goToMenuAPR() { window.location.href = "../../../../approvalPages/prApproval.html"; }
-function goToMenuPO() { window.location.href = "../../../../approvalPages/poApproval.html"; }
-function goToMenuBanking() { window.location.href = "../../../../approvalPages/outgoingApproval.html"; }
-function goToMenuInvoice() { window.location.href = "../../../../approvalPages/arInvoiceApproval.html"; }
-function goToMenuRegist() { window.location.href = "../../../../registerUser.html"; }
-function goToMenuUser() { window.location.href = "../../../../userData.html"; }
-function goToMenuRole() { window.location.href = "../../../../roleData.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "../../../../login.html"; }
-function goToTotalDocs() { 
-    // Redirect to a page with all documents or just switch to checked as default
-    switchTab('checked'); 
-}
-
-// Function to navigate to user profile page
-function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
-}
-
-// Function to redirect to detail page with cash advance ID
-function detailCash(caId) {
-    window.location.href = `../../../../detailPages/detailCash.html?ca-id=${caId}`;
-}
-
-// Sample data for testing when API is not available
-let sampleData = [];
-function generateSampleData() {
-    sampleData = [];
-    for (let i = 1; i <= 35; i++) {
-        // For acknowledgment page, we focus on Checked, Acknowledged and Rejected statuses
-        let status;
-        if (i <= 20) {
-            status = 'Checked';
-        } else if (i <= 30) {
-            status = 'Acknowledged';
-        } else {
-            status = 'Rejected';
-        }
-        
-        sampleData.push({
-            id: `CA${i.toString().padStart(5, '0')}`,
-            cashAdvanceNo: `CA-${2000 + i}`,
-            requesterName: `User ${i}`,
-            departmentName: `Department ${(i % 5) + 1}`,
-            submissionDate: new Date(2023, 0, i).toISOString(),
-            status: status
-        });
-    }
-    return sampleData;
-}
-
-// Use sample data when API fails
-function useSampleData() {
-    allCashAdvances = generateSampleData();
-    updateSampleCounts();
-}
-
-// Update counts using sample data
-function updateSampleCounts() {
-    const data = generateSampleData();
-    document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("acknowledgedCount").textContent = data.filter(item => item.status === 'Acknowledged').length;
-    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
-}
-
-// Switch between Checked and Acknowledged tabs
-function switchTab(tabName) {
-    currentTab = tabName;
-    currentPage = 1; // Reset to first page
-    
-    // Update tab button styling
-    document.getElementById('draftTabBtn').classList.remove('tab-active');
-    document.getElementById('checkedTabBtn').classList.remove('tab-active');
-    if (document.getElementById('rejectedTabBtn')) {
-        document.getElementById('rejectedTabBtn').classList.remove('tab-active');
-    }
-    
-    if (tabName === 'checked') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-        filteredData = allCashAdvances.filter(item => item.status === 'Checked');
-    } else if (tabName === 'acknowledged') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
-        filteredData = allCashAdvances.filter(item => item.status === 'Acknowledged');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
-        filteredData = allCashAdvances.filter(item => item.status === 'Rejected');
-    }
-    
-    // Update table and pagination
-    updateTable();
-    updatePagination();
-}
-
-// Helper function to get status styling
-function getStatusClass(status) {
-    switch(status) {
-        case 'Checked': return 'bg-yellow-200 text-yellow-800';
-        case 'Acknowledged': return 'bg-green-200 text-green-800';
-        case 'Rejected': return 'bg-red-200 text-red-800';
-        default: return 'bg-gray-200 text-gray-800';
-    }
-}
-
-// Update the table with current data
-function updateTable() {
-    const tableBody = document.getElementById('recentDocs');
-    tableBody.innerHTML = '';
-    
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-    
-    for (let i = startIndex; i < endIndex; i++) {
-        const item = filteredData[i];
-        
-        // Format the submission date if needed
-        let formattedDate = '';
-        if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
-        }
-        
-        const row = document.createElement('tr');
-        row.classList.add('border-t', 'hover:bg-gray-100');
-        
-        row.innerHTML = `
-            <td class="p-2">${item.id ? item.id.substring(0, 10) : ''}</td>
-            <td class="p-2">${item.cashAdvanceNo || ''}</td>
-            <td class="p-2">${item.requesterName || ''}</td>
-            <td class="p-2">${item.departmentName || ''}</td>
-            <td class="p-2">${formattedDate}</td>
-            <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(item.status)}">
-                    ${item.status || ''}
-                </span>
-            </td>
-            <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${item.id || ''}')">
-                    Detail
-                </button>
-            </td>
-        `;
-        
-        tableBody.appendChild(row);
-    }
-    
-    // Update the item count display
-    document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
-    document.getElementById('endItem').textContent = endIndex;
-    document.getElementById('totalItems').textContent = filteredData.length;
-}
-
-// Update pagination controls
-function updatePagination() {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    document.getElementById('currentPage').textContent = currentPage;
-    
-    // Update prev/next button states
-    const prevButton = document.getElementById('prevPage');
-    const nextButton = document.getElementById('nextPage');
-    
-    if (currentPage <= 1) {
-        prevButton.classList.add('disabled');
-    } else {
-        prevButton.classList.remove('disabled');
-    }
-    
-    if (currentPage >= totalPages) {
-        nextButton.classList.add('disabled');
-    } else {
-        nextButton.classList.remove('disabled');
-    }
-}
-
-// Change the current page
-function changePage(direction) {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const newPage = currentPage + direction;
-    
-    if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-        updateTable();
-        updatePagination();
-    }
-}
-
 // Download as Excel
 function downloadExcel() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    if (filteredData.length === 0) {
+        alert('No data available to export.');
+        return;
+    }
     
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => response.json())
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
-            
-            if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => {
-                    if (currentTab === 'checked') return doc.status === 'Checked';
-                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
-                    if (currentTab === 'rejected') return doc.status === 'Rejected';
-                    return true;
-                });
-                
-                // Create worksheet data
-                const worksheetData = [
-                    ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
-                ];
-                
-                documents.forEach(doc => {
-                    worksheetData.push([
-                        doc.id ? doc.id.substring(0, 10) : '',
-                        doc.cashAdvanceNo || '',
-                        doc.requesterName || '',
-                        doc.departmentName || '',
-                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-                        doc.status || ''
-                    ]);
-                });
-                
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-                
-                // Create workbook
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances');
-                
-                // Save file
-                XLSX.writeFile(wb, 'Cash_Advances.xlsx');
-            } else {
-                alert('No data available to export.');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading Excel:', error);
-            alert('Failed to download Excel file. Please try again.');
-        });
+    // Create worksheet data
+    const worksheetData = [
+        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
+    ];
+    
+    filteredData.forEach(doc => {
+        worksheetData.push([
+            doc.id ? doc.id.substring(0, 10) : '',
+            doc.cashAdvanceNo || '',
+            doc.requesterName || '',
+            doc.departmentName || '',
+            doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+            doc.status || ''
+        ]);
+    });
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances');
+    
+    // Save file
+    XLSX.writeFile(wb, 'Cash_Advances_Acknowledge.xlsx');
 }
 
 // Download as PDF
 function downloadPDF() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    if (filteredData.length === 0) {
+        alert('No data available to export.');
+        return;
+    }
     
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => response.json())
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
-            
-            if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => {
-                    if (currentTab === 'checked') return doc.status === 'Checked';
-                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
-                    if (currentTab === 'rejected') return doc.status === 'Rejected';
-                    return true;
-                });
-                
-                // Create document data
-                const docData = [];
-                
-                documents.forEach(doc => {
-                    docData.push([
-                        doc.id ? doc.id.substring(0, 10) : '',
-                        doc.cashAdvanceNo || '',
-                        doc.requesterName || '',
-                        doc.departmentName || '',
-                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-                        doc.status || ''
-                    ]);
-                });
-                
-                // Create PDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                doc.text('Cash Advances Report', 14, 16);
-                doc.autoTable({
-                    head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
-                    body: docData,
-                    startY: 20
-                });
-                
-                // Save file
-                doc.save('Cash_Advances.pdf');
-            } else {
-                alert('No data available to export.');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading PDF:', error);
-            alert('Failed to download PDF file. Please try again.');
-        });
-}
-
-// Initialize dashboard on page load
-document.addEventListener('DOMContentLoaded', loadDashboard); 
+    // Create document data
+    const docData = [];
+    
+    filteredData.forEach(doc => {
+        docData.push([
+            doc.id ? doc.id.substring(0, 10) : '',
+            doc.cashAdvanceNo || '',
+            doc.requesterName || '',
+            doc.departmentName || '',
+            doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+            doc.status || ''
+        ]);
+    });
+    
+    // Create PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.text('Cash Advances Acknowledge Report', 14, 16);
+    doc.autoTable({
+        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
+        body: docData,
+        startY: 20
+    });
+    
+    // Save file
+    doc.save('Cash_Advances_Acknowledge.pdf');
+} 
