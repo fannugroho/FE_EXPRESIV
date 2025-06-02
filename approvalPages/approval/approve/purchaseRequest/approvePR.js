@@ -1,31 +1,315 @@
 let uploadedFiles = [];
+const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+
+// Fungsi untuk mendapatkan parameter dari URL
+function getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, '\\$&');
+    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+// Fungsi untuk mengambil data dokumen dari API berdasarkan ID
+async function fetchDocumentById(id) {
+    try {
+        const response = await fetch(`${baseUrl}/api/purchase-requests/${id}`);
+        if (!response.ok) {
+            throw new Error('Gagal mengambil data dokumen');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengambil data dokumen: ' + error.message);
+    }
+}
+
+// Fungsi untuk mengisi form dengan data dokumen
+function populateFormWithDocumentData(document) {
+    // Mengisi data form
+    document.getElementById('purchaseRequestNo').value = document.purchaseRequestNo || '';
+    document.getElementById('requesterName').value = document.requesterName || '';
+    document.getElementById('department').value = document.departmentName || '';
+    document.getElementById('submissionDate').value = document.submissionDate || '';
+    document.getElementById('requiredDate').value = document.requiredDate || '';
+    document.getElementById('classification').value = document.classification || '';
+    document.getElementById('prType').value = document.prType || '';
+    document.getElementById('status').value = document.status || '';
+    
+    // Menampilkan item-item PR
+    if (document.items && document.items.length > 0) {
+        // Menghapus semua baris yang ada
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        
+        // Menambahkan baris baru untuk setiap item
+        document.items.forEach(item => {
+            addRowWithData(item);
+        });
+    }
+    
+    // Mengatur checkbox approval jika ada
+    if (document.approvals) {
+        document.getElementById('prepared').checked = document.approvals.prepared || false;
+        document.getElementById('checked').checked = document.approvals.checked || false;
+        document.getElementById('knowledge').checked = document.approvals.acknowledge || false;
+        document.getElementById('approved').checked = document.approvals.approved || false;
+        document.getElementById('purchasing').checked = document.approvals.purchasing || false;
+    }
+}
+
+// Fungsi untuk menambahkan baris tabel dengan data
+function addRowWithData(itemData) {
+    const tableBody = document.getElementById("tableBody");
+    const prType = document.getElementById("prType").value;
+    const newRow = document.createElement("tr");
+    
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border">
+                <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
+                    <option value="${itemData.itemCode}" selected>${itemData.itemCode}</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border">
+                <input type="text" maxlength="200" class="w-full" readonly value="${itemData.description || ''}" />
+            </td>
+            <td id="tdDetail" class="p-2 border">
+                <input type="number" maxlength="10" class="w-full" required value="${itemData.price || ''}" />
+            </td>
+            <td id="tdPurposed" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.purpose || ''}" />
+            </td>
+            <td id="tdQuantity" class="p-2 border">
+                <input type="number" maxlength="10" class="w-full" required value="${itemData.quantity || ''}" />
+            </td>
+            <td id="tdAction" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+            <td id="tdDescription" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="200" class="w-full" readonly />
+            </td>
+            <td id="tdPurposeds" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdQty" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdActions" class="p-2 border text-center" style="display: none;">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border" style="display: none;">
+                <select class="w-full p-2 border rounded">
+                    <option value="" disabled selected>Pilih Kode Item</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="200" class="w-full" readonly />
+            </td>
+            <td id="tdDetail" class="p-2 border" style="display: none;">
+                <input type="number" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdPurposed" class="p-2 border" style="display: none;">
+                <input type="text" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdQuantity" class="p-2 border" style="display: none;">
+                <input type="number" maxlength="10" class="w-full" required />
+            </td>
+            <td id="tdAction" class="p-2 border text-center" style="display: none;">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+            <td id="tdDescription" class="p-2 border">
+                <input type="text" maxlength="200" class="w-full" required value="${itemData.description || ''}" />
+            </td>
+            <td id="tdPurposeds" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.purpose || ''}" />
+            </td>
+            <td id="tdQty" class="p-2 border">
+                <input type="text" maxlength="10" class="w-full" required value="${itemData.quantity || ''}" />
+            </td>
+            <td id="tdActions" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    🗑
+                </button>
+            </td>
+        `;
+    }
+
+    tableBody.appendChild(newRow);
+}
+
+// Inisialisasi ketika halaman dimuat
+window.addEventListener("DOMContentLoaded", async function() {
+    // Mendapatkan ID dokumen dari URL
+    const documentId = getParameterByName('id');
+    
+    if (documentId) {
+        try {
+            // Mengambil data dokumen dari API
+            const documentData = await fetchDocumentById(documentId);
+            
+            if (documentData) {
+                // Mengisi form dengan data dokumen
+                populateFormWithDocumentData(documentData);
+                
+                // Menampilkan tabel sesuai dengan tipe PR
+                toggleFields();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat memuat data dokumen: ' + error.message);
+        }
+    }
+    
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
+    
+    // If PR type is already selected, toggle fields accordingly
+    const prType = document.getElementById("prType");
+    if (prType && prType.value !== "choose") {
+        toggleFields();
+    }
+});
 
 function saveDocument() {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const docNumber = `PR${Date.now()}`; // Gunakan timestamp agar unik
-
+    // Mendapatkan ID dokumen dari URL
+    const documentId = getParameterByName('id');
+    
+    // Mengumpulkan data dokumen
     const documentData = {
-        id: document.getElementById("id").value,
-        prno: document.getElementById("purchaseRequestNo").value,
-        requester: document.getElementById("requesterName").value,
-        department: document.getElementById("department").value,
-        postingDate: document.getElementById("submissionDate").value,
+        id: documentId || document.getElementById("id")?.value || `PR${Date.now()}`,
+        purchaseRequestNo: document.getElementById("purchaseRequestNo").value,
+        requesterName: document.getElementById("requesterName").value,
+        departmentName: document.getElementById("department").value,
+        submissionDate: document.getElementById("submissionDate").value,
         requiredDate: document.getElementById("requiredDate").value,
         classification: document.getElementById("classification").value,
         prType: document.getElementById("prType").value,
         status: document.getElementById("status").value,
         approvals: {
-            prepared: document.getElementById("preparedByName").checked,
-            checked: document.getElementById("checkedByName").checked,
-            approved: document.getElementById("approvedByName").checked,
-            acknowledge: document.getElementById("acknowledgeByName").checked,
-            purchasing: document.getElementById("purchasingByName").checked,
+            prepared: document.getElementById("prepared").checked,
+            checked: document.getElementById("checked").checked,
+            approved: document.getElementById("approved").checked,
+            acknowledge: document.getElementById("knowledge").checked,
+            purchasing: document.getElementById("purchasing").checked,
         }
     };
 
-    documents.push(documentData);
-    localStorage.setItem("documents", JSON.stringify(documents));
-    alert("Dokumen berhasil disimpan!");
+    // Mengumpulkan data item dari tabel
+    const items = [];
+    const tableBody = document.getElementById("tableBody");
+    const rows = tableBody.querySelectorAll("tr");
+    
+    rows.forEach(row => {
+        const prType = document.getElementById("prType").value;
+        if (prType === "Item") {
+            const itemCode = row.querySelector("#tdItemCode select")?.value;
+            const description = row.querySelector("#tdItemName input")?.value;
+            const price = row.querySelector("#tdDetail input")?.value;
+            const purpose = row.querySelector("#tdPurposed input")?.value;
+            const quantity = row.querySelector("#tdQuantity input")?.value;
+            
+            if (description) {
+                items.push({
+                    itemCode,
+                    description,
+                    price,
+                    purpose,
+                    quantity
+                });
+            }
+        } else if (prType === "Service") {
+            const description = row.querySelector("#tdDescription input")?.value;
+            const purpose = row.querySelector("#tdPurposeds input")?.value;
+            const quantity = row.querySelector("#tdQty input")?.value;
+            
+            if (description) {
+                items.push({
+                    description,
+                    purpose,
+                    quantity
+                });
+            }
+        }
+    });
+    
+    documentData.items = items;
+    
+    // Mendapatkan catatan dari textarea jika ada
+    const remarksTextarea = document.querySelector('textarea');
+    if (remarksTextarea) {
+        documentData.remarks = remarksTextarea.value;
+    }
+    
+    if (documentId) {
+        // Update dokumen yang sudah ada
+        updateDocumentToAPI(documentId, documentData);
+    } else {
+        // Simpan dokumen baru
+        saveDocumentToAPI(documentData);
+    }
+}
+
+// Fungsi untuk menyimpan dokumen baru ke API
+async function saveDocumentToAPI(documentData) {
+    try {
+        const response = await fetch(`${baseUrl}/api/purchase-requests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(documentData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal menyimpan dokumen');
+        }
+        
+        alert('Dokumen berhasil disimpan!');
+        // Redirect ke halaman daftar dokumen
+        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan dokumen: ' + error.message);
+    }
+}
+
+// Fungsi untuk mengupdate dokumen yang sudah ada ke API
+async function updateDocumentToAPI(documentId, documentData) {
+    try {
+        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(documentData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal mengupdate dokumen');
+        }
+        
+        alert('Dokumen berhasil diupdate!');
+        // Redirect ke halaman daftar dokumen
+        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengupdate dokumen: ' + error.message);
+    }
 }
 
 function updateApprovalStatus(id, statusKey) {
@@ -202,22 +486,6 @@ function addRow() {
     tableBody.appendChild(newRow);
 }
 
-// Initialize table display on page load
-window.addEventListener("DOMContentLoaded", function() {
-    // Hide service fields by default
-    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
-    serviceFields.forEach(id => {
-        const elem = document.getElementById(id);
-        if (elem) elem.style.display = "none";
-    });
-    
-    // If PR type is already selected, toggle fields accordingly
-    const prType = document.getElementById("prType");
-    if (prType && prType.value !== "choose") {
-        toggleFields();
-    }
-});
-
 function deleteRow(button) {
     button.closest("tr").remove();
 }
@@ -337,4 +605,94 @@ function printPurchaseRequest() {
     
     // Open the print page in a new tab
     window.open(url, '_blank');
+}
+
+// Fungsi untuk menyetujui dokumen
+async function approveDocument() {
+    const documentId = getParameterByName('id');
+    if (!documentId) {
+        alert('Tidak dapat menyetujui dokumen: ID dokumen tidak ditemukan.');
+        return;
+    }
+    
+    try {
+        // Mengambil data dokumen terlebih dahulu
+        const documentData = await fetchDocumentById(documentId);
+        
+        if (!documentData) {
+            throw new Error('Dokumen tidak ditemukan');
+        }
+        
+        // Mengubah status dokumen menjadi "Approved"
+        documentData.status = "Approved";
+        
+        // Menyimpan perubahan ke API
+        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}/approve`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(documentData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal menyetujui dokumen');
+        }
+        
+        alert('Dokumen berhasil disetujui!');
+        // Kembali ke halaman daftar dokumen
+        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyetujui dokumen: ' + error.message);
+    }
+}
+
+// Fungsi untuk menolak dokumen
+async function rejectDocument() {
+    const documentId = getParameterByName('id');
+    if (!documentId) {
+        alert('Tidak dapat menolak dokumen: ID dokumen tidak ditemukan.');
+        return;
+    }
+    
+    // Mendapatkan alasan penolakan
+    const remarks = document.querySelector('textarea')?.value;
+    if (!remarks) {
+        alert('Silakan masukkan alasan penolakan pada kolom Remarks.');
+        return;
+    }
+    
+    try {
+        // Mengambil data dokumen terlebih dahulu
+        const documentData = await fetchDocumentById(documentId);
+        
+        if (!documentData) {
+            throw new Error('Dokumen tidak ditemukan');
+        }
+        
+        // Mengubah status dokumen menjadi "Rejected" dan menambahkan alasan
+        documentData.status = "Rejected";
+        documentData.remarks = remarks;
+        
+        // Menyimpan perubahan ke API
+        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}/reject`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(documentData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal menolak dokumen');
+        }
+        
+        alert('Dokumen telah ditolak!');
+        // Kembali ke halaman daftar dokumen
+        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menolak dokumen: ' + error.message);
+    }
 }

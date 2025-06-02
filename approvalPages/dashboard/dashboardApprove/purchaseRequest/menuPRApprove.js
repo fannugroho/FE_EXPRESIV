@@ -167,8 +167,7 @@ function editDoc(detail) {
 }
 
 function detailDoc(id) {
-    alert("View Document Details: " + id);
-    // Implement document detail view
+    window.location.href = "../../../approval/approve/purchaseRequest/approvePR.html?id=" + id;
 }
 
 function toggleSidebar() {
