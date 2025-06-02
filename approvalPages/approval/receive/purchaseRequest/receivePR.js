@@ -1,4 +1,109 @@
 let uploadedFiles = [];
+let documentId = null;
+
+// Function to get document ID from URL
+function getDocumentIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+// Function to load document details
+function loadDocumentDetails() {
+    documentId = getDocumentIdFromUrl();
+    if (!documentId) {
+        console.error("Tidak ada ID dokumen yang diberikan");
+        return;
+    }
+
+    // Ambil data dokumen dari localStorage
+    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+    const document = documents.find(doc => doc.id === documentId);
+    
+    if (!document) {
+        console.error("Dokumen tidak ditemukan dengan ID:", documentId);
+        return;
+    }
+
+    // Mengisi form dengan data dokumen
+    document.getElementById("purchaseRequestNo").value = document.purchaseRequestNo || "";
+    document.getElementById("requesterName").value = document.requesterName || "";
+    
+    // Set department value if it exists
+    const departmentSelect = document.getElementById("department");
+    if (departmentSelect && document.departmentName) {
+        // Find and select the option with matching text
+        for (let i = 0; i < departmentSelect.options.length; i++) {
+            if (departmentSelect.options[i].value === document.departmentName) {
+                departmentSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // Set dates if they exist
+    if (document.submissionDate) {
+        document.getElementById("submissionDate").value = document.submissionDate;
+    }
+    if (document.requiredDate) {
+        document.getElementById("requiredDate").value = document.requiredDate;
+    }
+    
+    // Set status if it exists
+    const statusSelect = document.getElementById("status");
+    if (statusSelect && document.status) {
+        for (let i = 0; i < statusSelect.options.length; i++) {
+            if (statusSelect.options[i].value === document.status) {
+                statusSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // Set checkboxes based on approvals object if it exists
+    if (document.approvals) {
+        if (document.approvals.prepared) document.getElementById("prepared").checked = true;
+        if (document.approvals.checked) document.getElementById("checked").checked = true;
+        if (document.approvals.approved) document.getElementById("approved").checked = true;
+        if (document.approvals.acknowledge) document.getElementById("knowledge").checked = true;
+        if (document.approvals.purchasing) document.getElementById("purchasing").checked = true;
+    }
+    
+    // Tambahan: Mengisi data lainnya jika ada
+    if (document.classification) {
+        const classificationSelect = document.getElementById("classification");
+        for (let i = 0; i < classificationSelect.options.length; i++) {
+            if (classificationSelect.options[i].value === document.classification) {
+                classificationSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    if (document.prType) {
+        const prTypeSelect = document.getElementById("prType");
+        for (let i = 0; i < prTypeSelect.options.length; i++) {
+            if (prTypeSelect.options[i].value === document.prType) {
+                prTypeSelect.selectedIndex = i;
+                break;
+            }
+        }
+        // Trigger the toggle fields function to update UI based on PR type
+        toggleFields();
+    }
+    
+    // Set PO Number checkbox if it exists
+    if (document.poNumber) {
+        document.getElementById("PO").checked = true;
+    } else {
+        document.getElementById("NonPO").checked = true;
+    }
+    
+    // Populate remarks if exists
+    const remarksTextarea = document.querySelector("textarea");
+    if (remarksTextarea && document.remarks) {
+        remarksTextarea.value = document.remarks;
+    }
+}
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
@@ -203,7 +308,10 @@ function addRow() {
 }
 
 // Initialize table display on page load
-window.addEventListener("DOMContentLoaded", function() {
+window.onload = function() {
+    // Load document details from URL parameter
+    loadDocumentDetails();
+    
     // Hide service fields by default
     const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
     serviceFields.forEach(id => {
@@ -216,7 +324,7 @@ window.addEventListener("DOMContentLoaded", function() {
     if (prType && prType.value !== "choose") {
         toggleFields();
     }
-});
+};
 
 function deleteRow(button) {
     button.closest("tr").remove();
@@ -251,4 +359,64 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 function goToCheckedPR() { window.location.href = "../confirmPage/check/purchaseRequest/checkedPR.html"; }
 function goToCheckedReim() { window.location.href = "../confirmPage/check/reimbursement/checkedReim.html"; }
 
-window.onload = loadDashboard;
+// Fungsi untuk menerima dokumen
+function receiveDocument() {
+    if (!documentId) {
+        alert("Tidak ada dokumen yang dipilih.");
+        return;
+    }
+
+    if (confirm("Apakah Anda yakin ingin menerima dokumen ini?")) {
+        // Ambil data dokumen dari localStorage
+        let documents = JSON.parse(localStorage.getItem("documents")) || [];
+        const docIndex = documents.findIndex(doc => doc.id === documentId);
+        
+        if (docIndex !== -1) {
+            // Update status dokumen menjadi "Received"
+            documents[docIndex].status = "Received";
+            documents[docIndex].receivedDate = new Date().toISOString().split('T')[0]; // Tanggal hari ini
+            
+            // Simpan kembali ke localStorage
+            localStorage.setItem("documents", JSON.stringify(documents));
+            
+            alert("Dokumen berhasil diterima!");
+            
+            // Kembali ke halaman dashboard
+            window.location.href = "../../../dashboard/dashboardReceive/menuPRReceive.html";
+        } else {
+            alert("Dokumen tidak ditemukan.");
+        }
+    }
+}
+
+// Fungsi untuk menolak dokumen
+function rejectDocument() {
+    if (!documentId) {
+        alert("Tidak ada dokumen yang dipilih.");
+        return;
+    }
+    
+    const alasan = prompt("Masukkan alasan penolakan:");
+    
+    if (alasan !== null) {
+        // Ambil data dokumen dari localStorage
+        let documents = JSON.parse(localStorage.getItem("documents")) || [];
+        const docIndex = documents.findIndex(doc => doc.id === documentId);
+        
+        if (docIndex !== -1) {
+            // Update status dokumen menjadi "Rejected"
+            documents[docIndex].status = "Rejected";
+            documents[docIndex].remarks = alasan;
+            
+            // Simpan kembali ke localStorage
+            localStorage.setItem("documents", JSON.stringify(documents));
+            
+            alert("Dokumen telah ditolak!");
+            
+            // Kembali ke halaman dashboard
+            window.location.href = "../../../dashboard/dashboardReceive/menuPRReceive.html";
+        } else {
+            alert("Dokumen tidak ditemukan.");
+        }
+    }
+}

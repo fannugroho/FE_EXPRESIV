@@ -187,8 +187,8 @@ function receiveDoc(id) {
 }
 
 function detailDoc(id) {
-    alert("View Document Details: " + id);
-    // Implement document detail view
+    // Redirect to the receivePR.html page with the document ID as a parameter
+    window.location.href = "../../approval/receive/purchaseRequest/receivePR.html?id=" + id;
 }
 
 function toggleSubMenu(menuId) {
