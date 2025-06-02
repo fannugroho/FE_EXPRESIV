@@ -1,5 +1,4 @@
 let uploadedFiles = [];
-
 // Function to display the list of uploaded files
 function displayFileList() {
     // This function can be implemented to show uploaded files if needed
@@ -7,14 +6,263 @@ function displayFileList() {
     console.log('Files uploaded:', uploadedFiles.length);
 }
 
-async function saveDocument() {
-    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+function fetchDepartments() {
+    fetch(`${BASE_URL}/api/department`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Department data:", data);
+            populateDepartmentSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
+        });
+}
+
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    departments.forEach(department => {
+        const option = document.createElement('option');
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+}
+
+function fetchUsers() {
+    fetch(`${BASE_URL}/api/users`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("User data:", data);
+            populateUserSelects(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+        });
+}
+
+function fetchTransactionType() {
+    fetch(`${BASE_URL}/api/transactiontypes`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Transaction Type data:", data);
+            populateTransactionTypeSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching transaction type:', error);
+        });
+}
+
+function populateTransactionTypeSelect(transactionTypes) {
+    const transactionTypeSelect = document.getElementById("type");
+    transactionTypes.forEach(transactionType => {
+        const option = document.createElement('option');
+        option.value = transactionType.name;
+        option.textContent = transactionType.name;
+        transactionTypeSelect.appendChild(option);
+    });
+}
+
+
+function populateUserSelects(users) {
+    // Store users globally for search functionality
+    window.requesters = users.map(user => ({
+        id: user.id,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        department: user.department
+    }));
+    
+    // Store employees globally for employee search functionality
+    window.employees = users.map(user => ({
+        id: user.id,
+        kansaiEmployeeId: user.kansaiEmployeeId,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        department: user.department
+    }));
+
+    // Populate RequesterId dropdown with search functionality
+    const requesterSelect = document.getElementById("RequesterId");
+    if (requesterSelect) {
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            requesterSelect.appendChild(option);
+        });
+    }
+
+    // Setup search functionality for requester
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (requesterSearchInput && requesterDropdown) {
+        // Function to filter requesters
+        window.filterRequesters = function() {
+            const searchText = requesterSearchInput.value.toLowerCase();
+            populateRequesterDropdown(searchText);
+            requesterDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered requesters
+        function populateRequesterDropdown(filter = '') {
+            requesterDropdown.innerHTML = '';
+            
+            const filteredRequesters = window.requesters.filter(r => 
+                r.fullName.toLowerCase().includes(filter)
+            );
+            
+            filteredRequesters.forEach(requester => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerText = requester.fullName;
+                option.onclick = function() {
+                    requesterSearchInput.value = requester.fullName;
+                    document.getElementById('RequesterId').value = requester.id;
+                    requesterDropdown.classList.add('hidden');
+                    //update department
+                    const departmentSelect = document.getElementById('department');
+                    if (requester.department) {
+                        // Find the department option and select it
+                        const departmentOptions = departmentSelect.options;
+                        for (let i = 0; i < departmentOptions.length; i++) {
+                            if (departmentOptions[i].textContent === requester.department) {
+                                departmentSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        // If no matching option found, create and select a new one
+                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = requester.department;
+                            newOption.textContent = requester.department;
+                            newOption.selected = true;
+                            departmentSelect.appendChild(newOption);
+                        }
+                    }
+                };
+                requesterDropdown.appendChild(option);
+            });
+            
+            if (filteredRequesters.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching requesters';
+                requesterDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+                requesterDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateRequesterDropdown();
+    }
+
+    // Populate approval dropdowns with auto-selection for prepared by
+    const approvalSelects = [
+        { id: "preparedDropdown", isPreparerField: true },
+        { id: "checkedDropdown", isPreparerField: false },
+        { id: "approvedDropdown", isPreparerField: false },
+        { id: "acknowledgedDropdown", isPreparerField: false }
+    ];
+
+    approvalSelects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
+        if (select) {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                select.appendChild(option);
+                // Auto-select and disable for Prepared by
+                if(selectInfo.isPreparerField && user.id == getUserId()){
+                    option.selected = true;
+                    select.disabled = true;
+                }
+            });
+        }
+    });
+    
+    // Auto-populate employee fields with logged-in user data (like in addCash)
+    const loggedInUserId = getUserId();
+    console.log("Logged in user ID:", loggedInUserId);
+    console.log("Available employees:", window.employees);
+    
+    if(loggedInUserId && window.employees) {
+        const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
+        console.log("Found logged in employee:", loggedInEmployee);
+        
+        if(loggedInEmployee) {
+            const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
+            const employeeName = loggedInEmployee.fullName || '';
+            
+            document.getElementById("Employee").value = employeeNIK;
+            document.getElementById("EmployeeName").value = employeeName;
+            
+            console.log("Auto-populated employee fields:", {
+                employeeNIK: employeeNIK,
+                employeeName: employeeName
+            });
+        } else {
+            console.warn("Could not find logged in employee in employees array");
+        }
+    } else {
+        console.warn("Missing logged in user ID or employees array");
+    }
+}
+async function saveDocument(isSubmit = false) {
+    // Show confirmation dialog only for submit
+    if (isSubmit) {
+        const result = await Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Apakah dokumen sudah benar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+    }
     
     try {
+        // Get user ID from JWT token using auth.js function
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+        
         // Basic validation
         const settlementNumber = document.getElementById("invno").value;
         const kansaiEmployeeId = document.getElementById("Employee").value;
         const cashAdvanceReferenceId = document.getElementById("cashAdvanceDoc").value;
+        
+        console.log("Validation check values:", {
+            settlementNumber: settlementNumber,
+            kansaiEmployeeId: kansaiEmployeeId,
+            cashAdvanceReferenceId: cashAdvanceReferenceId
+        });
         
         if (!settlementNumber) {
             Swal.fire({
@@ -48,8 +296,8 @@ async function saveDocument() {
         
         // Show loading alert
         Swal.fire({
-            title: 'Saving...',
-            text: 'Please wait while we save your settlement',
+            title: isSubmit ? 'Submitting...' : 'Saving...',
+            text: `Please wait while we ${isSubmit ? 'submit' : 'save'} your settlement`,
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -69,10 +317,17 @@ async function saveDocument() {
         formData.append('SettlementNumber', settlementNumber);
         formData.append('KansaiEmployeeId', kansaiEmployeeId);
         formData.append('CashAdvanceReferenceId', cashAdvanceReferenceId);
+        // Add requester ID
+        const requesterId = document.getElementById("RequesterId").value;
+        if (requesterId) formData.append('RequesterId', requesterId);
+        
         if (settlementRefNo) formData.append('SettlementRefNo', settlementRefNo);
         if (purpose) formData.append('Purpose', purpose);
         if (transactionType) formData.append('TransactionType', transactionType);
         if (remarks) formData.append('Remarks', remarks);
+        
+        // Set submit flag
+        formData.append('IsSubmit', isSubmit.toString());
         
         // Handle file attachments
         const fileInput = document.getElementById("Reference");
@@ -99,41 +354,51 @@ async function saveDocument() {
             }
         });
         
-        // Handle approval fields - only add if checkbox is checked
-        if (document.getElementById("prepared").checked) {
-            const preparedById = document.getElementById("preparedDropdown").value;
-            if (preparedById) formData.append('Approval.PreparedById', preparedById);
-        }
+        // Handle approval fields 
+    
+        const preparedById = document.getElementById("preparedDropdown").value;
+        if (preparedById) formData.append('PreparedById', preparedById);
+            
         
-        if (document.getElementById("checked").checked) {
-            const checkedById = document.getElementById("checkedDropdown").value;
-            if (checkedById) formData.append('Approval.CheckedById', checkedById);
-        }
+
+        const checkedById = document.getElementById("checkedDropdown").value;
+        if (checkedById) formData.append('CheckedById', checkedById);
+     
         
-        if (document.getElementById("approved").checked) {
-            const approvedById = document.getElementById("approvedDropdown").value;
-            if (approvedById) formData.append('Approval.ApprovedById', approvedById);
-        }
+        const approvedById = document.getElementById("approvedDropdown").value;
+        if (approvedById) formData.append('ApprovedById', approvedById);
+     
         
-        if (document.getElementById("purchasing").checked) {
-            const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
-            if (acknowledgedById) formData.append('Approval.AcknowledgedById', acknowledgedById);
-        }
+        const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
+        if (acknowledgedById) formData.append('AcknowledgedById', acknowledgedById);
+     
         
         // Send API request
-        const response = await fetch(`${baseUrl}/api/settlements`, {
+        const response = await fetch(`${BASE_URL}/api/settlements`, {
             method: 'POST',
             body: formData
         });
         
         if (response.ok) {
             // Success response (status 200)
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Settlement has been saved successfully',
-                confirmButtonColor: '#3085d6'
-            });
+            if (isSubmit) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Settlement berhasil di-submit',
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Settlement has been saved as draft',
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+            
+            // Redirect back to menu page
+            window.location.href = "../pages/menuSettle.html";
         } else if (response.status === 404) {
             // Handle 404 error for Cash Advance not found
             const errorData = await response.json();
@@ -145,10 +410,20 @@ async function saveDocument() {
             });
         } else {
             // Handle other errors
+            let errorMessage = `Failed to ${isSubmit ? 'submit' : 'save'} settlement. Please try again.`;
+            try {
+                const errorData = await response.json();
+                if (errorData.message || errorData.Message) {
+                    errorMessage = errorData.message || errorData.Message;
+                }
+            } catch (parseError) {
+                console.log("Could not parse error response:", parseError);
+            }
+            
             Swal.fire({
                 icon: 'error',
                 title: 'Error!',
-                text: 'Failed to save settlement. Please try again.',
+                text: errorMessage,
                 confirmButtonColor: '#d33'
             });
         }
@@ -162,6 +437,11 @@ async function saveDocument() {
             confirmButtonColor: '#d33'
         });
     }
+}
+
+// Function to submit document (calls saveDocument with isSubmit=true)
+async function submitDocument() {
+    await saveDocument(true);
 }
 
 function goToMenuSettle() {
@@ -229,7 +509,7 @@ function deleteRow(button) {
 
 // Add function to fetch and populate cash advance dropdown
 async function loadCashAdvanceOptions() {
-    const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+    const baseUrl = 'http://localhost:5246';
     const dropdown = document.getElementById('cashAdvanceDoc');
     
     try {
@@ -276,4 +556,7 @@ async function loadCashAdvanceOptions() {
 // Load cash advance options when page loads
 document.addEventListener('DOMContentLoaded', function() {
     loadCashAdvanceOptions();
+    fetchDepartments();
+    fetchUsers();
+    fetchTransactionType();
 });

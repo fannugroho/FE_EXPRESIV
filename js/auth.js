@@ -1,7 +1,7 @@
 // Authentication utilities for handling JWT tokens and API calls
 
 // API Configuration
-const API_BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
+const BASE_URL = "http://localhost:5246";
 
 // Helper function to get access token from localStorage
 function getAccessToken() {
@@ -55,6 +55,17 @@ function getCurrentUser() {
   };
 }
 
+// Helper function to get just the user ID from token
+function getUserId() {
+  const token = getAccessToken();
+  if (!token) return null;
+  
+  const userInfo = decodeJWT(token);
+  if (!userInfo) return null;
+  
+  return userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+}
+
 // Function to make authenticated API requests
 async function makeAuthenticatedRequest(endpoint, options = {}) {
   const token = getAccessToken();
@@ -84,7 +95,7 @@ async function makeAuthenticatedRequest(endpoint, options = {}) {
   };
   
   // Make the request
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers
   });
@@ -98,6 +109,35 @@ async function makeAuthenticatedRequest(endpoint, options = {}) {
   return response;
 }
 
+// Function to get the correct path to login page based on current location
+function getLoginPagePath() {
+  const currentPath = window.location.pathname;
+  
+  // Count the directory depth to determine how many "../" we need
+  const pathSegments = currentPath.split('/').filter(segment => segment !== '');
+  
+  // Remove the filename if it exists (ends with .html)
+  if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].includes('.html')) {
+    pathSegments.pop();
+  }
+  
+  // Calculate the relative path
+  let relativePath = '';
+  if (pathSegments.length === 0) {
+    // We're at root level
+    relativePath = 'pages/login.html';
+  } else if (pathSegments.length === 1 && pathSegments[0] === 'pages') {
+    // We're in pages directory
+    relativePath = 'login.html';
+  } else {
+    // We're in subdirectories, need to go back
+    const goBack = '../'.repeat(pathSegments.length);
+    relativePath = goBack + 'pages/login.html';
+  }
+  
+  return relativePath;
+}
+
 // Function to logout and clear all tokens
 function logout() {
   localStorage.removeItem("accessToken");
@@ -107,18 +147,28 @@ function logout() {
   localStorage.removeItem("userId");
   localStorage.removeItem("userRoles");
   
-  // Redirect to login page
-  window.location.href = "login.html";
+  // Redirect to login page with correct relative path
+  window.location.href = getLoginPagePath();
+}
+
+// Function to check if current page is login page
+function isLoginPage() {
+  const currentPath = window.location.pathname.toLowerCase();
+  return currentPath.includes('login.html') || currentPath.endsWith('/login');
 }
 
 // Function to check authentication on page load
 function checkAuthOnPageLoad() {
   // Skip authentication check for login page
-  if (window.location.href.includes('login.html')) {
+  if (isLoginPage()) {
+    console.log('Login page detected, skipping auth check');
     return;
   }
   
+  console.log('Checking authentication for:', window.location.href);
+  
   if (!isAuthenticated()) {
+    console.log('User not authenticated, redirecting to login');
     logout();
     return false;
   }

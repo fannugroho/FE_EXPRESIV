@@ -185,300 +185,446 @@ window.addEventListener("DOMContentLoaded", async function() {
     }
 });
 
-function saveDocument() {
-    // Mendapatkan ID dokumen dari URL
-    const documentId = getParameterByName('id');
-    
-    // Mengumpulkan data dokumen
-    const documentData = {
-        id: documentId || document.getElementById("id")?.value || `PR${Date.now()}`,
-        purchaseRequestNo: document.getElementById("purchaseRequestNo").value,
-        requesterName: document.getElementById("requesterName").value,
-        departmentName: document.getElementById("department").value,
-        submissionDate: document.getElementById("submissionDate").value,
-        requiredDate: document.getElementById("requiredDate").value,
-        classification: document.getElementById("classification").value,
-        prType: document.getElementById("prType").value,
-        status: document.getElementById("status").value,
-        approvals: {
-            prepared: document.getElementById("prepared").checked,
-            checked: document.getElementById("checked").checked,
-            approved: document.getElementById("approved").checked,
-            acknowledge: document.getElementById("knowledge").checked,
-            purchasing: document.getElementById("purchasing").checked,
-        }
-    };
+let prId; // Declare global variable
+let prType; // Declare global variable
+let currentTab; // Declare global variable for tab
 
-    // Mengumpulkan data item dari tabel
-    const items = [];
-    const tableBody = document.getElementById("tableBody");
-    const rows = tableBody.querySelectorAll("tr");
+// Function to fetch PR details when the page loads
+window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    prId = urlParams.get('pr-id');
+    prType = urlParams.get('pr-type');
+    currentTab = urlParams.get('tab'); // Get the tab parameter
     
-    rows.forEach(row => {
-        const prType = document.getElementById("prType").value;
-        if (prType === "Item") {
-            const itemCode = row.querySelector("#tdItemCode select")?.value;
-            const description = row.querySelector("#tdItemName input")?.value;
-            const price = row.querySelector("#tdDetail input")?.value;
-            const purpose = row.querySelector("#tdPurposed input")?.value;
-            const quantity = row.querySelector("#tdQuantity input")?.value;
-            
-            if (description) {
-                items.push({
-                    itemCode,
-                    description,
-                    price,
-                    purpose,
-                    quantity
+    if (prId && prType) {
+        fetchPRDetails(prId, prType);
+    }
+    
+    // Hide approve/reject buttons if viewing from approved or rejected tabs
+    if (currentTab === 'approved' || currentTab === 'rejected') {
+        hideApprovalButtons();
+    }
+};
+
+function fetchPRDetails(prId, prType) {
+    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+    fetch(`${BASE_URL}/api/pr/${endpoint}/${prId}`)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
                 });
             }
-        } else if (prType === "Service") {
-            const description = row.querySelector("#tdDescription input")?.value;
-            const purpose = row.querySelector("#tdPurposeds input")?.value;
-            const quantity = row.querySelector("#tdQty input")?.value;
-            
-            if (description) {
-                items.push({
-                    description,
-                    purpose,
-                    quantity
-                });
+            return response.json();
+        })
+        .then(response => {
+            if (response.data) {
+                console.log(response.data);
+                populatePRDetails(response.data);
+                document.getElementById('prType').value = prType;
+                toggleFields();
+                
+                // Always fetch dropdown options
+                fetchDropdownOptions(response.data);
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching PR details: ' + error.message);
+        });
+}
+
+function populatePRDetails(data) {
+    // Populate basic PR information
+    document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
+    document.getElementById('requesterName').value = data.requesterName;
+    document.getElementById('prType').value = data.prType;
+  
+    // Format and set dates
+    const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
+    const requiredDate = new Date(data.requiredDate).toISOString().split('T')[0];
+    document.getElementById('submissionDate').value = submissionDate;
+    document.getElementById('requiredDate').value = requiredDate;
+    
+    // Set document type checkboxes
+    document.getElementById('PO').checked = data.documentType === 'PO';
+    document.getElementById('NonPO').checked = data.documentType === 'NonPO';
+    
+    // Set remarks
+    if (document.getElementById('remarks')) {
+        document.getElementById('remarks').value = data.remarks;
+    }
+
+    // Set status
+    if (data && data.status) {
+        console.log('Status:', data.status);
+        var option = document.createElement('option');
+        option.value = data.status;
+        option.textContent = data.status;
+        document.getElementById('status').appendChild(option);
+        document.getElementById('status').value = data.status;
+    }
+    
+    // Toggle fields to show correct table headers before populating data
+    console.log('Calling toggleFields() for PR type:', data.prType);
+    toggleFields();
+    
+    // Handle service/item details based on PR type
+    if (data.prType === 'Service' && data.serviceDetails) {
+        populateServiceDetails(data.serviceDetails);
+    } else if (data.itemDetails) {
+        populateItemDetails(data.itemDetails);
+    }
+    
+    // Make all fields read-only since this is an approval page
+    makeAllFieldsReadOnly();
+}
+
+function populateServiceDetails(services) {
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = ''; // Clear existing rows
+    
+    if (services.length === 0) {
+        return;
+    }
+    
+    console.log('Service details:', services);
+    
+    services.forEach(service => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="p-2 border">
+                <input type="text" value="${service.description || ''}" class="w-full service-description" maxlength="200" required />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${service.purpose || ''}" class="w-full service-purpose" maxlength="10" required />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${service.quantity || ''}" class="w-full service-quantity" maxlength="10" required />
+            </td>
+            <td class="p-2 border text-center">
+                <!-- Read-only view, no action buttons -->
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+function populateItemDetails(items) {
+    const tableBody = document.getElementById('tableBody');
+    
+    tableBody.innerHTML = ''; // Clear existing rows
+    
+    if (items.length === 0) {
+        console.log('No items to display');
+        return;
+    }
+    
+    items.forEach((item, index) => {
+        try {
+            addItemRow(item);
+        } catch (error) {
         }
     });
     
-    documentData.items = items;
+}
+
+function addItemRow(item = null) {
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.error('tableBody element not found!');
+        return;
+    }
     
-    // Mendapatkan catatan dari textarea jika ada
-    const remarksTextarea = document.querySelector('textarea');
-    if (remarksTextarea) {
-        documentData.remarks = remarksTextarea.value;
-    }
+    const row = document.createElement('tr');
+
     
-    if (documentId) {
-        // Update dokumen yang sudah ada
-        updateDocumentToAPI(documentId, documentData);
-    } else {
-        // Simpan dokumen baru
-        saveDocumentToAPI(documentData);
+    // Since itemNo appears to be an ID, we'll display the description as the item identifier for now
+    // You might want to fetch the actual item details using the itemNo ID
+    row.innerHTML = `
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.itemNo || ''}" class="w-full item-no" readonly placeholder="Item ID" />
+        </td>
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.description || ''}" class="w-full item-description" maxlength="200" readonly />
+        </td>
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.detail || ''}" class="w-full item-detail" maxlength="100" readonly />
+        </td>
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.purpose || ''}" class="w-full item-purpose" maxlength="100" readonly />
+        </td>
+        <td class="p-2 border item-field">
+            <input type="number" value="${item?.quantity || ''}" class="w-full item-quantity" min="1" readonly />
+        </td>
+        <td class="p-2 border text-center item-field">
+            <!-- Read-only view, no action buttons -->
+        </td>
+    `;
+    
+    tableBody.appendChild(row);
+}
+
+// Function to fetch all dropdown options
+function fetchDropdownOptions(prData = null) {
+    fetchDepartments();
+    fetchUsers(prData);
+    fetchClassifications();
+    if (document.getElementById("prType").value === "Item") {
+        fetchItemOptions();
     }
 }
 
-// Fungsi untuk menyimpan dokumen baru ke API
-async function saveDocumentToAPI(documentData) {
-    try {
-        const response = await fetch(`${baseUrl}/api/purchase-requests`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(documentData)
+// Function to fetch departments from API
+function fetchDepartments() {
+    fetch(`${BASE_URL}/api/department`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateDepartmentSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
         });
-        
-        if (!response.ok) {
-            throw new Error('Gagal menyimpan dokumen');
-        }
-        
-        alert('Dokumen berhasil disimpan!');
-        // Redirect ke halaman daftar dokumen
-        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyimpan dokumen: ' + error.message);
-    }
 }
 
-// Fungsi untuk mengupdate dokumen yang sudah ada ke API
-async function updateDocumentToAPI(documentId, documentData) {
-    try {
-        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(documentData)
+// Function to fetch users from API
+function fetchUsers(prData = null) {
+    fetch(`${BASE_URL}/api/users`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateUserSelects(data.data, prData);
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
         });
-        
-        if (!response.ok) {
-            throw new Error('Gagal mengupdate dokumen');
-        }
-        
-        alert('Dokumen berhasil diupdate!');
-        // Redirect ke halaman daftar dokumen
-        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat mengupdate dokumen: ' + error.message);
-    }
 }
 
-function updateApprovalStatus(id, statusKey) {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    let docIndex = documents.findIndex(doc => doc.id === id);
-    if (docIndex !== -1) {
-        documents[docIndex].approvals[statusKey] = true;
-        localStorage.setItem("documents", JSON.stringify(documents));
-        alert(`Document ${statusKey} updated!`);
+// Function to fetch classifications from API
+function fetchClassifications() {
+    fetch(`${BASE_URL}/api/classifications`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateClassificationSelect(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching classifications:', error);
+        });
+}
+
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect) return;
+    
+    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
+
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+}
+
+function populateClassificationSelect(classifications) {
+    const classificationSelect = document.getElementById("classification");
+    if (!classificationSelect) return;
+    
+    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
+
+    classifications.forEach(classification => {
+        const option = document.createElement("option");
+        option.value = classification.id;
+        option.textContent = classification.name;
+        classificationSelect.appendChild(option);
+    });
+}
+
+function populateUserSelects(users, prData = null) {
+    const selects = [
+        { id: 'prepared', approvalKey: 'preparedById' },
+        { id: 'Checked', approvalKey: 'checkedById' },
+        { id: 'Knowledge', approvalKey: 'acknowledgedById' },
+        { id: 'Approved', approvalKey: 'approvedById' }
+    ];
+    
+    selects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
+        if (select) {
+            select.innerHTML = '<option value="" disabled>Select User</option>';
+            
+            users.forEach(user => {
+                const option = document.createElement("option");
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                select.appendChild(option);
+            });
+            
+            // Set the value from PR data if available
+            if (prData && prData[selectInfo.approvalKey]) {
+                select.value = prData[selectInfo.approvalKey];
+            }
+        }
+    });
+}
+
+// Function to approve or reject the PR
+function updatePRStatus(status) {
+    if (!prId) {
+        alert('PR ID not found');
+        return;
     }
+
+    let remarks = '';
+    if (status === 'reject') {
+        remarks = prompt('Please provide remarks for rejection:');
+        if (remarks === null) {
+            return; // User cancelled
+        }
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        alert("Unable to get user ID from token. Please login again.");
+        return;
+    }
+
+    const requestData = {
+        id: prId,
+        UserId: userId,
+        Status: status,
+        Remarks: remarks
+    };
+
+    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+    
+    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            alert(`PR ${status === 'approve' ? 'approved' : 'rejected'} successfully`);
+            // Navigate back to the dashboard
+            window.location.href = '../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html';
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Error ${status === 'approve' ? 'approving' : 'rejecting'} PR: ` + error.message);
+    });
+}
+
+// Function to approve PR
+function approvePR() {
+    updatePRStatus('approve');
+}
+
+// Function to reject PR
+function rejectPR() {
+    updatePRStatus('reject');
 }
 
 function toggleFields() {
     const prType = document.getElementById("prType").value;
-    const itemFields = ["thitemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction", "tdItemCode", "tdItemName", "tdDetail", "tdPurposed", "tdQuantity", "tdAction"];
-    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    
+    const itemFields = ["thItemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction", 
+                        "tdItemCode", "tdItemName", "tdDetail", "tdPurposed", "tdQuantity", "tdAction"];
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+
+    console.log('Item fields to show/hide:', itemFields);
+    console.log('Service fields to show/hide:', serviceFields);
 
     if (prType === "Item") {
+        console.log('Showing item fields, hiding service fields');
         itemFields.forEach(id => {
             const elem = document.getElementById(id);
-            if (elem) elem.style.display = "table-cell";
+            console.log(`Item field ${id}:`, elem);
+            if (elem) {
+                elem.style.display = "table-cell";
+                console.log(`Set ${id} to table-cell`);
+            } else {
+                console.log(`Element ${id} not found!`);
+            }
         });
         serviceFields.forEach(id => {
             const elem = document.getElementById(id);
-            if (elem) elem.style.display = "none";
+            if (elem) {
+                elem.style.display = "none";
+                console.log(`Set ${id} to none`);
+            }
         });
     } else if (prType === "Service") {
+        console.log('Showing service fields, hiding item fields');
         itemFields.forEach(id => {
             const elem = document.getElementById(id);
-            if (elem) elem.style.display = "none";
+            if (elem) {
+                elem.style.display = "none";
+            }
         });
         serviceFields.forEach(id => {
             const elem = document.getElementById(id);
-            if (elem) elem.style.display = "table-cell";
+            if (elem) {
+                elem.style.display = "table-cell";
+            }
         });
     }
-}
-
-function fillItemDetails() {
-    const itemCode = document.getElementById("itemNo").value;
-    const itemName = document.getElementById("itemName");
-    const itemPrice = document.getElementById("itemPrice");
-
-    const itemData = {
-        "ITM001": { name: "Laptop", price: "15,000,000" },
-        "ITM002": { name: "Printer", price: "3,500,000" },
-        "ITM003": { name: "Scanner", price: "2,000,000" }
-    };
-
-    if (itemData[itemCode]) {
-        itemName.value = itemData[itemNo].name;
-        itemPrice.value = itemData[itemNo].price;
-    } else {
-        itemName.value = "";
-        itemPrice.value = "";
-        alert("Item No not found!");
-    }
-}
-
-document.getElementById("docType")?.addEventListener("change", function () {
-    const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "choose" ? "none" : "table";
-});
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
-
-    displayFileList();
+    
+    console.log('toggleFields completed');
 }
 
 function addRow() {
     const tableBody = document.getElementById("tableBody");
-    const prType = document.getElementById("prType").value;
     const newRow = document.createElement("tr");
-    
+    const prType = document.getElementById("prType").value;
+
     if (prType === "Item") {
         newRow.innerHTML = `
             <td id="tdItemCode" class="p-2 border">
                 <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
-                    <option value="" disabled selected>Pilih Kode Item</option>
+                    <option value="" disabled selected>Select Item Code</option>
                     <option value="ITM001">ITM001 - Laptop</option>
                     <option value="ITM002">ITM002 - Printer</option>
                     <option value="ITM003">ITM003 - Scanner</option>
                 </select>
             </td>
-            <td id="tdItemName" class="p-2 border">
-                <input type="text" maxlength="200" class="w-full" readonly />
-            </td>
-            <td id="tdDetail" class="p-2 border">
-                <input type="number" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdPurposed" class="p-2 border">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdQuantity" class="p-2 border">
-                <input type="number" maxlength="10" class="w-full" required />
-            </td>
+            <td id="tdItemName" class="p-2 border"><input type="text" maxlength="200" class="w-full" readonly /></td>
+            <td id="tdDetail" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdPurposed" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQuantity" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
             <td id="tdAction" class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                    🗑
-                </button>
-            </td>
-            <td id="tdDescription" class="p-2 border" style="display: none;">
-                <input type="text" maxlength="200" class="w-full" readonly />
-            </td>
-            <td id="tdPurposeds" class="p-2 border" style="display: none;">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdQty" class="p-2 border" style="display: none;">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdActions" class="p-2 border text-center" style="display: none;">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                    🗑
-                </button>
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
             </td>
         `;
     } else if (prType === "Service") {
         newRow.innerHTML = `
-            <td id="tdItemCode" class="p-2 border" style="display: none;">
-                <select class="w-full p-2 border rounded">
-                    <option value="" disabled selected>Pilih Kode Item</option>
-                    <option value="ITM001">ITM001 - Laptop</option>
-                    <option value="ITM002">ITM002 - Printer</option>
-                    <option value="ITM003">ITM003 - Scanner</option>
-                </select>
-            </td>
-            <td id="tdItemName" class="p-2 border" style="display: none;">
-                <input type="text" maxlength="200" class="w-full" readonly />
-            </td>
-            <td id="tdDetail" class="p-2 border" style="display: none;">
-                <input type="number" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdPurposed" class="p-2 border" style="display: none;">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdQuantity" class="p-2 border" style="display: none;">
-                <input type="number" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdAction" class="p-2 border text-center" style="display: none;">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                    🗑
-                </button>
-            </td>
-            <td id="tdDescription" class="p-2 border">
-                <input type="text" maxlength="200" class="w-full" required />
-            </td>
-            <td id="tdPurposeds" class="p-2 border">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
-            <td id="tdQty" class="p-2 border">
-                <input type="text" maxlength="10" class="w-full" required />
-            </td>
+            <td id="tdDescription" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdPurposeds" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQty" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
             <td id="tdActions" class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                    🗑
-                </button>
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
             </td>
         `;
     }
@@ -490,209 +636,153 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// add pages
-function goToMenu() { window.location.href = "../pages/dashboard.html"; }
-function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
-function goToAddPR() {window.location.href = "../addPages/addPR.html"; }
-function goToAddReim() {window.location.href = "../addPages/AddReim.html"; }
-function goToAddCash() {window.location.href = "../addPages/AddCash.html"; }
-function goToAddSettle() {window.location.href = "../addPages/AddSettle.html"; }
-function goToAddPO() {window.location.href = "../addPages/AddPO.html"; }
+// Initialize table display on page load
+window.addEventListener("DOMContentLoaded", function() {
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
+    
+    // If PR type is already selected, toggle fields accordingly
+    const prType = document.getElementById("prType");
+    if (prType && prType.value !== "choose") {
+        toggleFields();
+    }
+});
 
-// detail pages
-function goToDetailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+// Function to make all fields read-only for approval view
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    inputFields.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Disable all select fields
+    const selectFields = document.querySelectorAll('select');
+    selectFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Disable all checkboxes
+    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
+    checkboxFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('cursor-not-allowed');
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Hide all delete row buttons
+    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = 'none';
+    });
+    
+    // Disable file upload
+    const fileInput = document.getElementById('filePath');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
 }
 
-// menu pages
-function goToMenuAPR() { window.location.href = "menuPR.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuReim() { window.location.href = "menuReim.html"; }
-function goToMenuCash() { window.location.href = "menuCash.html"; }
-function goToMenuSettle() { window.location.href = "menuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+// Function to hide approval buttons
+function hideApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="approvePR()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectPR()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'none';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'none';
+    }
+    
+    // Also hide any parent container if needed
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer && currentTab !== 'acknowledge') {
+        buttonContainer.style.display = 'none';
+    }
+}
 
-//checked pages
-function goToCheckedPR() { window.location.href = "../confirmPage/check/purchaseRequest/checkedPR.html"; }
-function goToCheckedReim() { window.location.href = "../confirmPage/check/reimbursement/checkedReim.html"; }
-
-window.onload = loadDashboard;
-
-function printPurchaseRequest() {
-    // Get form values
-    const purchaseRequestNo = document.getElementById('purchaseRequestNo').value || '';
-    const requesterName = document.getElementById('requesterName').value || '';
-    const department = document.getElementById('department').value || '';
-    const submissionDate = document.getElementById('submissionDate').value || '';
-    const classification = document.getElementById('classification').value || '';
-    const prType = document.getElementById('prType').value || '';
-    
-    // Get signatories
-    const requestedBy = document.getElementById('prepared').checked ? 
-        document.getElementById('prepared').nextElementSibling.querySelector('select').value : '';
-    const checkedBy = document.getElementById('checked').checked ? 
-        document.getElementById('Checked').value : '';
-    const acknowledgedBy = document.getElementById('knowledge').checked ? 
-        document.getElementById('Knowledge').value : '';
-    const approvedBy = document.getElementById('approved').checked ? 
-        document.getElementById('Approved').value : '';
-    const purchasingBy = document.getElementById('purchasing').checked ? 
-        document.getElementById('Approved').nextElementSibling.querySelector('select').value : '';
-    
-    // Get remarks if exists
-    const remarksElement = document.querySelector('textarea');
-    const remarks = remarksElement ? remarksElement.value : '';
-    
-    // Collect table items
-    const tableItems = [];
-    const tableBody = document.getElementById('tableBody');
-    const rows = tableBody.querySelectorAll('tr');
-    
-    if (prType === 'Item') {
-        rows.forEach(row => {
-            const itemCodeSelect = row.querySelector('select');
-            const itemNameInput = row.querySelector('#tdItemName input');
-            const detailInput = row.querySelector('#tdDetail input');
-            const purposeInput = row.querySelector('#tdPurposed input');
-            const quantityInput = row.querySelector('#tdQuantity input');
-            
-            if (itemNameInput && itemNameInput.value.trim() !== '') {
-                tableItems.push({
-                    description: itemNameInput.value,
-                    purpose: purposeInput ? purposeInput.value : '',
-                    quantity: quantityInput ? quantityInput.value : '',
-                    price: detailInput ? detailInput.value : '',
-                    eta: '' // Optional field
-                });
+// Function to fetch items from API
+function fetchItemOptions() {
+    fetch(`${BASE_URL}/api/items`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
             }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Item data:", data);
+            // Populate all item selects in the document
+            document.querySelectorAll('.item-no').forEach(select => {
+                populateItemSelect(data.data, select);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching items:', error);
         });
-    } else if (prType === 'Service') {
-        rows.forEach(row => {
-            const descriptionInput = row.querySelector('#tdDescription input');
-            const purposeInput = row.querySelector('#tdPurposeds input');
-            const qtyInput = row.querySelector('#tdQty input');
-            
-            if (descriptionInput && descriptionInput.value.trim() !== '') {
-                tableItems.push({
-                    description: descriptionInput.value,
-                    purpose: purposeInput ? purposeInput.value : '',
-                    quantity: qtyInput ? qtyInput.value : '',
-                    price: '',
-                    eta: ''
-                });
-            }
-        });
-    }
-    
-    // Convert items array to JSON string and encode for URL
-    const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
-    
-    // Create URL with parameters
-    const url = `printPR.html?purchaseRequestNo=${encodeURIComponent(purchaseRequestNo)}`
-        + `&requesterName=${encodeURIComponent(requesterName)}`
-        + `&department=${encodeURIComponent(department)}`
-        + `&dateIssued=${encodeURIComponent(submissionDate)}`
-        + `&classification=${encodeURIComponent(classification)}`
-        + `&prType=${encodeURIComponent(prType)}`
-        + `&checkedBy=${encodeURIComponent(checkedBy)}`
-        + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
-        + `&approvedBy=${encodeURIComponent(approvedBy)}`
-        + `&receivedDate=${encodeURIComponent(purchasingBy)}`
-        + `&items=${itemsParam}`;
-    
-    // Open the print page in a new tab
-    window.open(url, '_blank');
 }
 
-// Fungsi untuk menyetujui dokumen
-async function approveDocument() {
-    const documentId = getParameterByName('id');
-    if (!documentId) {
-        alert('Tidak dapat menyetujui dokumen: ID dokumen tidak ditemukan.');
-        return;
-    }
+// Function to populate item select
+function populateItemSelect(items, selectElement) {
+    if (!selectElement) return;
     
-    try {
-        // Mengambil data dokumen terlebih dahulu
-        const documentData = await fetchDocumentById(documentId);
+    // Store the currently selected value
+    const currentValue = selectElement.value;
+    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
+    
+    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        // Store the description as a data attribute
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        selectElement.appendChild(option);
         
-        if (!documentData) {
-            throw new Error('Dokumen tidak ditemukan');
+        // If this item matches the current text or value, select it
+        if (option.textContent === currentText || option.value === currentValue) {
+            option.selected = true;
         }
-        
-        // Mengubah status dokumen menjadi "Approved"
-        documentData.status = "Approved";
-        
-        // Menyimpan perubahan ke API
-        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}/approve`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(documentData)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Gagal menyetujui dokumen');
-        }
-        
-        alert('Dokumen berhasil disetujui!');
-        // Kembali ke halaman daftar dokumen
-        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyetujui dokumen: ' + error.message);
-    }
+    });
+
+    // Add onchange event listener to auto-fill description
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
 }
 
-// Fungsi untuk menolak dokumen
-async function rejectDocument() {
-    const documentId = getParameterByName('id');
-    if (!documentId) {
-        alert('Tidak dapat menolak dokumen: ID dokumen tidak ditemukan.');
-        return;
-    }
+function updateItemDescription(selectElement) {
+    const row = selectElement.closest('tr');
+    const descriptionInput = row.querySelector('.item-description');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
     
-    // Mendapatkan alasan penolakan
-    const remarks = document.querySelector('textarea')?.value;
-    if (!remarks) {
-        alert('Silakan masukkan alasan penolakan pada kolom Remarks.');
-        return;
-    }
-    
-    try {
-        // Mengambil data dokumen terlebih dahulu
-        const documentData = await fetchDocumentById(documentId);
-        
-        if (!documentData) {
-            throw new Error('Dokumen tidak ditemukan');
+    if (selectedOption && !selectedOption.disabled) {
+        // Get description from data attribute first, fallback to parsing text
+        const itemDescription = selectedOption.getAttribute('data-description');
+        if (itemDescription) {
+            descriptionInput.value = itemDescription;
+        } else {
+            // Fallback to old method for backward compatibility
+            const itemText = selectedOption.text;
+            const itemName = itemText.split(' - ')[1];
+            descriptionInput.value = itemName || '';
         }
-        
-        // Mengubah status dokumen menjadi "Rejected" dan menambahkan alasan
-        documentData.status = "Rejected";
-        documentData.remarks = remarks;
-        
-        // Menyimpan perubahan ke API
-        const response = await fetch(`${baseUrl}/api/purchase-requests/${documentId}/reject`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(documentData)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Gagal menolak dokumen');
-        }
-        
-        alert('Dokumen telah ditolak!');
-        // Kembali ke halaman daftar dokumen
-        window.location.href = "../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html";
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menolak dokumen: ' + error.message);
+    } else {
+        descriptionInput.value = '';
     }
 }

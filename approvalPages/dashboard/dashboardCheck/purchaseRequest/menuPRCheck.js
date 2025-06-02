@@ -1,6 +1,8 @@
 // Current tab state
-let currentTab = 'Checked'; // Default tab
+let currentTab = 'prepared'; // Default tab
 
+
+// Helper function to get access token
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
@@ -32,59 +34,140 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function loadDashboard() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    
-    // Update counters
-    document.getElementById("totalCount").textContent = documents.length;
-    document.getElementById("draftCount").textContent = documents.filter(doc => doc.status === "Prepared").length;
-    document.getElementById("checkedCount").textContent = documents.filter(doc => doc.status === "Checked").length;
-    document.getElementById("rejectedCount").textContent = documents.filter(doc => doc.status === "Rejected").length;
+async function loadDashboard() {
+    try {
+        // Get user ID for approver ID
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
 
-    // Filter documents based on the current tab
-    let filteredDocs = [];
-    if (currentTab === 'draft') {
-        filteredDocs = documents.filter(doc => doc.status === "Prepared");
-    } else if (currentTab === 'checked') {
-        filteredDocs = documents.filter(doc => doc.status === "Checked");
-    } else if (currentTab === 'rejected') {
-        filteredDocs = documents.filter(doc => doc.status === "Rejected");
+        let url;
+        
+        // Build URL based on current tab
+        if (currentTab === 'prepared') {
+            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=false`;
+        } else if (currentTab === 'checked') {
+            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=true`;
+        } else if (currentTab === 'rejected') {
+            url = `${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=checked`;
+        }
+
+        console.log('Fetching dashboard data from:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Dashboard API response:', result);
+
+        if (result.status && result.data) {
+            const documents = result.data;
+            
+            // Update counters by fetching all statuses
+            await updateCounters(userId);
+            
+            // Update the table with filtered documents
+            updateTable(documents);
+            
+            // Update pagination info
+            updatePaginationInfo(documents.length);
+        } else {
+            console.error('API response error:', result.message);
+            // Fallback to empty state
+            updateTable([]);
+            updatePaginationInfo(0);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
     }
+}
 
-    // Sort the filtered docs (newest first)
-    const sortedDocs = filteredDocs.slice().reverse();
-    
-    // Update the table
+// Function to update counters by fetching data for all statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status using new API endpoints
+        const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const checkedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=checked`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        const preparedCount = preparedData.data ? preparedData.data.length : 0;
+        const checkedCount = checkedData.data ? checkedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
+        const totalCount = preparedCount + checkedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("draftCount").textContent = preparedCount;
+        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        // Set counters to 0 on error
+        document.getElementById("totalCount").textContent = '0';
+        document.getElementById("draftCount").textContent = '0';
+        document.getElementById("checkedCount").textContent = '0';
+        document.getElementById("rejectedCount").textContent = '0';
+    }
+}
+
+// Function to update the table with documents
+function updateTable(documents) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
-    if (sortedDocs.length === 0) {
+    if (documents.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No documents found</td></tr>`;
     } else {
-        sortedDocs.forEach(doc => {
-            // If status is Draft, replace it with Prepared
-            const displayStatus = doc.status === "Draft" ? "Prepared" : doc.status;
+        documents.forEach((doc, index) => {
+            // Format dates
+            const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+            const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
             
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
-                <td class='p-2'>${doc.id}</td>
+                <td class='p-2'>${index + 1}</td>
                 <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
                 <td class='p-2'>${doc.requesterName || '-'}</td>
                 <td class='p-2'>${doc.departmentName || '-'}</td>
-                <td class='p-2'>${doc.submissionDate || '-'}</td>
-                <td class='p-2'>${doc.requiredDate || '-'}</td>
+                <td class='p-2'>${submissionDate}</td>
+                <td class='p-2'>${requiredDate}</td>
                 <td class='p-2'>${doc.poNumber || '-'}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(displayStatus)}">${displayStatus}</span></td>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
                 <td class='p-2'>
-                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                    <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </td>
             </tr>`;
             tableBody.innerHTML += row;
         });
     }
-
-    // Update pagination info
-    updatePaginationInfo(sortedDocs.length);
 }
 
 // Function to switch between tabs
@@ -94,7 +177,7 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'draft') {
+    if (tabName === 'prepared') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
     } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
@@ -161,9 +244,8 @@ function editDoc(detail) {
     // Di sini kamu bisa menambahkan kode untuk membuka modal edit atau halaman edit
 }
 
-function detailDoc(id) {
-    // Redirect to checkedPR.html with document ID as a parameter
-    window.location.href = `../../../approvalPages/approval/check/purchaseRequest/checkedPR.html?id=${id}`;
+function detailDoc(id, prType) {
+    window.location.href = `../../../approval/check/purchaseRequest/checkedPR.html?pr-id=${id}&pr-type=${prType}&tab=${currentTab}`;
 }
 
 function toggleSidebar() {
@@ -178,75 +260,132 @@ function toggleSubMenu(menuId) {
 }
 
 // Fungsi Download Excel
-function downloadExcel() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+async function downloadExcel() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        // Fetch all documents from all tabs
+        const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const checkedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=checked`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Combine all documents
+        const allDocuments = [
+            ...(preparedData.data || []),
+            ...(checkedData.data || []),
+            ...(rejectedData.data || [])
+        ];
     
-    // Membuat workbook baru
-    const workbook = XLSX.utils.book_new();
-    
-    // Mengonversi data ke format worksheet
-    const wsData = documents.map(doc => {
-        // If status is Draft, replace it with Prepared
-        const displayStatus = doc.status === "Draft" ? "Prepared" : doc.status;
+        // Membuat workbook baru
+        const workbook = XLSX.utils.book_new();
         
-        return {
-            'Document Number': doc.id,
-            'PR Number': doc.purchaseRequestNo,
-            'Requester': doc.requesterName,
-            'Department': doc.departmentName,
-            'Submission Date': doc.submissionDate,
-            'Required Date': doc.requiredDate,
-            'PO Number': doc.poNumber,
-            'Status': displayStatus,
-            'GR Date': doc.grDate
-        };
-    });
-    
-    // Membuat worksheet dan menambahkannya ke workbook
-    const worksheet = XLSX.utils.json_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
-    
-    // Menghasilkan file Excel
-    XLSX.writeFile(workbook, 'purchase_request_list.xlsx');
+        // Mengonversi data ke format worksheet
+        const wsData = allDocuments.map(doc => {
+            return {
+                'Document Number': doc.id,
+                'PR Number': doc.purchaseRequestNo,
+                'Requester': doc.requesterName,
+                'Department': doc.departmentName,
+                'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                'Required Date': doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
+                'PO Number': doc.poNumber || '',
+                'Status': doc.status,
+                'GR Date': doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
+            };
+        });
+        
+        // Membuat worksheet dan menambahkannya ke workbook
+        const worksheet = XLSX.utils.json_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
+        
+        // Menghasilkan file Excel
+        XLSX.writeFile(workbook, 'purchase_request_list.xlsx');
+    } catch (error) {
+        console.error('Error downloading Excel:', error);
+        alert('Failed to download Excel file. Please try again.');
+    }
 }
 
 // Fungsi Download PDF
-function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Menambahkan judul
-    doc.setFontSize(16);
-    doc.text('Purchase Request Report', 14, 15);
-    
-    // Membuat data tabel dari documents
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const tableData = documents.map(doc => {
-        // If status is Draft, replace it with Prepared
-        const displayStatus = doc.status === "Draft" ? "Prepared" : doc.status;
-        
-        return [
-            doc.id,
-            doc.purchaseRequestNo,
-            doc.requesterName,
-            doc.departmentName,
-            doc.submissionDate,
-            doc.requiredDate,
-            doc.poNumber,
-            displayStatus,
-            doc.grDate
+async function downloadPDF() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        // Fetch all documents from all tabs
+        const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const checkedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=checked`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Combine all documents
+        const allDocuments = [
+            ...(preparedData.data || []),
+            ...(checkedData.data || []),
+            ...(rejectedData.data || [])
         ];
-    });
-    
-    // Menambahkan tabel
-    doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
-        body: tableData,
-        startY: 25
-    });
-    
-    // Menyimpan PDF
-    doc.save('purchase_request_list.pdf');
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Menambahkan judul
+        doc.setFontSize(16);
+        doc.text('Purchase Request Report', 14, 15);
+        
+        // Membuat data tabel dari documents
+        const tableData = allDocuments.map(doc => {
+            return [
+                doc.id,
+                doc.purchaseRequestNo,
+                doc.requesterName,
+                doc.departmentName,
+                doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+                doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
+                doc.poNumber || '',
+                doc.status,
+                doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
+            ];
+        });
+        
+        // Menambahkan tabel
+        doc.autoTable({
+            head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+            body: tableData,
+            startY: 25
+        });
+        
+        // Menyimpan PDF
+        doc.save('purchase_request_list.pdf');
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Failed to download PDF file. Please try again.');
+    }
 }
 
 // Function to navigate to user profile page

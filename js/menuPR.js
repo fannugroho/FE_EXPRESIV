@@ -1,5 +1,3 @@
-const BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
-
 // Pagination variables
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -8,11 +6,15 @@ let filteredPurchaseRequests = [];
 let currentTab = 'all'; // Track the current active tab
 
 async function fetchPurchaseRequests() {
-    fetch(`${BASE_URL}/api/pr`)
+    const userId = getUserId();
+
+    fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}`)
         .then(response => response.json())
         .then(data => {
+            console.log(data);
             if (data && data.data) {
                 // Store all purchase requests
+                console.log(data.data);
                 allPurchaseRequests = data.data;
                 filterPurchaseRequests(); // Apply current filters
             }
@@ -28,7 +30,7 @@ function filterPurchaseRequests(searchTerm = '') {
     // Apply tab filter
     if (currentTab === 'draft') {
         filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
-            (!doc.approval || doc.approval.status.toLowerCase() === 'draft')
+            doc.status?.toLowerCase() === 'draft'
         );
     } else {
         // 'all' tab or default
@@ -80,7 +82,7 @@ function updateDashboardCounts(data) {
     };
     
     data.forEach(doc => {
-        const status = doc.approval ? doc.approval.status.toLowerCase() : 'draft';
+        const status = doc.status ? doc.status.toLowerCase() : 'draft';
         
         switch(status) {
             case 'draft':
@@ -132,7 +134,7 @@ function populatePurchaseRequests(data) {
         const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
         
         // Get status from approval object
-        const status = doc.approval ? doc.approval.status : "Open";
+        const status = doc.status ? doc.status : "Open";
         
         // GR date currently not in the JSON, leaving empty for now
         const grDate = '';

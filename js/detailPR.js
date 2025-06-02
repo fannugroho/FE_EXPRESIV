@@ -1,4 +1,3 @@
-const BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
 let uploadedFiles = [];
 
 let prId; // Declare global variable
@@ -13,6 +12,95 @@ window.onload = function() {
 };
 
 function populateUserSelects(users, approvalData = null) {
+    // Store users globally for search functionality
+    window.requesters = users.map(user => ({
+        id: user.id,
+        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        department: user.department
+    }));
+
+    // Populate RequesterId dropdown with search functionality
+    const requesterSelect = document.getElementById("RequesterId");
+    if (requesterSelect) {
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            requesterSelect.appendChild(option);
+        });
+    }
+
+    // Setup search functionality for requester
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (requesterSearchInput && requesterDropdown) {
+        // Function to filter requesters
+        window.filterRequesters = function() {
+            const searchText = requesterSearchInput.value.toLowerCase();
+            populateRequesterDropdown(searchText);
+            requesterDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered requesters
+        function populateRequesterDropdown(filter = '') {
+            requesterDropdown.innerHTML = '';
+            
+            const filteredRequesters = window.requesters.filter(r => 
+                r.fullName.toLowerCase().includes(filter)
+            );
+            
+            filteredRequesters.forEach(requester => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerText = requester.fullName;
+                option.onclick = function() {
+                    requesterSearchInput.value = requester.fullName;
+                    document.getElementById('RequesterId').value = requester.id;
+                    requesterDropdown.classList.add('hidden');
+                    //update department
+                    const departmentSelect = document.getElementById('department');
+                    if (requester.department) {
+                        // Find the department option and select it
+                        const departmentOptions = departmentSelect.options;
+                        for (let i = 0; i < departmentOptions.length; i++) {
+                            if (departmentOptions[i].textContent === requester.department) {
+                                departmentSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        // If no matching option found, create and select a new one
+                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = requester.department;
+                            newOption.textContent = requester.department;
+                            newOption.selected = true;
+                            departmentSelect.appendChild(newOption);
+                        }
+                    }
+                };
+                requesterDropdown.appendChild(option);
+            });
+            
+            if (filteredRequesters.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching requesters';
+                requesterDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+                requesterDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateRequesterDropdown();
+    }
+
     const selects = [
         { id: 'prepared', approvalKey: 'preparedById' },
         { id: 'checkedBy', approvalKey: 'checkedById' },
@@ -27,8 +115,6 @@ function populateUserSelects(users, approvalData = null) {
             // Store the currently selected value
             const currentValue = select.value;
             
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
             users.forEach(user => {
                 // console.log("user", user);
                 const option = document.createElement("option");
@@ -36,10 +122,14 @@ function populateUserSelects(users, approvalData = null) {
                 option.textContent = user.name || `${user.firstName} ${user.lastName}`;
                 select.appendChild(option);
             });
-            
             // Set the value from approval data if available
             if (approvalData && approvalData[selectInfo.approvalKey]) {
+            
                 select.value = approvalData[selectInfo.approvalKey];
+                // Auto-select and disable for Prepared by if it matches logged in user
+                if(selectInfo.id === "prepared" && select.value == getUserId()){
+                    select.disabled = true;
+                }
             } else if (currentValue) {
                 // Restore the selected value if it exists
                 select.value = currentValue;
@@ -48,28 +138,6 @@ function populateUserSelects(users, approvalData = null) {
     });
 }
 
-// function populateItemSelect(items, selectElement) {
-//     selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-//     items.forEach(item => {
-//         const option = document.createElement("option");
-//         option.value = item.id || item.itemCode;
-//         option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-//         selectElement.appendChild(option);
-//     });
-// }
-
-// function populateClassificationSelect(classifications) {
-//     const classificationSelect = document.getElementById("classification");
-//     classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
-
-//     classifications.forEach(classification => {
-//         const option = document.createElement("option");
-//         option.value = classification.id;
-//         option.textContent = classification.name;
-//         classificationSelect.appendChild(option);
-//     });
-// }
 
 function fetchPRDetails(prId, prType) {
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
@@ -90,21 +158,12 @@ function fetchPRDetails(prId, prType) {
                 toggleFields();
                 
                 // Always fetch dropdown options
-                fetchDropdownOptions(response.data.approval);
+                fetchDropdownOptions(response.data);
                 
-                // Enable fields only if status is Draft
-                const isEditable = response.data.approval && response.data.approval.status === 'Draft';
+        
+                const isEditable = response.data && response.data.status === 'Draft';
                 toggleEditableFields(isEditable);
                 
-                // Enable or disable the Update button based on status
-                const updateButton = document.querySelector('button[onclick="updatePR()"]');
-                if (updateButton) {
-                    updateButton.disabled = !isEditable;
-                    if (!isEditable) {
-                        updateButton.classList.add('opacity-50', 'cursor-not-allowed');
-                        updateButton.title = 'You can only update PRs with Draft status';
-                    }
-                }
             }
         })
         .catch(error => {
@@ -276,6 +335,8 @@ function populateItemSelect(items, selectElement) {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
         option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        // Store the description as a data attribute
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
         selectElement.appendChild(option);
         
         // If this item matches the current text or value, select it
@@ -283,6 +344,11 @@ function populateItemSelect(items, selectElement) {
             option.selected = true;
         }
     });
+
+    // Add onchange event listener to auto-fill description
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
 }
 
 // Function to toggle editable fields based on PR status
@@ -293,10 +359,9 @@ function toggleEditableFields(isEditable) {
         'requesterName',
         'department',
         'classification',
-        // 'prType',
+        'prType',
         'submissionDate',
         'requiredDate',
-        // 'status',
         'remarks',
         'PO',
         'NonPO'
@@ -350,13 +415,38 @@ function toggleEditableFields(isEditable) {
         button.style.display = isEditable ? 'block' : 'none';
     });
     
+    // Status field should always be disabled regardless of editable state
+    const statusField = document.getElementById('status');
+    if (statusField) {
+        statusField.disabled = true;
+        statusField.classList.add('bg-gray-100');
+    }
+    
+    // Handle action buttons - enable/disable based on Draft status
+    const deleteButton = document.querySelector('button[onclick="confirmDelete()"]');
+    const updateButton = document.querySelector('button[onclick="submitPR(false)"]');
+    const submitButton = document.querySelector('button[onclick="submitPR(true)"]');
+    
+    [deleteButton, updateButton, submitButton].forEach(button => {
+        if (button) {
+            button.disabled = !isEditable;
+            if (!isEditable) {
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+                button.title = 'You can only perform this action on PRs with Draft status';
+            } else {
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+                button.title = '';
+            }
+        }
+    });
+    
     // Handle approval checkboxes and selects
     const approvalFields = [
         'preparedByCheck', 'prepared',
         'checkedByCheck', 'checkedBy',
         'acknowledgeByCheck', 'acknowledgeBy',
         'approvedByCheck', 'approvedBy',
-        'receivedByCheck', 'receivedBy'
+        'receivedByCheck', 'receivedBy',
     ];
     
     approvalFields.forEach(fieldId => {
@@ -375,7 +465,16 @@ function toggleEditableFields(isEditable) {
 function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
-    document.getElementById('requesterName').value = data.requesterName;
+    
+    // Handle requester name with search functionality
+    if (data.requesterName) {
+        document.getElementById('requesterSearch').value = data.requesterName;
+        // Store the requester ID if available
+        if (data.requesterId) {
+            document.getElementById('RequesterId').value = data.requesterId;
+        }
+    }
+    
     document.getElementById('prType').value = data.prType;
     
     // Format and set dates
@@ -391,41 +490,19 @@ function populatePRDetails(data) {
     // Set remarks
     document.getElementById('remarks').value = data.remarks;
 
+    // Set status
+    if (data && data.status) {
+        document.getElementById('status').value = data.status;
+        console.log(data.status);
+    }
+
     // Store the values to be used after fetching options
     window.currentValues = {
         department: data.departmentName,
         classification: data.classification,
-        status: data.approval?.status || 'Draft'
+        status: data.status || 'Draft'
     };
     
-    // Set approval checkboxes and names
-    if (data.approval) {
-        // Store approval values
-        window.currentValues.approvals = {
-            prepared: data.approval.preparedByName,
-            checked: data.approval.checkedByName,
-            acknowledged: data.approval.acknowledgedByName,
-            approved: data.approval.approvedByName,
-            received: data.approval.receivedByName
-        };
-
-        // Set checkboxes
-        if (data.approval.preparedById) {
-            document.getElementById('preparedByCheck').checked = true;
-        }
-        if (data.approval.checkedById) {
-            document.getElementById('checkedByCheck').checked = true;
-        }
-        if (data.approval.acknowledgedById) {
-            document.getElementById('acknowledgeByCheck').checked = true;
-        }
-        if (data.approval.approvedById) {
-            document.getElementById('approvedByCheck').checked = true;
-        }
-        if (data.approval.receivedById) {
-            document.getElementById('receivedByCheck').checked = true;
-        }
-    }
     
     // Handle service/item details based on PR type
     if (data.prType === 'Service' && data.serviceDetails) {
@@ -433,6 +510,10 @@ function populatePRDetails(data) {
     } else if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
     }
+    
+    // Check if editable after populating data
+    const isEditable = window.currentValues.status === 'Draft';
+    toggleEditableFields(isEditable);
 }
 
 function populateServiceDetails(services) {
@@ -547,9 +628,16 @@ function updateItemDescription(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     
     if (selectedOption && !selectedOption.disabled) {
-        const itemText = selectedOption.text;
-        const itemName = itemText.split(' - ')[1];
-        descriptionInput.value = itemName || '';
+        // Get description from data attribute first, fallback to parsing text
+        const itemDescription = selectedOption.getAttribute('data-description');
+        if (itemDescription) {
+            descriptionInput.value = itemDescription;
+        } else {
+            // Fallback to old method for backward compatibility
+            const itemText = selectedOption.text;
+            const itemName = itemText.split(' - ')[1];
+            descriptionInput.value = itemName || '';
+        }
     } else {
         descriptionInput.value = '';
     }
@@ -598,17 +686,25 @@ function confirmDelete() {
     }
 }
 
-function updatePR() {
+function updatePR(isSubmit = false) {
+    console.log("masuk");
     if (!prId) {
         alert('PR ID not found');
         return;
     }
 
     // Check the status before updating
-    const status = document.getElementById('status').value;
+    const status = window.currentValues?.status || document.getElementById('status')?.value;
     if (status !== 'Draft') {
         alert('You can only update PRs with Draft status');
         return;
+    }
+
+    // Show confirmation dialog only for submit
+    if (isSubmit) {
+        if (!confirm('Are you sure you want to submit this PR? You won\'t be able to edit it after submission.')) {
+            return;
+        }
     }
 
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
@@ -620,7 +716,17 @@ function updatePR() {
         // Add basic fields
         formData.append('Id', prId);
         formData.append('PurchaseRequestNo', document.getElementById('purchaseRequestNo').value);
-        formData.append('RequesterId', "deda05c6-8688-4d19-8f52-c0856a5752f4"); // Add RequesterId
+        
+
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+
+        formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
+        formData.append('IsSubmit', isSubmit.toString()); // Add IsSubmit parameter
         
         // Use the department ID from the select
         const departmentSelect = document.getElementById('department');
@@ -634,7 +740,7 @@ function updatePR() {
         
         const submissionDate = document.getElementById('submissionDate').value;
         if (submissionDate) {
-            formData.append('PostingDate', new Date(submissionDate).toISOString()); // Use PostingDate instead of SubmissionDate
+            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
         }
         
         // Use the classification text from the select
@@ -649,25 +755,13 @@ function updatePR() {
         const isNonPO = document.getElementById('NonPO').checked;
         formData.append('DocumentType', isPO ? 'PO' : (isNonPO ? 'NonPO' : ''));
         
-        // Approvals
-        const approvalStatus = document.getElementById('status').value;
-        formData.append('Approval.Status', approvalStatus);
-        
-        // Get all approvers
-        const approvers = {
-            'PreparedById': document.getElementById('prepared')?.value,
-            'CheckedById': document.getElementById('checkedBy')?.value,
-            'AcknowledgedById': document.getElementById('acknowledgeBy')?.value, 
-            'ApprovedById': document.getElementById('approvedBy')?.value,
-            'ReceivedById': document.getElementById('receivedBy')?.value
-        };
-        
-        // Add approvers to the form data
-        for (const [key, value] of Object.entries(approvers)) {
-            if (value) {
-                formData.append(`Approval.${key}`, value);
-            }
-        }
+        // Approvals - only include if checkboxes are checked
+ 
+        formData.append('PreparedById', document.getElementById('prepared')?.value);
+        formData.append('CheckedById', document.getElementById('checkedBy')?.value);
+        formData.append('AcknowledgedById', document.getElementById('acknowledgeBy')?.value);
+        formData.append('ApprovedById', document.getElementById('approvedBy')?.value);
+        formData.append('ReceivedById', document.getElementById('receivedBy')?.value);
         
         // Item/Service details
         const rows = document.querySelectorAll('#tableBody tr');
@@ -692,6 +786,8 @@ function updatePR() {
         uploadedFiles.forEach(file => {
             formData.append('Attachments', file);
         });
+
+
         
         // Submit the form data
         fetch(`${BASE_URL}/api/pr/${endpoint}/${prId}`, {
@@ -700,23 +796,34 @@ function updatePR() {
         })
         .then(response => {
             if (response.ok) {
-                alert('PR updated successfully');
+                console.log("PR submitted successfully");
+                if (isSubmit) {
+                    alert('PR submitted successfully');
+                } else {
+                    alert('PR updated successfully');
+                }
                 // Refresh the page to show updated data
                 location.reload();
             } else {
                 return response.json().then(errorData => {
-                    throw new Error(errorData.message || `Failed to update PR. Status: ${response.status}`);
+                    throw new Error(errorData.message || `Failed to ${isSubmit ? 'submit' : 'update'} PR. Status: ${response.status}`);
                 });
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error updating PR: ' + error.message);
+            alert(`Error ${isSubmit ? 'submitting' : 'updating'} PR: ` + error.message);
         });
     } catch (error) {
         console.error('Error:', error);
         alert('Error preparing update data: ' + error.message);
     }
+}
+
+// Function specifically for submitting PR
+function submitPR(isSubmit = true) {
+    console.log(isSubmit);
+    updatePR(isSubmit);
 }
 
 function previewPDF(event) {
