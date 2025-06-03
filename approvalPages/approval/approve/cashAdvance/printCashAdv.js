@@ -1,4 +1,4 @@
-const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+const baseUrl = 'https://expressiv.idsdev.site';
 let cashAdvanceId = '';
 
 // Get cash advance ID from URL

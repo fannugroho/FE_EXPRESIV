@@ -1,5 +1,5 @@
 let uploadedFiles = [];
-const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+const baseUrl = "https://expressiv.idsdev.site";
 
 // Setup file input listener when document is loaded
 document.addEventListener('DOMContentLoaded', function() {

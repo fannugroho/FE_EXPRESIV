@@ -1,4 +1,4 @@
-const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+const baseUrl = 'https://expressiv.idsdev.site';
 let purchaseRequestId = '';
 
 // Get purchase request ID from URL

@@ -1,7 +1,7 @@
 // Authentication utilities for handling JWT tokens and API calls
 
 // API Configuration
-const BASE_URL = "http://localhost:5246";
+const BASE_URL = "https://expressiv.idsdev.site";
 
 // Helper function to get access token from localStorage
 function getAccessToken() {

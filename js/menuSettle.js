@@ -1,5 +1,5 @@
     // Load data
-    const baseUrl = "http://localhost:5246";
+    const baseUrl = "https://expressiv.idsdev.site";
     async function loadDashboard() {
         try {
             // Fetch data from API

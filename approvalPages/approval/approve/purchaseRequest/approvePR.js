@@ -1,5 +1,5 @@
 let uploadedFiles = [];
-const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+const baseUrl = "https://expressiv.idsdev.site";
 
 // Fungsi untuk mendapatkan parameter dari URL
 function getParameterByName(name, url = window.location.href) {
@@ -208,7 +208,7 @@ window.onload = function() {
 
 function fetchPRDetails(prId, prType) {
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
-    fetch(`${BASE_URL}/api/pr/${endpoint}/${prId}`)
+    fetch(`${baseUrl}/api/pr/${endpoint}/${prId}`)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(errorData => {
@@ -377,7 +377,7 @@ function fetchDropdownOptions(prData = null) {
 
 // Function to fetch departments from API
 function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
+    fetch(`${baseUrl}/api/department`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -394,7 +394,7 @@ function fetchDepartments() {
 
 // Function to fetch users from API
 function fetchUsers(prData = null) {
-    fetch(`${BASE_URL}/api/users`)
+    fetch(`${baseUrl}/api/users`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -411,7 +411,7 @@ function fetchUsers(prData = null) {
 
 // Function to fetch classifications from API
 function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
+    fetch(`${baseUrl}/api/classifications`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -512,7 +512,7 @@ function updatePRStatus(status) {
 
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
     
-    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
+    fetch(`${baseUrl}/api/pr/${endpoint}/status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -717,7 +717,7 @@ function hideApprovalButtons() {
 
 // Function to fetch items from API
 function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/items`)
+    fetch(`${baseUrl}/api/items`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);

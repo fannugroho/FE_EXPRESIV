@@ -18,7 +18,7 @@ let currentTab = 'draft'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/cashadvances/status-counts";
     
     fetch(`${baseUrl}${endpoint}`)
@@ -43,7 +43,7 @@ function fetchStatusCounts() {
 
 // Function to fetch cash advances from API
 function fetchCashAdvances() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/cash-advance";
     
     fetch(`${baseUrl}${endpoint}`)

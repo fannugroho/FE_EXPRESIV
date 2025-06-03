@@ -21,7 +21,7 @@ let currentTab = 'checked'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     // Use the same endpoint as regular settlements, we'll calculate counts locally
     const endpoint = "/api/settlements";
     

@@ -518,7 +518,7 @@ function deleteRow(button) {
 
 // Add function to fetch and populate cash advance dropdown
 async function loadCashAdvanceOptions() {
-    const baseUrl = 'http://localhost:5246';
+    const baseUrl = 'https://expressiv.idsdev.site';
     const dropdown = document.getElementById('cashAdvanceDoc');
     
     try {
