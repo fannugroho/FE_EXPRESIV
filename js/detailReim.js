@@ -1,4 +1,5 @@
 let uploadedFiles = [];
+let reimbursementId = '';
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
@@ -66,19 +67,27 @@ function previewPDF(event) {
 }
 
 function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-
+    const tableBody = document.getElementById('reimbursementDetails');
+    const newRow = document.createElement('tr');
     newRow.innerHTML = `
-        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="200" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="30" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
         </td>
     `;
-
     tableBody.appendChild(newRow);
 }
 
@@ -137,5 +146,227 @@ async function deleteDocument() {
         Swal.fire('Error!', 'Terjadi kesalahan saat menghapus dokumen.', 'error');
     }
 }
+
+function confirmSubmit() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire(
+                'Berhasil!',
+                'Dokumen berhasil di-submit.',
+                'success'
+            );
+        }
+    });
+}
+
+function getReimbursementIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('reim-id');
+}
+
+async function fetchReimbursementData() {
+    reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        console.error('No reimbursement ID found in URL');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            populateFormData(result.data);
+        } else {
+            console.error('Failed to fetch reimbursement data:', result.message);
+        }
+    } catch (error) {
+        console.error('Error fetching reimbursement data:', error);
+    }
+}
+
+function populateFormData(data) {
+    document.getElementById('voucherNo').value = data.voucherNo || '';
+    document.getElementById('requesterName').value = data.requesterName || '';
+    document.getElementById('department').value = data.department || '';
+    document.getElementById('currency').value = data.currency || '';
+    document.getElementById('payTo').value = data.payTo || '';
+    
+    if (data.submissionDate) {
+        const date = new Date(data.submissionDate);
+        const formattedDate = date.toISOString().split('T')[0];
+        document.getElementById('submissionDate').value = formattedDate;
+    }
+    
+    document.getElementById('status').value = data.status || '';
+    document.getElementById('referenceDoc').value = data.referenceDoc || '';
+    document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    document.getElementById('remarks').value = data.remarks || '';
+    
+    document.getElementById('preparedBy').value = data.preparedBy || '';
+    document.getElementById('checkedBy').value = data.checkedBy || '';
+    document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
+    document.getElementById('approvedBy').value = data.approvedBy || '';
+    
+    document.getElementById('preparedByCheck').checked = data.preparedBy ? true : false;
+    document.getElementById('checkedByCheck').checked = data.checkedBy ? true : false;
+    document.getElementById('acknowledgedByCheck').checked = data.acknowledgedBy ? true : false;
+    document.getElementById('approvedByCheck').checked = data.approvedBy ? true : false;
+    
+    populateReimbursementDetails(data.reimbursementDetails);
+    
+    displayAttachments(data.reimbursementAttachments);
+}
+
+function populateReimbursementDetails(details) {
+    const tableBody = document.getElementById('reimbursementDetails');
+    tableBody.innerHTML = '';
+    
+    if (details && details.length > 0) {
+        details.forEach(detail => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } else {
+        addRow();
+    }
+}
+
+function displayAttachments(attachments) {
+    const attachmentsList = document.getElementById('attachmentsList');
+    attachmentsList.innerHTML = '';
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+            attachmentItem.innerHTML = `
+                <span>${attachment.fileName}</span>
+                <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
+}
+
+function updateReim() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to update this reimbursement",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, update it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitReimbursementUpdate();
+        }
+    });
+}
+
+async function submitReimbursementUpdate() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const rows = detailsTable.querySelectorAll('tr');
+    const reimbursementDetails = [];
+    
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const deleteButton = row.querySelector('button');
+        const detailId = deleteButton.getAttribute('data-id') || null;
+        
+        reimbursementDetails.push({
+            id: detailId,
+            description: inputs[0].value,
+            glAccount: inputs[1].value,
+            accountName: inputs[2].value,
+            amount: parseFloat(inputs[3].value) || 0
+        });
+    });
+    
+    const requestData = {
+        requesterName: document.getElementById('requesterName').value,
+        department: document.getElementById('department').value,
+        currency: document.getElementById('currency').value,
+        payTo: document.getElementById('payTo').value,
+        referenceDoc: document.getElementById('referenceDoc').value,
+        typeOfTransaction: document.getElementById('typeOfTransaction').value,
+        remarks: document.getElementById('remarks').value,
+        reimbursementDetails: reimbursementDetails
+    };
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Updated!',
+                'Reimbursement has been updated successfully.',
+                'success'
+            ).then(() => {
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to update reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error updating reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while updating the reimbursement',
+            'error'
+        );
+    }
+}
+
+function goToMenuReim() {
+    window.location.href = '../menuReim.html';
+}
+
+document.addEventListener('DOMContentLoaded', fetchReimbursementData);
 
     
