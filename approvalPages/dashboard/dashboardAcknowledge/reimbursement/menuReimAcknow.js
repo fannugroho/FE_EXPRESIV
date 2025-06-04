@@ -88,7 +88,7 @@ function displayReimbursements(reimbursements) {
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
-    document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
+    document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
@@ -238,7 +238,7 @@ function updateSampleCounts() {
     const data = generateSampleData();
     document.getElementById("totalCount").textContent = data.length;
     document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("acknowledgeCount").textContent = data.filter(item => item.status === 'Acknowledge').length;
+    document.getElementById("acknowledgedCount").textContent = data.filter(item => item.status === 'Acknowledged').length;
     document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
@@ -249,7 +249,7 @@ function switchTab(tabName) {
     
     // Update tab button styling
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
-    document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
+    document.getElementById('acknowledgedTabBtn').classList.remove('tab-active');
     if (document.getElementById('rejectedTabBtn')) {
         document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     }
@@ -257,9 +257,9 @@ function switchTab(tabName) {
     if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
         filteredData = allReimbursements.filter(item => item.status === 'Checked');
-    } else if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
+    } else if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Acknowledged');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
         filteredData = allReimbursements.filter(item => item.status === 'Rejected');
