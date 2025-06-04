@@ -1,53 +1,49 @@
-function loadDashboard() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
-            
-            if (cashAdvances.length > 0) {
-                allCashAdvances = cashAdvances;
-                
-                // Update dashboard counts
-                updateStatusCounts(allCashAdvances);
-                
-                // Set up initial state for tabs and pagination
-                setupTabsAndPagination();
-                
-                // Apply filtering based on current tab and display
-                switchTab(currentTab);
-            } else {
-                console.error("API response does not contain expected data");
-                // Fallback to sample data
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-            // Fallback to sample data
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
+async function loadDashboard() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cash-advance`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        
+        // Check for different possible structures in the API response
+        let cashAdvances = [];
+        if (data.status && data.data) {
+            cashAdvances = data.data;
+        } else if (Array.isArray(data)) {
+            cashAdvances = data;
+        } else {
+            console.error('Unexpected API response structure:', data);
             useSampleData();
             switchTab(currentTab);
+            return;
+        }
+        
+        allCashAdvances = cashAdvances;
+        
+        // Update dashboard counts
+        updateStatusCounts({
+            totalCount: cashAdvances.length,
+            checkedCount: cashAdvances.filter(doc => doc.status === "Checked").length,
+            acknowledgeCount: cashAdvances.filter(doc => doc.status === "Acknowledge").length,
+            rejectedCount: cashAdvances.filter(doc => doc.status === "Rejected").length
         });
         
+        // Apply initial filtering based on current tab
+        switchTab(currentTab);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        // Fallback to sample data
+        useSampleData();
+        switchTab(currentTab);
+    }
+    
     // Set up notification dropdown
     setupNotificationDropdown();
     
-    // Load user profile information
+    // Load user profile
     loadUserProfileInfo();
 }
 
@@ -59,60 +55,53 @@ let allCashAdvances = [];
 let currentTab = 'checked'; // Default tab is now 'checked' which corresponds to Checked status
 
 // Function to fetch status counts from API
-function fetchStatusCounts() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    const endpoint = "/api/cashadvances/status-counts";
-    
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                updateStatusCounts(data.data);
-            } else {
-                console.error('API returned an error:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
-            updateSampleCounts();
-        });
+async function fetchStatusCounts() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cashadvances/status-counts`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        
+        if (data.status && data.code === 200) {
+            updateStatusCounts(data.data);
+        } else {
+            console.error('API returned an error:', data.message);
+        }
+    } catch (error) {
+        console.error('Error fetching status counts:', error);
+        // Fallback to sample data if API fails
+        updateSampleCounts();
+    }
 }
 
 // Function to fetch cash advances from API
-function fetchCashAdvances() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    const endpoint = "/api/cashadvances";
-    
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                allCashAdvances = data.data;
-                switchTab(currentTab); // Apply filtering based on current tab
-            } else {
-                console.error('API returned an error:', data.message);
-                // Use sample data if API fails
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching cash advances:', error);
+async function fetchCashAdvances() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cashadvances`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        
+        if (data.status && data.code === 200) {
+            allCashAdvances = data.data;
+            filteredCashAdvances = [...allCashAdvances];
+            displayCashAdvances(filteredCashAdvances);
+        } else {
+            console.error('API returned an error:', data.message);
             // Use sample data if API fails
             useSampleData();
             switchTab(currentTab);
-        });
+        }
+    } catch (error) {
+        console.error('Error fetching cash advances:', error);
+        // Use sample data if API fails
+        useSampleData();
+        switchTab(currentTab);
+    }
 }
 
 // Function to display cash advances in the table
@@ -399,125 +388,121 @@ function changePage(direction) {
 }
 
 // Download as Excel
-function downloadExcel() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => response.json())
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
+async function downloadExcel() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cash-advance`);
+        
+        const data = await response.json();
+        
+        // Check for different possible structures in the API response
+        let cashAdvances = [];
+        if (data.status && data.data) {
+            cashAdvances = data.data;
+        } else if (Array.isArray(data)) {
+            cashAdvances = data;
+        }
+        
+        if (cashAdvances.length > 0) {
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
             
-            if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => {
-                    if (currentTab === 'checked') return doc.status === 'Checked';
-                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
-                    if (currentTab === 'rejected') return doc.status === 'Rejected';
-                    return true;
-                });
-                
-                // Create worksheet data
-                const worksheetData = [
-                    ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
-                ];
-                
-                documents.forEach(doc => {
-                    worksheetData.push([
-                        doc.id ? doc.id.substring(0, 10) : '',
-                        doc.cashAdvanceNo || '',
-                        doc.requesterName || '',
-                        doc.departmentName || '',
-                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-                        doc.status || ''
-                    ]);
-                });
-                
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-                
-                // Create workbook
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances');
-                
-                // Save file
-                XLSX.writeFile(wb, 'Cash_Advances.xlsx');
-            } else {
-                alert('No data available to export.');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading Excel:', error);
-            alert('Failed to download Excel file. Please try again.');
-        });
+            // Convert data to appropriate format for Excel
+            const excelData = cashAdvances.map(item => ({
+                'Cash Advance Number': item.cashAdvanceNo || '',
+                'Requester': item.requesterName || '',
+                'Department': item.departmentName || '',
+                'Purpose': item.purpose || '',
+                'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+                'Status': item.status || ''
+            }));
+            
+            // Convert to worksheet
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Cash Advance Data');
+            
+            // Generate Excel file and trigger download
+            XLSX.writeFile(wb, `Cash_Advance_${new Date().toISOString().split('T')[0]}.xlsx`);
+        } else {
+            alert('No data available to export.');
+        }
+    } catch (error) {
+        console.error('Error downloading Excel:', error);
+        alert('Failed to download Excel file. Please try again.');
+    }
 }
 
 // Download as PDF
-function downloadPDF() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => response.json())
-        .then(data => {
-            // Check for different possible structures in the API response
-            let cashAdvances = [];
-            if (data.status && data.data) {
-                cashAdvances = data.data;
-            } else if (data.status && data.cashAdvances) {
-                cashAdvances = data.cashAdvances;
-            } else if (Array.isArray(data)) {
-                cashAdvances = data;
-            }
+async function downloadPDF() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cash-advance`);
+        
+        const data = await response.json();
+        
+        // Check for different possible structures in the API response
+        let cashAdvances = [];
+        if (data.status && data.data) {
+            cashAdvances = data.data;
+        } else if (Array.isArray(data)) {
+            cashAdvances = data;
+        }
+        
+        if (cashAdvances.length > 0) {
+            // Initialize jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
-            if (cashAdvances.length > 0) {
-                const documents = cashAdvances.filter(doc => {
-                    if (currentTab === 'checked') return doc.status === 'Checked';
-                    if (currentTab === 'acknowledged') return doc.status === 'Acknowledged';
-                    if (currentTab === 'rejected') return doc.status === 'Rejected';
-                    return true;
-                });
-                
-                // Create document data
-                const docData = [];
-                
-                documents.forEach(doc => {
-                    docData.push([
-                        doc.id ? doc.id.substring(0, 10) : '',
-                        doc.cashAdvanceNo || '',
-                        doc.requesterName || '',
-                        doc.departmentName || '',
-                        doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-                        doc.status || ''
-                    ]);
-                });
-                
-                // Create PDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                doc.text('Cash Advances Report', 14, 16);
-                doc.autoTable({
-                    head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
-                    body: docData,
-                    startY: 20
-                });
-                
-                // Save file
-                doc.save('Cash_Advances.pdf');
-            } else {
-                alert('No data available to export.');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading PDF:', error);
-            alert('Failed to download PDF file. Please try again.');
-        });
+            // Set title
+            doc.text('Cash Advance Report', 14, 16);
+            
+            // Prepare data for table
+            const tableColumn = ["Cash Advance Number", "Requester", "Department", "Date", "Status"];
+            const tableRows = [];
+            
+            // Add data rows
+            cashAdvances.forEach(item => {
+                const formattedDate = item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '';
+                const dataRow = [
+                    item.cashAdvanceNo || '',
+                    item.requesterName || '',
+                    item.departmentName || '',
+                    formattedDate,
+                    item.status || ''
+                ];
+                tableRows.push(dataRow);
+            });
+            
+            // Generate table
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 20,
+                theme: 'grid',
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                headStyles: {
+                    fillColor: [66, 135, 245],
+                    textColor: 255,
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [240, 240, 240]
+                }
+            });
+            
+            // Save PDF
+            doc.save(`Cash_Advance_${new Date().toISOString().split('T')[0]}.pdf`);
+        } else {
+            alert('No data available to export.');
+        }
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Failed to download PDF file. Please try again.');
+    }
 }
 
 // Initialize dashboard on page load

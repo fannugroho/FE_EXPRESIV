@@ -1,4 +1,4 @@
-const baseUrl = 'https://expressiv.idsdev.site';
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
 let cashAdvanceId = '';
 
 // Get cash advance ID from URL
@@ -98,7 +98,7 @@ async function fetchCashAdvanceData() {
     }
     
     try {
-        const response = await fetch(`${baseUrl}/api/cash-advances/${cashAdvanceId}`);
+        const response = await fetch(`${BASE_URL}/api/cash-advances/${cashAdvanceId}`);
         const result = await response.json();
         
         if (result.status && result.code === 200) {

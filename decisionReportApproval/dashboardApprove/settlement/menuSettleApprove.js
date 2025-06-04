@@ -14,43 +14,33 @@ let allSettlements = [];
 let currentTab = 'acknowledge'; // Default tab
 
 // Function to fetch status counts from API
-function fetchStatusCounts() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    // Use the same endpoint as regular settlements, we'll calculate counts locally
-    const endpoint = "/api/settlements";
+async function fetchStatusCounts() {
+    const response = await fetch(`${BASE_URL}/api/settlements/approval`);
     
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                // Calculate counts from the full data
-                const settlements = data.data;
-                const counts = {
-                    totalCount: settlements.length,
-                    acknowledgeCount: settlements.filter(item => item.status === 'Acknowledge').length,
-                    approvedCount: settlements.filter(item => item.status === 'Approved').length,
-                    rejectedCount: settlements.filter(item => item.status === 'Rejected').length
-                };
-                updateStatusCounts(counts);
-                
-                // Store the data to avoid making a second fetch
-                allSettlements = settlements;
-                switchTab(currentTab);
-            } else {
-                console.error('API returned an error:', data.message);
-                useSampleData();
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
-            updateSampleCounts();
-        });
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    
+    const data = await response.json();
+    
+    if (data.status && data.code === 200) {
+        // Calculate counts from the full data
+        const settlements = data.data;
+        const counts = {
+            totalCount: settlements.length,
+            acknowledgeCount: settlements.filter(item => item.status === 'Acknowledge').length,
+            approvedCount: settlements.filter(item => item.status === 'Approved').length,
+            rejectedCount: settlements.filter(item => item.status === 'Rejected').length
+        };
+        updateStatusCounts(counts);
+        
+        // Store the data to avoid making a second fetch
+        allSettlements = settlements;
+        switchTab(currentTab);
+    } else {
+        console.error('API returned an error:', data.message);
+        useSampleData();
+    }
 }
 
 // Function to display settlements in the table

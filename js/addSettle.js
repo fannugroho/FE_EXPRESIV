@@ -1,4 +1,58 @@
 let uploadedFiles = [];
+
+// Data pengguna contoh (mockup)
+const mockUsers = [
+    { id: 1, name: "Ahmad Baihaki", department: "Finance" },
+    { id: 2, name: "Budi Santoso", department: "Purchasing" },
+    { id: 3, name: "Cahya Wijaya", department: "IT" },
+    { id: 4, name: "Dewi Sartika", department: "HR" },
+    { id: 5, name: "Eko Purnomo", department: "Logistics" },
+    { id: 6, name: "Fajar Nugraha", department: "Production" },
+    { id: 7, name: "Gita Nirmala", department: "Finance" },
+    { id: 8, name: "Hadi Gunawan", department: "Marketing" },
+    { id: 9, name: "Indah Permata", department: "Sales" },
+    { id: 10, name: "Joko Widodo", department: "Management" }
+];
+
+// Fungsi untuk memfilter dan menampilkan dropdown pengguna
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Kosongkan dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter pengguna berdasarkan teks pencarian
+    const filteredUsers = window.requesters ? 
+        window.requesters.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+    
+    // Tampilkan hasil pencarian
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.name || user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.name || user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Tampilkan pesan jika tidak ada hasil
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Tampilkan dropdown
+    dropdown.classList.remove('hidden');
+}
+
 // Function to display the list of uploaded files
 function displayFileList() {
     // This function can be implemented to show uploaded files if needed
@@ -518,14 +572,13 @@ function deleteRow(button) {
 
 // Add function to fetch and populate cash advance dropdown
 async function loadCashAdvanceOptions() {
-    const baseUrl = 'https://expressiv.idsdev.site';
     const dropdown = document.getElementById('cashAdvanceDoc');
     
     try {
         // Show loading state
         dropdown.innerHTML = '<option value="" disabled selected>Loading...</option>';
         
-        const response = await fetch(`${baseUrl}/api/cash-advance`);
+        const response = await fetch(`${BASE_URL}/api/cash-advance`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -568,4 +621,50 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDepartments();
     fetchUsers();
     fetchTransactionType();
+    
+    // Setup event listener untuk hide dropdown saat klik di luar
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedDropdownDropdown', 
+            'checkedDropdownDropdown', 
+            'approvedDropdownDropdown', 
+            'acknowledgedDropdownDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedDropdownSearch', 
+            'checkedDropdownSearch', 
+            'approvedDropdownSearch', 
+            'acknowledgedDropdownSearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Trigger initial dropdown on focus for each search field
+    const searchFields = [
+        'preparedDropdownSearch',
+        'checkedDropdownSearch',
+        'approvedDropdownSearch',
+        'acknowledgedDropdownSearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', '');
+                filterUsers(actualFieldId);
+            });
+        }
+    });
 });

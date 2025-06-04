@@ -245,7 +245,7 @@ function updateSettleStatus(status, remarks) {
         id: settlementId,
         UserId: userId,
         Status: status,
-        Remarks: remarks || ''
+        Remarks: remarks
     };
     
     console.log('Sending status update request:', requestBody);

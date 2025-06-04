@@ -79,7 +79,7 @@ function populateUserSelects(users, approvalData = null) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
         department: user.department
     }));
     
@@ -87,7 +87,7 @@ function populateUserSelects(users, approvalData = null) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
         department: user.department
     }));
 
@@ -417,8 +417,8 @@ function populateFormWithData(data) {
     populateSettlementItemsTable(data.settlementItems || []);
 
     // Populate approval section
-    if (data.approval) {
-        populateApprovalSection(data.approval);
+    if (data) {
+        populateApprovalSection(data);
     }
 
     // Check if status is not Draft and make fields read-only
@@ -427,7 +427,7 @@ function populateFormWithData(data) {
     }
 
     // Fetch dropdown options with approval data
-    fetchDropdownOptions(data.approval);
+    fetchDropdownOptions(data);
 }
 
 // Populate settlement items table
@@ -478,16 +478,19 @@ function populateApprovalSection(approval) {
     }
     
     if (approval.checkedById) {
+        console.log("checkedById:", approval.checkedById);
         document.getElementById('checkedById').value = approval.checkedById;
         document.getElementById('checkedCheckbox').checked = approval.isChecked || false;
     }
     
     if (approval.approvedById) {
+        console.log("approvedById:", approval.approvedById);
         document.getElementById('approvedById').value = approval.approvedById;
         document.getElementById('approvedCheckbox').checked = approval.isApproved || false;
     }
     
     if (approval.acknowledgedById) {
+        console.log("acknowledgedById:", approval.acknowledgedById);
         document.getElementById('acknowledgedById').value = approval.acknowledgedById;
         document.getElementById('acknowledgedCheckbox').checked = approval.isAcknowledged || false;
     }

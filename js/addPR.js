@@ -170,13 +170,98 @@ function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
+// Data pengguna contoh (mockup)
+const mockUsers = [
+    { id: 1, name: "Ahmad Baihaki", department: "Finance" },
+    { id: 2, name: "Budi Santoso", department: "Purchasing" },
+    { id: 3, name: "Cahya Wijaya", department: "IT" },
+    { id: 4, name: "Dewi Sartika", department: "HR" },
+    { id: 5, name: "Eko Purnomo", department: "Logistics" },
+    { id: 6, name: "Fajar Nugraha", department: "Production" },
+    { id: 7, name: "Gita Nirmala", department: "Finance" },
+    { id: 8, name: "Hadi Gunawan", department: "Marketing" },
+    { id: 9, name: "Indah Permata", department: "Sales" },
+    { id: 10, name: "Joko Widodo", department: "Management" }
+];
+
+// Fungsi untuk memfilter dan menampilkan dropdown pengguna
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Kosongkan dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter pengguna berdasarkan teks pencarian
+    const filteredUsers = window.requesters ? 
+        window.requesters.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+    
+    // Tampilkan hasil pencarian
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.name || user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.name || user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Tampilkan pesan jika tidak ada hasil
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Tampilkan dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Setup event listener untuk dropdown approval
 window.onload = function(){
+    // Kode onload yang sudah ada
     fetchDepartments();
     fetchUsers();
     fetchItemOptions();
     fetchClassifications();
     document.getElementById("prType").value = "Item"; // Set default PR Type to Item
     toggleFields();
+    
+    // Tambahkan event listener untuk menyembunyikan dropdown saat klik di luar
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedByDropdown', 
+            'acknowledgeByDropdown', 
+            'checkedByDropdown', 
+            'approvedByDropdown', 
+            'receivedByDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch', 
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
 }
 
 function fetchClassifications() {
@@ -267,6 +352,11 @@ function populateDepartmentSelect(departments) {
 }
 
 function populateUserSelects(users) {
+    // Jika tidak ada data users dari API, gunakan mockup
+    if (!users || users.length === 0) {
+        users = mockUsers;
+    }
+
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
@@ -367,17 +457,30 @@ function populateUserSelects(users) {
             select.innerHTML = '<option value="" disabled selected>Select User</option>';
             
             users.forEach(user => {
-;
                 const option = document.createElement("option");
                 option.value = user.id;
                 option.textContent = user.name || `${user.firstName} ${user.lastName}`;
                 select.appendChild(option);
-                    if(selectId == "preparedBy"){
-                       if(user.id == getUserId()){
+                if(selectId == "preparedBy"){
+                    if(user.id == getUserId()){
                         option.selected = true;
-                        select.disabled = true;
-                       }
+                        // Perbarui kolom pencarian untuk preparedBy
+                        const preparedBySearch = document.getElementById('preparedBySearch');
+                        if (preparedBySearch) {
+                            preparedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                            preparedBySearch.disabled = true;
+                        }
                     }
+                }
+            });
+        }
+        
+        // Pre-populate dropdown lists for search fields
+        const searchInput = document.getElementById(`${selectId}Search`);
+        if (searchInput) {
+            // Trigger initial dropdown on focus
+            searchInput.addEventListener('focus', function() {
+                filterUsers(selectId);
             });
         }
     });
