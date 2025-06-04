@@ -269,13 +269,73 @@ function populateClassificationSelect(classifications) {
     });
 }
 
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'acknowledgeBy': selectId = 'Knowledge'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'receivedBy': selectId = 'Received'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Modified populateUserSelects to store users globally
 function populateUserSelects(users, prData = null) {
+    // Store users globally for search functionality
+    window.allUsers = users;
+    
     const selects = [
-        { id: 'prepared', approvalKey: 'preparedById' },
-        { id: 'Checked', approvalKey: 'checkedById' },
-        { id: 'Knowledge', approvalKey: 'acknowledgedById' },
-        { id: 'Approved', approvalKey: 'approvedById' },
-        { id: 'Received', approvalKey: 'receivedById' }
+        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'Knowledge', approvalKey: 'acknowledgedById', searchId: 'acknowledgeBySearch' },
+        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -290,11 +350,31 @@ function populateUserSelects(users, prData = null) {
                 select.appendChild(option);
             });
             
-            // Set the value from PR data if available
+            // Set the value from PR data if available and update search input
             if (prData && prData[selectInfo.approvalKey]) {
                 select.value = prData[selectInfo.approvalKey];
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === prData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    }
+                }
             }
         }
+    });
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
     });
 }
 
@@ -568,13 +648,22 @@ function updateItemDescription(selectElement) {
     }
 }
 
-// Function to make all fields read-only for approval view
+// Modified makeAllFieldsReadOnly to include search inputs
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
     });
     
     // Disable all select fields
@@ -582,13 +671,6 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
     });
     
     // Hide add row button
