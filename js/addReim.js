@@ -111,126 +111,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function saveDocument() {
     try {
-        // Step 1: Collect reimbursement details from the form
-        const reimbursementDetails = [];
-        const tableRows = document.querySelectorAll("#tableBody tr");
-        
-        tableRows.forEach(row => {
-            const inputs = row.querySelectorAll("input");
-            if (inputs.length >= 4) {
-                reimbursementDetails.push({
-                    description: inputs[0].value || "",
-                    glAccount: inputs[1].value || "",
-                    accountName: inputs[2].value || "",
-                    amount: parseFloat(inputs[3].value) || 0
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Apakah dokumen sudah benar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await processDocument(false);
+                Swal.fire({
+                    title: 'Berhasil',
+                    text: 'Dokumen berhasil disimpan.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
                 });
             }
         });
-
-        // Step 2: Prepare the request data
-        const getElementValue = (id) => {
-            const element = document.getElementById(id);
-            return element ? element.value : "";
-        };
-        
-        // Special handling for checkboxes with the same ID as selects
-        const getApprovalValue = (id) => {
-            const selectElement = document.getElementById(`${id}Select`);
-            const checkboxElement = document.querySelector(`input[type="checkbox"]#${id}`);
-            
-            // If checkbox is checked, return the select value, otherwise empty string
-            if (checkboxElement && checkboxElement.checked && selectElement) {
-                return selectElement.value;
-            }
-            return "";
-        };
-
-        const reimbursementData = {
-            voucherNo: getElementValue("voucherNo"),
-            requesterName: getElementValue("requesterName"),
-            department: getElementValue("department"),
-            payTo: getElementValue("payTo"),
-            currency: getElementValue("currency"),
-            submissionDate: getElementValue("postingDate"), // Fixed: using postingDate from HTML
-            status: getElementValue("status"),
-            referenceDoc: getElementValue("referenceDoc"),
-            typeOfTransaction: getElementValue("typeOfTransaction"),
-            remarks: getElementValue("remarks"),
-            preparedBy: getApprovalValue("preparedBy"),
-            checkedBy: getApprovalValue("checkedBy"),
-            acknowledgedBy: getApprovalValue("acknowledgeBy"), // Fixed: using acknowledgeBy from HTML
-            approvedBy: getApprovalValue("approvedBy"),
-            reimbursementDetails: reimbursementDetails
-        };
-
-        console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
-
-        // Step 3: Send the POST request to create reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(reimbursementData)
-        });
-
-        let errorText = '';
-        try {
-            const errorData = await response.clone().json();
-            if (errorData && errorData.message) {
-                errorText = errorData.message;
-            }
-            if (errorData && errorData.errors) {
-                errorText += ': ' + JSON.stringify(errorData.errors);
-            }
-        } catch (e) {
-            // If we can't parse the error as JSON, use text
-            errorText = await response.clone().text();
-        }
-
-        if (!response.ok) {
-            throw new Error(errorText || `API error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (!result.status || result.code !== 200) {
-            throw new Error(result.message || 'Failed to create reimbursement');
-        }
-
-        // Step 4: Upload attachments if there are any
-        const reimbursementId = result.data.id;
-        
-        if (uploadedFiles.length > 0) {
-            const formData = new FormData();
-            
-            uploadedFiles.forEach(file => {
-                formData.append('files', file);
-            });
-
-            const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                throw new Error(errorData.message || `Upload error: ${uploadResponse.status}`);
-            }
-
-            const uploadResult = await uploadResponse.json();
-            
-            if (!uploadResult.status || uploadResult.code !== 200) {
-                throw new Error(uploadResult.message || 'Failed to upload attachments');
-            }
-        }
-
-        // Success notification
-        alert("Reimbursement saved successfully!");
-        
     } catch (error) {
         console.error("Error saving reimbursement:", error);
-        alert(`Error: ${error.message}`);
+        Swal.fire({
+            title: 'Error',
+            text: `Error: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -406,7 +312,6 @@ function populateDropdown(dropdownId, users) {
     });
 }
 
-// Function moved from HTML file
 function submitDocument() {
     Swal.fire({
         title: 'Konfirmasi',
@@ -415,15 +320,140 @@ function submitDocument() {
         showCancelButton: true,
         confirmButtonText: 'Ya',
         cancelButtonText: 'Batal'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Berhasil',
-                text: 'Dokumen berhasil di-submit.',
-                icon: 'success',
-                confirmButtonText: 'OK'
+            try {
+                await processDocument(true);
+                Swal.fire({
+                    title: 'Berhasil',
+                    text: 'Dokumen berhasil di-submit.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+            } catch (error) {
+                console.error("Error submitting reimbursement:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Error: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    });
+}
+
+// Common function to process document with isSubmit parameter
+async function processDocument(isSubmit) {
+    // Step 1: Collect reimbursement details from the form
+    const reimbursementDetails = [];
+    const tableRows = document.querySelectorAll("#tableBody tr");
+    
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll("input");
+        if (inputs.length >= 4) {
+            reimbursementDetails.push({
+                description: inputs[0].value || "",
+                glAccount: inputs[1].value || "",
+                accountName: inputs[2].value || "",
+                amount: parseFloat(inputs[3].value) || 0
             });
         }
     });
+
+    // Step 2: Prepare the request data
+    const getElementValue = (id) => {
+        const element = document.getElementById(id);
+        return element ? element.value : "";
+    };
+    
+    // Get approval values directly from select elements
+    const getApprovalValue = (id) => {
+        const selectElement = document.getElementById(`${id}Select`);
+        return selectElement ? selectElement.value : "";
+    };
+
+    const reimbursementData = {
+        voucherNo: getElementValue("voucherNo"),
+        requesterName: getElementValue("requesterName"),
+        department: getElementValue("department"),
+        payTo: getElementValue("payTo"),
+        currency: getElementValue("currency"),
+        submissionDate: getElementValue("postingDate"),
+        status: getElementValue("status"),
+        referenceDoc: getElementValue("referenceDoc"),
+        typeOfTransaction: getElementValue("typeOfTransaction"),
+        remarks: getElementValue("remarks"),
+        preparedBy: getApprovalValue("preparedBy"),
+        checkedBy: getApprovalValue("checkedBy"),
+        acknowledgedBy: getApprovalValue("acknowledgeBy"),
+        approvedBy: getApprovalValue("approvedBy"),
+        reimbursementDetails: reimbursementDetails,
+        isSubmit: isSubmit
+    };
+
+    console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
+
+    // Step 3: Send the POST request to create reimbursement
+    const response = await fetch(`${baseUrl}/api/reimbursements`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reimbursementData)
+    });
+
+    let errorText = '';
+    try {
+        const errorData = await response.clone().json();
+        if (errorData && errorData.message) {
+            errorText = errorData.message;
+        }
+        if (errorData && errorData.errors) {
+            errorText += ': ' + JSON.stringify(errorData.errors);
+        }
+    } catch (e) {
+        // If we can't parse the error as JSON, use text
+        errorText = await response.clone().text();
+    }
+
+    if (!response.ok) {
+        throw new Error(errorText || `API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.status || result.code !== 200) {
+        throw new Error(result.message || 'Failed to create reimbursement');
+    }
+
+    // Step 4: Upload attachments if there are any
+    const reimbursementId = result.data.id;
+    
+    if (uploadedFiles.length > 0) {
+        const formData = new FormData();
+        
+        uploadedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+
+        const uploadResponse = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.message || `Upload error: ${uploadResponse.status}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        
+        if (!uploadResult.status || uploadResult.code !== 200) {
+            throw new Error(uploadResult.message || 'Failed to upload attachments');
+        }
+    }
+    
+    return result;
 }
     
