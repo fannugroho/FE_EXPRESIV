@@ -15,7 +15,73 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Settlement ID not provided');
         window.history.back();
     }
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
 });
+
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
 
 // Function to fetch and populate settlement details
 function fetchSettleDetails(id) {
@@ -335,6 +401,8 @@ function fetchUsers(settlementData = null) {
             return response.json();
         })
         .then(data => {
+            // Store users globally for search functionality
+            window.allUsers = data.data;
             populateEmployeeField(data.data, settlementData);
             populateApprovalFields(data.data);
         })
@@ -398,10 +466,10 @@ function populateDepartmentSelect(departments) {
 // Function to populate approval fields (Prepared by, Checked by, etc.)
 function populateApprovalFields(users) {
     const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById' },
-        { id: 'Checked', dataKey: 'checkedById' },
-        { id: 'Approved', dataKey: 'approvedById' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById' }
+        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' }
     ];
     
     approvalSelects.forEach(selectInfo => {
@@ -418,13 +486,17 @@ function populateApprovalFields(users) {
                 select.appendChild(option);
             });
             
-            // Set the value from settlement approval data if available
+            // Set the value from settlement approval data if available and update search input
             if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
                 select.value = window.approvalData[selectInfo.dataKey];
-                // Also check the corresponding checkbox
-                const checkbox = select.parentElement.querySelector('input[type="checkbox"]');
-                if (checkbox) {
-                    checkbox.checked = true;
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}` || selectedUser.username;
+                    }
                 }
             }
         }
@@ -452,10 +524,19 @@ function populateEmployeeField(users, settlementData = null) {
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
     });
     
     // Disable all select fields
@@ -463,13 +544,6 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
     });
     
     // Hide add row button if it exists
