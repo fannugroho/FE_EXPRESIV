@@ -181,7 +181,7 @@ function approveSettle() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('approved', remarks);
+            updateSettleStatus('approve', remarks);
         }
     });
 }
@@ -213,7 +213,7 @@ function rejectSettle() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('rejected', remarks);
+            updateSettleStatus('reject', remarks);
         }
     });
 }
@@ -241,17 +241,16 @@ function updateSettleStatus(status, remarks) {
     });
     
     const requestBody = {
-        Id: settlementId,
-        ApproverId: userId,
-        ApproverRole: 'acknowledged',
+        id: settlementId,
+        UserId: userId,
         Status: status,
-        Remarks: remarks || ''
+        Remarks: remarks
     };
     
     console.log('Sending status update request:', requestBody);
     
     fetch(`${BASE_URL}/api/settlements/status`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -261,10 +260,11 @@ function updateSettleStatus(status, remarks) {
     .then(response => {
         if (!response.ok) {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                console.log('Error data:', errorData);
+                throw new Error(errorData.message || `HTTP error! status: ${errorData.Message}`);
             });
         }
-        return response.json();
+        return response;
     })
     .then(result => {
         console.log('Status update response:', result);
@@ -272,7 +272,7 @@ function updateSettleStatus(status, remarks) {
         if (result.status) {
             Swal.fire({
                 title: 'Success!',
-                text: `Settlement has been ${status === 'approved' ? 'acknowledged' : 'rejected'} successfully.`,
+                text: `Settlement has been ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully.`,
                 icon: 'success',
                 timer: 2000,
                 showConfirmButton: false
