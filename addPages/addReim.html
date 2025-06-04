@@ -144,26 +144,5 @@
     </div>
     <script src="../js/addReim.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        function submitDocument() {
-            Swal.fire({
-                title: 'Konfirmasi',
-                text: 'Apakah dokumen sudah benar?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Berhasil',
-                        text: 'Dokumen berhasil di-submit.',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            });
-        }
-    </script>
 </body>
 </html>
