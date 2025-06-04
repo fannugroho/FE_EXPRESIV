@@ -36,16 +36,10 @@ async function saveDocument() {
             return element ? element.value : "";
         };
         
-        // Special handling for checkboxes with the same ID as selects
+        // Get approval values directly from select elements
         const getApprovalValue = (id) => {
             const selectElement = document.getElementById(`${id}Select`);
-            const checkboxElement = document.querySelector(`input[type="checkbox"]#${id}`);
-            
-            // If checkbox is checked, return the select value, otherwise empty string
-            if (checkboxElement && checkboxElement.checked && selectElement) {
-                return selectElement.value;
-            }
-            return "";
+            return selectElement ? selectElement.value : "";
         };
 
         const reimbursementData = {
