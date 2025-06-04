@@ -17,6 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Add the shared menu CSS for better styling -->
     <link rel="stylesheet" href="../shared-menu.css">
+
     <link rel="stylesheet" href="menuSettleCheck.css">
 
 </head>
@@ -63,9 +64,9 @@
                 </button>
             <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
             </div>            
             </div>
 
@@ -75,9 +76,9 @@
                 </button>
             <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
             </div>            
             </div>
 
@@ -208,7 +209,7 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 mt-2 md:mt-0 border-b w-full md:w-auto">
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <button id="draftTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-file mr-2"></i>Prepared
                         </button>
                         <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
@@ -272,7 +273,7 @@
 
     <!-- Mobile Navigation Bar - More comprehensive options -->
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file text-xl"></i>
             <span>Prepared</span>
         </button>
@@ -289,6 +290,7 @@
     <!-- External JS -->
     <script src="menuSettleCheck.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
+    <script src="../../../../js/auth.js"></script>
 
 </body>
 </html>

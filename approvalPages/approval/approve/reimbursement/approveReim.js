@@ -1,4 +1,4 @@
-const baseUrl = 'https://t246vds2-5246.asse.devtunnels.ms';
+const baseUrl = 'https://expressiv.idsdev.site';
 let reimbursementId = '';
 let uploadedFiles = [];
 
@@ -248,13 +248,37 @@ function onReject() {
         cancelButtonText: 'Cancel',
         showLoaderOnConfirm: true,
         preConfirm: (remarks) => {
-            // Here you can handle the rejection logic, e.g., send remarks to the server
-            console.log('Remarks:', remarks);
-            // For now, just simulate an API call
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve();
-                }, 2000);
+            if (!remarks) {
+                Swal.showValidationMessage('Please enter remarks for rejection');
+                return false;
+            }
+            
+            // Get reimbursement ID from URL
+            const id = getReimbursementIdFromUrl();
+            if (!id) {
+                Swal.showValidationMessage('No reimbursement ID found');
+                return false;
+            }
+            
+            // Send rejection to API
+            return fetch(`${baseUrl}/api/reimbursements/${id}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    remarks: remarks,
+                    rejectedBy: document.getElementById('approvedBy').value // Using the approver field as the rejector
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to reject document');
+                }
+                return response.json();
+            })
+            .catch(error => {
+                Swal.showValidationMessage(`Request failed: ${error}`);
             });
         },
         allowOutsideClick: () => !Swal.isLoading()
@@ -264,7 +288,10 @@ function onReject() {
                 'Rejected!',
                 'The document has been rejected.',
                 'success'
-            );
+            ).then(() => {
+                // Return to menu
+                goToMenuReim();
+            });
         }
     });
 }
@@ -281,13 +308,50 @@ function onApprove() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Here you can handle the approval logic
-            // For now, just simulate an API call
-            Swal.fire(
-                'Approved!',
-                'The document has been approved.',
-                'success'
-            );
+            // Get reimbursement ID from URL
+            const id = getReimbursementIdFromUrl();
+            if (!id) {
+                Swal.fire('Error', 'No reimbursement ID found', 'error');
+                return;
+            }
+            
+            // Send approval to API
+            fetch(`${baseUrl}/api/reimbursements/${id}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    approvedBy: document.getElementById('approvedBy').value
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Approved!',
+                        'The document has been approved.',
+                        'success'
+                    ).then(() => {
+                        // Return to menu
+                        goToMenuReim();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to approve document',
+                        'error'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error approving document:', error);
+                Swal.fire(
+                    'Error',
+                    'An error occurred while approving the document',
+                    'error'
+                );
+            });
         }
     });
 }
@@ -324,6 +388,18 @@ function displayFileList() {
     // Implementation for displaying file list
     // This function was referenced but not defined in the original code
     console.log('Files uploaded:', uploadedFiles);
+}
+
+function printReimbursement() {
+    // Get reimbursement ID from URL
+    const reimId = getReimbursementIdFromUrl();
+    if (!reimId) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    // Open the print page in a new window/tab
+    window.open(`printReim.html?reim-id=${reimId}`, '_blank');
 }
 
 // Event listener for document type change

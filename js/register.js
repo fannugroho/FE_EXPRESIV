@@ -496,7 +496,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
               console.log(`Registering user ${i + 1}:`, JSON.stringify(user, null, 2));
               
-              const response = await fetch('https://t246vds2-5246.asse.devtunnels.ms/api/authentication/register', {
+              const response = await fetch('https://expressiv.idsdev.site/api/authentication/register', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

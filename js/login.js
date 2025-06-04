@@ -52,6 +52,9 @@
       const savedLang = localStorage.getItem("language") || "en";
       applyLanguage(savedLang);
       updateFlag(savedLang);
+      
+      // Check if user is already logged in
+      checkExistingLogin();
     });
 
     // Helper function to decode JWT token
@@ -97,7 +100,7 @@
       console.log(loginData);
 
       // Make API call
-      fetch("https://t246vds2-5246.asse.devtunnels.ms/api/authentication/login", {
+      fetch("https://expressiv.idsdev.site/api/authentication/login", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +123,13 @@
           
           if (userInfo) {
             // Store user information
-            localStorage.setItem("loggedInUser", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
+            const userObject = {
+              id: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
+              name: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
+              roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || []
+            };
+            
+            localStorage.setItem("loggedInUser", JSON.stringify(userObject));
             localStorage.setItem("loggedInUserCode", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
             localStorage.setItem("userId", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
             localStorage.setItem("userRoles", JSON.stringify(userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]));

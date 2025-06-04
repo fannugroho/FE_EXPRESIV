@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="shared-menu.css">
     <link rel="stylesheet" href="menuPRAcknow.css">
     <!-- Navigation Script -->
-    <script src="../pages/utils/toMenu.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
@@ -66,9 +66,9 @@
                 </button>
                 <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
                 </div>            
             </div>
 
@@ -78,9 +78,9 @@
                 </button>
                 <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
                 </div>            
             </div>
 
@@ -188,12 +188,12 @@
                     <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold text-gray-800">Acknowledge</h3>
-                    <p id="acknowledgeCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
+                    <p id="checkedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
-                    <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Acknowledged</h3>
+                    <p id="acknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
@@ -211,8 +211,8 @@
                         <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Checked
                         </button>
-                        <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-file-alt mr-2"></i>Acknowledge
+                        <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Acknowledged
                         </button>
                         <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-times-circle mr-2"></i>Rejected
@@ -302,6 +302,7 @@
     </nav>
 
     <!-- External JS -->
+    <script src="../../../../js/auth.js"></script>
     <script src="../js/shared-menu.js"></script>
     <script src="menuPRAcknow.js"></script>
 </body>

@@ -1,92 +1,17 @@
-function loadDashboard() {
-    // Fetch status counts and settlements data in a single API call
-    fetchStatusCounts();
-    
-    // Set up initial state for tabs and pagination
-    setupTabsAndPagination();
-    
-    // Set up notification dropdown
-    setupNotificationDropdown();
-    
-    // Load user profile information
-    loadUserProfileInfo();
-}
+// Current tab state
+let currentTab = 'checked'; // Default tab
 
-// Variables for pagination and filtering
+// Pagination variables
 let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allSettlements = [];
-let currentTab = 'checked'; // Default tab
 
-// Function to fetch status counts from API
-function fetchStatusCounts() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
-    // Use the same endpoint as regular settlements, we'll calculate counts locally
-    const endpoint = "/api/settlements";
+// Load dashboard when page is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
     
-    fetch(`${baseUrl}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                // Calculate counts from the full data
-                const settlements = data.data;
-                const counts = {
-                    totalCount: settlements.length,
-                    checkedCount: settlements.filter(item => item.status === 'Checked').length,
-                    acknowledgeCount: settlements.filter(item => item.status === 'Acknowledge').length,
-                    rejectedCount: settlements.filter(item => item.status === 'Rejected').length
-                };
-                updateStatusCounts(counts);
-                
-                // Store the data to avoid making a second fetch
-                allSettlements = settlements;
-                switchTab(currentTab);
-            } else {
-                console.error('API returned an error:', data.message);
-                useSampleData();
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
-            updateSampleCounts();
-        });
-}
-
-// Function to display settlements in the table
-function displaySettlements(settlements) {
-    filteredData = settlements;
-    updateTable();
-    updatePagination();
-}
-
-// Function to update the status counts on the page
-function updateStatusCounts(data) {
-    document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("checkedCount").textContent = data.checkedCount || 0;
-    document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
-    document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
-}
-
-// Set up events for tab switching and pagination
-function setupTabsAndPagination() {
-    // Set up the "select all" checkbox
-    document.getElementById('selectAll').addEventListener("change", function() {
-        const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
-}
-
-// Setup notification dropdown functionality
-function setupNotificationDropdown() {
+    // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
     const notificationDropdown = document.getElementById('notificationDropdown');
     
@@ -103,6 +28,261 @@ function setupNotificationDropdown() {
             }
         });
     }
+});
+
+async function loadDashboard() {
+    try {
+        // Get user ID for approver ID
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        let url;
+        
+        // Build URL based on current tab
+        if (currentTab === 'checked') {
+            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`;
+        } else if (currentTab === 'acknowledged') {
+            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`;
+        } else if (currentTab === 'rejected') {
+            url = `${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`;
+        }
+
+        console.log('Fetching dashboard data from:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Dashboard API response:', result);
+
+        if (result.status && result.data) {
+            const documents = result.data;
+            
+            // Update counters by fetching all statuses
+            await updateCounters(userId);
+            
+            // Update the table with filtered documents
+            updateTable(documents);
+            
+            // Update pagination info
+            updatePaginationInfo(documents.length);
+        } else {
+            console.error('API response error:', result.message);
+            // Fallback to empty state
+            updateTable([]);
+            updatePaginationInfo(0);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
+    }
+}
+
+// Function to update counters by fetching data for all statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status using new API endpoints
+        const checkedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const acknowledgedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const acknowledgedData = acknowledgedResponse.ok ? await acknowledgedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        const checkedCount = checkedData.data ? checkedData.data.length : 0;
+        const acknowledgedCount = acknowledgedData.data ? acknowledgedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
+        const totalCount = checkedCount + acknowledgedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        
+        // Fallback to zero counts
+        document.getElementById("totalCount").textContent = 0;
+        document.getElementById("checkedCount").textContent = 0;
+        document.getElementById("acknowledgedCount").textContent = 0;
+        document.getElementById("rejectedCount").textContent = 0;
+    }
+}
+
+// Function to update table with documents
+function updateTable(documents = []) {
+    const tableBody = document.getElementById('recentDocs');
+    tableBody.innerHTML = '';
+    
+    filteredData = documents;
+    
+    if (documents.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="7" class="p-4 text-center text-gray-500">
+                No documents found for the selected tab.
+            </td>
+        `;
+        tableBody.appendChild(row);
+        return;
+    }
+    
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
+    const paginatedDocs = documents.slice(startIndex, endIndex);
+    
+    paginatedDocs.forEach(doc => {
+        const row = document.createElement('tr');
+        row.classList.add('border-t', 'hover:bg-gray-100');
+        
+        // Format submission date
+        let formattedDate = '';
+        if (doc.submissionDate) {
+            const date = new Date(doc.submissionDate);
+            if (!isNaN(date)) {
+                formattedDate = date.toLocaleDateString();
+            }
+        }
+        
+        row.innerHTML = `
+            <td class="p-2">${doc.id ? doc.id.substring(0, 10) : ''}</td>
+            <td class="p-2">${doc.settlementNumber || ''}</td>
+            <td class="p-2">${doc.requesterName || ''}</td>
+            <td class="p-2">${doc.departmentName || ''}</td>
+            <td class="p-2">${formattedDate}</td>
+            <td class="p-2">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
+                    ${doc.status || ''}
+                </span>
+            </td>
+            <td class="p-2">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailSettle('${doc.id || ''}')">
+                    Detail
+                </button>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to update pagination info
+function updatePaginationInfo(totalItems) {
+    const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    
+    document.getElementById('startItem').textContent = startItem;
+    document.getElementById('endItem').textContent = endItem;
+    document.getElementById('totalItems').textContent = totalItems;
+    
+    // Update pagination buttons
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    
+    prevButton.classList.toggle('disabled', currentPage <= 1);
+    nextButton.classList.toggle('disabled', currentPage >= totalPages);
+    
+    document.getElementById('currentPage').textContent = currentPage;
+}
+
+// Function to switch between tabs
+function switchTab(tabName) {
+    currentTab = tabName;
+    currentPage = 1; // Reset to first page
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
+    
+    if (tabName === 'checked') {
+        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    }
+    
+    // Reload dashboard with the new filter
+    loadDashboard();
+}
+
+// Helper function to get status styling
+function getStatusClass(status) {
+    switch(status) {
+        case 'Prepared': return 'bg-yellow-100 text-yellow-800';
+        case 'Checked': return 'bg-green-100 text-green-800';
+        case 'Acknowledged': return 'bg-blue-100 text-blue-800';
+        case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
+        case 'Reject': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Pagination handlers
+function changePage(direction) {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        updateTable(filteredData);
+        updatePaginationInfo(filteredData.length);
+    }
+}
+
+// Function to navigate to total documents page
+function goToTotalDocs() {
+    switchTab('checked');
+}
+
+// Navigation functions
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('hidden');
+    }
+}
+
+function toggleSubMenu(menuId) {
+    document.getElementById(menuId).classList.toggle("hidden");
+}
+
+// Function to navigate to user profile page
+function goToProfile() {
+    window.location.href = "../../../../pages/profil.html";
+}
+
+// Function to redirect to detail page with settlement ID
+function detailSettle(settleId) {
+    window.location.href = `../../../approval/acknowledge/settlement/acknowledgeSettle.html?settle-id=${settleId}&tab=${currentTab}`;
 }
 
 // Load user profile information
@@ -136,266 +316,72 @@ function loadUserProfileInfo() {
     }
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('hidden');
-    }
-}
-
-function toggleSubMenu(menuId) {
-    document.getElementById(menuId).classList.toggle("hidden");
-}
-
-// Navigation functions
-function goToMenu() { window.location.href = "../../../../Menu.html"; }
-function goToMenuPR() { window.location.href = "../../../purchaseRequest/menuPR.html"; }
-function goToMenuCheckPR() { window.location.href = "../../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-function goToMenuAcknowPR() { window.location.href = "../../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
-function goToMenuApprovPR() { window.location.href = "../../../dashboardApprove/purchaseRequest/menuPRApprov.html"; }
-function goToMenuReceivePR() { window.location.href = "../../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
-
-function goToMenuReim() { window.location.href = "../../../reimbursement/menuReim.html"; }
-function goToMenuCash() { window.location.href = "../../../cashAdvance/menuCash.html"; }
-function goToMenuSettle() { window.location.href = "../../../settlement/menuSettle.html"; }
-
-function goToMenuRegist() { window.location.href = "../../../../pages/register/register.html"; }
-function goToMenuUser() { window.location.href = "../../../../pages/register/userList.html"; }
-function goToMenuRole() { window.location.href = "../../../../pages/register/roleList.html"; }
-
-function goToMenuAPR() { window.location.href = "../../../../approvalDecisionReport/purchase/APR.html"; }
-function goToMenuPO() { window.location.href = "../../../../approvalDecisionReport/purchase/PO.html"; }
-function goToMenuBanking() { window.location.href = "../../../../approvalDecisionReport/outgoing/Banking.html"; }
-function goToMenuInvoice() { window.location.href = "../../../../approvalDecisionReport/invoice/Invoice.html"; }
-
-function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "../../../../pages/login/login.html"; 
-}
-
-// Function to navigate to user profile page
-function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
-}
-
-function goToDetailSettle(settleId) {
-    window.location.href = `../../../../detailPages/detailSettle.html?settle-id=${settleId}`;
-}
-
-// Sample data for testing when API is not available
-let sampleData = [];
-function generateSampleData() {
-    sampleData = [];
-    for (let i = 1; i <= 35; i++) {
-        let status;
-        if (i <= 20) {
-            status = 'Checked';
-        } else if (i <= 30) {
-            status = 'Acknowledge';
-        } else {
-            status = 'Rejected';
-        }
-        
-        sampleData.push({
-            id: i,
-            docNumber: `DOC-${1000 + i}`,
-            settlementNumber: `STL-${2000 + i}`,
-            requesterName: `User ${i}`,
-            department: `Department ${(i % 5) + 1}`,
-            submissionDate: new Date(2023, 0, i).toISOString(),
-            status: status
-        });
-    }
-    return sampleData;
-}
-
-// Use sample data when API fails
-function useSampleData() {
-    allSettlements = generateSampleData();
-    updateSampleCounts();
-}
-
-// Update counts using sample data
-function updateSampleCounts() {
-    const data = generateSampleData();
-    document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("acknowledgeCount").textContent = data.filter(item => item.status === 'Acknowledge').length;
-    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
-}
-
-// Switch between tabs
-function switchTab(tabName) {
-    currentTab = tabName;
-    currentPage = 1; // Reset to first page
-    
-    // Update tab button styling
-    document.getElementById('checkedTabBtn').classList.remove('tab-active');
-    document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
-    if (document.getElementById('rejectedTabBtn')) {
-        document.getElementById('rejectedTabBtn').classList.remove('tab-active');
-    }
-    
-    if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
-        filteredData = allSettlements.filter(item => item.status === 'Checked');
-    } else if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-        filteredData = allSettlements.filter(item => item.status === 'Acknowledge');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
-        filteredData = allSettlements.filter(item => item.status === 'Rejected');
-    }
-    
-    // Update table and pagination
-    updateTable();
-    updatePagination();
-}
-
-// Helper function to get status styling
-function getStatusClass(status) {
-    switch(status) {
-        case 'Checked': return 'bg-yellow-200 text-yellow-800';
-        case 'Acknowledge': return 'bg-green-200 text-green-800';
-        case 'Rejected': return 'bg-red-200 text-red-800';
-        default: return 'bg-gray-200 text-gray-800';
-    }
-}
-
-// Update the table with current data
-function updateTable() {
-    const tableBody = document.getElementById('recentDocs');
-    tableBody.innerHTML = '';
-    
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-    
-    for (let i = startIndex; i < endIndex; i++) {
-        const item = filteredData[i];
-        
-        // Format the submission date if needed
-        let formattedDate = item.submissionDate;
-        if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
-        }
-        
-        const row = document.createElement('tr');
-        row.classList.add('border-t', 'hover:bg-gray-100');
-        
-        row.innerHTML = `
-            <td class="p-2">
-                <input type="checkbox" class="rowCheckbox" data-id="${item.id}" />
-            </td>
-            <td class="p-2">${item.id || ''}</td>
-            <td class="p-2">${item.settlementNumber || ''}</td>
-            <td class="p-2">${item.requesterName || ''}</td>
-            <td class="p-2">${item.department || 'IT'}</td>
-            <td class="p-2">${formattedDate}</td>
-            <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(item.status)}">
-                    ${item.status}
-                </span>
-            </td>
-            <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="goToDetailSettle('${item.id}')">
-                    Detail
-                </button>
-            </td>
-        `;
-        
-        tableBody.appendChild(row);
-    }
-    
-    // Update the item count display
-    document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
-    document.getElementById('endItem').textContent = endIndex;
-    document.getElementById('totalItems').textContent = filteredData.length;
-}
-
-// Update pagination controls
-function updatePagination() {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    document.getElementById('currentPage').textContent = currentPage;
-    
-    // Disable/enable prev/next buttons
-    const prevButton = document.getElementById('prevPage');
-    const nextButton = document.getElementById('nextPage');
-    
-    prevButton.classList.toggle('disabled', currentPage === 1);
-    nextButton.classList.toggle('disabled', currentPage === totalPages || totalPages === 0);
-}
-
-// Change page
-function changePage(direction) {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const newPage = currentPage + direction;
-    
-    if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-        updateTable();
-        updatePagination();
-    }
-}
-
-function goToTotalDocs() {
-    // This function would navigate to a page showing all documents
-    window.location.href = "../dashboard/dashboardAcknowledge.html";
-}
-
-// Function to download table data as Excel
+// Download as Excel
 function downloadExcel() {
-    const worksheet = XLSX.utils.json_to_sheet(
-        filteredData.map(doc => ({
-            'Document Number': doc.id,
-            'Settlement Number': doc.settlementNumber,
-            'Requester': doc.requesterName,
-            'Department': doc.department || 'IT',
-            'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-            'Status': doc.status
-        }))
-    );
+    if (filteredData.length === 0) {
+        alert('No data available to export.');
+        return;
+    }
     
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Settlements");
+    // Create worksheet data
+    const worksheetData = [
+        ['ID', 'Settlement No', 'Requester', 'Department', 'Submission Date', 'Status']
+    ];
     
-    // Generate Excel file
-    XLSX.writeFile(workbook, `Settlement_${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    filteredData.forEach(doc => {
+        worksheetData.push([
+            doc.id ? doc.id.substring(0, 10) : '',
+            doc.settlementNumber || '',
+            doc.requesterName || '',
+            doc.departmentName || '',
+            doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+            doc.status || ''
+        ]);
+    });
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Settlements');
+    
+    // Save file
+    XLSX.writeFile(wb, 'Settlements_Acknowledge.xlsx');
 }
 
-// Function to download table data as PDF
+// Download as PDF
 function downloadPDF() {
-    // Setup for jsPDF
+    if (filteredData.length === 0) {
+        alert('No data available to export.');
+        return;
+    }
+    
+    // Create document data
+    const docData = [];
+    
+    filteredData.forEach(doc => {
+        docData.push([
+            doc.id ? doc.id.substring(0, 10) : '',
+            doc.settlementNumber || '',
+            doc.requesterName || '',
+            doc.departmentName || '',
+            doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
+            doc.status || ''
+        ]);
+    });
+    
+    // Create PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add title
-    doc.setFontSize(18);
-    doc.text(`Settlement ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)} Report`, 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-    
-    // Add table
+    doc.text('Settlements Acknowledge Report', 14, 16);
     doc.autoTable({
-        startY: 35,
-        head: [['ID', 'Settlement Number', 'Requester', 'Department', 'Submission Date', 'Status']],
-        body: filteredData.map(item => [
-            item.id,
-            item.settlementNumber,
-            item.requesterName,
-            item.department || 'IT',
-            item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            item.status
-        ]),
-        theme: 'grid',
-        headStyles: { fillColor: [66, 133, 244] }
+        head: [['ID', 'Settlement No', 'Requester', 'Department', 'Submission Date', 'Status']],
+        body: docData,
+        startY: 20
     });
     
-    // Save PDF
-    doc.save(`Settlement_${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}_${new Date().toISOString().split('T')[0]}.pdf`);
-}
-
-// Initialize dashboard on page load
-document.addEventListener('DOMContentLoaded', loadDashboard); 
+    // Save file
+    doc.save('Settlements_Acknowledge.pdf');
+} 

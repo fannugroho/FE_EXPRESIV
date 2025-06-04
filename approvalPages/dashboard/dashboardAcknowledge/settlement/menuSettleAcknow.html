@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="shared-menu.css">
     <link rel="stylesheet" href="menuSettleAcknow.css">
     <!-- Navigation Script -->
+    <script src="../../../../js/auth.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
 </head>
 <body>
@@ -65,9 +66,9 @@
                 </button>
             <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
             </div>            
             </div>
 
@@ -77,9 +78,9 @@
                 </button>
             <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
             </div>            
             </div>
 
@@ -193,7 +194,7 @@
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                     <h3 class="text-lg font-semibold">Acknowledge</h3>
-                    <p id="acknowledgeCount" class="text-2xl font-bold text-green-600">0</p>
+                    <p id="acknowledgedCount" class="text-2xl font-bold text-green-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                     <h3 class="text-lg font-semibold">Rejected</h3>
@@ -210,8 +211,8 @@
                     <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 tab-active rounded-t-lg">
                         <i class="fas fa-check mr-2"></i>Checked
                     </button>
-                    <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-thumbs-up mr-2"></i>Acknowledge
+                    <button id="acknowledgeTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg">
+                        <i class="fas fa-thumbs-up mr-2"></i>Acknowledged
                     </button>
                     <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
                         <i class="fas fa-times-circle mr-2"></i>Rejected
@@ -222,9 +223,6 @@
                     <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                         <thead class="bg-gray-200">
                             <tr>
-                                <th class="p-2 text-left">
-                                    <input type="checkbox" id="selectAll" />
-                                </th>
                                 <th class="p-2 text-left">Doc Number</th>
                                 <th class="p-2 text-left">Settlement Number</th>
                                 <th class="p-2 text-left">Requester</th>
@@ -280,9 +278,9 @@
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
         </button>
-        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledge</span>
+            <span>Acknowledged</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-times-circle text-xl"></i>
@@ -291,7 +289,6 @@
     </nav>
 
     <script src="menuSettleAcknow.js"></script>
-    <script src="../../../../pages/utils/toMenu.js"></script>
 
 </body>
 </html>

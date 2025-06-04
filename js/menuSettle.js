@@ -1,8 +1,9 @@
     // Load data
+    const baseUrl = "https://expressiv.idsdev.site";
     async function loadDashboard() {
         try {
             // Fetch data from API
-            const response = await fetch("https://t246vds2-5246.asse.devtunnels.ms/api/settlements");
+            const response = await fetch(`${baseUrl}/api/settlements/dashboard`);
             const apiResponse = await response.json();
             
             if (!apiResponse.status || !apiResponse.data) {

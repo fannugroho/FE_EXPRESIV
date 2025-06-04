@@ -58,9 +58,9 @@
                 </button>
             <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
             </div>            
             </div>
 
@@ -70,9 +70,9 @@
                 </button>
             <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
             </div>            
             </div>
 
@@ -108,9 +108,9 @@
 
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Settlement
+                Dashboard Settlement Approval
             </h2>
-
+            <!--jumlah dokumen dan status-->
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">    
             <div class="hidden md:grid grid-cols-4 gap-4 mb-6">
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
@@ -129,8 +129,9 @@
                     <h3 class="text-lg font-semibold">Rejected</h3>
                     <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
                 </div>
+                </div>
             </div>
-
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
             <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h3 class="text-xl font-semibold mb-4">List Documents</h3>
                 
@@ -141,6 +142,9 @@
                     </button>
                     <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
                         <i class="fas fa-check-circle mr-2"></i>Approved
+                    </button>
+                    <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                        <i class="fas fa-ban mr-2"></i>Rejected
                     </button>
                 </div>
                 
@@ -154,6 +158,7 @@
                                 <th class="p-2 text-left">Department</th>
                                 <th class="p-2 text-left">Submission Date</th>
                                 <th class="p-2 text-left">Status</th>
+                                <th id="remarksHeader" class="p-2 text-left" style="display: none;">Remarks</th>
                                 <th class="p-2 text-left">Tools</th>
                             </tr>
                         </thead>
@@ -193,6 +198,7 @@
             </div>
         </div>
         </div>
+        </div>
     </div>
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
         <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
@@ -215,6 +221,7 @@
 
     <script src="menuSettleApprove.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
+    <script src="../../../../js/auth.js"></script>
 
 </body>
 </html>

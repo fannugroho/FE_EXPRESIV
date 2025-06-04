@@ -1,5 +1,5 @@
 function loadDashboard() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     
     fetch(`${baseUrl}/api/cash-advance`)
         .then(response => {
@@ -60,7 +60,7 @@ let currentTab = 'checked'; // Default tab is now 'checked' which corresponds to
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/cashadvances/status-counts";
     
     fetch(`${baseUrl}${endpoint}`)
@@ -86,7 +86,7 @@ function fetchStatusCounts() {
 
 // Function to fetch cash advances from API
 function fetchCashAdvances() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/cashadvances";
     
     fetch(`${baseUrl}${endpoint}`)
@@ -400,7 +400,7 @@ function changePage(direction) {
 
 // Download as Excel
 function downloadExcel() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     
     fetch(`${baseUrl}/api/cash-advance`)
         .then(response => response.json())
@@ -460,7 +460,7 @@ function downloadExcel() {
 
 // Download as PDF
 function downloadPDF() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     
     fetch(`${baseUrl}/api/cash-advance`)
         .then(response => response.json())

@@ -91,6 +91,31 @@ th {
   margin-right: 0.25rem;
 }
 
+/* Permission container */
+#permissionsContainer {
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+#permissionsContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+#permissionsContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+#permissionsContainer::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+#permissionsContainer::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
 /* Permission checkboxes */
 .permission-checkbox {
   display: flex;
@@ -109,6 +134,7 @@ th {
   width: 1rem;
   border-radius: 0.25rem;
   border-color: #d1d5db;
+  cursor: pointer;
 }
 
 .permission-checkbox input[type="checkbox"]:checked {
@@ -121,6 +147,18 @@ th {
   font-size: 0.875rem;
   color: #374151;
   cursor: pointer;
+  flex: 1;
+}
+
+/* Select All checkbox */
+.permission-checkbox.select-all {
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.permission-checkbox.select-all label {
+  color: #4b5563;
 }
 
 /* Permission Category */
@@ -128,9 +166,16 @@ th {
   font-weight: 600;
   font-size: 0.875rem;
   color: #374151;
-  padding: 0.25rem 0;
-  margin-top: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  margin-top: 1rem;
   border-bottom: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+/* First permission category */
+.permission-category:first-child {
+  margin-top: 0;
 }
 
 /* Animation Effects */
@@ -186,4 +231,26 @@ th {
     width: 24px;
     height: 24px;
   }
+  
+  #permissionsContainer {
+    max-height: 250px;
+  }
+}
+
+/* Preset Roles Dropdown */
+.preset-role-item {
+  display: block;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  transition: background-color 0.2s;
+}
+
+.preset-role-item:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+#presetRolesMenu {
+  z-index: 20;
 } 

@@ -19,7 +19,9 @@
     <link rel="stylesheet" href="../../../../css/shared-menu.css">
     <link rel="stylesheet" href="menuCashApprove.css">
     <!-- Navigation Script -->
-    <script src="../../../../js/utils/toMenu.js"></script>
+    <script src="../../../../js/auth.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
+    
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -64,9 +66,9 @@
                 </button>
                 <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
                 </div>            
             </div>
 
@@ -76,9 +78,9 @@
                 </button>
                 <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
                 </div>            
             </div>
 
@@ -110,7 +112,7 @@
             <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </aside>
 
-        <!-- Main Content -->
+        <!--jumlah dokumen dan status-->
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
                 Dashboard Cash Advance Approval
@@ -134,18 +136,24 @@
                         <h3 class="text-lg font-semibold">Rejected</h3>
                         <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
                     </div>
+                    </div>
                 </div>
+
+                <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
 
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h3 class="text-xl font-semibold mb-4">List Documents</h3>
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 border-b">
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <button id="draftTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-file-alt mr-2"></i>Acknowledged
                         </button>
-                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                        <button id="checkedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Approved
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-times mr-2"></i>Rejected
                         </button>
                     </div>
                     
@@ -159,6 +167,7 @@
                                     <th class="p-2 text-left">Department</th>
                                     <th class="p-2 text-left">Submission Date</th>
                                     <th class="p-2 text-left">Status</th>
+                                    <th id="remarksHeader" class="p-2 text-left" style="display: none;">Remarks</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
@@ -196,6 +205,7 @@
                         </button>
                     </div>
                     </div>
+                    </div>
             </div>
         </div>
     </div>
@@ -205,13 +215,17 @@
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file text-xl"></i>
           <span>Acknowledged</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-check text-xl"></i>
           <span>Approved</span>
+        </button>
+        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-times text-xl"></i>
+          <span>Rejected</span>
         </button>
     </nav>
 

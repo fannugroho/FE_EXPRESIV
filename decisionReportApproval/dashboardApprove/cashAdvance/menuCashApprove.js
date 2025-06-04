@@ -15,7 +15,7 @@ let currentTab = 'draft'; // Default tab is 'draft' which corresponds to Acknowl
 
 // Function to fetch real data from API
 function fetchRealData() {
-    const baseUrl = "https://t246vds2-5246.asse.devtunnels.ms";
+    const baseUrl = "https://expressiv.idsdev.site";
     
     fetch(`${baseUrl}/api/cash-advance`)
         .then(response => {
