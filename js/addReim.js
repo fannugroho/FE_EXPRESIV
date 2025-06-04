@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fileInput) {
         fileInput.addEventListener('change', previewPDF);
     }
+    
+    // Fetch users from API to populate dropdowns
+    fetchUsers();
 });
 
 async function saveDocument() {
@@ -254,4 +257,76 @@ function goToMenuPO() { window.location.href = "MenuPO.html"; }
 function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${baseUrl}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Populate dropdowns
+        populateDropdown("preparedBySelect", users);
+        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("checkedBySelect", users);
+        populateDropdown("approvedBySelect", users);
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
+    }
+}
+
+// Helper function to populate a dropdown with user data
+function populateDropdown(dropdownId, users) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Clear existing options
+    dropdown.innerHTML = "";
+    
+    // Add users as options
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = user.firstName;
+        if (user.middleName) displayName += ` ${user.middleName}`;
+        if (user.lastName) displayName += ` ${user.lastName}`;
+        
+        option.textContent = displayName;
+        dropdown.appendChild(option);
+    });
+}
+
+// Function moved from HTML file
+function submitDocument() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Berhasil',
+                text: 'Dokumen berhasil di-submit.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+}
     
