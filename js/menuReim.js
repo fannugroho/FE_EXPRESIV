@@ -67,10 +67,9 @@ function switchTab(tabName) {
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/reimbursements/status-counts";
     
-    fetch(`${baseUrl}${endpoint}`)
+    fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -91,10 +90,9 @@ function fetchStatusCounts() {
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
-    const baseUrl = "https://expressiv.idsdev.site";
     const endpoint = "/api/reimbursements";
     
-    fetch(`${baseUrl}${endpoint}`)
+    fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');

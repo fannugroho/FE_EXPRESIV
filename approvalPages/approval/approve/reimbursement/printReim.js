@@ -1,4 +1,4 @@
-const baseUrl = 'https://expressiv.idsdev.site';
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
 let reimbursementId = '';
 
 // Get reimbursement ID from URL
@@ -98,7 +98,7 @@ async function fetchReimbursementData() {
     }
     
     try {
-        const response = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}`);
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
         
         if (result.status && result.code === 200) {

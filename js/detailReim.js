@@ -102,9 +102,7 @@ function confirmDelete() {
     });
 }
 
-function deleteDocument() {
-    const baseUrl = 'https://expressiv.idsdev.site';
-    
+async function deleteDocument() {
     // Get the ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('reim-id');
@@ -114,15 +112,17 @@ function deleteDocument() {
         return;
     }
     
-    // Call the DELETE API
-    fetch(`${baseUrl}/api/reimbursements/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        // Call the DELETE API
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
         if (data.status) {
             Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
             .then(() => {
@@ -132,11 +132,10 @@ function deleteDocument() {
         } else {
             Swal.fire('Error!', data.message || 'Gagal menghapus dokumen karena status dokumen sudah bukan draft.', 'error');
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
         Swal.fire('Error!', 'Terjadi kesalahan saat menghapus dokumen.', 'error');
-    });
+    }
 }
 
     

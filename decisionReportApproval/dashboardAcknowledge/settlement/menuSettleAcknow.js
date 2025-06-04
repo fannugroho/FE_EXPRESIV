@@ -21,11 +21,10 @@ let currentTab = 'checked'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const baseUrl = "https://expressiv.idsdev.site";
     // Use the same endpoint as regular settlements, we'll calculate counts locally
     const endpoint = "/api/settlements";
     
-    fetch(`${baseUrl}${endpoint}`)
+    fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -395,6 +394,18 @@ function downloadPDF() {
     
     // Save PDF
     doc.save(`Settlement_${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// Function to fetch real data from API
+async function fetchRealData() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/settlements/dashboard`);
+        // ... existing code ...
+    } catch (error) {
+        console.error('Error fetching real data:', error);
+        // Fallback to sample data if API fails
+        useSampleData();
+    }
 }
 
 // Initialize dashboard on page load

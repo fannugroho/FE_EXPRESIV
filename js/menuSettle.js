@@ -1,9 +1,9 @@
     // Load data
-    const baseUrl = "https://expressiv.idsdev.site";
+    // Using BASE_URL from auth.js instead of hardcoded baseUrl
     async function loadDashboard() {
         try {
             // Fetch data from API
-            const response = await fetch(`${baseUrl}/api/settlements/dashboard`);
+            const response = await fetch(`${BASE_URL}/api/settlements/dashboard`);
             const apiResponse = await response.json();
             
             if (!apiResponse.status || !apiResponse.data) {

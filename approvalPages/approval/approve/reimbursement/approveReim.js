@@ -1,4 +1,4 @@
-const baseUrl = 'https://expressiv.idsdev.site';
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
 let reimbursementId = '';
 let uploadedFiles = [];
 
@@ -17,7 +17,7 @@ async function fetchReimbursementData() {
     }
     
     try {
-        const response = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}`);
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
         
         if (result.status && result.code === 200) {
@@ -116,7 +116,7 @@ function displayAttachments(attachments) {
             attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
             attachmentItem.innerHTML = `
                 <span>${attachment.fileName}</span>
-                <a href="${baseUrl}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
             `;
             attachmentsList.appendChild(attachmentItem);
         });
@@ -196,7 +196,7 @@ async function submitReimbursementUpdate() {
     };
     
     try {
-        const response = await fetch(`${baseUrl}/api/reimbursements/${id}`, {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -261,7 +261,7 @@ function onReject() {
             }
             
             // Send rejection to API
-            return fetch(`${baseUrl}/api/reimbursements/${id}/reject`, {
+            return fetch(`${BASE_URL}/api/reimbursements/${id}/reject`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -316,7 +316,7 @@ function onApprove() {
             }
             
             // Send approval to API
-            fetch(`${baseUrl}/api/reimbursements/${id}/approve`, {
+            fetch(`${BASE_URL}/api/reimbursements/${id}/approve`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

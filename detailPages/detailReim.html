@@ -156,7 +156,6 @@
 </div>
     </div>
     <script>
-        const baseUrl = 'https://expressiv.idsdev.site';
         let reimbursementId = '';
         
         // Function to confirm submission using SweetAlert2
@@ -195,7 +194,7 @@
             }
             
             try {
-                const response = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}`);
+                const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
                 const result = await response.json();
                 
                 if (result.status && result.code === 200) {
@@ -294,7 +293,7 @@
                     attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
                     attachmentItem.innerHTML = `
                         <span>${attachment.fileName}</span>
-                        <a href="${baseUrl}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                        <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
                     `;
                     attachmentsList.appendChild(attachmentItem);
                 });
@@ -391,7 +390,7 @@
             };
             
             try {
-                const response = await fetch(`${baseUrl}/api/reimbursements/${id}`, {
+                const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
