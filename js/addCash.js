@@ -4,12 +4,12 @@ async function saveDocument(isSubmit = false) {
     // Show confirmation dialog only for submit
     if (isSubmit) {
         const result = await Swal.fire({
-            title: 'Konfirmasi',
-            text: 'Apakah dokumen sudah benar?',
+            title: 'Confirmation',
+            text: 'Are you sure you want to submit this document?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya',
-            cancelButtonText: 'Batal'
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel'
         });
 
         if (!result.isConfirmed) {
@@ -242,6 +242,60 @@ function fetchUsers() {
         });
 }
 
+// Data pengguna contoh (mockup)
+const mockUsers = [
+    { id: 1, name: "Ahmad Baihaki", department: "Finance" },
+    { id: 2, name: "Budi Santoso", department: "Purchasing" },
+    { id: 3, name: "Cahya Wijaya", department: "IT" },
+    { id: 4, name: "Dewi Sartika", department: "HR" },
+    { id: 5, name: "Eko Purnomo", department: "Logistics" },
+    { id: 6, name: "Fajar Nugraha", department: "Production" },
+    { id: 7, name: "Gita Nirmala", department: "Finance" },
+    { id: 8, name: "Hadi Gunawan", department: "Marketing" },
+    { id: 9, name: "Indah Permata", department: "Sales" },
+    { id: 10, name: "Joko Widodo", department: "Management" }
+];
+
+// Fungsi untuk memfilter dan menampilkan dropdown pengguna
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Kosongkan dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter pengguna berdasarkan teks pencarian
+    const filteredUsers = window.requesters ? 
+        window.requesters.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+    
+    // Tampilkan hasil pencarian
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.name || user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.name || user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Tampilkan pesan jika tidak ada hasil
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Tampilkan dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Modifikasi di fungsi populateUserSelects untuk setup searchbar approval
 function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
@@ -398,6 +452,55 @@ function populateUserSelects(users) {
                 }
             });
         }
+    });
+
+    // Tambahkan event listener untuk semua dropdown pencarian approval
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup event listener untuk hide dropdown saat klik di luar
+        document.addEventListener('click', function(event) {
+            const dropdowns = [
+                'Approval.PreparedByIdDropdown', 
+                'Approval.CheckedByIdDropdown', 
+                'Approval.ApprovedByIdDropdown', 
+                'Approval.AcknowledgedByIdDropdown'
+            ];
+            
+            const searchInputs = [
+                'Approval.PreparedByIdSearch', 
+                'Approval.CheckedByIdSearch', 
+                'Approval.ApprovedByIdSearch', 
+                'Approval.AcknowledgedByIdSearch'
+            ];
+            
+            dropdowns.forEach((dropdownId, index) => {
+                const dropdown = document.getElementById(dropdownId);
+                const input = document.getElementById(searchInputs[index]);
+                
+                if (dropdown && input) {
+                    if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                }
+            });
+        });
+        
+        // Trigger initial dropdown on focus for each search field
+        const searchFields = [
+            'Approval.PreparedByIdSearch',
+            'Approval.CheckedByIdSearch',
+            'Approval.ApprovedByIdSearch',
+            'Approval.AcknowledgedByIdSearch'
+        ];
+        
+        searchFields.forEach(fieldId => {
+            const searchInput = document.getElementById(fieldId);
+            if (searchInput) {
+                searchInput.addEventListener('focus', function() {
+                    const actualFieldId = fieldId.replace('Search', '');
+                    filterUsers(actualFieldId);
+                });
+            }
+        });
     });
 }
 

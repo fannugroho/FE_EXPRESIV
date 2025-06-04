@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -106,31 +128,43 @@
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedBySelect" class="w-full p-1 border rounded">
-                    <option value="Admin 1">Admin 1</option>
-                    <option value="Admin 2">Admin 2</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBySelect')" autocomplete="off">
+                    <select id="preparedBySelect" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedBySelectDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
-                <option value="Supervisor 1">Supervisor 1</option>
-                <option value="Supervisor 2">Supervisor 2</option>
-            </select>
+                <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBySelect')" autocomplete="off">
+                    <select id="acknowledgeBySelect" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="acknowledgeBySelectDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBySelect" class="w-full p-1 border rounded">
-                <option value="Finance 1">Finance 1</option>
-                <option value="Finance 2">Finance 2</option>
-            </select>
+                <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBySelect')" autocomplete="off">
+                    <select id="checkedBySelect" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedBySelectDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBySelect" class="w-full p-1 border rounded">
-                <option value="Manager 1">Manager 1</option>
-                <option value="Manager 2">Manager 2</option>
-            </select>
+                <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBySelect')" autocomplete="off">
+                    <select id="approvedBySelect" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedBySelectDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
