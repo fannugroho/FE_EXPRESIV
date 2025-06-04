@@ -100,7 +100,7 @@
       console.log(loginData);
 
       // Make API call
-      fetch("https://expressiv.idsdev.site/api/authentication/login", {
+      fetch(`${BASE_URL}/api/authentication/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

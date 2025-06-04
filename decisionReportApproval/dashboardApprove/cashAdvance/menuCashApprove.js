@@ -14,43 +14,42 @@ let allCashAdvances = [];
 let currentTab = 'draft'; // Default tab is 'draft' which corresponds to Acknowledged status
 
 // Function to fetch real data from API
-function fetchRealData() {
-    const baseUrl = "https://expressiv.idsdev.site";
-    
-    fetch(`${baseUrl}/api/cash-advance`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+async function fetchRealData() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/CashAdvance/approval`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("token")}`
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.data) {
-                allCashAdvances = data.data;
-                
-                // Update dashboard counts
-                updateStatusCounts({
-                    totalCount: allCashAdvances.length,
-                    acknowledgedCount: allCashAdvances.filter(doc => doc.status === "Acknowledged").length,
-                    approvedCount: allCashAdvances.filter(doc => doc.status === "Approved").length,
-                    rejectedCount: allCashAdvances.filter(doc => doc.status === "Rejected").length
-                });
-                
-                // Apply initial filtering based on current tab
-                switchTab(currentTab);
-            } else {
-                console.error("API response does not contain expected data");
-                // Use sample data if API fails
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
+        });
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        if (data.status && data.data) {
+            allCashAdvances = data.data;
+            
+            // Update dashboard counts
+            updateStatusCounts({
+                totalCount: allCashAdvances.length,
+                acknowledgedCount: allCashAdvances.filter(doc => doc.status === "Acknowledged").length,
+                approvedCount: allCashAdvances.filter(doc => doc.status === "Approved").length,
+                rejectedCount: allCashAdvances.filter(doc => doc.status === "Rejected").length
+            });
+            
+            // Apply initial filtering based on current tab
+            switchTab(currentTab);
+        } else {
+            console.error("API response does not contain expected data");
             // Use sample data if API fails
             useSampleData();
             switchTab(currentTab);
-        });
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        // Use sample data if API fails
+        useSampleData();
+        switchTab(currentTab);
+    }
 }
 
 // Function to display cash advances in the table

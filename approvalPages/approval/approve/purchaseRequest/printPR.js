@@ -1,4 +1,4 @@
-const baseUrl = 'https://expressiv.idsdev.site';
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
 let purchaseRequestId = '';
 
 // Get purchase request ID from URL
@@ -32,7 +32,7 @@ async function fetchPurchaseRequestData() {
     }
     
     try {
-        const response = await fetch(`${baseUrl}/api/purchase-requests/${purchaseRequestId}`);
+        const response = await fetch(`${BASE_URL}/api/purchase-requests/${purchaseRequestId}`);
         const result = await response.json();
         
         if (result.status && result.code === 200) {

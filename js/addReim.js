@@ -1,5 +1,5 @@
+// Using BASE_URL from auth.js instead of hardcoded baseUrl
 let uploadedFiles = [];
-const baseUrl = "https://expressiv.idsdev.site";
 
 // Data pengguna contoh (mockup)
 const mockUsers = [
@@ -166,7 +166,7 @@ async function saveDocument() {
         console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
 
         // Step 3: Send the POST request to create reimbursement
-        const response = await fetch(`${baseUrl}/api/reimbursements`, {
+        const response = await fetch(`${BASE_URL}/api/reimbursements`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ async function saveDocument() {
                 formData.append('files', file);
             });
 
-            const uploadResponse = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
                 method: 'POST',
                 body: formData
             });
@@ -358,7 +358,7 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 // Fetch users from API and populate dropdown selects
 async function fetchUsers() {
     try {
-        const response = await fetch(`${baseUrl}/api/users`);
+        const response = await fetch(`${BASE_URL}/api/users`);
         
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
