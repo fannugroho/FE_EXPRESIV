@@ -238,11 +238,11 @@ function downloadPDF() {
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
     document.getElementById("draftCount").textContent = data.draftCount || 0;
+    document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
     document.getElementById("approvedCount").textContent = data.approvedCount || 0;
     document.getElementById("paidCount").textContent = data.paidCount || 0;
-    document.getElementById("closeCount").textContent = data.closedCount || 0; // Note: API returns closedCount but HTML uses closeCount
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
