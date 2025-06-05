@@ -18,7 +18,8 @@ let currentTab = 'draft'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const endpoint = "/api/reimbursements/status-counts";
+    const userId = getUserId();
+    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -43,7 +44,8 @@ function fetchStatusCounts() {
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
-    const endpoint = "/api/reimbursements";
+    const userId = getUserId();
+    const endpoint = `/api/reimbursements/checker/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -81,7 +83,7 @@ function displayReimbursements(reimbursements) {
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("draftCount").textContent = data.draftCount || 0;
+    document.getElementById("draftCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
