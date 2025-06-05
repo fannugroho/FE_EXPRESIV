@@ -1,29 +1,51 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terima Dokumen Purchase Request</title>
+    <title>Receive Document Purchase Request</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../../../../js/auth.js"></script>
     <script src="../../../../js/navigation-utils.js"></script>
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuPR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Kembali</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Purchase Request</h2>
+        <button onclick="goToMenuPR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Purchase Request Details</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Nomor Purchase Request</h3>
-                <input type="text" id="purchaseRequestNo" placeholder="Nomor PR" class="w-full p-2 border rounded" readonly>
+                <h3 class="text-lg font-semibold mb-2">Purchase Request Number</h3>
+                <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded" readonly>
 
-                <h3 class="text-lg font-semibold mb-2">Nama Pemohon</h3>
-                <input type="text" id="requesterName" placeholder="Nama Pemohon" class="w-full p-2 border rounded" readonly>
+                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <input type="text" id="requesterName" placeholder="Requester Name" class="w-full p-2 border rounded" readonly>
 
-                <h3 class="text-lg font-semibold mb-2">Departemen</h3>
+                <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded" disabled>
                     <option value="Production">Production</option>
                     <option value="Marketing">Marketing</option>
@@ -32,23 +54,23 @@
                     <option value="QA/QC">QA/QC</option>
                 </select>
 
-                <h3 class="text-lg font-semibold mb-2">Klasifikasi</h3>
+                <h3 class="text-lg font-semibold mb-2">Classification</h3>
                 <select id="classification" class="w-full p-2 border rounded" disabled>
                     <option value="Misc">Misc</option>
                     <option value="Inventory">Inventory</option>
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Tipe PR</h3>
+                <h3 class="text-lg font-semibold mb-2">PR Type</h3>
                 <select id="prType" class="w-full p-2 border rounded" onchange="toggleFields()" disabled>
-                    <option value="choose" disabled>Pilih Tipe PR</option>
+                    <option value="choose" disabled>Choose PR Type</option>
                     <option value="Item">Item</option>
                     <option value="Service">Service</option>
                 </select>           
             </div>
             
             <div>
-                <h3 class="text-lg font-semibold mb-2">Tanggal Pengajuan</h3>
+                <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="submissionDate" class="w-full p-2 border rounded" readonly>
-                <h3 class="text-lg font-semibold mb-2">Tanggal Dibutuhkan</h3>
+                <h3 class="text-lg font-semibold mb-2">Required Date</h3>
                 <input type="date" id="requiredDate" class="w-full p-2 border rounded" readonly>
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded" disabled>
@@ -59,10 +81,10 @@
                     <option value="Rejected">Rejected</option>
                     <option value="Received">Received</option>
                 </select>  
-                <h3 class="text-lg font-semibold mb-2">Dokumen Lampiran</h3>
+                <h3 class="text-lg font-semibold mb-2">Attachment Documents</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" disabled />
                 
-                <h3 class="text-lg font-semibold mb-2">Tipe Dokumen</h3>
+                <h3 class="text-lg font-semibold mb-2">Document Type</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
                 <label><input type="checkbox" id="PO" class="mr-1" disabled><strong>PO</strong></label>
                 <label><input type="checkbox" id="NonPO" class="mr-1" disabled><strong>Non PO</strong></label></div>
@@ -74,18 +96,18 @@
                 <br>
                 <tr>
                     <!-- Item Type Headers -->
-                    <th id="thitemCode" class="p-2" style="display:none;">No. Item</th>
-                    <th id="thItemName" class="p-2" style="display:none;">Deskripsi</th>
+                    <th id="thitemCode" class="p-2" style="display:none;">Item No.</th>
+                    <th id="thItemName" class="p-2" style="display:none;">Description</th>
                     <th id="thDetail" class="p-2" style="display:none;">Detail</th>
-                    <th id="thPurposed" class="p-2" style="display:none;">Tujuan</th>
-                    <th id="thQuantity" class="p-2" style="display:none;">Jumlah</th>
-                    <th id="thAction" class="p-2" style="display:none;">Aksi</th>
+                    <th id="thPurposed" class="p-2" style="display:none;">Purpose</th>
+                    <th id="thQuantity" class="p-2" style="display:none;">Quantity</th>
+                    <th id="thAction" class="p-2" style="display:none;">Action</th>
                     
                     <!-- Service Type Headers -->
-                    <th id="thDescription" class="p-2" style="display:none;">Deskripsi</th>
-                    <th id="thPurposes" class="p-2" style="display:none;">Tujuan</th>
-                    <th id="thQty" class="p-2" style="display:none;">Jumlah</th>
-                    <th id="thActions" class="p-2" style="display:none;">Aksi</th>
+                    <th id="thDescription" class="p-2" style="display:none;">Description</th>
+                    <th id="thPurposes" class="p-2" style="display:none;">Purpose</th>
+                    <th id="thQty" class="p-2" style="display:none;">Quantity</th>
+                    <th id="thActions" class="p-2" style="display:none;">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -93,46 +115,67 @@
             </tbody>
         </table>
 
+        <!-- approval signatories -->
         <div class="mt-4">
-          <label>Catatan</label>
+          <label>Remarks</label>
           <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="prepared" class="mr-1" disabled><strong>Disiapkan oleh :</strong></label>
-                <select id="preparedBy" class="w-full p-1 border rounded" disabled>
-                    <option value="Admin1">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
-                </select>
+                <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <select id="preparedBy" class="hidden">
+                        <option value="Admin1">Admin 1</option>
+                        <option value="Admin2">Admin 2</option>
+                    </select>
+                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="knowledge" class="mr-1" disabled><strong>Diketahui oleh :</strong></label>
-            <select id="knowledgeBy" class="w-full p-1 border rounded" disabled>
-                <option value="Supervisor1">Supervisor 1</option>
-                <option value="Supervisor2">Supervisor 2</option>
-            </select>
+                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off" readonly>
+                    <select id="knowledgeBy" class="hidden">
+                        <option value="Supervisor1">Supervisor 1</option>
+                        <option value="Supervisor2">Supervisor 2</option>
+                    </select>
+                    <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="checked" class="mr-1" disabled><strong>Diperiksa oleh :</strong></label>
-            <select id="checkedBy" class="w-full p-1 border rounded" disabled>
-                <option value="Finance1">Finance 1</option>
-                <option value="Finance2">Finance 2</option>
-            </select>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <select id="checkedBy" class="hidden">
+                        <option value="Finance1">Finance 1</option>
+                        <option value="Finance2">Finance 2</option>
+                    </select>
+                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="approved" class="mr-1" disabled><strong>Disetujui oleh :</strong></label>
-            <select id="approvedBy" class="w-full p-1 border rounded" disabled>
-                <option value="Manager1">Manager 1</option>
-                <option value="Manager2">Manager 2</option>
-            </select>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <select id="approvedBy" class="hidden">
+                        <option value="Manager1">Manager 1</option>
+                        <option value="Manager2">Manager 2</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="received" class="mr-1" disabled><strong>Diterima oleh :</strong></label>
-                <select id="receivedBy" class="w-full p-1 border rounded" disabled>
-                    <option value="Purchasing1">Purchasing 1</option>
-                    <option value="Purchasing2">Purchasing 2</option>
-                </select>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <select id="receivedBy" class="hidden">
+                        <option value="Purchasing1">Purchasing 1</option>
+                        <option value="Purchasing2">Purchasing 2</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
@@ -142,12 +185,12 @@
                 Reject
             </button>
             <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Received
+                Receive
             </button>
         </div>
     </div>
     
-    <!-- Script yang terakhir dimuat -->
+    <!-- Last loaded script -->
     <script src="receivePR.js"></script>
 </body>
 </html>

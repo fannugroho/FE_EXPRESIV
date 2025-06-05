@@ -11,6 +11,28 @@
     <script src="approveCash.js"></script>
     <!-- Menyambungkan toMenu.js -->
     <script src="../../../pages/utils/toMenu.js"></script>
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -99,34 +121,51 @@
           <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
         </div>
 
+        <!-- Approval Signatories -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedCheckbox" class="mr-1"><strong>Proposed by :</strong></label>
-                <select id="preparedSelect" class="w-full p-1 border rounded">
-                    <option value="Admin1">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
-                </select>
+                <label id="preparedByCheck" class="mr-1"><strong>Proposed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
+                    <select id="prepared" class="hidden">
+                        <option value="Admin1">Admin 1</option>
+                        <option value="Admin2">Admin 2</option>
+                    </select>
+                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="checkedCheckbox" class="mr-1"><strong>Checked by :</strong></label>
-                <select id="checkedSelect" class="w-full p-1 border rounded">
-                    <option value="Finance1">Finance 1</option>
-                    <option value="Finance2">Finance 2</option>
-                </select>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <select id="checked" class="hidden">
+                        <option value="Finance1">Finance 1</option>
+                        <option value="Finance2">Finance 2</option>
+                    </select>
+                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="approvedCheckbox" class="mr-1"><strong>Approved by :</strong></label>
-                <select id="approvedSelect" class="w-full p-1 border rounded">
-                    <option value="Manager1">Manager 1</option>
-                    <option value="Manager2">Manager 2</option>
-                </select>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
+                    <select id="approved" class="hidden">
+                        <option value="Manager1">Manager 1</option>
+                        <option value="Manager2">Manager 2</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="acknowledgedCheckbox" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <select id="acknowledgedSelect" class="w-full p-1 border rounded">
-                    <option value="Manager1">General Manager 1</option>
-                    <option value="Manager2">General Manager 2</option>
-                </select>
+                <label id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off">
+                    <select id="acknowledged" class="hidden">
+                        <option value="Manager1">General Manager 1</option>
+                        <option value="Manager2">General Manager 2</option>
+                    </select>
+                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
