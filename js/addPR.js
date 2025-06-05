@@ -127,7 +127,7 @@ function addRow() {
                 </select>
             </td>
             <td class="p-2 border item-field">
-                <input type="text" class="w-full item-description bg-gray-100" maxlength="200" disabled />
+                <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
             </td>
             <td class="p-2 border item-field">
                 <input type="text" class="w-full item-detail" maxlength="100" required />
@@ -499,7 +499,7 @@ function populateItemSelect(items, selectElement) {
     items.forEach(item => {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        option.textContent = `${item.itemCode}`;
         // Store the description as a data attribute
         option.setAttribute('data-description', item.description || item.name || item.itemName || '');
         selectElement.appendChild(option);
@@ -522,12 +522,16 @@ function updateItemDescription(selectElement) {
         // Get description from data attribute and fill it automatically
         const itemDescription = selectedOption.getAttribute('data-description');
         descriptionInput.value = itemDescription || '';
+        descriptionInput.textContent = itemDescription || ''; // For textarea
+        descriptionInput.title = itemDescription || ''; // For tooltip
         // Keep the description field disabled and gray (not editable by user)
         descriptionInput.disabled = true;
         descriptionInput.classList.add('bg-gray-100');
     } else {
         // No valid item selected, clear the description
         descriptionInput.value = '';
+        descriptionInput.textContent = '';
+        descriptionInput.title = '';
         // Keep the description field disabled and gray
         descriptionInput.disabled = true;
         descriptionInput.classList.add('bg-gray-100');
