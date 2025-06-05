@@ -14,7 +14,7 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
-let currentTab = 'draft'; // Default tab
+let currentTab = 'prepared'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
@@ -83,7 +83,7 @@ function displayReimbursements(reimbursements) {
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("draftCount").textContent = data.preparedCount || 0;
+    document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
@@ -165,23 +165,23 @@ function useSampleData() {
 function updateSampleCounts() {
     const data = generateSampleData();
     document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("draftCount").textContent = data.filter(item => item.status === 'Prepared').length;
+    document.getElementById("preparedCount").textContent = data.filter(item => item.status === 'Prepared').length;
     document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
     document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between Draft and Checked tabs
+// Switch between Prepared and Checked tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
-    document.getElementById('draftTabBtn').classList.remove('tab-active');
+    document.getElementById('preparedTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
     document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
+    if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
     } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
@@ -198,8 +198,8 @@ function switchTab(tabName) {
     
     // Filter the data with a slight delay to allow animation
     setTimeout(() => {
-        if (tabName === 'draft') {
-            filteredData = allReimbursements.filter(item => item.status === 'Prepared' || item.status === 'Draft');
+        if (tabName === 'prepared') {
+            filteredData = allReimbursements.filter(item => item.status === 'Prepared');
         } else if (tabName === 'checked') {
             filteredData = allReimbursements.filter(item => item.status === 'Checked');
         } else if (tabName === 'rejected') {
@@ -238,8 +238,8 @@ function updateTable() {
             }
         }
         
-        // Convert Draft to Prepared for display
-        const displayStatus = item.status === 'Draft' ? 'Prepared' : item.status;
+        // Remove Draft to Prepared conversion as it's no longer needed
+        const displayStatus = item.status;
         
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
@@ -316,21 +316,19 @@ function goToTotalDocs() {
 // Export to Excel function
 function downloadExcel() {
     // Get status text for filename
-    const statusText = currentTab === 'draft' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     // Prepare data for export - no changes needed here as it already doesn't include checkbox data
     const data = filteredData.map(item => {
-        // Convert Draft to Prepared for display
-        const displayStatus = item.status === 'Draft' ? 'Prepared' : item.status;
-        
+        // Remove Draft to Prepared conversion as it's no longer needed
         return {
             'Doc Number': item.id || '',
             'Reimbursement Number': item.voucherNo || '',
             'Requester': item.requesterName || '',
             'Department': item.department || '',
             'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            'Status': displayStatus
+            'Status': item.status
         };
     });
     
@@ -348,7 +346,7 @@ function downloadExcel() {
 // Export to PDF function
 function downloadPDF() {
     // Get status text for filename
-    const statusText = currentTab === 'draft' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
     
     // Create PDF document
@@ -368,16 +366,14 @@ function downloadPDF() {
     const tableRows = [];
     
     filteredData.forEach(item => {
-        // Convert Draft to Prepared for display
-        const displayStatus = item.status === 'Draft' ? 'Prepared' : item.status;
-        
+        // Remove Draft to Prepared conversion as it's no longer needed
         const dataRow = [
             item.id || '',
             item.voucherNo || '',
             item.requesterName || '',
             item.department || '',
             item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            displayStatus
+            item.status
         ];
         tableRows.push(dataRow);
     });
