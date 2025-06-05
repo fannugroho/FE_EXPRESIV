@@ -28,6 +28,14 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        /* Gray column styling for disabled fields */
+        .gray-column {
+            background-color: #f3f4f6 !important;
+        }
+        .gray-column input {
+            background-color: transparent !important;
+            border: none !important;
+        }
     </style>
 </head>
 
@@ -121,11 +129,11 @@
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description" maxlength="200" class="w-full" />
                     </td>
-                    <td id="tdGLAccount" class="p-2 border">
-                        <input type="text" id="glAccount" maxlength="200" class="w-full" />
+                    <td id="tdGLAccount" class="p-2 border gray-column">
+                        <input type="text" id="glAccount" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
-                    <td id="tdAccountName" class="p-2 border">
-                        <input type="text" id="accountName" maxlength="200" class="w-full" />
+                    <td id="tdAccountName" class="p-2 border gray-column">
+                        <input type="text" id="accountName" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
                     <td id="tdAmount" class="p-2 border">
                         <input type="number" id="amount" maxlength="200" class="w-full" />
@@ -153,33 +161,44 @@
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><strong>Prepared by:</strong></label>
-                <select id="preparedById" class="w-full p-1 border rounded bg-white">
-                    <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="preparedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="filterUsers('preparedDropdown')" autocomplete="off" disabled>
+                    <select id="preparedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Checked by:</strong></label>
-            <select id="checkedById" class="w-full p-1 border rounded bg-white">
-                <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Finance 1</option>
-                <option value="Finance2">Finance 2</option>
-            </select>
+                <label><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedDropdown')" autocomplete="off">
+                    <select id="checkedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Approved by:</strong></label>
-            <select id="approvedById" class="w-full p-1 border rounded bg-white">
-                <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Manager 1</option>
-                <option value="Manager2">Manager 2</option>
-            </select>
+                <label><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedDropdown')" autocomplete="off">
+                    <select id="approvedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Acknowledged by:</strong></label>
-                <select id="acknowledgedById" class="w-full p-1 border rounded bg-white">
-                    <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">Requester</option>
-                    <option value="Admin">Admin</option>
-                </select>
+                <label><strong>Acknowledged by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedDropdown')" autocomplete="off">
+                    <select id="acknowledgedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="acknowledgedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
-            
         </div>
         <br>
         <div class="flex justify-start space-x-4 mt-6">

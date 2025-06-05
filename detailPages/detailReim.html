@@ -284,24 +284,22 @@
                             <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
                         </td>
                         <td class="p-2 border">
-                            <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                            <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-100" disabled />
                         </td>
                         <td class="p-2 border">
-                            <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                            <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full bg-gray-100" disabled />
                         </td>
                         <td class="p-2 border">
                             <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
                         </td>
                         <td class="p-2 border text-center">
-                            <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
-                                🗑
-                            </button>
+                            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
                         </td>
                     `;
                     tableBody.appendChild(row);
                 });
             } else {
-                // Add an empty row if no details
+                // Add empty row if no details
                 addRow();
             }
         }

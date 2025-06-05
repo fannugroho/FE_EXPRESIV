@@ -111,7 +111,7 @@
         
         tableBody.innerHTML = "";
         
-        pageDocuments.forEach(doc => {
+        pageDocuments.forEach((doc, index) => {
           const formattedDate = new Date(doc.submissionDate).toLocaleDateString();
           
           const row = `
@@ -119,8 +119,8 @@
               <td class="p-2 text-left">
                 <input type="checkbox" class="rowCheckbox" />
               </td>
-              <td class="p-2">${doc.id}</td>
-              <td class="p-2">${doc.settlementNumber}</td>
+              <td class="p-2">${index + 1}</td>
+              <td class="p-2">${doc.settlementNumber ?? ''}</td>
               <td class="p-2">${doc.requesterName}</td>
               <td class="p-2">IT</td>
               <td class="p-2">${formattedDate}</td>

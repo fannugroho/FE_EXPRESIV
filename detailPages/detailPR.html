@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Purchase Request</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -141,33 +143,53 @@
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><strong>Prepared by:</strong></label>
-                <select id="preparedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="filterUsers('preparedBy')" autocomplete="off" disabled>
+                    <select id="preparedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
                 <label><strong>Acknowledge by:</strong></label>
-                <select id="acknowledgeBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off">
+                    <select id="acknowledgeBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
                 <label><strong>Checked by:</strong></label>
-                <select id="checkedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <select id="checkedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
                 <label><strong>Approved by:</strong></label>
-                <select id="approvedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
+                    <select id="approvedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
                 <label><strong>Received by:</strong></label>
-                <select id="receivedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off">
+                    <select id="receivedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
@@ -186,6 +208,8 @@
         </div>
     </div>
     
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.all.min.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/detailPR.js"></script>
     <script src="../pages/utils/toMenu.js"></script>

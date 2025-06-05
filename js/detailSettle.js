@@ -182,19 +182,20 @@ function populateUserSelects(users, approvalData = null) {
         populateRequesterDropdown();
     }
 
-    const selects = [
-        { id: 'preparedById', approvalKey: 'preparedById' },
-        { id: 'checkedById', approvalKey: 'checkedById' },
-        { id: 'approvedById', approvalKey: 'approvedById' },
-        { id: 'acknowledgedById', approvalKey: 'acknowledgedById' }
+    // Populate approval select dropdowns with search functionality
+    const approvalSelects = [
+        { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
+        { id: 'checkedDropdown', searchId: 'checkedDropdownSearch', approvalKey: 'checkedById' },
+        { id: 'approvedDropdown', searchId: 'approvedDropdownSearch', approvalKey: 'approvedById' },
+        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' }
     ];
     
-    selects.forEach(selectInfo => {
+    approvalSelects.forEach(selectInfo => {
         const select = document.getElementById(selectInfo.id);
-        if (select) {
-            // Store the currently selected value
-            const currentValue = select.value;
-            
+        const searchInput = document.getElementById(selectInfo.searchId);
+        
+        if (select && searchInput) {
+            // Clear and populate the hidden select
             select.innerHTML = '<option value="" disabled>Select User</option>';
             
             users.forEach(user => {
@@ -204,28 +205,34 @@ function populateUserSelects(users, approvalData = null) {
                 select.appendChild(option);
             });
             
-            // Set the value from approval data if available
+            // Set the value from approval data if available and update search input
             if (approvalData && approvalData[selectInfo.approvalKey]) {
                 select.value = approvalData[selectInfo.approvalKey];
-                // Auto-select and disable for Prepared by if it matches logged in user
-                if(selectInfo.id === "preparedById" && approvalData[selectInfo.approvalKey] == getUserId()){
-                    select.disabled = true;
-                    select.classList.add('bg-gray-100');
-                    select.classList.remove('bg-white');
+                
+                // Find the user and update the search input
+                const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
+                if (selectedUser) {
+                    searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
                 }
-            } else if (currentValue) {
-                // Restore the selected value if it exists
-                select.value = currentValue;
+                
+                // Auto-select and disable for Prepared by if it matches logged in user
+                if(selectInfo.id === "preparedDropdown" && select.value == getUserId()){
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
+                }
             }
             
-            // Always disable and auto-select preparedById to logged-in user
-            if(selectInfo.id === "preparedById"){
+            // Always disable and auto-select preparedDropdown to logged-in user
+            if(selectInfo.id === "preparedDropdown"){
                 const loggedInUserId = getUserId();
                 if(loggedInUserId) {
                     select.value = loggedInUserId;
-                    select.disabled = true;
-                    select.classList.add('bg-gray-100');
-                    select.classList.remove('bg-white');
+                    const loggedInUser = users.find(user => user.id === loggedInUserId);
+                    if(loggedInUser) {
+                        searchInput.value = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                    }
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
                 }
             }
         }
@@ -258,6 +265,45 @@ function populateUserSelects(users, approvalData = null) {
     } else {
         console.warn("Missing logged in user ID or employees array");
     }
+}
+
+// Function to filter users for approval dropdowns (like addSettle.js)
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter users based on search text
+    const filteredUsers = window.employees ? 
+        window.employees.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        [];
+    
+    // Show filtered results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Show "no results" message if no users found
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
 }
 
 // Function to fetch transaction types from API
@@ -462,11 +508,11 @@ function populateSettlementItemsTable(settlementItems) {
             <td class="p-2 border">
                 <input type="text" value="${item.description || ''}" maxlength="200" class="w-full" />
             </td>
-            <td class="p-2 border">
-                <input type="text" value="${item.glAccount || ''}" maxlength="200" class="w-full" />
+            <td class="p-2 border gray-column">
+                <input type="text" value="${item.glAccount || ''}" maxlength="200" class="w-full bg-gray-100" disabled />
             </td>
-            <td class="p-2 border">
-                <input type="text" value="${item.accountName || ''}" maxlength="200" class="w-full" />
+            <td class="p-2 border gray-column">
+                <input type="text" value="${item.accountName || ''}" maxlength="200" class="w-full bg-gray-100" disabled />
             </td>
             <td class="p-2 border">
                 <input type="number" value="${item.amount || 0}" maxlength="200" class="w-full" />
@@ -483,22 +529,32 @@ function populateSettlementItemsTable(settlementItems) {
 
 // Populate approval section
 function populateApprovalSection(approval) {
-    // Set approval IDs
-    if (approval.preparedById) {
-        document.getElementById('preparedById').value = approval.preparedById;
-    }
-    
-    if (approval.checkedById) {
-        document.getElementById('checkedById').value = approval.checkedById;
-    }
-    
-    if (approval.approvedById) {
-        document.getElementById('approvedById').value = approval.approvedById;
-    }
-    
-    if (approval.acknowledgedById) {
-        document.getElementById('acknowledgedById').value = approval.acknowledgedById;
-    }
+    // Set approval IDs and update search inputs
+    const approvalFields = [
+        { selectId: 'preparedDropdown', searchId: 'preparedDropdownSearch', value: approval.preparedById },
+        { selectId: 'checkedDropdown', searchId: 'checkedDropdownSearch', value: approval.checkedById },
+        { selectId: 'approvedDropdown', searchId: 'approvedDropdownSearch', value: approval.approvedById },
+        { selectId: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', value: approval.acknowledgedById }
+    ];
+
+    approvalFields.forEach(field => {
+        if (field.value) {
+            const selectElement = document.getElementById(field.selectId);
+            const searchInput = document.getElementById(field.searchId);
+            
+            if (selectElement && searchInput) {
+                selectElement.value = field.value;
+                
+                // Find the user name and update search input
+                if (window.employees) {
+                    const user = window.employees.find(emp => emp.id === field.value);
+                    if (user) {
+                        searchInput.value = user.fullName;
+                    }
+                }
+            }
+        }
+    });
 }
 
 // Add empty row to table
@@ -510,11 +566,11 @@ function addEmptyRow() {
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full" />
         </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" />
+        <td class="p-2 border gray-column">
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" />
+        <td class="p-2 border gray-column">
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="200" class="w-full" />
@@ -553,11 +609,11 @@ function addRow() {
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full" />
         </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" />
+        <td class="p-2 border gray-column">
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" />
+        <td class="p-2 border gray-column">
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="200" class="w-full" />
@@ -755,26 +811,26 @@ function updateSettle(isSubmit = false) {
             formData.append('Remarks', document.getElementById("remarks").value);
             
             // Approval fields
-            formData.append('PreparedById', document.getElementById("preparedById")?.value || '');
-            formData.append('CheckedById', document.getElementById("checkedById")?.value || '');
-            formData.append('ApprovedById', document.getElementById("approvedById")?.value || '');
-            formData.append('AcknowledgedById', document.getElementById("acknowledgedById")?.value || '');
+            formData.append('PreparedById', document.getElementById("preparedDropdown")?.value || '');
+            formData.append('CheckedById', document.getElementById("checkedDropdown")?.value || '');
+            formData.append('ApprovedById', document.getElementById("approvedDropdown")?.value || '');
+            formData.append('AcknowledgedById', document.getElementById("acknowledgedDropdown")?.value || '');
             
             // Add SettlementItems - collect all rows from the table
             const tableRows = document.querySelectorAll('#tableBody tr');
             tableRows.forEach((row, index) => {
                 const description = row.children[0]?.querySelector('input')?.value;
-                const glAccount = row.children[1]?.querySelector('input')?.value;
-                const accountName = row.children[2]?.querySelector('input')?.value;
+                // const glAccount = row.children[1]?.querySelector('input')?.value;
+                // const accountName = row.children[2]?.querySelector('input')?.value;
                 const amount = row.children[3]?.querySelector('input')?.value;
                 
                 if (description && amount) {
                     formData.append(`SettlementItems[${index}][Description]`, description);
-                    formData.append(`SettlementItems[${index}][GLAccount]`, glAccount || '');
-                    formData.append(`SettlementItems[${index}][AccountName]`, accountName || '');
+                    // formData.append(`SettlementItems[${index}][GLAccount]`, glAccount || '');
+                    // formData.append(`SettlementItems[${index}][AccountName]`, accountName || '');
                     console.log("Amount:", amount);
-                    console.log("accountName:", accountName);
-                    console.log("glAccount:", glAccount);
+                    // console.log("accountName:", accountName);
+                    // console.log("glAccount:", glAccount);
                     console.log("description:", description);
                     formData.append(`SettlementItems[${index}][Amount]`, amount);
                 }
@@ -938,32 +994,32 @@ function toggleEditableFields(isEditable) {
     
     // Handle approval fields
     const approvalSelects = [
-        { id: 'preparedById', approvalKey: 'preparedById' },
-        { id: 'checkedById', approvalKey: 'checkedById' },
-        { id: 'approvedById', approvalKey: 'approvedById' },
-        { id: 'acknowledgedById', approvalKey: 'acknowledgedById' }
+        { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
+        { id: 'checkedDropdown', searchId: 'checkedDropdownSearch', approvalKey: 'checkedById' },
+        { id: 'approvedDropdown', searchId: 'approvedDropdownSearch', approvalKey: 'approvedById' },
+        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' }
     ];
     
     approvalSelects.forEach(selectInfo => {
         const field = document.getElementById(selectInfo.id);
-        if (field) {
-            if (selectInfo.id === 'preparedById') {
+        const searchInput = document.getElementById(selectInfo.searchId);
+        if (field && searchInput) {
+            if (selectInfo.id === 'preparedDropdown') {
                 // preparedBy is always disabled if it matches logged-in user
                 const userId = getUserId();
                 if (field.value && field.value == userId) {
-                    field.disabled = true;
-                    field.classList.add('bg-gray-100');
-                    field.classList.remove('bg-white');
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
                 }
             } else {
                 // Other approval fields follow normal editable logic
-                field.disabled = !isEditable;
+                searchInput.disabled = !isEditable;
                 if (!isEditable) {
-                    field.classList.add('bg-gray-100');
-                    field.classList.remove('bg-white');
+                    searchInput.classList.add('bg-gray-100');
+                    searchInput.classList.remove('bg-white');
                 } else {
-                    field.classList.add('bg-white');
-                    field.classList.remove('bg-gray-100');
+                    searchInput.classList.add('bg-white');
+                    searchInput.classList.remove('bg-gray-100');
                 }
             }
         }
@@ -1004,6 +1060,34 @@ function displayAttachments(attachments) {
 
 // Initialize page when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
+    // Setup event listener untuk hide dropdown saat klik di luar
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedDropdownDropdown', 
+            'checkedDropdownDropdown', 
+            'approvedDropdownDropdown', 
+            'acknowledgedDropdownDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedDropdownSearch', 
+            'checkedDropdownSearch', 
+            'approvedDropdownSearch', 
+            'acknowledgedDropdownSearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+    
     // Load cash advance options and other dropdown options first
     await loadCashAdvanceOptions();
     fetchDropdownOptions();

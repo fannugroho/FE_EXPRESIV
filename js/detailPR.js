@@ -26,6 +26,14 @@ function populateUserSelects(users, approvalData = null) {
         department: user.department
     }));
 
+    // Store employees globally for reference
+    window.employees = users.map(user => ({
+        id: user.id,
+        kansaiEmployeeId: user.kansaiEmployeeId,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        department: user.department
+    }));
+
     // Populate RequesterId dropdown with search functionality
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
@@ -108,19 +116,22 @@ function populateUserSelects(users, approvalData = null) {
         populateRequesterDropdown();
     }
 
+    // Populate approval select dropdowns with search functionality
     const selects = [
-        { id: 'preparedBy', approvalKey: 'preparedById' },
-        { id: 'checkedBy', approvalKey: 'checkedById' },
-        { id: 'acknowledgeBy', approvalKey: 'acknowledgedById' },
-        { id: 'approvedBy', approvalKey: 'approvedById' },
-        { id: 'receivedBy', approvalKey: 'receivedById' }
+        { id: 'preparedBy', searchId: 'preparedBySearch', approvalKey: 'preparedById' },
+        { id: 'checkedBy', searchId: 'checkedBySearch', approvalKey: 'checkedById' },
+        { id: 'acknowledgeBy', searchId: 'acknowledgeBySearch', approvalKey: 'acknowledgedById' },
+        { id: 'approvedBy', searchId: 'approvedBySearch', approvalKey: 'approvedById' },
+        { id: 'receivedBy', searchId: 'receivedBySearch', approvalKey: 'receivedById' }
     ];
     
     selects.forEach(selectInfo => {
         const select = document.getElementById(selectInfo.id);
-        if (select) {
-            // Store the currently selected value
-            const currentValue = select.value;
+        const searchInput = document.getElementById(selectInfo.searchId);
+        
+        if (select && searchInput) {
+            // Clear and populate the hidden select
+            select.innerHTML = '<option value="" disabled>Select User</option>';
             
             users.forEach(user => {
                 // console.log("user", user);
@@ -129,26 +140,36 @@ function populateUserSelects(users, approvalData = null) {
                 option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
-            // Set the value from approval data if available
+            
+            // Set the value from approval data if available and update search input
             if (approvalData && approvalData[selectInfo.approvalKey]) {
                 select.value = approvalData[selectInfo.approvalKey];
                 
                 // Find the user and update the search input
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
-                    }
+                const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
+                if (selectedUser) {
+                    searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
                 }
                 
                 // Auto-select and disable for Prepared by if it matches logged in user
                 if(selectInfo.id === "preparedBy" && select.value == getUserId()){
-                    select.disabled = true;
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
                 }
-            } else if (currentValue) {
-                // Restore the selected value if it exists
-                select.value = currentValue;
+            }
+            
+            // Always disable and auto-select preparedBy to logged-in user
+            if(selectInfo.id === "preparedBy"){
+                const loggedInUserId = getUserId();
+                if(loggedInUserId) {
+                    select.value = loggedInUserId;
+                    const loggedInUser = users.find(user => user.id === loggedInUserId);
+                    if(loggedInUser) {
+                        searchInput.value = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                    }
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
+                }
             }
         }
 
@@ -156,6 +177,44 @@ function populateUserSelects(users, approvalData = null) {
     });
 }
 
+// Function to filter users for approval dropdowns (like addPR.js)
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter users based on search text
+    const filteredUsers = window.employees ? 
+        window.employees.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        [];
+    
+    // Show filtered results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Show "no results" message if no users found
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
 
 function fetchPRDetails(prId, prType) {
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
@@ -486,31 +545,32 @@ function toggleEditableFields(isEditable) {
 
 
     const selects = [
-        { id: 'preparedBy', approvalKey: 'preparedById' },
-        { id: 'checkedBy', approvalKey: 'checkedById' },
-        { id: 'acknowledgeBy', approvalKey: 'acknowledgedById' },
-        { id: 'approvedBy', approvalKey: 'approvedById' },
-        { id: 'receivedBy', approvalKey: 'receivedById' }
+        { id: 'preparedBy', searchId: 'preparedBySearch', approvalKey: 'preparedById' },
+        { id: 'checkedBy', searchId: 'checkedBySearch', approvalKey: 'checkedById' },
+        { id: 'acknowledgeBy', searchId: 'acknowledgeBySearch', approvalKey: 'acknowledgedById' },
+        { id: 'approvedBy', searchId: 'approvedBySearch', approvalKey: 'approvedById' },
+        { id: 'receivedBy', searchId: 'receivedBySearch', approvalKey: 'receivedById' }
     ];
     
-    selects.forEach(fieldId => {
-        const field = document.getElementById(fieldId.id);
-        if (field) {
-            if (fieldId.id === 'preparedBy') {
+    selects.forEach(fieldInfo => {
+        const field = document.getElementById(fieldInfo.id);
+        const searchInput = document.getElementById(fieldInfo.searchId);
+        if (field && searchInput) {
+            if (fieldInfo.id === 'preparedBy') {
                 const userId = getUserId();
                 console.log(field.value);
                 console.log(userId);
                 // if (field.value && field.value == userId) {
-                    field.disabled = true;
-                    field.classList.add('bg-gray-100');
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
                 // } 
             } else {
                 // Other approval fields follow normal editable logic
-                field.disabled = !isEditable;
+                searchInput.disabled = !isEditable;
                 if (!isEditable) {
-                    field.classList.add('bg-gray-100');
+                    searchInput.classList.add('bg-gray-100');
                 } else {
-                    field.classList.add('bg-white');
+                    searchInput.classList.add('bg-white');
                 }
             }
         }
@@ -1041,3 +1101,36 @@ function displayAttachments(attachments) {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
     }
 }
+
+// Add DOMContentLoaded event listener for dropdown functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup event listener untuk hide dropdown saat klik di luar
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedByDropdown', 
+            'checkedByDropdown', 
+            'acknowledgeByDropdown', 
+            'approvedByDropdown', 
+            'receivedByDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedBySearch', 
+            'checkedBySearch', 
+            'acknowledgeBySearch', 
+            'approvedBySearch', 
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+});
