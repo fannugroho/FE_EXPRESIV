@@ -410,7 +410,7 @@ function populateItemSelect(items, selectElement) {
     items.forEach(item => {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        option.textContent = `${item.itemCode}`;
         // Store the description as a data attribute
         option.setAttribute('data-description', item.description || item.name || item.itemName || '');
         selectElement.appendChild(option);
@@ -491,10 +491,10 @@ function toggleEditableFields(isEditable) {
     // Handle table inputs - only for editable fields in table
     const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description), #tableBody select.item-no');
     tableInputs.forEach(input => {
-        if (input.type !== 'checkbox' && input.type !== 'radio') {
-            input.readOnly = !isEditable;
-        } else {
+        if (input.tagName === 'SELECT' || input.type === 'checkbox' || input.type === 'radio') {
             input.disabled = !isEditable;
+        } else {
+            input.readOnly = !isEditable;
         }
         
         if (!isEditable) {
@@ -692,7 +692,7 @@ function addItemRow(item = null) {
             </select>
         </td>
         <td class="p-2 border item-field bg-gray-100">
-            <input type="text" value="${item?.description || ''}" class="w-full item-description bg-gray-100" maxlength="200" disabled />
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border item-field">
             <input type="text" value="${item?.detail || ''}" class="w-full item-detail" maxlength="100" required />
@@ -753,15 +753,21 @@ function updateItemDescription(selectElement) {
         const itemDescription = selectedOption.getAttribute('data-description');
         if (itemDescription) {
             descriptionInput.value = itemDescription;
+            descriptionInput.textContent = itemDescription; // For textarea
+            descriptionInput.title = itemDescription; // For tooltip
         } else {
             // Fallback to old method for backward compatibility
             const itemText = selectedOption.text;
             const itemName = itemText.split(' - ')[1];
             descriptionInput.value = itemName || '';
+            descriptionInput.textContent = itemName || '';
+            descriptionInput.title = itemName || '';
         }
     } else {
         // No valid item selected, clear the description
         descriptionInput.value = '';
+        descriptionInput.textContent = '';
+        descriptionInput.title = '';
     }
     
     // Always keep description field disabled and gray
@@ -912,6 +918,8 @@ function updatePR(isSubmit = false) {
         uploadedFiles.forEach(file => {
             formData.append('Attachments', file);
         });
+
+        console.log("formData Attachments", formData.get("Attachments"));
 
 
         
