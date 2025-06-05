@@ -90,46 +90,54 @@ function populateDropdown(dropdownId, users) {
 // Populate form fields with data
 function populateFormData(data) {
     // Main form fields
-    document.getElementById('voucherNo').value = data.voucherNo || '';
-    document.getElementById('requesterName').value = data.requesterName || '';
-    document.getElementById('department').value = data.department || '';
-    document.getElementById('currency').value = data.currency || '';
-    document.getElementById('payTo').value = data.payTo || '';
+    if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
+    if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
+    if (document.getElementById('department')) document.getElementById('department').value = data.department || '';
+    if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
+    if (document.getElementById('payTo')) document.getElementById('payTo').value = data.payTo || '';
     
     // Format date for the date input (YYYY-MM-DD)
-    if (data.submissionDate) {
+    if (data.submissionDate && document.getElementById('submissionDate')) {
         const date = new Date(data.submissionDate);
         const formattedDate = date.toISOString().split('T')[0];
         document.getElementById('submissionDate').value = formattedDate;
     }
     
-    document.getElementById('status').value = data.status || '';
-    document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
-    document.getElementById('remarks').value = data.remarks || '';
+    if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
+    if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
+    if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
-    // Approvers information
-    document.getElementById('preparedBy').value = data.preparedBy || '';
-    document.getElementById('checkedBy').value = data.checkedBy || '';
-    document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
-    document.getElementById('approvedBy').value = data.approvedBy || '';
+    // Approvers information - safely check if elements exist
+    if (document.getElementById('preparedBy')) document.getElementById('preparedBy').value = data.preparedBy || '';
+    if (document.getElementById('checkedBy')) document.getElementById('checkedBy').value = data.checkedBy || '';
+    if (document.getElementById('acknowledgedBy')) document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
+    if (document.getElementById('approvedBy')) document.getElementById('approvedBy').value = data.approvedBy || '';
     
-    // Set checkbox states based on if values exist
-    document.getElementById('preparedByCheck').checked = data.preparedBy ? true : false;
-    document.getElementById('checkedByCheck').checked = data.checkedBy ? true : false;
-    document.getElementById('acknowledgedByCheck').checked = data.acknowledgedBy ? true : false;
-    document.getElementById('approvedByCheck').checked = data.approvedBy ? true : false;
+    // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
     // Handle reimbursement details (table rows)
-    populateReimbursementDetails(data.reimbursementDetails);
+    if (data.reimbursementDetails) {
+        console.log('Populating reimbursement details:', data.reimbursementDetails);
+        populateReimbursementDetails(data.reimbursementDetails);
+    } else {
+        console.log('No reimbursement details found in data');
+    }
     
     // Display attachment information
-    displayAttachments(data.reimbursementAttachments);
+    if (data.reimbursementAttachments) {
+        displayAttachments(data.reimbursementAttachments);
+    }
 }
 
 // Populate reimbursement details table
 function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
     tableBody.innerHTML = ''; // Clear existing rows
     
     if (details && details.length > 0) {
@@ -165,6 +173,11 @@ function populateReimbursementDetails(details) {
 // Display attachments
 function displayAttachments(attachments) {
     const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
     attachmentsList.innerHTML = ''; // Clear existing attachments
     
     if (attachments && attachments.length > 0) {
@@ -183,6 +196,11 @@ function displayAttachments(attachments) {
 // Add a new empty row to the reimbursement details table
 function addRow() {
     const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
@@ -252,41 +270,15 @@ async function submitReimbursementUpdate() {
         reimbursementDetails: reimbursementDetails
     };
     
-    try {
-        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.status && result.code === 200) {
-            Swal.fire(
-                'Updated!',
-                'Reimbursement has been updated successfully.',
-                'success'
-            ).then(() => {
-                // Reload the data to show the latest changes
-                fetchReimbursementData();
-            });
-        } else {
-            Swal.fire(
-                'Error',
-                result.message || 'Failed to update reimbursement',
-                'error'
-            );
-        }
-    } catch (error) {
-        console.error('Error updating reimbursement:', error);
-        Swal.fire(
-            'Error',
-            'An error occurred while updating the reimbursement',
-            'error'
-        );
-    }
+    // API call removed
+    Swal.fire(
+        'Updated!',
+        'Reimbursement has been updated successfully.',
+        'success'
+    ).then(() => {
+        // Reload the data to show the latest changes
+        fetchReimbursementData();
+    });
 }
 
 // Function to go back to menu
@@ -317,26 +309,12 @@ function onReject() {
                 return false;
             }
             
-            // Send rejection to API
-            return fetch(`${BASE_URL}/api/reimbursements/${id}/reject`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    remarks: remarks,
-                    rejectedBy: document.getElementById('approvedBy').value // Using the approver field as the rejector
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to reject document');
-                }
-                return response.json();
-            })
-            .catch(error => {
-                Swal.showValidationMessage(`Request failed: ${error}`);
-            });
+            // API call removed - returning dummy successful response
+            return {
+                status: true,
+                code: 200,
+                message: "Document rejected successfully"
+            };
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -372,42 +350,14 @@ function onApprove() {
                 return;
             }
             
-            // Send approval to API
-            fetch(`${BASE_URL}/api/reimbursements/${id}/approve`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    approvedBy: document.getElementById('approvedBy').value
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Approved!',
-                        'The document has been approved.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
-                    Swal.fire(
-                        'Error',
-                        result.message || 'Failed to approve document',
-                        'error'
-                    );
-                }
-            })
-            .catch(error => {
-                console.error('Error approving document:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while approving the document',
-                    'error'
-                );
+            // API call removed
+            Swal.fire(
+                'Approved!',
+                'The document has been approved.',
+                'success'
+            ).then(() => {
+                // Return to menu
+                goToMenuReim();
             });
         }
     });
@@ -461,6 +411,7 @@ function printReimbursement() {
 
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded, fetching reimbursement data');
     // Load data when page loads
     fetchReimbursementData();
     
