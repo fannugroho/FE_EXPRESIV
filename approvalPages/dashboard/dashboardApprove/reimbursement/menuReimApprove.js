@@ -199,13 +199,13 @@ function switchTab(tabName) {
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
-    document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
+    document.getElementById('acknowledgedTabBtn').classList.remove('tab-active');
     document.getElementById('approvedTabBtn').classList.remove('tab-active');
     document.getElementById('rejectedTabBtn')?.classList.remove('tab-active');
     
-    if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
+    if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+        filteredData = allReimbursements.filter(item => item.status === 'Acknowledged');
         document.getElementById('remarksHeader').style.display = 'none';
     } else if (tabName === 'approved') {
         document.getElementById('approvedTabBtn').classList.add('tab-active');

@@ -309,16 +309,33 @@ function onReject() {
                 return false;
             }
             
-            // API call removed - returning dummy successful response
-            return {
-                status: true,
-                code: 200,
-                message: "Document rejected successfully"
-            };
+            // Make API call to reject the reimbursement
+            return fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
+                },
+                body: JSON.stringify({
+                    remarks: remarks
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (!result.status) {
+                    throw new Error(result.message || 'Failed to reject document');
+                }
+                return result;
+            })
+            .catch(error => {
+                console.error('Error rejecting reimbursement:', error);
+                Swal.showValidationMessage(`Rejection failed: ${error.message}`);
+                return false;
+            });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
-        if (result.isConfirmed) {
+        if (result.isConfirmed && result.value.status) {
             Swal.fire(
                 'Rejected!',
                 'The document has been rejected.',
