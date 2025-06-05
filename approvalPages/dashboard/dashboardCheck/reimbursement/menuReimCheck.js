@@ -126,7 +126,7 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+    window.location.href = `../../../approval/check/reimbursement/checkedReim.html?reim-id=${reimId}`;
 }
 
 // Sample data for testing when API is not available

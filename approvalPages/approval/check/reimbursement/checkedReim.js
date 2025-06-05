@@ -283,7 +283,7 @@ async function submitReimbursementUpdate() {
 
 // Function to go back to menu
 function goToMenuReim() {
-    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
+    window.location.href = '../../../dashboard/dashboardCheck/reimbursement/menuReimCheck.html';
 }
 
 function onReject() {
