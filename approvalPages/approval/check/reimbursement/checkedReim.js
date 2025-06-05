@@ -310,7 +310,7 @@ function onReject() {
             }
             
             // Make API call to reject the reimbursement
-            return fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
+            return fetch(`${BASE_URL}/api/reimbursements/checker/${id}/reject`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -368,7 +368,7 @@ function onApprove() {
             }
             
             // Make API call to approve the reimbursement
-            fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
+            fetch(`${BASE_URL}/api/reimbursements/checker/${id}/approve`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
