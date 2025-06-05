@@ -30,6 +30,63 @@ async function fetchReimbursementData() {
     }
 }
 
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Populate dropdowns
+        populateDropdown("preparedBySelect", users);
+        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("checkedBySelect", users);
+        populateDropdown("approvedBySelect", users);
+        
+        // Make all dropdowns readonly by disabling them
+        document.getElementById("preparedBySelect").disabled = true;
+        document.getElementById("acknowledgeBySelect").disabled = true;
+        document.getElementById("checkedBySelect").disabled = true;
+        document.getElementById("approvedBySelect").disabled = true;
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
+    }
+}
+
+// Helper function to populate a dropdown with user data
+function populateDropdown(dropdownId, users) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Clear existing options
+    dropdown.innerHTML = "";
+    
+    // Add users as options
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = user.firstName;
+        if (user.middleName) displayName += ` ${user.middleName}`;
+        if (user.lastName) displayName += ` ${user.lastName}`;
+        
+        option.textContent = displayName;
+        dropdown.appendChild(option);
+    });
+}
+
 // Populate form fields with data
 function populateFormData(data) {
     // Main form fields
@@ -406,6 +463,9 @@ function printReimbursement() {
 document.addEventListener('DOMContentLoaded', function() {
     // Load data when page loads
     fetchReimbursementData();
+    
+    // Fetch users to populate dropdown selects
+    fetchUsers();
     
     // Add event listener for docType if it exists
     const docTypeElement = document.getElementById("docType");
