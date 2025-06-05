@@ -283,7 +283,7 @@ async function submitReimbursementUpdate() {
 
 // Function to go back to menu
 function goToMenuReim() {
-    window.location.href = '../menuReim.html';
+    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
 }
 
 function onReject() {
@@ -350,14 +350,40 @@ function onApprove() {
                 return;
             }
             
-            // API call removed
-            Swal.fire(
-                'Approved!',
-                'The document has been approved.',
-                'success'
-            ).then(() => {
-                // Return to menu
-                goToMenuReim();
+            // Make API call to approve the reimbursement
+            fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Approved!',
+                        'The document has been approved.',
+                        'success'
+                    ).then(() => {
+                        // Return to menu
+                        goToMenuReim();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to approve document',
+                        'error'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error approving reimbursement:', error);
+                Swal.fire(
+                    'Error',
+                    'An error occurred while approving the document',
+                    'error'
+                );
             });
         }
     });
