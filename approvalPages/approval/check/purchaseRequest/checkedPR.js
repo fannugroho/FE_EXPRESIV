@@ -378,24 +378,80 @@ function populateUserSelects(users, prData = null) {
     });
 }
 
+// Function to approve PR
+function approvePR() {
+    Swal.fire({
+        title: 'Confirm Approval',
+        text: 'Are you sure you want to approve this Purchase Request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Approve',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updatePRStatus('approve');
+        }
+    });
+}
+
+// Function to reject PR
+function rejectPR() {
+    Swal.fire({
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Purchase Request?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Reject',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updatePRStatusWithRemarks('reject', remarksResult.value);
+                }
+            });
+        }
+    });
+}
+
 // Function to approve or reject the PR
 function updatePRStatus(status) {
     if (!prId) {
-        alert('PR ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'PR ID not found'
+        });
         return;
-    }
-
-    let remarks = '';
-    if (status === 'reject') {
-        remarks = prompt('Please provide remarks for rejection:');
-        if (remarks === null) {
-            return; // User cancelled
-        }
     }
 
     const userId = getUserId();
     if (!userId) {
-        alert("Unable to get user ID from token. Please login again.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
         return;
     }
 
@@ -403,8 +459,18 @@ function updatePRStatus(status) {
         id: prId,
         UserId: userId,
         Status: status,
-        Remarks: remarks
+        Remarks: ''
     };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Approving' : 'Processing'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
     
@@ -417,9 +483,16 @@ function updatePRStatus(status) {
     })
     .then(response => {
         if (response.ok) {
-            alert(`PR ${status === 'approve' ? 'approved' : 'rejected'} successfully`);
-            // Navigate back to the dashboard
-            window.location.href = '../../dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html';
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `PR ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html';
+            });
         } else {
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
@@ -428,18 +501,87 @@ function updatePRStatus(status) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error ${status === 'approve' ? 'approving' : 'rejecting'} PR: ` + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} PR: ` + error.message
+        });
     });
 }
 
-// Function to approve PR
-function approvePR() {
-    updatePRStatus('approve');
-}
+// Function to approve or reject the PR with remarks
+function updatePRStatusWithRemarks(status, remarks) {
+    if (!prId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'PR ID not found'
+        });
+        return;
+    }
 
-// Function to reject PR
-function rejectPR() {
-    updatePRStatus('reject');
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: prId,
+        UserId: userId,
+        Status: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Approving' : 'Rejecting'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+    
+    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `PR ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} PR: ` + error.message
+        });
+    });
 }
 
 function updateApprovalStatus(id, statusKey) {

@@ -88,7 +88,7 @@ function populateUserSelects(users, approvalData = null) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
         department: user.department
     }));
     
@@ -96,7 +96,7 @@ function populateUserSelects(users, approvalData = null) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
         department: user.department
     }));
 
@@ -191,51 +191,6 @@ function populateUserSelects(users, approvalData = null) {
         populateRequesterDropdown();
     }
 
-    const selects = [
-        { id: 'preparedSelect', approvalKey: 'preparedById' },
-        { id: 'checkedSelect', approvalKey: 'checkedById' },
-        { id: 'approvedSelect', approvalKey: 'approvedById' },
-        { id: 'acknowledgedSelect', approvalKey: 'acknowledgedById' }
-    ];
-    
-    selects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            // Store the currently selected value
-            const currentValue = select.value;
-            
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
-                select.appendChild(option);
-            });
-            
-            // Set the value from approval data if available
-            if (approvalData && approvalData[selectInfo.approvalKey]) {
-                select.value = approvalData[selectInfo.approvalKey];
-                // Auto-select and disable for Proposed by if it matches logged in user
-                if(selectInfo.id === "preparedSelect" && approvalData[selectInfo.approvalKey] == getUserId()){
-                    select.disabled = true;
-                }
-            } else if (currentValue) {
-                // Restore the selected value if it exists
-                select.value = currentValue;
-            }
-            
-            // Always disable and auto-select preparedSelect to logged-in user
-            if(selectInfo.id === "preparedSelect"){
-                const loggedInUserId = getUserId();
-                if(loggedInUserId) {
-                    select.value = loggedInUserId;
-                    select.disabled = true;
-                }
-            }
-        }
-    });
-    
     // Auto-populate employee fields with logged-in user data (same as addCash)
     const loggedInUserId = getUserId();
     console.log("Logged in user ID:", loggedInUserId);
@@ -262,6 +217,44 @@ function populateUserSelects(users, approvalData = null) {
         }
     } else {
         console.warn("Missing logged in user ID or employees array");
+    }
+
+    // Populate approval dropdowns with search functionality (same as addCash)
+    const approvalSelects = [
+        "Approval.PreparedById",
+        "Approval.CheckedById", 
+        "Approval.ApprovedById",
+        "Approval.AcknowledgedById"
+    ];
+
+    approvalSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                select.appendChild(option);
+                // Auto-select and disable for Proposed by (Approval.PreparedById)
+                if(selectId == "Approval.PreparedById"){
+                   if(user.id == getUserId()){
+                    option.selected = true;
+                    select.disabled = true;
+                    // Update the search input for Proposed by
+                    const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
+                    if (proposedBySearch) {
+                        proposedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                        proposedBySearch.disabled = true;
+                    }
+                   }
+                }
+            });
+        }
+    });
+    
+    // Set approval values from approvalData if available (after populating options)
+    if (approvalData) {
+        populateApprovals(approvalData);
     }
 }
 
@@ -500,6 +493,7 @@ function loadCashAdvanceData() {
     })
     .then(result => {
         if (result.status && result.data) {
+            console.log("result", result);
             populateForm(result.data);
         } else {
             Swal.fire('Error!', result.message || 'Gagal memuat data cash advance.', 'error');
@@ -621,6 +615,11 @@ function populateForm(data) {
         // You can implement attachment display logic here if needed
     }
 
+    // Display attachments
+    if (data.attachments) {
+        displayAttachments(data.attachments);
+    }
+
     // Check if status is not Draft and make fields read-only
     if (data.status && data.status.toLowerCase() !== 'draft') {
         makeAllFieldsReadOnlyForNonDraft();
@@ -663,29 +662,97 @@ function populateTable(cashAdvanceDetails) {
     }
 }
 
+// Function to filter users for approval fields (same as addCash)
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Kosongkan dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter pengguna berdasarkan teks pencarian
+    const filteredUsers = window.requesters ? 
+        window.requesters.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        [];
+    
+    // Tampilkan hasil pencarian
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.fullName;
+        option.onclick = function() {
+            searchInput.value = user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Tampilkan pesan jika tidak ada hasil
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Tampilkan dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Update the populateApprovals function to work with new search structure
 function populateApprovals(approval) {
-    // Proposed by - check if there's a preparedById and mark checkbox accordingly
-    const preparedCheckbox = document.getElementById("preparedCheckbox");
-    if (preparedCheckbox && approval.preparedById) {
-        preparedCheckbox.checked = true;
+    // Proposed by - find user and set in search input if there's a preparedById
+    const preparedSelect = document.getElementById("Approval.PreparedById");
+    if (preparedSelect && approval.preparedById) {
+        preparedSelect.value = approval.preparedById;
+        const preparedUser = window.requesters.find(user => user.id === approval.preparedById);
+        if (preparedUser) {
+            const preparedSearchInput = document.getElementById('Approval.PreparedByIdSearch');
+            if (preparedSearchInput) {
+                preparedSearchInput.value = preparedUser.fullName;
+            }
+        }
     }
     
-    // Checked by - check if there's a checkedById and mark checkbox accordingly
-    const checkedCheckbox = document.getElementById("checkedCheckbox");
-    if (checkedCheckbox && approval.checkedById) {
-        checkedCheckbox.checked = true;
+    // Checked by - find user and set in search input if there's a checkedById
+    const checkedSelect = document.getElementById("Approval.CheckedById");
+    if (checkedSelect && approval.checkedById) {
+        checkedSelect.value = approval.checkedById;
+        const checkedUser = window.requesters.find(user => user.id === approval.checkedById);
+        if (checkedUser) {
+            const checkedSearchInput = document.getElementById('Approval.CheckedByIdSearch');
+            if (checkedSearchInput) {
+                checkedSearchInput.value = checkedUser.fullName;
+            }
+        }
     }
     
-    // Approved by - check if there's an approvedById and mark checkbox accordingly
-    const approvedCheckbox = document.getElementById("approvedCheckbox");
-    if (approvedCheckbox && approval.approvedById) {
-        approvedCheckbox.checked = true;
+    // Approved by - find user and set in search input if there's an approvedById
+    const approvedSelect = document.getElementById("Approval.ApprovedById");
+    if (approvedSelect && approval.approvedById) {
+        approvedSelect.value = approval.approvedById;
+        const approvedUser = window.requesters.find(user => user.id === approval.approvedById);
+        if (approvedUser) {
+            const approvedSearchInput = document.getElementById('Approval.ApprovedByIdSearch');
+            if (approvedSearchInput) {
+                approvedSearchInput.value = approvedUser.fullName;
+            }
+        }
     }
     
-    // Acknowledged by - check if there's an acknowledgedById and mark checkbox accordingly
-    const acknowledgedCheckbox = document.getElementById("acknowledgedCheckbox");
-    if (acknowledgedCheckbox && approval.acknowledgedById) {
-        acknowledgedCheckbox.checked = true;
+    // Acknowledged by - find user and set in search input if there's an acknowledgedById
+    const acknowledgedSelect = document.getElementById("Approval.AcknowledgedById");
+    if (acknowledgedSelect && approval.acknowledgedById) {
+        acknowledgedSelect.value = approval.acknowledgedById;
+        const acknowledgedUser = window.requesters.find(user => user.id === approval.acknowledgedById);
+        if (acknowledgedUser) {
+            const acknowledgedSearchInput = document.getElementById('Approval.AcknowledgedByIdSearch');
+            if (acknowledgedSearchInput) {
+                acknowledgedSearchInput.value = acknowledgedUser.fullName;
+            }
+        }
     }
 }
 
@@ -696,6 +763,52 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Then load cash advance data
     loadCashAdvanceData();
+    
+    // Setup event listener untuk hide dropdown saat klik di luar
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'Approval.PreparedByIdDropdown', 
+            'Approval.CheckedByIdDropdown', 
+            'Approval.ApprovedByIdDropdown', 
+            'Approval.AcknowledgedByIdDropdown'
+        ];
+        
+        const searchInputs = [
+            'Approval.PreparedByIdSearch', 
+            'Approval.CheckedByIdSearch', 
+            'Approval.ApprovedByIdSearch', 
+            'Approval.AcknowledgedByIdSearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Trigger initial dropdown on focus for each search field
+    const searchFields = [
+        'Approval.PreparedByIdSearch',
+        'Approval.CheckedByIdSearch',
+        'Approval.ApprovedByIdSearch',
+        'Approval.AcknowledgedByIdSearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', '');
+                filterUsers(actualFieldId);
+            });
+        }
+    });
 });
 
 function updateCash(isSubmit = false) {
@@ -775,10 +888,10 @@ function updateCash(isSubmit = false) {
             }
             
             // Approval fields
-            formData.append('PreparedById', document.getElementById("preparedSelect")?.value || '');
-            formData.append('CheckedById', document.getElementById("checkedSelect")?.value || '');
-            formData.append('ApprovedById', document.getElementById("approvedSelect")?.value || '');
-            formData.append('AcknowledgedById', document.getElementById("acknowledgedSelect")?.value || '');
+            formData.append('PreparedById', document.getElementById("Approval.PreparedById")?.value || '');
+            formData.append('CheckedById', document.getElementById("Approval.CheckedById")?.value || '');
+            formData.append('ApprovedById', document.getElementById("Approval.ApprovedById")?.value || '');
+            formData.append('AcknowledgedById', document.getElementById("Approval.AcknowledgedById")?.value || '');
             
             // Add CashAdvanceDetails - collect all rows from the table
             const tableRows = document.querySelectorAll('#tableBody tr');
@@ -1197,11 +1310,19 @@ function makeAllFieldsReadOnlyForNonDraft() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
+    // Hide all approval dropdown divs
+    const approvalDropdowns = [
+        'Approval.PreparedByIdDropdown',
+        'Approval.CheckedByIdDropdown', 
+        'Approval.ApprovedByIdDropdown',
+        'Approval.AcknowledgedByIdDropdown'
+    ];
+    
+    approvalDropdowns.forEach(dropdownId => {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
     });
     
     // Hide action buttons (Update, Submit, Delete)
@@ -1221,4 +1342,31 @@ function makeAllFieldsReadOnlyForNonDraft() {
     deleteButtons.forEach(button => {
         button.style.display = 'none';
     });
+}
+
+// Function to display attachments
+function displayAttachments(attachments) {
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-blue-600 mr-2">📄</span>
+                    <span class="text-sm font-medium">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
+    }
 }

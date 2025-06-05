@@ -7,6 +7,36 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        /* Gray column styling for disabled fields */
+        .gray-column {
+            background-color: #f3f4f6 !important;
+        }
+        .gray-column input {
+            background-color: transparent !important;
+            border: none !important;
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -17,7 +47,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Settlement No.</h3>
-                <input type="text" id="settlementNumber" placeholder="Settlement No." class="w-full p-2 border rounded">
+                <input type="text" id="settlementNumber" placeholder="Settlement No." class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="requester" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -44,7 +74,7 @@
             <div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded" disabled>
+                <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Production">Production</option>
                     <option value="Marketing">Marketing</option>
                     <option value="Technical">Technical</option>
@@ -66,6 +96,14 @@
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
                 <select type="" id="cashAdvanceReferenceId" class="w-full p-2 border rounded">
                     <option value="" disabled selected>Loading...</option>
@@ -91,11 +129,11 @@
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description" maxlength="200" class="w-full" />
                     </td>
-                    <td id="tdGLAccount" class="p-2 border">
-                        <input type="text" id="glAccount" maxlength="200" class="w-full" />
+                    <td id="tdGLAccount" class="p-2 border gray-column">
+                        <input type="text" id="glAccount" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
-                    <td id="tdAccountName" class="p-2 border">
-                        <input type="text" id="accountName" maxlength="200" class="w-full" />
+                    <td id="tdAccountName" class="p-2 border gray-column">
+                        <input type="text" id="accountName" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
                     <td id="tdAmount" class="p-2 border">
                         <input type="number" id="amount" maxlength="200" class="w-full" />
@@ -119,36 +157,48 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedCheckbox" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedById" class="w-full p-1 border rounded">
-                    <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
-                </select>
+                <label><strong>Prepared by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="filterUsers('preparedDropdown')" autocomplete="off" disabled>
+                    <select id="preparedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="checkedCheckbox" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedById" class="w-full p-1 border rounded">
-                <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Finance 1</option>
-                <option value="Finance2">Finance 2</option>
-            </select>
+                <label><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedDropdown')" autocomplete="off">
+                    <select id="checkedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="approvedCheckbox" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedById" class="w-full p-1 border rounded">
-                <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Manager 1</option>
-                <option value="Manager2">Manager 2</option>
-            </select>
+                <label><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedDropdown')" autocomplete="off">
+                    <select id="approvedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><input type="checkbox" id="acknowledgedCheckbox" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <select id="acknowledgedById" class="w-full p-1 border rounded">
-                    <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">Requester</option>
-                    <option value="Admin">Admin</option>
-                </select>
+                <label><strong>Acknowledged by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedDropdown')" autocomplete="off">
+                    <select id="acknowledgedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="acknowledgedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
-            
         </div>
         <br>
         <div class="flex justify-start space-x-4 mt-6">

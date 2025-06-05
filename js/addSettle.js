@@ -257,8 +257,25 @@ function populateUserSelects(users) {
         }
     });
     
-    // Auto-populate employee fields with logged-in user data (like in addCash)
+    // Auto-populate and disable PreparedBy search field for logged-in user
     const loggedInUserId = getUserId();
+    if (loggedInUserId) {
+        const loggedInUser = users.find(user => user.id === loggedInUserId);
+        if (loggedInUser) {
+            const preparedSearchInput = document.getElementById('preparedDropdownSearch');
+            const preparedSelect = document.getElementById('preparedDropdown');
+            
+            if (preparedSearchInput && preparedSelect) {
+                const userName = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                preparedSearchInput.value = userName;
+                preparedSearchInput.disabled = true;
+                preparedSearchInput.classList.add('bg-gray-100');
+                preparedSelect.value = loggedInUserId;
+            }
+        }
+    }
+    
+    // Auto-populate employee fields with logged-in user data (like in addCash)
     console.log("Logged in user ID:", loggedInUserId);
     console.log("Available employees:", window.employees);
     
@@ -310,7 +327,6 @@ async function saveDocument(isSubmit = false) {
         }
         
         // Basic validation
-        const settlementNumber = document.getElementById("invno").value;
         let kansaiEmployeeId;
         if(window.kansaiEmployeeId){
             kansaiEmployeeId = window.kansaiEmployeeId;
@@ -322,20 +338,10 @@ async function saveDocument(isSubmit = false) {
         const cashAdvanceReferenceId = document.getElementById("cashAdvanceDoc").value;
         
         console.log("Validation check values:", {
-            settlementNumber: settlementNumber,
             kansaiEmployeeId: kansaiEmployeeId,
             cashAdvanceReferenceId: cashAdvanceReferenceId
         });
         
-        if (!settlementNumber) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation Error!',
-                text: 'Settlement Number is required',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
-        }
         
         if (!kansaiEmployeeId) {
             Swal.fire({
@@ -377,7 +383,6 @@ async function saveDocument(isSubmit = false) {
         const remarks = document.getElementById("Remarks").value;
         
         // Add basic fields to FormData
-        formData.append('SettlementNumber', settlementNumber);
         formData.append('KansaiEmployeeId', kansaiEmployeeId);
         formData.append('CashAdvanceReferenceId', cashAdvanceReferenceId);
         // Add requester ID
@@ -548,10 +553,10 @@ function previewPDF(event) {
             <input type="text" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full" required />
@@ -577,8 +582,9 @@ async function loadCashAdvanceOptions() {
     try {
         // Show loading state
         dropdown.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        const userid = getUserId();
         
-        const response = await fetch(`${BASE_URL}/api/cash-advance`);
+        const response = await fetch(`${BASE_URL}/api/cash-advance/approved/prepared-by/${userid}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -592,10 +598,11 @@ async function loadCashAdvanceOptions() {
         // Populate dropdown with API data
         if (responseData.status && responseData.data && Array.isArray(responseData.data)) {
             responseData.data.forEach(cashAdvance => {
+                console.log("Cash Advance:", cashAdvance);
                 const option = document.createElement('option');
                 option.value = cashAdvance.id;
                 option.textContent = cashAdvance.cashAdvanceNo;
-                dropdown.appendChild(option);
+                dropdown.appendChild(option);           
             });
         } else {
             dropdown.innerHTML = '<option value="" disabled selected>No data available</option>';

@@ -89,6 +89,9 @@ function populateDropdown(dropdownId, users) {
 
 // Populate form fields with data
 function populateFormData(data) {
+    // Store users globally for search functionality (mock data if needed)
+    window.allUsers = window.allUsers || [];
+    
     // Main form fields
     if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
     if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
@@ -472,5 +475,113 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId = fieldId;
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Helper function to update approver fields
+function updateApproverField(fieldId, value) {
+    if (!value) return;
+    
+    const select = document.getElementById(fieldId);
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    
+    if (select) {
+        select.value = value;
+    }
+    
+    if (searchInput) {
+        searchInput.value = value;
+    }
+}
+
+// Function to make all fields read-only
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
+    inputFields.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
+    });
+    
+    // Disable all select fields
+    const selectFields = document.querySelectorAll('select');
+    selectFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Hide all delete row buttons
+    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = 'none';
+    });
+    
+    // Disable file upload
+    const fileInput = document.getElementById('filePath');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
 
     

@@ -142,7 +142,7 @@ function populatePurchaseRequests(data) {
         const row = `<tr class='w-full border-b'>
             <td class='p-2'></td>
             <td class='p-2'>${startIndex + index + 1}</td>
-            <td class='p-2'>${doc.purchaseRequestNo}</td>
+            <td class='p-2'>${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
             <td class='p-2'>${submissionDate}</td>

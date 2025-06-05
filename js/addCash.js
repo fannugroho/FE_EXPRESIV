@@ -215,6 +215,8 @@ function fetchDepartments() {
 
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("department");
+    departmentSelect.innerHTML = '<option value="" disabled selected>Select Department</option>';
+
     if (departmentSelect) {
         departments.forEach(department => {
             const option = document.createElement('option');
@@ -448,6 +450,12 @@ function populateUserSelects(users) {
                    if(user.id == getUserId()){
                     option.selected = true;
                     select.disabled = true;
+                    // Update the search input for Proposed by
+                    const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
+                    if (proposedBySearch) {
+                        proposedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                        proposedBySearch.disabled = true;
+                    }
                    }
                 }
             });

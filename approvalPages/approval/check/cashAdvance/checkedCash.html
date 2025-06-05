@@ -132,26 +132,18 @@
                 </div>
             </div>
             <div>
-                <label id="acknowledgedByCheck" class="mr-1"><strong>Approved by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off">
-                    <select id="Acknowledged" class="hidden">
-                        <option value="Manager1">Manager 1</option>
-                        <option value="Manager2">Manager 2</option>
-                    </select>
-                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+            <label><input type="checkbox" id="acknowledgedby" class="mr-1"><strong>Acknowledged by :</strong></label>
+            <select id="Acknowledged" class="w-full p-1 border rounded">
+                <option value="Manager1">Manager 1</option>
+                <option value="Manager2">Manager 2</option>
+            </select>
             </div>
             <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
-                    <select id="Approved" class="hidden">
-                        <option value="Manager1">General Manager 1</option>
-                        <option value="Manager2">General Manager 2</option>
-                    </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+            <label><input type="checkbox" id="approvedby" class="mr-1"><strong>Approved by :</strong></label>
+            <select id="Approved" class="w-full p-1 border rounded">
+                <option value="Manager1">General Manager 1</option>
+                <option value="Manager2">General Manager 2</option>
+            </select>
             </div>
             <div>
             <!-- <label><input type="checkbox" id="knowledge" class="mr-1"><strong>Received by :</strong></label>

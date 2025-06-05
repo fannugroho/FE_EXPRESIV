@@ -384,24 +384,80 @@ function makeAllFieldsReadOnly() {
     }
 }
 
+// Function to approve CA
+function approveCash() {
+    Swal.fire({
+        title: 'Confirm Approval',
+        text: 'Are you sure you want to approve this Cash Advance?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Approve',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateCAStatus('approve');
+        }
+    });
+}
+
+// Function to reject CA
+function rejectCash() {
+    Swal.fire({
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Cash Advance?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Reject',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updateCAStatusWithRemarks('reject', remarksResult.value);
+                }
+            });
+        }
+    });
+}
+
 // Function to approve or reject the CA
 function updateCAStatus(status) {
     if (!caId) {
-        alert('CA ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'CA ID not found'
+        });
         return;
-    }
-
-    let remarks = '';
-    if (status === 'reject') {
-        remarks = prompt('Please provide remarks for rejection:');
-        if (remarks === null) {
-            return; // User cancelled
-        }
     }
 
     const userId = getUserId();
     if (!userId) {
-        alert("Unable to get user ID from token. Please login again.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
         return;
     }
 
@@ -409,8 +465,18 @@ function updateCAStatus(status) {
         id: caId,
         UserId: userId,
         Status: status,
-        Remarks: remarks
+        Remarks: ''
     };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Approving' : 'Processing'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     fetch(`${BASE_URL}/api/cash-advance/status`, {
         method: 'POST',
@@ -421,9 +487,16 @@ function updateCAStatus(status) {
     })
     .then(response => {
         if (response.ok) {
-            alert(`CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`);
-            // Navigate back to the dashboard
-            window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
+            });
         } else {
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
@@ -432,18 +505,85 @@ function updateCAStatus(status) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message
+        });
     });
 }
 
-// Function to approve CA
-function approveCash() {
-    updateCAStatus('approve');
-}
+// Function to approve or reject the CA with remarks
+function updateCAStatusWithRemarks(status, remarks) {
+    if (!caId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'CA ID not found'
+        });
+        return;
+    }
 
-// Function to reject CA
-function rejectCash() {
-    updateCAStatus('reject');
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: caId,
+        UserId: userId,
+        Status: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Approving' : 'Rejecting'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/cash-advance/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message
+        });
+    });
 }
 
 function goToMenuCash() {

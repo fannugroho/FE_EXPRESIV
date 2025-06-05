@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Purchase Request</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -65,12 +89,18 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
-                <div id="fileList" class="mt-2 border rounded p-2 max-h-32 overflow-y-auto"></div>
+       
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-2">
-                    <label><input type="checkbox" id="PO" class="mr-1"><strong>PO</strong></label>
-                    <label><input type="checkbox" id="NonPO" class="mr-1"><strong>Non PO</strong></label>
+                    <label><input type="radio" name="documentType" id="PO" class="mr-1"><strong>PO</strong></label>
+                    <label><input type="radio" name="documentType" id="NonPO" class="mr-1"><strong>Non PO</strong></label>
                 </div>
             </div>
         </div>
@@ -112,34 +142,54 @@
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <label><strong>Prepared by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="filterUsers('preparedBy')" autocomplete="off" disabled>
+                    <select id="preparedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
-                <select id="acknowledgeBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <label><strong>Acknowledge by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off">
+                    <select id="acknowledgeBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
-                <select id="checkedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <label><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <select id="checkedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
-                <select id="approvedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <label><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
+                    <select id="approvedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label><input type="checkbox" id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
-                <select id="receivedBy" class="w-full p-1 border rounded">
-                    <option value="" disabled selected>Select User</option>
-                </select>
+                <label><strong>Received by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off">
+                    <select id="receivedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
@@ -158,6 +208,8 @@
         </div>
     </div>
     
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.all.min.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/detailPR.js"></script>
     <script src="../pages/utils/toMenu.js"></script>
