@@ -213,10 +213,56 @@ function displayFileList() {
         fileItem.className = "flex justify-between items-center p-2 border-b";
         fileItem.innerHTML = `
             <span>${file.name}</span>
-            <button type="button" onclick="removeFile(${index})" class="text-red-500">Remove</button>
+            <div>
+                <button type="button" onclick="viewFile(${index})" class="text-blue-500 mr-2">View</button>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500">X</button>
+            </div>
         `;
         fileListContainer.appendChild(fileItem);
     });
+}
+
+function viewFile(index) {
+    const file = uploadedFiles[index];
+    if (!file) return;
+    
+    // Create URL for the file
+    const fileURL = URL.createObjectURL(file);
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+    modal.id = 'pdfViewerModal';
+    
+    // Create modal content
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-semibold">${file.name}</h3>
+                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
+                    <span class="text-2xl">&times;</span>
+                </button>
+            </div>
+            <div class="flex-grow p-4 overflow-auto">
+                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
+            </div>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(modal);
+    
+    // Prevent scrolling on the body
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    const modal = document.getElementById('pdfViewerModal');
+    if (modal) {
+        modal.remove();
+        // Restore scrolling
+        document.body.style.overflow = '';
+    }
 }
 
 function removeFile(index) {
