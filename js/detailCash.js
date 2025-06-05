@@ -621,6 +621,11 @@ function populateForm(data) {
         // You can implement attachment display logic here if needed
     }
 
+    // Display attachments
+    if (data.attachments) {
+        displayAttachments(data.attachments);
+    }
+
     // Check if status is not Draft and make fields read-only
     if (data.status && data.status.toLowerCase() !== 'draft') {
         makeAllFieldsReadOnlyForNonDraft();
@@ -1197,13 +1202,6 @@ function makeAllFieldsReadOnlyForNonDraft() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
-    });
-    
     // Hide action buttons (Update, Submit, Delete)
     const actionButtons = document.querySelectorAll('button[onclick*="updateCash"], button[onclick*="confirmDelete"]');
     actionButtons.forEach(button => {
@@ -1221,4 +1219,31 @@ function makeAllFieldsReadOnlyForNonDraft() {
     deleteButtons.forEach(button => {
         button.style.display = 'none';
     });
+}
+
+// Function to display attachments
+function displayAttachments(attachments) {
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-blue-600 mr-2">📄</span>
+                    <span class="text-sm font-medium">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
+    }
 }

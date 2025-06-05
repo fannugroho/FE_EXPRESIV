@@ -189,10 +189,10 @@ function populateDepartmentSelect(departments) {
 
 function populateUserSelects(users, caData = null) {
     const selects = [
-        { id: 'prepared', approvalKey: 'preparedById' },
-        { id: 'Checked', approvalKey: 'checkedById' },
-        { id: 'Acknowledged', approvalKey: 'acknowledgedById' },
-        { id: 'Approved', approvalKey: 'approvedById' }
+        { id: 'preparedSelect', approvalKey: 'preparedById' },
+        { id: 'checkedSelect', approvalKey: 'checkedById' },
+        { id: 'acknowledgedSelect', approvalKey: 'acknowledgedById' },
+        { id: 'approvedSelect', approvalKey: 'approvedById' }
     ];
     
     selects.forEach(selectInfo => {

@@ -17,7 +17,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Settlement No.</h3>
-                <input type="text" id="settlementNumber" placeholder="Settlement No." class="w-full p-2 border rounded">
+                <input type="text" id="settlementNumber" placeholder="Settlement No." class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="requester" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -44,7 +44,7 @@
             <div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded" disabled>
+                <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Production">Production</option>
                     <option value="Marketing">Marketing</option>
                     <option value="Technical">Technical</option>
@@ -66,6 +66,14 @@
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
                 <select type="" id="cashAdvanceReferenceId" class="w-full p-2 border rounded">
                     <option value="" disabled selected>Loading...</option>
@@ -121,29 +129,29 @@
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedCheckbox" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedById" class="w-full p-1 border rounded">
+                <label><strong>Prepared by:</strong></label>
+                <select id="preparedById" class="w-full p-1 border rounded bg-white">
                     <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Admin 1</option>
                     <option value="Admin2">Admin 2</option>
                 </select>
             </div>
             <div>
-            <label><input type="checkbox" id="checkedCheckbox" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedById" class="w-full p-1 border rounded">
+            <label><strong>Checked by:</strong></label>
+            <select id="checkedById" class="w-full p-1 border rounded bg-white">
                 <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Finance 1</option>
                 <option value="Finance2">Finance 2</option>
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="approvedCheckbox" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedById" class="w-full p-1 border rounded">
+            <label><strong>Approved by:</strong></label>
+            <select id="approvedById" class="w-full p-1 border rounded bg-white">
                 <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Manager 1</option>
                 <option value="Manager2">Manager 2</option>
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="acknowledgedCheckbox" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <select id="acknowledgedById" class="w-full p-1 border rounded">
+            <label><strong>Acknowledged by:</strong></label>
+                <select id="acknowledgedById" class="w-full p-1 border rounded bg-white">
                     <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">Requester</option>
                     <option value="Admin">Admin</option>
                 </select>

@@ -41,7 +41,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Settlement No.</h3>
-                <input type="text" id="invno" placeholder="Settlement No." class="w-full p-2 border rounded">
+                <input type="text" id="invno" placeholder="Settlement No." class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="Employee" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -59,7 +59,7 @@
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
                 <input type="text" id="purposed" placeholder="Purpose" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="type" class="w-full p-2 border rounded">
+                <select id="type" class="w-full p-2 border rounded bg-white">
                     <option value="" disabled selected>Select Type of Transaction</option>
                 </select>            
             </div>
@@ -67,7 +67,7 @@
             <div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded" disabled>
+                <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="" disabled selected>Select Department</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Posting Date</h3>
@@ -79,7 +79,7 @@
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
-                <select type="" id="cashAdvanceDoc" class="w-full p-2 border rounded">
+                <select type="" id="cashAdvanceDoc" class="w-full p-2 border rounded bg-white">
                     <option value="" disabled selected>Loading...</option>
                 </select>
             </div>
@@ -104,10 +104,10 @@
                         <input type="text" id="Description" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdGLAccount" class="p-2 border">
-                        <input type="text" id="GLAccount" maxlength="200" class="w-full" required />
+                        <input type="text" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
                     <td id="tdAccountName" class="p-2 border">
-                        <input type="text" id="AccountName" maxlength="200" class="w-full" required />
+                        <input type="text" id="AccountName" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
                     <td id="tdAmount" class="p-2 border">
                         <input type="text" id="Amount" maxlength="200" class="w-full" required />

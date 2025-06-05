@@ -65,12 +65,18 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
-                <div id="fileList" class="mt-2 border rounded p-2 max-h-32 overflow-y-auto"></div>
+       
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-2">
-                    <label><input type="checkbox" id="PO" class="mr-1"><strong>PO</strong></label>
-                    <label><input type="checkbox" id="NonPO" class="mr-1"><strong>Non PO</strong></label>
+                    <label><input type="radio" name="documentType" id="PO" class="mr-1"><strong>PO</strong></label>
+                    <label><input type="radio" name="documentType" id="NonPO" class="mr-1"><strong>Non PO</strong></label>
                 </div>
             </div>
         </div>
@@ -112,31 +118,31 @@
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <select id="prepared" class="w-full p-1 border rounded">
+                <label><strong>Prepared by:</strong></label>
+                <select id="preparedBy" class="w-full p-1 border rounded">
                     <option value="" disabled selected>Select User</option>
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <label><strong>Acknowledge by:</strong></label>
                 <select id="acknowledgeBy" class="w-full p-1 border rounded">
                     <option value="" disabled selected>Select User</option>
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
+                <label><strong>Checked by:</strong></label>
                 <select id="checkedBy" class="w-full p-1 border rounded">
                     <option value="" disabled selected>Select User</option>
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
+                <label><strong>Approved by:</strong></label>
                 <select id="approvedBy" class="w-full p-1 border rounded">
                     <option value="" disabled selected>Select User</option>
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
+                <label><strong>Received by:</strong></label>
                 <select id="receivedBy" class="w-full p-1 border rounded">
                     <option value="" disabled selected>Select User</option>
                 </select>

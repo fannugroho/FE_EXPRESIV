@@ -127,7 +127,7 @@ function addRow() {
                 </select>
             </td>
             <td class="p-2 border item-field">
-                <input type="text" class="w-full item-description" maxlength="200" required />
+                <input type="text" class="w-full item-description bg-gray-100" maxlength="200" disabled />
             </td>
             <td class="p-2 border item-field">
                 <input type="text" class="w-full item-detail" maxlength="100" required />
@@ -155,20 +155,20 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
-function goToAddDoc() {window.location.href = "../addPages/addPR.html"; }
-function goToAddReim() {window.location.href = "AddReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+// function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
+// function goToAddDoc() {window.location.href = "../addPages/addPR.html"; }
+// function goToAddReim() {window.location.href = "AddReim.html"; }
+// function goToAddCash() {window.location.href = "AddCash.html"; }
+// function goToAddSettle() {window.location.href = "AddSettle.html"; }
+// function goToAddPO() {window.location.href = "AddPO.html"; }
+// function goToMenuReim() { window.location.href = "MenuReim.html"; }
+// function goToMenuCash() { window.location.href = "MenuCash.html"; }
+// function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+// function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+// function goToMenuPO() { window.location.href = "MenuPO.html"; }
+// function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+// function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+// function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
 // Data pengguna contoh (mockup)
 const mockUsers = [
@@ -232,6 +232,13 @@ window.onload = function(){
     fetchClassifications();
     document.getElementById("prType").value = "Item"; // Set default PR Type to Item
     toggleFields();
+    
+    // Ensure all description fields are initially empty and properly styled
+    document.querySelectorAll('.item-description').forEach(input => {
+        input.value = '';
+        input.disabled = true;
+        input.classList.add('bg-gray-100');
+    });
     
     // Tambahkan event listener untuk menyembunyikan dropdown saat klik di luar
     document.addEventListener('click', function(event) {
@@ -404,7 +411,7 @@ function populateUserSelects(users) {
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
                     //update department
-                    console.log(requester);
+                    
                     const departmentSelect = document.getElementById('department');
                     if (requester.department) {
                         // Find the department option and select it
@@ -510,12 +517,20 @@ function updateItemDescription(selectElement) {
     const descriptionInput = row.querySelector('.item-description');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     
-    if (selectedOption && !selectedOption.disabled) {
-        // Get description from data attribute
+    // Check if a valid item is selected (not the placeholder option)
+    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
+        // Get description from data attribute and fill it automatically
         const itemDescription = selectedOption.getAttribute('data-description');
         descriptionInput.value = itemDescription || '';
+        // Keep the description field disabled and gray (not editable by user)
+        descriptionInput.disabled = true;
+        descriptionInput.classList.add('bg-gray-100');
     } else {
+        // No valid item selected, clear the description
         descriptionInput.value = '';
+        // Keep the description field disabled and gray
+        descriptionInput.disabled = true;
+        descriptionInput.classList.add('bg-gray-100');
     }
 }
 
@@ -565,7 +580,7 @@ async function submitDocument(isSubmit = false) {
         console.log("IsSubmit:", isSubmit);
         
         // Add basic fields
-        formData.append('PurchaseRequestNo', document.getElementById("purchaseRequestNo").value);
+        // formData.append('PurchaseRequestNo', document.getElementById("purchaseRequestNo").value);
         formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
         formData.append('DepartmentId', document.getElementById("department").value);
         formData.append('IsSubmit', isSubmit.toString()); // Convert boolean to string
@@ -694,4 +709,3 @@ async function submitDocument(isSubmit = false) {
         }
     }
 }
-

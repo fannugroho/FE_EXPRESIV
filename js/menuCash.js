@@ -30,7 +30,7 @@
                             const row = `<tr class='border-b'>
                                 <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
                                 <td class='p-2'>${doc.id.substring(0, 10)}</td>
-                                <td class='p-2'>${doc.cashAdvanceNo}</td>
+                                <td class='p-2'>${doc.cashAdvanceNo ? doc.cashAdvanceNo : ''}</td>
                                 <td class='p-2'>${doc.requesterName}</td>
                                 <td class='p-2'>${doc.departmentName}</td>
                                 <td class='p-2'>${doc.purpose}</td>
