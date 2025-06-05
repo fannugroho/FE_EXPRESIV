@@ -7,12 +7,6 @@ function loadDashboard() {
     
     // Fetch reimbursements from API
     fetchReimbursements();
-    
-    // Set up notification dropdown
-    setupNotificationDropdown();
-    
-    // Load user profile information
-    loadUserProfileInfo();
 }
 
 // Variables for pagination and filtering
@@ -20,11 +14,12 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
-let currentTab = 'checked'; // Default tab
+let currentTab = 'prepared'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const endpoint = "/api/reimbursements/status-counts";
+    const userId = getUserId();
+    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -49,7 +44,8 @@ function fetchStatusCounts() {
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
-    const endpoint = "/api/reimbursements";
+    const userId = getUserId();
+    const endpoint = `/api/reimbursements/checker/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -87,78 +83,19 @@ function displayReimbursements(reimbursements) {
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
+    document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
-    document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
 // Set up events for tab switching and pagination
 function setupTabsAndPagination() {
-    // Set up the "select all" checkbox
-    document.getElementById('selectAll').addEventListener("change", function() {
-        const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
-}
-
-// Setup notification dropdown functionality
-function setupNotificationDropdown() {
-    const notificationBtn = document.getElementById('notificationBtn');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    
-    if (notificationBtn && notificationDropdown) {
-        notificationBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            notificationDropdown.classList.toggle('hidden');
-        });
-        
-        // Close when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-    }
-}
-
-// Load user profile information
-function loadUserProfileInfo() {
-    // Try to get logged in user from localStorage
-    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-    
-    if (loggedInUser) {
-        // Display user name if available
-        if (document.getElementById('userNameDisplay')) {
-            document.getElementById('userNameDisplay').textContent = loggedInUser.name || loggedInUser.username || 'User';
-        }
-        
-        // Set user avatar if available, otherwise use default
-        if (document.getElementById('dashboardUserIcon')) {
-            if (loggedInUser.profilePicture) {
-                document.getElementById('dashboardUserIcon').src = loggedInUser.profilePicture;
-            } else {
-                // Default avatar - can be replaced with actual default image path
-                document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
-            }
-        }
-    } else {
-        // If no user found, set default values
-        if (document.getElementById('userNameDisplay')) {
-            document.getElementById('userNameDisplay').textContent = 'Guest User';
-        }
-        if (document.getElementById('dashboardUserIcon')) {
-            document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
-        }
-    }
+    // Removed the "select all" checkbox functionality since it no longer exists in HTML
 }
 
 function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('hidden');
-    }
+    // No-op function - sidebar toggle is disabled to keep it permanently open
+    return;
 }
 
 function toggleSubMenu(menuId) {
@@ -166,38 +103,30 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "../../../../Menu.html"; }
-function goToMenuPR() { window.location.href = "../../../purchaseRequest/menuPR.html"; }
-function goToMenuCheckPR() { window.location.href = "../../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-function goToMenuAcknowPR() { window.location.href = "../../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
-function goToMenuApprovPR() { window.location.href = "../../../dashboardApprove/purchaseRequest/menuPRApprov.html"; }
-function goToMenuReceivePR() { window.location.href = "../../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
-
-function goToMenuReim() { window.location.href = "../../../reimbursement/menuReim.html"; }
-function goToMenuCash() { window.location.href = "../../../cashAdvance/menuCash.html"; }
-function goToMenuSettle() { window.location.href = "../../../settlement/menuSettle.html"; }
-
-function goToMenuRegist() { window.location.href = "../../../../pages/register/register.html"; }
-function goToMenuUser() { window.location.href = "../../../../pages/register/userList.html"; }
-function goToMenuRole() { window.location.href = "../../../../pages/register/roleList.html"; }
-
-function goToMenuAPR() { window.location.href = "../../../../approvalDecisionReport/purchase/APR.html"; }
-function goToMenuPO() { window.location.href = "../../../../approvalDecisionReport/purchase/PO.html"; }
-function goToMenuBanking() { window.location.href = "../../../../approvalDecisionReport/outgoing/Banking.html"; }
-function goToMenuInvoice() { window.location.href = "../../../../approvalDecisionReport/invoice/Invoice.html"; }
-
-function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "../../../../pages/login/login.html"; 
-}
-
-// Function to navigate to user profile page
-function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
-}
+function goToMenu() { window.location.href = "Menu.html"; }
+function goToAddDoc() {window.location.href = "AddDoc.html"; }
+function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
+function goToAddCash() {window.location.href = "AddCash.html"; }
+function goToAddSettle() {window.location.href = "AddSettle.html"; }
+function goToAddPO() {window.location.href = "AddPO.html"; }
+function goToMenuPR() { window.location.href = "MenuPR.html"; }
 
 function goToDetailReim(reimId) {
-    window.location.href = `../../../../detailPages/detailReim.html?reim-id=${reimId}`;
+    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+}
+
+function goToMenuReim() { window.location.href = "MenuReim.html"; }
+function goToMenuCash() { window.location.href = "MenuCash.html"; }
+function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+function goToMenuPO() { window.location.href = "MenuPO.html"; }
+function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+
+// Function to redirect to detail page with reimbursement ID
+function detailReim(reimId) {
+    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
 }
 
 // Sample data for testing when API is not available
@@ -206,14 +135,13 @@ function generateSampleData() {
     sampleData = [];
     for (let i = 1; i <= 35; i++) {
         let status;
-        if (i <= 20) {
-            status = 'Checked';
+        if (i <= 15) {
+            status = 'Prepared';
         } else if (i <= 30) {
-            status = 'Acknowledge';
+            status = 'Checked';
         } else {
             status = 'Rejected';
         }
-        
         sampleData.push({
             id: i,
             docNumber: `DOC-${1000 + i}`,
@@ -237,47 +165,57 @@ function useSampleData() {
 function updateSampleCounts() {
     const data = generateSampleData();
     document.getElementById("totalCount").textContent = data.length;
+    document.getElementById("preparedCount").textContent = data.filter(item => item.status === 'Prepared').length;
     document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("acknowledgeCount").textContent = data.filter(item => item.status === 'Acknowledge').length;
     document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between tabs
+// Switch between Prepared and Checked tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
+    document.getElementById('preparedTabBtn').classList.remove('tab-active');
     document.getElementById('checkedTabBtn').classList.remove('tab-active');
-    document.getElementById('acknowledgeTabBtn').classList.remove('tab-active');
-    if (document.getElementById('rejectedTabBtn')) {
-        document.getElementById('rejectedTabBtn').classList.remove('tab-active');
-    }
+    document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'checked') {
+    if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'checked') {
         document.getElementById('checkedTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Checked');
-    } else if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Acknowledge');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
-        filteredData = allReimbursements.filter(item => item.status === 'Rejected');
     }
     
-    // Update table and pagination
-    updateTable();
-    updatePagination();
-}
-
-// Helper function to get status styling
-function getStatusClass(status) {
-    switch(status) {
-        case 'Checked': return 'bg-yellow-200 text-yellow-800';
-        case 'Acknowledge': return 'bg-green-200 text-green-800';
-        case 'Rejected': return 'bg-red-200 text-red-800';
-        default: return 'bg-gray-200 text-gray-800';
-    }
+    // Get the table body for animation effects
+    const tableBody = document.getElementById('recentDocs');
+    
+    // Add fade-out effect
+    tableBody.style.opacity = '0';
+    tableBody.style.transform = 'translateY(10px)';
+    tableBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    // Filter the data with a slight delay to allow animation
+    setTimeout(() => {
+        if (tabName === 'prepared') {
+            filteredData = allReimbursements.filter(item => item.status === 'Prepared');
+        } else if (tabName === 'checked') {
+            filteredData = allReimbursements.filter(item => item.status === 'Checked');
+        } else if (tabName === 'rejected') {
+            filteredData = allReimbursements.filter(item => item.status === 'Rejected');
+        }
+        
+        // Update table and pagination
+        updateTable();
+        updatePagination();
+        
+        // Add fade-in effect
+        setTimeout(() => {
+            tableBody.style.opacity = '1';
+            tableBody.style.transform = 'translateY(0)';
+        }, 50);
+    }, 200); // Short delay for the transition effect
 }
 
 // Update the table with current data
@@ -300,25 +238,25 @@ function updateTable() {
             }
         }
         
+        // Remove Draft to Prepared conversion as it's no longer needed
+        const displayStatus = item.status;
+        
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
         row.innerHTML = `
-            <td class="p-2">
-                <input type="checkbox" class="rowCheckbox" data-id="${item.id}" />
-            </td>
             <td class="p-2">${item.id || ''}</td>
             <td class="p-2">${item.voucherNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(item.status)}">
-                    ${item.status}
+                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                    ${displayStatus}
                 </span>
             </td>
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="goToDetailReim('${item.id}')">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
                     Detail
                 </button>
             </td>
@@ -355,7 +293,7 @@ function updatePagination() {
     }
 }
 
-// Change page for pagination
+// Change the current page
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const newPage = currentPage + direction;
@@ -367,60 +305,140 @@ function changePage(direction) {
     }
 }
 
-// Go to total documents view for mobile
+// Function to show all documents
 function goToTotalDocs() {
-    // Add your implementation for mobile total docs view
-    alert('Showing all documents');
+    filteredData = allReimbursements;
+    currentPage = 1;
+    updateTable();
+    updatePagination();
 }
 
-// Download table data as Excel
+// Export to Excel function
 function downloadExcel() {
-    // Create a worksheet from the filtered data
-    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    // Get status text for filename
+    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
-    // Create a workbook with the worksheet
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Reimbursements");
+    // Prepare data for export - no changes needed here as it already doesn't include checkbox data
+    const data = filteredData.map(item => {
+        // Remove Draft to Prepared conversion as it's no longer needed
+        return {
+            'Doc Number': item.id || '',
+            'Reimbursement Number': item.voucherNo || '',
+            'Requester': item.requesterName || '',
+            'Department': item.department || '',
+            'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+            'Status': item.status
+        };
+    });
+    
+    // Create a worksheet
+    const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Create a workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Reimbursements');
     
     // Generate Excel file and trigger download
-    XLSX.writeFile(workbook, "reimbursement_data.xlsx");
+    XLSX.writeFile(wb, fileName);
 }
 
-// Download table data as PDF
+// Export to PDF function
 function downloadPDF() {
-    // Initialize jsPDF
+    // Get status text for filename
+    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    
+    // Create PDF document
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
     // Add title
     doc.setFontSize(18);
-    doc.text("Reimbursement Report", 14, 20);
+    doc.text(`Reimbursement ${statusText} Documents`, 14, 22);
     
-    // Set up the table
-    const headers = [["ID", "Doc Number", "Voucher", "Requester", "Department", "Date", "Status"]];
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    const data = filteredData.map(item => [
-        item.id,
-        item.docNumber,
-        item.voucherNo,
-        item.requesterName,
-        item.department,
-        new Date(item.submissionDate).toLocaleDateString(),
-        item.status
-    ]);
+    // Prepare table data - column headers are already correct without checkbox column
+    const tableColumn = ['Doc Number', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
+    const tableRows = [];
     
-    // Add the table to the PDF
-    doc.autoTable({
-        startY: 30,
-        head: headers,
-        body: data,
-        theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] }
+    filteredData.forEach(item => {
+        // Remove Draft to Prepared conversion as it's no longer needed
+        const dataRow = [
+            item.id || '',
+            item.voucherNo || '',
+            item.requesterName || '',
+            item.department || '',
+            item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+            item.status
+        ];
+        tableRows.push(dataRow);
     });
     
-    // Save the PDF
-    doc.save("reimbursement_report.pdf");
+    // Add table
+    doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        theme: 'grid',
+        styles: {
+            fontSize: 8,
+            cellPadding: 2
+        },
+        headStyles: {
+            fillColor: [66, 153, 225],
+            textColor: 255
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
+        }
+    });
+    
+    // Save PDF
+    doc.save(fileName);
 }
 
-// Initialize dashboard on page load
-document.addEventListener('DOMContentLoaded', loadDashboard);
+// Load dashboard when page is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
+    
+    // Notification dropdown toggle
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (notificationBtn && notificationDropdown) {
+        notificationBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('hidden');
+        });
+        
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Set user avatar and name if available
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    if (userInfo.name) {
+        document.getElementById('userNameDisplay').textContent = userInfo.name;
+    }
+    if (userInfo.avatar) {
+        document.getElementById('dashboardUserIcon').src = userInfo.avatar;
+    } else {
+        // Default avatar if none is set
+        document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+    }
+});
+
+// Function to navigate to user profile page
+function goToProfile() {
+    window.location.href = "../../../../pages/profil.html";
+}
+
+window.onload = loadDashboard;

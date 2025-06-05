@@ -266,12 +266,16 @@
                         <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                        <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                         <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
-                        <h3 class="text-lg font-semibold text-gray-800">Acknowledge</h3>
-                        <p id="acknowledgeCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                        <h3 class="text-lg font-semibold text-gray-800">Acknowledged</h3>
+                        <p id="acknowledgedCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
@@ -281,10 +285,10 @@
                         <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
                         <p id="paidCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <!-- <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Close</h3>
                         <p id="closeCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
-                    </div>
+                    </div> -->
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
                         <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
@@ -400,8 +404,8 @@
 
     <!-- External JS -->
     <script src="../js/shared-menu.js"></script>
-    <script src="../js/menuReim.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/menuReim.js"></script>
     <script>
     // Disable any sidebar toggle functionality that might be in the JS
     document.addEventListener('DOMContentLoaded', function() {

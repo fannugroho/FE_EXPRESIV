@@ -1,4 +1,5 @@
 let uploadedFiles = [];
+let reimbursementId = '';
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
@@ -66,27 +67,27 @@ function previewPDF(event) {
 }
 
 function addRow() {
-    const tableBody = document.getElementById("reimbursementDetails");
-    const newRow = document.createElement("tr");
-
+    const tableBody = document.getElementById('reimbursementDetails');
+    const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-100" disabled />
+            <input type="number" maxlength="10" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full bg-gray-100" disabled />
+            <input type="text" maxlength="30" class="w-full" required />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
         </td>
     `;
-
     tableBody.appendChild(newRow);
 }
 
@@ -146,72 +147,358 @@ async function deleteDocument() {
     }
 }
 
-// Function to filter users for approval fields
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    const searchText = searchInput.value.toLowerCase();
-    
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Make sure we have a requesters array
-    if (!window.requesters) {
-        window.requesters = [];
-        // Try to fetch users if not already fetched
-        fetch(`${BASE_URL}/api/users`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.data) {
-                    window.requesters = data.data.map(user => ({
-                        id: user.id,
-                        fullName: user.name || `${user.firstName} ${user.lastName}`,
-                        department: user.department
-                    }));
-                    // Rerun filter after populating users
-                    filterUsers(fieldId);
-                }
-            })
-            .catch(error => console.error('Error fetching users:', error));
-        
-        // Show loading in dropdown
-        const loading = document.createElement('div');
-        loading.className = 'dropdown-item text-gray-500';
-        loading.textContent = 'Loading users...';
-        dropdown.appendChild(loading);
-        dropdown.classList.remove('hidden');
+function confirmSubmit() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitDocument();
+        }
+    });
+}
+
+async function submitDocument() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
     
-    // Filter users based on search text
-    const filteredUsers = window.requesters.filter(user => 
-        user.fullName.toLowerCase().includes(searchText)
-    );
-    
-    // Populate dropdown with filtered users
-    filteredUsers.forEach(user => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item';
-        item.textContent = user.fullName;
-        item.onclick = function() {
-            searchInput.value = user.fullName;
-            document.getElementById(fieldId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(item);
-    });
-    
-    // Show dropdown if there are results
-    if (filteredUsers.length > 0) {
-        dropdown.classList.remove('hidden');
-    } else {
-        // Show "no results" message
-        const noResults = document.createElement('div');
-        noResults.className = 'dropdown-item text-gray-500';
-        noResults.textContent = 'No matching users';
-        dropdown.appendChild(noResults);
-        dropdown.classList.remove('hidden');
+    try {
+        // Call the API to prepare the document
+        const response = await fetch(`${BASE_URL}/api/reimbursements/prepared/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Submitted!',
+                result.message || 'Reimbursement prepared successfully.',
+                'success'
+            ).then(() => {
+                // After successful submission, preparedDate will no longer be null
+                // Update the button state directly and refresh data
+                updateSubmitButtonState(new Date().toISOString());
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to prepare reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error preparing reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while preparing the reimbursement',
+            'error'
+        );
     }
 }
+
+function getReimbursementIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('reim-id');
+}
+
+async function fetchReimbursementData() {
+    reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        console.error('No reimbursement ID found in URL');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            populateFormData(result.data);
+            updateSubmitButtonState(result.data.preparedDate);
+        } else {
+            console.error('Failed to fetch reimbursement data:', result.message);
+        }
+    } catch (error) {
+        console.error('Error fetching reimbursement data:', error);
+    }
+}
+
+// Function to update Submit button state based on preparedDate
+function updateSubmitButtonState(preparedDate) {
+    const submitButton = document.querySelector('button[onclick="confirmSubmit()"]');
+    if (submitButton) {
+        if (preparedDate === null) {
+            // Enable the button if preparedDate is null
+            submitButton.disabled = false;
+            submitButton.classList.remove('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
+            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            // Disable the button if preparedDate is not null
+            submitButton.disabled = true;
+            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitButton.classList.add('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
+        }
+    }
+}
+
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Populate dropdowns
+        populateDropdown("preparedBySelect", users);
+        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("checkedBySelect", users);
+        populateDropdown("approvedBySelect", users);
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
+    }
+}
+
+// Helper function to populate a dropdown with user data
+function populateDropdown(dropdownId, users) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Clear existing options
+    dropdown.innerHTML = "";
+    
+    // Add users as options
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = user.firstName;
+        if (user.middleName) displayName += ` ${user.middleName}`;
+        if (user.lastName) displayName += ` ${user.lastName}`;
+        
+        option.textContent = displayName;
+        dropdown.appendChild(option);
+    });
+}
+
+function populateFormData(data) {
+    document.getElementById('voucherNo').value = data.voucherNo || '';
+    document.getElementById('requesterName').value = data.requesterName || '';
+    document.getElementById('department').value = data.department || '';
+    document.getElementById('currency').value = data.currency || '';
+    document.getElementById('payTo').value = data.payTo || '';
+    
+    if (data.submissionDate) {
+        const date = new Date(data.submissionDate);
+        const formattedDate = date.toISOString().split('T')[0];
+        document.getElementById('submissionDate').value = formattedDate;
+    }
+    
+    document.getElementById('status').value = data.status || '';
+    document.getElementById('referenceDoc').value = data.referenceDoc || '';
+    document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    document.getElementById('remarks').value = data.remarks || '';
+    
+    // Set selected values in approval dropdowns based on data
+    if (data.preparedBy) {
+        const preparedBySelect = document.getElementById('preparedBySelect');
+        if (preparedBySelect) preparedBySelect.value = data.preparedBy;
+    }
+    
+    if (data.acknowledgedBy) {
+        const acknowledgeBySelect = document.getElementById('acknowledgeBySelect');
+        if (acknowledgeBySelect) acknowledgeBySelect.value = data.acknowledgedBy;
+    }
+    
+    if (data.checkedBy) {
+        const checkedBySelect = document.getElementById('checkedBySelect');
+        if (checkedBySelect) checkedBySelect.value = data.checkedBy;
+    }
+    
+    if (data.approvedBy) {
+        const approvedBySelect = document.getElementById('approvedBySelect');
+        if (approvedBySelect) approvedBySelect.value = data.approvedBy;
+    }
+    
+    // Update Submit button state based on preparedDate
+    updateSubmitButtonState(data.preparedDate);
+    
+    populateReimbursementDetails(data.reimbursementDetails);
+    displayAttachments(data.reimbursementAttachments);
+}
+
+function populateReimbursementDetails(details) {
+    const tableBody = document.getElementById('reimbursementDetails');
+    tableBody.innerHTML = '';
+    
+    if (details && details.length > 0) {
+        details.forEach(detail => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } else {
+        addRow();
+    }
+}
+
+function displayAttachments(attachments) {
+    const attachmentsList = document.getElementById('attachmentsList');
+    attachmentsList.innerHTML = '';
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+            attachmentItem.innerHTML = `
+                <span>${attachment.fileName}</span>
+                <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
+}
+
+function updateReim() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to update this reimbursement",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, update it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitReimbursementUpdate();
+        }
+    });
+}
+
+async function submitReimbursementUpdate() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const rows = detailsTable.querySelectorAll('tr');
+    const reimbursementDetails = [];
+    
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const deleteButton = row.querySelector('button');
+        const detailId = deleteButton.getAttribute('data-id') || null;
+        
+        reimbursementDetails.push({
+            id: detailId,
+            description: inputs[0].value,
+            glAccount: inputs[1].value,
+            accountName: inputs[2].value,
+            amount: parseFloat(inputs[3].value) || 0
+        });
+    });
+    
+    const requestData = {
+        requesterName: document.getElementById('requesterName').value,
+        department: document.getElementById('department').value,
+        currency: document.getElementById('currency').value,
+        payTo: document.getElementById('payTo').value,
+        referenceDoc: document.getElementById('referenceDoc').value,
+        typeOfTransaction: document.getElementById('typeOfTransaction').value,
+        remarks: document.getElementById('remarks').value,
+        preparedBy: document.getElementById('preparedBySelect').value || null,
+        acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
+        checkedBy: document.getElementById('checkedBySelect').value || null,
+        approvedBy: document.getElementById('approvedBySelect').value || null,
+        reimbursementDetails: reimbursementDetails
+    };
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Updated!',
+                'Reimbursement has been updated successfully.',
+                'success'
+            ).then(() => {
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to update reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error updating reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while updating the reimbursement',
+            'error'
+        );
+    }
+}
+
+function goToMenuReim() {
+    window.location.href = '../menuReim.html';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchReimbursementData();
+    fetchUsers(); // Add this to fetch users for dropdowns
+});
 
     

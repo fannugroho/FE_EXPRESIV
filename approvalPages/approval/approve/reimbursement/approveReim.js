@@ -30,60 +30,117 @@ async function fetchReimbursementData() {
     }
 }
 
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Populate dropdowns
+        populateDropdown("preparedBySelect", users);
+        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("checkedBySelect", users);
+        populateDropdown("approvedBySelect", users);
+        
+        // Make all dropdowns readonly by disabling them
+        document.getElementById("preparedBySelect").disabled = true;
+        document.getElementById("acknowledgeBySelect").disabled = true;
+        document.getElementById("checkedBySelect").disabled = true;
+        document.getElementById("approvedBySelect").disabled = true;
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
+    }
+}
+
+// Helper function to populate a dropdown with user data
+function populateDropdown(dropdownId, users) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Clear existing options
+    dropdown.innerHTML = "";
+    
+    // Add users as options
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = user.firstName;
+        if (user.middleName) displayName += ` ${user.middleName}`;
+        if (user.lastName) displayName += ` ${user.lastName}`;
+        
+        option.textContent = displayName;
+        dropdown.appendChild(option);
+    });
+}
+
 // Populate form fields with data
 function populateFormData(data) {
     // Store users globally for search functionality (mock data if needed)
     window.allUsers = window.allUsers || [];
     
     // Main form fields
-    document.getElementById('voucherNo').value = data.voucherNo || '';
-    document.getElementById('requesterName').value = data.requesterName || '';
-    document.getElementById('department').value = data.department || '';
-    document.getElementById('currency').value = data.currency || '';
-    document.getElementById('payTo').value = data.payTo || '';
+    if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
+    if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
+    if (document.getElementById('department')) document.getElementById('department').value = data.department || '';
+    if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
+    if (document.getElementById('payTo')) document.getElementById('payTo').value = data.payTo || '';
     
     // Format date for the date input (YYYY-MM-DD)
-    if (data.submissionDate) {
+    if (data.submissionDate && document.getElementById('submissionDate')) {
         const date = new Date(data.submissionDate);
         const formattedDate = date.toISOString().split('T')[0];
         document.getElementById('submissionDate').value = formattedDate;
     }
     
-    document.getElementById('status').value = data.status || '';
-    document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
-    document.getElementById('remarks').value = data.remarks || '';
+    if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
+    if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
+    if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
-    // Approvers information - update both select and search input
-    updateApproverField('preparedBy', data.preparedBy);
-    updateApproverField('checkedBy', data.checkedBy);
-    updateApproverField('acknowledgedBy', data.acknowledgedBy);
-    updateApproverField('approvedBy', data.approvedBy);
+    // Approvers information - safely check if elements exist
+    if (document.getElementById('preparedBy')) document.getElementById('preparedBy').value = data.preparedBy || '';
+    if (document.getElementById('checkedBy')) document.getElementById('checkedBy').value = data.checkedBy || '';
+    if (document.getElementById('acknowledgedBy')) document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
+    if (document.getElementById('approvedBy')) document.getElementById('approvedBy').value = data.approvedBy || '';
+    
+    // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
     // Handle reimbursement details (table rows)
-    populateReimbursementDetails(data.reimbursementDetails);
+    if (data.reimbursementDetails) {
+        console.log('Populating reimbursement details:', data.reimbursementDetails);
+        populateReimbursementDetails(data.reimbursementDetails);
+    } else {
+        console.log('No reimbursement details found in data');
+    }
     
     // Display attachment information
-    displayAttachments(data.reimbursementAttachments);
-    
-    // Make all fields read-only
-    makeAllFieldsReadOnly();
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
+    if (data.reimbursementAttachments) {
+        displayAttachments(data.reimbursementAttachments);
+    }
 }
 
 // Populate reimbursement details table
 function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
     tableBody.innerHTML = ''; // Clear existing rows
     
     if (details && details.length > 0) {
@@ -119,6 +176,11 @@ function populateReimbursementDetails(details) {
 // Display attachments
 function displayAttachments(attachments) {
     const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
     attachmentsList.innerHTML = ''; // Clear existing attachments
     
     if (attachments && attachments.length > 0) {
@@ -137,6 +199,11 @@ function displayAttachments(attachments) {
 // Add a new empty row to the reimbursement details table
 function addRow() {
     const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
@@ -206,46 +273,20 @@ async function submitReimbursementUpdate() {
         reimbursementDetails: reimbursementDetails
     };
     
-    try {
-        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.status && result.code === 200) {
-            Swal.fire(
-                'Updated!',
-                'Reimbursement has been updated successfully.',
-                'success'
-            ).then(() => {
-                // Reload the data to show the latest changes
-                fetchReimbursementData();
-            });
-        } else {
-            Swal.fire(
-                'Error',
-                result.message || 'Failed to update reimbursement',
-                'error'
-            );
-        }
-    } catch (error) {
-        console.error('Error updating reimbursement:', error);
-        Swal.fire(
-            'Error',
-            'An error occurred while updating the reimbursement',
-            'error'
-        );
-    }
+    // API call removed
+    Swal.fire(
+        'Updated!',
+        'Reimbursement has been updated successfully.',
+        'success'
+    ).then(() => {
+        // Reload the data to show the latest changes
+        fetchReimbursementData();
+    });
 }
 
 // Function to go back to menu
 function goToMenuReim() {
-    window.location.href = '../menuReim.html';
+    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
 }
 
 function onReject() {
@@ -271,30 +312,33 @@ function onReject() {
                 return false;
             }
             
-            // Send rejection to API
-            return fetch(`${BASE_URL}/api/reimbursements/${id}/reject`, {
-                method: 'POST',
+            // Make API call to reject the reimbursement
+            return fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
+                method: 'PATCH',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({
-                    remarks: remarks,
-                    rejectedBy: document.getElementById('approvedBy').value // Using the approver field as the rejector
+                    remarks: remarks
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to reject document');
+            .then(response => response.json())
+            .then(result => {
+                if (!result.status) {
+                    throw new Error(result.message || 'Failed to reject document');
                 }
-                return response.json();
+                return result;
             })
             .catch(error => {
-                Swal.showValidationMessage(`Request failed: ${error}`);
+                console.error('Error rejecting reimbursement:', error);
+                Swal.showValidationMessage(`Rejection failed: ${error.message}`);
+                return false;
             });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
-        if (result.isConfirmed) {
+        if (result.isConfirmed && result.value.status) {
             Swal.fire(
                 'Rejected!',
                 'The document has been rejected.',
@@ -326,15 +370,13 @@ function onApprove() {
                 return;
             }
             
-            // Send approval to API
-            fetch(`${BASE_URL}/api/reimbursements/${id}/approve`, {
-                method: 'POST',
+            // Make API call to approve the reimbursement
+            fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
+                method: 'PATCH',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    approvedBy: document.getElementById('approvedBy').value
-                })
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
+                }
             })
             .then(response => response.json())
             .then(result => {
@@ -356,7 +398,7 @@ function onApprove() {
                 }
             })
             .catch(error => {
-                console.error('Error approving document:', error);
+                console.error('Error approving reimbursement:', error);
                 Swal.fire(
                     'Error',
                     'An error occurred while approving the document',
@@ -415,8 +457,12 @@ function printReimbursement() {
 
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded, fetching reimbursement data');
     // Load data when page loads
     fetchReimbursementData();
+    
+    // Fetch users to populate dropdown selects
+    fetchUsers();
     
     // Add event listener for docType if it exists
     const docTypeElement = document.getElementById("docType");

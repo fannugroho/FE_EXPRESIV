@@ -5,25 +5,6 @@ let allReimbursements = [];
 let filteredReimbursements = [];
 let currentTab = 'all'; // Default tab
 
-function loadDashboard() {
-    // Fetch status counts from API
-    fetchStatusCounts();
-    
-    // Fetch reimbursements from API
-    fetchReimbursements();
-
-    // Add event listener for search input
-    document.getElementById('searchInput').addEventListener('input', handleSearch);
-    
-    // Set up the "select all" checkbox
-    // document.getElementById('selectAll').addEventListener("change", function() {
-    //     const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
-    //     checkboxes.forEach(checkbox => {
-    //         checkbox.checked = this.checked;
-    //     });
-    // });
-}
-
 // Function to handle search
 function handleSearch(event) {
     const searchTerm = event.target.value.toLowerCase();
@@ -67,7 +48,13 @@ function switchTab(tabName) {
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
-    const endpoint = "/api/reimbursements/status-counts";
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found. Please login again.');
+        return;
+    }
+
+    const endpoint = `/api/reimbursements/status-counts/user/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -90,7 +77,13 @@ function fetchStatusCounts() {
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
-    const endpoint = "/api/reimbursements";
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found. Please login again.');
+        return;
+    }
+
+    const endpoint = `/api/reimbursements/user/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -238,11 +231,11 @@ function downloadPDF() {
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
     document.getElementById("draftCount").textContent = data.draftCount || 0;
+    document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
-    document.getElementById("acknowledgeCount").textContent = data.acknowledgeCount || 0;
+    document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
     document.getElementById("approvedCount").textContent = data.approvedCount || 0;
     document.getElementById("paidCount").textContent = data.paidCount || 0;
-    document.getElementById("closeCount").textContent = data.closedCount || 0; // Note: API returns closedCount but HTML uses closeCount
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
@@ -289,6 +282,25 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
     window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+}
+
+function loadDashboard() {
+    // Fetch status counts from API
+    fetchStatusCounts();
+    
+    // Fetch reimbursements from API
+    fetchReimbursements();
+
+    // Add event listener for search input
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+    
+    // Set up the "select all" checkbox
+    // document.getElementById('selectAll').addEventListener("change", function() {
+    //     const checkboxes = document.querySelectorAll('#recentDocs input[type="checkbox"]');
+    //     checkboxes.forEach(checkbox => {
+    //         checkbox.checked = this.checked;
+    //     });
+    // });
 }
 
 window.onload = loadDashboard;

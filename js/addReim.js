@@ -441,7 +441,7 @@ async function processDocument(isSubmit) {
     console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
 
     // Step 3: Send the POST request to create reimbursement
-    const response = await fetch(`${baseUrl}/api/reimbursements`, {
+    const response = await fetch(`${BASE_URL}/api/reimbursements`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -483,7 +483,7 @@ async function processDocument(isSubmit) {
             formData.append('files', file);
         });
 
-        const uploadResponse = await fetch(`${baseUrl}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+        const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
             method: 'POST',
             body: formData
         });
