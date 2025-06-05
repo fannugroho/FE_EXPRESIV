@@ -50,10 +50,11 @@
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded">
                     <option value="Draft">Draft</option>
+                    <option value="Prepared">Prepared</option>
+                    <option value="Acknowledged">Acknowledged</option>
                     <option value="Checked">Checked</option>
                     <option value="Approved">Approved</option>
                     <option value="Paid">Paid</option>
-                    <option value="Closed">Closed</option>
                     <option value="Rejected">Rejected</option>
                 </select>
 
@@ -98,45 +99,34 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label><input type="checkbox" id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedBy" class="w-full p-1 border rounded">
-                    <option value="Nemit">Nemit</option>
-                    <option value="Vaphat Sukamanah">Vaphat Sukamanah</option>
-                    <option value="Ratna Sari">Ratna Sari</option>
-                    <option value="Catur Pratomo">Catur Pratomo</option>
-                    <option value="Kusnia Wardani">Kusnia Wardani</option>
+                <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
+                <select id="preparedBySelect" class="w-full p-1 border rounded">
+                    <!-- <option value="Admin 1">Admin 1</option>
+                    <option value="Admin 2">Admin 2</option> -->
                 </select>
             </div>
             <div>
-            <label><input type="checkbox" id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
-            <select id="acknowledgedBy" class="w-full p-1 border rounded">
-                <option value="Nemit">Nemit</option>
-                <option value="Vaphat Sukamanah">Vaphat Sukamanah</option>
-                <option value="Ratna Sari">Ratna Sari</option>
-                <option value="Catur Pratomo">Catur Pratomo</option>
-                <option value="Kusnia Wardani">Kusnia Wardani</option>
+            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Supervisor 1">Supervisor 1</option>
+                <option value="Supervisor 2">Supervisor 2</option> -->
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBy" class="w-full p-1 border rounded">
-                <option value="Nemit">Nemit</option>
-                <option value="Vaphat Sukamanah">Vaphat Sukamanah</option>
-                <option value="Ratna Sari">Ratna Sari</option>
-                <option value="Catur Pratomo">Catur Pratomo</option>
-                <option value="Kusnia Wardani">Kusnia Wardani</option>
+            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+            <select id="checkedBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Finance 1">Finance 1</option>
+                <option value="Finance 2">Finance 2</option> -->
             </select>
             </div>
             <div>
-            <label><input type="checkbox" id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBy" class="w-full p-1 border rounded">
-                <option value="Nemit">Nemit</option>
-                <option value="Vaphat Sukamanah">Vaphat Sukamanah</option>
-                <option value="Ratna Sari">Ratna Sari</option>
-                <option value="Catur Pratomo">Catur Pratomo</option>
-                <option value="Kusnia Wardani">Kusnia Wardani</option>
+            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+            <select id="approvedBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Manager 1">Manager 1</option>
+                <option value="Manager 2">Manager 2</option> -->
             </select>
             </div>
         </div>

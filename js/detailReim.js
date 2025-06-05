@@ -157,12 +157,25 @@ function confirmSubmit() {
         cancelButtonText: 'Batal',
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire(
-                'Berhasil!',
-                'Dokumen berhasil di-submit.',
-                'success'
-            );
+            submitDocument();
         }
+    });
+}
+
+async function submitDocument() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    // Dummy success response
+    Swal.fire(
+        'Submitted!',
+        'Reimbursement has been submitted successfully.',
+        'success'
+    ).then(() => {
+        fetchReimbursementData();
     });
 }
 
@@ -192,6 +205,57 @@ async function fetchReimbursementData() {
     }
 }
 
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Populate dropdowns
+        populateDropdown("preparedBySelect", users);
+        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("checkedBySelect", users);
+        populateDropdown("approvedBySelect", users);
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
+    }
+}
+
+// Helper function to populate a dropdown with user data
+function populateDropdown(dropdownId, users) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    // Clear existing options
+    dropdown.innerHTML = "";
+    
+    // Add users as options
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = user.firstName;
+        if (user.middleName) displayName += ` ${user.middleName}`;
+        if (user.lastName) displayName += ` ${user.lastName}`;
+        
+        option.textContent = displayName;
+        dropdown.appendChild(option);
+    });
+}
+
 function populateFormData(data) {
     document.getElementById('voucherNo').value = data.voucherNo || '';
     document.getElementById('requesterName').value = data.requesterName || '';
@@ -210,18 +274,28 @@ function populateFormData(data) {
     document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     document.getElementById('remarks').value = data.remarks || '';
     
-    document.getElementById('preparedBy').value = data.preparedBy || '';
-    document.getElementById('checkedBy').value = data.checkedBy || '';
-    document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
-    document.getElementById('approvedBy').value = data.approvedBy || '';
+    // Set selected values in approval dropdowns based on data
+    if (data.preparedBy) {
+        const preparedBySelect = document.getElementById('preparedBySelect');
+        if (preparedBySelect) preparedBySelect.value = data.preparedBy;
+    }
     
-    document.getElementById('preparedByCheck').checked = data.preparedBy ? true : false;
-    document.getElementById('checkedByCheck').checked = data.checkedBy ? true : false;
-    document.getElementById('acknowledgedByCheck').checked = data.acknowledgedBy ? true : false;
-    document.getElementById('approvedByCheck').checked = data.approvedBy ? true : false;
+    if (data.acknowledgedBy) {
+        const acknowledgeBySelect = document.getElementById('acknowledgeBySelect');
+        if (acknowledgeBySelect) acknowledgeBySelect.value = data.acknowledgedBy;
+    }
+    
+    if (data.checkedBy) {
+        const checkedBySelect = document.getElementById('checkedBySelect');
+        if (checkedBySelect) checkedBySelect.value = data.checkedBy;
+    }
+    
+    if (data.approvedBy) {
+        const approvedBySelect = document.getElementById('approvedBySelect');
+        if (approvedBySelect) approvedBySelect.value = data.approvedBy;
+    }
     
     populateReimbursementDetails(data.reimbursementDetails);
-    
     displayAttachments(data.reimbursementAttachments);
 }
 
@@ -324,6 +398,10 @@ async function submitReimbursementUpdate() {
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
+        preparedBy: document.getElementById('preparedBySelect').value || null,
+        acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
+        checkedBy: document.getElementById('checkedBySelect').value || null,
+        approvedBy: document.getElementById('approvedBySelect').value || null,
         reimbursementDetails: reimbursementDetails
     };
     
@@ -367,6 +445,9 @@ function goToMenuReim() {
     window.location.href = '../menuReim.html';
 }
 
-document.addEventListener('DOMContentLoaded', fetchReimbursementData);
+document.addEventListener('DOMContentLoaded', function() {
+    fetchReimbursementData();
+    fetchUsers(); // Add this to fetch users for dropdowns
+});
 
     
