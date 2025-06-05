@@ -308,7 +308,7 @@ function filterUsers(fieldId) {
             let selectId;
             switch(fieldId) {
                 case 'preparedBy': selectId = 'preparedBy'; break;
-                case 'acknowledgeBy': selectId = 'knowledgeBy'; break;
+                case 'acknowledgedBy': selectId = 'acknowledgedBy'; break;
                 case 'checkedBy': selectId = 'checkedBy'; break;
                 case 'approvedBy': selectId = 'approvedBy'; break;
                 case 'receivedBy': selectId = 'receivedBy'; break;
@@ -341,7 +341,7 @@ function populateUserSelects(users, prData = null) {
     const selects = [
         { id: 'preparedBy', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
         { id: 'checkedBy', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'knowledgeBy', approvalKey: 'knowledgeById', searchId: 'acknowledgeBySearch' },
+        { id: 'acknowledgedBy', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
         { id: 'approvedBy', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
         { id: 'receivedBy', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
@@ -499,7 +499,7 @@ function updatePRStatus(status) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the receive dashboard
-                window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
+                goToMenuReceivePR();
             });
         } else {
             return response.json().then(errorData => {
@@ -574,7 +574,7 @@ function updatePRStatusWithRemarks(status, remarks) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the receive dashboard
-                window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
+                goToMenuReceivePR();
             });
         } else {
             return response.json().then(errorData => {

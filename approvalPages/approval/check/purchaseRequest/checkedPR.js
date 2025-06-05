@@ -491,7 +491,7 @@ function updatePRStatus(status) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html';
+                goToMenuCheckPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -566,7 +566,7 @@ function updatePRStatusWithRemarks(status, remarks) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html';
+                goToMenuCheckPR();
             });
         } else {
             return response.json().then(errorData => {
