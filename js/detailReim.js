@@ -138,4 +138,72 @@ async function deleteDocument() {
     }
 }
 
+// Function to filter users for approval fields
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    const searchText = searchInput.value.toLowerCase();
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Make sure we have a requesters array
+    if (!window.requesters) {
+        window.requesters = [];
+        // Try to fetch users if not already fetched
+        fetch(`${BASE_URL}/api/users`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.data) {
+                    window.requesters = data.data.map(user => ({
+                        id: user.id,
+                        fullName: user.name || `${user.firstName} ${user.lastName}`,
+                        department: user.department
+                    }));
+                    // Rerun filter after populating users
+                    filterUsers(fieldId);
+                }
+            })
+            .catch(error => console.error('Error fetching users:', error));
+        
+        // Show loading in dropdown
+        const loading = document.createElement('div');
+        loading.className = 'dropdown-item text-gray-500';
+        loading.textContent = 'Loading users...';
+        dropdown.appendChild(loading);
+        dropdown.classList.remove('hidden');
+        return;
+    }
+    
+    // Filter users based on search text
+    const filteredUsers = window.requesters.filter(user => 
+        user.fullName.toLowerCase().includes(searchText)
+    );
+    
+    // Populate dropdown with filtered users
+    filteredUsers.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user.fullName;
+        item.onclick = function() {
+            searchInput.value = user.fullName;
+            document.getElementById(fieldId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(item);
+    });
+    
+    // Show dropdown if there are results
+    if (filteredUsers.length > 0) {
+        dropdown.classList.remove('hidden');
+    } else {
+        // Show "no results" message
+        const noResults = document.createElement('div');
+        noResults.className = 'dropdown-item text-gray-500';
+        noResults.textContent = 'No matching users';
+        dropdown.appendChild(noResults);
+        dropdown.classList.remove('hidden');
+    }
+}
+
     

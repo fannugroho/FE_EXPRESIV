@@ -102,11 +102,11 @@ function populateUserSelects(users, approvalData = null) {
     }
 
     const selects = [
-        { id: 'prepared', approvalKey: 'preparedById' },
-        { id: 'checkedBy', approvalKey: 'checkedById' },
-        { id: 'acknowledgeBy', approvalKey: 'acknowledgedById' },
-        { id: 'approvedBy', approvalKey: 'approvedById' },
-        { id: 'receivedBy', approvalKey: 'receivedById' }
+        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'checkedBy', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'acknowledgeBy', approvalKey: 'acknowledgedById', searchId: 'acknowledgeBySearch' },
+        { id: 'approvedBy', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'receivedBy', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -124,8 +124,17 @@ function populateUserSelects(users, approvalData = null) {
             });
             // Set the value from approval data if available
             if (approvalData && approvalData[selectInfo.approvalKey]) {
-            
                 select.value = approvalData[selectInfo.approvalKey];
+                
+                // Find the user and update the search input
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    }
+                }
+                
                 // Auto-select and disable for Prepared by if it matches logged in user
                 if(selectInfo.id === "prepared" && select.value == getUserId()){
                     select.disabled = true;
@@ -962,3 +971,53 @@ function goToMenuPO() { window.location.href = "MenuPO.html"; }
 function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+
+// Function to filter users for approval fields
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    const searchText = searchInput.value.toLowerCase();
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter users based on search text
+    const filteredUsers = window.requesters.filter(user => 
+        user.fullName.toLowerCase().includes(searchText)
+    );
+    
+    // Populate dropdown with filtered users
+    filteredUsers.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user.fullName;
+        item.onclick = function() {
+            searchInput.value = user.fullName;
+            // Get the corresponding select element based on fieldId
+            let selectId;
+            if (fieldId === 'preparedBy') selectId = 'prepared';
+            else if (fieldId === 'checkedBy') selectId = 'checkedBy';
+            else if (fieldId === 'acknowledgeBy') selectId = 'acknowledgeBy';
+            else if (fieldId === 'approvedBy') selectId = 'approvedBy';
+            else if (fieldId === 'receivedBy') selectId = 'receivedBy';
+            
+            if (selectId) {
+                document.getElementById(selectId).value = user.id;
+            }
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(item);
+    });
+    
+    // Show dropdown if there are results
+    if (filteredUsers.length > 0) {
+        dropdown.classList.remove('hidden');
+    } else {
+        // Show "no results" message
+        const noResults = document.createElement('div');
+        noResults.className = 'dropdown-item text-gray-500';
+        noResults.textContent = 'No matching users';
+        dropdown.appendChild(noResults);
+        dropdown.classList.remove('hidden');
+    }
+}

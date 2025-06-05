@@ -471,28 +471,38 @@ function populateSettlementItemsTable(settlementItems) {
 
 // Populate approval section
 function populateApprovalSection(approval) {
-    // Set approval IDs and checkbox states
+    // Set approval IDs and update search inputs
     if (approval.preparedById) {
         document.getElementById('preparedById').value = approval.preparedById;
-        document.getElementById('preparedCheckbox').checked = approval.isPrepared || false;
+        // Find user name from the preparedById and set it in the search input
+        const preparedUser = window.requesters.find(user => user.id === approval.preparedById);
+        if (preparedUser) {
+            document.getElementById('preparedBySearch').value = preparedUser.fullName;
+        }
     }
     
     if (approval.checkedById) {
-        console.log("checkedById:", approval.checkedById);
         document.getElementById('checkedById').value = approval.checkedById;
-        document.getElementById('checkedCheckbox').checked = approval.isChecked || false;
+        const checkedUser = window.requesters.find(user => user.id === approval.checkedById);
+        if (checkedUser) {
+            document.getElementById('checkedBySearch').value = checkedUser.fullName;
+        }
     }
     
     if (approval.approvedById) {
-        console.log("approvedById:", approval.approvedById);
         document.getElementById('approvedById').value = approval.approvedById;
-        document.getElementById('approvedCheckbox').checked = approval.isApproved || false;
+        const approvedUser = window.requesters.find(user => user.id === approval.approvedById);
+        if (approvedUser) {
+            document.getElementById('approvedBySearch').value = approvedUser.fullName;
+        }
     }
     
     if (approval.acknowledgedById) {
-        console.log("acknowledgedById:", approval.acknowledgedById);
         document.getElementById('acknowledgedById').value = approval.acknowledgedById;
-        document.getElementById('acknowledgedCheckbox').checked = approval.isAcknowledged || false;
+        const acknowledgedUser = window.requesters.find(user => user.id === approval.acknowledgedById);
+        if (acknowledgedUser) {
+            document.getElementById('acknowledgedBySearch').value = acknowledgedUser.fullName;
+        }
     }
 }
 
@@ -817,7 +827,47 @@ function updateSettle(isSubmit = false) {
     });
 }
 
-// Function to make all fields read-only when status is not Draft
+// Function to filter users for approval fields
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    const searchText = searchInput.value.toLowerCase();
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter users based on search text
+    const filteredUsers = window.requesters.filter(user => 
+        user.fullName.toLowerCase().includes(searchText)
+    );
+    
+    // Populate dropdown with filtered users
+    filteredUsers.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user.fullName;
+        item.onclick = function() {
+            searchInput.value = user.fullName;
+            document.getElementById(fieldId + 'Id').value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(item);
+    });
+    
+    // Show dropdown if there are results
+    if (filteredUsers.length > 0) {
+        dropdown.classList.remove('hidden');
+    } else {
+        // Show "no results" message
+        const noResults = document.createElement('div');
+        noResults.className = 'dropdown-item text-gray-500';
+        noResults.textContent = 'No matching users';
+        dropdown.appendChild(noResults);
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Modify makeAllFieldsReadOnlyForNonDraft to handle search inputs
 function makeAllFieldsReadOnlyForNonDraft() {
     console.log('Status is not Draft - making all fields read-only');
     

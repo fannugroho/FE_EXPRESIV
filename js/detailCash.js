@@ -663,29 +663,95 @@ function populateTable(cashAdvanceDetails) {
     }
 }
 
+// Function to filter users for approval fields
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    const searchText = searchInput.value.toLowerCase();
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Filter users based on search text
+    const filteredUsers = window.requesters.filter(user => 
+        user.fullName.toLowerCase().includes(searchText)
+    );
+    
+    // Populate dropdown with filtered users
+    filteredUsers.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user.fullName;
+        item.onclick = function() {
+            searchInput.value = user.fullName;
+            // Handle the different ID formats for each field
+            if (fieldId === 'preparedBy') {
+                document.getElementById('preparedSelect').value = user.id;
+            } else if (fieldId === 'checkedBy') {
+                document.getElementById('checkedSelect').value = user.id;
+            } else if (fieldId === 'approvedBy') {
+                document.getElementById('approvedSelect').value = user.id;
+            } else if (fieldId === 'acknowledgedBy') {
+                document.getElementById('acknowledgedSelect').value = user.id;
+            }
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(item);
+    });
+    
+    // Show dropdown if there are results
+    if (filteredUsers.length > 0) {
+        dropdown.classList.remove('hidden');
+    } else {
+        // Show "no results" message
+        const noResults = document.createElement('div');
+        noResults.className = 'dropdown-item text-gray-500';
+        noResults.textContent = 'No matching users';
+        dropdown.appendChild(noResults);
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Update the populateApprovals function to work with search inputs
 function populateApprovals(approval) {
-    // Proposed by - check if there's a preparedById and mark checkbox accordingly
-    const preparedCheckbox = document.getElementById("preparedCheckbox");
-    if (preparedCheckbox && approval.preparedById) {
-        preparedCheckbox.checked = true;
+    // Proposed by - find user and set in search input if there's a preparedById
+    const preparedSelect = document.getElementById("preparedSelect");
+    if (preparedSelect && approval.preparedById) {
+        preparedSelect.value = approval.preparedById;
+        const preparedUser = window.requesters.find(user => user.id === approval.preparedById);
+        if (preparedUser) {
+            document.getElementById('preparedBySearch').value = preparedUser.fullName;
+        }
     }
     
-    // Checked by - check if there's a checkedById and mark checkbox accordingly
-    const checkedCheckbox = document.getElementById("checkedCheckbox");
-    if (checkedCheckbox && approval.checkedById) {
-        checkedCheckbox.checked = true;
+    // Checked by - find user and set in search input if there's a checkedById
+    const checkedSelect = document.getElementById("checkedSelect");
+    if (checkedSelect && approval.checkedById) {
+        checkedSelect.value = approval.checkedById;
+        const checkedUser = window.requesters.find(user => user.id === approval.checkedById);
+        if (checkedUser) {
+            document.getElementById('checkedBySearch').value = checkedUser.fullName;
+        }
     }
     
-    // Approved by - check if there's an approvedById and mark checkbox accordingly
-    const approvedCheckbox = document.getElementById("approvedCheckbox");
-    if (approvedCheckbox && approval.approvedById) {
-        approvedCheckbox.checked = true;
+    // Approved by - find user and set in search input if there's an approvedById
+    const approvedSelect = document.getElementById("approvedSelect");
+    if (approvedSelect && approval.approvedById) {
+        approvedSelect.value = approval.approvedById;
+        const approvedUser = window.requesters.find(user => user.id === approval.approvedById);
+        if (approvedUser) {
+            document.getElementById('approvedBySearch').value = approvedUser.fullName;
+        }
     }
     
-    // Acknowledged by - check if there's an acknowledgedById and mark checkbox accordingly
-    const acknowledgedCheckbox = document.getElementById("acknowledgedCheckbox");
-    if (acknowledgedCheckbox && approval.acknowledgedById) {
-        acknowledgedCheckbox.checked = true;
+    // Acknowledged by - find user and set in search input if there's an acknowledgedById
+    const acknowledgedSelect = document.getElementById("acknowledgedSelect");
+    if (acknowledgedSelect && approval.acknowledgedById) {
+        acknowledgedSelect.value = approval.acknowledgedById;
+        const acknowledgedUser = window.requesters.find(user => user.id === approval.acknowledgedById);
+        if (acknowledgedUser) {
+            document.getElementById('acknowledgedBySearch').value = acknowledgedUser.fullName;
+        }
     }
 }
 
