@@ -489,17 +489,14 @@ function populateApprovalSection(approval) {
     }
     
     if (approval.checkedById) {
-        console.log("checkedById:", approval.checkedById);
         document.getElementById('checkedById').value = approval.checkedById;
     }
     
     if (approval.approvedById) {
-        console.log("approvedById:", approval.approvedById);
         document.getElementById('approvedById').value = approval.approvedById;
     }
     
     if (approval.acknowledgedById) {
-        console.log("acknowledgedById:", approval.acknowledgedById);
         document.getElementById('acknowledgedById').value = approval.acknowledgedById;
     }
 }

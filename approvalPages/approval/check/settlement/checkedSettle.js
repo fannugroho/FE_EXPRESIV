@@ -3,6 +3,32 @@ let uploadedFiles = [];
 let settlementId = null;
 let currentTab; // Global variable for tab
 
+// Add CSS styles for dropdown
+document.head.insertAdjacentHTML('beforeend', `
+<style>
+    /* Dropdown styling */
+    .dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .dropdown-item:hover {
+        background-color: #f3f4f6;
+    }
+    .search-dropdown {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 50;
+    }
+    .search-input:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+</style>
+`);
+
 // Parse URL parameters when page loads
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -14,6 +40,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         alert('Settlement ID not provided');
         window.history.back();
+    }
+    
+    // Hide approve/reject buttons if viewing from checked or rejected tabs
+    if (currentTab === 'checked' || currentTab === 'rejected') {
+        hideApprovalButtons();
     }
 });
 
@@ -489,5 +520,45 @@ function makeAllFieldsReadOnly() {
     if (fileInput) {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to hide approval buttons
+function hideApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="approveSettle()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectSettle()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'none';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'none';
+    }
+    
+    // Also hide any parent container if needed
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer && currentTab !== 'prepared') {
+        buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to get user ID from token
+function getUserId() {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    
+    try {
+        // Decode JWT token (this is a simplified version and may not work for all tokens)
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const payload = JSON.parse(jsonPayload);
+        return payload.userId || payload.sub;
+    } catch (e) {
+        console.error('Error decoding token:', e);
+        return null;
     }
 }

@@ -15,7 +15,73 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Settlement ID not provided');
         window.history.back();
     }
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
 });
+
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
 
 // Function to fetch and populate settlement details
 function fetchSettleDetails(id) {
@@ -162,25 +228,26 @@ function addSettleDetailRow(item = null, index = 0) {
 // Function to acknowledge settlement
 function approveSettle() {
     if (!settlementId) {
-        alert('Settlement ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
         return;
     }
     
-    // Get remarks
-    const remarks = document.getElementById('remarks').value;
-    
-    // Show confirmation dialog
     Swal.fire({
-        title: 'Acknowledge Settlement',
-        text: 'Are you sure you want to acknowledge this settlement?',
+        title: 'Confirm Acknowledgment',
+        text: 'Are you sure you want to acknowledge this Settlement?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, acknowledge it!',
+        confirmButtonText: 'Yes, Acknowledge',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            const remarks = document.getElementById('remarks').value;
             updateSettleStatus('approve', remarks);
         }
     });
@@ -189,31 +256,46 @@ function approveSettle() {
 // Function to reject settlement
 function rejectSettle() {
     if (!settlementId) {
-        alert('Settlement ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
         return;
     }
     
-    // Get remarks (should be required for rejection)
-    const remarks = document.getElementById('remarks').value;
-    
-    if (!remarks.trim()) {
-        alert('Please provide remarks for rejection');
-        return;
-    }
-    
-    // Show confirmation dialog
     Swal.fire({
-        title: 'Reject Settlement',
-        text: 'Are you sure you want to reject this settlement?',
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Settlement?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, reject it!',
+        confirmButtonText: 'Yes, Reject',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('reject', remarks);
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updateSettleStatus('reject', remarksResult.value);
+                }
+            });
         }
     });
 }
@@ -224,17 +306,19 @@ function updateSettleStatus(status, remarks) {
     const userId = getUserId();
     
     if (!userId) {
-        alert('Unable to get user ID from token. Please login again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
         return;
     }
     
     // Show loading
     Swal.fire({
-        title: 'Processing...',
-        text: `Please wait while we ${status === 'approved' ? 'acknowledge' : 'reject'} the settlement.`,
-        icon: 'info',
+        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        text: 'Please wait while we process your request.',
         allowOutsideClick: false,
-        showConfirmButton: false,
         didOpen: () => {
             Swal.showLoading();
         }
@@ -244,7 +328,7 @@ function updateSettleStatus(status, remarks) {
         id: settlementId,
         UserId: userId,
         Status: status,
-        Remarks: remarks
+        Remarks: remarks || ''
     };
     
     console.log('Sending status update request:', requestBody);
@@ -264,16 +348,16 @@ function updateSettleStatus(status, remarks) {
                 throw new Error(errorData.message || `HTTP error! status: ${errorData.Message}`);
             });
         }
-        return response;
+        return response.json();
     })
     .then(result => {
         console.log('Status update response:', result);
         
         if (result.status) {
             Swal.fire({
-                title: 'Success!',
-                text: `Settlement has been ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully.`,
                 icon: 'success',
+                title: 'Success!',
+                text: `Settlement ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
@@ -287,10 +371,9 @@ function updateSettleStatus(status, remarks) {
     .catch(error => {
         console.error('Error updating settlement status:', error);
         Swal.fire({
-            title: 'Error!',
-            text: `Failed to ${status === 'approved' ? 'acknowledge' : 'reject'} settlement: ${error.message}`,
             icon: 'error',
-            confirmButtonText: 'OK'
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} settlement: ` + error.message
         });
     });
 }
@@ -335,6 +418,8 @@ function fetchUsers(settlementData = null) {
             return response.json();
         })
         .then(data => {
+            // Store users globally for search functionality
+            window.allUsers = data.data;
             populateEmployeeField(data.data, settlementData);
             populateApprovalFields(data.data);
         })
@@ -398,10 +483,10 @@ function populateDepartmentSelect(departments) {
 // Function to populate approval fields (Prepared by, Checked by, etc.)
 function populateApprovalFields(users) {
     const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById' },
-        { id: 'Checked', dataKey: 'checkedById' },
-        { id: 'Approved', dataKey: 'approvedById' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById' }
+        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' }
     ];
     
     approvalSelects.forEach(selectInfo => {
@@ -418,13 +503,17 @@ function populateApprovalFields(users) {
                 select.appendChild(option);
             });
             
-            // Set the value from settlement approval data if available
+            // Set the value from settlement approval data if available and update search input
             if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
                 select.value = window.approvalData[selectInfo.dataKey];
-                // Also check the corresponding checkbox
-                const checkbox = select.parentElement.querySelector('input[type="checkbox"]');
-                if (checkbox) {
-                    checkbox.checked = true;
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}` || selectedUser.username;
+                    }
                 }
             }
         }
@@ -452,10 +541,19 @@ function populateEmployeeField(users, settlementData = null) {
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
     });
     
     // Disable all select fields
@@ -463,13 +561,6 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
     });
     
     // Hide add row button if it exists

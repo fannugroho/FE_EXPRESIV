@@ -277,13 +277,73 @@ function populateClassificationSelect(classifications) {
     });
 }
 
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'preparedBy'; break;
+                case 'acknowledgeBy': selectId = 'knowledgeBy'; break;
+                case 'checkedBy': selectId = 'checkedBy'; break;
+                case 'approvedBy': selectId = 'approvedBy'; break;
+                case 'receivedBy': selectId = 'receivedBy'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
+
+// Modified populateUserSelects to store users globally and update search inputs
 function populateUserSelects(users, prData = null) {
+    // Store users globally for search functionality
+    window.allUsers = users;
+    
     const selects = [
-        { id: 'preparedBy', approvalKey: 'preparedById' },
-        { id: 'checkedBy', approvalKey: 'checkedById' },
-        { id: 'knowledgeBy', approvalKey: 'knowledgeById' },
-        { id: 'approvedBy', approvalKey: 'approvedById' },
-        { id: 'receivedBy', approvalKey: 'receivedById' }
+        { id: 'preparedBy', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'checkedBy', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'knowledgeBy', approvalKey: 'knowledgeById', searchId: 'acknowledgeBySearch' },
+        { id: 'approvedBy', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'receivedBy', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -298,10 +358,86 @@ function populateUserSelects(users, prData = null) {
                 select.appendChild(option);
             });
             
-            // Set the value from PR data if available
+            // Set the value from PR data if available and update search input
             if (prData && prData[selectInfo.approvalKey]) {
                 select.value = prData[selectInfo.approvalKey];
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === prData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    }
+                }
             }
+        }
+    });
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+}
+
+// Function to receive PR (approve)
+function approvePR() {
+    Swal.fire({
+        title: 'Confirm Receipt',
+        text: 'Are you sure you want to receive this Purchase Request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Receive',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updatePRStatus('approve');
+        }
+    });
+}
+
+// Function to reject PR
+function rejectPR() {
+    Swal.fire({
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Purchase Request?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Reject',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updatePRStatusWithRemarks('reject', remarksResult.value);
+                }
+            });
         }
     });
 }
@@ -309,21 +445,21 @@ function populateUserSelects(users, prData = null) {
 // Function to approve or reject the PR
 function updatePRStatus(status) {
     if (!prId) {
-        alert('PR ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'PR ID not found'
+        });
         return;
-    }
-
-    let remarks = '';
-    if (status === 'reject') {
-        remarks = prompt('Please provide remarks for rejection:');
-        if (remarks === null) {
-            return; // User cancelled
-        }
     }
 
     const userId = getUserId();
     if (!userId) {
-        alert("Unable to get user ID from token. Please login again.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
         return;
     }
 
@@ -331,8 +467,18 @@ function updatePRStatus(status) {
         id: prId,
         UserId: userId,
         Status: status,
-        Remarks: remarks
+        Remarks: ''
     };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Receiving' : 'Processing'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
     
@@ -345,9 +491,16 @@ function updatePRStatus(status) {
     })
     .then(response => {
         if (response.ok) {
-            alert(`PR ${status === 'approve' ? 'received' : 'rejected'} successfully`);
-            // Navigate back to the receive dashboard
-            window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `PR ${status === 'approve' ? 'received' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the receive dashboard
+                window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
+            });
         } else {
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
@@ -356,18 +509,87 @@ function updatePRStatus(status) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error ${status === 'approve' ? 'receiving' : 'rejecting'} PR: ` + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} PR: ` + error.message
+        });
     });
 }
 
-// Function to receive PR (approve)
-function approvePR() {
-    updatePRStatus('approve');
-}
+// Function to approve or reject the PR with remarks
+function updatePRStatusWithRemarks(status, remarks) {
+    if (!prId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'PR ID not found'
+        });
+        return;
+    }
 
-// Function to reject PR
-function rejectPR() {
-    updatePRStatus('reject');
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: prId,
+        UserId: userId,
+        Status: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+    
+    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `PR ${status === 'approve' ? 'received' : 'rejected'} successfully`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the receive dashboard
+                window.location.href = '../../../dashboard/dashboardReceive/menuPRReceive.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} PR: ` + error.message
+        });
+    });
 }
 
 function toggleFields() {
@@ -463,10 +685,19 @@ function deleteRow(button) {
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
     });
     
     // Disable all select fields

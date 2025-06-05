@@ -10,7 +10,28 @@
     <script src="../js/auth.js"></script>
     <script src="../js/detailCash.js"></script>
     <script src="../pages/utils/toMenu.js"></script>
-
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -123,34 +144,47 @@
               <textarea class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label><strong>Proposed by:</strong></label>
-                <select id="preparedSelect" class="w-full p-1 border rounded bg-white">
-                    <option value="Admin1">Admin 1</option>
-                    <option value="Admin2">Admin 2</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="filterUsers('Approval.PreparedById')" autocomplete="off" disabled>
+                    <select id="Approval.PreparedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Checked by:</strong></label>
-            <select id="checkedSelect" class="w-full p-1 border rounded bg-white">
-                <option value="Finance1">Finance 1</option>
-                <option value="Finance2">Finance 2</option>
-            </select>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.CheckedById')" autocomplete="off">
+                    <select id="Approval.CheckedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Approved by:</strong></label>
-            <select id="approvedSelect" class="w-full p-1 border rounded bg-white">
-                <option value="Manager1">Manager 1</option>
-                <option value="Manager2">Manager 2</option>
-            </select>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ApprovedById')" autocomplete="off">
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-            <label><strong>Acknowledged by:</strong></label>
-            <select id="acknowledgedSelect" class="w-full p-1 border rounded bg-white">
-                <option value="Manager1">General Manager 1</option>
-                <option value="Manager2">General Manager 2</option>
-            </select>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.AcknowledgedById')" autocomplete="off">
+                    <select id="Approval.AcknowledgedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
             <!-- <label><input type="checkbox" id="knowledge" class="mr-1"><strong>Received by :</strong></label>

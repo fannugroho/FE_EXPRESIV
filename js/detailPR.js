@@ -131,8 +131,17 @@ function populateUserSelects(users, approvalData = null) {
             });
             // Set the value from approval data if available
             if (approvalData && approvalData[selectInfo.approvalKey]) {
-            
                 select.value = approvalData[selectInfo.approvalKey];
+                
+                // Find the user and update the search input
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    }
+                }
+                
                 // Auto-select and disable for Prepared by if it matches logged in user
                 if(selectInfo.id === "preparedBy" && select.value == getUserId()){
                     select.disabled = true;
