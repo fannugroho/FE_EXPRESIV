@@ -169,14 +169,43 @@ async function submitDocument() {
         return;
     }
     
-    // Dummy success response
-    Swal.fire(
-        'Submitted!',
-        'Reimbursement has been submitted successfully.',
-        'success'
-    ).then(() => {
-        fetchReimbursementData();
-    });
+    try {
+        // Call the API to prepare the document
+        const response = await fetch(`${BASE_URL}/api/reimbursements/prepared/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Submitted!',
+                result.message || 'Reimbursement prepared successfully.',
+                'success'
+            ).then(() => {
+                // After successful submission, preparedDate will no longer be null
+                // Update the button state directly and refresh data
+                updateSubmitButtonState(new Date().toISOString());
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to prepare reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error preparing reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while preparing the reimbursement',
+            'error'
+        );
+    }
 }
 
 function getReimbursementIdFromUrl() {
@@ -197,11 +226,30 @@ async function fetchReimbursementData() {
         
         if (result.status && result.code === 200) {
             populateFormData(result.data);
+            updateSubmitButtonState(result.data.preparedDate);
         } else {
             console.error('Failed to fetch reimbursement data:', result.message);
         }
     } catch (error) {
         console.error('Error fetching reimbursement data:', error);
+    }
+}
+
+// Function to update Submit button state based on preparedDate
+function updateSubmitButtonState(preparedDate) {
+    const submitButton = document.querySelector('button[onclick="confirmSubmit()"]');
+    if (submitButton) {
+        if (preparedDate === null) {
+            // Enable the button if preparedDate is null
+            submitButton.disabled = false;
+            submitButton.classList.remove('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
+            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            // Disable the button if preparedDate is not null
+            submitButton.disabled = true;
+            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitButton.classList.add('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
+        }
     }
 }
 
@@ -294,6 +342,9 @@ function populateFormData(data) {
         const approvedBySelect = document.getElementById('approvedBySelect');
         if (approvedBySelect) approvedBySelect.value = data.approvedBy;
     }
+    
+    // Update Submit button state based on preparedDate
+    updateSubmitButtonState(data.preparedDate);
     
     populateReimbursementDetails(data.reimbursementDetails);
     displayAttachments(data.reimbursementAttachments);
