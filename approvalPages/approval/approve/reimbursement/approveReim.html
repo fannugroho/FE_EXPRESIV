@@ -7,28 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="approveReim.js"></script>
-    <style>
-        /* Dropdown styling */
-        .dropdown-item {
-            padding: 8px 12px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .dropdown-item:hover {
-            background-color: #f3f4f6;
-        }
-        .search-dropdown {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 50;
-        }
-        .search-input:focus {
-            border-color: #3b82f6;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-        }
-    </style>
+    <script src="../../../../js/auth.js"></script>
+
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -67,10 +47,11 @@
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded" disabled>
                     <option value="Draft">Draft</option>
+                    <option value="Prepared">Prepared</option>
                     <option value="Checked">Checked</option>
+                    <option value="Acknowledged">Acknowledged</option>
                     <option value="Approved">Approved</option>
                     <option value="Paid">Paid</option>
-                    <option value="Closed">Closed</option>
                     <option value="Rejected">Rejected</option>
                 </select>
 
@@ -115,51 +96,35 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
             </div>
 
-        <!-- Approval Signatories -->
+        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
-                    <select id="preparedBy" class="hidden">
-                        <option value="Admin 1">Admin 1</option>
-                        <option value="Admin 2">Admin 2</option>
-                    </select>
-                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+                <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
+                <select id="preparedBySelect" class="w-full p-1 border rounded">
+                    <!-- <option value="Admin 1">Admin 1</option>
+                    <option value="Admin 2">Admin 2</option> -->
+                </select>
             </div>
             <div>
-                <label id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off">
-                    <select id="acknowledgedBy" class="hidden">
-                        <option value="Supervisor 1">Supervisor 1</option>
-                        <option value="Supervisor 2">Supervisor 2</option>
-                    </select>
-                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Supervisor 1">Supervisor 1</option>
+                <option value="Supervisor 2">Supervisor 2</option> -->
+            </select>
             </div>
             <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
-                    <select id="checkedBy" class="hidden">
-                        <option value="Finance 1">Finance 1</option>
-                        <option value="Finance 2">Finance 2</option>
-                    </select>
-                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+            <select id="checkedBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Finance 1">Finance 1</option>
+                <option value="Finance 2">Finance 2</option> -->
+            </select>
             </div>
             <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
-                    <select id="approvedBy" class="hidden">
-                        <option value="Manager 1">Manager 1</option>
-                        <option value="Manager 2">Manager 2</option>
-                    </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+            <select id="approvedBySelect" class="w-full p-1 border rounded">
+                <!-- <option value="Manager 1">Manager 1</option>
+                <option value="Manager 2">Manager 2</option> -->
+            </select>
             </div>
         </div>
         <br>
