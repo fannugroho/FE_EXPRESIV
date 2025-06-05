@@ -440,18 +440,6 @@ function displayFileList() {
     console.log('Files uploaded:', uploadedFiles);
 }
 
-function printReimbursement() {
-    // Get reimbursement ID from URL
-    const reimId = getReimbursementIdFromUrl();
-    if (!reimId) {
-        Swal.fire('Error', 'No reimbursement ID found', 'error');
-        return;
-    }
-    
-    // Open the print page in a new window/tab
-    window.open(`printReim.html?reim-id=${reimId}`, '_blank');
-}
-
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded, fetching reimbursement data');
