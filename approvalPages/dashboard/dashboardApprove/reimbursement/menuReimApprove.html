@@ -182,7 +182,7 @@
 
         <div class="flex-1 p-8 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Reimbursement Check
+                Dashboard Reimbursement Approval
             </h2>
             
             <!-- Status Cards - Improved responsive grid -->
@@ -192,12 +192,12 @@
                     <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold">Prepared</h3>
-                    <p id="preparedCount" class="text-2xl font-bold text-yellow-600">0</p>
+                    <h3 class="text-lg font-semibold">Acknowledged</h3>
+                    <p id="acknowledgedCount" class="text-2xl font-bold text-yellow-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold">Checked</h3>
-                    <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
+                    <h3 class="text-lg font-semibold">Approved</h3>
+                    <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                     <h3 class="text-lg font-semibold">Rejected</h3>
@@ -212,11 +212,11 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 mt-2 md:mt-0 border-b w-full md:w-auto">
-                        <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg">
-                            <i class="fas fa-file-alt mr-2"></i>Prepared
+                        <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Acknowledged
                         </button>
-                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-check mr-2"></i>Checked
+                        <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Approved
                         </button>
                         <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-times-circle mr-2"></i>Rejected
@@ -280,13 +280,13 @@
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file text-xl"></i>
-          <span>Prepared</span>
+          <span>Acknowledged</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-check text-xl"></i>
-          <span>Checked</span>
+          <span>Approved</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-times-circle text-xl"></i>

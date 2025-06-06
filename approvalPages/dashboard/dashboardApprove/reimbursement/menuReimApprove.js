@@ -10,12 +10,12 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
-let currentTab = 'prepared'; // Default tab
+let currentTab = 'acknowledged'; // Default tab
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
+    const endpoint = `/api/reimbursements/status-counts/approver/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -41,7 +41,7 @@ function fetchStatusCounts() {
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/checker/${userId}`;
+    const endpoint = `/api/reimbursements/approver/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -79,8 +79,8 @@ function displayReimbursements(reimbursements) {
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
     document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("preparedCount").textContent = data.preparedCount || 0;
-    document.getElementById("checkedCount").textContent = data.checkedCount || 0;
+    document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
+    document.getElementById("approvedCount").textContent = data.approvedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
@@ -131,25 +131,25 @@ function useSampleData() {
 // Update counts using sample data
 function updateSampleCounts() {
     document.getElementById("totalCount").textContent = "0";
-    document.getElementById("preparedCount").textContent = "0";
-    document.getElementById("checkedCount").textContent = "0";
+    document.getElementById("acknowledgedCount").textContent = "0";
+    document.getElementById("approvedCount").textContent = "0";
     document.getElementById("rejectedCount").textContent = "0";
 }
 
-// Switch between Prepared and Checked tabs
+// Switch between Acknowledged and Approved tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
-    document.getElementById('preparedTabBtn').classList.remove('tab-active');
-    document.getElementById('checkedTabBtn').classList.remove('tab-active');
+    document.getElementById('acknowledgedTabBtn').classList.remove('tab-active');
+    document.getElementById('approvedTabBtn').classList.remove('tab-active');
     document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'prepared') {
-        document.getElementById('preparedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'approved') {
+        document.getElementById('approvedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
@@ -164,10 +164,10 @@ function switchTab(tabName) {
     
     // Filter the data with a slight delay to allow animation
     setTimeout(() => {
-        if (tabName === 'prepared') {
-            filteredData = allReimbursements.filter(item => item.status === 'Prepared');
-        } else if (tabName === 'checked') {
-            filteredData = allReimbursements.filter(item => item.status === 'Checked');
+        if (tabName === 'acknowledged') {
+            filteredData = allReimbursements.filter(item => item.status === 'Acknowledged');
+        } else if (tabName === 'approved') {
+            filteredData = allReimbursements.filter(item => item.status === 'Approved');
         } else if (tabName === 'rejected') {
             filteredData = allReimbursements.filter(item => item.status === 'Rejected');
         }
@@ -217,8 +217,8 @@ function updateTable() {
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                    ${displayStatus}
+                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Acknowledged' || displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Approved' || displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                    ${displayStatus === 'Prepared' ? 'Acknowledged' : displayStatus === 'Checked' ? 'Approved' : displayStatus}
                 </span>
             </td>
             <td class="p-2">
@@ -282,7 +282,7 @@ function goToTotalDocs() {
 // Export to Excel function
 function downloadExcel() {
     // Get status text for filename
-    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const statusText = currentTab === 'acknowledged' ? 'Acknowledged' : currentTab === 'approved' ? 'Approved' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     // Prepare data for export - no changes needed here as it already doesn't include checkbox data
@@ -294,7 +294,7 @@ function downloadExcel() {
             'Requester': item.requesterName || '',
             'Department': item.department || '',
             'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            'Status': item.status
+            'Status': item.status === 'Prepared' ? 'Acknowledged' : item.status === 'Checked' ? 'Approved' : item.status
         };
     });
     
@@ -312,7 +312,7 @@ function downloadExcel() {
 // Export to PDF function
 function downloadPDF() {
     // Get status text for filename
-    const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
+    const statusText = currentTab === 'acknowledged' ? 'Acknowledged' : currentTab === 'approved' ? 'Approved' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
     
     // Create PDF document
@@ -339,7 +339,7 @@ function downloadPDF() {
             item.requesterName || '',
             item.department || '',
             item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            item.status
+            item.status === 'Prepared' ? 'Acknowledged' : item.status === 'Checked' ? 'Approved' : item.status
         ];
         tableRows.push(dataRow);
     });
