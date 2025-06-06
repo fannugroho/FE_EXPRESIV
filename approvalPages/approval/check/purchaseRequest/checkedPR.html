@@ -85,6 +85,13 @@
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
                 <label><input type="checkbox" id="PO" class="mr-1"><strong>PO</strong></label>

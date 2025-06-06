@@ -152,6 +152,15 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
+    // Display attachments if they exist
+    console.log('Attachments data:', data.attachments);
+    if (data.attachments) {
+        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+        displayAttachments(data.attachments);
+    } else {
+        console.log('No attachments found in data');
+    }
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
     
@@ -295,7 +304,7 @@ function updateSettleStatus(status, remarks) {
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             });
         }
-        return response.json();
+        return response;
     })
     .then(result => {
         console.log('Status update response:', result);
@@ -428,16 +437,20 @@ function populateDepartmentSelect(departments) {
 
 // Function to populate approval fields (Prepared by, Checked by, etc.)
 function populateApprovalFields(users) {
+    // Store users globally for search functionality
+    window.allUsers = users;
+    
     const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById' },
-        { id: 'Checked', dataKey: 'checkedById' },
-        { id: 'Approved', dataKey: 'approvedById' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById' }
+        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' }
     ];
     
     approvalSelects.forEach(selectInfo => {
         const select = document.getElementById(selectInfo.id);
         if (select) {
+            console.log(select);
             // Clear existing options
             select.innerHTML = '<option value="" disabled>Select User</option>';
             
@@ -451,15 +464,87 @@ function populateApprovalFields(users) {
             
             // Set the value from settlement approval data if available
             if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
+                console.log(window.approvalData[selectInfo.dataKey]);
                 select.value = window.approvalData[selectInfo.dataKey];
-                // Also check the corresponding checkbox
-                const checkbox = select.parentElement.querySelector('input[type="checkbox"]');
-                if (checkbox) {
-                    checkbox.checked = true;
+                console.log(select.value);
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}` || selectedUser.username;
+                    }
                 }
             }
         }
     });
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+}
+
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
 }
 
 // Function to populate the Employee field with kansaiEmployeeId
@@ -482,11 +567,16 @@ function populateEmployeeField(users, settlementData = null) {
 
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only
+    // Make all input fields read-only including search inputs
     const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        
+        // Remove onkeyup event for search inputs to disable search functionality
+        if (field.id.includes('Search')) {
+            field.removeAttribute('onkeyup');
+        }
     });
     
     // Disable all select fields
@@ -521,6 +611,19 @@ function makeAllFieldsReadOnly() {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
     }
+    
+    // Also disable the attachment input
+    const attachmentInput = document.getElementById('attachments');
+    if (attachmentInput) {
+        attachmentInput.disabled = true;
+        attachmentInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+    
+    // Hide all search dropdowns
+    const searchDropdowns = document.querySelectorAll('.search-dropdown');
+    searchDropdowns.forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
 }
 
 // Function to hide approval buttons
@@ -542,23 +645,38 @@ function hideApprovalButtons() {
     }
 }
 
-// Function to get user ID from token
-function getUserId() {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
+
+// Function to display attachments (similar to detail pages)
+function displayAttachments(attachments) {
+    console.log('displayAttachments called with:', attachments);
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
     
-    try {
-        // Decode JWT token (this is a simplified version and may not work for all tokens)
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const payload = JSON.parse(jsonPayload);
-        return payload.userId || payload.sub;
-    } catch (e) {
-        console.error('Error decoding token:', e);
-        return null;
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex justify-between items-center py-1 border-b last:border-b-0';
+            
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-700">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">
+                    View
+                </a>
+            `;
+            
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
 }

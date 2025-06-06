@@ -201,6 +201,7 @@ function populateUserSelects(users, approvalData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
+                console.log(user);
                 option.textContent = user.name || `${user.firstName} ${user.lastName}`;
                 select.appendChild(option);
             });
