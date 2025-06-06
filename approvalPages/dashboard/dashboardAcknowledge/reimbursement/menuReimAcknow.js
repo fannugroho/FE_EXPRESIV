@@ -37,8 +37,8 @@ function fetchStatusCounts() {
         })
         .catch(error => {
             console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
-            updateSampleCounts();
+            // Show error message
+            displayErrorMessage('Failed to fetch status counts');
         });
 }
 
@@ -60,16 +60,12 @@ function fetchReimbursements() {
                 switchTab(currentTab); // Apply filtering based on current tab
             } else {
                 console.error('API returned an error:', data.message);
-                // Use sample data if API fails
-                useSampleData();
-                switchTab(currentTab);
+                displayErrorMessage('Failed to fetch reimbursements');
             }
         })
         .catch(error => {
             console.error('Error fetching reimbursements:', error);
-            // Use sample data if API fails
-            useSampleData();
-            switchTab(currentTab);
+            displayErrorMessage('Failed to fetch reimbursements');
         });
 }
 
@@ -129,45 +125,22 @@ function detailReim(reimId) {
     window.location.href = `../../../approval/acknowledge/reimbursement/acknowledgeReim.html?reim-id=${reimId}`;
 }
 
-// Sample data for testing when API is not available
-let sampleData = [];
-function generateSampleData() {
-    sampleData = [];
-    for (let i = 1; i <= 35; i++) {
-        let status;
-        if (i <= 15) {
-            status = 'Prepared';
-        } else if (i <= 30) {
-            status = 'Checked';
-        } else {
-            status = 'Rejected';
-        }
-        sampleData.push({
-            id: i,
-            docNumber: `DOC-${1000 + i}`,
-            voucherNo: `REIM-${2000 + i}`,
-            requesterName: `User ${i}`,
-            department: `Department ${(i % 5) + 1}`,
-            submissionDate: new Date(2023, 0, i).toISOString(),
-            status: status
-        });
-    }
-    return sampleData;
-}
-
-// Use sample data when API fails
-function useSampleData() {
-    allReimbursements = generateSampleData();
-    updateSampleCounts();
-}
-
-// Update counts using sample data
-function updateSampleCounts() {
-    const data = generateSampleData();
-    document.getElementById("totalCount").textContent = data.length;
-    document.getElementById("preparedCount").textContent = data.filter(item => item.status === 'Prepared').length;
-    document.getElementById("checkedCount").textContent = data.filter(item => item.status === 'Checked').length;
-    document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
+// Function to display error message
+function displayErrorMessage(message) {
+    // Reset counts to zero
+    document.getElementById("totalCount").textContent = 0;
+    document.getElementById("preparedCount").textContent = 0;
+    document.getElementById("checkedCount").textContent = 0;
+    document.getElementById("rejectedCount").textContent = 0;
+    
+    // Clear table data
+    allReimbursements = [];
+    filteredData = [];
+    updateTable();
+    updatePagination();
+    
+    // Show error message (could be enhanced with a visual error component)
+    console.error(message);
 }
 
 // Switch between Prepared and Checked tabs
@@ -226,43 +199,51 @@ function updateTable() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
     
-    for (let i = startIndex; i < endIndex; i++) {
-        const item = filteredData[i];
-        
-        // Format the submission date if needed
-        let formattedDate = item.submissionDate;
-        if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
-        }
-        
-        // Remove Draft to Prepared conversion as it's no longer needed
-        const displayStatus = item.status;
-        
+    if (filteredData.length === 0) {
         const row = document.createElement('tr');
-        row.classList.add('border-t', 'hover:bg-gray-100');
-        
+        row.classList.add('border-t');
         row.innerHTML = `
-            <td class="p-2">${item.id || ''}</td>
-            <td class="p-2">${item.voucherNo || ''}</td>
-            <td class="p-2">${item.requesterName || ''}</td>
-            <td class="p-2">${item.department || ''}</td>
-            <td class="p-2">${formattedDate}</td>
-            <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                    ${displayStatus}
-                </span>
-            </td>
-            <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
-                    Detail
-                </button>
-            </td>
+            <td colspan="7" class="p-4 text-center text-gray-500">No data available</td>
         `;
-        
         tableBody.appendChild(row);
+    } else {
+        for (let i = startIndex; i < endIndex; i++) {
+            const item = filteredData[i];
+            
+            // Format the submission date if needed
+            let formattedDate = item.submissionDate;
+            if (item.submissionDate) {
+                const date = new Date(item.submissionDate);
+                if (!isNaN(date)) {
+                    formattedDate = date.toLocaleDateString();
+                }
+            }
+            
+            const displayStatus = item.status;
+            
+            const row = document.createElement('tr');
+            row.classList.add('border-t', 'hover:bg-gray-100');
+            
+            row.innerHTML = `
+                <td class="p-2">${item.id || ''}</td>
+                <td class="p-2">${item.voucherNo || ''}</td>
+                <td class="p-2">${item.requesterName || ''}</td>
+                <td class="p-2">${item.department || ''}</td>
+                <td class="p-2">${formattedDate}</td>
+                <td class="p-2">
+                    <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                        ${displayStatus}
+                    </span>
+                </td>
+                <td class="p-2">
+                    <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
+                        Detail
+                    </button>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        }
     }
     
     // Update the item count display
