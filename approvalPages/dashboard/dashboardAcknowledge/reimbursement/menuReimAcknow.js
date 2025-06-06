@@ -106,11 +106,6 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-
-// function goToDetailReim(reimId) {
-//     window.location.href = `../../../approval/check/reimbursement/acknowledgeReim.html?reim-id=${reimId}`;
-// }
-
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
