@@ -126,6 +126,8 @@ async function saveDocument() {
                     text: 'Dokumen berhasil disimpan.',
                     icon: 'success',
                     confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim(); // Navigate to menu page after clicking OK
                 });
             }
         });
@@ -375,6 +377,8 @@ function submitDocument() {
                     text: 'Dokumen berhasil di-submit.',
                     icon: 'success',
                     confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim(); // Navigate to menu page after clicking OK
                 });
             } catch (error) {
                 console.error("Error submitting reimbursement:", error);
