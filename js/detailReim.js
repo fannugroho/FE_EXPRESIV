@@ -493,7 +493,7 @@ async function submitReimbursementUpdate() {
 }
 
 function goToMenuReim() {
-    window.location.href = '../menuReim.html';
+    window.location.href = '../pages/menuReim.html';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
