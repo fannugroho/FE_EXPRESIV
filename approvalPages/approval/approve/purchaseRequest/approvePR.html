@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../../../../js/auth.js"></script>
     <script src="approvePR.js"></script>
-    <script src="../../../pages/utils/toMenu.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -85,10 +85,17 @@
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Type Document</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-                <label><input type="checkbox" id="PO" class="mr-1"><strong>PO</strong></label>
-                <label><input type="checkbox" id="NonPO" class="mr-1"><strong>Non PO</strong></label></div>
+                <label><input type="radio" name="documentType" id="PO" class="mr-1" disabled><strong>PO</strong></label>
+                <label><input type="radio" name="documentType" id="NonPO" class="mr-1" disabled><strong>Non PO</strong></label></div>
             </div>
         </div>
         

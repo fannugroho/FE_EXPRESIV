@@ -186,6 +186,15 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
+    // Display attachments if they exist
+    console.log('Attachments data:', data.attachments);
+    if (data.attachments) {
+        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+        displayAttachments(data.attachments);
+    } else {
+        console.log('No attachments found in data');
+    }
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
     
@@ -348,7 +357,7 @@ function updateSettleStatus(status, remarks) {
                 throw new Error(errorData.message || `HTTP error! status: ${errorData.Message}`);
             });
         }
-        return response.json();
+        return response;
     })
     .then(result => {
         console.log('Status update response:', result);
@@ -541,7 +550,7 @@ function populateEmployeeField(users, settlementData = null) {
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
+    const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -563,22 +572,45 @@ function makeAllFieldsReadOnly() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Hide add row button if it exists
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    
     // Disable file upload if it exists
     const fileInput = document.getElementById('Reference');
     if (fileInput) {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to display attachments (similar to detail pages)
+function displayAttachments(attachments) {
+    console.log('displayAttachments called with:', attachments);
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex justify-between items-center py-1 border-b last:border-b-0';
+            
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-700">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">
+                    View
+                </a>
+            `;
+            
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
 }

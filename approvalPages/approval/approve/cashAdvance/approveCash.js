@@ -60,6 +60,10 @@ function populateCADetails(data) {
     document.getElementById('remarks').value = data.remarks || '';
     // Set transaction type
     if (data.transactionType) {
+        option = document.createElement('option');
+        option.value = data.transactionType;
+        option.textContent = data.transactionType;
+        document.getElementById('typeTransaction').appendChild(option);
         document.getElementById('typeTransaction').value = data.transactionType;
     }
 
@@ -82,6 +86,15 @@ function populateCADetails(data) {
     // Handle cash advance details (amount breakdown)
     if (data.cashAdvanceDetails) {
         populateCashAdvanceDetails(data.cashAdvanceDetails);
+    }
+    
+    // Display attachments if they exist
+    console.log('Attachments data:', data.attachments);
+    if (data.attachments) {
+        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+        displayAttachments(data.attachments);
+    } else {
+        console.log('No attachments found in data');
     }
     
     // Make all fields read-only since this is an approval page
@@ -650,4 +663,35 @@ function printCashAdvanceVoucher() {
     
     // Open the print page in a new window/tab
     window.open(`printCashAdv.html?ca-id=${caId}`, '_blank');
+}
+
+// Function to display attachments (similar to detail pages)
+function displayAttachments(attachments) {
+    console.log('displayAttachments called with:', attachments);
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-blue-600 mr-2">📄</span>
+                    <span class="text-sm font-medium">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
+    }
 }

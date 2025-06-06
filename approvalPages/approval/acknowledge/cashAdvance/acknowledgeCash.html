@@ -73,6 +73,14 @@
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="typeTransaction" class="w-full p-2 border rounded">
                     <option value="Medical">Medical</option>

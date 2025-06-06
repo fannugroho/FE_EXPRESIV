@@ -120,6 +120,15 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
+    // Display attachments if they exist
+    console.log('Attachments data:', data.attachments);
+    if (data.attachments) {
+        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+        displayAttachments(data.attachments);
+    } else {
+        console.log('No attachments found in data');
+    }
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
     
@@ -282,7 +291,7 @@ function updateSettleStatus(status, remarks) {
                 throw new Error(errorData.message || `HTTP error! status: ${errorData.Message}`);
             });
         }
-        return response.json();
+        return response;
     })
     .then(result => {
         console.log('Status update response:', result);
@@ -581,5 +590,36 @@ function makeAllFieldsReadOnly() {
     if (fileInput) {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to display attachments (similar to detail pages)
+function displayAttachments(attachments) {
+    console.log('displayAttachments called with:', attachments);
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-blue-600 mr-2">📄</span>
+                    <span class="text-sm font-medium">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+            `;
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
     }
 }

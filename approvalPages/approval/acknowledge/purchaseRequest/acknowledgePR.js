@@ -157,6 +157,15 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Display attachments if they exist
+    console.log('Attachments data:', data.attachments);
+    if (data.attachments) {
+        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+        displayAttachments(data.attachments);
+    } else {
+        console.log('No attachments found in data');
+    }
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
 }
@@ -229,7 +238,7 @@ function addItemRow(item = null) {
             <input type="text" value="${item?.itemNo || ''}" class="w-full item-no bg-gray-100" readonly />
         </td>
         <td class="p-2 border item-field">
-            <input type="text" value="${item?.description || ''}" class="w-full item-description bg-gray-100" readonly />
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" readonly title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border item-field">
             <input type="text" value="${item?.detail || ''}" class="w-full item-detail bg-gray-100" readonly />
@@ -533,7 +542,7 @@ function updatePRStatus(status) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html';
+                goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -608,7 +617,7 @@ function updatePRStatusWithRemarks(status, remarks) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html';
+                goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -810,11 +819,65 @@ function updateItemDescription(selectElement) {
     const descriptionInput = row.querySelector('.item-description');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     
-    if (selectedOption && !selectedOption.disabled) {
-        const itemText = selectedOption.text;
-        const itemName = itemText.split(' - ')[1];
-        descriptionInput.value = itemName || '';
+    // Check if a valid item is selected (not the placeholder option)
+    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
+        // Get description from data attribute first, fallback to parsing text
+        const itemDescription = selectedOption.getAttribute('data-description');
+        if (itemDescription) {
+            descriptionInput.value = itemDescription;
+            descriptionInput.textContent = itemDescription; // For textarea
+            descriptionInput.title = itemDescription; // For tooltip
+        } else {
+            // Fallback to old method for backward compatibility
+            const itemText = selectedOption.text;
+            const itemName = itemText.split(' - ')[1];
+            descriptionInput.value = itemName || '';
+            descriptionInput.textContent = itemName || '';
+            descriptionInput.title = itemName || '';
+        }
     } else {
+        // No valid item selected, clear the description
         descriptionInput.value = '';
+        descriptionInput.textContent = '';
+        descriptionInput.title = '';
+    }
+    
+    // Always keep description field disabled and gray
+    descriptionInput.disabled = true;
+    descriptionInput.classList.add('bg-gray-100');
+}
+
+// Function to display attachments (similar to detail pages)
+function displayAttachments(attachments) {
+    console.log('displayAttachments called with:', attachments);
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) {
+        console.error('attachmentsList element not found');
+        return;
+    }
+    
+    attachmentsList.innerHTML = ''; // Clear existing attachments
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach(attachment => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex justify-between items-center py-1 border-b last:border-b-0';
+            
+            attachmentItem.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-700">${attachment.fileName}</span>
+                </div>
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">
+                    View
+                </a>
+            `;
+            
+            attachmentsList.appendChild(attachmentItem);
+        });
+    } else {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
 }

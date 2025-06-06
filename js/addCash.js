@@ -46,9 +46,9 @@ async function saveDocument(isSubmit = false) {
         
         // Add file attachments
         const fileInput = document.getElementById("Attachments");
-        if (fileInput.files.length > 0) {
-            for (let i = 0; i < fileInput.files.length; i++) {
-                formData.append('Attachments', fileInput.files[i]);
+        if (uploadedFiles.length > 0) {
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                formData.append('Attachments', uploadedFiles[i]);
             }
         }
         
@@ -151,18 +151,130 @@ function previewPDF(event) {
 const files = event.target.files;
 if (files.length + uploadedFiles.length > 5) {
 alert('Maximum 5 PDF files are allowed.');
+event.target.value = ''; // Reset file input
 return;
 }
-Array.from(files).forEach(file => {
-if (file.type === 'application/pdf') {
-  uploadedFiles.push(file);
-} else {
-  alert('Please upload a valid PDF file');
+
+for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.type === 'application/pdf') {
+        uploadedFiles.push(file);
+    } else {
+        alert(`File "${file.name}" is not a valid PDF file`);
+    }
 }
-});
+
 displayFileList();
 }
 
+// Function to display the list of uploaded files
+function displayFileList() {
+    const fileListContainer = document.getElementById('fileList');
+    if (!fileListContainer) return;
+    
+    fileListContainer.innerHTML = '';
+    
+    if (uploadedFiles.length === 0) {
+        fileListContainer.innerHTML = '<p class="text-gray-500 text-sm p-2">No files uploaded</p>';
+        return;
+    }
+    
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-2 border-b';
+        
+        const fileName = document.createElement('div');
+        fileName.className = 'text-sm truncate flex-grow';
+        fileName.textContent = file.name;
+        
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'flex space-x-2';
+        
+        const viewButton = document.createElement('button');
+        viewButton.className = 'text-blue-600 hover:text-blue-800 text-sm';
+        viewButton.textContent = 'View';
+        viewButton.onclick = () => viewFile(index);
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'text-red-600 hover:text-red-800 text-sm';
+        deleteButton.textContent = 'X';
+        deleteButton.onclick = () => deleteFile(index);
+        
+        actionButtons.appendChild(viewButton);
+        actionButtons.appendChild(deleteButton);
+        
+        fileItem.appendChild(fileName);
+        fileItem.appendChild(actionButtons);
+        
+        fileListContainer.appendChild(fileItem);
+    });
+}
+
+// Function to view a file
+function viewFile(index) {
+    const file = uploadedFiles[index];
+    if (!file) return;
+    
+    // Create object URL for the file
+    const fileURL = URL.createObjectURL(file);
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+    modal.id = 'pdfViewerModal';
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col';
+    
+    // Create header with close button
+    const header = document.createElement('div');
+    header.className = 'flex justify-between items-center p-4 border-b';
+    
+    const title = document.createElement('h3');
+    title.className = 'text-lg font-semibold';
+    title.textContent = file.name;
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'text-gray-500 hover:text-gray-700';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        document.body.removeChild(modal);
+        URL.revokeObjectURL(fileURL);
+    };
+    
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    
+    // Create iframe to display PDF
+    const iframe = document.createElement('iframe');
+    iframe.className = 'w-full flex-grow';
+    iframe.src = fileURL;
+    
+    // Assemble modal
+    modalContent.appendChild(header);
+    modalContent.appendChild(iframe);
+    modal.appendChild(modalContent);
+    
+    // Add modal to body
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            document.body.removeChild(modal);
+            URL.revokeObjectURL(fileURL);
+        }
+    });
+}
+
+// Function to delete a file
+function deleteFile(index) {
+    if (index >= 0 && index < uploadedFiles.length) {
+        uploadedFiles.splice(index, 1);
+        displayFileList();
+    }
+}
 
 function addRow() {
 const tableBody = document.getElementById("tableBody");
@@ -187,13 +299,6 @@ tableBody.appendChild(newRow);
 
 function deleteRow(button) {
 button.closest("tr").remove(); // Hapus baris tempat tombol diklik
-}
-
-// Function to display the list of uploaded files
-function displayFileList() {
-    // This function can be implemented to show uploaded files if needed
-    // For now, it's a placeholder to prevent errors
-    console.log('Files uploaded:', uploadedFiles.length);
 }
 
 function fetchDepartments() {
