@@ -204,7 +204,6 @@ function updateTable() {
             }
         }
         
-        // Remove Draft to Prepared conversion as it's no longer needed
         const displayStatus = item.status;
         
         const row = document.createElement('tr');
@@ -217,8 +216,8 @@ function updateTable() {
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Acknowledged' || displayStatus === 'Prepared' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Approved' || displayStatus === 'Checked' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                    ${displayStatus === 'Prepared' ? 'Acknowledged' : displayStatus === 'Checked' ? 'Approved' : displayStatus}
+                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Acknowledged' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Approved' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                    ${displayStatus}
                 </span>
             </td>
             <td class="p-2">
@@ -294,7 +293,7 @@ function downloadExcel() {
             'Requester': item.requesterName || '',
             'Department': item.department || '',
             'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            'Status': item.status === 'Prepared' ? 'Acknowledged' : item.status === 'Checked' ? 'Approved' : item.status
+            'Status': item.status
         };
     });
     
@@ -339,7 +338,7 @@ function downloadPDF() {
             item.requesterName || '',
             item.department || '',
             item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
-            item.status === 'Prepared' ? 'Acknowledged' : item.status === 'Checked' ? 'Approved' : item.status
+            item.status
         ];
         tableRows.push(dataRow);
     });
