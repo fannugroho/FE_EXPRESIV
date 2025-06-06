@@ -272,21 +272,21 @@
         doc.save('settlement_list.pdf');
       }
   
-      // Fungsi Navigasi
-      function goToMenu() { window.location.href = "Menu.html"; }
-      function goToAddDoc() { window.location.href = "AddDoc.html"; }
-      function goToAddReim() { window.location.href = "AddReim.html"; }
-      function goToAddCash() { window.location.href = "AddCash.html"; }
-      function goToAddSettle() { window.location.href = "../addPages/AddSettle.html"; }
-      function goToAddPO() { window.location.href = "AddPO.html"; }
-      function goToMenuPR() { window.location.href = "MenuPR.html"; }
-      function goToMenuReim() { window.location.href = "MenuReim.html"; }
-      function goToMenuCash() { window.location.href = "MenuCash.html"; }
-      function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-      function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-      function goToMenuPO() { window.location.href = "MenuPO.html"; }
-      function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-      function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+      // // Fungsi Navigasi
+      // function goToMenu() { window.location.href = "Menu.html"; }
+      // function goToAddDoc() { window.location.href = "AddDoc.html"; }
+      // function goToAddReim() { window.location.href = "AddReim.html"; }
+      // function goToAddCash() { window.location.href = "AddCash.html"; }
+      // function goToAddSettle() { window.location.href = "../addPages/AddSettle.html"; }
+      // function goToAddPO() { window.location.href = "AddPO.html"; }
+      // function goToMenuPR() { window.location.href = "MenuPR.html"; }
+      // function goToMenuReim() { window.location.href = "MenuReim.html"; }
+      // function goToMenuCash() { window.location.href = "MenuCash.html"; }
+      // function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+      // function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+      // function goToMenuPO() { window.location.href = "MenuPO.html"; }
+      // function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+      // function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
       
       // Additional navigation functions for mobile menu
       function goToCheckedDocs() { 

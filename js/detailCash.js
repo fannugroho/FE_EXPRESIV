@@ -1,5 +1,7 @@
 // Global variable for file uploads
 let uploadedFiles = [];
+let existingAttachments = []; // Track existing attachments from API
+let attachmentsToKeep = []; // Track which existing attachments to keep
 
 // Global variables
 let rowCounter = 1;
@@ -357,10 +359,14 @@ if (docTypeElement) {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
+    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
+    
+    if (files.length + totalExistingFiles > 5) {
         alert('Maximum 5 PDF files are allowed.');
+        event.target.value = ''; // Clear the file input
         return;
     }
+    
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
             uploadedFiles.push(file);
@@ -368,13 +374,91 @@ function previewPDF(event) {
             alert('Please upload a valid PDF file');
         }
     });
+    
     displayFileList();
+    updateAttachmentsDisplay();
 }
 
 function displayFileList() {
     // Simple display of uploaded files count
-    console.log(`${uploadedFiles.length} file(s) uploaded`);
+    console.log(`${uploadedFiles.length} new file(s) uploaded`);
     // You can implement a more sophisticated file list display here if needed
+}
+
+// Function to remove a new uploaded file
+function removeUploadedFile(index) {
+    uploadedFiles.splice(index, 1);
+    updateAttachmentsDisplay();
+}
+
+// Function to remove an existing attachment
+function removeExistingAttachment(attachmentId) {
+    const index = attachmentsToKeep.indexOf(attachmentId);
+    if (index > -1) {
+        attachmentsToKeep.splice(index, 1);
+        updateAttachmentsDisplay();
+    }
+}
+
+// Function to update the attachments display
+function updateAttachmentsDisplay() {
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    attachmentsList.innerHTML = ''; // Clear existing display
+    
+    // Display existing attachments that are marked to keep
+    const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
+    existingToKeep.forEach(attachment => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-blue-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${attachment.fileName}</span>
+                <span class="text-xs text-gray-500 ml-2">(existing)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ? 
+                `<button onclick="removeExistingAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Display new uploaded files
+    uploadedFiles.forEach((file, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-green-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${file.name}</span>
+                <span class="text-xs text-green-600 ml-2">(new)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ? 
+                `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Show message if no attachments
+    if (existingToKeep.length === 0 && uploadedFiles.length === 0) {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments</p>';
+    }
+    
+    // Show attachment count
+    const totalAttachments = existingToKeep.length + uploadedFiles.length;
+    console.log(`Total attachments: ${totalAttachments} (${existingToKeep.length} existing, ${uploadedFiles.length} new)`);
 }
 
 function addRow() {
@@ -615,8 +699,10 @@ function populateForm(data) {
         // You can implement attachment display logic here if needed
     }
 
-    // Display attachments
+    // Store and display attachments
     if (data.attachments) {
+        existingAttachments = data.attachments;
+        attachmentsToKeep = data.attachments.map(att => att.id); // Initially keep all existing attachments
         displayAttachments(data.attachments);
     }
 
@@ -703,6 +789,13 @@ function filterUsers(fieldId) {
 
 // Update the populateApprovals function to work with new search structure
 function populateApprovals(approval) {
+    // Check if requesters data is available, if not, retry after a short delay
+    if (!window.requesters) {
+        console.log('Requesters data not yet available, retrying in 100ms...');
+        setTimeout(() => populateApprovals(approval), 100);
+        return;
+    }
+    
     // Proposed by - find user and set in search input if there's a preparedById
     const preparedSelect = document.getElementById("Approval.PreparedById");
     if (preparedSelect && approval.preparedById) {
@@ -905,6 +998,26 @@ function updateCash(isSubmit = false) {
                 }
             });
 
+            // Handle attachments according to backend logic
+            // Add existing attachments to keep (with their IDs)
+            attachmentsToKeep.forEach((attachmentId, index) => {
+                const existingAttachment = existingAttachments.find(att => att.id === attachmentId);
+                if (existingAttachment) {
+                    formData.append(`Attachments[${index}].Id`, attachmentId);
+                    formData.append(`Attachments[${index}].FileName`, existingAttachment.fileName || '');
+                }
+            });
+            
+            // Add new file uploads (with empty GUIDs)
+            uploadedFiles.forEach((file, index) => {
+                const attachmentIndex = attachmentsToKeep.length + index;
+                formData.append(`Attachments[${attachmentIndex}].Id`, '00000000-0000-0000-0000-000000000000'); // Empty GUID for new files
+                formData.append(`Attachments[${attachmentIndex}].File`, file);
+            });
+            
+            console.log('Attachments to keep:', attachmentsToKeep);
+            console.log('New files to upload:', uploadedFiles);
+            
             // Set IsSubmit based on the parameter
             formData.append('IsSubmit', isSubmit);
             
@@ -926,11 +1039,19 @@ function updateCash(isSubmit = false) {
                         title: 'Success!',
                         text: `Cash Advance has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
                         icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
+                        confirmButtonText: 'OK'
                     }).then(() => {
-                        // Refresh the page to show updated data
-                        location.reload();
+                        // Reload the cash advance data to show updated information
+                        loadCashAdvanceData();
+                        
+                        // Clear uploaded files since they're now saved
+                        uploadedFiles = [];
+                        
+                        // Update file input
+                        const fileInput = document.querySelector('input[type="file"]');
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
                     });
                 } else {
                     // Error handling
@@ -1342,31 +1463,20 @@ function makeAllFieldsReadOnlyForNonDraft() {
     deleteButtons.forEach(button => {
         button.style.display = 'none';
     });
+    
+    // Disable file upload input
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+    
+    // Update attachments display to hide remove buttons
+    updateAttachmentsDisplay();
 }
 
-// Function to display attachments
+// Function to display attachments (initial load)
 function displayAttachments(attachments) {
-    const attachmentsList = document.getElementById('attachmentsList');
-    if (!attachmentsList) return;
-    
-    attachmentsList.innerHTML = ''; // Clear existing attachments
-    
-    if (attachments && attachments.length > 0) {
-        attachments.forEach(attachment => {
-            const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
-            attachmentItem.innerHTML = `
-                <div class="flex items-center">
-                    <span class="text-blue-600 mr-2">📄</span>
-                    <span class="text-sm font-medium">${attachment.fileName}</span>
-                </div>
-                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
-                    View
-                </a>
-            `;
-            attachmentsList.appendChild(attachmentItem);
-        });
-    } else {
-        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
-    }
+    // Just call the update function which handles both existing and new files
+    updateAttachmentsDisplay();
 }

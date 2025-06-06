@@ -170,7 +170,7 @@ function addItemRow(item = null) {
             <input type="text" value="${item?.itemNo || ''}" class="w-full item-no" readonly placeholder="Item ID" />
         </td>
         <td class="p-2 border item-field">
-            <input type="text" value="${item?.description || ''}" class="w-full item-description" maxlength="200" readonly />
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" readonly title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border item-field">
             <input type="text" value="${item?.detail || ''}" class="w-full item-detail" maxlength="100" readonly />
@@ -790,13 +790,32 @@ function updateItemDescription(selectElement) {
     const descriptionInput = row.querySelector('.item-description');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     
-    if (selectedOption && !selectedOption.disabled) {
-        const itemText = selectedOption.text;
-        const itemName = itemText.split(' - ')[1];
-        descriptionInput.value = itemName || '';
+    // Check if a valid item is selected (not the placeholder option)
+    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
+        // Get description from data attribute first, fallback to parsing text
+        const itemDescription = selectedOption.getAttribute('data-description');
+        if (itemDescription) {
+            descriptionInput.value = itemDescription;
+            descriptionInput.textContent = itemDescription; // For textarea
+            descriptionInput.title = itemDescription; // For tooltip
+        } else {
+            // Fallback to old method for backward compatibility
+            const itemText = selectedOption.text;
+            const itemName = itemText.split(' - ')[1];
+            descriptionInput.value = itemName || '';
+            descriptionInput.textContent = itemName || '';
+            descriptionInput.title = itemName || '';
+        }
     } else {
+        // No valid item selected, clear the description
         descriptionInput.value = '';
+        descriptionInput.textContent = '';
+        descriptionInput.title = '';
     }
+    
+    // Always keep description field disabled and gray
+    descriptionInput.disabled = true;
+    descriptionInput.classList.add('bg-gray-100');
 }
 
 // Modified makeAllFieldsReadOnly to include search inputs

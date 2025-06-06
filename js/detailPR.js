@@ -1,4 +1,6 @@
 let uploadedFiles = [];
+let existingAttachments = []; // Track existing attachments from API
+let attachmentsToKeep = []; // Track which existing attachments to keep
 
 let prId; // Declare global variable
 let prType; // Declare global variable
@@ -245,7 +247,12 @@ function fetchPRDetails(prId, prType) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error fetching PR details: ' + error.message);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Error fetching PR details: ' + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
 }
 
@@ -523,6 +530,20 @@ function toggleEditableFields(isEditable) {
         button.style.display = isEditable ? 'block' : 'none';
     });
     
+    // Disable file upload input when not editable
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.disabled = !isEditable;
+        if (!isEditable) {
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    }
+    
+    // Update attachments display to show/hide remove buttons based on editable state
+    updateAttachmentsDisplay();
+    
     // Handle action buttons - enable/disable based on Draft status
     const deleteButton = document.querySelector('button[onclick="confirmDelete()"]');
     const updateButton = document.querySelector('button[onclick="submitPR(false)"]');
@@ -611,8 +632,10 @@ function populatePRDetails(data) {
         console.log(data.status);
     }
 
-    // Display attachments
+    // Store and display attachments
     if (data.attachments) {
+        existingAttachments = data.attachments;
+        attachmentsToKeep = data.attachments.map(att => att.id); // Initially keep all existing attachments
         displayAttachments(data.attachments);
     }
 
@@ -779,9 +802,14 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-function confirmDelete() {
+async function confirmDelete() {
     if (!prId) {
-        alert('PR ID not found');
+        Swal.fire({
+            title: 'Error!',
+            text: 'PR ID not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
@@ -790,11 +818,38 @@ function confirmDelete() {
     // Check if status is Draft before allowing delete
     const status = document.getElementById('status').value;
     if (status !== 'Draft') {
-        alert('You can only delete PRs with Draft status');
+        Swal.fire({
+            title: 'Not Allowed!',
+            text: 'You can only delete PRs with Draft status',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
-    if (confirm('Are you sure you want to delete this PR?')) {
+    const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: 'You are about to delete this PR. This action cannot be undone!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        // Show loading state
+        Swal.fire({
+            title: 'Deleting...',
+            text: 'Please wait while we delete the PR.',
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
         fetch(`${BASE_URL}/api/pr/${endpoint}/${prId}`, {
             method: 'DELETE',
             headers: {
@@ -803,8 +858,15 @@ function confirmDelete() {
         })
         .then(response => {
             if (response.ok) {
-                alert('PR deleted successfully');
-                window.location.href = '../pages/menuPR.html';
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'PR has been deleted successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = '../pages/menuPR.html';
+                });
             } else {
                 return response.json().then(errorData => {
                     throw new Error(errorData.message || `Failed to delete PR. Status: ${response.status}`);
@@ -813,28 +875,54 @@ function confirmDelete() {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error deleting PR: ' + error.message);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Error deleting PR: ' + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
     }
 }
 
-function updatePR(isSubmit = false) {
+async function updatePR(isSubmit = false) {
     console.log("masuk");
     if (!prId) {
-        alert('PR ID not found');
+        Swal.fire({
+            title: 'Error!',
+            text: 'PR ID not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
     // Check the status before updating
     const status = window.currentValues?.status || document.getElementById('status')?.value;
     if (status !== 'Draft') {
-        alert('You can only update PRs with Draft status');
+        Swal.fire({
+            title: 'Not Allowed!',
+            text: 'You can only update PRs with Draft status',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
     // Show confirmation dialog only for submit
     if (isSubmit) {
-        if (!confirm('Are you sure you want to submit this PR? You won\'t be able to edit it after submission.')) {
+        const result = await Swal.fire({
+            title: 'Submit PR',
+            text: 'Are you sure you want to submit this PR? You won\'t be able to edit it after submission.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, submit it!',
+            cancelButtonText: 'Cancel'
+        });
+        
+        if (!result.isConfirmed) {
             return;
         }
     }
@@ -852,9 +940,27 @@ function updatePR(isSubmit = false) {
 
         const userId = getUserId();
         if (!userId) {
-            alert("Unable to get user ID from token. Please login again.");
+            Swal.fire({
+                title: 'Authentication Error!',
+                text: 'Unable to get user ID from token. Please login again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
             return;
         }
+        
+        // Show loading state
+        const actionText = isSubmit ? 'Submit' : 'Update';
+        Swal.fire({
+            title: `${actionText.slice(0, -1)}ing...`,
+            text: `Please wait while we ${isSubmit ? 'submit' : 'update'} the PR.`,
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
 
         formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
@@ -914,12 +1020,25 @@ function updatePR(isSubmit = false) {
             });
         }
         
-        // File attachments
-        uploadedFiles.forEach(file => {
-            formData.append('Attachments', file);
+        // Handle attachments according to backend logic
+        // Add existing attachments to keep (with their IDs)
+        attachmentsToKeep.forEach((attachmentId, index) => {
+            const existingAttachment = existingAttachments.find(att => att.id === attachmentId);
+            if (existingAttachment) {
+                formData.append(`Attachments[${index}].Id`, attachmentId);
+                formData.append(`Attachments[${index}].FileName`, existingAttachment.fileName || '');
+            }
         });
-
-        console.log("formData Attachments", formData.get("Attachments"));
+        
+        // Add new file uploads (with empty GUIDs)
+        uploadedFiles.forEach((file, index) => {
+            const attachmentIndex = attachmentsToKeep.length + index;
+            formData.append(`Attachments[${attachmentIndex}].Id`, '00000000-0000-0000-0000-000000000000'); // Empty GUID for new files
+            formData.append(`Attachments[${attachmentIndex}].File`, file);
+        });
+        
+        console.log('Attachments to keep:', attachmentsToKeep);
+        console.log('New files to upload:', uploadedFiles);
 
 
         
@@ -931,13 +1050,24 @@ function updatePR(isSubmit = false) {
         .then(response => {
             if (response.ok) {
                 console.log("PR submitted successfully");
-                if (isSubmit) {
-                    alert('PR submitted successfully');
-                } else {
-                    alert('PR updated successfully');
-                }
-                // Refresh the page to show updated data
-                location.reload();
+                Swal.fire({
+                    title: 'Success!',
+                    text: `PR has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Reload the PR data to show updated information
+                    fetchPRDetails(prId, prType);
+                    
+                    // Clear uploaded files since they're now saved
+                    uploadedFiles = [];
+                    
+                    // Update file input
+                    const fileInput = document.querySelector('input[type="file"]');
+                    if (fileInput) {
+                        fileInput.value = '';
+                    }
+                });
             } else {
                 return response.json().then(errorData => {
                     console.log("errorData", errorData);
@@ -947,11 +1077,21 @@ function updatePR(isSubmit = false) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert(`Error ${isSubmit ? 'submitting' : 'updating'} PR: ` + error.message);
+            Swal.fire({
+                title: 'Error!',
+                text: `Error ${isSubmit ? 'submitting' : 'updating'} PR: ` + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
     } catch (error) {
         console.error('Error:', error);
-        alert('Error preparing update data: ' + error.message);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Error preparing update data: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -963,43 +1103,121 @@ function submitPR(isSubmit = true) {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
+    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
+    
+    if (files.length + totalExistingFiles > 5) {
+        Swal.fire({
+            title: 'File Limit Exceeded!',
+            text: 'Maximum 5 PDF files are allowed.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        event.target.value = ''; // Clear the file input
         return;
     }
-
+    
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
             uploadedFiles.push(file);
         } else {
-            alert('Please upload a valid PDF file');
+            Swal.fire({
+                title: 'Invalid File Type!',
+                text: 'Please upload a valid PDF file',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
         }
     });
 
     displayFileList();
+    updateAttachmentsDisplay();
 }
 
 function displayFileList() {
-    const fileListContainer = document.getElementById("fileList");
-    if (fileListContainer) {
-        fileListContainer.innerHTML = '';
-        uploadedFiles.forEach((file, index) => {
-            const fileItem = document.createElement("div");
-            fileItem.className = "flex justify-between items-center p-2 border-b";
-            fileItem.innerHTML = `
-                <span>${file.name}</span>
-                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
-                    Remove
-                </button>
-            `;
-            fileListContainer.appendChild(fileItem);
-        });
+    // Simple display of uploaded files count
+    console.log(`${uploadedFiles.length} new file(s) uploaded`);
+    // You can implement a more sophisticated file list display here if needed
+}
+
+// Function to remove a new uploaded file
+function removeUploadedFile(index) {
+    uploadedFiles.splice(index, 1);
+    updateAttachmentsDisplay();
+}
+
+// Function to remove an existing attachment
+function removeExistingAttachment(attachmentId) {
+    const index = attachmentsToKeep.indexOf(attachmentId);
+    if (index > -1) {
+        attachmentsToKeep.splice(index, 1);
+        updateAttachmentsDisplay();
     }
+}
+
+// Function to update the attachments display
+function updateAttachmentsDisplay() {
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    attachmentsList.innerHTML = ''; // Clear existing display
+    
+    // Display existing attachments that are marked to keep
+    const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
+    existingToKeep.forEach(attachment => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-blue-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${attachment.fileName}</span>
+                <span class="text-xs text-gray-500 ml-2">(existing)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+                ${window.currentValues && window.currentValues.status && window.currentValues.status.toLowerCase() === 'draft' ? 
+                `<button onclick="removeExistingAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Display new uploaded files
+    uploadedFiles.forEach((file, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-green-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${file.name}</span>
+                <span class="text-xs text-green-600 ml-2">(new)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                ${window.currentValues && window.currentValues.status && window.currentValues.status.toLowerCase() === 'draft' ? 
+                `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Show message if no attachments
+    if (existingToKeep.length === 0 && uploadedFiles.length === 0) {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments</p>';
+    }
+    
+    // Show attachment count
+    const totalAttachments = existingToKeep.length + uploadedFiles.length;
+    console.log(`Total attachments: ${totalAttachments} (${existingToKeep.length} existing, ${uploadedFiles.length} new)`);
 }
 
 function removeFile(index) {
     uploadedFiles.splice(index, 1);
-    displayFileList();
+    updateAttachmentsDisplay();
 }
 
 function saveDocument() {
@@ -1083,31 +1301,10 @@ document.getElementById("docType")?.addEventListener("change", function () {
 });
 
 // 
-// Function to display attachments
+// Function to display attachments (initial load)
 function displayAttachments(attachments) {
-    const attachmentsList = document.getElementById('attachmentsList');
-    if (!attachmentsList) return;
-    
-    attachmentsList.innerHTML = ''; // Clear existing attachments
-    
-    if (attachments && attachments.length > 0) {
-        attachments.forEach(attachment => {
-            const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
-            attachmentItem.innerHTML = `
-                <div class="flex items-center">
-                    <span class="text-blue-600 mr-2">📄</span>
-                    <span class="text-sm font-medium">${attachment.fileName}</span>
-                </div>
-                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
-                    View
-                </a>
-            `;
-            attachmentsList.appendChild(attachmentItem);
-        });
-    } else {
-        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
-    }
+    // Just call the update function which handles both existing and new files
+    updateAttachmentsDisplay();
 }
 
 // Add DOMContentLoaded event listener for dropdown functionality
