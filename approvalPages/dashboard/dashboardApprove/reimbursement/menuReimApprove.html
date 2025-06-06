@@ -6,19 +6,29 @@
     <title>Menu - Kansai Paint</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Library untuk Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Library untuk PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <!-- External JS -->
+    <script src="menuReimApprove.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
+    <script src="../../../../js/auth.js"></script>
+    <!-- Add the shared menu CSS for better styling -->
+    <link rel="stylesheet" href="../shared-menu.css">
     <link rel="stylesheet" href="menuReimApprove.css">
+
 </head>
-<body class="overflow-x-hidden">
-    <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-        <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2 bg-white rounded-md shadow-md">
-            <i class="fas fa-bars text-blue-500 text-2xl"></i>
-        </button>
+<body>
+    <div class="flex min-h-screen bg-gradient">
+        <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
+            <i class="fas fa-bars text-white text-2xl"></i>
+          </button>
+
 
         <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
             <img src="../../../../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
@@ -57,9 +67,9 @@
                 </button>
             <div id="MenuCashAdvance" class="hidden pl-4">
                     <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
+                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Cash Advance</button>
+                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Cash Advance</button>
+                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Cash Advance</button>
             </div>            
             </div>
 
@@ -69,9 +79,9 @@
                 </button>
             <div id="MenuSettlement" class="hidden pl-4">
                     <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
+                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Settlement</button>
+                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Settlement</button>
+                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Settlement</button>
             </div>            
             </div>
 
@@ -105,45 +115,108 @@
             <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </aside>
 
-        <!--jumlah dokumen dan status-->
-        <div class="flex-1 p-6 pb-20 md:pb-6">
+        <!-- User Avatar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Bell with Badge -->
+            <div class="relative">
+                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                </button>
+                <!-- Notification Dropdown -->
+                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
+                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
+                        <i class="fas fa-bell text-blue-500 mr-2"></i>
+                        <span>Notifikasi</span>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Reimbursement document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Purchase Request document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
+                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
+                            <span>See All Notifications</span>
+                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- User Avatar + Name -->
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
+                     onclick="goToProfile()">
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 p-8 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Reimbursement Approval
+                Dashboard Reimbursement Check
             </h2>
-
-            <!--tab data-->            
-            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
-                <div class="hidden md:grid grid-cols-4 gap-4 mb-6">
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Total Documents</h3>
-                        <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
-                    </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Acknowledge</h3>
-                        <p id="acknowledgeCount" class="text-2xl font-bold text-yellow-600">0</p>
-                    </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Approved</h3>
-                        <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
-                    </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Rejected</h3>
-                        <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
-                    </div>
+            
+            <!-- Status Cards - Improved responsive grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold">Total Documents</h3>
+                    <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
                 </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold">Prepared</h3>
+                    <p id="preparedCount" class="text-2xl font-bold text-yellow-600">0</p>
                 </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold">Checked</h3>
+                    <p id="checkedCount" class="text-2xl font-bold text-green-600">0</p>
+                </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                    <h3 class="text-lg font-semibold">Rejected</h3>
+                    <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
+                </div>
+            </div>
 
-                <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+            <!-- Documents List - Improved container styling -->
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h3 class="text-xl font-semibold mb-4">List Documents</h3>
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 mt-2 md:mt-0 border-b w-full md:w-auto">
-                        <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 tab-active rounded-t-lg">
-                            <i class="fas fa-clock mr-2"></i>Acknowledged
+                        <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Prepared
                         </button>
-                        <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-check-circle mr-2"></i>Approved
+                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Checked
                         </button>
                         <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-times-circle mr-2"></i>Rejected
@@ -160,7 +233,6 @@
                             <th class="p-2 text-left">Department</th>
                             <th class="p-2 text-left">Submission Date</th>
                             <th class="p-2 text-left">Status</th>
-                            <th id="remarksHeader" class="p-2 text-left" style="display: none;">Remarks</th>
                             <th class="p-2 text-left">Tools</th>
                           </tr>
                         </thead>
@@ -186,43 +258,40 @@
                 </div>
 
                 <div class="flex justify-between mt-4">
+                    <!--
+                    <button onclick="goToMenuReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
+                    -->
                     <div class="flex justify-end space-x-2">
-                      <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                      </button>
-                      <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                      </button>
-                  </div>
-                </div>
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-pdf mr-2"></i>PDF
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!--tab data-->
+    <!-- Mobile Navigation Bar - More comprehensive options -->
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
         <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file-alt text-xl"></i>
           <span>Total</span>
         </button>
-        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-clock text-xl"></i>
-          <span>Acknowledge</span>
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-file text-xl"></i>
+          <span>Prepared</span>
         </button>
-        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-check-circle text-xl"></i>
-          <span>Approved</span>
+        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-check text-xl"></i>
+          <span>Checked</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-times-circle text-xl"></i>
           <span>Rejected</span>
         </button>
     </nav>
-
-    <script src="menuReimApprove.js"></script>
-    <script src="../../../../pages/utils/toMenu.js"></script>
-    <script src="../../../../js/auth.js"></script>
-
 </body>
 </html>
