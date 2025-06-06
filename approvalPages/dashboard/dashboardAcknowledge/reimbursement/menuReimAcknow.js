@@ -2,9 +2,6 @@ function loadDashboard() {
     // Fetch status counts from API
     fetchStatusCounts();
     
-    // Set up initial state for tabs and pagination
-    setupTabsAndPagination();
-    
     // Fetch reimbursements from API
     fetchReimbursements();
 }
@@ -82,11 +79,6 @@ function updateStatusCounts(data) {
     document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
-}
-
-// Set up events for tab switching and pagination
-function setupTabsAndPagination() {
-    // Removed the "select all" checkbox functionality since it no longer exists in HTML
 }
 
 function toggleSidebar() {
