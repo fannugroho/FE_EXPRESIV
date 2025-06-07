@@ -323,25 +323,10 @@ function populateFormData(data) {
     document.getElementById('remarks').value = data.remarks || '';
     
     // Set selected values in approval dropdowns based on data
-    if (data.preparedBy) {
-        const preparedBySelect = document.getElementById('preparedBySelect');
-        if (preparedBySelect) preparedBySelect.value = data.preparedBy;
-    }
-    
-    if (data.acknowledgedBy) {
-        const acknowledgeBySelect = document.getElementById('acknowledgeBySelect');
-        if (acknowledgeBySelect) acknowledgeBySelect.value = data.acknowledgedBy;
-    }
-    
-    if (data.checkedBy) {
-        const checkedBySelect = document.getElementById('checkedBySelect');
-        if (checkedBySelect) checkedBySelect.value = data.checkedBy;
-    }
-    
-    if (data.approvedBy) {
-        const approvedBySelect = document.getElementById('approvedBySelect');
-        if (approvedBySelect) approvedBySelect.value = data.approvedBy;
-    }
+    if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
+    if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
+    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
+    if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     
     // Update Submit button state based on preparedDate
     updateSubmitButtonState(data.preparedDate);
@@ -497,8 +482,11 @@ function goToMenuReim() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    fetchReimbursementData();
-    fetchUsers(); // Add this to fetch users for dropdowns
+    // Load users first
+    fetchUsers().then(() => {
+        // Then load reimbursement data
+        fetchReimbursementData();
+    });
 });
 
     
