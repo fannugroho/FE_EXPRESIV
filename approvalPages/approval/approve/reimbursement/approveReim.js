@@ -112,10 +112,10 @@ function populateFormData(data) {
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
     // Approvers information - safely check if elements exist
-    if (document.getElementById('preparedBy')) document.getElementById('preparedBy').value = data.preparedBy || '';
-    if (document.getElementById('checkedBy')) document.getElementById('checkedBy').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgedBy')) document.getElementById('acknowledgedBy').value = data.acknowledgedBy || '';
-    if (document.getElementById('approvedBy')) document.getElementById('approvedBy').value = data.approvedBy || '';
+    if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
+    if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
+    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
+    if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
@@ -457,23 +457,11 @@ function printReimbursement() {
 
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded, fetching reimbursement data');
-    // Load data when page loads
-    fetchReimbursementData();
-    
-    // Fetch users to populate dropdown selects
-    fetchUsers();
-    
-    // Add event listener for docType if it exists
-    const docTypeElement = document.getElementById("docType");
-    if (docTypeElement) {
-        docTypeElement.addEventListener("change", function () {
-            const prTable = document.getElementById("prTable");
-            if (prTable) {
-                prTable.style.display = this.value === "Pilih" ? "none" : "table";
-            }
-        });
-    }
+    // Load users first
+    fetchUsers().then(() => {
+        // Then load reimbursement data
+        fetchReimbursementData();
+    });
 });
 
 // Function to filter users for the search dropdown in approval section
