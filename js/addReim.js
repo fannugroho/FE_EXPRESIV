@@ -343,7 +343,7 @@ function populateDropdown(dropdownId, users) {
     if (!dropdown) return;
     
     // Clear existing options
-    dropdown.innerHTML = "";
+    // dropdown.innerHTML = "";
     
     // Add users as options
     users.forEach(user => {
