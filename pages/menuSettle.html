@@ -233,15 +233,19 @@
                         <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                        <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                         <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
                         <p id="approvedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                         <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
                         <p id="paidCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
@@ -279,6 +283,9 @@
                                 </button>
                                 <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
                                     <i class="fas fa-file mr-2"></i>Draft
+                                </button>
+                                <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                                    <i class="fas fa-clipboard-check mr-2"></i>Prepared
                                 </button>
                             </div>
                         </div>
@@ -345,6 +352,10 @@
             <i class="fas fa-file text-xl"></i>
             <span>Draft</span>
         </button>
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-clipboard-check text-xl"></i>
+            <span>Prepared</span>
+        </button>
         <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
@@ -352,10 +363,6 @@
         <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-thumbs-up text-xl"></i>
             <span>Approved</span>
-        </button>
-        <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-times text-xl"></i>
-            <span>Close</span>
         </button>
         <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-ban text-xl"></i>
