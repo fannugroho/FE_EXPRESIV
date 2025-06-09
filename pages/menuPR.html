@@ -21,11 +21,90 @@
 
     <!-- Navigation Script -->
     <script src="../pages/utils/toMenu.js"></script>
+    
+    <style>
+        /* Inline CSS untuk memastikan style PR Number diterapkan */
+        .pr-number-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .pr-number-cell::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .pr-number-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .pr-number-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .pr-number-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Override sidebar style to make it permanent */
+        #sidebar {
+            width: 256px !important; /* Fixed width */
+            transform: none !important; /* Prevent transformation */
+            margin-left: 0 !important; /* Remove any margin */
+            position: sticky;
+            top: 0;
+            z-index: 100 !important; /* Ensure sidebar stays above other elements */
+            visibility: visible !important; /* Force visibility */
+            display: block !important; /* Force display */
+            opacity: 1 !important; /* Ensure full opacity */
+            transition: none !important; /* Disable any transitions */
+        }
+        
+        /* Adjust main content for permanent sidebar */
+        .flex-1 {
+            margin-left: 0 !important;
+        }
+        
+        /* Ensure main content doesn't overlap sidebar */
+        .min-h-screen {
+            position: relative;
+        }
+        
+        /* Prevent sidebar manipulation through any class changes */
+        .sidebar-collapsed #sidebar, 
+        .sidebar-hidden #sidebar, 
+        [data-sidebar-hidden="true"] #sidebar,
+        .tab-active ~ #sidebar {
+            width: 256px !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        /* Menu and submenu font styling - make them bold */
+        .menu-btn, .submenu-btn {
+            font-weight: bold !important;
+        }
+        
+        .menu-category {
+            font-weight: bold !important;
+        }
+        
+        /* Menu icon styling */
+        .menu-icon {
+            font-weight: bold !important;
+        }
+    </style>
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-white shadow-lg transition-all duration-300 relative">
+        <aside id="sidebar" class="w-64 bg-white shadow-lg">
             <div class="sidebar-logo-container">
                 <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-12 w-auto max-w-full mx-auto" />
             </div>
@@ -145,21 +224,18 @@
                     </button>
                 </div>
             </div>
-            
-            <div id="sidebarToggle" onclick="toggleSidebar()">
-                <i class="fas fa-chevron-left"></i>
-            </div>
         </aside>
 
         <!-- User Avatar -->
         <div class="absolute top-4 right-4 flex items-center space-x-4">
             <!-- Notification Bell with Badge -->
+            <!-- 
             <div class="relative">
                 <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
                     <i class="fas fa-bell text-xl"></i>
                     <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
                 </button>
-                <!-- Notification Dropdown -->
+                
                 <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
                     <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
                         <i class="fas fa-bell text-blue-500 mr-2"></i>
@@ -203,6 +279,7 @@
                     </div>
                 </div>
             </div>
+            -->
         
             <!-- User Avatar + Name -->
             <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
@@ -236,17 +313,21 @@
                         <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                        <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                         <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
+                </div>
+                
+                <!-- Second row with 4 cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Acknowledged</h3>
                         <p id="acknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                </div>
-                
-                <!-- Second row with 3 cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
                         <p id="approvedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
@@ -285,6 +366,9 @@
                                 <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
                                     <i class="fas fa-file mr-2"></i>Draft
                                 </button>
+                                <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                                    <i class="fas fa-clipboard-check mr-2"></i>Prepared
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -293,9 +377,6 @@
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <th class="p-2 text-left">
-                                        <input type="checkbox" id="selectAll">
-                                    </th>
                                     <th class="p-2 text-left">Doc Number</th>
                                     <th class="p-2 text-left">PR Number</th>
                                     <th class="p-2 text-left">Requester</th>
@@ -353,6 +434,10 @@
             <i class="fas fa-file text-xl"></i>
             <span>Draft</span>
         </button>
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-clipboard-check text-xl"></i>
+            <span>Prepared</span>
+        </button>
         <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
@@ -360,10 +445,6 @@
         <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-thumbs-up text-xl"></i>
             <span>Approved</span>
-        </button>
-        <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-times text-xl"></i>
-            <span>Close</span>
         </button>
         <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-ban text-xl"></i>
@@ -375,5 +456,57 @@
     <script src="../js/auth.js"></script>
     <script src="../js/shared-menu.js"></script>
     <script src="../js/menuPR.js"></script>
+    <script>
+    // Disable any sidebar toggle functionality that might be in the JS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override any toggleSidebar function if it exists
+        if (typeof toggleSidebar === 'function') {
+            window.toggleSidebar = function() {
+                // Do nothing - sidebar is now permanent
+                return false;
+            };
+        }
+        
+        // Make sure sidebar stays fixed when tabs are clicked
+        document.getElementById('allTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('draftTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        // Function to ensure sidebar visibility
+        function ensureSidebarVisible() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.style.width = '256px';
+                sidebar.style.transform = 'none';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.display = 'block';
+            }
+        }
+        
+        // Run immediately and also set interval to keep checking
+        ensureSidebarVisible();
+        setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        
+        // Override switchTab function if it exists to maintain sidebar
+        const originalSwitchTab = window.switchTab;
+        if (typeof originalSwitchTab === 'function') {
+            window.switchTab = function(tab) {
+                // Call the original function
+                originalSwitchTab(tab);
+                // Ensure sidebar remains visible
+                setTimeout(ensureSidebarVisible, 10);
+            };
+        }
+    });
+    </script>
 </body>
 </html>

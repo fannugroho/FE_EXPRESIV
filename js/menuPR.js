@@ -32,6 +32,10 @@ function filterPurchaseRequests(searchTerm = '') {
         filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
             doc.status?.toLowerCase() === 'draft'
         );
+    } else if (currentTab === 'prepared') {
+        filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
+            doc.status?.toLowerCase() === 'prepared'
+        );
     } else {
         // 'all' tab or default
         filteredPurchaseRequests = [...allPurchaseRequests];
@@ -59,6 +63,8 @@ function switchTab(tabName) {
     
     if (tabName === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
+    } else if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
     } else {
         document.getElementById('allTabBtn').classList.add('tab-active');
     }
@@ -74,6 +80,7 @@ function updateDashboardCounts(data) {
     // Count documents by status
     const statusCounts = {
         draft: 0,
+        prepared: 0,
         checked: 0,
         acknowledged: 0,
         approved: 0,
@@ -87,6 +94,9 @@ function updateDashboardCounts(data) {
         switch(status) {
             case 'draft':
                 statusCounts.draft++;
+                break;
+            case 'prepared':
+                statusCounts.prepared++;
                 break;
             case 'checked':
                 statusCounts.checked++;
@@ -108,6 +118,7 @@ function updateDashboardCounts(data) {
     
     // Update the dashboard cards with correct IDs
     document.getElementById("draftCount").textContent = statusCounts.draft;
+    document.getElementById("preparedCount").textContent = statusCounts.prepared;
     document.getElementById("checkedCount").textContent = statusCounts.checked;
     document.getElementById("acknowledgedCount").textContent = statusCounts.acknowledged;
     document.getElementById("approvedCount").textContent = statusCounts.approved;
@@ -139,10 +150,14 @@ function populatePurchaseRequests(data) {
         // GR date currently not in the JSON, leaving empty for now
         const grDate = '';
         
+        // Check if PR Number is longer than 15 characters
+        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
+        
         const row = `<tr class='w-full border-b'>
-            <td class='p-2'></td>
             <td class='p-2'>${startIndex + index + 1}</td>
-            <td class='p-2'>${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</td>
+            <td class='p-2'>
+                <div class="${prNumberClass}">${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</div>
+            </td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
             <td class='p-2'>${submissionDate}</td>
@@ -220,14 +235,6 @@ function updateDoc(id) {
 alert("Update Document: " + id);
 // Di sini kamu bisa menambahkan logika untuk update dokumen, misalnya memperbarui status di localStorage
 }
-
-// document.getElementById("selectAll").addEventListener("change", function () {
-//     let checkboxes = document.querySelectorAll(".rowCheckbox");
-//     checkboxes.forEach(checkbox => {
-//         checkbox.checked = this.checked;
-//     });
-// });
-
 
 function toggleSidebar() {
     // No-op function - sidebar toggle is disabled to keep it permanently open
