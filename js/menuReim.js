@@ -21,6 +21,10 @@ function filterReimbursements(searchTerm = '', tab = 'all') {
         filteredReimbursements = allReimbursements.filter(reim => 
             reim.status.toLowerCase() === 'draft' && reim.voucherNo.toLowerCase().includes(searchTerm)
         );
+    } else if (tab === 'prepared') {
+        filteredReimbursements = allReimbursements.filter(reim => 
+            reim.status.toLowerCase() === 'prepared' && reim.voucherNo.toLowerCase().includes(searchTerm)
+        );
     }
     currentPage = 1;
     displayReimbursements(filteredReimbursements);
@@ -34,11 +38,14 @@ function switchTab(tabName) {
     // Update tab button styling
     document.getElementById('allTabBtn').classList.remove('tab-active');
     document.getElementById('draftTabBtn').classList.remove('tab-active');
+    document.getElementById('preparedTabBtn').classList.remove('tab-active');
     
     if (tabName === 'all') {
         document.getElementById('allTabBtn').classList.add('tab-active');
     } else if (tabName === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
+    } else if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
     }
     
     // Filter reimbursements based on current tab and search term
@@ -150,6 +157,20 @@ function displayReimbursements(reimbursements) {
     
     // Update pagination buttons
     updatePaginationButtons(reimbursements.length);
+}
+
+// Function to get current user ID
+function getUserId() {
+    const userStr = localStorage.getItem('loggedInUser');
+    if (!userStr) return null;
+    
+    try {
+        const user = JSON.parse(userStr);
+        return user.id || null;
+    } catch (e) {
+        console.error('Error parsing user data:', e);
+        return null;
+    }
 }
 
 // Function to update pagination buttons
