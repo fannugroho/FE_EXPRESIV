@@ -114,7 +114,7 @@ async function fetchNotifications() {
         }
         
         // Transform data API menjadi format yang dibutuhkan untuk notifikasi
-        return documents.map(doc => ({
+        const transformedDocs = documents.map(doc => ({
             id: doc.id || doc.documentId || Math.random().toString(36).substring(2, 11),
             docType: doc.documentType || doc.type || "Unknown",
             docNumber: doc.documentNumber || doc.number || "No. -",
@@ -123,15 +123,49 @@ async function fetchNotifications() {
             dateFormatted: formatDate(new Date(doc.createdAt || doc.created_at || new Date()))
         })).sort((a, b) => b.date - a.date); // Urutkan berdasarkan tanggal, terbaru dulu
         
+        // Simpan dokumen untuk dashboard
+        window.allDocuments = transformedDocs;
+        
+        // Gunakan data ini untuk memperbarui dashboard
+        updateDashboardCounts(transformedDocs);
+        
+        return transformedDocs;
+        
     } catch (error) {
         console.error("Error saat mengambil notifikasi:", error);
         throw error;
     }
 }
 
+// Fungsi untuk menghitung jumlah dokumen untuk dashboard
+function updateDashboardCounts(documents) {
+    try {
+        // Filter dokumen berdasarkan status "Prepared" untuk setiap jenis dokumen
+        const prDocs = documents.filter(doc => doc.docType === "Purchase Request" && doc.status === "Prepared").length;
+        const reimDocs = documents.filter(doc => doc.docType === "Reimbursement" && doc.status === "Prepared").length;
+        const cashDocs = documents.filter(doc => doc.docType === "Cash Advance" && doc.status === "Prepared").length;
+        const settleDocs = documents.filter(doc => doc.docType === "Settlement" && doc.status === "Prepared").length;
+        
+        // Update nilai di dashboard
+        safeSetTextContent("totalDocs", prDocs);
+        safeSetTextContent("openDocs", reimDocs);
+        safeSetTextContent("preparedDocs", cashDocs);
+        safeSetTextContent("checkedDocs", settleDocs);
+        
+        console.log("Dashboard dokumen diperbarui:", {
+            "Purchase Request": prDocs,
+            "Reimbursement": reimDocs,
+            "Cash Advance": cashDocs,
+            "Settlement": settleDocs
+        });
+    } catch (error) {
+        console.error("Error saat memperbarui dashboard:", error);
+    }
+}
+
 function generateDummyNotifications(count) {
     const docTypes = ['Purchase Request', 'Reimbursement', 'Cash Advance', 'Settlement'];
-    const statuses = ['Open', 'Checked', 'Acknowledge', 'Approved', 'Received'];
+    const statuses = ['Open', 'Checked', 'Acknowledge', 'Approved', 'Received', 'Prepared'];
     const notifications = [];
     
     for (let i = 1; i <= count; i++) {
@@ -437,13 +471,57 @@ function logout() {
 }
 
 function loadDashboard() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    safeSetTextContent("totalDocs", documents.length);
-    safeSetTextContent("openDocs", documents.filter(doc => doc.docStatus === "Open").length);
-    safeSetTextContent("checkedDocs", documents.filter(doc => doc.docStatus === "Checked").length);
-    safeSetTextContent("acknowledgeDocs", documents.filter(doc => doc.docStatus === "Acknowledge").length);
-    safeSetTextContent("approvedDocs", documents.filter(doc => doc.docStatus === "Approved").length);
-    safeSetTextContent("receivedDocs", documents.filter(doc => doc.docStatus === "Received").length);
+    // Cek apakah data sudah diambil oleh fetchNotifications
+    if (window.allDocuments) {
+        updateDashboardCounts(window.allDocuments);
+        return;
+    }
+    
+    // Jika belum, coba ambil dari localStorage
+    try {
+        const documents = JSON.parse(localStorage.getItem("documents")) || [];
+        
+        // Filter dokumen berdasarkan status "Prepared" untuk setiap jenis dokumen
+        const prDocs = documents.filter(doc => 
+            (doc.docType === "Purchase Request" || doc.type === "Purchase Request") && 
+            (doc.status === "Prepared" || doc.docStatus === "Prepared")
+        ).length;
+        
+        const reimDocs = documents.filter(doc => 
+            (doc.docType === "Reimbursement" || doc.type === "Reimbursement") && 
+            (doc.status === "Prepared" || doc.docStatus === "Prepared")
+        ).length;
+        
+        const cashDocs = documents.filter(doc => 
+            (doc.docType === "Cash Advance" || doc.type === "Cash Advance") && 
+            (doc.status === "Prepared" || doc.docStatus === "Prepared")
+        ).length;
+        
+        const settleDocs = documents.filter(doc => 
+            (doc.docType === "Settlement" || doc.type === "Settlement") && 
+            (doc.status === "Prepared" || doc.docStatus === "Prepared")
+        ).length;
+        
+        // Update nilai di dashboard
+        safeSetTextContent("totalDocs", prDocs);
+        safeSetTextContent("openDocs", reimDocs);
+        safeSetTextContent("preparedDocs", cashDocs);
+        safeSetTextContent("checkedDocs", settleDocs);
+        
+        console.log("Dashboard dokumen (dari localStorage):", {
+            "Purchase Request": prDocs,
+            "Reimbursement": reimDocs,
+            "Cash Advance": cashDocs,
+            "Settlement": settleDocs
+        });
+    } catch (error) {
+        console.error("Error saat memuat dashboard:", error);
+        // Jika error, tampilkan nilai default
+        safeSetTextContent("totalDocs", 0);
+        safeSetTextContent("openDocs", 0);
+        safeSetTextContent("preparedDocs", 0);
+        safeSetTextContent("checkedDocs", 0);
+    }
 }
 
 function safeSetTextContent(id, value) {
