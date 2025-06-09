@@ -147,9 +147,6 @@ function populatePurchaseRequests(data) {
         // Get status from approval object
         const status = doc.status ? doc.status : "Open";
         
-        // GR date currently not in the JSON, leaving empty for now
-        const grDate = '';
-        
         // Check if PR Number is longer than 15 characters
         const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
         
@@ -167,7 +164,6 @@ function populatePurchaseRequests(data) {
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
-            <td class='p-2'>${grDate}</td>
         </tr>`;
         tableBody.innerHTML += row;
     });
@@ -261,8 +257,7 @@ function downloadExcel() {
         'Submission Date': doc.submissionDate,
         'Required Date': doc.requiredDate,
         'PO Number': doc.poNumber,
-        'Status': doc.status,
-        'GR Date': doc.grDate
+        'Status': doc.status
     }));
     
     // Membuat worksheet dan menambahkannya ke workbook
@@ -292,13 +287,12 @@ function downloadPDF() {
         doc.submissionDate,
         doc.requiredDate,
         doc.poNumber,
-        doc.status,
-        doc.grDate
+        doc.status
     ]);
     
     // Menambahkan tabel
     doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status']],
         body: tableData,
         startY: 25
     });
