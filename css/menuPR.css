@@ -5,6 +5,34 @@ background: #f3f4f6;
 z-index: 10;
 }
 
+/* Styling untuk PR Number yang panjang */
+.pr-number-cell {
+    max-width: 150px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 5px;
+    scrollbar-width: thin;
+}
+
+/* Custom scrollbar styling untuk Webkit browser (Chrome, Safari, dll) */
+.pr-number-cell::-webkit-scrollbar {
+    height: 6px;
+}
+
+.pr-number-cell::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.pr-number-cell::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.pr-number-cell::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
  /* Styling tombol */
  .menu-btn, .submenu-btn {
     display: flex;
