@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.back();
     }
     
+    // Hide approve/reject buttons if viewing from approved or rejected tabs
+    if (currentTab === 'approved' || currentTab === 'rejected') {
+        hideApprovalButtons();
+    }
+    
     // Setup click-outside-to-close behavior for all dropdowns
     document.addEventListener('click', function(event) {
         const dropdowns = document.querySelectorAll('.search-dropdown');
@@ -27,6 +32,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Function to hide approval buttons
+function hideApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="approveSettle()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectSettle()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'none';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'none';
+    }
+    
+    // Also hide any parent container if needed
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer && currentTab !== 'acknowledge') {
+        buttonContainer.style.display = 'none';
+    }
+}
 
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {

@@ -646,8 +646,8 @@ async function submitDocument(isSubmit = false) {
         const submissionDate = document.getElementById("submissionDate").value;
         if (submissionDate) {
             console.log("Submission Date:", submissionDate);
-            console.log("Submission Date:", new Date(submissionDate).toISOString());
-            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
+            // Send date value directly without timezone conversion
+            formData.append('SubmissionDate', submissionDate);
         }
         
         const classificationSelect = document.getElementById("classification");

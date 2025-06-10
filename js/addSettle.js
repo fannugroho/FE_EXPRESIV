@@ -137,7 +137,8 @@ function populateUserSelects(users) {
     window.requesters = users.map(user => ({
         id: user.id,
         fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
-        department: user.department
+        department: user.department,
+        kansaiEmployeeId: user.kansaiEmployeeId
     }));
     
     // Store employees globally for employee search functionality
@@ -189,6 +190,7 @@ function populateUserSelects(users) {
                     requesterDropdown.classList.add('hidden');
 
                     window.kansaiEmployeeId = requester.kansaiEmployeeId;
+                    console.log("requester", requester);
                     //update department
                     const departmentSelect = document.getElementById('department');
                     if (requester.department) {
@@ -329,6 +331,7 @@ async function saveDocument(isSubmit = false) {
         // Basic validation
         let kansaiEmployeeId;
         if(window.kansaiEmployeeId){
+            console.log("Kansai Employee ID:", window.kansaiEmployeeId);
             kansaiEmployeeId = window.kansaiEmployeeId;
         }else{
             kansaiEmployeeId = document.getElementById("Employee").value;
@@ -386,8 +389,8 @@ async function saveDocument(isSubmit = false) {
         formData.append('KansaiEmployeeId', kansaiEmployeeId);
         formData.append('CashAdvanceReferenceId', cashAdvanceReferenceId);
         // Add requester ID
-        const requesterId = document.getElementById("RequesterId").value;
-        if (requesterId) formData.append('RequesterId', requesterId);
+        // const requesterId = document.getElementById("RequesterId").value;
+        // if (requesterId) formData.append('RequesterId', requesterId);
         
         if (settlementRefNo) formData.append('SettlementRefNo', settlementRefNo);
         if (purpose) formData.append('Purpose', purpose);
@@ -397,8 +400,8 @@ async function saveDocument(isSubmit = false) {
         // Handle posting date
         const postingDate = document.getElementById("postingDate").value;
         if (postingDate) {
-            // For date input, just send the date value as is (YYYY-MM-DD format)
-            formData.append('PostingDate', postingDate);
+            // Send date value directly without timezone conversion
+            formData.append('SubmissionDate', postingDate);
             console.log("Posting Date:", postingDate);
         }
         

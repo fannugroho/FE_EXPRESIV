@@ -21,7 +21,7 @@
             const documents = apiResponse.data;
             
             // Filter documents by logged in user
-            const userDocuments = documents.filter(doc => doc.requesterId === userId);
+            const userDocuments = documents
             
             // Store documents globally for tab functionality
             allDocuments = userDocuments;
@@ -139,7 +139,7 @@
               <td class="p-2">${index + 1}</td>
               <td class="p-2">${doc.settlementNumber ?? ''}</td>
               <td class="p-2">${doc.requesterName}</td>
-              <td class="p-2">IT</td>
+              <td class="p-2">${doc.departmentName}</td>
               <td class="p-2">${formattedDate}</td>
               <td class="p-2">${doc.status}</td>
               <td class="p-2">

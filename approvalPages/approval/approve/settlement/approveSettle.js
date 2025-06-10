@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Settlement ID not provided');
         window.history.back();
     }
+    
+    // Hide approve/reject buttons if viewing from approved or rejected tabs
+    if (currentTab === 'approved' || currentTab === 'rejected') {
+        hideApprovalButtons();
+    }
 });
 
 // Function to fetch and populate settlement details
@@ -625,4 +630,38 @@ function displayAttachments(attachments) {
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
     }
+}
+
+// Function to hide approval buttons
+function hideApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="approveSettle()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectSettle()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'none';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'none';
+    }
+    
+    // Also hide any parent container if needed
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer && currentTab !== 'acknowledge') {
+        buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to print settlement
+function printSettle() {
+    // Get settlement ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const settleId = urlParams.get('settle-id');
+    
+    if (!settleId) {
+        alert('No settlement ID found');
+        return;
+    }
+    
+    // Open the print page in a new window/tab
+    window.open(`printSettle.html?settle-id=${settleId}`, '_blank');
 }

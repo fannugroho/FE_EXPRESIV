@@ -988,7 +988,8 @@ async function updatePR(isSubmit = false) {
         
         const submissionDate = document.getElementById('submissionDate').value;
         if (submissionDate) {
-            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
+            // Send date value directly without timezone conversion
+            formData.append('SubmissionDate', submissionDate);
         }
         
         // Use the classification text from the select

@@ -619,3 +619,8 @@ function displayAttachments(attachments) {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
     }
 }
+
+// Function to print cash advance
+function printCash() {
+    printCashAdvanceVoucher();
+}
