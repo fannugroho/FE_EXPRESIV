@@ -207,18 +207,15 @@
             const transactionType = transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value;
             
             // Get remarks if exists
-            const remarksElement = document.querySelector('textarea');
-            const remarks = remarksElement ? remarksElement.value : '';
+            const remarks = document.getElementById('remarks').value || '';
             
             // Get approval signatories
-            const proposedBy = document.getElementById('preparedCheckbox').checked ? 
-                document.getElementById('preparedSelect').value : '';
-            const checkedBy = document.getElementById('checkedCheckbox').checked ? 
-                document.getElementById('checkedSelect').value : '';
-            const approvedBy = document.getElementById('approvedCheckbox').checked ? 
-                document.getElementById('approvedSelect').value : '';
+            const preparedBySearch = document.getElementById('preparedBySearch').value || '';
+            const checkedBySearch = document.getElementById('checkedBySearch').value || '';
             const acknowledgedBy = document.getElementById('acknowledgedCheckbox').checked ? 
                 document.getElementById('acknowledgedSelect').value : '';
+            const approvedBy = document.getElementById('approvedCheckbox').checked ? 
+                document.getElementById('approvedSelect').value : '';
             
             // Collect table items
             const tableItems = [];
@@ -255,8 +252,8 @@
                 + `&status=${encodeURIComponent(status)}`
                 + `&transactionType=${encodeURIComponent(transactionType)}`
                 + `&remarks=${encodeURIComponent(remarks)}`
-                + `&proposedBy=${encodeURIComponent(proposedBy)}`
-                + `&checkedBy=${encodeURIComponent(checkedBy)}`
+                + `&proposedBy=${encodeURIComponent(preparedBySearch)}`
+                + `&checkedBy=${encodeURIComponent(checkedBySearch)}`
                 + `&approvedBy=${encodeURIComponent(approvedBy)}`
                 + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
                 + `&items=${itemsParam}`;
