@@ -44,9 +44,24 @@ function filterPurchaseRequests(searchTerm = '') {
     // Apply search filter if there's a search term
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => 
-            doc.purchaseRequestNo?.toLowerCase().includes(term)
-        );
+        const searchType = document.getElementById('searchType').value;
+        
+        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => {
+            switch(searchType) {
+                case 'pr':
+                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
+                case 'requester':
+                    return doc.requesterName?.toLowerCase().includes(term);
+                case 'date':
+                    // Convert date to match the search format (YYYY-MM-DD)
+                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toISOString().split('T')[0] : '';
+                    return submissionDate.includes(term);
+                case 'status':
+                    return doc.status?.toLowerCase().includes(term);
+                default:
+                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
+            }
+        });
     }
     
     // Update the table and dashboard counts
@@ -309,6 +324,15 @@ window.onload = function() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            filterPurchaseRequests(searchTerm);
+        });
     }
 };
 
