@@ -144,6 +144,12 @@
               <textarea class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+            <!-- Rejection Remarks section - only visible when status is Rejected -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <label class="font-semibold text-red-600">Rejection Reason</label>
+                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            </div>
+
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
@@ -167,16 +173,6 @@
                 </div>
             </div>
             <div>
-                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ApprovedById')" autocomplete="off">
-                    <select id="Approval.ApprovedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
-            </div>
-            <div>
                 <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.AcknowledgedById')" autocomplete="off">
@@ -184,6 +180,16 @@
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ApprovedById')" autocomplete="off">
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>

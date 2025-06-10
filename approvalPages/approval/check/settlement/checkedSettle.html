@@ -13,13 +13,15 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuSettle()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <button onclick="goToMenuCheckSettle()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Settlement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Settlement No.</h3>
                 <input type="text" id="invno" placeholder="Settlement No." class="w-full p-2 border rounded" readonly>
+                <h3 class="text-lg font-semibold mb-2">Settlement Ref. No.</h3>
+                <input type="text" id="settlementRefNo" placeholder="Settlement Ref. No." class="w-full p-2 border rounded" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="Employee" placeholder="Employee NIK" class="w-full p-2 border rounded" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -76,9 +78,10 @@
                 <br>
                 <tr>
                     <th class="p-2">Description</th>
-                    <th class="p-2">Detail</th>
+                    <th class="p-2">G/L Account</th>
+                    <th class="p-2">Account Name</th>
                     <th class="p-2">Amount</th>
-                    <th class="p-2">Receipt</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">

@@ -16,9 +16,12 @@
                     if (data.status && data.data) {
                         const documents = data.data;
                         console.log("Documents:", documents);
+                        console.log("User ID:", userId);
+                        console.log("Total documents from API:", documents.length);
                         
-                        // Filter dokumen berdasarkan pengguna yang login
-                        const userDocuments = documents.filter(doc => doc.requesterId === userId);
+                        // Show all documents instead of filtering by user (for now)
+                        const userDocuments = documents; // Changed: show all documents
+                        console.log("Filtered documents:", userDocuments.length);
                         
                         // Update dashboard counts
                         document.getElementById("totalDocs").textContent = userDocuments.length;

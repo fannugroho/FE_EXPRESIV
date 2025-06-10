@@ -3,6 +3,7 @@ let uploadedFiles = [];
 let existingAttachments = []; // Track existing attachments from API
 let attachmentsToKeep = []; // Track which existing attachments to keep
 let settlementData = null;
+let currentRequesterData = null; // Store current requester data globally
 
 
 // Function to fetch all dropdown options
@@ -103,7 +104,7 @@ function populateUserSelects(users, approvalData = null) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
             requesterSelect.appendChild(option);
         });
     }
@@ -135,14 +136,17 @@ function populateUserSelects(users, approvalData = null) {
                 option.onclick = function() {
                     requesterSearchInput.value = requester.fullName;
                     document.getElementById('RequesterId').value = requester.id;
-                    // Auto-fill the paidTo field with the selected requester name
-                    const paidToField = document.getElementById('paidTo');
-                    if (paidToField) {
-                        paidToField.value = requester.fullName;
-                    }
+                    
+                    // Update global requester data
+                    currentRequesterData = {
+                        id: requester.id,
+                        name: requester.fullName
+                    };
+                    console.log("Updated global requester data:", currentRequesterData);
+                    
                     requesterDropdown.classList.add('hidden');
                     //update department
-                    const departmentSelect = document.getElementById('departmentId');
+                    const departmentSelect = document.getElementById('department');
                     if (requester.department) {
                         // Find the department option and select it
                         const departmentOptions = departmentSelect.options;
@@ -184,6 +188,34 @@ function populateUserSelects(users, approvalData = null) {
         populateRequesterDropdown();
     }
 
+    // Auto-populate employee fields with logged-in user data (same as addCash)
+    const loggedInUserId = getUserId();
+    console.log("Logged in user ID:", loggedInUserId);
+    console.log("Available employees:", window.employees);
+    
+    if(loggedInUserId && window.employees) {
+        const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
+        console.log("Found logged in employee:", loggedInEmployee);
+        
+        if(loggedInEmployee) {
+            const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
+            const employeeName = loggedInEmployee.fullName || '';
+            
+            // Auto-fill employee fields
+            document.getElementById("requester").value = employeeNIK;
+            document.getElementById("requesterName").value = employeeName;
+            
+            console.log("Auto-populated employee fields:", {
+                employeeNIK: employeeNIK,
+                employeeName: employeeName
+            });
+        } else {
+            console.warn("Could not find logged in employee in employees array");
+        }
+    } else {
+        console.warn("Missing logged in user ID or employees array");
+    }
+
     // Populate approval select dropdowns with search functionality
     const approvalSelects = [
         { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
@@ -203,8 +235,7 @@ function populateUserSelects(users, approvalData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                console.log(user);
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             
@@ -240,34 +271,6 @@ function populateUserSelects(users, approvalData = null) {
             }
         }
     });
-    
-    // Auto-populate employee fields with logged-in user data (same as addCash)
-    const loggedInUserId = getUserId();
-    console.log("Logged in user ID:", loggedInUserId);
-    console.log("Available employees:", window.employees);
-    
-    if(loggedInUserId && window.employees) {
-        const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
-        console.log("Found logged in employee:", loggedInEmployee);
-        
-        if(loggedInEmployee) {
-            const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
-            const employeeName = loggedInEmployee.fullName || '';
-            
-            // Auto-fill employee fields
-            document.getElementById("requester").value = employeeNIK;
-            document.getElementById("requesterName").value = employeeName;
-            
-            console.log("Auto-populated employee fields:", {
-                employeeNIK: employeeNIK,
-                employeeName: employeeName
-            });
-        } else {
-            console.warn("Could not find logged in employee in employees array");
-        }
-    } else {
-        console.warn("Missing logged in user ID or employees array");
-    }
 }
 
 // Function to filter users for approval dropdowns (like addSettle.js)
@@ -399,42 +402,36 @@ function populateFormWithData(data) {
     // Basic settlement information
     document.getElementById('settlementNumber').value = data.settlementNumber || '';
     
-    // Auto-populate employee fields with data from API (but don't override auto-filled logged-in user data)
-    if (!document.getElementById("requester").value) {
-        // Handle employee - find user by ID and use kansaiEmployeeId
-        if (data.requester && window.employees) {
-            const employee = window.employees.find(emp => emp.id === data.requester);
-            if (employee && employee.kansaiEmployeeId) {
-                document.getElementById('requester').value = employee.kansaiEmployeeId;
-            } else {
-                // Fallback to original value if not found
-                document.getElementById('requester').value = data.requester;
-            }
-        }
-    }
+    // Note: Settlement API doesn't have separate employeeId/employeeName fields like cash advance
+    // The employee fields (requester/requesterName inputs) will be auto-populated by populateUserSelects with logged-in user data
+    // The data.requester and data.requesterName represent the actual requester (who the settlement is for)
 
-  
     document.getElementById('transactionType').value = data.transactionType;
-    if (!document.getElementById("requesterName").value) {
-        document.getElementById('requesterName').value = data.requesterName || '';
-    }
     
     // Handle requester name with search functionality  
+    // This represents who the settlement is FOR (the actual requester)
     if (data.requesterName) {
+        // Store requester data globally for later use
+        currentRequesterData = {
+            id: data.requester,
+            name: data.requesterName
+        };
+        
         document.getElementById('requesterSearch').value = data.requesterName;
         // Store the requester ID if available - since options are pre-populated, we can directly set the value
-        if (data.requesterId) {
+        if (data.requester) {
             // Always store in global variable as backup
-            window.settlementRequesterId = data.requesterId;
+            window.settlementRequesterId = data.requester;
             
             const requesterIdElement = document.getElementById('RequesterId');
             if (requesterIdElement) {
-                requesterIdElement.value = data.requesterId;
+                requesterIdElement.value = data.requester;
+                console.log("RequesterId element value:", requesterIdElement.value);
             } else {
                 console.warn("RequesterId element not found in DOM, but stored in global variable");
             }
         } else {
-            console.error("No requesterId found in API data - this is a business logic error");
+            console.error("No requester found in API data - this is a business logic error");
         }
     }
     
@@ -449,10 +446,9 @@ function populateFormWithData(data) {
     // Set department to Finance as specified
     document.getElementById('department').value = data.departmentId;
     
-    // Format and set submission date
+    // Format and set submission date - extract date part directly to avoid timezone issues
     if (data.submissionDate) {
-        const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById('submissionDate').value = formattedDate;
     }
     
@@ -466,6 +462,24 @@ function populateFormWithData(data) {
     
     // Set remarks
     document.getElementById('remarks').value = data.remarks || '';
+    
+    // Handle rejection remarks if status is Rejected
+    if (data.status === 'Rejected' && data.rejectedRemarks) {
+        // Show the rejection remarks section
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = data.rejectedRemarks;
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
 
     // Populate settlement items table
     populateSettlementItemsTable(data.settlementItems || []);
@@ -891,8 +905,35 @@ function updateSettle(isSubmit = false) {
             
             // Add all form fields to FormData
             formData.append('SettlementNumber', document.getElementById("settlementNumber").value);
-            formData.append('KansaiEmployeeId', document.getElementById("requester").value);
-            console.log("KansaiEmployeeId:", document.getElementById("requester").value);
+            
+            // Get the KansaiEmployeeId from the selected requester, not the logged-in user
+            const selectedRequesterId = document.getElementById("RequesterId").value;
+            let kansaiEmployeeId = '';
+            console.log("Selected RequesterId:", selectedRequesterId);
+            console.log("Employees data:", window.employees);
+            
+            // Use global requester data if DOM element is empty
+            let actualRequesterId = selectedRequesterId;
+            if (!actualRequesterId && currentRequesterData) {
+                actualRequesterId = currentRequesterData.id;
+                console.log("Using global requester data:", actualRequesterId);
+            }
+            
+            if (actualRequesterId && window.employees) {
+                const selectedRequester = window.employees.find(emp => emp.id === actualRequesterId);
+                if (selectedRequester && selectedRequester.kansaiEmployeeId) {
+                    kansaiEmployeeId = selectedRequester.kansaiEmployeeId;
+                    console.log("Found KansaiEmployeeId for requester:", kansaiEmployeeId);
+                } else {
+                    console.warn("KansaiEmployeeId not found for requester:", actualRequesterId);
+                }
+            } else {
+                console.warn("No RequesterId available (neither from DOM nor global data)");
+            }
+            
+            formData.append('KansaiEmployeeId', kansaiEmployeeId);
+            console.log("Sending KansaiEmployeeId:", kansaiEmployeeId);
+            console.log("Selected RequesterId:", selectedRequesterId);
             formData.append('SettlementRefNo', document.getElementById("settlementRefNo").value);
             formData.append('Purpose', document.getElementById("purpose").value);
             formData.append('TransactionType', document.getElementById("transactionType").value);

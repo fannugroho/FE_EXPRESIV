@@ -153,8 +153,8 @@ function populatePurchaseRequests(data) {
     // Display paginated data
     paginatedData.forEach((doc, index) => {
         // Format dates for display
-        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
-        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
+        const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
+        const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';
         
         // PO number may be null, handle that case
         const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
