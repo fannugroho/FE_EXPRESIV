@@ -154,6 +154,7 @@ function fetchSettleDetails(id) {
 function populateSettleDetails(data) {
     // Populate basic settlement information
     document.getElementById('invno').value = data.settlementNumber || '';
+    document.getElementById('settlementRefNo').value = data.settlementRefNo || '';
     
     // Store requester ID for user lookup instead of employeeId
     window.currentEmployeeId = data.requester || '';

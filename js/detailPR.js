@@ -634,7 +634,25 @@ function populatePRDetails(data) {
     document.getElementById('NonPO').checked = data.documentType === 'NonPO';
     
     // Set remarks
-    document.getElementById('remarks').value = data.remarks;
+    document.getElementById('remarks').value = data.remarks || '';
+    
+    // Handle rejection remarks if status is Rejected
+    if (data.status === 'Rejected' && data.rejectedRemarks) {
+        // Show the rejection remarks section
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = data.rejectedRemarks;
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
 
     // Set status
     if (data && data.status) {
