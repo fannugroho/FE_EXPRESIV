@@ -3,7 +3,7 @@
       en: {
         welcome: "Welcome to PT Kansai Paint Indonesia",
         signIn: "Sign in to access your account",
-        ExtEmpNo: "Usercode / Email",
+        ExtEmpNo: "Username",
         password: "Password",
         // createAccount: "Create Account?",
         loginButton: "Login"
@@ -11,7 +11,7 @@
       id: {
         welcome: "Selamat Datang di PT Kansai Paint Indonesia",
         signIn: "Masuk untuk mengakses akun Anda",
-        ExtEmpNo: "Kode Pengguna / Email",
+        ExtEmpNo: "Nama Pengguna",
         password: "Kata Sandi",
         // createAccount: "Buat Akun?",
         loginButton: "Masuk"
