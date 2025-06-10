@@ -37,10 +37,16 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
-                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded">
+                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100 text-gray-500" disabled>
                 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester" class="w-full p-2 border rounded">
+                <div class="relative">
+                    <input type="text" id="requesterNameSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="requesterNameSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="requesterNameSelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded">
@@ -58,7 +64,9 @@
                 <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded">
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="payTo" placeholder="payTo" class="w-full p-2 border rounded">        
+                <select id="payToSelect" class="w-full p-2 border rounded" disabled>
+                    <option value="" disabled selected>Choose Name</option>
+                </select>
             </div>
             
             <div>

@@ -18,27 +18,66 @@ const mockUsers = [
 // Fungsi untuk memfilter dan menampilkan dropdown pengguna
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) return;
+    
     const searchText = searchInput.value.toLowerCase();
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) return;
     
     // Kosongkan dropdown
     dropdown.innerHTML = '';
     
-    // Filter pengguna berdasarkan teks pencarian
-    const filteredUsers = mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+    let filteredUsers = [];
     
-    // Tampilkan hasil pencarian
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        option.innerText = user.name;
-        option.onclick = function() {
-            searchInput.value = user.name;
-            document.getElementById(fieldId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
+    // Handle requesterNameSelect differently - use the dataset stored in the search input
+    if (fieldId === 'requesterNameSelect') {
+        try {
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            
+            // Tampilkan hasil pencarian
+            filteredUsers.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = user.name;
+                option.onclick = function() {
+                    searchInput.value = user.name;
+                    document.getElementById(fieldId).value = user.name;
+                    dropdown.classList.add('hidden');
+                    
+                    // Auto-fill payToSelect when requesterName is selected
+                    const payToSelect = document.getElementById('payToSelect');
+                    if (payToSelect) {
+                        for (let i = 0; i < payToSelect.options.length; i++) {
+                            if (payToSelect.options[i].textContent === user.name) {
+                                payToSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                };
+                dropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error parsing users data:", error);
+        }
+    } else {
+        // Original implementation for other fields
+        filteredUsers = mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+        
+        // Tampilkan hasil pencarian
+        filteredUsers.forEach(user => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = user.name;
+            option.onclick = function() {
+                searchInput.value = user.name;
+                document.getElementById(fieldId).value = user.id;
+                dropdown.classList.add('hidden');
+            };
+            dropdown.appendChild(option);
+        });
+    }
     
     // Tampilkan pesan jika tidak ada hasil
     if (filteredUsers.length === 0) {
@@ -68,14 +107,16 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedBySelectDropdown', 
             'acknowledgeBySelectDropdown', 
             'checkedBySelectDropdown', 
-            'approvedBySelectDropdown'
+            'approvedBySelectDropdown',
+            'requesterNameSelectDropdown'
         ];
         
         const searchInputs = [
             'preparedBySearch', 
             'acknowledgeBySearch', 
             'checkedBySearch', 
-            'approvedBySearch'
+            'approvedBySearch',
+            'requesterNameSearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -95,13 +136,20 @@ document.addEventListener('DOMContentLoaded', function() {
         'preparedBySearch',
         'acknowledgeBySearch',
         'checkedBySearch',
-        'approvedBySearch'
+        'approvedBySearch',
+        'requesterNameSearch'
     ];
     
     searchFields.forEach(fieldId => {
         const searchInput = document.getElementById(fieldId);
         if (searchInput) {
             searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+            
+            // Add input event for real-time filtering
+            searchInput.addEventListener('input', function() {
                 const actualFieldId = fieldId.replace('Search', 'Select');
                 filterUsers(actualFieldId);
             });
@@ -327,10 +375,48 @@ async function fetchUsers() {
         const users = result.data;
         
         // Populate dropdowns
+        populateDropdown("requesterNameSelect", users);
+        populateDropdown("payToSelect", users);
         populateDropdown("preparedBySelect", users);
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        
+        // Add event listener to requesterNameSelect to auto-fill payToSelect
+        const requesterSelect = document.getElementById("requesterNameSelect");
+        const requesterSearchInput = document.getElementById("requesterNameSearch");
+        const payToSelect = document.getElementById("payToSelect");
+        
+        if (requesterSelect && payToSelect) {
+            requesterSelect.addEventListener("change", function() {
+                // Find the corresponding user ID for the selected name
+                const selectedName = this.value;
+                const selectedOption = this.options[this.selectedIndex];
+                
+                // Find matching user in payToSelect by display text
+                for (let i = 0; i < payToSelect.options.length; i++) {
+                    if (payToSelect.options[i].textContent === selectedName) {
+                        payToSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
+        
+        // Add change event for the search input as well
+        if (requesterSearchInput && payToSelect) {
+            requesterSearchInput.addEventListener("change", function() {
+                const selectedName = this.value;
+                
+                // Find matching user in payToSelect by display text
+                for (let i = 0; i < payToSelect.options.length; i++) {
+                    if (payToSelect.options[i].textContent === selectedName) {
+                        payToSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
         
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -348,16 +434,39 @@ function populateDropdown(dropdownId, users) {
     // Add users as options
     users.forEach(user => {
         const option = document.createElement("option");
-        option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
         let displayName = user.firstName;
         if (user.middleName) displayName += ` ${user.middleName}`;
         if (user.lastName) displayName += ` ${user.lastName}`;
         
+        // For requesterNameSelect, use full name as value instead of ID
+        if (dropdownId === "requesterNameSelect") {
+            option.value = displayName;
+        } else {
+            option.value = user.id;
+        }
+        
         option.textContent = displayName;
         dropdown.appendChild(option);
     });
+    
+    // For requesterNameSelect, set up the search functionality
+    if (dropdownId === "requesterNameSelect") {
+        const searchInput = document.getElementById("requesterNameSearch");
+        if (searchInput) {
+            // Store users data for searching
+            searchInput.dataset.users = JSON.stringify(users.map(user => {
+                let displayName = user.firstName;
+                if (user.middleName) displayName += ` ${user.middleName}`;
+                if (user.lastName) displayName += ` ${user.lastName}`;
+                return {
+                    id: user.id,
+                    name: displayName
+                };
+            }));
+        }
+    }
 }
 
 function submitDocument() {
@@ -425,9 +534,9 @@ async function processDocument(isSubmit) {
 
     const reimbursementData = {
         voucherNo: getElementValue("voucherNo"),
-        requesterName: getElementValue("requesterName"),
+        requesterName: document.getElementById("requesterNameSearch").value || document.getElementById("requesterNameSelect").value, // Use the search input value
         department: getElementValue("department"),
-        payTo: getElementValue("payTo"),
+        payTo: getApprovalValue("payTo"),
         currency: getElementValue("currency"),
         submissionDate: getElementValue("postingDate"),
         status: getElementValue("status"),
