@@ -10,7 +10,7 @@
     <script src="../../../../js/auth.js"></script>
     <script src="approveCash.js"></script>
     <!-- Menyambungkan toMenu.js -->
-    <script src="../../../pages/utils/toMenu.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -37,7 +37,7 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuCash()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <button onclick="goToMenuApprovCash()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4"> Cash Advance </h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
@@ -111,9 +111,7 @@
                         <input type="number" maxlength="10" class="w-full" required />
                     </td>
                     <td class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
+                        <span class="text-gray-400">View Only</span>
                     </td>
                 </tr>
             </tbody>
@@ -131,37 +129,29 @@
 
         <!-- Approval Signatories -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
+            <div>
                 <label id="preparedByCheck" class="mr-1"><strong>Proposed by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
-                    <select id="prepared" class="hidden">
-                        <option value="Admin1">Admin 1</option>
-                        <option value="Admin2">Admin 2</option>
-                    </select>
-                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+                <select id="preparedSelect" class="w-full p-1 border rounded">
+                    <option value="Admin1">Admin 1</option>
+                    <option value="Admin2">Admin 2</option>
+                </select>
             </div>
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
-                    <select id="checked" class="hidden">
-                        <option value="Finance1">Finance 1</option>
-                        <option value="Finance2">Finance 2</option>
-                    </select>
-                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
+                <select id="checkedSelect" class="w-full p-1 border rounded">
+                    <option value="Finance1">Finance 1</option>
+                    <option value="Finance2">Finance 2</option>
+                </select>
             </div>
             <div>
-                <label><input type="checkbox" id="acknowledgedCheckbox" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <label id="acknowledgedCheckbox" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <select id="acknowledgedSelect" class="w-full p-1 border rounded">
                     <option value="Manager1">General Manager 1</option>
                     <option value="Manager2">General Manager 2</option>
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" id="approvedCheckbox" class="mr-1"><strong>Approved by :</strong></label>
+                <label id="approvedCheckbox" class="mr-1"><strong>Approved by :</strong></label>
                 <select id="approvedSelect" class="w-full p-1 border rounded">
                     <option value="Manager1">Manager 1</option>
                     <option value="Manager2">Manager 2</option>
@@ -211,14 +201,10 @@
             const remarks = remarksElement ? remarksElement.value : '';
             
             // Get approval signatories
-            const proposedBy = document.getElementById('preparedCheckbox').checked ? 
-                document.getElementById('preparedSelect').value : '';
-            const checkedBy = document.getElementById('checkedCheckbox').checked ? 
-                document.getElementById('checkedSelect').value : '';
-            const approvedBy = document.getElementById('approvedCheckbox').checked ? 
-                document.getElementById('approvedSelect').value : '';
-            const acknowledgedBy = document.getElementById('acknowledgedCheckbox').checked ? 
-                document.getElementById('acknowledgedSelect').value : '';
+            const proposedBy = document.getElementById('preparedSelect').value || '';
+            const checkedBy = document.getElementById('checkedSelect').value || '';
+            const approvedBy = document.getElementById('approvedSelect').value || '';
+            const acknowledgedBy = document.getElementById('acknowledgedSelect').value || '';
             
             // Collect table items
             const tableItems = [];

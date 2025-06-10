@@ -103,7 +103,7 @@ function populateUserSelects(users, approvalData = null) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
             requesterSelect.appendChild(option);
         });
     }
@@ -204,7 +204,7 @@ function populateUserSelects(users, approvalData = null) {
                 const option = document.createElement("option");
                 option.value = user.id;
                 console.log(user);
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             
@@ -449,10 +449,9 @@ function populateFormWithData(data) {
     // Set department to Finance as specified
     document.getElementById('department').value = data.departmentId;
     
-    // Format and set submission date
+    // Format and set submission date - extract date part directly to avoid timezone issues
     if (data.submissionDate) {
-        const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById('submissionDate').value = formattedDate;
     }
     

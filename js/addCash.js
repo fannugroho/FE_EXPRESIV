@@ -425,7 +425,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
             requesterSelect.appendChild(option);
         });
     }
@@ -548,7 +548,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
                 // Auto-select and disable for Proposed by (Approval.PreparedById)
                 if(selectId == "Approval.PreparedById"){
@@ -558,7 +558,7 @@ function populateUserSelects(users) {
                     // Update the search input for Proposed by
                     const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
                     if (proposedBySearch) {
-                        proposedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                        proposedBySearch.value = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                         proposedBySearch.disabled = true;
                     }
                    }

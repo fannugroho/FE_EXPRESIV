@@ -154,7 +154,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
             requesterSelect.appendChild(option);
         });
     }
@@ -246,7 +246,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
                 // Auto-select and disable for Prepared by
                 if(selectInfo.isPreparerField && user.id == getUserId()){
@@ -266,7 +266,7 @@ function populateUserSelects(users) {
             const preparedSelect = document.getElementById('preparedDropdown');
             
             if (preparedSearchInput && preparedSelect) {
-                const userName = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                const userName = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.middleName} ${loggedInUser.lastName}`;
                 preparedSearchInput.value = userName;
                 preparedSearchInput.disabled = true;
                 preparedSearchInput.classList.add('bg-gray-100');
@@ -393,6 +393,14 @@ async function saveDocument(isSubmit = false) {
         if (purpose) formData.append('Purpose', purpose);
         if (transactionType) formData.append('TransactionType', transactionType);
         if (remarks) formData.append('Remarks', remarks);
+        
+        // Handle posting date
+        const postingDate = document.getElementById("postingDate").value;
+        if (postingDate) {
+            // For date input, just send the date value as is (YYYY-MM-DD format)
+            formData.append('PostingDate', postingDate);
+            console.log("Posting Date:", postingDate);
+        }
         
         // Set submit flag
         formData.append('IsSubmit', isSubmit.toString());
@@ -622,12 +630,30 @@ async function loadCashAdvanceOptions() {
     }
 }
 
+// Function to set current date as default
+function setDefaultDate() {
+    const postingDateInput = document.getElementById("postingDate");
+    if (postingDateInput) {
+        const now = new Date();
+        // Format date for date input (YYYY-MM-DD)
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        
+        const currentDate = `${year}-${month}-${day}`;
+        postingDateInput.value = currentDate;
+        
+        console.log("Default posting date set to:", currentDate);
+    }
+}
+
 // Load cash advance options when page loads
 document.addEventListener('DOMContentLoaded', function() {
     loadCashAdvanceOptions();
     fetchDepartments();
     fetchUsers();
     fetchTransactionType();
+    setDefaultDate(); // Set default date
     
     // Setup event listener untuk hide dropdown saat klik di luar
     document.addEventListener('click', function(event) {

@@ -413,7 +413,7 @@ function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.lastName}`,
+        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
         department: user.department
     }));
 
@@ -423,7 +423,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
             requesterSelect.appendChild(option);
         });
     }
@@ -512,7 +512,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
                 if(selectId == "preparedBy"){
                     if(user.id == getUserId()){
@@ -520,7 +520,7 @@ function populateUserSelects(users) {
                         // Perbarui kolom pencarian untuk preparedBy
                         const preparedBySearch = document.getElementById('preparedBySearch');
                         if (preparedBySearch) {
-                            preparedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                            preparedBySearch.value = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                             preparedBySearch.disabled = true;
                         }
                     }
@@ -638,11 +638,15 @@ async function submitDocument(isSubmit = false) {
         // Format dates
         const requiredDate = document.getElementById("requiredDate").value;
         if (requiredDate) {
+            console.log("Required Date:", requiredDate);
             formData.append('RequiredDate', new Date(requiredDate).toISOString());
+            console.log("Required Date:", new Date(requiredDate).toISOString());
         }
         
         const submissionDate = document.getElementById("submissionDate").value;
         if (submissionDate) {
+            console.log("Submission Date:", submissionDate);
+            console.log("Submission Date:", new Date(submissionDate).toISOString());
             formData.append('SubmissionDate', new Date(submissionDate).toISOString());
         }
         
