@@ -211,7 +211,7 @@
         
         <div class="header">
             <h2>PT KANSAI PAINT INDONESIA</h2>
-            <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danauindah</p>
+            <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danau indah</p>
             <p>Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
             
             <div style="position: absolute; top: 1cm; right: 2cm;">
@@ -220,7 +220,7 @@
                 <p>Submission date: <span id="submissionDate"></span></p>
             </div>
         </div>
-        
+        <br>
         <div class="title">
             CASH ADVANCE VOUCHER
         </div>
@@ -261,6 +261,14 @@
                     Date: <span id="checkedDate"></span>
                 </div>
             </div>
+
+            <div class="signature-box">
+                <div>Advance is acknowledged by:</div>
+                <div class="signature-name">
+                    Name: <span id="acknowledgedName"></span><br>
+                    Date: <span id="acknowledgedDate"></span>
+                </div>
+            </div>
             
             <div class="signature-box">
                 <div>Advance is approved by:</div>
@@ -270,13 +278,6 @@
                 </div>
             </div>
             
-            <div class="signature-box">
-                <div>Cash is received by:</div>
-                <div class="signature-name">
-                    Name: <span id="receivedName"></span><br>
-                    Date: <span id="receivedDate"></span>
-                </div>
-            </div>
         </div>
         
         <div class="payment-method">
@@ -506,6 +507,11 @@
                 `${requesterName} (on behalf of ${employeeName})`;
             document.getElementById('proposedName').textContent = requestedBy;
             document.getElementById('proposedDate').textContent = submissionDate;
+            document.getElementById('checkedDate').textContent = submissionDate;
+            document.getElementById('acknowledgedDate').textContent = submissionDate;
+            document.getElementById('approvedDate').textContent = submissionDate;
+            document.getElementById('finalReceivedDate').textContent = submissionDate;
+            document.getElementById('settlementApprovedDate').textContent = submissionDate;
             
             // Add Employee NIK to purpose as note if needed
             const purposeText = transactionType ? 
@@ -524,14 +530,17 @@
             }
             
             // Check the appropriate department checkbox
-            if (department === 'Production') {
-                document.getElementById('productionCheck').style.backgroundColor = 'black';
-            } else if (department === 'Marketing') {
-                document.getElementById('marketingCheck').style.backgroundColor = 'black';
-            } else if (department === 'Technical') {
-                document.getElementById('technicalCheck').style.backgroundColor = 'black';
-            } else if (department === 'Administration') {
-                document.getElementById('administrationCheck').style.backgroundColor = 'black';
+            if (department) {
+                const dept = department.toLowerCase();
+                if (dept.includes('production')) {
+                    document.getElementById('productionCheck').style.backgroundColor = 'black';
+                } else if (dept.includes('marketing')) {
+                    document.getElementById('marketingCheck').style.backgroundColor = 'black';
+                } else if (dept.includes('technical')) {
+                    document.getElementById('technicalCheck').style.backgroundColor = 'black';
+                } else if (dept.includes('admin')) {
+                    document.getElementById('administrationCheck').style.backgroundColor = 'black';
+                }
             }
             
             // Default payment method to Cash
@@ -539,8 +548,12 @@
             
             // Set approval names if provided
             if (checkedBy) document.getElementById('checkedName').textContent = checkedBy;
+            if (acknowledgedBy) document.getElementById('acknowledgedName').textContent = acknowledgedBy;
             if (approvedBy) document.getElementById('approvedName').textContent = approvedBy;
-            if (acknowledgedBy) document.getElementById('receivedName').textContent = acknowledgedBy;
+            
+            // Set additional settlement fields
+            document.getElementById('finalReceivedName').textContent = paidTo;
+            document.getElementById('settlementApprovedName').textContent = approvedBy;
             
             // Set return information
             document.getElementById('returnDate').textContent = submissionDate;
