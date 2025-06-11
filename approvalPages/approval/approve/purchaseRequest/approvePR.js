@@ -1035,17 +1035,78 @@ function updateItemDescription(selectElement) {
 
 // Function to print purchase request
 function printPR() {
-    // Get purchase request ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const prId = urlParams.get('pr-id');
+    // Kumpulkan semua data yang diperlukan dari form
+    const purchaseRequestNo = document.getElementById('purchaseRequestNo').value;
+    const dateIssued = document.getElementById('submissionDate').value;
+    const department = document.getElementById('department').value;
+    const classification = document.getElementById('classification').value;
+    const requesterName = document.getElementById('requesterName').value;
     
-    if (!prId) {
-        alert('No purchase request ID found');
-        return;
-    }
+    // Ambil data approved/checked by dari input search
+    const checkedBy = document.getElementById('checkedBySearch').value;
+    const acknowledgedBy = document.getElementById('acknowledgeBySearch').value;
+    const approvedBy = document.getElementById('approvedBySearch').value;
+    const receivedDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini
     
-    // Open the print page in a new window/tab
-    window.open(`printPR.html?pr-id=${prId}`, '_blank');
+    // Ambil data item dari tabel
+    const items = [];
+    const tableRows = document.getElementById('tableBody').querySelectorAll('tr');
+    const prType = document.getElementById('prType').value;
+    
+    tableRows.forEach(row => {
+        let item = {};
+        
+        if (prType === 'Item') {
+            const description = row.querySelector('td[id="tdItemName"] input')?.value || '';
+            const purpose = row.querySelector('td[id="tdPurposed"] input')?.value || '';
+            const quantity = row.querySelector('td[id="tdQuantity"] input')?.value || '';
+            const price = row.querySelector('td[id="tdDetail"] input')?.value || '';
+            
+            item = {
+                description,
+                purpose,
+                quantity,
+                price,
+                eta: document.getElementById('requiredDate').value
+            };
+        } else if (prType === 'Service') {
+            const description = row.querySelector('td[id="tdDescription"] input')?.value || '';
+            const purpose = row.querySelector('td[id="tdPurposeds"] input')?.value || '';
+            const quantity = row.querySelector('td[id="tdQty"] input')?.value || '';
+            
+            item = {
+                description,
+                purpose,
+                quantity,
+                price: 0,
+                eta: document.getElementById('requiredDate').value
+            };
+        }
+        
+        if (item.description) {
+            items.push(item);
+        }
+    });
+    
+    // Buat URL dengan parameter
+    const url = new URL('printPR.html', window.location.href);
+    
+    // Tambahkan parameter dasar
+    url.searchParams.set('dateIssued', dateIssued);
+    url.searchParams.set('department', department);
+    url.searchParams.set('purchaseRequestNo', purchaseRequestNo);
+    url.searchParams.set('classification', classification);
+    url.searchParams.set('requesterName', requesterName);
+    url.searchParams.set('checkedBy', checkedBy);
+    url.searchParams.set('acknowledgedBy', acknowledgedBy);
+    url.searchParams.set('approvedBy', approvedBy);
+    url.searchParams.set('receivedDate', receivedDate);
+    
+    // Tambahkan items sebagai JSON string
+    url.searchParams.set('items', encodeURIComponent(JSON.stringify(items)));
+    
+    // Buka halaman print dalam tab baru
+    window.open(url.toString(), '_blank');
 }
 
 // Function to display attachments (similar to detail pages)
