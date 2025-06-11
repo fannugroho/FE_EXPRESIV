@@ -56,7 +56,7 @@ function populateCADetails(data) {
     document.getElementById('remarks').value = data.remarks || '';
 
     // Format and set dates
-    const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
+    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('postingDate').value = submissionDate;
     
     // Set transaction type
@@ -303,7 +303,7 @@ function populateUserSelects(users, caData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             

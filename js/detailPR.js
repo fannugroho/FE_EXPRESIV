@@ -28,6 +28,8 @@ function populateUserSelects(users, approvalData = null) {
         department: user.department
     }));
 
+
+
     // Store employees globally for reference
     window.employees = users.map(user => ({
         id: user.id,
@@ -72,16 +74,20 @@ function populateUserSelects(users, approvalData = null) {
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerText = requester.fullName;
                 option.onclick = function() {
+                    
                     requesterSearchInput.value = requester.fullName;
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
+                    console.log("Requester selected:", requester);
                     //update department
                     const departmentSelect = document.getElementById('department');
+                    
                     if (requester.department) {
                         // Find the department option and select it
                         const departmentOptions = departmentSelect.options;
                         for (let i = 0; i < departmentOptions.length; i++) {
                             if (departmentOptions[i].textContent === requester.department) {
+                                console.log("Department matches current text");
                                 departmentSelect.selectedIndex = i;
                                 break;
                             }
@@ -150,7 +156,7 @@ function populateUserSelects(users, approvalData = null) {
                 // Find the user and update the search input
                 const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
                 if (selectedUser) {
-                    searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.middleName} ${selectedUser.lastName}`;
                 }
                 
                 // Auto-select and disable for Prepared by if it matches logged in user
@@ -167,7 +173,7 @@ function populateUserSelects(users, approvalData = null) {
                     select.value = loggedInUserId;
                     const loggedInUser = users.find(user => user.id === loggedInUserId);
                     if(loggedInUser) {
-                        searchInput.value = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                        searchInput.value = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.middleName} ${loggedInUser.lastName}`;
                     }
                     searchInput.disabled = true;
                     searchInput.classList.add('bg-gray-100');
@@ -359,6 +365,10 @@ function populateDepartmentSelect(departments) {
         
         // If this department matches the current text, select it
         if (department.name === currentText) {
+            option.selected = true;
+        }
+
+        if (window.currentValues && window.currentValues.department && department.name === window.currentValues.department) {
             option.selected = true;
         }
     });
@@ -613,9 +623,9 @@ function populatePRDetails(data) {
     
     document.getElementById('prType').value = data.prType;
     
-    // Format and set dates
-    const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
-    const requiredDate = new Date(data.requiredDate).toISOString().split('T')[0];
+    // Format and set dates - extract date part directly to avoid timezone issues
+    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
+    const requiredDate = data.requiredDate ? data.requiredDate.split('T')[0] : '';
     document.getElementById('submissionDate').value = submissionDate;
     document.getElementById('requiredDate').value = requiredDate;
     
@@ -624,7 +634,25 @@ function populatePRDetails(data) {
     document.getElementById('NonPO').checked = data.documentType === 'NonPO';
     
     // Set remarks
-    document.getElementById('remarks').value = data.remarks;
+    document.getElementById('remarks').value = data.remarks || '';
+    
+    // Handle rejection remarks if status is Rejected
+    if (data.status === 'Rejected' && data.rejectedRemarks) {
+        // Show the rejection remarks section
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = data.rejectedRemarks;
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
 
     // Set status
     if (data && data.status) {
@@ -978,7 +1006,8 @@ async function updatePR(isSubmit = false) {
         
         const submissionDate = document.getElementById('submissionDate').value;
         if (submissionDate) {
-            formData.append('SubmissionDate', new Date(submissionDate).toISOString());
+            // Send date value directly without timezone conversion
+            formData.append('SubmissionDate', submissionDate);
         }
         
         // Use the classification text from the select

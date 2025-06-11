@@ -122,8 +122,8 @@ function populatePRDetails(data) {
     document.getElementById('prType').value = data.prType;
   
     // Format and set dates
-    const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
-    const requiredDate = new Date(data.requiredDate).toISOString().split('T')[0];
+    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
+    const requiredDate = data.requiredDate ? data.requiredDate.split('T')[0] : '';
     document.getElementById('submissionDate').value = submissionDate;
     document.getElementById('requiredDate').value = requiredDate;
     
@@ -408,7 +408,7 @@ function populateUserSelects(users, prData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             
@@ -421,7 +421,7 @@ function populateUserSelects(users, prData = null) {
                 if (searchInput) {
                     const selectedUser = users.find(user => user.id === prData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.middleName} ${selectedUser.lastName}`;
                     }
                 }
             }

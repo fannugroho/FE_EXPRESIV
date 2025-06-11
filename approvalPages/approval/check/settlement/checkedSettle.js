@@ -95,6 +95,7 @@ function fetchSettleDetails(id) {
 function populateSettleDetails(data) {
     // Populate basic settlement information
     document.getElementById('invno').value = data.settlementNumber || '';
+    document.getElementById('settlementRefNo').value = data.settlementRefNo || '';
     
     // Store requester ID for user lookup instead of employeeId
     window.currentEmployeeId = data.requester || '';
@@ -113,10 +114,9 @@ function populateSettleDetails(data) {
 
     document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber  || '';
     
-    // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
+    // Handle submission date - extract date part directly to avoid timezone issues
     if (data.submissionDate) {
-        const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById('SubmissionDate').value = formattedDate;
     }
     
@@ -187,13 +187,17 @@ function addSettleDetailRow(item = null, index = 0) {
             <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? (item.accountName || item.glAccount || '') : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.glAccount || '' : ''}" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.accountName || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
             <input type="number" class="w-full bg-gray-100" value="${item ? item.amount || '' : ''}" readonly />
         </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? (item.receipt || '') : ''}" readonly />
+        <td class="p-2 border text-center">
+            <!-- Action column - disabled in approval view -->
+            <span class="text-gray-400">View Only</span>
         </td>
     `;
     
@@ -230,31 +234,47 @@ function approveSettle() {
 // Function to reject settlement
 function rejectSettle() {
     if (!settlementId) {
-        alert('Settlement ID not found');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
         return;
     }
     
-    // Get remarks (should be required for rejection)
-    const remarks = document.getElementById('remarks').value;
-    
-    if (!remarks.trim()) {
-        alert('Please provide remarks for rejection');
-        return;
-    }
-    
-    // Show confirmation dialog
+    // Show confirmation dialog first
     Swal.fire({
-        title: 'Reject Settlement',
-        text: 'Are you sure you want to reject this settlement?',
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Settlement?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, reject it!',
+        confirmButtonText: 'Yes, Reject',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateSettleStatus('reject', remarks);
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updateSettleStatus('reject', remarksResult.value);
+                }
+            });
         }
     });
 }
@@ -458,7 +478,7 @@ function populateApprovalFields(users) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}` || user.username;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}` || user.username;
                 select.appendChild(option);
             });
             

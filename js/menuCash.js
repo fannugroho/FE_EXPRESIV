@@ -1,4 +1,9 @@
          function loadDashboard() {
+            const userId = getUserId();
+            if (!userId) {
+                console.error('User ID not found. Please login again.');
+                return;
+            }
 
             fetch(`${BASE_URL}/api/cash-advance/dashboard`)
                 .then(response => {
@@ -11,37 +16,34 @@
                     if (data.status && data.data) {
                         const documents = data.data;
                         console.log("Documents:", documents);
+                        console.log("User ID:", userId);
+                        console.log("Total documents from API:", documents.length);
+                        
+                        // Show all documents instead of filtering by user (for now)
+                        const userDocuments = documents; // Changed: show all documents
+                        console.log("Filtered documents:", userDocuments.length);
+                        
                         // Update dashboard counts
-                        document.getElementById("totalDocs").textContent = documents.length;
-                        document.getElementById("draftDocs").textContent = documents.filter(doc => doc.status === "Draft").length;
-                        document.getElementById("submittedDocs").textContent = documents.filter(doc => doc.status === "Submitted").length;
-                        document.getElementById("checkedDocs").textContent = documents.filter(doc => doc.status === "Checked").length;
-                        document.getElementById("acknowledgedDocs").textContent = documents.filter(doc => doc.status === "Acknowledged").length;
-                        document.getElementById("approvedDocs").textContent = documents.filter(doc => doc.status === "Approved").length;
-                        document.getElementById("paidDocs").textContent = documents.filter(doc => doc.status === "Paid").length;
-                        document.getElementById("rejectedDocs").textContent = documents.filter(doc => doc.status === "Rejected").length;
-                        document.getElementById("settledDocs").textContent = documents.filter(doc => doc.status === "Settled").length;
+                        document.getElementById("totalDocs").textContent = userDocuments.length;
+                        document.getElementById("draftDocs").textContent = userDocuments.filter(doc => doc.status === "Draft").length;
+                        document.getElementById("submittedDocs").textContent = userDocuments.filter(doc => doc.status === "Submitted").length;
+                        document.getElementById("preparedDocs").textContent = userDocuments.filter(doc => doc.status === "Prepared").length;
+                        document.getElementById("checkedDocs").textContent = userDocuments.filter(doc => doc.status === "Checked").length;
+                        document.getElementById("acknowledgedDocs").textContent = userDocuments.filter(doc => doc.status === "Acknowledged").length;
+                        document.getElementById("approvedDocs").textContent = userDocuments.filter(doc => doc.status === "Approved").length;
+                        document.getElementById("paidDocs").textContent = userDocuments.filter(doc => doc.status === "Paid").length;
+                        document.getElementById("rejectedDocs").textContent = userDocuments.filter(doc => doc.status === "Rejected").length;
+                        document.getElementById("settledDocs").textContent = userDocuments.filter(doc => doc.status === "Settled").length;
+                        
+                        // Simpan dokumen untuk penggunaan di tab
+                        window.allDocuments = userDocuments;
+                        window.filteredDocuments = userDocuments;
+                        window.currentTab = 'all';
+                        window.currentPage = 1;
+                        window.itemsPerPage = 10;
                         
                         // Display documents in table
-                        const tableBody = document.getElementById("recentDocs");
-                        tableBody.innerHTML = "";
-                        
-                        documents.forEach((doc, index) => {
-                            const row = `<tr class='border-b'>
-                                <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
-                                <td class='p-2'>${index + 1}</td>
-                                <td class='p-2'>${doc.cashAdvanceNo ? doc.cashAdvanceNo : ''}</td>
-                                <td class='p-2'>${doc.requesterName}</td>
-                                <td class='p-2'>${doc.departmentName}</td>
-                                <td class='p-2'>${doc.purpose}</td>
-                                <td class='p-2'>${new Date(doc.submissionDate).toLocaleDateString()}</td>
-                                <td class='p-2'>${doc.status}</td>
-                                <td class='p-2'>
-                                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
-                                </td>
-                            </tr>`;
-                            tableBody.innerHTML += row;
-                        });
+                        displayDocuments(userDocuments);
                     } else {
                         console.error("API response does not contain expected data");
                     }
@@ -53,11 +55,124 @@
                 });
         }
 
+        // Function untuk menampilkan dokumen dengan pagination
+        function displayDocuments(documents) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
+            const paginatedDocuments = documents.slice(startIndex, endIndex);
+            
+            const tableBody = document.getElementById("recentDocs");
+            tableBody.innerHTML = "";
+            
+            paginatedDocuments.forEach((doc, index) => {
+                const row = `<tr class='border-b'>
+                    <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
+                    <td class='p-2'>${startIndex + index + 1}</td>
+                    <td class='p-2'>${doc.cashAdvanceNo ? doc.cashAdvanceNo : ''}</td>
+                    <td class='p-2'>${doc.requesterName}</td>
+                    <td class='p-2'>${doc.departmentName}</td>
+                    <td class='p-2'>${doc.purpose}</td>
+                    <td class='p-2'>${new Date(doc.submissionDate).toLocaleDateString()}</td>
+                    <td class='p-2'>${doc.status}</td>
+                    <td class='p-2'>
+                        <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+            
+            // Update pagination info
+            document.getElementById('startItem').textContent = documents.length > 0 ? startIndex + 1 : 0;
+            document.getElementById('endItem').textContent = endIndex;
+            document.getElementById('totalItems').textContent = documents.length;
+            
+            // Update pagination buttons
+            updatePaginationButtons(documents.length);
+        }
+        
+        // Function untuk update pagination buttons
+        function updatePaginationButtons(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            document.getElementById('currentPage').textContent = currentPage;
+            
+            // Update prev/next button states
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            
+            prevBtn.classList.toggle('disabled', currentPage <= 1);
+            nextBtn.classList.toggle('disabled', currentPage >= totalPages);
+        }
+        
+        // Function untuk mengubah halaman
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayDocuments(filteredDocuments);
+            }
+        }
+        
+        // Function untuk switch tab
+        function switchTab(tab) {
+            currentTab = tab;
+            currentPage = 1;
+            
+            // Update tab button styling
+            document.getElementById('allTabBtn').classList.remove('tab-active');
+            document.getElementById('draftTabBtn').classList.remove('tab-active');
+            document.getElementById('preparedTabBtn').classList.remove('tab-active');
+            
+            if (tab === 'all') {
+                document.getElementById('allTabBtn').classList.add('tab-active');
+                filteredDocuments = allDocuments;
+            } else if (tab === 'draft') {
+                document.getElementById('draftTabBtn').classList.add('tab-active');
+                filteredDocuments = allDocuments.filter(doc => doc.status === 'Draft');
+            } else if (tab === 'prepared') {
+                document.getElementById('preparedTabBtn').classList.add('tab-active');
+                filteredDocuments = allDocuments.filter(doc => doc.status === 'Prepared');
+            }
+            
+            // Filter berdasarkan pencarian jika ada
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (searchTerm) {
+                filteredDocuments = filteredDocuments.filter(doc => 
+                    (doc.cashAdvanceNo && doc.cashAdvanceNo.toLowerCase().includes(searchTerm)) ||
+                    doc.requesterName.toLowerCase().includes(searchTerm) ||
+                    doc.purpose.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            displayDocuments(filteredDocuments);
+        }
+        
+        // Fungsi untuk mendapatkan ID pengguna yang login
+        function getUserId() {
+            const userStr = localStorage.getItem('loggedInUser');
+            if (!userStr) return null;
+            
+            try {
+                const user = JSON.parse(userStr);
+                return user.id || null;
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+                return null;
+            }
+        }
+
         document.getElementById("selectAll").addEventListener("change", function () {
             let checkboxes = document.querySelectorAll(".rowCheckbox");
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
+        });
+        
+        // Event listener untuk search input
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            switchTab(currentTab); // Ini akan menerapkan filter pencarian dengan tab saat ini
         });
         
         function toggleSidebar() {

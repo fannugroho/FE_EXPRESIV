@@ -2,6 +2,13 @@
     // Using BASE_URL from auth.js instead of hardcoded baseUrl
     async function loadDashboard() {
         try {
+            // Get userId for filtering
+            const userId = getUserId();
+            if (!userId) {
+                console.error("User ID not found. Please login again.");
+                return;
+            }
+            
             // Fetch data from API
             const response = await fetch(`${BASE_URL}/api/settlements/dashboard`);
             const apiResponse = await response.json();
@@ -13,26 +20,31 @@
             
             const documents = apiResponse.data;
             
+            // Filter documents by logged in user
+            const userDocuments = documents
+            
             // Store documents globally for tab functionality
-            allDocuments = documents;
-            filteredDocuments = documents;
+            allDocuments = userDocuments;
+            filteredDocuments = userDocuments;
     
             // Update summary counts with correct element IDs
             const totalCountEl = document.getElementById("totalCount");
             const draftCountEl = document.getElementById("draftCount");
+            const preparedCountEl = document.getElementById("preparedCount");
             const checkedCountEl = document.getElementById("checkedCount");
             const approvedCountEl = document.getElementById("approvedCount");
             const paidCountEl = document.getElementById("paidCount");
             const closeCountEl = document.getElementById("closeCount");
             const rejectedCountEl = document.getElementById("rejectedCount");
             
-            if (totalCountEl) totalCountEl.textContent = documents.length;
-            if (draftCountEl) draftCountEl.textContent = documents.filter(doc => doc.status === "Draft").length;
-            if (checkedCountEl) checkedCountEl.textContent = documents.filter(doc => doc.status === "Checked").length;
-            if (approvedCountEl) approvedCountEl.textContent = documents.filter(doc => doc.status === "Approved").length;
-            if (paidCountEl) paidCountEl.textContent = documents.filter(doc => doc.status === "Paid").length;
-            if (closeCountEl) closeCountEl.textContent = documents.filter(doc => doc.status === "Close").length;
-            if (rejectedCountEl) rejectedCountEl.textContent = documents.filter(doc => doc.status === "Rejected").length;
+            if (totalCountEl) totalCountEl.textContent = userDocuments.length;
+            if (draftCountEl) draftCountEl.textContent = userDocuments.filter(doc => doc.status === "Draft").length;
+            if (preparedCountEl) preparedCountEl.textContent = userDocuments.filter(doc => doc.status === "Prepared").length;
+            if (checkedCountEl) checkedCountEl.textContent = userDocuments.filter(doc => doc.status === "Checked").length;
+            if (approvedCountEl) approvedCountEl.textContent = userDocuments.filter(doc => doc.status === "Approved").length;
+            if (paidCountEl) paidCountEl.textContent = userDocuments.filter(doc => doc.status === "Paid").length;
+            if (closeCountEl) closeCountEl.textContent = userDocuments.filter(doc => doc.status === "Close").length;
+            if (rejectedCountEl) rejectedCountEl.textContent = userDocuments.filter(doc => doc.status === "Rejected").length;
     
             // Initialize table and pagination
             updateTable();
@@ -46,6 +58,7 @@
             
             const totalCountEl = document.getElementById("totalCount");
             const draftCountEl = document.getElementById("draftCount");
+            const preparedCountEl = document.getElementById("preparedCount");
             const checkedCountEl = document.getElementById("checkedCount");
             const approvedCountEl = document.getElementById("approvedCount");
             const paidCountEl = document.getElementById("paidCount");
@@ -54,6 +67,7 @@
             
             if (totalCountEl) totalCountEl.textContent = "0";
             if (draftCountEl) draftCountEl.textContent = "0";
+            if (preparedCountEl) preparedCountEl.textContent = "0";
             if (checkedCountEl) checkedCountEl.textContent = "0";
             if (approvedCountEl) approvedCountEl.textContent = "0";
             if (paidCountEl) paidCountEl.textContent = "0";
@@ -95,6 +109,9 @@
         } else if (tab === 'draft') {
           document.getElementById('draftTabBtn').classList.add('tab-active');
           filteredDocuments = allDocuments.filter(doc => doc.status === 'Draft');
+        } else if (tab === 'prepared') {
+          document.getElementById('preparedTabBtn').classList.add('tab-active');
+          filteredDocuments = allDocuments.filter(doc => doc.status === 'Prepared');
         }
         
         updateTable();
@@ -122,7 +139,7 @@
               <td class="p-2">${index + 1}</td>
               <td class="p-2">${doc.settlementNumber ?? ''}</td>
               <td class="p-2">${doc.requesterName}</td>
-              <td class="p-2">IT</td>
+              <td class="p-2">${doc.departmentName}</td>
               <td class="p-2">${formattedDate}</td>
               <td class="p-2">${doc.status}</td>
               <td class="p-2">
@@ -338,3 +355,17 @@
 
       // Initialize test user on page load
       initializeTestUser();
+
+      // Fungsi untuk mendapatkan ID pengguna yang login
+      function getUserId() {
+        const userStr = localStorage.getItem('loggedInUser');
+        if (!userStr) return null;
+        
+        try {
+          const user = JSON.parse(userStr);
+          return user.id || null;
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+          return null;
+        }
+      }

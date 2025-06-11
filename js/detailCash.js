@@ -235,7 +235,7 @@ function populateUserSelects(users, approvalData = null) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
                 // Auto-select and disable for Proposed by (Approval.PreparedById)
                 if(selectId == "Approval.PreparedById"){
@@ -245,7 +245,7 @@ function populateUserSelects(users, approvalData = null) {
                     // Update the search input for Proposed by
                     const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
                     if (proposedBySearch) {
-                        proposedBySearch.value = user.name || `${user.firstName} ${user.lastName}`;
+                        proposedBySearch.value = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                         proposedBySearch.disabled = true;
                     }
                    }
@@ -596,7 +596,7 @@ function loadCashAdvanceData() {
 function populateForm(data) {
     // Store the global cash advance data
     cashAdvanceData = data;
-    
+    console.log("cashAdvanceData", cashAdvanceData);
     // Populate basic fields with updated IDs
     document.getElementById("cashAdvanceNo").value = data.cashAdvanceNo || '';
     
@@ -667,8 +667,8 @@ function populateForm(data) {
     
     // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
-        const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        // Extract date part directly to avoid timezone issues
+        const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById("submissionDate").value = formattedDate;
     }
     
@@ -689,8 +689,26 @@ function populateForm(data) {
     
     // Handle remarks if exists
     const remarksTextarea = document.querySelector('textarea');
-    if (remarksTextarea && data.remarks) {
-        remarksTextarea.value = data.remarks;
+    if (remarksTextarea) {
+        remarksTextarea.value = data.remarks || '';
+    }
+    
+    // Handle rejection remarks if status is Rejected
+    if (data.status === 'Rejected' && data.rejectedRemarks) {
+        // Show the rejection remarks section
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = data.rejectedRemarks;
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
     }
 
     // Handle attachments if they exist

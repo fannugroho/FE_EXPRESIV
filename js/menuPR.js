@@ -32,6 +32,10 @@ function filterPurchaseRequests(searchTerm = '') {
         filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
             doc.status?.toLowerCase() === 'draft'
         );
+    } else if (currentTab === 'prepared') {
+        filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
+            doc.status?.toLowerCase() === 'prepared'
+        );
     } else {
         // 'all' tab or default
         filteredPurchaseRequests = [...allPurchaseRequests];
@@ -40,9 +44,24 @@ function filterPurchaseRequests(searchTerm = '') {
     // Apply search filter if there's a search term
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => 
-            doc.purchaseRequestNo?.toLowerCase().includes(term)
-        );
+        const searchType = document.getElementById('searchType').value;
+        
+        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => {
+            switch(searchType) {
+                case 'pr':
+                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
+                case 'requester':
+                    return doc.requesterName?.toLowerCase().includes(term);
+                case 'date':
+                    // Convert date to match the search format (YYYY-MM-DD)
+                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toISOString().split('T')[0] : '';
+                    return submissionDate.includes(term);
+                case 'status':
+                    return doc.status?.toLowerCase().includes(term);
+                default:
+                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
+            }
+        });
     }
     
     // Update the table and dashboard counts
@@ -59,6 +78,8 @@ function switchTab(tabName) {
     
     if (tabName === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
+    } else if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
     } else {
         document.getElementById('allTabBtn').classList.add('tab-active');
     }
@@ -74,6 +95,7 @@ function updateDashboardCounts(data) {
     // Count documents by status
     const statusCounts = {
         draft: 0,
+        prepared: 0,
         checked: 0,
         acknowledged: 0,
         approved: 0,
@@ -87,6 +109,9 @@ function updateDashboardCounts(data) {
         switch(status) {
             case 'draft':
                 statusCounts.draft++;
+                break;
+            case 'prepared':
+                statusCounts.prepared++;
                 break;
             case 'checked':
                 statusCounts.checked++;
@@ -108,6 +133,7 @@ function updateDashboardCounts(data) {
     
     // Update the dashboard cards with correct IDs
     document.getElementById("draftCount").textContent = statusCounts.draft;
+    document.getElementById("preparedCount").textContent = statusCounts.prepared;
     document.getElementById("checkedCount").textContent = statusCounts.checked;
     document.getElementById("acknowledgedCount").textContent = statusCounts.acknowledged;
     document.getElementById("approvedCount").textContent = statusCounts.approved;
@@ -127,8 +153,8 @@ function populatePurchaseRequests(data) {
     // Display paginated data
     paginatedData.forEach((doc, index) => {
         // Format dates for display
-        const submissionDate = new Date(doc.submissionDate).toISOString().split('T')[0];
-        const requiredDate = new Date(doc.requiredDate).toISOString().split('T')[0];
+        const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
+        const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';
         
         // PO number may be null, handle that case
         const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
@@ -136,13 +162,14 @@ function populatePurchaseRequests(data) {
         // Get status from approval object
         const status = doc.status ? doc.status : "Open";
         
-        // GR date currently not in the JSON, leaving empty for now
-        const grDate = '';
+        // Check if PR Number is longer than 15 characters
+        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
         
         const row = `<tr class='w-full border-b'>
-            <td class='p-2'></td>
             <td class='p-2'>${startIndex + index + 1}</td>
-            <td class='p-2'>${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</td>
+            <td class='p-2'>
+                <div class="${prNumberClass}">${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</div>
+            </td>
             <td class='p-2'>${doc.requesterName}</td>
             <td class='p-2'>${doc.departmentName}</td>
             <td class='p-2'>${submissionDate}</td>
@@ -152,7 +179,6 @@ function populatePurchaseRequests(data) {
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
-            <td class='p-2'>${grDate}</td>
         </tr>`;
         tableBody.innerHTML += row;
     });
@@ -221,14 +247,6 @@ alert("Update Document: " + id);
 // Di sini kamu bisa menambahkan logika untuk update dokumen, misalnya memperbarui status di localStorage
 }
 
-// document.getElementById("selectAll").addEventListener("change", function () {
-//     let checkboxes = document.querySelectorAll(".rowCheckbox");
-//     checkboxes.forEach(checkbox => {
-//         checkbox.checked = this.checked;
-//     });
-// });
-
-
 function toggleSidebar() {
     // No-op function - sidebar toggle is disabled to keep it permanently open
     return;
@@ -254,8 +272,7 @@ function downloadExcel() {
         'Submission Date': doc.submissionDate,
         'Required Date': doc.requiredDate,
         'PO Number': doc.poNumber,
-        'Status': doc.status,
-        'GR Date': doc.grDate
+        'Status': doc.status
     }));
     
     // Membuat worksheet dan menambahkannya ke workbook
@@ -285,13 +302,12 @@ function downloadPDF() {
         doc.submissionDate,
         doc.requiredDate,
         doc.poNumber,
-        doc.status,
-        doc.grDate
+        doc.status
     ]);
     
     // Menambahkan tabel
     doc.autoTable({
-        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
+        head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status']],
         body: tableData,
         startY: 25
     });
@@ -308,6 +324,15 @@ window.onload = function() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            filterPurchaseRequests(searchTerm);
+        });
     }
 };
 

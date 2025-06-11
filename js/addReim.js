@@ -277,21 +277,8 @@ function previewPDF(event) {
 }
 
 function displayFileList() {
-    // Get existing file list or create new one if it doesn't exist
-    let fileListContainer = document.getElementById("fileList");
-    
-    // If container doesn't exist, create it
-    if (!fileListContainer) {
-        fileListContainer = document.createElement("div");
-        fileListContainer.id = "fileList";
-        
-        // Find the file input element
-        const fileInput = document.getElementById("filePath");
-        if (fileInput && fileInput.parentNode) {
-            // Add the container after the file input
-            fileInput.parentNode.appendChild(fileListContainer);
-        }
-    }
+    // Get existing file list 
+    const fileListContainer = document.getElementById("fileList");
     
     // Clear existing content
     fileListContainer.innerHTML = "";

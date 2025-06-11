@@ -55,7 +55,7 @@ function populateCADetails(data) {
     document.getElementById('paidTo').value = data.requesterName || '';
   
     // Format and set dates
-    const submissionDate = new Date(data.submissionDate).toISOString().split('T')[0];
+    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('postingDate').value = submissionDate;
     document.getElementById('remarks').value = data.remarks || '';
     // Set transaction type
@@ -218,7 +218,7 @@ function filterUsers(fieldId) {
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -226,7 +226,7 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;
@@ -275,7 +275,7 @@ function populateUserSelects(users, caData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             

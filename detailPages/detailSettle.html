@@ -157,6 +157,12 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+            <!-- Rejection Remarks section - only visible when status is Rejected -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <label class="font-semibold text-red-600">Rejection Reason</label>
+                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            </div>
+
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
