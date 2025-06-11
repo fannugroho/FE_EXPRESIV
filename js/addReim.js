@@ -513,8 +513,8 @@ async function processDocument(isSubmit) {
         if (inputs.length >= 4) {
             reimbursementDetails.push({
                 description: inputs[0].value || "",
-                glAccount: inputs[1].value || "",
-                accountName: inputs[2].value || "",
+                // glAccount: inputs[1].value || "",
+                // accountName: inputs[2].value || "",
                 amount: parseFloat(inputs[3].value) || 0
             });
         }
