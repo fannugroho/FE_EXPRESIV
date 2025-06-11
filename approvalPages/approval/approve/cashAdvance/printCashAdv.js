@@ -278,12 +278,17 @@ function goBack() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("printCashAdv.js loaded and running");
+    
     // Check if we have data directly in URL parameters
     if (hasUrlData()) {
+        console.log("Using data from URL parameters");
         // Use data from URL parameters
         const data = getDataFromUrlParams();
+        console.log("Data from URL:", data);
         populatePrintData(data);
     } else {
+        console.log("No URL data found, trying to fetch from API");
         // Try to fetch from API using CA ID
         fetchCashAdvanceData();
     }
