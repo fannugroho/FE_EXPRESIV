@@ -162,10 +162,11 @@
     max-width: 150px;
     overflow-x: auto;
     white-space: nowrap;
-    padding: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
 }
 
-/* Styling untuk scrollbar */
+/* Styling untuk scrollbar Webkit (Chrome, Safari, dll) */
 .scrollable-column::-webkit-scrollbar {
     height: 6px;
 }
