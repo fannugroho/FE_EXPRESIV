@@ -129,6 +129,8 @@ function getDataFromUrlParams() {
         data.cashAdvanceDetails = [];
     }
     
+    console.log("Data from URL:", data); // Debug log
+    
     return data;
 }
 
@@ -156,6 +158,8 @@ async function fetchCashAdvanceData() {
 
 // Populate print page with cash advance data
 function populatePrintData(data) {
+    console.log("Populating print data with:", data); // Debug log
+    
     // Populate header information
     document.getElementById('voucherNo').textContent = data.voucherNo || '';
     document.getElementById('submissionDate').textContent = data.submissionDate ? 
@@ -213,15 +217,37 @@ function populatePrintData(data) {
     document.getElementById('returnAmount').textContent = totalAmount.toLocaleString();
     document.getElementById('returnAmountInWords').textContent = `${numberToWords(totalAmount)} rupiah`;
     
-    // Set approval names
+    // Set approval names based on mapping
     document.getElementById('proposedName').textContent = data.preparedBy || data.requesterName || '';
     document.getElementById('proposedDate').textContent = data.submissionDate ? 
         (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
             new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
     
     document.getElementById('checkedName').textContent = data.checkedBy || '';
+    document.getElementById('checkedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
+            
+    document.getElementById('acknowledgedName').textContent = data.acknowledgedBy || '';
+    document.getElementById('acknowledgedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
+            
     document.getElementById('approvedName').textContent = data.approvedBy || '';
-    document.getElementById('receivedName').textContent = data.acknowledgedBy || '';
+    document.getElementById('approvedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
+    
+    // Set additional fields for settlement
+    document.getElementById('finalReceivedName').textContent = data.payTo || '';
+    document.getElementById('finalReceivedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
+            
+    document.getElementById('settlementApprovedName').textContent = data.approvedBy || '';
+    document.getElementById('settlementApprovedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
     
     // Set return date
     document.getElementById('returnDate').textContent = data.submissionDate ? 
@@ -278,17 +304,12 @@ function goBack() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("printCashAdv.js loaded and running");
-    
     // Check if we have data directly in URL parameters
     if (hasUrlData()) {
-        console.log("Using data from URL parameters");
         // Use data from URL parameters
         const data = getDataFromUrlParams();
-        console.log("Data from URL:", data);
         populatePrintData(data);
     } else {
-        console.log("No URL data found, trying to fetch from API");
         // Try to fetch from API using CA ID
         fetchCashAdvanceData();
     }

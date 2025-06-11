@@ -629,29 +629,49 @@ function printCash() {
     const requesterName = document.getElementById('requester').value || '';
     const purpose = document.getElementById('purposed').value || '';
     const paidTo = document.getElementById('paidTo').value || '';
+    
+    // Get department
     const departmentSelect = document.getElementById('department');
-    const department = departmentSelect.options[departmentSelect.selectedIndex].text;
+    const department = departmentSelect ? 
+        (departmentSelect.options[departmentSelect.selectedIndex] ? 
+            departmentSelect.options[departmentSelect.selectedIndex].text : '') : '';
+    
+    // Get date and status
     const submissionDate = document.getElementById('postingDate').value || '';
     const statusSelect = document.getElementById('docStatus');
-    const status = statusSelect.options[statusSelect.selectedIndex].value;
+    const status = statusSelect ? 
+        (statusSelect.options[statusSelect.selectedIndex] ? 
+            statusSelect.options[statusSelect.selectedIndex].value : '') : '';
+    
+    // Get transaction type
     const transactionTypeSelect = document.getElementById('typeTransaction');
-    const transactionType = transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value;
+    const transactionType = transactionTypeSelect ? 
+        (transactionTypeSelect.options[transactionTypeSelect.selectedIndex] ? 
+            transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value : '') : '';
     
     // Get remarks if exists
     const remarks = document.getElementById('remarks').value || '';
     
     // Get approval signatories
     const preparedBySelect = document.getElementById('preparedSelect');
-    const preparedBy = preparedBySelect ? preparedBySelect.options[preparedBySelect.selectedIndex].text : '';
+    const preparedBy = preparedBySelect ? 
+        (preparedBySelect.options[preparedBySelect.selectedIndex] ? 
+            preparedBySelect.options[preparedBySelect.selectedIndex].text : '') : '';
     
     const checkedBySelect = document.getElementById('checkedSelect');
-    const checkedBy = checkedBySelect ? checkedBySelect.options[checkedBySelect.selectedIndex].text : '';
+    const checkedBy = checkedBySelect ? 
+        (checkedBySelect.options[checkedBySelect.selectedIndex] ? 
+            checkedBySelect.options[checkedBySelect.selectedIndex].text : '') : '';
     
     const acknowledgedBySelect = document.getElementById('acknowledgedSelect');
-    const acknowledgedBy = acknowledgedBySelect ? acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex].text : '';
+    const acknowledgedBy = acknowledgedBySelect ? 
+        (acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex] ? 
+            acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex].text : '') : '';
     
     const approvedBySelect = document.getElementById('approvedSelect');
-    const approvedBy = approvedBySelect ? approvedBySelect.options[approvedBySelect.selectedIndex].text : '';
+    const approvedBy = approvedBySelect ? 
+        (approvedBySelect.options[approvedBySelect.selectedIndex] ? 
+            approvedBySelect.options[approvedBySelect.selectedIndex].text : '') : '';
     
     // Collect table items
     const tableItems = [];
@@ -690,11 +710,11 @@ function printCash() {
         + `&remarks=${encodeURIComponent(remarks)}`
         + `&proposedBy=${encodeURIComponent(preparedBy)}`
         + `&checkedBy=${encodeURIComponent(checkedBy)}`
-        + `&approvedBy=${encodeURIComponent(approvedBy)}`
         + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
+        + `&approvedBy=${encodeURIComponent(approvedBy)}`
         + `&items=${itemsParam}`;
     
-    console.log("Opening URL:", url); // Debug log
+    console.log("Opening print URL:", url); // Debug log
     
     // Open the print page in a new tab
     window.open(url, '_blank');
