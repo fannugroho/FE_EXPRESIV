@@ -155,4 +155,31 @@
     .text-xl {
         font-size: 1.125rem;
     }
+}
+
+/* Styling untuk kolom dengan scrollbar */
+.scrollable-column {
+    max-width: 150px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0.5rem;
+}
+
+/* Styling untuk scrollbar */
+.scrollable-column::-webkit-scrollbar {
+    height: 6px;
+}
+
+.scrollable-column::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.scrollable-column::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.scrollable-column::-webkit-scrollbar-thumb:hover {
+    background: #555;
 } 

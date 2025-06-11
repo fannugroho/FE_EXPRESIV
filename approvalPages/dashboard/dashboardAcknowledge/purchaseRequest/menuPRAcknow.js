@@ -155,9 +155,9 @@ function updateTable(documents) {
             
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
-                <td class='p-2'>${index + 1}</td>
-                <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
-                <td class='p-2'>${doc.requesterName || '-'}</td>
+                <td class='p-2 scrollable-column'>${index + 1}</td>
+                <td class='p-2 scrollable-column'>${doc.purchaseRequestNo || '-'}</td>
+                <td class='p-2 scrollable-column'>${doc.requesterName || '-'}</td>
                 <td class='p-2'>${doc.departmentName || '-'}</td>
                 <td class='p-2'>${submissionDate}</td>
                 <td class='p-2'>${requiredDate}</td>
