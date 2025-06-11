@@ -213,6 +213,53 @@ function getReimbursementIdFromUrl() {
     return urlParams.get('reim-id');
 }
 
+// Function to get current logged-in user using auth.js
+function getCurrentLoggedInUser() {
+    try {
+        const currentUser = getCurrentUser(); // Use function from auth.js
+        if (!currentUser) return null;
+        
+        return {
+            id: currentUser.userId,
+            name: currentUser.username || ''
+        };
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
+}
+
+// Function to auto-fill preparedBy with current logged-in user
+function autofillPreparedByWithCurrentUser(users) {
+    const currentUser = getCurrentLoggedInUser();
+    if (!currentUser) return;
+    
+    // Find the current user in the users list to get their full name
+    const matchingUser = users.find(user => user.id.toString() === currentUser.id.toString());
+    
+    if (matchingUser) {
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = matchingUser.firstName;
+        if (matchingUser.middleName) displayName += ` ${matchingUser.middleName}`;
+        if (matchingUser.lastName) displayName += ` ${matchingUser.lastName}`;
+        
+        // Set the preparedBy select and search input
+        const preparedBySelect = document.getElementById('preparedBySelect');
+        const preparedBySearch = document.getElementById('preparedBySearch');
+        
+        if (preparedBySelect) {
+            preparedBySelect.value = matchingUser.id;
+        }
+        
+        if (preparedBySearch) {
+            preparedBySearch.value = displayName;
+            // Disable the preparedBy field since it's auto-filled with current user
+            preparedBySearch.disabled = true;
+            preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+        }
+    }
+}
+
 async function fetchReimbursementData() {
     reimbursementId = getReimbursementIdFromUrl();
     if (!reimbursementId) {
@@ -253,6 +300,191 @@ function updateSubmitButtonState(preparedDate) {
     }
 }
 
+// Function to fetch departments from API
+async function fetchDepartments() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        
+        const data = await response.json();
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
+}
+
+// Helper function to populate department dropdown
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect) return;
+    
+    // Clear existing options except the first one (if any)
+    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
+    
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.name;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+    
+    // Disable department selection since it will be auto-filled based on requester
+    departmentSelect.disabled = true;
+    departmentSelect.classList.add('bg-gray-200', 'cursor-not-allowed');
+}
+
+// Helper function to set department value, creating option if it doesn't exist
+function setDepartmentValue(departmentName) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect || !departmentName) return;
+    
+    // Try to find existing option
+    let optionExists = false;
+    for (let i = 0; i < departmentSelect.options.length; i++) {
+        if (departmentSelect.options[i].value === departmentName || 
+            departmentSelect.options[i].textContent === departmentName) {
+            departmentSelect.selectedIndex = i;
+            optionExists = true;
+            break;
+        }
+    }
+    
+    // If option doesn't exist, create and add it
+    if (!optionExists) {
+        const newOption = document.createElement('option');
+        newOption.value = departmentName;
+        newOption.textContent = departmentName;
+        newOption.selected = true;
+        departmentSelect.appendChild(newOption);
+    }
+}
+
+// Helper function to auto-fill department based on selected requester
+function autoFillDepartmentFromRequester(requesterName, users) {
+    console.log('Auto-filling department for requester:', requesterName);
+    console.log('Available users:', users);
+    
+    // Find the user by name from the users data passed from API
+    const selectedUser = users.find(user => {
+        // In detailReim, the users are stored with simplified structure {id, name}
+        return user.name === requesterName;
+    });
+    
+    console.log('Selected user:', selectedUser);
+    
+    if (!selectedUser) {
+        console.log('User not found in users list');
+        return;
+    }
+    
+    // Use the improved department fetching function
+    autoFillDepartmentFromRequesterById(selectedUser.id);
+}
+
+// Helper function to auto-fill department based on selected requester ID (improved version)
+async function autoFillDepartmentFromRequesterById(userId) {
+    console.log('Auto-filling department for user ID:', userId);
+    
+    try {
+        // First try to use cached users data from window.allUsers
+        if (window.allUsers && window.allUsers.length > 0) {
+            const user = window.allUsers.find(u => u.id === userId);
+            if (user && user.department) {
+                console.log('Found user in cached data:', user);
+                console.log('Department from cache:', user.department);
+                setDepartmentValue(user.department);
+                return;
+            } else {
+                console.log('User not found in cache or no department in cached data');
+            }
+        }
+        
+        // Fallback: Fetch full user details from API to get department
+        console.log('Fetching user details from API...');
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch user details');
+        }
+        
+        const user = result.data;
+        console.log('User details from API:', user);
+        
+        // Try different department field names that might exist
+        const userDepartment = user.department || 
+                              user.departmentName || 
+                              user.dept ||
+                              user.departement;
+        
+        console.log('User department from API:', userDepartment);
+        
+        if (!userDepartment) {
+            console.log('No department found for user, checking if user has employeeId for additional lookup');
+            
+            // Try to fetch department via employee endpoint if available
+            if (user.employeeId) {
+                try {
+                    const employeeResponse = await fetch(`${BASE_URL}/api/employees/${user.employeeId}`);
+                    if (employeeResponse.ok) {
+                        const employeeResult = await employeeResponse.json();
+                        if (employeeResult.status && employeeResult.data) {
+                            const employeeDepartment = employeeResult.data.department || 
+                                                     employeeResult.data.departmentName ||
+                                                     employeeResult.data.dept;
+                            if (employeeDepartment) {
+                                console.log('Found department via employee lookup:', employeeDepartment);
+                                setDepartmentValue(employeeDepartment);
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Employee lookup failed:', error);
+                }
+            }
+            
+            console.log('No department found for user, enabling manual selection');
+            // Enable manual department selection as fallback
+            const departmentSelect = document.getElementById("department");
+            if (departmentSelect) {
+                departmentSelect.disabled = false;
+                departmentSelect.classList.remove('bg-gray-200', 'cursor-not-allowed');
+                departmentSelect.classList.add('bg-white');
+                
+                // Update the default option to indicate manual selection is needed
+                const defaultOption = departmentSelect.querySelector('option[value=""]');
+                if (defaultOption) {
+                    defaultOption.textContent = 'Please select department manually';
+                    defaultOption.style.color = '#f59e0b'; // amber color for attention
+                }
+            }
+            return;
+        }
+        
+        // Set department value (will create option if it doesn't exist)
+        setDepartmentValue(userDepartment);
+        
+    } catch (error) {
+        console.error('Error fetching user department:', error);
+    }
+}
+
+// Legacy function for backward compatibility
+async function fetchUserDepartment(userId) {
+    // Redirect to the improved function
+    await autoFillDepartmentFromRequesterById(userId);
+}
+
 // Fetch users from API and populate dropdown selects
 async function fetchUsers() {
     try {
@@ -270,6 +502,10 @@ async function fetchUsers() {
         
         const users = result.data;
         
+        // Store users globally for later use
+        window.allUsers = users;
+        console.log('Stored', users.length, 'users in global cache');
+        
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users, true); // Use name as value
         populateDropdown("payToSelect", users, false); // Use ID as value
@@ -277,6 +513,9 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users, false);
         populateDropdown("checkedBySelect", users, false);
         populateDropdown("approvedBySelect", users, false);
+        
+        // Auto-fill preparedBy with current logged-in user
+        autofillPreparedByWithCurrentUser(users);
         
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -359,7 +598,7 @@ function filterUsers(fieldId) {
                     
                     dropdown.classList.add('hidden');
                     
-                    // Auto-fill payToSelect when requesterName is selected
+                    // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
@@ -376,6 +615,10 @@ function filterUsers(fieldId) {
                                 }
                             }
                         }
+                        
+                        // Auto-fill department based on selected user
+                        const users = JSON.parse(searchInput.dataset.users || '[]');
+                        autoFillDepartmentFromRequester(user.name, users);
                     }
                 };
                 dropdown.appendChild(option);
@@ -492,7 +735,8 @@ function populateFormData(data) {
         }
     }
     
-    document.getElementById('department').value = data.department || '';
+    // Set department value, creating option if it doesn't exist
+    setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
     
     // Update for searchable payTo
@@ -706,8 +950,8 @@ function goToMenuReim() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Load users first
-    fetchUsers().then(() => {
+    // Load users and departments first
+    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
     });

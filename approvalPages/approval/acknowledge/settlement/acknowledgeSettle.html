@@ -116,7 +116,7 @@
             <div> 
                 <label id="preparedByLabel" class="mr-1"><strong>Prepared by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
                     <select id="prepared" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -126,7 +126,7 @@
             <div>
                 <label id="checkedByLabel" class="mr-1"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
                     <select id="Checked" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -134,23 +134,23 @@
                 </div>
             </div>
             <div>
-                <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
-                    <select id="Approved" class="hidden">
-                        <option value="">Select User</option>
-                    </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
-            </div>
-            <div>
                 <label id="acknowledgedByLabel" class="mr-1"><strong>Acknowledged by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off">
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
                     <select id="Acknowledged" class="hidden">
                         <option value="">Select User</option>
                     </select>
                     <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <select id="Approved" class="hidden">
+                        <option value="">Select User</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>
