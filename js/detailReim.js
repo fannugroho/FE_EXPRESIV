@@ -74,10 +74,10 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
+            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />
@@ -347,10 +347,10 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                    <input type="text" value="${detail.accountName || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
                 </td>
                 <td class="p-2 border">
                     <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
