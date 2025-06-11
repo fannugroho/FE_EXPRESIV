@@ -29,8 +29,12 @@ function filterUsers(fieldId) {
     
     let filteredUsers = [];
     
-    // Handle requesterNameSelect differently - use the dataset stored in the search input
-    if (fieldId === 'requesterNameSelect') {
+    // Handle all searchable selects
+    if (fieldId === 'requesterNameSelect' || 
+        fieldId === 'preparedBySelect' || 
+        fieldId === 'acknowledgeBySelect' || 
+        fieldId === 'checkedBySelect' || 
+        fieldId === 'approvedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
             filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
@@ -42,16 +46,59 @@ function filterUsers(fieldId) {
                 option.innerText = user.name;
                 option.onclick = function() {
                     searchInput.value = user.name;
-                    document.getElementById(fieldId).value = user.name;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // For requesterName, store the name as the value since we send the name to the API
+                        if (fieldId === 'requesterNameSelect') {
+                            // Find the matching option or create a new one
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].textContent === user.name) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.name;
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.name;
+                            }
+                        } else {
+                            // For approval fields, store the ID as the value
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].value === user.id.toString()) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.id;
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.id;
+                            }
+                        }
+                    }
+                    
                     dropdown.classList.add('hidden');
                     
                     // Auto-fill payToSelect when requesterName is selected
-                    const payToSelect = document.getElementById('payToSelect');
-                    if (payToSelect) {
-                        for (let i = 0; i < payToSelect.options.length; i++) {
-                            if (payToSelect.options[i].textContent === user.name) {
-                                payToSelect.selectedIndex = i;
-                                break;
+                    if (fieldId === 'requesterNameSelect') {
+                        const payToSelect = document.getElementById('payToSelect');
+                        if (payToSelect) {
+                            for (let i = 0; i < payToSelect.options.length; i++) {
+                                if (payToSelect.options[i].textContent === user.name) {
+                                    payToSelect.selectedIndex = i;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -451,9 +498,17 @@ function populateDropdown(dropdownId, users) {
         dropdown.appendChild(option);
     });
     
-    // For requesterNameSelect, set up the search functionality
-    if (dropdownId === "requesterNameSelect") {
-        const searchInput = document.getElementById("requesterNameSearch");
+    // Store users data for searching in searchable fields
+    const searchableFields = [
+        "requesterNameSelect", 
+        "preparedBySelect", 
+        "acknowledgeBySelect", 
+        "checkedBySelect", 
+        "approvedBySelect"
+    ];
+    
+    if (searchableFields.includes(dropdownId)) {
+        const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
         if (searchInput) {
             // Store users data for searching
             searchInput.dataset.users = JSON.stringify(users.map(user => {
@@ -526,15 +581,17 @@ async function processDocument(isSubmit) {
         return element ? element.value : "";
     };
     
-    // Get approval values directly from select elements
+    // Get approval values directly from select elements or search inputs
     const getApprovalValue = (id) => {
         const selectElement = document.getElementById(`${id}Select`);
+        
+        // Always use the select element value which contains the ID
         return selectElement ? selectElement.value : "";
     };
 
     const reimbursementData = {
         voucherNo: getElementValue("voucherNo"),
-        requesterName: document.getElementById("requesterNameSearch").value || document.getElementById("requesterNameSelect").value, // Use the search input value
+        requesterName: document.getElementById("requesterNameSearch").value, // Use the search input value
         department: getElementValue("department"),
         payTo: getApprovalValue("payTo"),
         currency: getElementValue("currency"),
