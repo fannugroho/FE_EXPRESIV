@@ -271,45 +271,245 @@ async function fetchUsers() {
         const users = result.data;
         
         // Populate dropdowns
-        populateDropdown("preparedBySelect", users);
-        populateDropdown("acknowledgeBySelect", users);
-        populateDropdown("checkedBySelect", users);
-        populateDropdown("approvedBySelect", users);
+        populateDropdown("requesterNameSelect", users, true); // Use name as value
+        populateDropdown("payToSelect", users, false); // Use ID as value
+        populateDropdown("preparedBySelect", users, false);
+        populateDropdown("acknowledgeBySelect", users, false);
+        populateDropdown("checkedBySelect", users, false);
+        populateDropdown("approvedBySelect", users, false);
         
     } catch (error) {
         console.error("Error fetching users:", error);
     }
 }
 
+// Function to filter and display user dropdown
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) return;
+    
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    let filteredUsers = [];
+    
+    // Handle all searchable selects
+    if (fieldId === 'requesterNameSelect' || 
+        fieldId === 'payToSelect' ||
+        fieldId === 'preparedBySelect' || 
+        fieldId === 'acknowledgeBySelect' || 
+        fieldId === 'checkedBySelect' || 
+        fieldId === 'approvedBySelect') {
+        try {
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            
+            // Show search results
+            filteredUsers.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = user.name;
+                option.onclick = function() {
+                    searchInput.value = user.name;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // For requesterName, store the name as the value 
+                        if (fieldId === 'requesterNameSelect') {
+                            // Find matching option or create a new one
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].textContent === user.name) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.name; // For requesterName, value is the name itself
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.name;
+                            }
+                        } else {
+                            // For other fields (payTo, approvals), store the ID as the value
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].value === user.id.toString()) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.id;
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.id;
+                            }
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                    
+                    // Auto-fill payToSelect when requesterName is selected
+                    if (fieldId === 'requesterNameSelect') {
+                        const payToSearch = document.getElementById('payToSearch');
+                        const payToSelect = document.getElementById('payToSelect');
+                        
+                        if (payToSearch && payToSelect) {
+                            // Find the matching user to get the ID
+                            payToSearch.value = user.name;
+                            
+                            // Set the ID as the value in the select element
+                            for (let i = 0; i < payToSelect.options.length; i++) {
+                                if (payToSelect.options[i].textContent === user.name) {
+                                    payToSelect.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                };
+                dropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error parsing users data:", error);
+        }
+    }
+    
+    // Show message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Name Not Found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
+
 // Helper function to populate a dropdown with user data
-function populateDropdown(dropdownId, users) {
+// useDisplayNameAsValue: if true, use the display name as the value (for requesterNameSelect)
+function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
     
     // Clear existing options
     dropdown.innerHTML = "";
     
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Choose Name";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    dropdown.appendChild(defaultOption);
+    
     // Add users as options
     users.forEach(user => {
         const option = document.createElement("option");
-        option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
         let displayName = user.firstName;
         if (user.middleName) displayName += ` ${user.middleName}`;
         if (user.lastName) displayName += ` ${user.lastName}`;
         
+        // For requesterNameSelect, use the display name as the value instead of ID
+        if (useDisplayNameAsValue) {
+            option.value = displayName;
+        } else {
+            option.value = user.id;
+        }
+        
         option.textContent = displayName;
         dropdown.appendChild(option);
     });
+    
+    // Store users data for searching in searchable fields
+    const searchableFields = [
+        "requesterNameSelect", 
+        "payToSelect",
+        "preparedBySelect", 
+        "acknowledgeBySelect", 
+        "checkedBySelect", 
+        "approvedBySelect"
+    ];
+    
+    if (searchableFields.includes(dropdownId)) {
+        const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
+        if (searchInput) {
+            // Store users data for searching
+            searchInput.dataset.users = JSON.stringify(users.map(user => {
+                let displayName = user.firstName;
+                if (user.middleName) displayName += ` ${user.middleName}`;
+                if (user.lastName) displayName += ` ${user.lastName}`;
+                return {
+                    id: user.id,
+                    name: displayName
+                };
+            }));
+        }
+    }
 }
 
 function populateFormData(data) {
     document.getElementById('voucherNo').value = data.voucherNo || '';
-    document.getElementById('requesterName').value = data.requesterName || '';
+    
+    // Update for searchable requesterName
+    const requesterNameSearch = document.getElementById('requesterNameSearch');
+    const requesterNameSelect = document.getElementById('requesterNameSelect');
+    if (requesterNameSearch) {
+        requesterNameSearch.value = data.requesterName || '';
+        
+        // Also set the select value to match
+        if (requesterNameSelect) {
+            // For requesterNameSelect, find or create option with the display name as value
+            let optionExists = false;
+            for (let i = 0; i < requesterNameSelect.options.length; i++) {
+                if (requesterNameSelect.options[i].textContent === data.requesterName) {
+                    requesterNameSelect.selectedIndex = i;
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            if (!optionExists && data.requesterName) {
+                const newOption = document.createElement('option');
+                newOption.value = data.requesterName; // Value is the same as text for requesterName
+                newOption.textContent = data.requesterName;
+                requesterNameSelect.appendChild(newOption);
+                requesterNameSelect.value = data.requesterName;
+            }
+        }
+    }
+    
     document.getElementById('department').value = data.department || '';
     document.getElementById('currency').value = data.currency || '';
-    document.getElementById('payTo').value = data.payTo || '';
+    
+    // Update for searchable payTo
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+    if (payToSearch && data.payTo) {
+        // Find the corresponding name for the payTo ID
+        if (payToSelect) {
+            for (let i = 0; i < payToSelect.options.length; i++) {
+                if (payToSelect.options[i].value === data.payTo.toString()) {
+                    payToSelect.selectedIndex = i;
+                    payToSearch.value = payToSelect.options[i].textContent;
+                    break;
+                }
+            }
+        }
+    }
     
     if (data.submissionDate) {
         const date = new Date(data.submissionDate);
@@ -322,17 +522,34 @@ function populateFormData(data) {
     document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     document.getElementById('remarks').value = data.remarks || '';
     
-    // Set selected values in approval dropdowns based on data
-    if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
-    if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
-    if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
+    // Set approval values in both select and search inputs
+    setApprovalValue('preparedBy', data.preparedBy);
+    setApprovalValue('acknowledgeBy', data.acknowledgedBy);
+    setApprovalValue('checkedBy', data.checkedBy);
+    setApprovalValue('approvedBy', data.approvedBy);
     
     // Update Submit button state based on preparedDate
     updateSubmitButtonState(data.preparedDate);
     
     populateReimbursementDetails(data.reimbursementDetails);
     displayAttachments(data.reimbursementAttachments);
+}
+
+// Helper function to set approval values in both select and search input
+function setApprovalValue(fieldPrefix, userId) {
+    if (!userId) return;
+    
+    const selectElement = document.getElementById(`${fieldPrefix}Select`);
+    const searchInput = document.getElementById(`${fieldPrefix}Search`);
+    
+    if (selectElement) {
+        selectElement.value = userId;
+        
+        // Also set the search input value
+        if (searchInput && selectElement.selectedOptions[0]) {
+            searchInput.value = selectElement.selectedOptions[0].textContent;
+        }
+    }
 }
 
 function populateReimbursementDetails(details) {
@@ -426,11 +643,18 @@ async function submitReimbursementUpdate() {
         });
     });
     
+    // Get requesterName from the search input (text value)
+    const requesterName = document.getElementById('requesterNameSearch').value;
+    
+    // Get payTo ID from the hidden select element
+    const payToSelect = document.getElementById('payToSelect');
+    const payTo = payToSelect ? payToSelect.value : null;
+    
     const requestData = {
-        requesterName: document.getElementById('requesterName').value,
+        requesterName: requesterName,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
-        payTo: document.getElementById('payTo').value,
+        payTo: payTo,
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
@@ -486,6 +710,64 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchUsers().then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
+    });
+    
+    // Setup event listeners for search dropdowns
+    const searchFields = [
+        'requesterNameSearch',
+        'payToSearch',
+        'preparedBySearch',
+        'acknowledgeBySearch',
+        'checkedBySearch',
+        'approvedBySearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+            
+            // Add input event for real-time filtering
+            searchInput.addEventListener('input', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+        }
+    });
+    
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'requesterNameSelectDropdown',
+            'payToSelectDropdown',
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'requesterNameSearch',
+            'payToSearch',
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
     });
 });
 

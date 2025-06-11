@@ -43,7 +43,13 @@
                 <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded" disabled>
 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester" class="w-full p-2 border rounded">
+                <div class="relative">
+                    <input type="text" id="requesterNameSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="requesterNameSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="requesterNameSelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded">
@@ -62,7 +68,13 @@
                 <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded">
 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="payTo" placeholder="outno" class="w-full p-2 border rounded">        
+                <div class="relative">
+                    <input type="text" id="payToSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" readonly>
+                    <div id="payToSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="payToSelect" class="hidden" disabled>
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>        
             </div>
             
             <div>
@@ -122,35 +134,46 @@
             </div>
 
         <!-- Approval section -->
-        <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
-                <select id="preparedBySelect" class="w-full p-1 border rounded">
-                    <!-- <option value="Admin 1">Admin 1</option>
-                    <option value="Admin 2">Admin 2</option> -->
-                </select>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="preparedBySelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
             <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Supervisor 1">Supervisor 1</option>
-                <option value="Supervisor 2">Supervisor 2</option> -->
-            </select>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="acknowledgeBySelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
             <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Finance 1">Finance 1</option>
-                <option value="Finance 2">Finance 2</option> -->
-            </select>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="checkedBySelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
             <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Manager 1">Manager 1</option>
-                <option value="Manager 2">Manager 2</option> -->
-            </select>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="approvedBySelect" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
         </div>
         <br>
