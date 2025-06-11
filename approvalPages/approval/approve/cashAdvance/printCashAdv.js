@@ -89,6 +89,49 @@ function formatCurrency(amount) {
     }).format(amount).replace('Rp', 'IDR');
 }
 
+// Check if we have direct data from URL parameters
+function hasUrlData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.has('cashAdvanceNo') && urlParams.has('employeeName');
+}
+
+// Get data from URL parameters
+function getDataFromUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Extract parameters
+    const data = {
+        voucherNo: urlParams.get('cashAdvanceNo') || '',
+        employeeNik: urlParams.get('employeeNik') || '',
+        employeeName: urlParams.get('employeeName') || '',
+        requesterName: urlParams.get('requesterName') || '',
+        purpose: urlParams.get('purpose') || '',
+        payTo: urlParams.get('paidTo') || '',
+        department: urlParams.get('department') || '',
+        submissionDate: urlParams.get('submissionDate') || '',
+        status: urlParams.get('status') || '',
+        transactionType: urlParams.get('transactionType') || '',
+        remarks: urlParams.get('remarks') || '',
+        preparedBy: urlParams.get('proposedBy') || '',
+        checkedBy: urlParams.get('checkedBy') || '',
+        approvedBy: urlParams.get('approvedBy') || '',
+        acknowledgedBy: urlParams.get('acknowledgedBy') || ''
+    };
+    
+    // Parse items if available
+    try {
+        const itemsParam = urlParams.get('items');
+        if (itemsParam) {
+            data.cashAdvanceDetails = JSON.parse(decodeURIComponent(itemsParam));
+        }
+    } catch (error) {
+        console.error('Error parsing items from URL:', error);
+        data.cashAdvanceDetails = [];
+    }
+    
+    return data;
+}
+
 // Fetch cash advance data from API
 async function fetchCashAdvanceData() {
     cashAdvanceId = getCashAdvanceIdFromUrl();
@@ -115,52 +158,75 @@ async function fetchCashAdvanceData() {
 function populatePrintData(data) {
     // Populate header information
     document.getElementById('voucherNo').textContent = data.voucherNo || '';
-    document.getElementById('submissionDate').textContent = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString('en-GB') : '';
+    document.getElementById('submissionDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
     document.getElementById('paidTo').textContent = ': ' + (data.payTo || '');
     
     // Set department checkbox
     if (data.department) {
         const dept = data.department.toLowerCase();
-        if (dept === 'production') {
-            document.getElementById('productionCheck').classList.add('checked');
-        } else if (dept === 'marketing') {
-            document.getElementById('marketingCheck').classList.add('checked');
-        } else if (dept === 'technical') {
-            document.getElementById('technicalCheck').classList.add('checked');
-        } else if (dept === 'administration') {
-            document.getElementById('administrationCheck').classList.add('checked');
+        if (dept.includes('production')) {
+            document.getElementById('productionCheck').style.backgroundColor = 'black';
+        } else if (dept.includes('marketing')) {
+            document.getElementById('marketingCheck').style.backgroundColor = 'black';
+        } else if (dept.includes('technical')) {
+            document.getElementById('technicalCheck').style.backgroundColor = 'black';
+        } else if (dept.includes('admin')) {
+            document.getElementById('administrationCheck').style.backgroundColor = 'black';
         }
     }
     
-    // Set payment method
+    // Set payment method (default to Cash if not specified)
     if (data.paymentMethod === 'Bank') {
-        document.getElementById('bankCheck').classList.add('checked');
+        document.getElementById('bankCheck').style.backgroundColor = 'black';
     } else {
-        document.getElementById('cashCheck').classList.add('checked');
+        document.getElementById('cashCheck').style.backgroundColor = 'black';
     }
     
-    // Set purpose information
-    document.getElementById('purpose').textContent = data.purpose || '';
+    // Set purpose information with transaction type if available
+    let purposeText = data.purpose || '';
+    if (data.transactionType) {
+        purposeText += ` (${data.transactionType})`;
+    }
+    if (data.remarks) {
+        purposeText += `\nNotes: ${data.remarks}`;
+    }
+    document.getElementById('purpose').textContent = purposeText;
+    
+    // Calculate total amount from details if available
+    let totalAmount = 0;
+    if (data.cashAdvanceDetails && data.cashAdvanceDetails.length > 0) {
+        data.cashAdvanceDetails.forEach(detail => {
+            const amount = parseFloat(detail.amount) || 0;
+            totalAmount += amount;
+        });
+    } else if (data.amount) {
+        totalAmount = parseFloat(data.amount);
+    }
     
     // Set amount information
-    const amount = parseFloat(data.amount) || 0;
-    document.getElementById('estimatedCost').textContent = amount.toLocaleString();
-    document.getElementById('amountInWords').textContent = `${numberToWords(amount)} rupiah`;
+    document.getElementById('estimatedCost').textContent = totalAmount.toLocaleString();
+    document.getElementById('amountInWords').textContent = `${numberToWords(totalAmount)} rupiah`;
     
     // Set return amount
-    document.getElementById('returnAmount').textContent = amount.toLocaleString();
-    document.getElementById('returnAmountInWords').textContent = `${numberToWords(amount)} rupiah`;
+    document.getElementById('returnAmount').textContent = totalAmount.toLocaleString();
+    document.getElementById('returnAmountInWords').textContent = `${numberToWords(totalAmount)} rupiah`;
     
     // Set approval names
-    document.getElementById('proposedName').textContent = data.requesterName || '';
-    document.getElementById('proposedDate').textContent = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString('en-GB') : '';
+    document.getElementById('proposedName').textContent = data.preparedBy || data.requesterName || '';
+    document.getElementById('proposedDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
     
     document.getElementById('checkedName').textContent = data.checkedBy || '';
     document.getElementById('approvedName').textContent = data.approvedBy || '';
     document.getElementById('receivedName').textContent = data.acknowledgedBy || '';
     
     // Set return date
-    document.getElementById('returnDate').textContent = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString('en-GB') : '';
+    document.getElementById('returnDate').textContent = data.submissionDate ? 
+        (typeof data.submissionDate === 'string' && data.submissionDate.includes('T') ? 
+            new Date(data.submissionDate).toLocaleDateString('en-GB') : data.submissionDate) : '';
     
     // Populate cash advance details table if available
     if (data.cashAdvanceDetails && data.cashAdvanceDetails.length > 0) {
@@ -212,5 +278,13 @@ function goBack() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    fetchCashAdvanceData();
+    // Check if we have data directly in URL parameters
+    if (hasUrlData()) {
+        // Use data from URL parameters
+        const data = getDataFromUrlParams();
+        populatePrintData(data);
+    } else {
+        // Try to fetch from API using CA ID
+        fetchCashAdvanceData();
+    }
 }); 

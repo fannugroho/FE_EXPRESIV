@@ -622,5 +622,80 @@ function displayAttachments(attachments) {
 
 // Function to print cash advance
 function printCash() {
-    printCashAdvanceVoucher();
+    // Get form values
+    const cashAdvanceNo = document.getElementById('invno').value || '';
+    const employeeId = document.getElementById('Employee').value || '';
+    const employeeName = document.getElementById('EmployeeName').value || '';
+    const requesterName = document.getElementById('requester').value || '';
+    const purpose = document.getElementById('purposed').value || '';
+    const paidTo = document.getElementById('paidTo').value || '';
+    const departmentSelect = document.getElementById('department');
+    const department = departmentSelect.options[departmentSelect.selectedIndex].text;
+    const submissionDate = document.getElementById('postingDate').value || '';
+    const statusSelect = document.getElementById('docStatus');
+    const status = statusSelect.options[statusSelect.selectedIndex].value;
+    const transactionTypeSelect = document.getElementById('typeTransaction');
+    const transactionType = transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value;
+    
+    // Get remarks if exists
+    const remarks = document.getElementById('remarks').value || '';
+    
+    // Get approval signatories
+    const preparedBySelect = document.getElementById('preparedSelect');
+    const preparedBy = preparedBySelect ? preparedBySelect.options[preparedBySelect.selectedIndex].text : '';
+    
+    const checkedBySelect = document.getElementById('checkedSelect');
+    const checkedBy = checkedBySelect ? checkedBySelect.options[checkedBySelect.selectedIndex].text : '';
+    
+    const acknowledgedBySelect = document.getElementById('acknowledgedSelect');
+    const acknowledgedBy = acknowledgedBySelect ? acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex].text : '';
+    
+    const approvedBySelect = document.getElementById('approvedSelect');
+    const approvedBy = approvedBySelect ? approvedBySelect.options[approvedBySelect.selectedIndex].text : '';
+    
+    // Collect table items
+    const tableItems = [];
+    const rows = document.querySelectorAll('#tableBody tr');
+    let hasValidItems = false;
+    
+    rows.forEach(row => {
+        const descriptionInput = row.querySelector('input[type="text"]');
+        const amountInput = row.querySelector('input[type="number"]');
+        
+        if (descriptionInput && amountInput && 
+            descriptionInput.value.trim() !== '' && 
+            amountInput.value.trim() !== '') {
+            tableItems.push({
+                description: descriptionInput.value,
+                amount: amountInput.value
+            });
+            hasValidItems = true;
+        }
+    });
+    
+    // Convert items array to JSON string and encode for URL
+    const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
+    
+    // Create URL with parameters
+    const url = `printCashAdv.html?cashAdvanceNo=${encodeURIComponent(cashAdvanceNo)}`
+        + `&employeeNik=${encodeURIComponent(employeeId)}`
+        + `&employeeName=${encodeURIComponent(employeeName)}`
+        + `&requesterName=${encodeURIComponent(requesterName)}`
+        + `&purpose=${encodeURIComponent(purpose)}`
+        + `&paidTo=${encodeURIComponent(paidTo)}`
+        + `&department=${encodeURIComponent(department)}`
+        + `&submissionDate=${encodeURIComponent(submissionDate)}`
+        + `&status=${encodeURIComponent(status)}`
+        + `&transactionType=${encodeURIComponent(transactionType)}`
+        + `&remarks=${encodeURIComponent(remarks)}`
+        + `&proposedBy=${encodeURIComponent(preparedBy)}`
+        + `&checkedBy=${encodeURIComponent(checkedBy)}`
+        + `&approvedBy=${encodeURIComponent(approvedBy)}`
+        + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
+        + `&items=${itemsParam}`;
+    
+    console.log("Opening URL:", url); // Debug log
+    
+    // Open the print page in a new tab
+    window.open(url, '_blank');
 }
