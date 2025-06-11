@@ -258,62 +258,137 @@ function toggleSubMenu(menuId) {
 
 // Fungsi Download Excel
 function downloadExcel() {
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
+    // Use the currently filtered data
+    const dataToExport = [...filteredPurchaseRequests];
     
-    // Membuat workbook baru
+    // Create a new workbook
     const workbook = XLSX.utils.book_new();
     
-    // Mengonversi data ke format worksheet
-    const wsData = documents.map(doc => ({
-        'Document Number': doc.id,
-        'PR Number': doc.purchaseRequestNo,
-        'Requester': doc.requesterName,
-        'Department': doc.departmentName,
-        'Submission Date': doc.submissionDate,
-        'Required Date': doc.requiredDate,
-        'PO Number': doc.poNumber,
-        'Status': doc.status
-    }));
+    // Get current tab name for the file name
+    const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
     
-    // Membuat worksheet dan menambahkannya ke workbook
+    // Convert data to worksheet format
+    const wsData = dataToExport.map(doc => {
+        // Format dates
+        const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
+        const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';
+        
+        // Format PO number
+        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
+        
+        return {
+            'Document Number': doc.id || '',
+            'PR Number': doc.purchaseRequestNo || '',
+            'Requester': doc.requesterName || '',
+            'Department': doc.departmentName || '',
+            'Submission Date': submissionDate,
+            'Required Date': requiredDate,
+            'PO Number': poNumber,
+            'Status': doc.status || ''
+        };
+    });
+    
+    // Create worksheet and add it to the workbook
     const worksheet = XLSX.utils.json_to_sheet(wsData);
+    
+    // Set column widths for better readability
+    const columnWidths = [
+        { wch: 15 }, // Document Number
+        { wch: 20 }, // PR Number
+        { wch: 20 }, // Requester
+        { wch: 15 }, // Department
+        { wch: 15 }, // Submission Date
+        { wch: 15 }, // Required Date
+        { wch: 15 }, // PO Number
+        { wch: 12 }  // Status
+    ];
+    worksheet['!cols'] = columnWidths;
+    
+    // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
     
-    // Menghasilkan file Excel
-    XLSX.writeFile(workbook, 'purchase_request_list.xlsx');
+    // Generate the Excel file with current filter in the filename
+    XLSX.writeFile(workbook, `purchase_request_${statusText.toLowerCase()}_list.xlsx`);
 }
 
 // Fungsi Download PDF
 function downloadPDF() {
+    // Use the jsPDF library
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Menambahkan judul
+    // Get current tab name for the title
+    const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+    
+    // Add title with current filter information
     doc.setFontSize(16);
-    doc.text('Purchase Request Report', 14, 15);
+    doc.text(`Purchase Request Report - ${statusText}`, 14, 15);
     
-    // Membuat data tabel dari documents
-    const documents = JSON.parse(localStorage.getItem("documents")) || [];
-    const tableData = documents.map(doc => [
-        doc.id,
-        doc.purchaseRequestNo,
-        doc.requesterName,
-        doc.departmentName,
-        doc.submissionDate,
-        doc.requiredDate,
-        doc.poNumber,
-        doc.status
-    ]);
+    // Add timestamp
+    const now = new Date();
+    const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    doc.setFontSize(10);
+    doc.text(timestamp, 14, 22);
     
-    // Menambahkan tabel
+    // Create table data from the filtered documents
+    const dataToExport = [...filteredPurchaseRequests];
+    const tableData = dataToExport.map(doc => {
+        // Format dates
+        const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
+        const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';
+        
+        // Format PO number
+        const poNumber = doc.docEntrySAP ? `PO-${doc.docEntrySAP.toString().padStart(4, '0')}` : '';
+        
+        return [
+            doc.id || '',
+            doc.purchaseRequestNo || '',
+            doc.requesterName || '',
+            doc.departmentName || '',
+            submissionDate,
+            requiredDate,
+            poNumber,
+            doc.status || ''
+        ];
+    });
+    
+    // Add table with styling
     doc.autoTable({
         head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status']],
         body: tableData,
-        startY: 25
+        startY: 30,
+        styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            overflow: 'linebreak'
+        },
+        columnStyles: {
+            0: { cellWidth: 20 },      // Doc Number
+            1: { cellWidth: 25 },      // PR Number
+            2: { cellWidth: 25 },      // Requester
+            3: { cellWidth: 25 },      // Department
+            4: { cellWidth: 22 },      // Submission Date
+            5: { cellWidth: 22 },      // Required Date
+            6: { cellWidth: 20 },      // PO Number
+            7: { cellWidth: 20 }       // Status
+        },
+        headStyles: {
+            fillColor: [66, 133, 244],
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
+        }
     });
     
-    // Menyimpan PDF
-    doc.save('purchase_request_list.pdf');
+    // Add total count at the bottom
+    const finalY = doc.lastAutoTable.finalY || 30;
+    doc.setFontSize(10);
+    doc.text(`Total Records: ${dataToExport.length}`, 14, finalY + 10);
+    
+    // Save the PDF with current filter in the filename
+    doc.save(`purchase_request_${statusText.toLowerCase()}_list.pdf`);
 }
 
 // Add window.onload event listener
