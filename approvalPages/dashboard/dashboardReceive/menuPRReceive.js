@@ -188,7 +188,6 @@ function updateTable(documents) {
             
             row += `<td class='p-2'>
                     <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
-                    ${currentTab === 'approved' ? `<button onclick="receiveDoc('${doc.id}', '${doc.prType}')" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ml-1">Receive</button>` : ''}
                 </td>
             </tr>`;
             

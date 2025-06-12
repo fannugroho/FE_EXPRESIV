@@ -1,99 +1,62 @@
-// Using BASE_URL from auth.js instead of hardcoded baseUrl
-let purchaseRequestId = '';
-
-// Get purchase request ID from URL
-function getPurchaseRequestIdFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('pr-id');
-}
-
-// Format number to currency
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(amount).replace('Rp', 'IDR');
-}
-
-// Format date to display format
-function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
-}
-
-// Fetch purchase request data from API
-async function fetchPurchaseRequestData() {
-    purchaseRequestId = getPurchaseRequestIdFromUrl();
-    if (!purchaseRequestId) {
-        console.error('No purchase request ID found in URL');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${BASE_URL}/api/purchase-requests/${purchaseRequestId}`);
-        const result = await response.json();
-        
-        if (result.status && result.code === 200) {
-            populatePrintData(result.data);
-        } else {
-            console.error('Failed to fetch purchase request data:', result.message);
-        }
-    } catch (error) {
-        console.error('Error fetching purchase request data:', error);
-    }
-}
-
-// Populate print page with purchase request data
-function populatePrintData(data) {
-    // Populate header information
-    document.getElementById('dateIssued').textContent = formatDate(data.requestDate);
-    document.getElementById('requestedDepartment').textContent = data.department || '';
-    document.getElementById('purchaseRequestNo').textContent = data.purchaseRequestNo || '';
-    document.getElementById('classification').textContent = data.classification || '';
-    
-    // Set approvers
-    document.getElementById('requestedBy').textContent = data.requestedBy || '';
-    document.getElementById('checkedBy').textContent = data.checkedBy || '';
-    document.getElementById('acknowledgedBy').textContent = data.acknowledgedBy || '';
-    document.getElementById('approvedBy').textContent = data.approvedBy || '';
-    document.getElementById('receivedDate').textContent = formatDate(data.receivedDate);
-    
-    // Populate items table
-    populateItemsTable(data.purchaseRequestItems);
-}
-
-// Populate purchase request items table
-function populateItemsTable(items) {
-    const tableBody = document.getElementById('itemsTableBody');
-    tableBody.innerHTML = ''; // Clear existing rows
-    
-    if (items && items.length > 0) {
-        items.forEach((item, index) => {
-            const row = document.createElement('tr');
-            const totalAmount = (parseFloat(item.quantity) * parseFloat(item.price || 0));
-            
-            row.innerHTML = `
-                <td class="border p-2">${index + 1}</td>
-                <td class="border p-2">${item.description || ''}</td>
-                <td class="border p-2">${item.purpose || ''}</td>
-                <td class="border p-2 text-right">${item.quantity || ''}</td>
-                <td class="border p-2 text-right">${item.price ? formatCurrency(item.price) : ''}</td>
-                <td class="border p-2 text-right">${formatCurrency(totalAmount)}</td>
-                <td class="border p-2">${item.eta || ''}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
-}
-
-// Go back to previous page
+// Function to go back to previous page
 function goBack() {
     window.close();
 }
 
-// Initialize when page loads
+// Mengisi data dari parameter URL
 document.addEventListener('DOMContentLoaded', function() {
-    fetchPurchaseRequestData();
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Set nilai dari parameter URL
+    document.getElementById('dateIssued').textContent = urlParams.get('dateIssued') || '';
+    document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
+    document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
+    document.getElementById('classification').textContent = urlParams.get('classification') || '';
+    
+    // Set nilai untuk form dan nomor halaman
+    document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
+    document.getElementById('rev').textContent = '01';
+    document.getElementById('effectiveDate').textContent = '01/01/2023';
+    document.getElementById('page').textContent = '1 of 1';
+    
+    // Set nilai approval
+    document.getElementById('requestedBy').textContent = urlParams.get('requesterName') || '';
+    document.getElementById('checkedBy').textContent = urlParams.get('checkedBy') || '';
+    document.getElementById('acknowledgedBy').textContent = urlParams.get('acknowledgedBy') || '';
+    document.getElementById('approvedBy').textContent = urlParams.get('approvedBy') || '';
+    document.getElementById('receivedDate').textContent = urlParams.get('receivedDate') || '';
+    
+    // Mengisi tabel item
+    const itemsParam = urlParams.get('items');
+    if (itemsParam) {
+        try {
+            const items = JSON.parse(decodeURIComponent(itemsParam));
+            const itemsTableBody = document.getElementById('itemsTableBody');
+            
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                const totalAmount = (parseFloat(item.quantity) * parseFloat(item.price || 0)).toLocaleString();
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.description || ''}</td>
+                    <td>${item.purpose || ''}</td>
+                    <td>${item.quantity || ''}</td>
+                    <td>${item.price ? parseFloat(item.price).toLocaleString() : ''}</td>
+                    <td>${totalAmount}</td>
+                    <td>${item.eta || ''}</td>
+                `;
+                itemsTableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error parsing items:', error);
+        }
+    }
+    
+    // Secara otomatis mencetak setelah memuat
+    setTimeout(function() {
+        // Uncomment untuk mencetak otomatis saat halaman dimuat
+        // window.print();
+    }, 1000);
 }); 

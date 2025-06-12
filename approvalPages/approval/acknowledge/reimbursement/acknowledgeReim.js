@@ -47,6 +47,13 @@ async function fetchUsers() {
         
         const users = result.data;
         
+        if (!users || users.length === 0) {
+            return;
+        }
+        
+        // Store users globally for later use
+        window.allUsers = users;
+        
         // Populate dropdowns
         populateDropdown("preparedBySelect", users);
         populateDropdown("acknowledgeBySelect", users);
@@ -54,23 +61,98 @@ async function fetchUsers() {
         populateDropdown("approvedBySelect", users);
         
         // Make all dropdowns readonly by disabling them
-        document.getElementById("preparedBySelect").disabled = true;
-        document.getElementById("acknowledgeBySelect").disabled = true;
-        document.getElementById("checkedBySelect").disabled = true;
-        document.getElementById("approvedBySelect").disabled = true;
+        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect"];
+        dropdownIds.forEach(id => {
+            const dropdown = document.getElementById(id);
+            if (dropdown) {
+                dropdown.disabled = true;
+                dropdown.classList.add('bg-gray-200', 'cursor-not-allowed');
+            }
+        });
+        
+        console.log('Successfully populated all user dropdowns');
         
     } catch (error) {
         console.error("Error fetching users:", error);
     }
 }
 
+// Function to fetch departments from API
+async function fetchDepartments() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        
+        const data = await response.json();
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
+}
+
+// Helper function to populate department dropdown
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect) return;
+    
+    // Clear existing options except the first one (if any)
+    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
+    
+    departments.forEach(department => {
+        const option = document.createElement("option");
+        option.value = department.name;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+}
+
+// Helper function to set department value, creating option if it doesn't exist
+function setDepartmentValue(departmentName) {
+    const departmentSelect = document.getElementById("department");
+    if (!departmentSelect || !departmentName) return;
+    
+    // Try to find existing option
+    let optionExists = false;
+    for (let i = 0; i < departmentSelect.options.length; i++) {
+        if (departmentSelect.options[i].value === departmentName || 
+            departmentSelect.options[i].textContent === departmentName) {
+            departmentSelect.selectedIndex = i;
+            optionExists = true;
+            break;
+        }
+    }
+    
+    // If option doesn't exist, create and add it
+    if (!optionExists) {
+        const newOption = document.createElement('option');
+        newOption.value = departmentName;
+        newOption.textContent = departmentName;
+        newOption.selected = true;
+        departmentSelect.appendChild(newOption);
+    }
+}
+
 // Helper function to populate a dropdown with user data
 function populateDropdown(dropdownId, users) {
     const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
-    
+    if (!dropdown) {
+        return;
+    }
+
     // Clear existing options
     dropdown.innerHTML = "";
+    
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Choose Name";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    dropdown.appendChild(defaultOption);
     
     // Add users as options
     users.forEach(user => {
@@ -78,13 +160,21 @@ function populateDropdown(dropdownId, users) {
         option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.firstName;
+        let displayName = user.firstName || '';
         if (user.middleName) displayName += ` ${user.middleName}`;
         if (user.lastName) displayName += ` ${user.lastName}`;
         
-        option.textContent = displayName;
+        // Fallback to username if no name fields
+        if (!displayName.trim()) {
+            displayName = user.username || `User ${user.id}`;
+        }
+        
+        option.textContent = displayName.trim();
         dropdown.appendChild(option);
+        console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
+    
+    console.log(`Finished populating ${dropdownId}`);
 }
 
 // Populate form fields with data
@@ -92,9 +182,18 @@ function populateFormData(data) {
     // Main form fields
     if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
     if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
-    if (document.getElementById('department')) document.getElementById('department').value = data.department || '';
+    
+    // Set department and ensure it exists in dropdown
+    if (data.department) {
+        setDepartmentValue(data.department);
+    }
+    
     if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
-    if (document.getElementById('payTo')) document.getElementById('payTo').value = data.payTo || '';
+    
+    // Set payTo to show requester name instead of ID
+    if (document.getElementById('payTo')) {
+        document.getElementById('payTo').value = data.requesterName || '';
+    }
     
     // Format date for the date input (YYYY-MM-DD)
     if (data.submissionDate && document.getElementById('submissionDate')) {
@@ -111,7 +210,7 @@ function populateFormData(data) {
     // Approvers information - safely check if elements exist
     if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
+    if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
@@ -263,7 +362,7 @@ async function submitReimbursementUpdate() {
         requesterName: document.getElementById('requesterName').value,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
-        payTo: document.getElementById('payTo').value,
+        payTo: document.getElementById('requesterName').value, // Use requesterName for payTo
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
@@ -442,8 +541,8 @@ function displayFileList() {
 
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
-    // Load users first
-    fetchUsers().then(() => {
+    // Load users and departments first
+    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
     });

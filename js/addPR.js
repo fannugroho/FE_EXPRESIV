@@ -613,6 +613,23 @@ async function submitDocument(isSubmit = false) {
         }
     }
 
+    // Show loading indicator
+    const loadingTitle = isSubmit ? 'Mengirim...' : 'Menyimpan...';
+    const loadingText = isSubmit ? 'Sedang mengirim dokumen, harap tunggu...' : 'Sedang menyimpan dokumen, harap tunggu...';
+    
+    Swal.fire({
+        title: loadingTitle,
+        text: loadingText,
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        allowEnterKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     try {
         const prType = document.getElementById("prType").value;
         
@@ -739,8 +756,13 @@ async function submitDocument(isSubmit = false) {
                 confirmButtonText: 'OK'
             });
         } else {
-            // Show regular alert for save
-            alert("Purchase Request saved as draft successfully!");
+            // Show success message with SweetAlert for save
+            await Swal.fire({
+                title: 'Berhasil',
+                text: 'Purchase Request berhasil disimpan sebagai draft',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
         }
         
         // Redirect back to menu page
@@ -749,17 +771,12 @@ async function submitDocument(isSubmit = false) {
     } catch (error) {
         console.error("Error processing Purchase Request:", error);
         
-        if (isSubmit) {
-            // Show error message with SweetAlert for submit
-            await Swal.fire({
-                title: 'Error',
-                text: `Failed to submit Purchase Request: ${error.message}`,
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-        } else {
-            // Show regular alert for save
-            alert(`Failed to save Purchase Request: ${error.message}`);
-        }
+        // Show error message with SweetAlert for both submit and save
+        await Swal.fire({
+            title: 'Error',
+            text: `Failed to ${isSubmit ? 'submit' : 'save'} Purchase Request: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }

@@ -56,6 +56,32 @@
             visibility: visible !important;
             display: block !important;
         }
+        
+        /* Style untuk kolom dengan scrollbar */
+        .cell-with-scroll {
+            max-width: 150px; /* Lebar maksimal untuk sel */
+            overflow-x: auto; /* Tambahkan scrollbar horizontal */
+            white-space: nowrap; /* Mencegah text wrapping */
+        }
+        
+        /* Gaya untuk scrollbar */
+        .cell-with-scroll::-webkit-scrollbar {
+            height: 6px; /* Tinggi scrollbar */
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Warna track */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb {
+            background: #888; /* Warna thumb */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555; /* Warna thumb saat hover */
+        }
     </style>
 </head>
 <body>
@@ -321,7 +347,7 @@
                             <!--Search by PR-->
                             <div class="flex">
                                 <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
-                                    <option value="pr">PR Number</option>
+                                    <option value="pr">Reimbursement Number</option>
                                     <option value="requester">Requester</option>
                                     <option value="date">Submission Date</option>
                                     <option value="status">Status</option>
@@ -421,7 +447,7 @@
     </nav>
 
     <!-- External JS -->
-    <script src="../js/shared-menu.js"></script>
+    <!-- <script src="../js/shared-menu.js"></script> -->
     <script src="../js/auth.js"></script>
     <script src="../js/menuReim.js"></script>
     <script>
@@ -474,6 +500,45 @@
                 setTimeout(ensureSidebarVisible, 10);
             };
         }
+        
+        // Menambahkan class cell-with-scroll untuk kolom Doc Number dan Reimbursement Number
+        // yang memiliki teks lebih dari 15 karakter
+        function addScrollToLongCells() {
+            const table = document.querySelector('table');
+            if (!table) return;
+            
+            // Observer untuk tabel
+            const observer = new MutationObserver(function(mutations) {
+                const rows = document.querySelectorAll('#recentDocs tr');
+                
+                rows.forEach(row => {
+                    // Dapatkan sel Doc Number (indeks 0) dan Reimbursement Number (indeks 1)
+                    const docNumberCell = row.cells[0];
+                    const reimNumberCell = row.cells[1];
+                    
+                    if (docNumberCell) {
+                        if (docNumberCell.textContent.trim().length > 15) {
+                            docNumberCell.classList.add('cell-with-scroll');
+                        }
+                    }
+                    
+                    if (reimNumberCell) {
+                        if (reimNumberCell.textContent.trim().length > 15) {
+                            reimNumberCell.classList.add('cell-with-scroll');
+                        }
+                    }
+                });
+            });
+            
+            // Konfigurasi observer
+            const config = { childList: true, subtree: true };
+            
+            // Mulai observe tabel
+            observer.observe(document.getElementById('recentDocs'), config);
+        }
+        
+        // Panggil fungsi setelah halaman dimuat
+        addScrollToLongCells();
     });
     </script>
 </body>

@@ -168,6 +168,32 @@ function fetchUsers(caData = null) {
         });
 }
 
+// Add CSS styles for dropdown
+document.head.insertAdjacentHTML('beforeend', `
+<style>
+    /* Dropdown styling */
+    .dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .dropdown-item:hover {
+        background-color: #f3f4f6;
+    }
+    .search-dropdown {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 50;
+    }
+    .search-input:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+</style>
+`);
+
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("department");
     if (!departmentSelect) return;
@@ -200,22 +226,71 @@ function populateDepartmentSelect(departments) {
     }
 }
 
-// Legacy function - no longer needed with simplified dropdowns
+// Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
-    // This function is no longer used since we switched to simple select dropdowns
-    console.log('filterUsers called but no longer needed');
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or empty array if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
 }
 
 // Function to populate user select dropdowns
 function populateUserSelects(users, caData = null) {
-    // Store users globally for potential future use
+    // Store users globally for search functionality
     window.allUsers = users;
     
     const selects = [
-        { id: 'preparedSelect', approvalKey: 'preparedById' },
-        { id: 'checkedSelect', approvalKey: 'checkedById' },
-        { id: 'acknowledgedSelect', approvalKey: 'acknowledgedById' },
-        { id: 'approvedSelect', approvalKey: 'approvedById' }
+        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
+        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -226,13 +301,23 @@ function populateUserSelects(users, caData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
                 select.appendChild(option);
             });
             
-            // Set the value from CA data if available
+            // Set the value from CA data if available and update search input
             if (caData && caData[selectInfo.approvalKey]) {
                 select.value = caData[selectInfo.approvalKey];
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        const userName = selectedUser.name || `${selectedUser.firstName || ''} ${selectedUser.middleName || ''} ${selectedUser.lastName || ''}`.trim();
+                        searchInput.value = userName;
+                    }
+                }
             }
         }
     });
@@ -246,6 +331,17 @@ function populateUserSelects(users, caData = null) {
             document.getElementById('Employee').value = employeeIdentifier;
         }
     }
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
 }
 
 // Function to approve CA
@@ -463,7 +559,14 @@ function makeAllFieldsReadOnly() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Note: Search inputs no longer exist with the simplified dropdown approach
+    // Make search inputs read-only but with normal styling
+    const searchInputs = document.querySelectorAll('input[id$="Search"]');
+    searchInputs.forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-50');
+        // Remove the onkeyup event to prevent search triggering
+        field.removeAttribute('onkeyup');
+    });
     
     // Disable all select fields
     const selectFields = document.querySelectorAll('select');
@@ -564,16 +667,16 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-document.getElementById("docType").addEventListener("change", function() {
-const selectedValue = this.value;
-const cashTable = document.getElementById("cashTable");
+// document.getElementById("docType").addEventListener("change", function() {
+// const selectedValue = this.value;
+// const cashTable = document.getElementById("cashTable");
 
-if (selectedValue === "Pilih") {
-cashTable.style.display = "none";
-} else {
-cashTable.style.display = "table";
-}
-});
+// if (selectedValue === "Pilih") {
+// cashTable.style.display = "none";
+// } else {
+// cashTable.style.display = "table";
+// }
+// });
 
 function printCashAdvanceVoucher() {
     // Get cash advance ID from URL
@@ -622,5 +725,100 @@ function displayAttachments(attachments) {
 
 // Function to print cash advance
 function printCash() {
-    printCashAdvanceVoucher();
+    // Get form values
+    const cashAdvanceNo = document.getElementById('invno').value || '';
+    const employeeId = document.getElementById('Employee').value || '';
+    const employeeName = document.getElementById('EmployeeName').value || '';
+    const requesterName = document.getElementById('requester').value || '';
+    const purpose = document.getElementById('purposed').value || '';
+    const paidTo = document.getElementById('paidTo').value || '';
+    
+    // Get department
+    const departmentSelect = document.getElementById('department');
+    const department = departmentSelect ? 
+        (departmentSelect.options[departmentSelect.selectedIndex] ? 
+            departmentSelect.options[departmentSelect.selectedIndex].text : '') : '';
+    
+    // Get date and status
+    const submissionDate = document.getElementById('postingDate').value || '';
+    const statusSelect = document.getElementById('docStatus');
+    const status = statusSelect ? 
+        (statusSelect.options[statusSelect.selectedIndex] ? 
+            statusSelect.options[statusSelect.selectedIndex].value : '') : '';
+    
+    // Get transaction type
+    const transactionTypeSelect = document.getElementById('typeTransaction');
+    const transactionType = transactionTypeSelect ? 
+        (transactionTypeSelect.options[transactionTypeSelect.selectedIndex] ? 
+            transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value : '') : '';
+    
+    // Get remarks if exists
+    const remarks = document.getElementById('remarks').value || '';
+    
+    // Get approval signatories
+    const preparedBySelect = document.getElementById('preparedSelect');
+    const preparedBy = preparedBySelect ? 
+        (preparedBySelect.options[preparedBySelect.selectedIndex] ? 
+            preparedBySelect.options[preparedBySelect.selectedIndex].text : '') : '';
+    
+    const checkedBySelect = document.getElementById('checkedSelect');
+    const checkedBy = checkedBySelect ? 
+        (checkedBySelect.options[checkedBySelect.selectedIndex] ? 
+            checkedBySelect.options[checkedBySelect.selectedIndex].text : '') : '';
+    
+    const acknowledgedBySelect = document.getElementById('acknowledgedSelect');
+    const acknowledgedBy = acknowledgedBySelect ? 
+        (acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex] ? 
+            acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex].text : '') : '';
+    
+    const approvedBySelect = document.getElementById('approvedSelect');
+    const approvedBy = approvedBySelect ? 
+        (approvedBySelect.options[approvedBySelect.selectedIndex] ? 
+            approvedBySelect.options[approvedBySelect.selectedIndex].text : '') : '';
+    
+    // Collect table items
+    const tableItems = [];
+    const rows = document.querySelectorAll('#tableBody tr');
+    let hasValidItems = false;
+    
+    rows.forEach(row => {
+        const descriptionInput = row.querySelector('input[type="text"]');
+        const amountInput = row.querySelector('input[type="number"]');
+        
+        if (descriptionInput && amountInput && 
+            descriptionInput.value.trim() !== '' && 
+            amountInput.value.trim() !== '') {
+            tableItems.push({
+                description: descriptionInput.value,
+                amount: amountInput.value
+            });
+            hasValidItems = true;
+        }
+    });
+    
+    // Convert items array to JSON string and encode for URL
+    const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
+    
+    // Create URL with parameters
+    const url = `printCashAdv.html?cashAdvanceNo=${encodeURIComponent(cashAdvanceNo)}`
+        + `&employeeNik=${encodeURIComponent(employeeId)}`
+        + `&employeeName=${encodeURIComponent(employeeName)}`
+        + `&requesterName=${encodeURIComponent(requesterName)}`
+        + `&purpose=${encodeURIComponent(purpose)}`
+        + `&paidTo=${encodeURIComponent(paidTo)}`
+        + `&department=${encodeURIComponent(department)}`
+        + `&submissionDate=${encodeURIComponent(submissionDate)}`
+        + `&status=${encodeURIComponent(status)}`
+        + `&transactionType=${encodeURIComponent(transactionType)}`
+        + `&remarks=${encodeURIComponent(remarks)}`
+        + `&proposedBy=${encodeURIComponent(preparedBy)}`
+        + `&checkedBy=${encodeURIComponent(checkedBy)}`
+        + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
+        + `&approvedBy=${encodeURIComponent(approvedBy)}`
+        + `&items=${itemsParam}`;
+    
+    console.log("Opening print URL:", url); // Debug log
+    
+    // Open the print page in a new tab
+    window.open(url, '_blank');
 }
