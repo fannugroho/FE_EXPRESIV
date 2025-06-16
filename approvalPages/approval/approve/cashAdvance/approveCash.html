@@ -84,10 +84,11 @@
                 </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeTransaction" class="w-full p-2 border rounded">
+                <select id="typeTransaction" class="w-full p-2 border rounded" onchange="toggleClosedBy()">
                     <option value="Medical">Medical</option>
                     <option value="Entertainment">Entertainment</option>
                     <option value="Transport">Transport</option>
+                    <option value="Personal Loan">Personal Loan</option>
                     <option value="Others">Others</option> 
                 </select>
             </div>
@@ -125,6 +126,11 @@
         <div class="mt-4">
           <label>Remarks</label>
           <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="text-red-600">Needed Revision</label>
+          <textarea id="revision" class="w-full p-2 border rounded-md"></textarea>
         </div>
 
         <!-- Approval Signatories -->
@@ -169,18 +175,33 @@
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
+            <div id="closedBySection" style="display: none;">
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
+                    <select id="Closed" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="closedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
         </div>
         <br>
         <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="rejectCash()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Reject
-            </button>
-            <button onclick="approveCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Approved
-            </button>
-            <button onclick="printCash()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Print
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="rejectCash()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Reject
+                </button>
+                <button onclick="approveCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Approved
+                </button>
+                <button onclick="printCash()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Print
+                </button>
+            </div>
+            <button id="revisionBtn" onclick="submitRevision()" disabled class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
             </button>
         </div>
     </div>
@@ -188,6 +209,42 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded successfully');
         });
+
+        function toggleClosedBy() {
+            const typeTransaction = document.getElementById('typeTransaction').value;
+            const closedBySection = document.getElementById('closedBySection');
+            
+            if (typeTransaction === 'Personal Loan') {
+                closedBySection.style.display = 'block';
+            } else {
+                closedBySection.style.display = 'none';
+            }
+        }
+
+        // Event listener untuk textarea revision
+        document.getElementById('revision').addEventListener('input', function() {
+            const revisionBtn = document.getElementById('revisionBtn');
+            if (this.value.trim() !== '') {
+                revisionBtn.disabled = false;
+                revisionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                revisionBtn.disabled = true;
+                revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+
+        function submitRevision() {
+            const revisionText = document.getElementById('revision').value;
+            if (revisionText.trim() !== '') {
+                // Di sini Anda bisa menambahkan logika untuk memproses revisi
+                Swal.fire({
+                    title: 'Revision Submitted',
+                    text: 'Your revision request has been submitted successfully',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
     </script>
 </body>
 </html>
