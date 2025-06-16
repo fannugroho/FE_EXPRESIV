@@ -43,6 +43,7 @@ async function saveDocument(isSubmit = false) {
         formData.append('CheckedById', document.getElementById("Approval.CheckedById").value);
         formData.append('ApprovedById', document.getElementById("Approval.ApprovedById").value);
         formData.append('AcknowledgedById', document.getElementById("Approval.AcknowledgedById").value);
+        formData.append('ClosedById', document.getElementById("Approval.ClosedById").value);
         
         // Add file attachments
         const fileInput = document.getElementById("Attachments");
@@ -539,7 +540,8 @@ function populateUserSelects(users) {
         "Approval.PreparedById",
         "Approval.CheckedById", 
         "Approval.ApprovedById",
-        "Approval.AcknowledgedById"
+        "Approval.AcknowledgedById",
+        "Approval.ClosedById"
     ];
 
     approvalSelects.forEach(selectId => {
@@ -575,14 +577,16 @@ function populateUserSelects(users) {
                 'Approval.PreparedByIdDropdown', 
                 'Approval.CheckedByIdDropdown', 
                 'Approval.ApprovedByIdDropdown', 
-                'Approval.AcknowledgedByIdDropdown'
+                'Approval.AcknowledgedByIdDropdown',
+                'Approval.ClosedByIdDropdown'
             ];
             
             const searchInputs = [
                 'Approval.PreparedByIdSearch', 
                 'Approval.CheckedByIdSearch', 
                 'Approval.ApprovedByIdSearch', 
-                'Approval.AcknowledgedByIdSearch'
+                'Approval.AcknowledgedByIdSearch',
+                'Approval.ClosedByIdSearch'
             ];
             
             dropdowns.forEach((dropdownId, index) => {
@@ -602,7 +606,8 @@ function populateUserSelects(users) {
             'Approval.PreparedByIdSearch',
             'Approval.CheckedByIdSearch',
             'Approval.ApprovedByIdSearch',
-            'Approval.AcknowledgedByIdSearch'
+            'Approval.AcknowledgedByIdSearch',
+            'Approval.ClosedByIdSearch'
         ];
         
         searchFields.forEach(fieldId => {
@@ -643,6 +648,26 @@ function populateTransactionTypeSelect(transactionTypes) {
             option.textContent = transactionType.name;
             transactionTypeSelect.appendChild(option);
         });
+
+        // Add event listener for TransactionType change
+        transactionTypeSelect.addEventListener('change', function() {
+            const closedBySection = document.getElementById('closedBySection');
+            const closedByLabel = document.getElementById('Approval.ClosedByIdLabel');
+            
+            if (this.value === 'Personal Loan') {
+                closedBySection.style.display = 'block';
+                closedByLabel.style.display = 'block';
+            } else {
+                closedBySection.style.display = 'none';
+                closedByLabel.style.display = 'none';
+            }
+        });
+
+        // Hide closed by section by default
+        const closedBySection = document.getElementById('closedBySection');
+        const closedByLabel = document.getElementById('Approval.ClosedByIdLabel');
+        closedBySection.style.display = 'none';
+        closedByLabel.style.display = 'none';
     }
 }
 

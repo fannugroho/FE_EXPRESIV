@@ -99,7 +99,7 @@
                         <!-- Ini dari form-data dengan key CashAdvanceDetails[0].Description -->
                     </td>
                     <td class="p-2 border">
-                        <input id="Amount" type="number" class="total w-full" maxlength="10" required />
+                        <input id="Amount" type="number" class="total w-full" maxlength="10" required step="000.000.000,01"/>
                         <!-- Ini dari form-data dengan key CashAdvanceDetails[0].Amount -->
                     </td>
                     <td class="p-2 border text-center">
@@ -164,12 +164,16 @@
                     <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
+            <!--closed by-->
             <div>
-            <!-- <label><input type="checkbox" id="knowledge" class="mr-1"><strong>Received by :</strong></label>
-                <select id="Knowledge" class="w-full p-1 border rounded">
-                    <option value="Requester">Requester</option>
-                    <option value="Admin">Admin</option>
-                </select>-->
+                <label id="Approval.ClosedByIdLabel" class="mr-1"><strong>Closed by :</strong></label>
+                <div id="closedBySection" class="relative">
+                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ClosedById')" autocomplete="off">
+                    <select id="Approval.ClosedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>

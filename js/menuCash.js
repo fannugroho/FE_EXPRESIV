@@ -26,7 +26,6 @@
                         // Update dashboard counts
                         document.getElementById("totalDocs").textContent = userDocuments.length;
                         document.getElementById("draftDocs").textContent = userDocuments.filter(doc => doc.status === "Draft").length;
-                        document.getElementById("submittedDocs").textContent = userDocuments.filter(doc => doc.status === "Submitted").length;
                         document.getElementById("preparedDocs").textContent = userDocuments.filter(doc => doc.status === "Prepared").length;
                         document.getElementById("checkedDocs").textContent = userDocuments.filter(doc => doc.status === "Checked").length;
                         document.getElementById("acknowledgedDocs").textContent = userDocuments.filter(doc => doc.status === "Acknowledged").length;
