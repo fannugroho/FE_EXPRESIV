@@ -280,7 +280,8 @@ async function receiveDoc(id, prType) {
             const requestData = {
                 id: id,
                 UserId: userId,
-                Status: 'approve',
+                StatusAt: "Receive",
+                Action: 'approve',
                 Remarks: ''
             };
 

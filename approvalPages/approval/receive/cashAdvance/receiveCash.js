@@ -13,14 +13,9 @@ window.onload = function() {
         fetchCADetails(caId);
     }
     
-    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
+    // Hide approve/reject buttons if viewing from received or rejected tabs
+    if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
-    }
-    
-    // Hide revision button if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
-        hideRevisionButton();
     }
 };
 
@@ -73,11 +68,6 @@ function populateCADetails(data) {
         option.textContent = data.transactionType;
         option.selected = true;
         transactionTypeSelect.appendChild(option);
-        
-        // Call toggleClosedBy after setting transaction type
-        if (typeof toggleClosedBy === 'function') {
-            toggleClosedBy();
-        }
     }
 
     // Set department - create option directly from backend data
@@ -172,14 +162,72 @@ function fetchUsers(caData = null) {
         });
 }
 
+// Function to filter users for the search dropdown
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or empty array if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.fullName;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.fullName;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'receivedBy': selectId = 'Received'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
+
 function populateUserSelects(users, caData = null) {
+    // Store users globally for search functionality
+    window.allUsers = users;
+    
     const selects = [
         { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
         { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'knowledgeBySearch' },
+        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
         { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' },
-        { id: 'Closed', approvalKey: 'closedById', searchId: 'closedBySearch' }
+        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -214,7 +262,7 @@ function populateUserSelects(users, caData = null) {
     if (window.currentEmployeeId) {
         const employee = users.find(user => user.id === window.currentEmployeeId);
         if (employee) {
-            // Use NIK if available, otherwise use username or id
+            // Use kansaiEmployeeId if available, otherwise use username or id
             const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
             document.getElementById('Employee').value = employeeIdentifier;
         }
@@ -232,16 +280,16 @@ function populateUserSelects(users, caData = null) {
     });
 }
 
-// Function to approve CA (acknowledge)
+// Function to approve CA (receive)
 function approveCash() {
     Swal.fire({
-        title: 'Confirm Acknowledgment',
-        text: 'Are you sure you want to acknowledge this Cash Advance?',
+        title: 'Confirm Receipt',
+        text: 'Are you sure you want to receive this Cash Advance?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Acknowledge',
+        confirmButtonText: 'Yes, Receive',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -312,14 +360,14 @@ function updateCAStatus(status) {
     const requestData = {
         id: caId,
         UserId: userId,
-        StatusAt: "Acknowledge",
+        StatusAt: "Receive",
         Action: status,
         Remarks: ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Processing'}...`,
+        title: `${status === 'approve' ? 'Receiving' : 'Processing'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -339,12 +387,12 @@ function updateCAStatus(status) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: `CA ${status === 'approve' ? 'received' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
+                window.location.href = '../../../dashboard/dashboardReceive/cashAdvance/menuCashReceive.html';
             });
         } else {
             return response.json().then(errorData => {
@@ -357,7 +405,7 @@ function updateCAStatus(status) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} CA: ` + error.message
         });
     });
 }
@@ -386,14 +434,14 @@ function updateCAStatusWithRemarks(status, remarks) {
     const requestData = {
         id: caId,
         UserId: userId,
-        StatusAt: "Acknowledge",
+        StatusAt: "Receive",
         Action: status,
         Remarks: remarks || ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        title: `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -413,12 +461,12 @@ function updateCAStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: `CA ${status === 'approve' ? 'received' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
+                window.location.href = '../../../dashboard/dashboardReceive/cashAdvance/menuCashReceive.html';
             });
         } else {
             return response.json().then(errorData => {
@@ -431,66 +479,19 @@ function updateCAStatusWithRemarks(status, remarks) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} CA: ` + error.message
         });
     });
 }
 
-function goToMenuCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
-}
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
-    
-    // Show file names instead of calling displayFileList
-    const fileInput = document.getElementById('Reference');
-    let fileNames = Array.from(files).map(file => file.name).join(', ');
-    if (fileNames) {
-        fileInput.title = fileNames;
-    }
-}
-
-function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
-        </td>
-    `;
-
-    tableBody.appendChild(newRow);
-}
-
-function deleteRow(button) {
-    button.closest("tr").remove();
+function goToMenuReceiveCash() {
+    window.location.href = "../../../dashboard/dashboardReceive/cashAdvance/menuCashReceive.html";
 }
 
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only except revision textarea
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea:not(#revision)');
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -510,25 +511,6 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
-    });
-    
-    // Hide add row button
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
     });
     
     // Disable file upload
@@ -553,25 +535,12 @@ function hideApprovalButtons() {
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
-    if (buttonContainer && currentTab !== 'prepared') {
+    if (buttonContainer && currentTab !== 'approved') {
         buttonContainer.style.display = 'none';
     }
 }
 
-// Function to hide revision button
-function hideRevisionButton() {
-    const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
-    const revisionBtn = document.getElementById('revisionBtn');
-    
-    if (revisionButton) {
-        revisionButton.style.display = 'none';
-    }
-    if (revisionBtn) {
-        revisionBtn.style.display = 'none';
-    }
-}
-
-// Function to display attachments (similar to detail pages)
+// Function to display attachments
 function displayAttachments(attachments) {
     console.log('displayAttachments called with:', attachments);
     const attachmentsList = document.getElementById('attachmentsList');
@@ -606,134 +575,25 @@ function displayAttachments(attachments) {
     }
 }
 
-// Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)
-function submitRevision() {
-    const revisionRemarks = document.getElementById('revision').value;
-    
-    if (!revisionRemarks || revisionRemarks.trim() === '') {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Missing Revision Remarks',
-            text: 'Please enter revision remarks before submitting.'
-        });
+// Legacy functions kept for compatibility
+function previewPDF(event) {
+    const files = event.target.files;
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
         return;
     }
-
-    if (!caId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'CA ID not found'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    // Show confirmation dialog
-    Swal.fire({
-        title: 'Submit Revision',
-        text: 'Are you sure you want to submit this revision request?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#f59e0b',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Submit Revision',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Prepare revision data
-            const revisionData = {
-                id: caId,
-                UserId: userId,
-                Status: 'revision',
-                RevisionRemarks: revisionRemarks.trim()
-            };
-
-            // Show loading
-            Swal.fire({
-                title: 'Submitting Revision...',
-                text: 'Please wait while we process your revision request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // TODO: Replace with actual revision API endpoint when available
-            // For now, this is a dummy implementation
-            console.log('Revision data to be sent:', revisionData);
-            
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Replace this simulation with actual API call
-                /*
-                fetch(`${BASE_URL}/api/cash-advance/revision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(revisionData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
-                        });
-                    }
-                })
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted!',
-                        text: 'Your revision request has been submitted successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the dashboard
-                        window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error submitting revision: ' + error.message
-                    });
-                });
-                */
-                
-                // Dummy success response
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Revision Submitted!',
-                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
-                    timer: 3000,
-                    showConfirmButton: true
-                }).then(() => {
-                    // Clear the revision field
-                    document.getElementById('revision').value = '';
-                    // Disable revision button again
-                    const revisionBtn = document.getElementById('revisionBtn');
-                    revisionBtn.disabled = true;
-                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    
-                    // Optionally navigate back to dashboard
-                    // window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                });
-            }, 1500); // Simulate API delay
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            alert('Please upload a valid PDF file');
         }
     });
-}
-
+    
+    // Show file names instead of calling displayFileList
+    const fileInput = document.getElementById('Reference');
+    let fileNames = Array.from(files).map(file => file.name).join(', ');
+    if (fileNames) {
+        fileInput.title = fileNames;
+    }
+} 

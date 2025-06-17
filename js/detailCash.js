@@ -18,6 +18,7 @@ function fetchDropdownOptions(approvalData = null) {
     fetchDepartments();
     fetchUsers(approvalData);
     fetchTransactionType();
+    fetchBusinessPartners();
 }
 
 // Function to fetch departments from API
@@ -142,13 +143,11 @@ function populateUserSelects(users, approvalData = null) {
                 option.innerText = requester.fullName;
                 option.onclick = function() {
                     requesterSearchInput.value = requester.fullName;
-                    document.getElementById('RequesterId').value = requester.id;
-                    console.log("Requester ID2:", requester.id);
-                    // Auto-fill the paidTo field with the selected requester name
-                    const paidToField = document.getElementById('paidTo');
-                    if (paidToField) {
-                        paidToField.value = requester.fullName;
-                    }
+                    // // Auto-fill the paidTo field with the selected requester name
+                    // const paidToField = document.getElementById('paidTo');
+                    // if (paidToField) {
+                    //     paidToField.value = requester.fullName;
+                    // }
                     requesterDropdown.classList.add('hidden');
                     //update department
                     const departmentSelect = document.getElementById('departmentId');
@@ -226,7 +225,9 @@ function populateUserSelects(users, approvalData = null) {
         "Approval.PreparedById",
         "Approval.CheckedById", 
         "Approval.ApprovedById",
-        "Approval.AcknowledgedById"
+        "Approval.AcknowledgedById",
+        "Approval.ReceivedById",
+        "Approval.ClosedById"
     ];
 
     approvalSelects.forEach(selectId => {
@@ -338,9 +339,9 @@ function saveDocument() {
     alert("Dokumen berhasil disimpan!");
 }
 
-function goToMenuCash() {
-    window.location.href = "../pages/MenuCash.html";
-}
+// function goToMenuCash() {
+//     window.location.href = "../pages/MenuCash.html";
+// }
 
 // Only add event listener if the element exists (to prevent errors)
 const docTypeElement = document.getElementById("docType");
@@ -640,7 +641,18 @@ function populateForm(data) {
     }
     
     document.getElementById("purpose").value = data.purpose || '';
-    document.getElementById("paidTo").value = data.requesterName || '';
+    
+    // Handle PayTo business partner
+    if (data.payTo && data.payToBusinessPartnerName) {
+        // Set the search input and hidden field for PayTo
+        const paidToSearchInput = document.getElementById('paidToSearch');
+        const paidToHiddenInput = document.getElementById('paidTo');
+        
+        if (paidToSearchInput && paidToHiddenInput) {
+            paidToSearchInput.value = data.payToBusinessPartnerName;
+            paidToHiddenInput.value = data.payTo;
+        }
+    }
     
     // Handle department - try to set by ID first, then by name
     const departmentSelect = document.getElementById("departmentId");
@@ -675,6 +687,11 @@ function populateForm(data) {
     document.getElementById("status").value = data.status || '';
     document.getElementById("transactionType").value = data.transactionType || '';
     
+    // Call toggleClosedByVisibility after setting transaction type
+    if (typeof toggleClosedByVisibility === 'function') {
+        toggleClosedByVisibility();
+    }
+    
     // Populate table with cash advance details
     populateTable(data.cashAdvanceDetails || []);
     
@@ -683,7 +700,9 @@ function populateForm(data) {
         preparedById: data.preparedById,
         checkedById: data.checkedById,
         approvedById: data.approvedById,
-        acknowledgedById: data.acknowledgedById
+        acknowledgedById: data.acknowledgedById,
+        receivedById: data.receivedById,
+        closedById: data.closedById
     };
     populateApprovals(approvalData);
     
@@ -771,6 +790,16 @@ function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const searchText = searchInput.value.toLowerCase();
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Map field IDs to their corresponding role names for display
+    const fieldMapping = {
+        'Approval.PreparedById': 'Proposed',
+        'Approval.CheckedById': 'Checked', 
+        'Approval.ApprovedById': 'Approved',
+        'Approval.AcknowledgedById': 'Acknowledged',
+        'Approval.ReceivedById': 'Received',
+        'Approval.ClosedById': 'Closed'
+    };
     
     // Kosongkan dropdown
     dropdown.innerHTML = '';
@@ -865,6 +894,32 @@ function populateApprovals(approval) {
             }
         }
     }
+
+    // Received by - find user and set in search input if there's a receivedById
+    const receivedSelect = document.getElementById("Approval.ReceivedById");
+    if (receivedSelect && approval.receivedById) {
+        receivedSelect.value = approval.receivedById;
+        const receivedUser = window.requesters.find(user => user.id === approval.receivedById);
+        if (receivedUser) {
+            const receivedSearchInput = document.getElementById('Approval.ReceivedByIdSearch');
+            if (receivedSearchInput) {
+                receivedSearchInput.value = receivedUser.fullName;
+            }
+        }
+    }
+
+    // Closed by - find user and set in search input if there's a closedById (for personal loan)
+    const closedSelect = document.getElementById("Approval.ClosedById");
+    if (closedSelect && approval.closedById) {
+        closedSelect.value = approval.closedById;
+        const closedUser = window.requesters.find(user => user.id === approval.closedById);
+        if (closedUser) {
+            const closedSearchInput = document.getElementById('Approval.ClosedByIdSearch');
+            if (closedSearchInput) {
+                closedSearchInput.value = closedUser.fullName;
+            }
+        }
+    }
 }
 
 // Load data when the document is ready
@@ -881,14 +936,18 @@ document.addEventListener('DOMContentLoaded', function() {
             'Approval.PreparedByIdDropdown', 
             'Approval.CheckedByIdDropdown', 
             'Approval.ApprovedByIdDropdown', 
-            'Approval.AcknowledgedByIdDropdown'
+            'Approval.AcknowledgedByIdDropdown',
+            'Approval.ReceivedByIdDropdown',
+            'Approval.ClosedByIdDropdown'
         ];
         
         const searchInputs = [
             'Approval.PreparedByIdSearch', 
             'Approval.CheckedByIdSearch', 
             'Approval.ApprovedByIdSearch', 
-            'Approval.AcknowledgedByIdSearch'
+            'Approval.AcknowledgedByIdSearch',
+            'Approval.ReceivedByIdSearch',
+            'Approval.ClosedByIdSearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -908,7 +967,9 @@ document.addEventListener('DOMContentLoaded', function() {
         'Approval.PreparedByIdSearch',
         'Approval.CheckedByIdSearch',
         'Approval.ApprovedByIdSearch',
-        'Approval.AcknowledgedByIdSearch'
+        'Approval.AcknowledgedByIdSearch',
+        'Approval.ReceivedByIdSearch',
+        'Approval.ClosedByIdSearch'
     ];
     
     searchFields.forEach(fieldId => {
@@ -1003,6 +1064,8 @@ function updateCash(isSubmit = false) {
             formData.append('CheckedById', document.getElementById("Approval.CheckedById")?.value || '');
             formData.append('ApprovedById', document.getElementById("Approval.ApprovedById")?.value || '');
             formData.append('AcknowledgedById', document.getElementById("Approval.AcknowledgedById")?.value || '');
+            formData.append('ReceivedById', document.getElementById("Approval.ReceivedById")?.value || '');
+            formData.append('ClosedById', document.getElementById("Approval.ClosedById")?.value || '');
             
             // Add CashAdvanceDetails - collect all rows from the table
             const tableRows = document.querySelectorAll('#tableBody tr');
@@ -1015,6 +1078,12 @@ function updateCash(isSubmit = false) {
                     formData.append(`CashAdvanceDetails[${index}][Amount]`, amount);
                 }
             });
+
+            // Add Business Partner ID (Paid To)
+            const paidToId = document.getElementById("paidTo").value;
+            if (paidToId) {
+                formData.append('PayTo', paidToId);
+            }
 
             // Handle attachments according to backend logic
             // Add existing attachments to keep (with their IDs)
@@ -1454,7 +1523,9 @@ function makeAllFieldsReadOnlyForNonDraft() {
         'Approval.PreparedByIdDropdown',
         'Approval.CheckedByIdDropdown', 
         'Approval.ApprovedByIdDropdown',
-        'Approval.AcknowledgedByIdDropdown'
+        'Approval.AcknowledgedByIdDropdown',
+        'Approval.ReceivedByIdDropdown',
+        'Approval.ClosedByIdDropdown'
     ];
     
     approvalDropdowns.forEach(dropdownId => {
@@ -1463,6 +1534,12 @@ function makeAllFieldsReadOnlyForNonDraft() {
             dropdown.style.display = 'none';
         }
     });
+    
+    // Hide PayTo dropdown
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    if (paidToDropdown) {
+        paidToDropdown.style.display = 'none';
+    }
     
     // Hide action buttons (Update, Submit, Delete)
     const actionButtons = document.querySelectorAll('button[onclick*="updateCash"], button[onclick*="confirmDelete"]');
@@ -1497,4 +1574,83 @@ function makeAllFieldsReadOnlyForNonDraft() {
 function displayAttachments(attachments) {
     // Just call the update function which handles both existing and new files
     updateAttachmentsDisplay();
+}
+
+function fetchBusinessPartners() {
+    fetch(`${BASE_URL}/api/business-partners`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Business Partners data:", data);
+            setupBusinessPartnerSearch(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching business partners:', error);
+        });
+}
+
+function setupBusinessPartnerSearch(businessPartners) {
+    // Store business partners globally for search functionality
+    window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
+        code: bp.code,
+        name: bp.name
+    }));
+
+    // Setup search functionality for paid to
+    const paidToSearchInput = document.getElementById('paidToSearch');
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    const paidToHiddenInput = document.getElementById('paidTo');
+    
+    if (paidToSearchInput && paidToDropdown && paidToHiddenInput) {
+        // Function to filter business partners
+        window.filterBusinessPartners = function() {
+            const searchText = paidToSearchInput.value.toLowerCase();
+            populateBusinessPartnerDropdown(searchText);
+            paidToDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered business partners
+        function populateBusinessPartnerDropdown(filter = '') {
+            paidToDropdown.innerHTML = '';
+            
+            const filteredPartners = window.businessPartners.filter(bp => 
+                bp.code.toLowerCase().includes(filter) || 
+                bp.name.toLowerCase().includes(filter)
+            );
+            
+            filteredPartners.forEach(partner => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
+                option.onclick = function() {
+                    paidToSearchInput.value = `${partner.code} - ${partner.name}`;
+                    paidToHiddenInput.value = partner.id;
+                    paidToDropdown.classList.add('hidden');
+                };
+                paidToDropdown.appendChild(option);
+            });
+            
+            if (filteredPartners.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching business partners';
+                paidToDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!paidToSearchInput.contains(event.target) && !paidToDropdown.contains(event.target)) {
+                paidToDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateBusinessPartnerDropdown();
+    }
 }

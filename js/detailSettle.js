@@ -5,12 +5,18 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 let settlementData = null;
 let currentRequesterData = null; // Store current requester data globally
 
+// Helper function to get logged-in user ID
+function getUserId() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    return user ? user.id : null;
+}
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(approvalData = null) {
     fetchDepartments();
     fetchUsers(approvalData);
     fetchTransactionType();
+    fetchBusinessPartners();
 }
 
 // Function to fetch departments from API
@@ -221,7 +227,8 @@ function populateUserSelects(users, approvalData = null) {
         { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
         { id: 'checkedDropdown', searchId: 'checkedDropdownSearch', approvalKey: 'checkedById' },
         { id: 'approvedDropdown', searchId: 'approvedDropdownSearch', approvalKey: 'approvedById' },
-        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' }
+        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' },
+        { id: 'receivedDropdown', searchId: 'receivedDropdownSearch', approvalKey: 'receivedById' }
     ];
     
     approvalSelects.forEach(selectInfo => {
@@ -437,6 +444,18 @@ function populateFormWithData(data) {
     
     document.getElementById('settlementRefNo').value = data.settlementRefNo || '';
     document.getElementById('purpose').value = data.purpose || '';
+    
+    // Handle PayTo business partner
+    if (data.payTo && data.payToBusinessPartnerName) {
+        // Set the search input and hidden field for PayTo
+        const paidToSearchInput = document.getElementById('paidToSearch');
+        const paidToHiddenInput = document.getElementById('paidTo');
+        
+        if (paidToSearchInput && paidToHiddenInput) {
+            paidToSearchInput.value = data.payToBusinessPartnerName;
+            paidToHiddenInput.value = data.payTo;
+        }
+    }
     
     // Set transaction type
     if (data.transactionType) {
@@ -942,11 +961,18 @@ function updateSettle(isSubmit = false) {
             formData.append('CashAdvanceReferenceId', document.getElementById("cashAdvanceReferenceId").value);
             formData.append('Remarks', document.getElementById("remarks").value);
             
+            // Add Business Partner ID (Paid To)
+            const paidToId = document.getElementById("paidTo").value;
+            if (paidToId) {
+                formData.append('PayTo', paidToId);
+            }
+            
             // Approval fields
-            formData.append('PreparedById', document.getElementById("preparedDropdown")?.value || '');
-            formData.append('CheckedById', document.getElementById("checkedDropdown")?.value || '');
-            formData.append('ApprovedById', document.getElementById("approvedDropdown")?.value || '');
-            formData.append('AcknowledgedById', document.getElementById("acknowledgedDropdown")?.value || '');
+                    formData.append('PreparedById', document.getElementById("preparedDropdown")?.value || '');
+        formData.append('CheckedById', document.getElementById("checkedDropdown")?.value || '');
+        formData.append('ApprovedById', document.getElementById("approvedDropdown")?.value || '');
+        formData.append('AcknowledgedById', document.getElementById("acknowledgedDropdown")?.value || '');
+        formData.append('ReceivedById', document.getElementById("receivedDropdown")?.value || '');
             
             // Add SettlementItems - collect all rows from the table
             const tableRows = document.querySelectorAll('#tableBody tr');
@@ -1048,6 +1074,7 @@ function toggleEditableFields(isEditable) {
     // List all input fields that should be controlled by editable state
     const editableFields = [
         'requesterSearch', // Requester name search input
+        'paidToSearch', // PayTo business partner search input
         'settlementRefNo',
         'purpose',
         'transactionType',
@@ -1106,6 +1133,14 @@ function toggleEditableFields(isEditable) {
     if (requesterDropdown) {
         if (!isEditable) {
             requesterDropdown.style.display = 'none';
+        }
+    }
+    
+    // Handle PayTo dropdown
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    if (paidToDropdown) {
+        if (!isEditable) {
+            paidToDropdown.style.display = 'none';
         }
     }
     
@@ -1249,4 +1284,83 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (data) {
         populateFormWithData(data);
     }
-}); 
+});
+
+function fetchBusinessPartners() {
+    fetch(`${BASE_URL}/api/business-partners`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Business Partners data:", data);
+            setupBusinessPartnerSearch(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching business partners:', error);
+        });
+}
+
+function setupBusinessPartnerSearch(businessPartners) {
+    // Store business partners globally for search functionality
+    window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
+        code: bp.code,
+        name: bp.name
+    }));
+
+    // Setup search functionality for paid to
+    const paidToSearchInput = document.getElementById('paidToSearch');
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    const paidToHiddenInput = document.getElementById('paidTo');
+    
+    if (paidToSearchInput && paidToDropdown && paidToHiddenInput) {
+        // Function to filter business partners
+        window.filterBusinessPartners = function() {
+            const searchText = paidToSearchInput.value.toLowerCase();
+            populateBusinessPartnerDropdown(searchText);
+            paidToDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered business partners
+        function populateBusinessPartnerDropdown(filter = '') {
+            paidToDropdown.innerHTML = '';
+            
+            const filteredPartners = window.businessPartners.filter(bp => 
+                bp.code.toLowerCase().includes(filter) || 
+                bp.name.toLowerCase().includes(filter)
+            );
+            
+            filteredPartners.forEach(partner => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
+                option.onclick = function() {
+                    paidToSearchInput.value = `${partner.code} - ${partner.name}`;
+                    paidToHiddenInput.value = partner.id;
+                    paidToDropdown.classList.add('hidden');
+                };
+                paidToDropdown.appendChild(option);
+            });
+            
+            if (filteredPartners.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching business partners';
+                paidToDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!paidToSearchInput.contains(event.target) && !paidToDropdown.contains(event.target)) {
+                paidToDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateBusinessPartnerDropdown();
+    }
+} 

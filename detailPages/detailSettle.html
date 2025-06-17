@@ -64,6 +64,12 @@
                 <input type="text" id="settlementRefNo" placeholder="Settlement Ref. No" class="w-full p-2 border rounded">
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
                 <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Paid to</h3>
+                <div class="relative">
+                    <input type="text" id="paidToSearch" placeholder="Search business partner by code or name" class="w-full p-2 border rounded" onkeyup="filterBusinessPartners()" autocomplete="off">
+                    <input type="hidden" id="paidTo">
+                    <div id="paidToDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto search-dropdown"></div>
+                </div>
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="transactionType" class="w-full p-2 border rounded">
                     <option value="Medical">Medical</option>
@@ -203,6 +209,16 @@
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="acknowledgedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label><strong>Received by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedDropdown')" autocomplete="off">
+                    <select id="receivedDropdown" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>

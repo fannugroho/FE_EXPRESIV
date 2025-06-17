@@ -250,14 +250,40 @@ function populatePRDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
 
-    // Set status
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
+
+    // Set classification - create option directly from backend data
+    const classificationSelect = document.getElementById('classification');
+    if (data.classification && classificationSelect) {
+        classificationSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.classification; // Use classification as value since backend returns string
+        option.textContent = data.classification;
+        option.selected = true;
+        classificationSelect.appendChild(option);
+    }
+
+    // Set status - create option directly from backend data
     if (data && data.status) {
         console.log('Status:', data.status);
-        var option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        document.getElementById('status').appendChild(option);
-        document.getElementById('status').value = data.status;
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.innerHTML = ''; // Clear existing options
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
     }
     
     // Handle item details (only item type is supported now)

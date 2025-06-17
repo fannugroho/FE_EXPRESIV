@@ -61,7 +61,13 @@
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="type" class="w-full p-2 border rounded bg-white">
                     <option value="" disabled selected>Select Type of Transaction</option>
-                </select>            
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Paid To</h3>
+                <div class="relative">
+                    <input type="text" id="paidToSearch" placeholder="Search business partner by code or name" class="w-full p-2 border rounded" onkeyup="filterBusinessPartners()" autocomplete="off">
+                    <input type="hidden" id="paidTo">
+                    <div id="paidToDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto search-dropdown"></div>
+                </div>            
             </div>
             
             <div>
@@ -171,6 +177,16 @@
                         <option disabled selected value="">Select a user</option>
                     </select>
                     <div id="approvedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedDropdownSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedDropdown')" autocomplete="off">
+                    <select id="receivedDropdown" class="hidden">
+                        <option disabled selected value="">Select a user</option>
+                    </select>
+                    <div id="receivedDropdownDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>

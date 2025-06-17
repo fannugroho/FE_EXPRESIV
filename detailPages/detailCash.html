@@ -57,8 +57,12 @@
                 </div>
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
                 <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded">    
-                <h3 class="text-lg font-semibold mb-2">Paid To</h3>
-                <input type="text" id="paidTo" placeholder="Paid to" class="w-full p-2 border rounded bg-gray-100" readonly>        
+                <h3 class="text-lg font-semibold mb-2">Paid to</h3>
+                <div class="relative">
+                    <input type="text" id="paidToSearch" placeholder="Search business partner by code or name" class="w-full p-2 border rounded" onkeyup="filterBusinessPartners()" autocomplete="off">
+                    <input type="hidden" id="paidTo">
+                    <div id="paidToDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto search-dropdown"></div>
+                </div>
             </div>
             
             <div>
@@ -102,7 +106,7 @@
                     <option value="Medical">Medical</option>
                     <option value="Entertainment">Entertainment</option>
                     <option value="Transport">Transport</option>
-                    <option value="PersonalLoan">Personal Loan</option>
+                    <option value="Personal Loan">Personal Loan</option>
                     <option value="Others">Others</option> 
                 </select>
             </div>
@@ -196,6 +200,16 @@
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ReceivedById')" autocomplete="off">
+                    <select id="Approval.ReceivedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
@@ -331,7 +345,7 @@
             const transactionType = document.getElementById('transactionType').value;
             const closedByContainer = document.getElementById('closed').parentElement;
             
-            if (transactionType === 'PersonalLoan') {
+            if (transactionType === 'Personal Loan') {
                 closedByContainer.style.display = 'block';
             } else {
                 closedByContainer.style.display = 'none';

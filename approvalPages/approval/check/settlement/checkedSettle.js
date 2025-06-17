@@ -79,8 +79,6 @@ function fetchSettleDetails(id) {
             populateSettleDetails(result.data);
             // Fetch users to populate Employee field properly and approval dropdowns
             fetchUsers(result.data);
-            // Fetch departments to populate dropdown options
-            fetchDepartments();
         } else {
             console.error('API returned error:', result.message);
             alert('Failed to load settlement details: ' + (result.message || 'Unknown error'));
@@ -121,6 +119,7 @@ function populateSettleDetails(data) {
     }
     
     document.getElementById('purpose').value = data.purpose || '';
+    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
     const transactionType = document.getElementById('TransactionType');
     var option = document.createElement('option');
     option.value = data.transactionType;
@@ -139,7 +138,8 @@ function populateSettleDetails(data) {
         preparedById: data.preparedById,
         checkedById: data.checkedById,
         acknowledgedById: data.acknowledgedById,
-        approvedById: data.approvedById
+        approvedById: data.approvedById,
+        receivedById: data.receivedById
     };
     
     // Populate settlement items in table if available (settlementItems not settlementDetails)
@@ -304,7 +304,8 @@ function updateSettleStatus(status, remarks) {
     const requestBody = {
         id: settlementId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Check",
+        Action: status,
         Remarks: remarks
     };
     
@@ -403,58 +404,6 @@ function fetchUsers(settlementData = null) {
         });
 }
 
-// Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
-}
-
-// Function to populate department select options
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    // Clear and add new options
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-    
-    // Create options for each department
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-    
-    // Set the department value if we have stored department data
-    if (window.departmentData) {
-        // Try to match by ID first, then by name
-        if (window.departmentData.departmentId) {
-            departmentSelect.value = window.departmentData.departmentId;
-        } else if (window.departmentData.departmentName) {
-            // If ID doesn't work, try to find by name
-            const matchingOption = Array.from(departmentSelect.options).find(
-                option => option.textContent === window.departmentData.departmentName
-            );
-            if (matchingOption) {
-                departmentSelect.value = matchingOption.value;
-            }
-        }
-        
-        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
-    }
-}
-
 // Function to populate approval fields (Prepared by, Checked by, etc.)
 function populateApprovalFields(users) {
     // Store users globally for search functionality
@@ -464,7 +413,8 @@ function populateApprovalFields(users) {
         { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
         { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
         { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' }
+        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
+        { id: 'Received', dataKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     approvalSelects.forEach(selectInfo => {
@@ -546,6 +496,7 @@ function filterUsers(fieldId) {
                 case 'checkedBy': selectId = 'Checked'; break;
                 case 'approvedBy': selectId = 'Approved'; break;
                 case 'acknowledgedBy': selectId = 'Acknowledged'; break;
+                case 'receivedBy': selectId = 'Received'; break;
                 default: selectId = fieldId;
             }
             

@@ -131,14 +131,40 @@ function populatePRDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
 
-    // Set status
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
+
+    // Set classification - create option directly from backend data
+    const classificationSelect = document.getElementById('classification');
+    if (data.classification && classificationSelect) {
+        classificationSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.classification; // Use classification as value since backend returns string
+        option.textContent = data.classification;
+        option.selected = true;
+        classificationSelect.appendChild(option);
+    }
+
+    // Set status - create option directly from backend data
     if (data && data.status) {
         console.log('Status:', data.status);
-        var option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        document.getElementById('status').appendChild(option);
-        document.getElementById('status').value = data.status;
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.innerHTML = ''; // Clear existing options
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
     }
     
     // Handle item details (only item type is supported now)
@@ -262,27 +288,8 @@ function addItemRow(item = null) {
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(prData = null) {
-    fetchDepartments();
     fetchUsers(prData);
-    fetchClassifications();
     fetchItemOptions();
-}
-
-// Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
 }
 
 // Function to fetch users from API
@@ -301,23 +308,6 @@ function fetchUsers(prData = null) {
         })
         .catch(error => {
             console.error('Error fetching users:', error);
-        });
-}
-
-// Function to fetch classifications from API
-function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateClassificationSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching classifications:', error);
         });
 }
 
@@ -340,48 +330,6 @@ function fetchItemOptions() {
         .catch(error => {
             console.error('Error fetching items:', error);
         });
-}
-
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-}
-
-function populateClassificationSelect(classifications) {
-    const classificationSelect = document.getElementById("classification");
-    if (!classificationSelect) return;
-    
-    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
-
-    classifications.forEach(classification => {
-        const option = document.createElement("option");
-        option.value = classification.id;
-        option.textContent = classification.name;
-        classificationSelect.appendChild(option);
-    });
-}
-
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
-        console.log('Item:', item);
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-        selectElement.appendChild(option);
-    });
 }
 
 function populateUserSelects(users, prData = null) {
@@ -502,7 +450,7 @@ function updatePRStatus(status) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: 'Acknowledged',
+        StatusAt: "Acknowledge",
         Action: status,
         Remarks: ''
     };
@@ -578,7 +526,7 @@ function updatePRStatusWithRemarks(status, remarks) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: 'Acknowledged',
+        StatusAt: "Acknowledge",
         Action: status,
         Remarks: remarks || ''
     };

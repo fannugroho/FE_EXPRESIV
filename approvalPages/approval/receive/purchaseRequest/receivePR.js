@@ -457,7 +457,7 @@ function updatePRStatus(status) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: 'Received',
+        StatusAt: "Receive",
         Action: status,
         Remarks: ''
     };
@@ -533,7 +533,7 @@ function updatePRStatusWithRemarks(status, remarks) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: 'Received',
+        StatusAt: "Receive",
         Action: status,
         Remarks: remarks || ''
     };

@@ -205,6 +205,11 @@ function goToMenuApprovCash() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/cashAdvance/menuCashApprove.html`; 
 }
 
+function goToMenuReceiveCash() { 
+    const basePath = getRelativeBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/cashAdvance/menuCashReceive.html`; 
+}
+
 // Settlement approval workflow functions
 function goToMenuCheckSettle() { 
     const basePath = getRelativeBasePath();
@@ -219,6 +224,11 @@ function goToMenuAcknowSettle() {
 function goToMenuApprovSettle() { 
     const basePath = getRelativeBasePath();
     window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/settlement/menuSettleApprove.html`; 
+}
+
+function goToMenuReceiveSettle() { 
+    const basePath = getRelativeBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/settlement/menuSettleReceive.html`; 
 }
 
 // Administration functions

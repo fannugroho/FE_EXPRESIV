@@ -17,6 +17,11 @@ window.onload = function() {
     if (currentTab === 'checked' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Hide revision button if viewing from checked or rejected tabs
+    if (currentTab === 'checked' || currentTab === 'rejected') {
+        hideRevisionButton();
+    }
 };
 
 function fetchCADetails(caId) {
@@ -52,36 +57,52 @@ function populateCADetails(data) {
     document.getElementById('EmployeeName').value = data.employeeName || '';
     document.getElementById('requester').value = data.requesterName;
     document.getElementById('purposed').value = data.purpose;
-    document.getElementById('paidTo').value = data.requesterName || '';
+    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
     document.getElementById('remarks').value = data.remarks || '';
 
     // Format and set dates
     const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('postingDate').value = submissionDate;
     
-    // Set transaction type
-    if (data.transactionType) {
-        option = document.createElement('option');
+    // Set transaction type - create option directly from backend data
+    const transactionTypeSelect = document.getElementById('typeTransaction');
+    if (data.transactionType && transactionTypeSelect) {
+        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
         option.value = data.transactionType;
         option.textContent = data.transactionType;
-        document.getElementById('typeTransaction').appendChild(option);
-        document.getElementById('typeTransaction').value = data.transactionType;
+        option.selected = true;
+        transactionTypeSelect.appendChild(option);
+        
+        // Call toggleClosedBy after setting transaction type
+        if (typeof toggleClosedBy === 'function') {
+            toggleClosedBy();
+        }
     }
 
-    // Store department data to be set after dropdown is populated
-    window.departmentData = {
-        departmentId: data.departmentId,
-        departmentName: data.departmentName
-    };
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
 
     // Set status
     if (data && data.status) {
         console.log('Status:', data.status);
-        var option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        document.getElementById('docStatus').appendChild(option);
-        document.getElementById('docStatus').value = data.status;
+        const statusSelect = document.getElementById('docStatus');
+        if (statusSelect) {
+            statusSelect.innerHTML = ''; // Clear existing options
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
     }
     
     // Handle cash advance details (amount breakdown)
@@ -131,25 +152,7 @@ function populateCashAdvanceDetails(details) {
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(caData = null) {
-    fetchDepartments();
     fetchUsers(caData);
-}
-
-// Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
 }
 
 // Function to fetch users from API
@@ -169,121 +172,6 @@ function fetchUsers(caData = null) {
         });
 }
 
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-    
-    // Set the department value if we have stored department data
-    if (window.departmentData) {
-        // Try to match by ID first, then by name
-        if (window.departmentData.departmentId) {
-            console.log(window.departmentData.departmentId)
-            departmentSelect.value = window.departmentData.departmentId;
-        } else if (window.departmentData.departmentName) {
-            // If ID doesn't work, try to find by name
-            const matchingOption = Array.from(departmentSelect.options).find(
-                option => option.textContent === window.departmentData.departmentName
-            );
-            if (matchingOption) {
-                departmentSelect.value = matchingOption.value;
-            }
-        }
-        
-        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
-    }
-}
-
-// Add CSS styles for dropdown
-document.head.insertAdjacentHTML('beforeend', `
-<style>
-    /* Dropdown styling */
-    .dropdown-item {
-        padding: 8px 12px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    .dropdown-item:hover {
-        background-color: #f3f4f6;
-    }
-    .search-dropdown {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 50;
-    }
-    .search-input:focus {
-        border-color: #3b82f6;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-    }
-</style>
-`);
-
-// Function to filter users for the search dropdown in approval section
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Use stored users or mock data if not available
-    const usersList = window.allUsers || [];
-    
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
-        return userName.toLowerCase().includes(searchText);
-    });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
-            
-            // Get the correct select element based on fieldId
-            let selectId;
-            switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
-                default: selectId = fieldId;
-            }
-            
-            document.getElementById(selectId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
-    
-    // Display message if no results
-    if (filteredUsers.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
-        dropdown.appendChild(noResults);
-    }
-    
-    // Show dropdown
-    dropdown.classList.remove('hidden');
-}
-
-// Modified populateUserSelects to store users globally and update search inputs
 function populateUserSelects(users, caData = null) {
     // Store users globally for search functionality
     window.allUsers = users;
@@ -292,7 +180,9 @@ function populateUserSelects(users, caData = null) {
         { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
         { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
         { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
-        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' }
+        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' },
+        { id: 'Closed', approvalKey: 'closedById', searchId: 'closedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -316,7 +206,7 @@ function populateUserSelects(users, caData = null) {
                 if (searchInput) {
                     const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                        searchInput.value = selectedUser.fullName || `${selectedUser.firstName} ${selectedUser.lastName}`;
                     }
                 }
             }
@@ -347,8 +237,8 @@ function populateUserSelects(users, caData = null) {
 
 // Modified makeAllFieldsReadOnly to include search inputs
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
+    // Make all input fields read-only except revision textarea
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea:not(#revision)');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -477,7 +367,8 @@ function updateCAStatus(status) {
     const requestData = {
         id: caId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Check",
+        Action: status,
         Remarks: ''
     };
 
@@ -550,7 +441,8 @@ function updateCAStatusWithRemarks(status, remarks) {
     const requestData = {
         id: caId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Check",
+        Action: status,
         Remarks: remarks || ''
     };
 
@@ -599,6 +491,140 @@ function updateCAStatusWithRemarks(status, remarks) {
     });
 }
 
+// Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)
+function submitRevision() {
+    const revisionRemarks = document.getElementById('revision').value;
+    
+    console.log("revisionRemarks");
+    console.log(revisionRemarks);
+    
+    if (!revisionRemarks || revisionRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Missing Revision Remarks',
+            text: 'Please enter revision remarks before submitting.'
+        });
+        return;
+    }
+
+    if (!caId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'CA ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Prepare revision data
+            const revisionData = {
+                id: caId,
+                UserId: userId,
+                Status: 'revision',
+                RevisionRemarks: revisionRemarks.trim()
+            };
+
+            // Show loading
+            Swal.fire({
+                title: 'Submitting Revision...',
+                text: 'Please wait while we process your revision request.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // TODO: Replace with actual revision API endpoint when available
+            // For now, this is a dummy implementation
+            console.log('Revision data to be sent:', revisionData);
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // TODO: Replace this simulation with actual API call
+                /*
+                fetch(`${BASE_URL}/api/cash-advance/revision`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(revisionData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+                        });
+                    }
+                })
+                .then(data => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Revision Submitted!',
+                        text: 'Your revision request has been submitted successfully.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Navigate back to the dashboard
+                        window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error submitting revision: ' + error.message
+                    });
+                });
+                */
+                
+                // Dummy success response
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Revision Submitted!',
+                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
+                    timer: 3000,
+                    showConfirmButton: true
+                }).then(() => {
+                    // Clear the revision field
+                    document.getElementById('revision').value = '';
+                    // Disable revision button again
+                    const revisionBtn = document.getElementById('revisionBtn');
+                    revisionBtn.disabled = true;
+                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    // Optionally navigate back to dashboard
+                    // window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
+                });
+            }, 1500); // Simulate API delay
+        }
+    });
+}
+
 function goToMenuCash() {
     window.location.href = "../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html";
 }
@@ -619,6 +645,19 @@ function hideApprovalButtons() {
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
     if (buttonContainer && currentTab !== 'prepared') {
         buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to hide revision button
+function hideRevisionButton() {
+    const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
+    const revisionBtn = document.getElementById('revisionBtn');
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+    if (revisionBtn) {
+        revisionBtn.style.display = 'none';
     }
 }
 
