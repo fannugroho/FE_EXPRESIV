@@ -83,7 +83,7 @@ function populateUserSelects(users, approvalData = null) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
     
@@ -91,7 +91,7 @@ function populateUserSelects(users, approvalData = null) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
 
@@ -104,7 +104,7 @@ function populateUserSelects(users, approvalData = null) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
     }
@@ -235,7 +235,7 @@ function populateUserSelects(users, approvalData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
             });
             

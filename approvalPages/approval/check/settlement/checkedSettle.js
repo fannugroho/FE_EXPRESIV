@@ -478,7 +478,7 @@ function populateApprovalFields(users) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}` || user.username;
+                option.textContent = user.fullName || user.username;
                 select.appendChild(option);
             });
             

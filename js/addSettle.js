@@ -136,7 +136,7 @@ function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department,
         kansaiEmployeeId: user.kansaiEmployeeId
     }));
@@ -145,7 +145,7 @@ function populateUserSelects(users) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
 
@@ -155,7 +155,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
     }
@@ -248,7 +248,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
                 // Auto-select and disable for Prepared by
                 if(selectInfo.isPreparerField && user.id == getUserId()){
@@ -268,7 +268,7 @@ function populateUserSelects(users) {
             const preparedSelect = document.getElementById('preparedDropdown');
             
             if (preparedSearchInput && preparedSelect) {
-                const userName = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.middleName} ${loggedInUser.lastName}`;
+                const userName = loggedInUser.fullName;
                 preparedSearchInput.value = userName;
                 preparedSearchInput.disabled = true;
                 preparedSearchInput.classList.add('bg-gray-100');

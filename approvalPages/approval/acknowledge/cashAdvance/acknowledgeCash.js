@@ -218,7 +218,7 @@ function filterUsers(fieldId) {
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -226,7 +226,7 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;
@@ -275,7 +275,7 @@ function populateUserSelects(users, caData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
             });
             

@@ -407,7 +407,7 @@ function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
     
@@ -415,7 +415,7 @@ function populateUserSelects(users) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
 
@@ -425,7 +425,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
     }
@@ -548,7 +548,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
                 // Auto-select and disable for Proposed by (Approval.PreparedById)
                 if(selectId == "Approval.PreparedById"){
@@ -558,7 +558,7 @@ function populateUserSelects(users) {
                     // Update the search input for Proposed by
                     const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
                     if (proposedBySearch) {
-                        proposedBySearch.value = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                                                    proposedBySearch.value = user.fullName;
                         proposedBySearch.disabled = true;
                     }
                    }
