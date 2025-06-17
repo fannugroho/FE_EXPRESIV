@@ -250,7 +250,7 @@ function populateUserSelects(users, settlementData = null) {
                 if (searchInput) {
                     const selectedUser = users.find(user => user.id === settlementData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.fullName || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                        searchInput.value = selectedUser.fullName;
                     }
                 }
             }

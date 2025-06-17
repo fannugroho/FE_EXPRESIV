@@ -160,9 +160,7 @@ function populateDropdown(dropdownId, users) {
         option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.firstName || '';
-        if (user.middleName) displayName += ` ${user.middleName}`;
-        if (user.lastName) displayName += ` ${user.lastName}`;
+        let displayName = user.fullName || '';
         
         // Fallback to username if no name fields
         if (!displayName.trim()) {

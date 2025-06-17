@@ -253,7 +253,7 @@ function populateUserSelects(users, approvalData = null) {
                 // Find the user and update the search input
                 const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
                 if (selectedUser) {
-                    searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                    searchInput.value = selectedUser.name || `${selectedUser.fullName}`;
                 }
                 
                 // Auto-select and disable for Prepared by if it matches logged in user
@@ -270,7 +270,7 @@ function populateUserSelects(users, approvalData = null) {
                     select.value = loggedInUserId;
                     const loggedInUser = users.find(user => user.id === loggedInUserId);
                     if(loggedInUser) {
-                        searchInput.value = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.lastName}`;
+                        searchInput.value = loggedInUser.name || `${loggedInUser.fullName}`;
                     }
                     searchInput.disabled = true;
                     searchInput.classList.add('bg-gray-100');

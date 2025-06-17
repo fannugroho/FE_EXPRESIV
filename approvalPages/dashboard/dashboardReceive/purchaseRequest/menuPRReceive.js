@@ -263,8 +263,7 @@ function changePage(direction) {
 
 // Function to navigate to total documents page
 function goToTotalDocs() {
-    // This would navigate to the total documents view
-    console.log('Navigate to total documents view');
+    switchTab('approved');
 }
 
 // Function to handle document receiving
@@ -280,7 +279,8 @@ async function receiveDoc(id, prType) {
             const requestData = {
                 id: id,
                 UserId: userId,
-                Status: 'approve',
+                StatusAt: "Receive",
+                Action: 'approve',
                 Remarks: ''
             };
 

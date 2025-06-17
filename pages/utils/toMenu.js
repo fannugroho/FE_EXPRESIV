@@ -169,7 +169,7 @@ function goToMenuApprovPR() {
 
 function goToMenuReceivePR() { 
     const basePath = getRelativeBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/menuPRReceive.html`; 
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/purchaseRequest/menuPRReceive.html`; 
 }
 
 // Reimbursement approval workflow functions

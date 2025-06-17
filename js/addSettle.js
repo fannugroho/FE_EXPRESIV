@@ -317,7 +317,8 @@ function populateUserSelects(users) {
         { id: "preparedDropdown", isPreparerField: true },
         { id: "checkedDropdown", isPreparerField: false },
         { id: "approvedDropdown", isPreparerField: false },
-        { id: "acknowledgedDropdown", isPreparerField: false }
+        { id: "acknowledgedDropdown", isPreparerField: false },
+        { id: "receivedDropdown", isPreparerField: false }
     ];
 
     approvalSelects.forEach(selectInfo => {
@@ -750,14 +751,16 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedDropdownDropdown', 
             'checkedDropdownDropdown', 
             'approvedDropdownDropdown', 
-            'acknowledgedDropdownDropdown'
+            'acknowledgedDropdownDropdown',
+            'receivedDropdownDropdown'
         ];
         
         const searchInputs = [
             'preparedDropdownSearch', 
             'checkedDropdownSearch', 
             'approvedDropdownSearch', 
-            'acknowledgedDropdownSearch'
+            'acknowledgedDropdownSearch',
+            'receivedDropdownSearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -777,7 +780,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'preparedDropdownSearch',
         'checkedDropdownSearch',
         'approvedDropdownSearch',
-        'acknowledgedDropdownSearch'
+        'acknowledgedDropdownSearch',
+        'receivedDropdownSearch'
     ];
     
     searchFields.forEach(fieldId => {
