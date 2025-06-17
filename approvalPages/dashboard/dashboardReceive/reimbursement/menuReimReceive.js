@@ -10,8 +10,8 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
-let currentTab = 'receive'; // Default tab
-let searchTerm = '';
+let currentTab = 'approved'; // Default tab
+let searchQuery = '';
 let dateFilter = '';
 
 // Function to fetch status counts from API
@@ -80,9 +80,8 @@ function displayReimbursements(reimbursements) {
 
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
-    document.getElementById("totalCount").textContent = data.totalCount || 0;
-    document.getElementById("acknowledgedCount").textContent = data.receiveCount || 0; // Changed to receiveCount
-    document.getElementById("revisionCount").textContent = data.revisionCount || 0; // Changed to revisionCount
+    document.getElementById("receivedCount").textContent = data.receivedCount || 0;
+    document.getElementById("approvedCount").textContent = data.approvedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }
 
@@ -103,7 +102,7 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-
+function goToMenuReceiveReim() { window.location.href = "MenuReceiveReim.html"; }
 function goToMenuReim() { window.location.href = "MenuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
@@ -121,32 +120,7 @@ function detailReim(reimId) {
 // Sample data for testing when API is not available
 let sampleData = [];
 function generateSampleData() {
-    return [
-        {
-            id: "RB001",
-            voucherNo: "RB/2023/001",
-            requesterName: "John Doe",
-            department: "Finance",
-            submissionDate: "2023-06-15",
-            status: "Receive"
-        },
-        {
-            id: "RB002",
-            voucherNo: "RB/2023/002",
-            requesterName: "Jane Smith",
-            department: "Marketing",
-            submissionDate: "2023-06-16",
-            status: "Revision"
-        },
-        {
-            id: "RB003",
-            voucherNo: "RB/2023/003",
-            requesterName: "Bob Johnson",
-            department: "IT",
-            submissionDate: "2023-06-17",
-            status: "Rejected"
-        }
-    ];
+    return [];
 }
 
 // Use sample data when API fails
@@ -157,31 +131,64 @@ function useSampleData() {
 
 // Update counts using sample data
 function updateSampleCounts() {
-    const receiveCount = allReimbursements.filter(item => item.status === 'Receive').length;
-    const revisionCount = allReimbursements.filter(item => item.status === 'Revision').length;
-    const rejectedCount = allReimbursements.filter(item => item.status === 'Rejected').length;
-    const totalCount = allReimbursements.length;
-    
-    document.getElementById("totalCount").textContent = totalCount;
-    document.getElementById("acknowledgedCount").textContent = receiveCount;
-    document.getElementById("revisionCount").textContent = revisionCount;
-    document.getElementById("rejectedCount").textContent = rejectedCount;
+    document.getElementById("receivedCount").textContent = "0";
+    document.getElementById("approvedCount").textContent = "0";
+    document.getElementById("rejectedCount").textContent = "0";
 }
 
-// Switch between tabs
+// Apply search and date filters
+function applyFilters() {
+    searchQuery = document.getElementById('searchInput').value.toLowerCase();
+    dateFilter = document.getElementById('dateFilter').value;
+    
+    currentPage = 1; // Reset to first page
+    switchTab(currentTab);
+}
+
+// Reset all filters
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFilter').value = '';
+    searchQuery = '';
+    dateFilter = '';
+    
+    currentPage = 1; // Reset to first page
+    switchTab(currentTab);
+}
+
+// Filter data based on search query and date
+function filterData(data) {
+    return data.filter(item => {
+        // Check if item matches search query
+        const matchesSearch = searchQuery === '' || 
+            (item.voucherNo && item.voucherNo.toLowerCase().includes(searchQuery)) ||
+            (item.requesterName && item.requesterName.toLowerCase().includes(searchQuery));
+        
+        // Check if item matches date filter
+        let matchesDate = true;
+        if (dateFilter) {
+            const itemDate = item.submissionDate ? new Date(item.submissionDate).toISOString().split('T')[0] : '';
+            matchesDate = itemDate === dateFilter;
+        }
+        
+        return matchesSearch && matchesDate;
+    });
+}
+
+// Switch between Received and Approved tabs
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update tab button styling
-    document.getElementById('receiveTabBtn').classList.remove('tab-active');
-    document.getElementById('revisionTabBtn').classList.remove('tab-active');
+    document.getElementById('receivedTabBtn').classList.remove('tab-active');
+    document.getElementById('approvedTabBtn').classList.remove('tab-active');
     document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     
-    if (tabName === 'receive') {
-        document.getElementById('receiveTabBtn').classList.add('tab-active');
-    } else if (tabName === 'revision') {
-        document.getElementById('revisionTabBtn').classList.add('tab-active');
+    if (tabName === 'received') {
+        document.getElementById('receivedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'approved') {
+        document.getElementById('approvedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
@@ -196,7 +203,21 @@ function switchTab(tabName) {
     
     // Filter the data with a slight delay to allow animation
     setTimeout(() => {
-        applyFilters(); // Apply all filters including tab filter
+        let statusFilteredData;
+        if (tabName === 'received') {
+            statusFilteredData = allReimbursements.filter(item => item.status === 'Received');
+        } else if (tabName === 'approved') {
+            statusFilteredData = allReimbursements.filter(item => item.status === 'Approved');
+        } else if (tabName === 'rejected') {
+            statusFilteredData = allReimbursements.filter(item => item.status === 'Rejected');
+        }
+        
+        // Apply search and date filters
+        filteredData = filterData(statusFilteredData);
+        
+        // Update table and pagination
+        updateTable();
+        updatePagination();
         
         // Add fade-in effect
         setTimeout(() => {
@@ -204,65 +225,6 @@ function switchTab(tabName) {
             tableBody.style.transform = 'translateY(0)';
         }, 50);
     }, 200); // Short delay for the transition effect
-}
-
-// Apply search and date filters
-function applyFilters() {
-    searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    dateFilter = document.getElementById('dateFilter').value;
-    
-    // First filter by tab/status
-    let statusFiltered = [];
-    if (currentTab === 'receive') {
-        statusFiltered = allReimbursements.filter(item => item.status === 'Receive');
-    } else if (currentTab === 'revision') {
-        statusFiltered = allReimbursements.filter(item => item.status === 'Revision');
-    } else if (currentTab === 'rejected') {
-        statusFiltered = allReimbursements.filter(item => item.status === 'Rejected');
-    }
-    
-    // Then apply search filter
-    let searchFiltered = statusFiltered;
-    if (searchTerm) {
-        searchFiltered = statusFiltered.filter(item => 
-            (item.voucherNo && item.voucherNo.toLowerCase().includes(searchTerm)) || 
-            (item.requesterName && item.requesterName.toLowerCase().includes(searchTerm))
-        );
-    }
-    
-    // Finally apply date filter
-    filteredData = searchFiltered;
-    if (dateFilter) {
-        filteredData = searchFiltered.filter(item => {
-            if (!item.submissionDate) return false;
-            return item.submissionDate.startsWith(dateFilter);
-        });
-    }
-    
-    currentPage = 1; // Reset to first page
-    updateTable();
-    updatePagination();
-}
-
-// Reset all filters
-function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('dateFilter').value = '';
-    searchTerm = '';
-    dateFilter = '';
-    
-    // Re-apply only the tab filter
-    if (currentTab === 'receive') {
-        filteredData = allReimbursements.filter(item => item.status === 'Receive');
-    } else if (currentTab === 'revision') {
-        filteredData = allReimbursements.filter(item => item.status === 'Revision');
-    } else if (currentTab === 'rejected') {
-        filteredData = allReimbursements.filter(item => item.status === 'Rejected');
-    }
-    
-    currentPage = 1; // Reset to first page
-    updateTable();
-    updatePagination();
 }
 
 // Update the table with current data
@@ -297,7 +259,7 @@ function updateTable() {
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Receive' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Revision' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Received' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Approved' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
                     ${displayStatus}
                 </span>
             </td>
@@ -353,7 +315,7 @@ function changePage(direction) {
 
 // Function to show all documents
 function goToTotalDocs() {
-    filteredData = allReimbursements;
+    filteredData = filterData(allReimbursements);
     currentPage = 1;
     updateTable();
     updatePagination();
@@ -362,11 +324,12 @@ function goToTotalDocs() {
 // Export to Excel function
 function downloadExcel() {
     // Get status text for filename
-    const statusText = currentTab === 'receive' ? 'Receive' : currentTab === 'revision' ? 'Revision' : 'Rejected';
+    const statusText = currentTab === 'received' ? 'Received' : currentTab === 'approved' ? 'Approved' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     // Prepare data for export - no changes needed here as it already doesn't include checkbox data
     const data = filteredData.map(item => {
+        // Remove Draft to Prepared conversion as it's no longer needed
         return {
             'Doc Number': item.id || '',
             'Reimbursement Number': item.voucherNo || '',
@@ -391,7 +354,7 @@ function downloadExcel() {
 // Export to PDF function
 function downloadPDF() {
     // Get status text for filename
-    const statusText = currentTab === 'receive' ? 'Receive' : currentTab === 'revision' ? 'Revision' : 'Rejected';
+    const statusText = currentTab === 'received' ? 'Received' : currentTab === 'approved' ? 'Approved' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
     
     // Create PDF document
@@ -411,6 +374,7 @@ function downloadPDF() {
     const tableRows = [];
     
     filteredData.forEach(item => {
+        // Remove Draft to Prepared conversion as it's no longer needed
         const dataRow = [
             item.id || '',
             item.voucherNo || '',
@@ -449,24 +413,6 @@ function downloadPDF() {
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     
-    // Notification dropdown toggle
-    const notificationBtn = document.getElementById('notificationBtn');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    
-    if (notificationBtn && notificationDropdown) {
-        notificationBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            notificationDropdown.classList.toggle('hidden');
-        });
-        
-        // Close when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-    }
-    
     // Set user avatar and name if available
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     if (userInfo.name) {
@@ -478,13 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Default avatar if none is set
         document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
     }
-    
-    // Add event listeners for search input
-    document.getElementById('searchInput').addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            applyFilters();
-        }
-    });
 });
 
 // Function to navigate to user profile page
