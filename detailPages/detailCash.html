@@ -83,6 +83,9 @@
                     <option value="Prepared">Prepared</option>
                     <option value="Checked">Checked</option>
                     <option value="Acknowledged">Acknowledged</option>
+                    <option value="Received">Received</option>
+                    <option value="Closed">Closed</option>
+
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
@@ -95,10 +98,11 @@
                 </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="transactionType" class="w-full p-2 border rounded bg-white">
+                <select id="transactionType" class="w-full p-2 border rounded bg-white" onchange="toggleClosedByVisibility()">
                     <option value="Medical">Medical</option>
                     <option value="Entertainment">Entertainment</option>
                     <option value="Transport">Transport</option>
+                    <option value="PersonalLoan">Personal Loan</option>
                     <option value="Others">Others</option> 
                 </select>
             </div>
@@ -110,8 +114,10 @@
                 <tr>
 
                     <th id="thDescription" class="p-2">Description</th>
-                <!--    <th id="thGLAccount" class="p-2">G/L Account</th>
-                    <th id="thGLAccountName" class="p-2">Account Name</th> -->
+                    <!--    
+                    <th id="thGLAccount" class="p-2">G/L Account</th>
+                    <th id="thGLAccountName" class="p-2">Account Name</th>
+                    -->
                     <th id="thTotal" class="p-2">Amount</th>
                     <th id="thActions" class="p-2">Action</th>
            
@@ -193,11 +199,15 @@
                 </div>
             </div>
             <div>
-            <!-- <label><input type="checkbox" id="knowledge" class="mr-1"><strong>Received by :</strong></label>
-                <select id="Knowledge" class="w-full p-1 border rounded">
-                    <option value="Requester">Requester</option>
-                    <option value="Admin">Admin</option>
-                </select>-->
+                <!--closed by-->
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ClosedById')" autocomplete="off">
+                    <select id="Approval.ClosedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
         </div>
         <br>
@@ -317,8 +327,21 @@
             window.open(url, '_blank');
         }
 
+        function toggleClosedByVisibility() {
+            const transactionType = document.getElementById('transactionType').value;
+            const closedByContainer = document.getElementById('closed').parentElement;
+            
+            if (transactionType === 'PersonalLoan') {
+                closedByContainer.style.display = 'block';
+            } else {
+                closedByContainer.style.display = 'none';
+            }
+        }
         
-        // ... existing code ...
+        // Panggil fungsi saat halaman dimuat untuk mengatur status awal
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleClosedByVisibility();
+        });
     </script>
 </body>
 </html>
