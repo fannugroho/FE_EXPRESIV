@@ -12,7 +12,7 @@ let dateFilter = '';
 
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', function() {
-    checkAuthentication();
+    // checkAuthentication(); // Commented for development
     loadUserProfile();
     fetchRevisionData();
     fetchDraftData();
@@ -42,12 +42,14 @@ function loadUserProfile() {
 }
 
 // Check authentication
+/* Commented for development
 function checkAuthentication() {
     const token = localStorage.getItem('token');
     if (!token) {
         window.location.href = '../../../../pages/login.html';
     }
 }
+*/
 
 // Fetch revision data from API
 function fetchRevisionData() {
