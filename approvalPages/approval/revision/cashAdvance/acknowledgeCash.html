@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acknowledge Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../../../js/auth.js"></script>
+    <script src="../../../../pages/utils/toMenu.js"></script>
+    <script src="acknowledgeCash.js"></script>
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuAcknowCash()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4"> Cash Advance</h2>
+        <br>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Cash Advance No.</h3>
+                <input type="text" id="invno" placeholder="Cash Advance no" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
+                <input type="text" id="Employee" placeholder="Employee NIK" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
+                <input type="text" id="EmployeeName" placeholder="Employee Name" class="w-full p-2 border rounded"> 
+                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <input type="text" id="requester" placeholder="Requester Name" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Purpose</h3>
+                <input type="text" id="purposed" placeholder="Purpose" class="w-full p-2 border rounded">    
+                <h3 class="text-lg font-semibold mb-2">Paid To</h3>
+                <input type="text" id="paidTo" placeholder="Paid to" class="w-full p-2 border rounded">        
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Department</h3>
+                <select id="department" class="w-full p-2 border rounded">
+                    <option value="Production">Production</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Admninistration">Admninistration</option>
+                    <option value="QA/QC">QA/QC</option>
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
+                <input type="date" id="postingDate" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <select id="docStatus" class="w-full p-2 border rounded" class="bg-gray-100">
+                    <option value="Open">Pending</option>
+                    <option value="Closed">Approved</option>
+                    <option value="Settled">Settled</option>
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
+                <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
+                <select id="typeTransaction" class="w-full p-2 border rounded" onchange="toggleClosedBy()">
+                    <option value="Medical">Medical</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Personal Loan">Personal Loan</option>
+                    <option value="Others">Others</option> 
+                </select>
+            </div>
+        </div>
+        
+        <table id="prTable" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="thDescription" class="p-2">Description</th>
+                    <th id="thTotal" class="p-2">Amount</th>
+                    <th id="thActions" class="p-2">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td id="tdDescription" class="p-2 border">
+                        <input type="text" id="Description" maxlength="200" class="w-full" readonly />
+                    </td>
+                    <td id="tdTotal" class="p-2 border">
+                        <input type="number" id="Total" maxlength="10" class="w-full" required />
+                    </td>
+                    <td id="tdAction" class="p-2 border text-center">
+                        <span class="text-gray-400">View Only</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Tombol Tambah Baris -->
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
+
+        <div class="mt-4">
+          <label>Remarks</label>
+          <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="text-red-600">Needed Revision</label>
+          <textarea id="revision" class="w-full p-2 border rounded-md"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label id="preparedByLabel" class="mr-1"><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <select id="prepared" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="checkedByLabel" class="mr-1"><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <select id="Checked" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="knowledgeByLabel" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="knowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('knowledgeBy')" autocomplete="off" readonly>
+                    <select id="Acknowledged" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="knowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <select id="Approved" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div id="closedBySection" style="display: none;">
+                <label id="closed" class="mr-1"><strong>Closed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
+                    <select id="Closed" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="closedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <!-- Action Buttons -->
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="rejectCash()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Reject
+                </button>
+                <button onclick="approveCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Acknowledge
+                </button>
+            </div>
+            <button id="revisionBtn" onclick="submitRevision()" disabled class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function toggleClosedBy() {
+            const typeTransaction = document.getElementById('typeTransaction').value;
+            const closedBySection = document.getElementById('closedBySection');
+            
+            if (typeTransaction === 'Personal Loan') {
+                closedBySection.style.display = 'block';
+            } else {
+                closedBySection.style.display = 'none';
+            }
+        }
+
+        // Event listener untuk textarea revision
+        document.getElementById('revision').addEventListener('input', function() {
+            const revisionBtn = document.getElementById('revisionBtn');
+            if (this.value.trim() !== '') {
+                revisionBtn.disabled = false;
+                revisionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                revisionBtn.disabled = true;
+                revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+
+        function submitRevision() {
+            const revisionText = document.getElementById('revision').value;
+            if (revisionText.trim() !== '') {
+                // Di sini Anda bisa menambahkan logika untuk memproses revisi
+                Swal.fire({
+                    title: 'Revision Submitted',
+                    text: 'Your revision request has been submitted successfully',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    </script>
+</body>
+</html>

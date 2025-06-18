@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <!-- Note: This is just for development, use Tailwind CLI for production -->
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="menuSettleReceive.css">
+    <link rel="stylesheet" href="menuSettleRevision.css">
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -37,7 +37,6 @@
                     <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Purchase Request</button>
                     <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Purchase Request</button>
                     <button onclick="goToMenuReceivePR()" class="submenu-btn"> Receive Purchase Request</button>
-                    <button onclick="goToMenuRevisionPR()" class="submenu-btn"> Revision Purchase Request</button>
             </div>            
             </div>
 
@@ -50,8 +49,6 @@
                     <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Reimbursement</button>
                     <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Reimbursement</button>
                     <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Reimbursement</button>
-                    <button onclick="goToMenuReceiveReim()" class="submenu-btn"> Receive Reimbursement</button>
-                    <button onclick="goToMenuRevisionReim()" class="submenu-btn"> Revision Reimbursement</button>
             </div>            
             </div>
 
@@ -64,8 +61,6 @@
                     <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
                     <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
                     <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
-                    <button onclick="goToMenuReceiveCash()" class="submenu-btn"> Receive Cash Advance</button>
-                    <button onclick="goToMenuRevisionCash()" class="submenu-btn"> Revision Cash Advance</button>
             </div>            
             </div>
 
@@ -78,8 +73,6 @@
                     <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
                     <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
                     <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
-                    <button onclick="goToMenuReceiveSettle()" class="submenu-btn"> Receive Settlement</button>
-                    <button onclick="goToMenuRevisionSettle()" class="submenu-btn"> Revision Settlement</button>
             </div>            
             </div>
 
@@ -115,28 +108,20 @@
 
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Settlement Approval
+                Dashboard Settlement Revision
             </h2>
             <!--jumlah dokumen dan status-->
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">    
-            <div class="hidden md:grid grid-cols-4 gap-4 mb-6">
+            <div class="hidden md:grid grid-cols-2 gap-4 mb-6">
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Total Documents</h3>
-                    <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Acknowledge</h3>
-                    <p id="acknowledgeCount" class="text-2xl font-bold text-yellow-600">0</p>
+                    <h3 class="text-lg font-semibold">Revision</h3>
+                    <p id="revisionCount" class="text-2xl font-bold text-blue-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Approved</h3>
-                    <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
+                    <h3 class="text-lg font-semibold">Draft</h3>
+                    <p id="draftCount" class="text-2xl font-bold text-yellow-600">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Rejected</h3>
-                    <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
-                </div>
-                </div>
+            </div>
             </div>
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
             <div class="bg-white p-6 rounded-lg shadow-lg">
@@ -144,14 +129,11 @@
                 
                 <!-- Tab buttons for switching views -->
                 <div class="flex mb-4 border-b">
-                    <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 tab-active rounded-t-lg">
-                        <i class="fas fa-thumbs-up mr-2"></i>Acknowledge
+                    <button id="revisionTabBtn" onclick="switchTab('revision')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <i class="fas fa-file-alt mr-2"></i>Revision
                     </button>
-                    <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-check-circle mr-2"></i>Approved
-                    </button>
-                    <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-ban mr-2"></i>Rejected
+                    <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
+                        <i class="fas fa-file-alt mr-2"></i>Draft
                     </button>
                 </div>
                 
@@ -208,25 +190,18 @@
         </div>
     </div>
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-        <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('revision')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-alt text-xl"></i>
-            <span>Total</span>
+            <span>Revision</span>
         </button>
-        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledge</span>
+        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file-alt text-xl"></i>
+            <span>Draft</span>
         </button>
-        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check-circle text-xl"></i>
-            <span>Approved</span>
-        </button>
-        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-ban text-xl"></i>
-            <span>Rejected</span>
-        </button>
+
     </nav>
 
-    <script src="menuSettleReceive.js"></script>
+    <script src="menuSettleRevision.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
     <script src="../../../../js/auth.js"></script>
 

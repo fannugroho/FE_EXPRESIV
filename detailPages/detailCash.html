@@ -221,10 +221,6 @@
                 Update
             </button> <!-- ID : TBD-->
             
-            <button onclick="printCashAdvanceVoucher()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Print
-            </button>
-            
             <button onclick="updateCash(true)" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Submit
             </button>
@@ -250,81 +246,6 @@
                     );
                 }
             });
-        }
-        
-        function printCashAdvanceVoucher() {
-            // Get form values
-            const cashAdvanceNo = document.getElementById('cashAdvanceNo').value || '';
-            const employeeId = document.getElementById('employeeId').value || '';
-            const employeeName = document.getElementById('employeeName').value || '';
-            const requesterName = document.getElementById('requesterName').value || '';
-            const purpose = document.getElementById('purpose').value || '';
-            const paidTo = document.getElementById('paidTo').value || '';
-            const departmentSelect = document.getElementById('departmentId');
-            const department = departmentSelect.options[departmentSelect.selectedIndex].text;
-            const submissionDate = document.getElementById('submissionDate').value || '';
-            const statusSelect = document.getElementById('status');
-            const status = statusSelect.options[statusSelect.selectedIndex].value;
-            const transactionTypeSelect = document.getElementById('transactionType');
-            const transactionType = transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value;
-            
-            // Get remarks if exists
-            const remarksElement = document.querySelector('textarea');
-            const remarks = remarksElement ? remarksElement.value : '';
-            
-            // Get approval signatories
-            const proposedBy = document.getElementById('preparedCheckbox').checked ? 
-                document.getElementById('preparedSelect').value : '';
-            const checkedBy = document.getElementById('checkedCheckbox').checked ? 
-                document.getElementById('checkedSelect').value : '';
-            const approvedBy = document.getElementById('approvedCheckbox').checked ? 
-                document.getElementById('approvedSelect').value : '';
-            const acknowledgedBy = document.getElementById('acknowledgedCheckbox').checked ? 
-                document.getElementById('acknowledgedSelect').value : '';
-            
-            // Collect table items
-            const tableItems = [];
-            const rows = document.querySelectorAll('#tableBody tr');
-            let hasValidItems = false;
-            
-            rows.forEach(row => {
-                const descriptionInput = row.querySelector('input[type="text"]');
-                const amountInput = row.querySelector('input[type="number"]');
-                
-                if (descriptionInput && amountInput && 
-                    descriptionInput.value.trim() !== '' && 
-                    amountInput.value.trim() !== '') {
-                    tableItems.push({
-                        description: descriptionInput.value,
-                        amount: amountInput.value
-                    });
-                    hasValidItems = true;
-                }
-            });
-            
-            // Convert items array to JSON string and encode for URL
-            const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
-            
-            // Create URL with parameters
-            const url = `printCashAdvance.html?cashAdvanceNo=${encodeURIComponent(cashAdvanceNo)}`
-                + `&employeeNik=${encodeURIComponent(employeeId)}`
-                + `&employeeName=${encodeURIComponent(employeeName)}`
-                + `&requesterName=${encodeURIComponent(requesterName)}`
-                + `&purpose=${encodeURIComponent(purpose)}`
-                + `&paidTo=${encodeURIComponent(paidTo)}`
-                + `&department=${encodeURIComponent(department)}`
-                + `&submissionDate=${encodeURIComponent(submissionDate)}`
-                + `&status=${encodeURIComponent(status)}`
-                + `&transactionType=${encodeURIComponent(transactionType)}`
-                + `&remarks=${encodeURIComponent(remarks)}`
-                + `&items=${itemsParam}`
-                + `&proposedBy=${encodeURIComponent(proposedBy)}`
-                + `&checkedBy=${encodeURIComponent(checkedBy)}`
-                + `&approvedBy=${encodeURIComponent(approvedBy)}`
-                + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`;
-            
-            // Open in new window
-            window.open(url, '_blank');
         }
 
         function toggleClosedByVisibility() {
