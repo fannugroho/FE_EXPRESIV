@@ -163,14 +163,24 @@
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <select id="Received" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
             <div id="closedBySection" style="display: none;">
                 <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('Approval.ClosedById')" autocomplete="off">
-                    <select id="Approval.ClosedById" class="hidden">
+                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
+                    <select id="Closed" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
-                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="closedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>
@@ -201,6 +211,11 @@
             closedBySection.style.display = 'none';
         }
     }
+
+    // Call toggleClosedBy when page loads to set initial visibility
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleClosedBy();
+    });
 
     // Tambahkan event listener untuk textarea revision
     document.getElementById('revision').addEventListener('input', function() {

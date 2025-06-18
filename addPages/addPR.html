@@ -57,13 +57,6 @@
                 <select id="classification" class="w-full p-2 border rounded bg-white">
                     <option value="" disabled selected>Select Classification</option>
                 </select>
-                
-                <h3 class="text-lg font-semibold mb-2">Type PR</h3>
-                <select id="prType" class="w-full p-2 border rounded bg-white" onchange="toggleFields()">
-                    <option value="" disabled>Choose Type PR</option>
-                    <option value="Item" selected>Item</option>
-                    <option value="Service">Service</option>
-                </select>           
             </div>
             
             <div>
@@ -80,70 +73,46 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
-                
-                <h3 class="text-lg font-semibold mb-2">Type Document</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm mt-2">
-                    <label><input type="radio" name="documentType" id="PO" class="mr-1"><strong>PO</strong></label>
-                    <label><input type="radio" name="documentType" id="NonPO" class="mr-1"><strong>Non PO</strong></label>
-                </div>
             </div>
         </div>
         
-        <!-- Table for Item and Service details -->
+        <!-- Table for Item details -->
         <table id="prTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <!-- Item fields -->
-                    <th class="p-2 item-field">Item No.</th>
-                    <th class="p-2 item-field">Description</th>
-                    <th class="p-2 item-field">Detail</th>
-                    <th class="p-2 item-field">Purpose</th>
-                    <th class="p-2 item-field">Quantity</th>
-                    <th class="p-2 item-field">Action</th>
-
-                    <!-- Service fields -->
-                    <th class="p-2 service-field">Description</th>
-                    <th class="p-2 service-field">Purpose</th>
-                    <th class="p-2 service-field">Qty</th>
-                    <th class="p-2 service-field">Action</th>
+                    <th class="p-2">Item No.</th>
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Detail</th>
+                    <th class="p-2">Purpose</th>
+                    <th class="p-2">Quantity</th>
+                    <th class="p-2">UOM</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <!-- Item row fields -->
-                    <td class="p-2 border item-field bg-gray-100">
+                    <td class="p-2 border bg-gray-100">
                         <select class="w-full p-2 border rounded item-no">
                             <option value="" disabled selected>Select Item</option>
                         </select>
                     </td>
-                    <td class="p-2 border item-field bg-gray-100">
+                    <td class="p-2 border bg-gray-100">
                         <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
                     </td>
-                    <td class="p-2 border item-field">
-                        <input type="text" class="w-full item-detail" maxlength="100" required />
+                    <td class="p-2 border h-12">
+                        <input type="text" class="w-full h-full item-detail text-center" maxlength="100" required />
                     </td>
-                    <td class="p-2 border item-field">
-                        <input type="text" class="w-full item-purpose" maxlength="100" required />
+                    <td class="p-2 border h-12">
+                        <input type="text" class="w-full h-full item-purpose text-center" maxlength="100" required />
                     </td>
-                    <td class="p-2 border item-field">
-                        <input type="number" class="w-full item-quantity" min="1" required />
+                    <td class="p-2 border h-12">
+                        <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
                     </td>
-                    <td class="p-2 border text-center item-field">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+                    <td class="p-2 border bg-gray-100">
+                        <input type="text" class="w-full item-uom bg-gray-100" disabled />
                     </td>
-                    
-                    <!-- Service row fields -->
-                    <td class="p-2 border service-field">
-                        <input type="text" class="w-full service-description" maxlength="200" required />
-                    </td>
-                    <td class="p-2 border service-field">
-                        <input type="text" class="w-full service-purpose" maxlength="100" required />
-                    </td>
-                    <td class="p-2 border service-field">
-                        <input type="number" class="w-full service-quantity" min="1" required />
-                    </td>
-                    <td class="p-2 border text-center service-field">
+                    <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
                     </td>
                 </tr>

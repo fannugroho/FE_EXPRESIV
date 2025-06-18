@@ -115,7 +115,7 @@
 
         <div class="flex-1 p-6 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
-                Dashboard Settlement Approval
+                Dashboard Settlement Receive
             </h2>
             <!--jumlah dokumen dan status-->
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">    
@@ -125,12 +125,16 @@
                     <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Acknowledge</h3>
-                    <p id="acknowledgeCount" class="text-2xl font-bold text-yellow-600">0</p>
+                    <h3 class="text-lg font-semibold">Approved</h3>
+                    <p id="approvedCount" class="text-2xl font-bold text-yellow-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                     <h3 class="text-lg font-semibold">Approved</h3>
-                    <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
+                    <p id="approvedCount" class="text-2xl font-bold text-yellow-600">0</p>
+                </div>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
+                    <h3 class="text-lg font-semibold">Received</h3>
+                    <p id="receivedCount" class="text-2xl font-bold text-green-600">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                     <h3 class="text-lg font-semibold">Rejected</h3>
@@ -144,11 +148,11 @@
                 
                 <!-- Tab buttons for switching views -->
                 <div class="flex mb-4 border-b">
-                    <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 tab-active rounded-t-lg">
-                        <i class="fas fa-thumbs-up mr-2"></i>Acknowledge
+                    <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <i class="fas fa-check mr-2"></i>Approved
                     </button>
-                    <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-check-circle mr-2"></i>Approved
+                    <button id="receivedTabBtn" onclick="switchTab('received')" class="px-4 py-2 rounded-t-lg">
+                        <i class="fas fa-truck-loading mr-2"></i>Received
                     </button>
                     <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
                         <i class="fas fa-ban mr-2"></i>Rejected
@@ -212,13 +216,13 @@
             <i class="fas fa-file-alt text-xl"></i>
             <span>Total</span>
         </button>
-        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledge</span>
-        </button>
         <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check-circle text-xl"></i>
+            <i class="fas fa-check text-xl"></i>
             <span>Approved</span>
+        </button>
+        <button onclick="switchTab('received')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-truck-loading text-xl"></i>
+            <span>Received</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-ban text-xl"></i>

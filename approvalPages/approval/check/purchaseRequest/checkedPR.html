@@ -61,12 +61,7 @@
                     <option value="Open">Misc</option>
                     <option value="Open">Inventory</option>
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Type PR</h3>
-                <select id="prType" class="w-full p-2 border rounded" onchange="toggleFields()">
-                    <option value="choose" disabled selected>Choose Type PR</option>
-                    <option value="Item">Item</option>
-                    <option value="Service">Service</option>
-                </select>           
+
             </div>
             
             <div>
@@ -91,31 +86,21 @@
                         <!-- Attachments will be displayed here -->
                     </div>
                 </div>
-                
-                <h3 class="text-lg font-semibold mb-2">Type Document</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-                <label><input type="radio" name="documentType" id="PO" class="mr-1" disabled><strong>PO</strong></label>
-                <label><input type="radio" name="documentType" id="NonPO" class="mr-1" disabled><strong>Non PO</strong></label></div>
+
             </div>
         </div>
         
         <table id="prTable" class="w-full text-left border mt-2">
-            <thead class="bg-gray-100">
+            <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <!-- Item Type Headers -->
-                    <th id="thItemCode" class="p-2" style="display:none;">Item No.</th>
-                    <th id="thItemName" class="p-2" style="display:none;">Description</th>
-                    <th id="thDetail" class="p-2" style="display:none;">Detail</th>
-                    <th id="thPurposed" class="p-2" style="display:none;">Purpose</th>
-                    <th id="thQuantity" class="p-2" style="display:none;">Quantity</th>
-                    <th id="thAction" class="p-2" style="display:none;">Action</th>
-                    
-                    <!-- Service Type Headers -->
-                    <th id="thDescription" class="p-2" style="display:none;">Description</th>
-                    <th id="thPurposes" class="p-2" style="display:none;">Purpose</th>
-                    <th id="thQty" class="p-2" style="display:none;">Qty</th>
-                    <th id="thActions" class="p-2" style="display:none;">Action</th>
+                    <th class="p-2">Item No.</th>
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Detail</th>
+                    <th class="p-2">Purpose</th>
+                    <th class="p-2">Quantity</th>
+                    <th class="p-2">UOM</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">

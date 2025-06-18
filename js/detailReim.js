@@ -239,9 +239,7 @@ function autofillPreparedByWithCurrentUser(users) {
     
     if (matchingUser) {
         // Combine names with spaces, handling empty middle/last names
-        let displayName = matchingUser.firstName;
-        if (matchingUser.middleName) displayName += ` ${matchingUser.middleName}`;
-        if (matchingUser.lastName) displayName += ` ${matchingUser.lastName}`;
+        let displayName = matchingUser.fullName;
         
         // Set the preparedBy select and search input
         const preparedBySelect = document.getElementById('preparedBySelect');
@@ -662,9 +660,7 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         const option = document.createElement("option");
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.firstName;
-        if (user.middleName) displayName += ` ${user.middleName}`;
-        if (user.lastName) displayName += ` ${user.lastName}`;
+        let displayName = user.fullName;
         
         // For requesterNameSelect, use the display name as the value instead of ID
         if (useDisplayNameAsValue) {
@@ -692,9 +688,7 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         if (searchInput) {
             // Store users data for searching
             searchInput.dataset.users = JSON.stringify(users.map(user => {
-                let displayName = user.firstName;
-                if (user.middleName) displayName += ` ${user.middleName}`;
-                if (user.lastName) displayName += ` ${user.lastName}`;
+                let displayName = user.fullName;
                 return {
                     id: user.id,
                     name: displayName

@@ -29,7 +29,9 @@
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
                 <input type="text" id="requester" placeholder="Requester Name" class="w-full p-2 border rounded" readonly>
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
-                <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded" readonly>           
+                <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded" readonly>
+                <h3 class="text-lg font-semibold mb-2">Paid to</h3>
+                <input type="text" id="paidTo" placeholder="Paid to" class="w-full p-2 border rounded" readonly>
             </div>
             
             <div>
@@ -134,6 +136,16 @@
                         <option value="">Select User</option>
                     </select>
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <select id="Received" class="hidden">
+                        <option value="">Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
 

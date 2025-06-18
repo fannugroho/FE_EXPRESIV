@@ -19,14 +19,6 @@ window.onload = function() {
     if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
-    
-    // Hide service fields by default
-    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
-                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
-    serviceFields.forEach(id => {
-        const elem = document.getElementById(id);
-        if (elem) elem.style.display = "none";
-    });
 };
 
 function fetchPRDetails(prId, prType) {
@@ -44,8 +36,6 @@ function fetchPRDetails(prId, prType) {
             if (response.data) {
                 console.log(response.data);
                 populatePRDetails(response.data);
-                document.getElementById('prType').value = prType;
-                toggleFields();
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
@@ -61,17 +51,12 @@ function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
     document.getElementById('requesterName').value = data.requesterName;
-    document.getElementById('prType').value = data.prType;
   
     // Format and set dates
     const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     const requiredDate = data.requiredDate ? data.requiredDate.split('T')[0] : '';
     document.getElementById('submissionDate').value = submissionDate;
     document.getElementById('requiredDate').value = requiredDate;
-    
-    // Set document type checkboxes
-    document.getElementById('PO').checked = data.documentType === 'PO';
-    document.getElementById('NonPO').checked = data.documentType === 'NonPO';
     
     // Set remarks
     if (document.getElementById('remarks')) {
@@ -88,14 +73,8 @@ function populatePRDetails(data) {
         document.getElementById('status').value = data.status;
     }
     
-    // Toggle fields to show correct table headers before populating data
-    console.log('Calling toggleFields() for PR type:', data.prType);
-    toggleFields();
-    
-    // Handle service/item details based on PR type
-    if (data.prType === 'Service' && data.serviceDetails) {
-        populateServiceDetails(data.serviceDetails);
-    } else if (data.itemDetails) {
+    // Handle item details (only item type is supported now)
+    if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
     }
     
@@ -170,26 +149,29 @@ function addItemRow(item = null) {
     
     const row = document.createElement('tr');
 
-    
-    // Since itemNo appears to be an ID, we'll display the description as the item identifier for now
-    // You might want to fetch the actual item details using the itemNo ID
+    // Display the actual API data in readonly inputs with consistent styling
     row.innerHTML = `
-        <td class="p-2 border item-field">
-            <input type="text" value="${item?.itemNo || ''}" class="w-full item-no" readonly placeholder="Item ID" />
+        <td class="p-2 border bg-gray-100">
+            <select class="w-full p-2 border rounded item-no bg-gray-100" disabled>
+                <option value="${item?.itemNo || ''}" selected>${item?.itemCode || item?.itemNo || ''}</option>
+            </select>
         </td>
-        <td class="p-2 border item-field">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" readonly title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
+        <td class="p-2 border bg-gray-100">
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
-        <td class="p-2 border item-field">
-            <input type="text" value="${item?.detail || ''}" class="w-full item-detail" maxlength="100" readonly />
+        <td class="p-2 border h-12">
+            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center bg-gray-100" maxlength="100" readonly />
         </td>
-        <td class="p-2 border item-field">
-            <input type="text" value="${item?.purpose || ''}" class="w-full item-purpose" maxlength="100" readonly />
+        <td class="p-2 border h-12">
+            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center bg-gray-100" maxlength="100" readonly />
         </td>
-        <td class="p-2 border item-field">
-            <input type="number" value="${item?.quantity || ''}" class="w-full item-quantity" min="1" readonly />
+        <td class="p-2 border h-12">
+            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center bg-gray-100" readonly />
         </td>
-        <td class="p-2 border text-center item-field">
+        <td class="p-2 border bg-gray-100">
+            <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
+        </td>
+        <td class="p-2 border text-center">
             <!-- Read-only view, no action buttons -->
         </td>
     `;
@@ -300,7 +282,7 @@ function filterUsers(fieldId) {
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -308,7 +290,7 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;
@@ -363,7 +345,7 @@ function populateUserSelects(users, prData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
             });
             
@@ -376,7 +358,7 @@ function populateUserSelects(users, prData = null) {
                 if (searchInput) {
                     const selectedUser = users.find(user => user.id === prData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                        searchInput.value = selectedUser.fullName;
                     }
                 }
             }
@@ -475,7 +457,8 @@ function updatePRStatus(status) {
     const requestData = {
         id: prId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Receive",
+        Action: status,
         Remarks: ''
     };
 
@@ -550,7 +533,8 @@ function updatePRStatusWithRemarks(status, remarks) {
     const requestData = {
         id: prId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Receive",
+        Action: status,
         Remarks: remarks || ''
     };
 
@@ -601,91 +585,7 @@ function updatePRStatusWithRemarks(status, remarks) {
     });
 }
 
-function toggleFields() {
-    const prType = document.getElementById("prType").value;
-    
-    const itemFields = ["thItemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction", 
-                        "tdItemCode", "tdItemName", "tdDetail", "tdPurposed", "tdQuantity", "tdAction"];
-    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
-                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
 
-    console.log('Item fields to show/hide:', itemFields);
-    console.log('Service fields to show/hide:', serviceFields);
-
-    if (prType === "Item") {
-        console.log('Showing item fields, hiding service fields');
-        itemFields.forEach(id => {
-            const elem = document.getElementById(id);
-            console.log(`Item field ${id}:`, elem);
-            if (elem) {
-                elem.style.display = "table-cell";
-                console.log(`Set ${id} to table-cell`);
-            } else {
-                console.log(`Element ${id} not found!`);
-            }
-        });
-        serviceFields.forEach(id => {
-            const elem = document.getElementById(id);
-            if (elem) {
-                elem.style.display = "none";
-                console.log(`Set ${id} to none`);
-            }
-        });
-    } else if (prType === "Service") {
-        console.log('Showing service fields, hiding item fields');
-        itemFields.forEach(id => {
-            const elem = document.getElementById(id);
-            if (elem) {
-                elem.style.display = "none";
-            }
-        });
-        serviceFields.forEach(id => {
-            const elem = document.getElementById(id);
-            if (elem) {
-                elem.style.display = "table-cell";
-            }
-        });
-    }
-    
-    console.log('toggleFields completed');
-}
-
-function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-    const prType = document.getElementById("prType").value;
-
-    if (prType === "Item") {
-        newRow.innerHTML = `
-            <td id="tdItemCode" class="p-2 border">
-                <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
-                    <option value="" disabled selected>Select Item Code</option>
-                    <option value="ITM001">ITM001 - Laptop</option>
-                    <option value="ITM002">ITM002 - Printer</option>
-                    <option value="ITM003">ITM003 - Scanner</option>
-                </select>
-            </td>
-            <td id="tdItemName" class="p-2 border"><input type="text" maxlength="200" class="w-full" readonly /></td>
-            <td id="tdDetail" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
-            <td id="tdPurposed" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
-            <td id="tdQuantity" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
-            <td id="tdAction" class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-            </td>
-        `;
-    } else if (prType === "Service") {
-        newRow.innerHTML = `
-            <td id="tdDescription" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
-            <td id="tdPurposeds" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
-            <td id="tdQty" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
-            <td id="tdActions" class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-            </td>
-        `;
-    }
-
-    tableBody.appendChild(newRow);
-}
 
 function deleteRow(button) {
     button.closest("tr").remove();

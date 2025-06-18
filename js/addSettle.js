@@ -121,6 +121,23 @@ function fetchTransactionType() {
         });
 }
 
+function fetchBusinessPartners() {
+    fetch(`${BASE_URL}/api/business-partners`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Business Partners data:", data);
+            setupBusinessPartnerSearch(data.data);
+        })
+        .catch(error => {
+            console.error('Error fetching business partners:', error);
+        });
+}
+
 function populateTransactionTypeSelect(transactionTypes) {
     const transactionTypeSelect = document.getElementById("type");
     transactionTypes.forEach(transactionType => {
@@ -131,12 +148,73 @@ function populateTransactionTypeSelect(transactionTypes) {
     });
 }
 
+function setupBusinessPartnerSearch(businessPartners) {
+    // Store business partners globally for search functionality
+    window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
+        code: bp.code,
+        name: bp.name
+    }));
+
+    // Setup search functionality for paid to
+    const paidToSearchInput = document.getElementById('paidToSearch');
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    const paidToHiddenInput = document.getElementById('paidTo');
+    
+    if (paidToSearchInput && paidToDropdown && paidToHiddenInput) {
+        // Function to filter business partners
+        window.filterBusinessPartners = function() {
+            const searchText = paidToSearchInput.value.toLowerCase();
+            populateBusinessPartnerDropdown(searchText);
+            paidToDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered business partners
+        function populateBusinessPartnerDropdown(filter = '') {
+            paidToDropdown.innerHTML = '';
+            
+            const filteredPartners = window.businessPartners.filter(bp => 
+                bp.code.toLowerCase().includes(filter) || 
+                bp.name.toLowerCase().includes(filter)
+            );
+            
+            filteredPartners.forEach(partner => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
+                option.onclick = function() {
+                    paidToSearchInput.value = `${partner.code} - ${partner.name}`;
+                    paidToHiddenInput.value = partner.id;
+                    paidToDropdown.classList.add('hidden');
+                };
+                paidToDropdown.appendChild(option);
+            });
+            
+            if (filteredPartners.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching business partners';
+                paidToDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!paidToSearchInput.contains(event.target) && !paidToDropdown.contains(event.target)) {
+                paidToDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateBusinessPartnerDropdown();
+    }
+}
 
 function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department,
         kansaiEmployeeId: user.kansaiEmployeeId
     }));
@@ -145,7 +223,7 @@ function populateUserSelects(users) {
     window.employees = users.map(user => ({
         id: user.id,
         kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
 
@@ -155,7 +233,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
     }
@@ -239,7 +317,8 @@ function populateUserSelects(users) {
         { id: "preparedDropdown", isPreparerField: true },
         { id: "checkedDropdown", isPreparerField: false },
         { id: "approvedDropdown", isPreparerField: false },
-        { id: "acknowledgedDropdown", isPreparerField: false }
+        { id: "acknowledgedDropdown", isPreparerField: false },
+        { id: "receivedDropdown", isPreparerField: false }
     ];
 
     approvalSelects.forEach(selectInfo => {
@@ -248,7 +327,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
                 // Auto-select and disable for Prepared by
                 if(selectInfo.isPreparerField && user.id == getUserId()){
@@ -268,7 +347,7 @@ function populateUserSelects(users) {
             const preparedSelect = document.getElementById('preparedDropdown');
             
             if (preparedSearchInput && preparedSelect) {
-                const userName = loggedInUser.name || `${loggedInUser.firstName} ${loggedInUser.middleName} ${loggedInUser.lastName}`;
+                const userName = loggedInUser.fullName;
                 preparedSearchInput.value = userName;
                 preparedSearchInput.disabled = true;
                 preparedSearchInput.classList.add('bg-gray-100');
@@ -397,12 +476,17 @@ async function saveDocument(isSubmit = false) {
         if (transactionType) formData.append('TransactionType', transactionType);
         if (remarks) formData.append('Remarks', remarks);
         
+        // Add Business Partner ID (Paid To)
+        const paidToId = document.getElementById("paidTo").value;
+        if (paidToId) {
+            formData.append('PayTo', paidToId);
+        }
+        
         // Handle posting date
         const postingDate = document.getElementById("postingDate").value;
         if (postingDate) {
             // Send date value directly without timezone conversion
             formData.append('SubmissionDate', postingDate);
-            console.log("Posting Date:", postingDate);
         }
         
         // Set submit flag
@@ -450,7 +534,9 @@ async function saveDocument(isSubmit = false) {
         
         const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
         if (acknowledgedById) formData.append('AcknowledgedById', acknowledgedById);
-     
+        
+        const receivedById = document.getElementById("receivedDropdown").value;
+        if (receivedById) formData.append('ReceivedById', receivedById);
         
         // Send API request
         const response = await fetch(`${BASE_URL}/api/settlements`, {
@@ -656,6 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDepartments();
     fetchUsers();
     fetchTransactionType();
+    fetchBusinessPartners();
     setDefaultDate(); // Set default date
     
     // Setup event listener untuk hide dropdown saat klik di luar
@@ -664,14 +751,16 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedDropdownDropdown', 
             'checkedDropdownDropdown', 
             'approvedDropdownDropdown', 
-            'acknowledgedDropdownDropdown'
+            'acknowledgedDropdownDropdown',
+            'receivedDropdownDropdown'
         ];
         
         const searchInputs = [
             'preparedDropdownSearch', 
             'checkedDropdownSearch', 
             'approvedDropdownSearch', 
-            'acknowledgedDropdownSearch'
+            'acknowledgedDropdownSearch',
+            'receivedDropdownSearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -691,7 +780,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'preparedDropdownSearch',
         'checkedDropdownSearch',
         'approvedDropdownSearch',
-        'acknowledgedDropdownSearch'
+        'acknowledgedDropdownSearch',
+        'receivedDropdownSearch'
     ];
     
     searchFields.forEach(fieldId => {

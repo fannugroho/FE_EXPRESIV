@@ -168,9 +168,7 @@ function populateDropdown(dropdownId, users) {
         option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.firstName || '';
-        if (user.middleName) displayName += ` ${user.middleName}`;
-        if (user.lastName) displayName += ` ${user.lastName}`;
+        let displayName = user.fullName || '';
         
         // Fallback to username if no name fields
         if (!displayName.trim()) {
@@ -585,7 +583,7 @@ function filterUsers(fieldId) {
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.name || `${user.fullName || ''}`;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -593,7 +591,7 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        const userName = user.name || `${user.fullName}`;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;

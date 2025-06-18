@@ -10,21 +10,6 @@ function updateApprovalStatus(id, statusKey) {
     }
 }
 
-function toggleFields() {
-    const prType = document.getElementById("prType").value;
-    
-    const itemFields = document.querySelectorAll('.item-field');
-    const serviceFields = document.querySelectorAll('.service-field');
-
-    if (prType === "Item") {
-        itemFields.forEach(field => field.style.display = "table-cell");
-        serviceFields.forEach(field => field.style.display = "none");
-    } else if (prType === "Service") {
-        itemFields.forEach(field => field.style.display = "none");
-        serviceFields.forEach(field => field.style.display = "table-cell");
-    }
-}
-
 
 document.getElementById("docType")?.addEventListener("change", function () {
     const prTable = document.getElementById("prTable");
@@ -33,10 +18,6 @@ document.getElementById("docType")?.addEventListener("change", function () {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
 
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
@@ -141,80 +122,45 @@ function removeFile(index) {
 }
 
 function addRow() {
-    const prType = document.getElementById("prType").value;
-    if (prType === "Service") {
-        const tableBody = document.getElementById("tableBody");
-        const newRow = document.createElement("tr");
-        
-        newRow.innerHTML = `
-            <td class="p-2 border service-field">
-                <input type="text" class="w-full service-description" maxlength="200" required />
-            </td>
-            <td class="p-2 border service-field">
-                <input type="text" class="w-full service-purpose" maxlength="10" required />
-            </td>
-            <td class="p-2 border service-field">
-                <input type="text" class="w-full service-quantity" maxlength="10" required />
-            </td>
-            <td class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-            </td>
-        `;
-        
-        tableBody.appendChild(newRow);
-    } else {
-        const tableBody = document.getElementById("tableBody");
-        const newRow = document.createElement("tr");
-        
-        newRow.innerHTML = `
-            <td class="p-2 border item-field">
-                <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
-                    <option value="" disabled selected>Select Item</option>
-                </select>
-            </td>
-            <td class="p-2 border item-field">
-                <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
-            </td>
-            <td class="p-2 border item-field">
-                <input type="text" class="w-full item-detail" maxlength="100" required />
-            </td>
-            <td class="p-2 border item-field">
-                <input type="text" class="w-full item-purpose" maxlength="100" required />
-            </td>
-            <td class="p-2 border item-field">
-                <input type="number" class="w-full item-quantity" min="1" required />
-            </td>
-            <td class="p-2 border text-center">
-                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-            </td>
-        `;
-        
-        tableBody.appendChild(newRow);
-        
-        // Populate the new item select with items
-        const newItemSelect = newRow.querySelector('.item-no');
-        fetchItemOptions(newItemSelect);
-    }
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
+    
+    newRow.innerHTML = `
+        <td class="p-2 border bg-gray-100">
+            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
+                <option value="" disabled selected>Select Item</option>
+            </select>
+        </td>
+        <td class="p-2 border bg-gray-100">
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
+        </td>
+        <td class="p-2 border h-12">
+            <input type="text" class="w-full h-full item-detail text-center" maxlength="100" required />
+        </td>
+        <td class="p-2 border h-12">
+            <input type="text" class="w-full h-full item-purpose text-center" maxlength="100" required />
+        </td>
+        <td class="p-2 border h-12">
+            <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+        </td>
+        <td class="p-2 border bg-gray-100">
+            <input type="text" class="w-full item-uom bg-gray-100" disabled />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+        </td>
+    `;
+    
+    tableBody.appendChild(newRow);
+    
+    // Populate the new item select with items
+    const newItemSelect = newRow.querySelector('.item-no');
+    fetchItemOptions(newItemSelect);
 }
 
 function deleteRow(button) {
     button.closest("tr").remove();
 }
-
-// function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
-// function goToAddDoc() {window.location.href = "../addPages/addPR.html"; }
-// function goToAddReim() {window.location.href = "AddReim.html"; }
-// function goToAddCash() {window.location.href = "AddCash.html"; }
-// function goToAddSettle() {window.location.href = "AddSettle.html"; }
-// function goToAddPO() {window.location.href = "AddPO.html"; }
-// function goToMenuReim() { window.location.href = "MenuReim.html"; }
-// function goToMenuCash() { window.location.href = "MenuCash.html"; }
-// function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-// function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-// function goToMenuPO() { window.location.href = "MenuPO.html"; }
-// function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-// function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-// function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
 // Data pengguna contoh (mockup)
 const mockUsers = [
@@ -276,10 +222,8 @@ window.onload = function(){
     fetchUsers();
     fetchItemOptions();
     fetchClassifications();
-    document.getElementById("prType").value = "Item"; // Set default PR Type to Item
-    toggleFields();
     
-    // Ensure all description fields are initially empty and properly styled
+    // Ensure all description and UOM fields are initially empty and properly styled
     document.querySelectorAll('.item-description').forEach(input => {
         input.value = '';
         input.disabled = true;
@@ -351,7 +295,6 @@ function fetchDepartments() {
         });
 }
 
-
 function fetchUsers() {
     fetch(`${BASE_URL}/api/users`)
         .then(response => {
@@ -413,7 +356,7 @@ function populateUserSelects(users) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
-        fullName: user.name || `${user.firstName} ${user.middleName} ${user.lastName}`,
+        fullName: user.fullName,
         department: user.department
     }));
 
@@ -423,7 +366,7 @@ function populateUserSelects(users) {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+            option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
     }
@@ -512,7 +455,7 @@ function populateUserSelects(users) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
                 if(selectId == "preparedBy"){
                     if(user.id == getUserId()){
@@ -520,7 +463,7 @@ function populateUserSelects(users) {
                         // Perbarui kolom pencarian untuk preparedBy
                         const preparedBySearch = document.getElementById('preparedBySearch');
                         if (preparedBySearch) {
-                            preparedBySearch.value = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                            preparedBySearch.value = user.fullName;
                             preparedBySearch.disabled = true;
                         }
                     }
@@ -545,42 +488,72 @@ function populateItemSelect(items, selectElement) {
     items.forEach(item => {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemCode}`;
-        // Store the description as a data attribute
+        option.textContent = `${item.itemCode} - ${item.itemName}`;
+        // Store the description and UOM as data attributes
+        option.setAttribute('data-item-code', item.itemCode);
         option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
         selectElement.appendChild(option);
     });
 
-    // Add onchange event listener to auto-fill description
+    // Add onchange event listener to auto-fill description and UOM
     selectElement.onchange = function() {
         updateItemDescription(this);
     };
 }
 
-// Function to update description field when item is selected
+// Function to update description and UOM fields when item is selected
 function updateItemDescription(selectElement) {
     const row = selectElement.closest('tr');
     const descriptionInput = row.querySelector('.item-description');
+    const uomInput = row.querySelector('.item-uom');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    
     // Check if a valid item is selected (not the placeholder option)
     if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
-        // Get description from data attribute and fill it automatically
+         // Get the item code and set it as the text content
+         const itemCode = selectedOption.getAttribute('data-item-code');
+         selectedOption.textContent = itemCode || '';
+         
+        //  // Force the select element to resize to fit only the item code
+        //  selectElement.style.width = 'auto';
+        //  const tempOption = document.createElement('option');
+        //  tempOption.textContent = itemCode;
+        //  selectElement.appendChild(tempOption);
+        //  const newWidth = tempOption.offsetWidth + 120; // Add some padding
+        //  selectElement.removeChild(tempOption);
+        //  selectElement.style.width = newWidth + 'px';
+        
+        // Get description and UOM from data attributes and fill them automatically
         const itemDescription = selectedOption.getAttribute('data-description');
+        const itemUom = selectedOption.getAttribute('data-uom');
+        
         descriptionInput.value = itemDescription || '';
         descriptionInput.textContent = itemDescription || ''; // For textarea
         descriptionInput.title = itemDescription || ''; // For tooltip
-        // Keep the description field disabled and gray (not editable by user)
+        
+        uomInput.value = itemUom || '';
+        uomInput.title = itemUom || ''; // For tooltip
+        
+        // Keep the fields disabled and gray (not editable by user)
         descriptionInput.disabled = true;
         descriptionInput.classList.add('bg-gray-100');
+        uomInput.disabled = true;
+        uomInput.classList.add('bg-gray-100');
+
+
     } else {
-        // No valid item selected, clear the description
+        // No valid item selected, clear the fields
         descriptionInput.value = '';
         descriptionInput.textContent = '';
         descriptionInput.title = '';
-        // Keep the description field disabled and gray
+        uomInput.value = '';
+        uomInput.title = '';
+        
+        // Keep the fields disabled and gray
         descriptionInput.disabled = true;
         descriptionInput.classList.add('bg-gray-100');
+        uomInput.disabled = true;
+        uomInput.classList.add('bg-gray-100');
     }
 }
 
@@ -596,7 +569,87 @@ function populateClassificationSelect(classifications) {
     });
 }
 
+// Validation function to check if dates are at least 2 weeks apart
+function validateDateDifference(issuanceDate, requiredDate) {
+    if (!issuanceDate || !requiredDate) return false;
+    
+    const issuance = new Date(issuanceDate);
+    const required = new Date(requiredDate);
+    
+    // Calculate difference in milliseconds
+    const timeDifference = required.getTime() - issuance.getTime();
+    
+    // Convert to days (14 days = 2 weeks)
+    const daysDifference = timeDifference / (1000 * 3600 * 24);
+    
+    return daysDifference >= 14;
+}
+
+// Validation function to check required fields
+function validateRequiredFields() {
+    const errors = [];
+    
+    // Check requester name
+    const requesterId = document.getElementById("RequesterId").value;
+    if (!requesterId) {
+        errors.push("Requester name is required");
+    }
+    
+    // Check remarks
+    const remarks = document.getElementById("remarks").value.trim();
+    if (!remarks) {
+        errors.push("Remarks field is required");
+    }
+    
+    // Check attachments
+    if (uploadedFiles.length === 0) {
+        errors.push("At least one attachment is required");
+    }
+    
+    // Check approval users
+    const approvalFields = ['preparedBy', 'acknowledgeBy', 'checkedBy', 'approvedBy', 'receivedBy'];
+    approvalFields.forEach(field => {
+        const value = document.getElementById(field).value;
+        if (!value) {
+            const fieldName = field.replace(/([A-Z])/g, ' $1').toLowerCase();
+            errors.push(`${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`);
+        }
+    });
+    
+    // Check dates
+    const issuanceDate = document.getElementById("submissionDate").value;
+    const requiredDate = document.getElementById("requiredDate").value;
+    
+    if (!issuanceDate) {
+        errors.push("Issuance date is required");
+    }
+    
+    if (!requiredDate) {
+        errors.push("Required date is required");
+    }
+    
+    if (issuanceDate && requiredDate) {
+        if (!validateDateDifference(issuanceDate, requiredDate)) {
+            errors.push("Required date must be at least 2 weeks after issuance date");
+        }
+    }
+    
+    return errors;
+}
+
 async function submitDocument(isSubmit = false) {
+    // Validate required fields first
+    const validationErrors = validateRequiredFields();
+    if (validationErrors.length > 0) {
+        await Swal.fire({
+            title: 'Validation Error',
+            html: validationErrors.map(error => `• ${error}`).join('<br>'),
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
     // Show confirmation dialog only for submit
     if (isSubmit) {
         const result = await Swal.fire({
@@ -631,8 +684,6 @@ async function submitDocument(isSubmit = false) {
     });
 
     try {
-        const prType = document.getElementById("prType").value;
-        
         // Get user ID from JWT token using auth.js function
         const userId = getUserId();
         if (!userId) {
@@ -647,7 +698,6 @@ async function submitDocument(isSubmit = false) {
         console.log("IsSubmit:", isSubmit);
         
         // Add basic fields
-        // formData.append('PurchaseRequestNo', document.getElementById("purchaseRequestNo").value);
         formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
         formData.append('DepartmentId', document.getElementById("department").value);
         formData.append('IsSubmit', isSubmit.toString()); // Convert boolean to string
@@ -672,11 +722,6 @@ async function submitDocument(isSubmit = false) {
         formData.append('Classification', selectedText);
         formData.append('Remarks', document.getElementById("remarks").value);
         
-        // Document type (PO or Non PO)
-        const isPO = document.getElementById("PO").checked;
-        const isNonPO = document.getElementById("NonPO").checked;
-        formData.append('DocumentType', isPO ? 'PO' : (isNonPO ? 'NonPO' : ''));
-        
         // Approvals
         formData.append('PreparedById', document.getElementById("preparedBy").value);
         formData.append('CheckedById', document.getElementById("checkedBy").value);
@@ -684,24 +729,18 @@ async function submitDocument(isSubmit = false) {
         formData.append('ApprovedById', document.getElementById("approvedBy").value);
         formData.append('ReceivedById', document.getElementById("receivedBy").value);
         
+        
         // Item details
         const rows = document.querySelectorAll("#tableBody tr");
         
-        if (prType === "Item") {
-            rows.forEach((row, index) => {
-                formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
-                formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
-                formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
-                formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
-                formData.append(`ItemDetails[${index}].Quantity`, row.querySelector('.item-quantity').value);
-            });
-        } else if (prType === "Service") {
-            rows.forEach((row, index) => {
-                formData.append(`ServiceDetails[${index}].Description`, row.querySelector('.service-description').value);
-                formData.append(`ServiceDetails[${index}].Purpose`, row.querySelector('.service-purpose').value);
-                formData.append(`ServiceDetails[${index}].Quantity`, row.querySelector('.service-quantity').value);
-            });
-        }
+        rows.forEach((row, index) => {
+            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
+            formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
+            formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
+            formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
+            formData.append(`ItemDetails[${index}].Quantity`, row.querySelector('.item-quantity').value);
+            formData.append(`ItemDetails[${index}].UOM`, row.querySelector('.item-uom').value);
+        });
         
         // File attachments
         uploadedFiles.forEach(file => {
@@ -709,7 +748,7 @@ async function submitDocument(isSubmit = false) {
         });
         
         // Submit the form data
-        const response = await fetch(`${BASE_URL}/api/pr/${prType.toLowerCase()}`, {
+        const response = await fetch(`${BASE_URL}/api/pr/item`, {
             method: 'POST',
             body: formData
         });
@@ -727,15 +766,20 @@ async function submitDocument(isSubmit = false) {
                 const errorData = JSON.parse(responseText);
                 console.log("Parsed error data:", errorData);
                 
+                // Handle ApiResponse error format
                 if (errorData.Message) {
                     errorMessage = errorData.Message;
                 } else if (errorData.message) {
                     errorMessage = errorData.message;
+                }
+                
+                // Handle validation errors array in Data field
+                if (errorData.Data && Array.isArray(errorData.Data)) {
+                    errorMessage = "Validation errors:\n" + errorData.Data.join("\n");
                 } else if (errorData.errors && Array.isArray(errorData.errors)) {
                     errorMessage = "Validation errors:\n" + errorData.errors.join("\n");
-                } else {
-                    console.log("No Message property found in error response");
                 }
+                
             } catch (parseError) {
                 console.log("Could not parse error response:", parseError);
             }

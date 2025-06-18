@@ -175,6 +175,16 @@
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <select id="Received" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
             <div id="closedBySection" style="display: none;">
                 <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
                 <div class="relative">
@@ -208,6 +218,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded successfully');
+            toggleClosedBy(); // Set initial visibility for closedBy field
         });
 
         function toggleClosedBy() {

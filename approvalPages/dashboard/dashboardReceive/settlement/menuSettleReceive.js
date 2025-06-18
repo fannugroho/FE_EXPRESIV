@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'acknowledge'; // Default tab
+let currentTab = 'approved'; // Default tab
     
 // Pagination variables
 let currentPage = 1;
@@ -42,12 +42,12 @@ async function loadDashboard() {
         let url;
         
         // Build URL based on current tab
-        if (currentTab === 'acknowledge') {
-            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`;
-        } else if (currentTab === 'approved') {
-            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`;
+        if (currentTab === 'approved') {
+            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=false`;
+        } else if (currentTab === 'received') {
+            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=true`;
         } else if (currentTab === 'rejected') {
-            url = `${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`;
+            url = `${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=received`;
         }
 
         console.log('Fetching dashboard data from:', url);
@@ -99,29 +99,29 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status using new API endpoints
-        const acknowledgeResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
+        const approvedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=false`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        const approvedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
+        const receivedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=true`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
+        const rejectedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=received`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
 
-        const acknowledgeData = acknowledgeResponse.ok ? await acknowledgeResponse.json() : { data: [] };
         const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const receivedData = receivedResponse.ok ? await receivedResponse.json() : { data: [] };
         const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
 
-        const acknowledgeCount = acknowledgeData.data ? acknowledgeData.data.length : 0;
         const approvedCount = approvedData.data ? approvedData.data.length : 0;
+        const receivedCount = receivedData.data ? receivedData.data.length : 0;
         const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
-        const totalCount = acknowledgeCount + approvedCount + rejectedCount;
+        const totalCount = approvedCount + receivedCount + rejectedCount;
 
         // Update counters - map to correct HTML elements
         document.getElementById("totalCount").textContent = totalCount;
-        document.getElementById("acknowledgeCount").textContent = acknowledgeCount;
         document.getElementById("approvedCount").textContent = approvedCount;
+        document.getElementById("receivedCount").textContent = receivedCount;
         document.getElementById("rejectedCount").textContent = rejectedCount;
         
     } catch (error) {
@@ -129,8 +129,8 @@ async function updateCounters(userId) {
         
         // Fallback to zero counts
         document.getElementById("totalCount").textContent = 0;
-        document.getElementById("acknowledgeCount").textContent = 0;
         document.getElementById("approvedCount").textContent = 0;
+        document.getElementById("receivedCount").textContent = 0;
         document.getElementById("rejectedCount").textContent = 0;
     }
 }
@@ -221,10 +221,10 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-    } else if (tabName === 'approved') {
+    if (tabName === 'approved') {
         document.getElementById('approvedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'received') {
+        document.getElementById('receivedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
@@ -260,7 +260,7 @@ function changePage(direction) {
 
 // Function to navigate to total documents page
 function goToTotalDocs() {
-    switchTab('acknowledge');
+    switchTab('approved');
 }
 
 // Navigation functions
