@@ -108,22 +108,41 @@
             </tbody>
         </table>
         
-        <!-- Tombol Tambah Baris -->
+        <!-- Tombol Tambah Baris PR Table
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
-        </button>
+        </button>-->
+        <br>
 
             <div class="mt-4">
               <label>Remarks</label>
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
+            
+            <!-- Revision Remarks Section -->
+            <div class="mt-4">
+                <div class="flex justify-between items-center">
+                    <label>Need Revision</label>
+                </div>
+                <div id="revisionContainer">
+                    <!-- Initial revision field without delete button -->
+                    <div class="mb-2">
+                        <textarea id="revisionRemarks" class="w-full p-2 border rounded-md" placeholder="Enter revision details"></textarea>
+                    </div>
+                    <!-- Additional revision fields will be added here -->
+                </div>
+                <div class="flex justify-between items-center">
+                    <button onclick="addRevisionField()" class="text-blue-500 hover:text-blue-700 font-medium">need another revision? +</button>
+                </div>
+            </div>
         
         <!-- Approval -->
+         <br>
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
+                <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 bg-gray-200 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
                     <select id="prepared" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -131,9 +150,9 @@
                 </div>
             </div>
             <div>
-                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 bg-gray-200 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off" readonly>
                     <select id="Knowledge" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -141,9 +160,9 @@
                 </div>
             </div>
             <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 bg-gray-200 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
                     <select id="Checked" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -151,9 +170,9 @@
                 </div>
             </div>
             <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 bg-gray-200 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
                     <select id="Approved" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -161,9 +180,9 @@
                 </div>
             </div>
             <div>
-                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 bg-gray-200 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
                     <select id="Received" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -173,14 +192,196 @@
         </div>
         <br>
         <!-- Action Buttons -->
-<div class="flex justify-start space-x-4 mt-6">
-    <button onclick="rejectPR()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Reject
-    </button>
-    <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-        Checked
-    </button>
-</div>
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="rejectPR()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Reject
+                </button>
+                <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Checked
+                </button>
+            </div>
+            <button onclick="revisionPR()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
+            </button>
+        </div>
     </div>
+
+    <script>
+        // Add revision field functionality
+        function addRevisionField() {
+            const container = document.getElementById('revisionContainer');
+            
+            // Create wrapper div for the textarea and delete button
+            const fieldWrapper = document.createElement('div');
+            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+            
+            // Create textarea
+            const newField = document.createElement('textarea');
+            newField.className = 'w-full p-2 border rounded-md';
+            newField.placeholder = 'Enter additional revision details';
+            
+            // Add event listener for input to handle protected prefix
+            newField.addEventListener('input', handleRevisionInput);
+            
+            // Initialize with user prefix
+            initializeWithUserPrefix(newField);
+            
+            // Create delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '&times;'; // × symbol
+            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+            deleteButton.title = 'Hapus field revision ini';
+            deleteButton.onclick = function() {
+                fieldWrapper.remove();
+                checkRevisionButton(); // Update button state after removing a field
+            };
+            
+            // Add textarea and delete button to wrapper
+            fieldWrapper.appendChild(newField);
+            fieldWrapper.appendChild(deleteButton);
+            
+            // Add wrapper to container
+            container.appendChild(fieldWrapper);
+            
+            // Update the revision button state
+            checkRevisionButton();
+        }
+        
+        // Initialize first textarea when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstTextarea = document.getElementById('revisionRemarks');
+            if (firstTextarea) {
+                // Add event listener for input to handle protected prefix
+                firstTextarea.addEventListener('input', handleRevisionInput);
+                
+                // Initialize with user prefix
+                initializeWithUserPrefix(firstTextarea);
+            }
+            
+            const revisionContainer = document.getElementById('revisionContainer');
+            
+            // Use event delegation to handle input events on all textareas
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    checkRevisionButton();
+                }
+            });
+            
+            // Initialize button state
+            checkRevisionButton();
+        });
+        
+        // Function to get current user information
+        function getUserInfo() {
+            // Use functions from auth.js to get user information
+            let userName = 'Unknown User';
+            let userRole = 'Checker'; // Default role for this page since we're on the checker page
+            
+            try {
+                // Get user info from getCurrentUser function in auth.js
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.username) {
+                    userName = currentUser.username;
+                }
+                
+                // Get user role based on the current page
+                // Since we're on the checker page, the role is Checker
+            } catch (e) {
+                console.error('Error getting user info:', e);
+            }
+            
+            return { name: userName, role: userRole };
+        }
+        
+        // Function to initialize textarea with user prefix
+        function initializeWithUserPrefix(textarea) {
+            const userInfo = getUserInfo();
+            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            textarea.value = prefix;
+            
+            // Store the prefix length as a data attribute
+            textarea.dataset.prefixLength = prefix.length;
+            
+            // Set selection range after the prefix
+            textarea.setSelectionRange(prefix.length, prefix.length);
+            textarea.focus();
+        }
+        
+        // Function to handle input and protect the prefix
+        function handleRevisionInput(event) {
+            const textarea = event.target;
+            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+            
+            // If user tries to modify content before the prefix length
+            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+                // Restore the prefix
+                const userInfo = getUserInfo();
+                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                
+                // Only restore if the prefix is damaged
+                if (!textarea.value.startsWith(prefix)) {
+                    const userText = textarea.value.substring(prefixLength);
+                    textarea.value = prefix + userText;
+                    
+                    // Reset cursor position after the prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                } else {
+                    // Just move cursor after prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                }
+            }
+        }
+        
+        // Check if revision remarks are filled to enable/disable revision button
+        function checkRevisionButton() {
+            const revisionButton = document.getElementById('revisionButton');
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            let hasContent = false;
+            revisionFields.forEach(field => {
+                const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                // Check if there's content beyond the prefix
+                if (field.value.trim().length > prefixLength) {
+                    hasContent = true;
+                }
+            });
+            
+            if (hasContent) {
+                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = false;
+            } else {
+                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = true;
+            }
+        }
+        
+        // Modify the revisionPR function to collect all revision remarks
+        function revisionPR() {
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            let allRemarks = '';
+            
+            revisionFields.forEach((field, index) => {
+                // Include the entire content including the prefix
+                if (field.value.trim() !== '') {
+                    if (allRemarks !== '') allRemarks += '\n\n';
+                    allRemarks += field.value.trim();
+                }
+            });
+            
+            const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+            if (allRemarks.length <= prefixLength) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Silakan berikan alasan revisi sebelum mengirim'
+                });
+                return;
+            }
+            
+            // Call the existing function with the collected remarks
+            updatePRStatusWithRemarks('revision', allRemarks);
+        }
+    </script>
 </body>
 </html>

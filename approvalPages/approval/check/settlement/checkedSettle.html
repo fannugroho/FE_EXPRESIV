@@ -9,6 +9,28 @@
     <script src="../../../../js/auth.js"></script>
     <script src="checkedSettle.js"></script>
     <script src="../../../../pages/utils/toMenu.js"></script>
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
@@ -95,6 +117,24 @@
             <label>Remarks</label>
             <textarea id="remarks" class="w-full p-2 border rounded-md" placeholder="Add remarks for approval/rejection"></textarea>
         </div>
+        
+        <!-- Revision Remarks Section -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center">
+                <label class="text-red-600">Need Revision</label>
+            </div>
+            <div id="revisionContainer">
+                <!-- Initial revision field without delete button -->
+                <div class="mb-2">
+                    <textarea id="revisionRemarks" class="w-full p-2 border rounded-md" placeholder="Enter revision details"></textarea>
+                </div>
+                <!-- Additional revision fields will be added here -->
+            </div>
+            <div class="flex justify-between items-center">
+                <button onclick="addRevisionField()" class="text-blue-500 hover:text-blue-700 font-medium">need another revision? +</button>
+            </div>
+        </div>
+        <br>
 
         <!-- Approval -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
@@ -151,14 +191,193 @@
 
         </div>
         <br>
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="rejectSettle()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-            Reject
-            </button>
-            <button onclick="approveSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-            Checked
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="onReject()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Reject
+                </button>
+                <button onclick="onChecked()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Checked
+                </button>
+            </div>
+            <button onclick="revisionReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
             </button>
         </div>
         </div>
+
+    <script>
+        // Add revision field functionality
+        function addRevisionField() {
+            const container = document.getElementById('revisionContainer');
+            
+            // Create wrapper div for the textarea and delete button
+            const fieldWrapper = document.createElement('div');
+            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+            
+            // Create textarea
+            const newField = document.createElement('textarea');
+            newField.className = 'w-full p-2 border rounded-md';
+            newField.placeholder = 'Enter additional revision details';
+            
+            // Add event listener for input to handle protected prefix
+            newField.addEventListener('input', handleRevisionInput);
+            
+            // Initialize with user prefix
+            initializeWithUserPrefix(newField);
+            
+            // Create delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '&times;'; // × symbol
+            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+            deleteButton.title = 'Hapus field revision ini';
+            deleteButton.onclick = function() {
+                fieldWrapper.remove();
+                checkRevisionButton(); // Update button state after removing a field
+            };
+            
+            // Add textarea and delete button to wrapper
+            fieldWrapper.appendChild(newField);
+            fieldWrapper.appendChild(deleteButton);
+            
+            // Add wrapper to container
+            container.appendChild(fieldWrapper);
+            
+            // Update the revision button state
+            checkRevisionButton();
+        }
+        
+        // Initialize first textarea when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstTextarea = document.getElementById('revisionRemarks');
+            if (firstTextarea) {
+                // Add event listener for input to handle protected prefix
+                firstTextarea.addEventListener('input', handleRevisionInput);
+                
+                // Initialize with user prefix
+                initializeWithUserPrefix(firstTextarea);
+            }
+            
+            const revisionContainer = document.getElementById('revisionContainer');
+            
+            // Use event delegation to handle input events on all textareas
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    checkRevisionButton();
+                }
+            });
+            
+            // Initialize button state
+            checkRevisionButton();
+        });
+        
+        // Function to get current user information
+        function getUserInfo() {
+            // Use functions from auth.js to get user information
+            let userName = 'Unknown User';
+            let userRole = 'Checker'; // Default role for this page since we're on the checker page
+            
+            try {
+                // Get user info from getCurrentUser function in auth.js
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.username) {
+                    userName = currentUser.username;
+                }
+            } catch (e) {
+                console.error('Error getting user info:', e);
+            }
+            
+            return { name: userName, role: userRole };
+        }
+        
+        // Function to initialize textarea with user prefix
+        function initializeWithUserPrefix(textarea) {
+            const userInfo = getUserInfo();
+            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            textarea.value = prefix;
+            
+            // Store the prefix length as a data attribute
+            textarea.dataset.prefixLength = prefix.length;
+            
+            // Set selection range after the prefix
+            textarea.setSelectionRange(prefix.length, prefix.length);
+            textarea.focus();
+        }
+        
+        // Function to handle input and protect the prefix
+        function handleRevisionInput(event) {
+            const textarea = event.target;
+            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+            
+            // If user tries to modify content before the prefix length
+            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+                // Restore the prefix
+                const userInfo = getUserInfo();
+                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                
+                // Only restore if the prefix is damaged
+                if (!textarea.value.startsWith(prefix)) {
+                    const userText = textarea.value.substring(prefixLength);
+                    textarea.value = prefix + userText;
+                    
+                    // Reset cursor position after the prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                } else {
+                    // Just move cursor after prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                }
+            }
+        }
+        
+        // Check if revision remarks are filled to enable/disable revision button
+        function checkRevisionButton() {
+            const revisionButton = document.getElementById('revisionButton');
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            let hasContent = false;
+            revisionFields.forEach(field => {
+                const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                // Check if there's content beyond the prefix
+                if (field.value.trim().length > prefixLength) {
+                    hasContent = true;
+                }
+            });
+            
+            if (hasContent) {
+                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = false;
+            } else {
+                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = true;
+            }
+        }
+        
+        // Modify the revisionReim function to collect all revision remarks
+        function revisionReim() {
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            let allRemarks = '';
+            
+            revisionFields.forEach((field, index) => {
+                // Include the entire content including the prefix
+                if (field.value.trim() !== '') {
+                    if (allRemarks !== '') allRemarks += '\n\n';
+                    allRemarks += field.value.trim();
+                }
+            });
+            
+            const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+            if (allRemarks.length <= prefixLength) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Silakan berikan alasan revisi sebelum mengirim'
+                });
+                return;
+            }
+            
+            // Call the existing function with the collected remarks
+            updateSettleStatusWithRemarks('revision', allRemarks);
+        }
+    </script>
 </body>
 </html>

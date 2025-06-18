@@ -445,10 +445,20 @@ function updateCAStatusWithRemarks(status, remarks) {
         Action: status,
         Remarks: remarks || ''
     };
+    
+    // If this is a revision, we need to handle it differently
+    if (status === 'revision') {
+        requestData.RevisionRemarks = remarks;
+    }
 
     // Show loading
+    let actionText = 'Processing';
+    if (status === 'approve') actionText = 'Approving';
+    else if (status === 'reject') actionText = 'Rejecting';
+    else if (status === 'revision') actionText = 'Submitting Revision';
+    
     Swal.fire({
-        title: `${status === 'approve' ? 'Approving' : 'Rejecting'}...`,
+        title: `${actionText}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -465,10 +475,15 @@ function updateCAStatusWithRemarks(status, remarks) {
     })
     .then(response => {
         if (response.ok) {
+            let successMessage = 'Operation completed successfully';
+            if (status === 'approve') successMessage = 'CA approved successfully';
+            else if (status === 'reject') successMessage = 'CA rejected successfully';
+            else if (status === 'revision') successMessage = 'Revision submitted successfully';
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                text: successMessage,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
@@ -483,29 +498,66 @@ function updateCAStatusWithRemarks(status, remarks) {
     })
     .catch(error => {
         console.error('Error:', error);
+        let errorAction = 'processing';
+        if (status === 'approve') errorAction = 'approving';
+        else if (status === 'reject') errorAction = 'rejecting';
+        else if (status === 'revision') errorAction = 'submitting revision for';
+        
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message
+            text: `Error ${errorAction} CA: ` + error.message
         });
     });
 }
 
-// Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Checker'; // Default role for this page since we're on the checker page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the checker page, the role is Checker
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
+// Function to submit revision
 function submitRevision() {
-    const revisionRemarks = document.getElementById('revision').value;
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
     
-    console.log("revisionRemarks");
-    console.log(revisionRemarks);
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
     
-    if (!revisionRemarks || revisionRemarks.trim() === '') {
+    const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+    if (allRemarks.length <= prefixLength) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Missing Revision Remarks',
-            text: 'Please enter revision remarks before submitting.'
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan berikan alasan revisi sebelum mengirim'
         });
         return;
     }
+    
+    console.log("revisionRemarks");
+    console.log(allRemarks);
 
     if (!caId) {
         Swal.fire({
@@ -538,89 +590,8 @@ function submitRevision() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Prepare revision data
-            const revisionData = {
-                id: caId,
-                UserId: userId,
-                Status: 'revision',
-                RevisionRemarks: revisionRemarks.trim()
-            };
-
-            // Show loading
-            Swal.fire({
-                title: 'Submitting Revision...',
-                text: 'Please wait while we process your revision request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // TODO: Replace with actual revision API endpoint when available
-            // For now, this is a dummy implementation
-            console.log('Revision data to be sent:', revisionData);
-            
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Replace this simulation with actual API call
-                /*
-                fetch(`${BASE_URL}/api/cash-advance/revision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(revisionData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
-                        });
-                    }
-                })
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted!',
-                        text: 'Your revision request has been submitted successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the dashboard
-                        window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error submitting revision: ' + error.message
-                    });
-                });
-                */
-                
-                // Dummy success response
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Revision Submitted!',
-                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
-                    timer: 3000,
-                    showConfirmButton: true
-                }).then(() => {
-                    // Clear the revision field
-                    document.getElementById('revision').value = '';
-                    // Disable revision button again
-                    const revisionBtn = document.getElementById('revisionBtn');
-                    revisionBtn.disabled = true;
-                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    
-                    // Optionally navigate back to dashboard
-                    // window.location.href = '../../../dashboard/dashboardCheck/cashAdvance/menuCashCheck.html';
-                });
-            }, 1500); // Simulate API delay
+            // Call the existing function with the collected remarks
+            updateCAStatusWithRemarks('revision', allRemarks);
         }
     });
 }
