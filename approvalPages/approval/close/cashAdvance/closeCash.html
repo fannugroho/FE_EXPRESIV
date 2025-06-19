@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acknowledge Document</title>
+    <title>Close Document</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../../../../js/auth.js"></script>
+    <script src="closeCash.js"></script>
+    <!-- Menyambungkan toMenu.js -->
     <script src="../../../../pages/utils/toMenu.js"></script>
-    <script src="acknowledgeCash.js"></script>
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -35,8 +37,8 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuAcknowCash()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4"> Cash Advance</h2>
+        <button onclick="goToMenuApprovCash()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4"> Cash Advance </h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -92,34 +94,34 @@
             </div>
         </div>
         
-        <table id="prTable" class="w-full text-left border mt-2">
+        <table id="cashTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th id="thDescription" class="p-2">Description</th>
-                    <th id="thTotal" class="p-2">Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Amount</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="Description" maxlength="200" class="w-full" readonly />
+                    <td class="p-2 border">
+                        <input type="text" maxlength="200" class="w-full" required />
+                    </td>                                                                            
+                    <td class="p-2 border">
+                        <input type="number" maxlength="10" class="w-full" required />
                     </td>
-                    <td id="tdTotal" class="p-2 border">
-                        <input type="number" id="Total" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdAction" class="p-2 border text-center">
+                    <td class="p-2 border text-center">
                         <span class="text-gray-400">View Only</span>
                     </td>
                 </tr>
             </tbody>
         </table>
         
-        <!-- Tombol Tambah Baris -->
+        <!-- Tombol Tambah Baris 
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
-        </button>
+        </button>-->
 
         <div class="mt-4">
           <label>Remarks</label>
@@ -129,7 +131,6 @@
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
-                <!--<label class="text-red-600">Need Revision</label>-->
                 <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
             </div>
             <div id="revisionContainer" class="hidden">
@@ -137,9 +138,10 @@
             </div>
         </div>
 
+        <!-- Approval Signatories -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
-                <label id="preparedByLabel" class="mr-1"><strong>Proposed by:</strong></label>
+            <div>
+                <label id="preparedByCheck" class="mr-1"><strong>Proposed by :</strong></label>
                 <div class="relative">
                     <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
                     <select id="prepared" class="hidden">
@@ -149,7 +151,7 @@
                 </div>
             </div>
             <div>
-                <label id="checkedByLabel" class="mr-1"><strong>Checked by:</strong></label>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
                     <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
                     <select id="Checked" class="hidden">
@@ -159,17 +161,17 @@
                 </div>
             </div>
             <div>
-                <label id="knowledgeByLabel" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <label id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="knowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('knowledgeBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
                     <select id="Acknowledged" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
-                    <div id="knowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
-                <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
                     <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
                     <select id="Approved" class="hidden">
@@ -178,8 +180,18 @@
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <select id="Received" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
             <div id="closedBySection" style="display: none;">
-                <label id="closed" class="mr-1"><strong>Closed by:</strong></label>
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
                 <div class="relative">
                     <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
                     <select id="Closed" class="hidden">
@@ -193,20 +205,32 @@
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="rejectCash()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                    Reject
-                </button>
-                <button onclick="approveCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                    Acknowledge
+                <button onclick="closeCash()" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Close
                 </button>
             </div>
-            <button onclick="revisionCash()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
-                Revision
-            </button>
         </div>
     </div>
-
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded successfully');
+            toggleClosedBy(); // Set initial visibility for closedBy field
+            
+            // Initialize revision functionality
+            const revisionContainer = document.getElementById('revisionContainer');
+            
+            // Use event delegation to handle input events on all textareas
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    checkRevisionButton();
+                }
+            });
+            
+            // Initialize button states
+            checkRevisionButton();
+            updateAddButtonState();
+        });
+
         function toggleClosedBy() {
             const typeTransaction = document.getElementById('typeTransaction').value;
             const closedBySection = document.getElementById('closedBySection');
@@ -292,7 +316,7 @@
             // Create textarea
             const newField = document.createElement('textarea');
             newField.className = 'w-full p-2 border rounded-md';
-            newField.placeholder = 'Enter revision details';
+            newField.placeholder = 'Enter additional revision details';
             
             // Add event listener for input to handle protected prefix
             newField.addEventListener('input', handleRevisionInput);
@@ -377,27 +401,11 @@
             }
         }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const revisionContainer = document.getElementById('revisionContainer');
-            
-            // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
-                if (event.target.tagName === 'TEXTAREA') {
-                    checkRevisionButton();
-                }
-            });
-            
-            // Initialize button states
-            checkRevisionButton();
-            updateAddButtonState();
-        });
-        
         // Function to get current user information
         function getUserInfo() {
             // Use functions from auth.js to get user information
             let userName = 'Unknown User';
-            let userRole = 'Acknowledger'; // Default role for this page
+            let userRole = 'Approver'; // Default role for this page since we're on the approver page
             
             try {
                 // Get user info from getCurrentUser function in auth.js
@@ -405,6 +413,9 @@
                 if (currentUser && currentUser.username) {
                     userName = currentUser.username;
                 }
+                
+                // Get user role based on the current page
+                // Since we're on the approver page, the role is Approver
             } catch (e) {
                 console.error('Error getting user info:', e);
             }
@@ -478,7 +489,7 @@
             }
         }
         
-        // Function to collect all revision remarks and submit
+        // Function to handle revision for Cash Advance
         function revisionCash() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
@@ -511,9 +522,16 @@
                 return;
             }
             
-            // Call the existing function with the collected remarks
-            // You'll need to implement updateCashStatusWithRemarks function in acknowledgeCash.js
-            updateCashStatusWithRemarks('revision', allRemarks);
+            // Here you can add the logic to process the revision
+            Swal.fire({
+                title: 'Revision Submitted',
+                text: 'Your revision request has been submitted successfully',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // You can add navigation logic here if needed
+                console.log('Revision remarks:', allRemarks);
+            });
         }
     </script>
 </body>
