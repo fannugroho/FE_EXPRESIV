@@ -1,26 +1,26 @@
 let uploadedFiles = [];
 
-let caId; // Declare global variable
+let settlementId; // Declare global variable
 let currentTab; // Declare global variable for tab
 
-// Function to fetch CA details when the page loads
+// Function to fetch Settlement details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
-    caId = urlParams.get('ca-id');
+    settlementId = urlParams.get('settlement-id');
     currentTab = urlParams.get('tab'); // Get the tab parameter
     
-    if (caId) {
-        fetchCADetails(caId);
+    if (settlementId) {
+        fetchSettlementDetails(settlementId);
     }
     
-    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
+    // Hide approve/reject buttons if viewing from received or rejected tabs
+    if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
 };
 
-function fetchCADetails(caId) {
-    fetch(`${BASE_URL}/api/cash-advance/${caId}`)
+function fetchSettlementDetails(settlementId) {
+    fetch(`${BASE_URL}/api/settlement/${settlementId}`)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(errorData => {
@@ -32,7 +32,7 @@ function fetchCADetails(caId) {
         .then(response => {
             if (response.data) {
                 console.log(response.data);
-                populateCADetails(response.data);
+                populateSettlementDetails(response.data);
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
@@ -40,53 +40,63 @@ function fetchCADetails(caId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error fetching CA details: ' + error.message);
+            alert('Error fetching Settlement details: ' + error.message);
         });
 }
 
-function populateCADetails(data) {
-    // Populate basic CA information
-    document.getElementById('invno').value = data.cashAdvanceNo;
-    // Store employeeId to be populated when users are fetched
-    window.currentEmployeeId = data.employeeId || '';
-    document.getElementById('EmployeeName').value = data.employeeName || '';
-    document.getElementById('requester').value = data.requesterName;
-    document.getElementById('purposed').value = data.purpose;
-    document.getElementById('paidTo').value = data.requesterName || '';
-  
+function populateSettlementDetails(data) {
+    // Populate basic Settlement information
+    document.getElementById('settlementNumber').value = data.settlementNumber;
+    document.getElementById('settlementRefNo').value = data.settlementRefNo;
+    document.getElementById('requesterName').value = data.requesterName;
+    document.getElementById('purpose').value = data.purpose;
+    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('cashAdvanceReferenceId').value = data.cashAdvanceNumber || '';
+    document.getElementById('remarks').value = data.remarks || '';
+
     // Format and set dates
     const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
-    document.getElementById('postingDate').value = submissionDate;
-    document.getElementById('remarks').value = data.remarks || '';
-    // Set transaction type
-    if (data.transactionType) {
-        option = document.createElement('option');
+    document.getElementById('submissionDate').value = submissionDate;
+    
+    // Set transaction type - create option directly from backend data
+    const transactionTypeSelect = document.getElementById('TransactionType');
+    if (data.transactionType && transactionTypeSelect) {
+        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
         option.value = data.transactionType;
         option.textContent = data.transactionType;
-        document.getElementById('typeTransaction').appendChild(option);
-        document.getElementById('typeTransaction').value = data.transactionType;
+        option.selected = true;
+        transactionTypeSelect.appendChild(option);
     }
 
-      // Store department data to be set after dropdown is populated
-      window.departmentData = {
-        departmentId: data.departmentId,
-        departmentName: data.departmentName
-    };
-
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
 
     // Set status
     if (data && data.status) {
         console.log('Status:', data.status);
-        var option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        document.getElementById('docStatus').appendChild(option);
-        document.getElementById('docStatus').value = data.status;
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.innerHTML = ''; // Clear existing options
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
     }
     
-    // Handle cash advance details (amount breakdown)
-    if (data.cashAdvanceDetails) {
-        populateCashAdvanceDetails(data.cashAdvanceDetails);
+    // Handle settlement items (amount breakdown)
+    if (data.settlementItems) {
+        populateSettlementItems(data.settlementItems);
     }
     
     // Display attachments if they exist
@@ -102,24 +112,24 @@ function populateCADetails(data) {
     makeAllFieldsReadOnly();
 }
 
-function populateCashAdvanceDetails(details) {
+function populateSettlementItems(items) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = ''; // Clear existing rows
     
-    if (details.length === 0) {
+    if (items.length === 0) {
         return;
     }
     
-    console.log('Cash advance details:', details);
+    console.log('Settlement items:', items);
     
-    details.forEach(detail => {
+    items.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
-                <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
+                <input type="text" value="${item.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="w-full bg-gray-100" readonly />
+                <input type="number" value="${item.amount || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -130,30 +140,12 @@ function populateCashAdvanceDetails(details) {
 }
 
 // Function to fetch all dropdown options
-function fetchDropdownOptions(caData = null) {
-    fetchDepartments();
-    fetchUsers(caData);
-}
-
-// Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
+function fetchDropdownOptions(settlementData = null) {
+    fetchUsers(settlementData);
 }
 
 // Function to fetch users from API
-function fetchUsers(caData = null) {
+function fetchUsers(settlementData = null) {
     fetch(`${BASE_URL}/api/users`)
         .then(response => {
             if (!response.ok) {
@@ -162,49 +154,14 @@ function fetchUsers(caData = null) {
             return response.json();
         })
         .then(data => {
-            // Store users globally for search functionality
-            window.allUsers = data.data;
-            populateUserSelects(data.data, caData);
+            populateUserSelects(data.data, settlementData);
         })
         .catch(error => {
             console.error('Error fetching users:', error);
         });
 }
 
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-
-     // Set the department value if we have stored department data
-     if (window.departmentData) {
-        // Try to match by ID first, then by name
-        if (window.departmentData.departmentId) {
-            console.log(window.departmentData.departmentId)
-            departmentSelect.value = window.departmentData.departmentId;
-        } else if (window.departmentData.departmentName) {
-            // If ID doesn't work, try to find by name
-            const matchingOption = Array.from(departmentSelect.options).find(
-                option => option.textContent === window.departmentData.departmentName
-            );
-            if (matchingOption) {
-                departmentSelect.value = matchingOption.value;
-            }
-        }
-        
-        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
-    }
-}
-
-// Function to filter users for the search dropdown in approval section
+// Function to filter users for the search dropdown
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const searchText = searchInput.value.toLowerCase();
@@ -213,12 +170,12 @@ function filterUsers(fieldId) {
     // Clear dropdown
     dropdown.innerHTML = '';
     
-    // Use stored users or mock data if not available
+    // Use stored users or empty array if not available
     const usersList = window.allUsers || [];
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -226,7 +183,7 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`;
+        const userName = user.fullName;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;
@@ -234,10 +191,11 @@ function filterUsers(fieldId) {
             // Get the correct select element based on fieldId
             let selectId;
             switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'knowledgeBy': selectId = 'Acknowledged'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
+                case 'preparedBy': selectId = 'preparedDropdown'; break;
+                case 'checkedBy': selectId = 'checkedDropdown'; break;
+                case 'acknowledgedBy': selectId = 'acknowledgedDropdown'; break;
+                case 'approvedBy': selectId = 'approvedDropdown'; break;
+                case 'receivedBy': selectId = 'receivedDropdown'; break;
                 default: selectId = fieldId;
             }
             
@@ -259,12 +217,16 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
-function populateUserSelects(users, caData = null) {
+function populateUserSelects(users, settlementData = null) {
+    // Store users globally for search functionality
+    window.allUsers = users;
+    
     const selects = [
-        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'knowledgeBySearch' },
-        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' }
+        { id: 'preparedDropdown', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
+        { id: 'checkedDropdown', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
+        { id: 'acknowledgedDropdown', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
+        { id: 'approvedDropdown', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
+        { id: 'receivedDropdown', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -275,35 +237,25 @@ function populateUserSelects(users, caData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
+                option.textContent = user.fullName;
                 select.appendChild(option);
             });
             
-            // Set the value from CA data if available and update search input
-            if (caData && caData[selectInfo.approvalKey]) {
-                select.value = caData[selectInfo.approvalKey];
+            // Set the value from Settlement data if available and update search input
+            if (settlementData && settlementData[selectInfo.approvalKey]) {
+                select.value = settlementData[selectInfo.approvalKey];
                 
                 // Update the search input to display the selected user's name
                 const searchInput = document.getElementById(selectInfo.searchId);
                 if (searchInput) {
-                    const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
+                    const selectedUser = users.find(user => user.id === settlementData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.lastName}`;
+                        searchInput.value = selectedUser.fullName;
                     }
                 }
             }
         }
     });
-    
-    // Find and populate the employee NIK using the stored employeeId
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use NIK if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-        }
-    }
     
     // Setup click-outside-to-close behavior for all dropdowns
     document.addEventListener('click', function(event) {
@@ -317,29 +269,29 @@ function populateUserSelects(users, caData = null) {
     });
 }
 
-// Function to approve CA (acknowledge)
-function approveCash() {
+// Function to approve Settlement (receive)
+function approveSettle() {
     Swal.fire({
-        title: 'Confirm Acknowledgment',
-        text: 'Are you sure you want to acknowledge this Cash Advance?',
+        title: 'Confirm Receipt',
+        text: 'Are you sure you want to receive this Settlement?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Acknowledge',
+        confirmButtonText: 'Yes, Receive',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateCAStatus('approve');
+            updateSettlementStatus('approve');
         }
     });
 }
 
-// Function to reject CA
-function rejectCash() {
+// Function to reject Settlement
+function rejectSettle() {
     Swal.fire({
         title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Cash Advance?',
+        text: 'Are you sure you want to reject this Settlement?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
@@ -366,20 +318,20 @@ function rejectCash() {
                 cancelButtonText: 'Cancel'
             }).then((remarksResult) => {
                 if (remarksResult.isConfirmed) {
-                    updateCAStatusWithRemarks('reject', remarksResult.value);
+                    updateSettlementStatusWithRemarks('reject', remarksResult.value);
                 }
             });
         }
     });
 }
 
-// Function to approve or reject the CA
-function updateCAStatus(status) {
-    if (!caId) {
+// Function to approve or reject the Settlement
+function updateSettlementStatus(status) {
+    if (!settlementId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'CA ID not found'
+            text: 'Settlement ID not found'
         });
         return;
     }
@@ -395,15 +347,16 @@ function updateCAStatus(status) {
     }
 
     const requestData = {
-        id: caId,
+        id: settlementId,
         UserId: userId,
-        Status: status,
+        StatusAt: "Receive",
+        Action: status,
         Remarks: ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Processing'}...`,
+        title: `${status === 'approve' ? 'Receiving' : 'Processing'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -411,7 +364,7 @@ function updateCAStatus(status) {
         }
     });
 
-    fetch(`${BASE_URL}/api/cash-advance/status`, {
+    fetch(`${BASE_URL}/api/settlement/status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -423,16 +376,16 @@ function updateCAStatus(status) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: `Settlement ${status === 'approve' ? 'received' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
+                window.location.href = '../../../dashboard/dashboardReceive/settlement/menuSettleReceive.html';
             });
         } else {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+                throw new Error(errorData.message || `Failed to ${status} Settlement. Status: ${response.status}`);
             });
         }
     })
@@ -441,18 +394,18 @@ function updateCAStatus(status) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} Settlement: ` + error.message
         });
     });
 }
 
-// Function to approve or reject the CA with remarks
-function updateCAStatusWithRemarks(status, remarks) {
-    if (!caId) {
+// Function to approve or reject the Settlement with remarks
+function updateSettlementStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'CA ID not found'
+            text: 'Settlement ID not found'
         });
         return;
     }
@@ -467,16 +420,29 @@ function updateCAStatusWithRemarks(status, remarks) {
         return;
     }
 
+    let statusAt, successMessage, redirectUrl;
+    
+    if (status === 'revision') {
+        statusAt = "Revision";
+        successMessage = 'Settlement revision submitted successfully';
+        redirectUrl = '../../../dashboard/dashboardRevision/settlement/menuSettleRevision.html';
+    } else {
+        statusAt = "Receive";
+        successMessage = `Settlement ${status === 'approve' ? 'received' : 'rejected'} successfully`;
+        redirectUrl = '../../../dashboard/dashboardReceive/settlement/menuSettleReceive.html';
+    }
+
     const requestData = {
-        id: caId,
+        id: settlementId,
         UserId: userId,
-        Status: status,
+        StatusAt: statusAt,
+        Action: status,
         Remarks: remarks || ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        title: status === 'revision' ? 'Processing Revision...' : `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -484,7 +450,7 @@ function updateCAStatusWithRemarks(status, remarks) {
         }
     });
 
-    fetch(`${BASE_URL}/api/cash-advance/status`, {
+    fetch(`${BASE_URL}/api/settlement/status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -496,16 +462,16 @@ function updateCAStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: successMessage,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
+                window.location.href = redirectUrl;
             });
         } else {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+                throw new Error(errorData.message || `Failed to ${status === 'revision' ? 'submit revision' : status + ' Settlement'}. Status: ${response.status}`);
             });
         }
     })
@@ -514,60 +480,13 @@ function updateCAStatusWithRemarks(status, remarks) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${status === 'revision' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' Settlement'}: ` + error.message
         });
     });
 }
 
-function goToMenuCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
-}
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
-    
-    // Show file names instead of calling displayFileList
-    const fileInput = document.getElementById('Reference');
-    let fileNames = Array.from(files).map(file => file.name).join(', ');
-    if (fileNames) {
-        fileInput.title = fileNames;
-    }
-}
-
-function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
-        </td>
-    `;
-
-    tableBody.appendChild(newRow);
-}
-
-function deleteRow(button) {
-    button.closest("tr").remove();
+function goToMenuReceiveSettle() {
+    window.location.href = "../../../dashboard/dashboardReceive/settlement/menuSettleReceive.html";
 }
 
 // Function to make all fields read-only for approval view
@@ -595,27 +514,8 @@ function makeAllFieldsReadOnly() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
-    });
-    
-    // Hide add row button
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    
     // Disable file upload
-    const fileInput = document.getElementById('Reference');
+    const fileInput = document.getElementById('attachments');
     if (fileInput) {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -624,8 +524,8 @@ function makeAllFieldsReadOnly() {
 
 // Function to hide approval buttons
 function hideApprovalButtons() {
-    const approveButton = document.querySelector('button[onclick="approveCash()"]');
-    const rejectButton = document.querySelector('button[onclick="rejectCash()"]');
+    const approveButton = document.querySelector('button[onclick="approveSettle()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectSettle()"]');
     
     if (approveButton) {
         approveButton.style.display = 'none';
@@ -636,12 +536,12 @@ function hideApprovalButtons() {
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
-    if (buttonContainer && currentTab !== 'prepared') {
+    if (buttonContainer && currentTab !== 'approved') {
         buttonContainer.style.display = 'none';
     }
 }
 
-// Function to display attachments (similar to detail pages)
+// Function to display attachments
 function displayAttachments(attachments) {
     console.log('displayAttachments called with:', attachments);
     const attachmentsList = document.getElementById('attachmentsList');
@@ -676,3 +576,25 @@ function displayAttachments(attachments) {
     }
 }
 
+// Legacy functions kept for compatibility
+function previewPDF(event) {
+    const files = event.target.files;
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
+        return;
+    }
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            alert('Please upload a valid PDF file');
+        }
+    });
+    
+    // Show file names instead of calling displayFileList
+    const fileInput = document.getElementById('attachments');
+    let fileNames = Array.from(files).map(file => file.name).join(', ');
+    if (fileNames) {
+        fileInput.title = fileNames;
+    }
+} 

@@ -6,7 +6,7 @@
     <title>Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="receiveReim.js"></script>
+    <script src="revisionReim.js"></script>
     <script src="../../../../js/auth.js"></script>
 
 </head>
@@ -55,7 +55,7 @@
                     <option value="Checked">Checked</option>
                     <option value="Acknowledged">Acknowledged</option>
                     <option value="Approved">Approved</option>
-                    <option value="Received">Received</option>
+                    <option value="Paid">Paid</option>
                     <option value="Rejected">Rejected</option>
                 </select>
 
@@ -121,7 +121,7 @@
             </div>
             <div>
             <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgedBySelect" class="w-full p-1 border rounded">
+            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
                 <!-- <option value="Supervisor 1">Supervisor 1</option>
                 <option value="Supervisor 2">Supervisor 2</option> -->
             </select>
@@ -347,7 +347,7 @@
         function getUserInfo() {
             // Use functions from auth.js to get user information
             let userName = 'Unknown User';
-            let userRole = 'Receiver'; // Default role for this page since we're on the receiver page
+            let userRole = 'Reviser'; // Role for revision page
             
             try {
                 // Get user info from getCurrentUser function in auth.js
@@ -357,7 +357,7 @@
                 }
                 
                 // Get user role based on the current page
-                // Since we're on the receiver page, the role is Receiver
+                // Since we're on the revision page, the role is Reviser
             } catch (e) {
                 console.error('Error getting user info:', e);
             }
@@ -465,7 +465,7 @@
             }
             
             // Call the existing function with the collected remarks
-            // This function should be implemented in receiveReim.js
+            // This function should be implemented in revisionReim.js
             updateReimStatusWithRemarks('revision', allRemarks);
         }
     </script>
