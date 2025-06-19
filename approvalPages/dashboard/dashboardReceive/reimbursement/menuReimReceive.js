@@ -17,7 +17,7 @@ let dateFilter = '';
 // Function to fetch status counts from API
 function fetchStatusCounts() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/status-counts/approver/${userId}`;
+    const endpoint = `/api/reimbursements/status-counts/receiver/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -43,7 +43,7 @@ function fetchStatusCounts() {
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/approver/${userId}`;
+    const endpoint = `/api/reimbursements/receiver/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -114,7 +114,7 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
-    window.location.href = `../../../approval/approve/reimbursement/approveReim.html?reim-id=${reimId}`;
+    window.location.href = `../../../approval/receive/reimbursement/receiveReim.html?reim-id=${reimId}`;
 }
 
 // Sample data for testing when API is not available

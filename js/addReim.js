@@ -34,7 +34,8 @@ function filterUsers(fieldId) {
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
         fieldId === 'checkedBySelect' || 
-        fieldId === 'approvedBySelect') {
+        fieldId === 'approvedBySelect' ||
+        fieldId === 'receivedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
             filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'acknowledgeBySelectDropdown', 
             'checkedBySelectDropdown', 
             'approvedBySelectDropdown',
+            'receivedBySelectDropdown',
             'requesterNameSelectDropdown'
         ];
         
@@ -170,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'acknowledgeBySearch', 
             'checkedBySearch', 
             'approvedBySearch',
+            'receivedBySearch',
             'requesterNameSearch'
         ];
         
@@ -191,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'acknowledgeBySearch',
         'checkedBySearch',
         'approvedBySearch',
+        'receivedBySearch',
         'requesterNameSearch'
     ];
     
@@ -426,6 +430,7 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        populateDropdown("receivedBySelect", users);
         
         // Auto-fill preparedBy with logged-in user
         autoFillPreparedBy(users);
@@ -732,7 +737,8 @@ function populateDropdown(dropdownId, users) {
         "preparedBySelect", 
         "acknowledgeBySelect", 
         "checkedBySelect", 
-        "approvedBySelect"
+        "approvedBySelect",
+        "receivedBySelect"
     ];
     
     if (searchableFields.includes(dropdownId)) {
@@ -830,6 +836,7 @@ async function processDocument(isSubmit) {
         checkedBy: getApprovalValue("checkedBy"),
         acknowledgedBy: getApprovalValue("acknowledgeBy"),
         approvedBy: getApprovalValue("approvedBy"),
+        receivedBy: getApprovalValue("receivedBy"),
         reimbursementDetails: reimbursementDetails,
         isSubmit: isSubmit
     };
