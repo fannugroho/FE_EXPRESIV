@@ -122,7 +122,7 @@
             <!-- Revision Remarks Section -->
             <div class="mt-4">
                 <div class="flex justify-between items-center">
-                    <label class="text-red-600">Need Revision</label>
+                    <!--<label class="text-red-600">Need Revision</label>-->
                     <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
                 </div>
                 <div id="revisionContainer" class="hidden">
@@ -203,16 +203,40 @@
     </div>
 
     <script>
+        // Global variables to track revision fields
+        let revisionFieldsByUser = new Map(); // Track which users have added fields
+        const MAX_REVISION_FIELDS = 4;
+
         // Toggle revision container visibility and add first field
         function toggleRevisionField() {
             const container = document.getElementById('revisionContainer');
             const addBtn = document.getElementById('addRevisionBtn');
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if user can add a field
+            if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Maximum Limit',
+                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                });
+                return;
+            }
+            
+            if (revisionFieldsByUser.has(currentUser.name)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'all ready exist',
+                    text: 'You already added a revision field. Each user can only add one field.'
+                });
+                return;
+            }
             
             if (container.classList.contains('hidden')) {
                 // Show container and add first field
                 container.classList.remove('hidden');
                 addRevisionField();
-                addBtn.textContent = '+ Add more revision';
             } else {
                 // Add another field
                 addRevisionField();
@@ -222,10 +246,33 @@
         // Add revision field functionality
         function addRevisionField() {
             const container = document.getElementById('revisionContainer');
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if maximum fields reached
+            if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Maximum Limit',
+                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                });
+                return;
+            }
+            
+            // Check if current user already has a field
+            if (revisionFieldsByUser.has(currentUser.name)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'All ready exist',
+                    text: 'You already added a revision field. Each user can only add one field.'
+                });
+                return;
+            }
             
             // Create wrapper div for the textarea and delete button
             const fieldWrapper = document.createElement('div');
             fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+            fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
             
             // Create textarea
             const newField = document.createElement('textarea');
@@ -244,9 +291,14 @@
             deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
             deleteButton.title = 'Hapus field revision ini';
             deleteButton.onclick = function() {
+                // Remove user from tracking when field is deleted
+                const userName = fieldWrapper.dataset.userName;
+                revisionFieldsByUser.delete(userName);
+                
                 fieldWrapper.remove();
                 checkRevisionButton(); // Update button state after removing a field
                 checkRevisionContainer(); // Check if container should be hidden
+                updateAddButtonState(); // Update add button state
             };
             
             // Add textarea and delete button to wrapper
@@ -256,8 +308,12 @@
             // Add wrapper to container
             container.appendChild(fieldWrapper);
             
-            // Update the revision button state
+            // Track that this user has added a field
+            revisionFieldsByUser.set(currentUser.name, true);
+            
+            // Update the revision button state and add button state
             checkRevisionButton();
+            updateAddButtonState();
         }
         
         // Check if revision container should be hidden when all fields are removed
@@ -269,6 +325,40 @@
             if (revisionFields.length === 0) {
                 container.classList.add('hidden');
                 addBtn.textContent = '+ Add revision';
+                // Clear the tracking map when container is hidden
+                revisionFieldsByUser.clear();
+            }
+        }
+
+        // Update add button state based on current conditions
+        function updateAddButtonState() {
+            const addBtn = document.getElementById('addRevisionBtn');
+            const container = document.getElementById('revisionContainer');
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if user can add more fields
+            const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
+            
+            if (canAddMore) {
+                addBtn.style.opacity = '1';
+                addBtn.style.cursor = 'pointer';
+                addBtn.style.pointerEvents = 'auto';
+                if (currentFieldCount === 0) {
+                    addBtn.textContent = '+ Add revision';
+                } else {
+                    addBtn.textContent = '+ Add more revision';
+                }
+            } else {
+                addBtn.style.opacity = '0.5';
+                addBtn.style.cursor = 'not-allowed';
+                addBtn.style.pointerEvents = 'none';
+                
+                if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                    addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
+                } else if (revisionFieldsByUser.has(currentUser.name)) {
+                    addBtn.textContent = ' ';
+                }
             }
         }
 
@@ -283,8 +373,9 @@
                 }
             });
             
-            // Initialize button state
+            // Initialize button states
             checkRevisionButton();
+            updateAddButtonState();
         });
         
         // Function to get current user information
