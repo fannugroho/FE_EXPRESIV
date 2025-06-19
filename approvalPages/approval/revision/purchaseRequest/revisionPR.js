@@ -15,11 +15,78 @@ window.onload = function() {
         fetchPRDetails(prId, prType);
     }
     
-    // Hide approve/reject buttons if viewing from checked or rejected tabs
-    if (currentTab === 'checked' || currentTab === 'rejected') {
+    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
+    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
 };
+
+// Function to filter users for the search dropdown in approval section
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    // Use stored users or mock data if not available
+    const usersList = window.allUsers || [];
+    
+    // Filter users based on search text
+    const filteredUsers = usersList.filter(user => {
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        return userName.toLowerCase().includes(searchText);
+    });
+    
+    // Display search results
+    filteredUsers.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`;
+        option.innerText = userName;
+        option.onclick = function() {
+            searchInput.value = userName;
+            
+            // Get the correct select element based on fieldId
+            let selectId;
+            switch(fieldId) {
+                case 'preparedBy': selectId = 'prepared'; break;
+                case 'knowledgeBy': selectId = 'Knowledge'; break;
+                case 'checkedBy': selectId = 'Checked'; break;
+                case 'approvedBy': selectId = 'Approved'; break;
+                case 'receivedBy': selectId = 'Received'; break;
+                default: selectId = fieldId;
+            }
+            
+            document.getElementById(selectId).value = user.id;
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    
+    // Display message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching users found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
+}
 
 function fetchPRDetails(prId, prType) {
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
@@ -36,6 +103,7 @@ function fetchPRDetails(prId, prType) {
             if (response.data) {
                 console.log(response.data);
                 populatePRDetails(response.data);
+                document.getElementById('prType').value = prType;
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
@@ -51,6 +119,7 @@ function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
     document.getElementById('requesterName').value = data.requesterName;
+    document.getElementById('prType').value = data.prType;
   
     // Format and set dates
     const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
@@ -58,49 +127,33 @@ function populatePRDetails(data) {
     document.getElementById('submissionDate').value = submissionDate;
     document.getElementById('requiredDate').value = requiredDate;
     
+    // Set document type checkboxes
+    document.getElementById('PO').checked = data.documentType === 'PO';
+    document.getElementById('NonPO').checked = data.documentType === 'NonPO';
+    
     // Set remarks
     if (document.getElementById('remarks')) {
         document.getElementById('remarks').value = data.remarks;
     }
 
-    // Set department - create option directly from backend data
-    const departmentSelect = document.getElementById('department');
-    if (data.departmentName && departmentSelect) {
-        departmentSelect.innerHTML = ''; // Clear existing options
-        const option = document.createElement('option');
-        option.value = data.departmentName; // Use department name as value since backend returns string
-        option.textContent = data.departmentName;
-        option.selected = true;
-        departmentSelect.appendChild(option);
-    }
-
-    // Set classification - create option directly from backend data
-    const classificationSelect = document.getElementById('classification');
-    if (data.classification && classificationSelect) {
-        classificationSelect.innerHTML = ''; // Clear existing options
-        const option = document.createElement('option');
-        option.value = data.classification; // Use classification as value since backend returns string
-        option.textContent = data.classification;
-        option.selected = true;
-        classificationSelect.appendChild(option);
-    }
-
-    // Set status - create option directly from backend data
+    // Set status
     if (data && data.status) {
         console.log('Status:', data.status);
-        const statusSelect = document.getElementById('status');
-        if (statusSelect) {
-            statusSelect.innerHTML = ''; // Clear existing options
-            const option = document.createElement('option');
-            option.value = data.status;
-            option.textContent = data.status;
-            option.selected = true;
-            statusSelect.appendChild(option);
-        }
+        var option = document.createElement('option');
+        option.value = data.status;
+        option.textContent = data.status;
+        document.getElementById('status').appendChild(option);
+        document.getElementById('status').value = data.status;
     }
     
-    // Handle item details (only item type is supported now)
-    if (data.itemDetails) {
+    // Toggle fields to show correct table headers before populating data
+    console.log('Calling toggleFields() for PR type:', data.prType);
+    toggleFields();
+    
+    // Handle service/item details based on PR type
+    if (data.prType === 'Service' && data.serviceDetails) {
+        populateServiceDetails(data.serviceDetails);
+    } else if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
     }
     
@@ -159,6 +212,7 @@ function populateItemDetails(items) {
     
     items.forEach((item, index) => {
         try {
+            console.log('Adding item row with data:', item);
             addItemRow(item);
         } catch (error) {
         }
@@ -167,6 +221,7 @@ function populateItemDetails(items) {
 }
 
 function addItemRow(item = null) {
+    console.log('Adding');
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) {
         console.error('tableBody element not found!');
@@ -174,35 +229,40 @@ function addItemRow(item = null) {
     }
     
     const row = document.createElement('tr');
+    
+    // console.log('Adding item row with data:', item);
 
-    // Display the actual API data in readonly inputs with consistent styling
+    // Display the actual API data in readonly inputs
     row.innerHTML = `
-        <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no bg-gray-100" disabled>
-                <option value="${item?.itemNo || ''}" selected>${item?.itemCode || item?.itemNo || ''}</option>
-            </select>
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.itemNo || ''}" class="w-full item-no bg-gray-100" readonly />
         </td>
-        <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
+        <td class="p-2 border item-field">
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" readonly title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
-        <td class="p-2 border h-12">
-            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center bg-gray-100" maxlength="100" readonly />
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.detail || ''}" class="w-full item-detail bg-gray-100" readonly />
         </td>
-        <td class="p-2 border h-12">
-            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center bg-gray-100" maxlength="100" readonly />
+        <td class="p-2 border item-field">
+            <input type="text" value="${item?.purpose || ''}" class="w-full item-purpose bg-gray-100" readonly />
         </td>
-        <td class="p-2 border h-12">
-            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center bg-gray-100" readonly />
+        <td class="p-2 border item-field">
+            <input type="number" value="${item?.quantity || ''}" class="w-full item-quantity bg-gray-100" readonly />
         </td>
-        <td class="p-2 border bg-gray-100">
-            <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
-        </td>
-        <td class="p-2 border text-center">
+        <td class="p-2 border text-center item-field">
             <!-- Read-only view, no action buttons -->
         </td>
     `;
     
     tableBody.appendChild(row);
+    
+    console.log('Item row added with values:', {
+        itemNo: item?.itemNo || '',
+        description: item?.description || '',
+        detail: item?.detail || '',
+        purpose: item?.purpose || '',
+        quantity: item?.quantity || ''
+    });
 }
 
 // Function to fetch all dropdown options
@@ -210,7 +270,9 @@ function fetchDropdownOptions(prData = null) {
     fetchDepartments();
     fetchUsers(prData);
     fetchClassifications();
-    fetchItemOptions(); // Always fetch items for item PRs
+    if (document.getElementById("prType").value === "Item") {
+        fetchItemOptions();
+    }
 }
 
 // Function to fetch departments from API
@@ -240,6 +302,8 @@ function fetchUsers(prData = null) {
             return response.json();
         })
         .then(data => {
+            // Store users globally for search functionality
+            window.allUsers = data.data;
             populateUserSelects(data.data, prData);
         })
         .catch(error => {
@@ -261,6 +325,27 @@ function fetchClassifications() {
         })
         .catch(error => {
             console.error('Error fetching classifications:', error);
+        });
+}
+
+// Function to fetch item options from API
+function fetchItemOptions() {
+    fetch(`${BASE_URL}/api/items`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Items data:', data.data);
+            // Populate all item selects in the document
+            document.querySelectorAll('.item-no').forEach(select => {
+                populateItemSelect(data.data, select);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching items:', error);
         });
 }
 
@@ -292,71 +377,25 @@ function populateClassificationSelect(classifications) {
     });
 }
 
-// Function to filter users for the search dropdown in approval section
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+function populateItemSelect(items, selectElement) {
+    if (!selectElement) return;
     
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Use stored users or mock data if not available
-    const usersList = window.allUsers || [];
-    
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.fullName;
-        return userName.toLowerCase().includes(searchText);
+    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        console.log('Item:', item);
+        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        selectElement.appendChild(option);
     });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.fullName;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
-            
-            // Get the correct select element based on fieldId
-            let selectId;
-            switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'acknowledgeBy': selectId = 'Knowledge'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
-                case 'receivedBy': selectId = 'Received'; break;
-                default: selectId = fieldId;
-            }
-            
-            document.getElementById(selectId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
-    
-    // Display message if no results
-    if (filteredUsers.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
-        dropdown.appendChild(noResults);
-    }
-    
-    // Show dropdown
-    dropdown.classList.remove('hidden');
 }
 
-// Modified populateUserSelects to store users globally
 function populateUserSelects(users, prData = null) {
-    // Store users globally for search functionality
-    window.allUsers = users;
-    
     const selects = [
         { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
         { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Knowledge', approvalKey: 'acknowledgedById', searchId: 'acknowledgeBySearch' },
+        { id: 'Knowledge', approvalKey: 'acknowledgedById', searchId: 'knowledgeBySearch' },
         { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
         { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
     ];
@@ -369,7 +408,7 @@ function populateUserSelects(users, prData = null) {
             users.forEach(user => {
                 const option = document.createElement("option");
                 option.value = user.id;
-                option.textContent = user.fullName;
+                option.textContent = user.name || `${user.firstName} ${user.middleName} ${user.lastName}`;
                 select.appendChild(option);
             });
             
@@ -382,35 +421,24 @@ function populateUserSelects(users, prData = null) {
                 if (searchInput) {
                     const selectedUser = users.find(user => user.id === prData[selectInfo.approvalKey]);
                     if (selectedUser) {
-                        searchInput.value = selectedUser.fullName;
+                        searchInput.value = selectedUser.name || `${selectedUser.firstName} ${selectedUser.middleName} ${selectedUser.lastName}`;
                     }
                 }
             }
         }
     });
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
 }
 
-// Function to approve PR
+// Function to approve PR (acknowledge)
 function approvePR() {
     Swal.fire({
-        title: 'Confirm Approval',
-        text: 'Are you sure you want to approve this Purchase Request?',
+        title: 'Confirm Acknowledgment',
+        text: 'Are you sure you want to acknowledge this Purchase Request?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Approve',
+        confirmButtonText: 'Yes, Acknowledge',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -422,37 +450,39 @@ function approvePR() {
 // Function to reject PR
 function rejectPR() {
     Swal.fire({
-        title: 'Reject PR',
-        input: 'textarea',
-        inputLabel: 'Please provide a reason for rejection',
-        inputPlaceholder: 'Enter your reason here...',
-        inputAttributes: {
-            'aria-label': 'Rejection reason'
-        },
+        title: 'Confirm Rejection',
+        text: 'Are you sure you want to reject this Purchase Request?',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        preConfirm: (remarks) => {
-            if (!remarks.trim()) {
-                Swal.showValidationMessage('Please enter a reason for rejection');
-                return false;
-            }
-            return remarks;
-        }
-    }).then((remarksResult) => {
-        if (remarksResult.isConfirmed) {
-            updatePRStatusWithRemarks('reject', remarksResult.value);
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Reject',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Ask for rejection remarks
+            Swal.fire({
+                title: 'Rejection Remarks',
+                text: 'Please provide remarks for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter your remarks here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Remarks are required for rejection';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel'
+            }).then((remarksResult) => {
+                if (remarksResult.isConfirmed) {
+                    updatePRStatusWithRemarks('reject', remarksResult.value);
+                }
+            });
         }
     });
-}
-
-// Function to handle revision request
-function revisionPR() {
-    // This function is now handled in the HTML file
-    // It collects all revision remarks from the textareas
-    // and calls updatePRStatusWithRemarks with the collected remarks
 }
 
 // Function to approve or reject the PR
@@ -479,14 +509,13 @@ function updatePRStatus(status) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: "Check",
-        Action: status,
+        Status: status,
         Remarks: ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Approving' : 'Processing'}...`,
+        title: `${status === 'approve' ? 'Acknowledging' : 'Processing'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -508,12 +537,12 @@ function updatePRStatus(status) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `PR ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                text: `PR ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                goToMenuCheckPR();
+                goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -526,7 +555,7 @@ function updatePRStatus(status) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} PR: ` + error.message
+            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} PR: ` + error.message
         });
     });
 }
@@ -555,14 +584,13 @@ function updatePRStatusWithRemarks(status, remarks) {
     const requestData = {
         id: prId,
         UserId: userId,
-        StatusAt: "Check",
-        Action: status,
+        Status: status,
         Remarks: remarks || ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Approving' : (status === 'reject' ? 'Rejecting' : 'Requesting Revision')}...`,
+        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -584,12 +612,12 @@ function updatePRStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `PR ${status === 'approve' ? 'approved' : (status === 'reject' ? 'rejected' : 'sent for revision')} successfully`,
+                text: `PR ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                goToMenuCheckPR();
+                goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -602,144 +630,120 @@ function updatePRStatusWithRemarks(status, remarks) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'approving' : (status === 'reject' ? 'rejecting' : 'requesting revision for')} PR: ` + error.message
+            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} PR: ` + error.message
         });
     });
 }
 
-function updateApprovalStatus(id, statusKey) {
-    let documents = JSON.parse(localStorage.getItem("documents")) || [];
-    let docIndex = documents.findIndex(doc => doc.id === id);
-    if (docIndex !== -1) {
-        documents[docIndex].approvals[statusKey] = true;
-        localStorage.setItem("documents", JSON.stringify(documents));
-        alert(`Document ${statusKey} updated!`);
+function toggleFields() {
+    const prType = document.getElementById("prType").value;
+    
+    const itemFields = ["thItemCode", "thItemName", "thDetail", "thPurposed", "thQuantity", "thAction"];
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions"];
+
+    console.log('Item fields to show/hide:', itemFields);
+    console.log('Service fields to show/hide:', serviceFields);
+
+    if (prType === "Item") {
+        console.log('Showing item fields, hiding service fields');
+        itemFields.forEach(id => {
+            const elem = document.getElementById(id);
+            console.log(`Item field ${id}:`, elem);
+            if (elem) {
+                elem.style.display = "table-cell";
+                console.log(`Set ${id} to table-cell`);
+            } else {
+                console.log(`Element ${id} not found!`);
+            }
+        });
+        serviceFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) {
+                elem.style.display = "none";
+                console.log(`Set ${id} to none`);
+            }
+        });
+    } else if (prType === "Service") {
+        console.log('Showing service fields, hiding item fields');
+        itemFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) {
+                elem.style.display = "none";
+            }
+        });
+        serviceFields.forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) {
+                elem.style.display = "table-cell";
+            }
+        });
     }
+    
+    console.log('toggleFields completed');
 }
 
+function addRow() {
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
+    const prType = document.getElementById("prType").value;
 
-
-function fillItemDetails() {
-    const itemCode = document.getElementById("itemCode").value;
-    const itemName = document.getElementById("itemName");
-
-    const itemData = {
-        "ITM001": { name: "Laptop" },
-        "ITM002": { name: "Printer" },
-        "ITM003": { name: "Scanner" }
-    };
-
-    if (itemData[itemCode]) {
-        itemName.value = itemData[itemCode].name;
-    } else {
-        itemName.value = "";
-        alert("Item No not found!");
+    if (prType === "Item") {
+        newRow.innerHTML = `
+            <td id="tdItemCode" class="p-2 border">
+                <select class="w-full p-2 border rounded" onchange="fillItemDetails()">
+                    <option value="" disabled selected>Select Item Code</option>
+                    <option value="ITM001">ITM001 - Laptop</option>
+                    <option value="ITM002">ITM002 - Printer</option>
+                    <option value="ITM003">ITM003 - Scanner</option>
+                </select>
+            </td>
+            <td id="tdItemName" class="p-2 border"><input type="text" maxlength="200" class="w-full" readonly /></td>
+            <td id="tdDetail" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdPurposed" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQuantity" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdAction" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
+    } else if (prType === "Service") {
+        newRow.innerHTML = `
+            <td id="tdDescription" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdPurposeds" class="p-2 border"><input type="text" maxlength="200" class="w-full" required /></td>
+            <td id="tdQty" class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+            <td id="tdActions" class="p-2 border text-center">
+                <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            </td>
+        `;
     }
+
+    tableBody.appendChild(newRow);
 }
-
-document.getElementById("docType")?.addEventListener("change", function () {
-    const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "choose" ? "none" : "table";
-});
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
-
-    displayFileList();
-}
-
-
 
 function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Initialize page
+// Initialize table display on page load
 window.addEventListener("DOMContentLoaded", function() {
-    // Page initialization complete
-    console.log('Check PR page initialized');
+    // Panggil fungsi untuk memuat data dokumen
+    loadDocumentById();
+    
+    // Hide service fields by default
+    const serviceFields = ["thDescription", "thPurposes", "thQty", "thActions", 
+                          "tdDescription", "tdPurposeds", "tdQty", "tdActions"];
+    serviceFields.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.style.display = "none";
+    });
+    
+    // If PR type is already selected, toggle fields accordingly
+    const prType = document.getElementById("prType");
+    if (prType && prType.value !== "choose") {
+        toggleFields();
+    }
 });
 
-// Function to fetch items from API
-function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Populate all item selects in the document
-            document.querySelectorAll('.item-no').forEach(select => {
-                populateItemSelect(data.data, select);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
-}
-
-// Function to populate item select
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-        selectElement.appendChild(option);
-    });
-}
-
-function updateItemDescription(selectElement) {
-    const row = selectElement.closest('tr');
-    const descriptionInput = row.querySelector('.item-description');
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    
-    // Check if a valid item is selected (not the placeholder option)
-    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
-        // Get description from data attribute first, fallback to parsing text
-        const itemDescription = selectedOption.getAttribute('data-description');
-        if (itemDescription) {
-            descriptionInput.value = itemDescription;
-            descriptionInput.textContent = itemDescription; // For textarea
-            descriptionInput.title = itemDescription; // For tooltip
-        } else {
-            // Fallback to old method for backward compatibility
-            const itemText = selectedOption.text;
-            const itemName = itemText.split(' - ')[1];
-            descriptionInput.value = itemName || '';
-            descriptionInput.textContent = itemName || '';
-            descriptionInput.title = itemName || '';
-        }
-    } else {
-        // No valid item selected, clear the description
-        descriptionInput.value = '';
-        descriptionInput.textContent = '';
-        descriptionInput.title = '';
-    }
-    
-    // Always keep description field disabled and gray
-    descriptionInput.disabled = true;
-    descriptionInput.classList.add('bg-gray-100');
-}
-
-// Modified makeAllFieldsReadOnly to include search inputs
+// Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only
     const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
@@ -762,6 +766,13 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Disable all checkboxes
+    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
+    checkboxFields.forEach(field => {
+        field.disabled = true;
+        field.classList.add('cursor-not-allowed');
     });
     
     // Hide add row button
@@ -798,9 +809,42 @@ function hideApprovalButtons() {
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
-    if (buttonContainer && currentTab !== 'prepared') {
+    if (buttonContainer && currentTab !== 'checked') {
         buttonContainer.style.display = 'none';
     }
+}
+
+function updateItemDescription(selectElement) {
+    const row = selectElement.closest('tr');
+    const descriptionInput = row.querySelector('.item-description');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    
+    // Check if a valid item is selected (not the placeholder option)
+    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
+        // Get description from data attribute first, fallback to parsing text
+        const itemDescription = selectedOption.getAttribute('data-description');
+        if (itemDescription) {
+            descriptionInput.value = itemDescription;
+            descriptionInput.textContent = itemDescription; // For textarea
+            descriptionInput.title = itemDescription; // For tooltip
+        } else {
+            // Fallback to old method for backward compatibility
+            const itemText = selectedOption.text;
+            const itemName = itemText.split(' - ')[1];
+            descriptionInput.value = itemName || '';
+            descriptionInput.textContent = itemName || '';
+            descriptionInput.title = itemName || '';
+        }
+    } else {
+        // No valid item selected, clear the description
+        descriptionInput.value = '';
+        descriptionInput.textContent = '';
+        descriptionInput.title = '';
+    }
+    
+    // Always keep description field disabled and gray
+    descriptionInput.disabled = true;
+    descriptionInput.classList.add('bg-gray-100');
 }
 
 // Function to display attachments (similar to detail pages)
