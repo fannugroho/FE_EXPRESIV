@@ -2,8 +2,7 @@
 
 // API Configuration
 const BASE_URL = "https://expressiv.idsdev.site";
-// const BASE_URL = "https://t246vds2-5246.asse.devtunnels.ms";
-// const BASE_URL = "http://localhost:5246";
+// const BASE_URL = "http://localhost:5246"
 
 // Helper function to get access token from localStorage
 function getAccessToken() {
