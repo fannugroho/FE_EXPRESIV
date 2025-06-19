@@ -140,16 +140,10 @@
             <div class="mt-4">
                 <div class="flex justify-between items-center">
                     <label class="text-red-600">Need Revision</label>
+                    <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
                 </div>
-                <div id="revisionContainer">
-                    <!-- Initial revision field without delete button -->
-                    <div class="mb-2">
-                        <textarea id="revisionRemarks" class="w-full p-2 border rounded-md" placeholder="Enter revision details"></textarea>
-                    </div>
-                    <!-- Additional revision fields will be added here -->
-                </div>
-                <div class="flex justify-between items-center">
-                    <button onclick="addRevisionField()" class="text-blue-500 hover:text-blue-700 font-medium">need another revision? +</button>
+                <div id="revisionContainer" class="hidden">
+                    <!-- Revision fields will be added here by JavaScript -->
                 </div>
             </div>
         
@@ -228,8 +222,8 @@
                 Checked
                 </button>
             </div>
-           <button id="revisionBtn" onclick="submitRevision()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
-            Revision
+            <button onclick="revisionCash()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
             </button>
         </div>
     </div>
@@ -250,16 +244,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         toggleClosedBy();
         
-        // Initialize first textarea when page loads
-        const firstTextarea = document.getElementById('revisionRemarks');
-        if (firstTextarea) {
-            // Add event listener for input to handle protected prefix
-            firstTextarea.addEventListener('input', handleRevisionInput);
-            
-            // Initialize with user prefix
-            initializeWithUserPrefix(firstTextarea);
-        }
-        
         const revisionContainer = document.getElementById('revisionContainer');
         
         // Use event delegation to handle input events on all textareas
@@ -272,6 +256,22 @@
         // Initialize button state
         checkRevisionButton();
     });
+
+    // Toggle revision container visibility and add first field
+    function toggleRevisionField() {
+        const container = document.getElementById('revisionContainer');
+        const addBtn = document.getElementById('addRevisionBtn');
+        
+        if (container.classList.contains('hidden')) {
+            // Show container and add first field
+            container.classList.remove('hidden');
+            addRevisionField();
+            addBtn.textContent = '+ Add more revision';
+        } else {
+            // Add another field
+            addRevisionField();
+        }
+    }
     
     // Add revision field functionality
     function addRevisionField() {
@@ -300,6 +300,7 @@
         deleteButton.onclick = function() {
             fieldWrapper.remove();
             checkRevisionButton(); // Update button state after removing a field
+            checkRevisionContainer(); // Check if container should be hidden
         };
         
         // Add textarea and delete button to wrapper
@@ -311,6 +312,18 @@
         
         // Update the revision button state
         checkRevisionButton();
+    }
+    
+    // Check if revision container should be hidden when all fields are removed
+    function checkRevisionContainer() {
+        const container = document.getElementById('revisionContainer');
+        const addBtn = document.getElementById('addRevisionBtn');
+        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+        
+        if (revisionFields.length === 0) {
+            container.classList.add('hidden');
+            addBtn.textContent = '+ Add revision';
+        }
     }
     
     // Function to get current user information
@@ -376,17 +389,21 @@
     
     // Check if revision remarks are filled to enable/disable revision button
     function checkRevisionButton() {
-        const revisionButton = document.getElementById('revisionBtn');
+        const revisionButton = document.getElementById('revisionButton');
         const revisionFields = document.querySelectorAll('#revisionContainer textarea');
         
         let hasContent = false;
-        revisionFields.forEach(field => {
-            const prefixLength = parseInt(field.dataset.prefixLength || '0');
-            // Check if there's content beyond the prefix
-            if (field.value.trim().length > prefixLength) {
-                hasContent = true;
-            }
-        });
+        
+        // Check if there are any revision fields and if they have content
+        if (revisionFields.length > 0) {
+            revisionFields.forEach(field => {
+                const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                // Check if there's content beyond the prefix
+                if (field.value.trim().length > prefixLength) {
+                    hasContent = true;
+                }
+            });
+        }
         
         if (hasContent) {
             revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -397,9 +414,20 @@
         }
     }
     
-    // Modify the submitRevision function to collect all revision remarks
-    function submitRevision() {
+    // Modify the revisionCash function to collect all revision remarks
+    function revisionCash() {
         const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+        
+        // Check if revision button is disabled
+        if (document.getElementById('revisionButton').disabled) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
+            });
+            return;
+        }
+        
         let allRemarks = '';
         
         revisionFields.forEach((field, index) => {
@@ -410,12 +438,11 @@
             }
         });
         
-        const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
-        if (allRemarks.length <= prefixLength) {
+        if (revisionFields.length === 0 || allRemarks.trim() === '') {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Silakan berikan alasan revisi sebelum mengirim'
+                text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
             });
             return;
         }

@@ -30,6 +30,17 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        
+        /* Disabled button styling */
+        .btn-disabled {
+            background-color: #d1d5db !important;
+            cursor: not-allowed !important;
+            opacity: 0.6 !important;
+        }
+        .btn-disabled:hover {
+            background-color: #d1d5db !important;
+            transform: none !important;
+        }
     </style>
 </head>
 
@@ -115,6 +126,18 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+            <!-- Revision Remarks Section -->
+            <div class="mt-4">
+                <div class="flex justify-between items-center">
+                    <label class="text-red-600">Need Revision</label>
+                    <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+                </div>
+                <div id="revisionContainer" class="hidden">
+                    <!-- Revision fields will be added here by JavaScript -->
+                </div>
+            </div>
+            <br>
+
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label id="preparedByLabel" class="mr-1"><strong>Prepared by:</strong></label>
@@ -169,8 +192,8 @@
         </div>
         <br>
         <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <!-- Approve/Reject buttons removed - users cannot approve/reject in the acknowledge stage -->
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
              <button onclick="rejectPR()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Reject
             </button>
@@ -178,6 +201,250 @@
                 Acknowledge
             </button>
         </div>
+            <button onclick="revisionPR()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 btn-disabled" disabled>
+            Revision
+        </button>
+        </div>
     </div>
+
+    <script>
+        // Toggle revision field visibility
+        function toggleRevisionField() {
+            const container = document.getElementById('revisionContainer');
+            const addBtn = document.getElementById('addRevisionBtn');
+            
+            if (container.classList.contains('hidden')) {
+                // Show container and add the first revision field
+                container.classList.remove('hidden');
+                addRevisionField();
+                addBtn.textContent = '+ Add another revision';
+            } else {
+                // Add another revision field
+                addRevisionField();
+            }
+        }
+        
+        // Add revision field functionality
+        function addRevisionField() {
+            const container = document.getElementById('revisionContainer');
+            
+            // Create wrapper div for the textarea and delete button
+            const fieldWrapper = document.createElement('div');
+            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+            
+            // Create textarea
+            const newField = document.createElement('textarea');
+            newField.className = 'w-full p-2 border rounded-md';
+            newField.placeholder = 'Enter revision details';
+            
+            // Add event listener for input to handle protected prefix
+            newField.addEventListener('input', handleRevisionInput);
+            
+            // Add event listener to check button state when content changes
+            newField.addEventListener('input', checkRevisionButton);
+            newField.addEventListener('keyup', checkRevisionButton);
+            newField.addEventListener('paste', function() {
+                setTimeout(checkRevisionButton, 10);
+            });
+            
+            // Initialize with user prefix
+            initializeWithUserPrefix(newField);
+            
+            // Create delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '&times;'; // × symbol
+            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+            deleteButton.title = 'Hapus field revision ini';
+            deleteButton.onclick = function() {
+                fieldWrapper.remove();
+                checkRevisionButton();
+                
+                // If no more revision fields, hide the container and reset the button
+                if (container.children.length === 0) {
+                    container.classList.add('hidden');
+                    document.getElementById('addRevisionBtn').textContent = '+ Add revision';
+                }
+            };
+            
+            // Add textarea and delete button to wrapper
+            fieldWrapper.appendChild(newField);
+            fieldWrapper.appendChild(deleteButton);
+            
+            // Add wrapper to container
+            container.appendChild(fieldWrapper);
+            
+            // Update the revision button state
+            checkRevisionButton();
+            
+            // Focus on the new field
+            newField.focus();
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize button state - ensure revision button is disabled initially
+            checkRevisionButton();
+            
+            // Also check when user adds revision fields through the toggle
+            const addRevisionBtn = document.getElementById('addRevisionBtn');
+            if (addRevisionBtn) {
+                addRevisionBtn.addEventListener('click', function() {
+                    // Small delay to allow DOM update
+                    setTimeout(checkRevisionButton, 100);
+                });
+            }
+        });
+        
+        // Function to get current user information
+        function getUserInfo() {
+            // Use functions from auth.js to get user information
+            let userName = 'Unknown User';
+            let userRole = 'Acknowledger'; // Role for this page
+            
+            try {
+                // Get user info from getCurrentUser function in auth.js
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.username) {
+                    userName = currentUser.username;
+                }
+            } catch (e) {
+                console.error('Error getting user info:', e);
+            }
+            
+            return { name: userName, role: userRole };
+        }
+        
+        // Function to initialize textarea with user prefix
+        function initializeWithUserPrefix(textarea) {
+            const userInfo = getUserInfo();
+            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            textarea.value = prefix;
+            
+            // Store the prefix length as a data attribute
+            textarea.dataset.prefixLength = prefix.length;
+            
+            // Set selection range after the prefix
+            textarea.setSelectionRange(prefix.length, prefix.length);
+            textarea.focus();
+        }
+        
+        // Function to handle input and protect the prefix
+        function handleRevisionInput(event) {
+            const textarea = event.target;
+            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+            
+            // If user tries to modify content before the prefix length
+            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+                // Restore the prefix
+                const userInfo = getUserInfo();
+                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                
+                // Only restore if the prefix is damaged
+                if (!textarea.value.startsWith(prefix)) {
+                    const userText = textarea.value.substring(prefixLength);
+                    textarea.value = prefix + userText;
+                    
+                    // Reset cursor position after the prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                } else {
+                    // Just move cursor after prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                }
+            }
+        }
+        
+        // Check if revision remarks are filled to enable/disable revision button
+        function checkRevisionButton() {
+            const revisionButton = document.getElementById('revisionButton');
+            const revisionContainer = document.getElementById('revisionContainer');
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            let hasContent = false;
+            
+            // Only check if revision container is visible and has fields
+            if (!revisionContainer.classList.contains('hidden') && revisionFields.length > 0) {
+                revisionFields.forEach(field => {
+                    const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                    // Check if there's content beyond the prefix
+                    const actualContent = field.value.trim().substring(prefixLength);
+                    if (actualContent.length > 0) {
+                        hasContent = true;
+                    }
+                });
+            }
+            
+            if (hasContent) {
+                // Enable button
+                revisionButton.disabled = false;
+                revisionButton.classList.remove('btn-disabled');
+                revisionButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                revisionButton.style.cursor = 'pointer';
+            } else {
+                // Disable button
+                revisionButton.disabled = true;
+                revisionButton.classList.add('btn-disabled');
+                revisionButton.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                revisionButton.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // Function to collect all revision remarks and submit
+        function revisionPR() {
+            const revisionButton = document.getElementById('revisionButton');
+            const revisionContainer = document.getElementById('revisionContainer');
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            // Check if button is disabled
+            if (revisionButton.disabled) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Revision Field Required',
+                    text: 'Please add and fill revision field before submitting revision!',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // If no revision fields or container is hidden, show error
+            if (revisionFields.length === 0 || revisionContainer.classList.contains('hidden')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Revision Field',
+                    text: 'Please add revision field first!',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    toggleRevisionField(); // Show the revision field
+                });
+                return;
+            }
+            
+            let allRemarks = '';
+            let hasValidContent = false;
+            
+            revisionFields.forEach((field, index) => {
+                const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                const actualContent = field.value.trim().substring(prefixLength);
+                
+                if (actualContent.length > 0) {
+                    hasValidContent = true;
+                    if (allRemarks !== '') allRemarks += '\n\n';
+                    allRemarks += field.value.trim();
+                }
+            });
+            
+            if (!hasValidContent) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empty Revision Content',
+                    text: 'Please fill in the revision details!',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Call the existing function with the collected remarks
+            updatePRStatusWithRemarks('revision', allRemarks);
+        }
+    </script>
 </body>
 </html>
