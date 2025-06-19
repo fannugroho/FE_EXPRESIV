@@ -250,26 +250,50 @@
         revisionContainer.addEventListener('input', function(event) {
             if (event.target.tagName === 'TEXTAREA') {
                 checkRevisionButton();
+                updateAddButton(); // Update button state when content changes
             }
         });
         
         // Initialize button state
         checkRevisionButton();
+        updateAddButton();
     });
 
     // Toggle revision container visibility and add first field
     function toggleRevisionField() {
         const container = document.getElementById('revisionContainer');
         const addBtn = document.getElementById('addRevisionBtn');
+        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+        
+        // Check if maximum limit is reached
+        if (revisionFields.length >= 4) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Batas Maksimal',
+                text: 'Maksimal hanya 4 revision field yang diperbolehkan'
+            });
+            return;
+        }
+        
+        // Check if current user already has a revision field
+        if (hasUserAlreadyAddedRevision()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sudah Ada Revision',
+                text: 'Anda sudah menambahkan revision. Setiap user hanya diperbolehkan menambahkan satu revision.'
+            });
+            return;
+        }
         
         if (container.classList.contains('hidden')) {
             // Show container and add first field
             container.classList.remove('hidden');
             addRevisionField();
-            addBtn.textContent = '+ Add more revision';
+            updateAddButton();
         } else {
             // Add another field
             addRevisionField();
+            updateAddButton();
         }
     }
     
@@ -298,6 +322,19 @@
         deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
         deleteButton.title = 'Hapus field revision ini';
         deleteButton.onclick = function() {
+            // Check if user can delete this field (only allow deleting own field)
+            const userInfo = getUserInfo();
+            const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            
+            if (!newField.value.startsWith(userPrefix)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak Diizinkan',
+                    text: 'Anda hanya bisa menghapus revision field yang Anda buat sendiri'
+                });
+                return;
+            }
+            
             fieldWrapper.remove();
             checkRevisionButton(); // Update button state after removing a field
             checkRevisionContainer(); // Check if container should be hidden
@@ -312,6 +349,7 @@
         
         // Update the revision button state
         checkRevisionButton();
+        updateAddButton();
     }
     
     // Check if revision container should be hidden when all fields are removed
@@ -323,6 +361,48 @@
         if (revisionFields.length === 0) {
             container.classList.add('hidden');
             addBtn.textContent = '+ Add revision';
+            addBtn.style.display = 'block';
+        } else {
+            updateAddButton();
+        }
+    }
+
+    // Check if current user already has a revision field
+    function hasUserAlreadyAddedRevision() {
+        const userInfo = getUserInfo();
+        const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+        
+        for (let field of revisionFields) {
+            if (field.value.startsWith(userPrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Update add button based on current state
+    function updateAddButton() {
+        const addBtn = document.getElementById('addRevisionBtn');
+        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+        const hasUserRevision = hasUserAlreadyAddedRevision();
+        
+        if (revisionFields.length >= 4) {
+            // Maximum limit reached
+            addBtn.textContent = 'Maksimal 4 revision tercapai';
+            addBtn.style.display = 'none';
+        } else if (hasUserRevision) {
+            // User already has a revision
+            addBtn.textContent = 'Anda sudah menambahkan revision';
+            addBtn.style.display = 'none';
+        } else {
+            // User can still add revision
+            if (revisionFields.length === 0) {
+                addBtn.textContent = '+ Add revision';
+            } else {
+                addBtn.textContent = '+ Add more revision';
+            }
+            addBtn.style.display = 'block';
         }
     }
     
