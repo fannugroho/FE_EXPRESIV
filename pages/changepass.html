@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Password - Kansai Paint Supplier</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/changepass.js" defer></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    .bg-gradient {
+      background: linear-gradient(135deg, #3b82f6 0%, #ef4444 100%);
+      position: relative;
+    }
+    .bg-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .login-card {
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .login-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    .lang-btn {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    .form-input {
+      transition: all 0.3s ease;
+      border: 1px solid rgba(209, 213, 219, 0.8);
+    }
+    .form-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+    .login-btn {
+      transition: all 0.3s ease;
+    }
+    .logo-animation {
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+    .flag {
+      width: 24px;
+      height: 16px;
+      display: inline-block;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      border-radius: 2px;
+    }
+    .flag-en {
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjM1IDY1MCIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPg0KPGRlZnM+DQo8ZyBpZD0idW5pb24iPg0KPHVzZSB5PSItLjIiIHhsaW5rOmhyZWY9IiNYIi8+DQo8dXNlIHhsaW5rOmhyZWY9IiNYIi8+DQo8dXNlIHk9Ii4yIiB4bGluazpocmVmPSIjWCIvPg0KPC9nPg0KPGcgaWQ9IlgiPg0KPHVzZSB4bGluazpocmVmPSIjcyIvPg0KPHVzZSB4PSIuMiIgeGxpbms6aHJlZj0iI3MiLz4NCjx1c2UgeD0iLS4yIiB4bGluazpocmVmPSIjcyIvPg0KPC9nPg0KPGcgaWQ9InMiPg0KPHVzZSB4bGluazpocmVmPSIjNCIvPg0KPHVzZSB5PSIuMSIgeGxpbms6aHJlZj0iI3QiLz4NCjx1c2UgeT0iLS4xIiB4bGluazpocmVmPSIjdCIvPg0KPC9nPg0KPGcgaWQ9InQiPg0KPHVzZSB4bGluazpocmVmPSIjNCIvPg0KPHVzZSB4PSIuMiIgeGxpbms6aHJlZj0iIzUiLz4NCjx1c2UgeD0iLS4yIiB4bGluazpocmVmPSIjNSIvPg0KPC9nPg0KPHBhdGggaWQ9IjQiIGQ9Ik0wLDAgLjEsLjA1VjouOTVMLjAyLDEgLS4wMiwxIC0uMSwuOTVWOi4wNVoiLz4NCjxwYXRoIGlkPSI1IiBkPSJNMCwwIEEuMDYsLjA2IDAgMCAxIC4xLDBoLjAyTDAgLjA2IC0uMSwuMDFoLjAyQS4wNiwuMDYgMCAwIDEgMCwwIi8+DQo8L2RlZnM+DQo8cmVjdCB3aWR0aD0iMTIzNSIgaGVpZ2h0PSI2NTAiIGZpbGw9IiNiMjIyMzQiLz4NCjxwYXRoIGQ9Ik0wLDAgLjAzODMsNjUwSDI0Ny42NlYwIiBmaWxsPSIjM2MzYjZlIi8+DQo8cGF0aCBkPSJNMjQ3LjY5LDAgVjIyMC42MzZIMTIzNVYwIiBmaWxsPSIjM2MzYjZlIi8+DQo8cGF0aCBkPSJNMjQ3LjY5LDQ0MC44NiBWNjUwSDEyMzVWNDQwLjg2IiBmaWxsPSIjM2MzYjZlIi8+DQo8ZyBmaWxsPSIjZmZmIj4NCjx1c2UgeGxpbms6aHJlZj0iI3VuaW9uIiB0cmFuc2Zvcm09Im1hdHJpeCg2NTAsMCwwLDY1MCw0OTMuMzgsMzI1KSIvPg0KPC9nPg0KPC9zdmc+');
+    }
+    .flag-id {
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MDAgNjAwIj4NCjxyZWN0IGZpbGw9IiNmZmYiIHdpZHRoPSI5MDAiIGhlaWdodD0iMzAwIi8+DQo8cmVjdCBmaWxsPSIjY2UxMTI2IiB3aWR0aD0iOTAwIiBoZWlnaHQ9IjMwMCIgeT0iMzAwIi8+DQo8L3N2Zz4=');
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gradient p-4">
+
+  <!-- Tombol Ganti Bahasa dengan Ikon Bendera -->
+  <div class="absolute top-4 right-4">
+    <button id="langButton" onclick="toggleLanguage()" class="lang-btn p-2 rounded-lg shadow-md transition-transform transform hover:scale-110 flex items-center space-x-2">
+      <div id="flagIcon" class="flag flag-en"></div>
+      <span id="langText" class="text-white text-sm font-medium">EN</span>
+    </button>
+  </div>
+
+  <div class="flex flex-col md:flex-row login-card bg-white bg-opacity-95 rounded-2xl shadow-2xl overflow-hidden max-w-3xl w-full">
+    <div class="w-full md:w-1/2 bg-blue-50 bg-opacity-80 p-8 flex flex-col items-center justify-center text-blue-900 text-center">
+      <img src="../image/Seiho.png" alt="Kansai Paint Logo" class="mb-4 w-24 md:w-32 logo-animation" />
+      <h2 class="text-2xl font-bold mb-2">EXPRESSIV SYSTEM</h2>
+      <p class="text-gray-600 opacity-80">Best Automotive Paint Supplier in Indonesia</p>
+      <div class="mt-8 w-3/4 h-1 bg-gradient-to-r from-blue-500 to-red-500 rounded-full opacity-50"></div>
+    </div>
+    <div class="w-full md:w-1/2 p-8 bg-white bg-opacity-90 flex flex-col justify-center">
+      <h2 id="welcomeText" class="text-2xl md:text-1xl font-bold mb-2 text-blue-900 text-center md:text-left">Change Your Password</h2>
+      <form id="passwordChangeForm" class="flex flex-col space-y-4">
+        <div class="relative">
+          <input type="password" id="newPassword" placeholder="New Password" class="form-input p-3 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" required />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="relative">
+          <input type="password" id="confirmPassword" placeholder="Confirm Password" class="form-input p-3 pl-10 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" required />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        
+        <button id="changeButton" type="submit" class="login-btn bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700 text-white p-3 rounded-lg font-semibold shadow-lg transform hover:scale-105 transition-transform duration-300">
+          Change Password
+        </button>
+      </form>
+      <div class="mt-4 flex justify-center">
+        <span class="inline-block w-8 h-1 bg-gray-200 rounded-full"></span>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Update the existing updateFlag function to work with our new SVG flags
+function updateFlag(lang) {
+  const flagElement = document.getElementById("flagIcon");
+  const langText = document.getElementById("langText");
+  
+  if (lang === "en") {
+    flagElement.className = "flag flag-en";
+    langText.innerText = "EN";
+  } else {
+    flagElement.className = "flag flag-id";
+    langText.innerText = "ID";
+  }
+}
+
+// Override the original updateFlag function when DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  const originalUpdateFlag = window.updateFlag;
+  
+  window.updateFlag = function(lang) {
+    const flagElement = document.getElementById("flagIcon");
+    const langText = document.getElementById("langText");
+    
+    if (lang === "en") {
+      flagElement.className = "flag flag-en";
+      langText.innerText = "EN";
+    } else {
+      flagElement.className = "flag flag-id";
+      langText.innerText = "ID";
+    }
+  };
+});
+</script>
+</body>
+</html>

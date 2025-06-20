@@ -72,6 +72,34 @@
       }
     }
 
+    // Function to check if user is a first-time login
+    async function checkFirstTimeLogin(userId) {
+      try {
+        // Make API call to check if user needs to change password
+        const response = await fetch(`${BASE_URL}/api/authentication/check-first-login/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+          // Store the result in localStorage
+          localStorage.setItem("requirePasswordChange", result.data.requirePasswordChange);
+          return result.data.requirePasswordChange;
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('Error checking first-time login:', error);
+        return false;
+      }
+    }
+
     // API-based login function
     function handleLogin(event) {
       event.preventDefault();
@@ -137,8 +165,29 @@
             // Show success message
             alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
             
-            // Redirect to dashboard
-            window.location.href = "dashboard.html";
+            // Check if this is a first-time login (password needs to be changed)
+            if (result.data.requirePasswordChange) {
+              // Store the requirement in localStorage
+              localStorage.setItem("requirePasswordChange", "true");
+              // Redirect to password change page
+              window.location.href = "changepass.html";
+            } else {
+              // Check with the API if user needs to change password
+              checkFirstTimeLogin(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"])
+                .then(requireChange => {
+                  if (requireChange) {
+                    // Redirect to password change page
+                    window.location.href = "changepass.html";
+                  } else {
+                    // Redirect to dashboard
+                    window.location.href = "dashboard.html";
+                  }
+                })
+                .catch(() => {
+                  // If error, just redirect to dashboard
+                  window.location.href = "dashboard.html";
+                });
+            }
           } else {
             alert("Failed to decode user information from token");
           }
@@ -169,6 +218,12 @@
         
         // Check if token is still valid (not expired)
         if (userInfo && userInfo.exp && Date.now() < userInfo.exp * 1000) {
+          // Check if user needs to change password
+          if (localStorage.getItem("requirePasswordChange") === "true") {
+            window.location.href = "changepass.html";
+            return true;
+          }
+          
           // Token is still valid, redirect to dashboard
           window.location.href = "dashboard.html";
           return true;
@@ -189,4 +244,5 @@
       localStorage.removeItem("loggedInUserCode");
       localStorage.removeItem("userId");
       localStorage.removeItem("userRoles");
+      localStorage.removeItem("requirePasswordChange");
     }
