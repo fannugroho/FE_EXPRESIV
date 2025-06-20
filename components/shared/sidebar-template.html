@@ -1,0 +1,122 @@
+<!-- Sidebar Template -->
+<div class="sidebar-logo-container">
+    <img src="../image/Seiho.png" alt="Dentsu Soken" class="h-12 w-auto max-w-full mx-auto" />
+</div>
+
+<div class="px-3 py-4">
+    <button onclick="goToMenu()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 rounded mb-1 active-menu-item">
+        <span class="menu-icon"><i class="fas fa-home"></i></span>
+        <span class="ml-3">Dashboard</span>
+    </button>
+    
+    <div class="menu-category">Request Management</div>
+    
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                <span class="ml-3">Purchase Request</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="MenuPurchaseReq" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Purchase Request</button>
+            <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Purchase Request</button>
+            <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Purchase Request</button>
+            <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Purchase Request</button>
+            <button onclick="goToMenuReceivePR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Purchase Request</button>
+        </div>            
+    </div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-hand-holding-usd"></i></span>
+                <span class="ml-3">Reimbursement</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="MenuReimbursement" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Reimbursement</button>
+            <button onclick="goToMenuCheckReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Reimbursement</button>
+            <button onclick="goToMenuAcknowReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Reimbursement</button>
+            <button onclick="goToMenuApprovReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Reimbursement</button>
+        </div>            
+    </div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-wallet"></i></span>
+                <span class="ml-3">Cash Advance</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="MenuCashAdvance" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Cash Advance</button>
+            <button onclick="goToMenuCheckCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Cash Advance</button>
+            <button onclick="goToMenuAcknowCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Cash Advance</button>
+            <button onclick="goToMenuApprovCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Cash Advance</button>
+            <button onclick="goToMenuReceiveCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Cash Advance</button>
+        </div>            
+    </div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-balance-scale"></i></span>
+                <span class="ml-3">Settlement</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="MenuSettlement" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Settlement</button>
+            <button onclick="goToMenuCheckSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Settlement</button>
+            <button onclick="goToMenuAcknowSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Settlement</button>
+            <button onclick="goToMenuApprovSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Settlement</button>
+            <button onclick="goToMenuReceiveSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Settlement</button>
+        </div>            
+    </div>
+
+    <div class="menu-category">Approval Center</div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="ml-3">Decision Report</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
+            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+        </div>
+    </div>
+
+    <div class="menu-category">Administration</div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('settings')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-cog"></i></span>
+                <span class="ml-3">Settings</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="settings" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuRegist()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Register User</button>
+            <button onclick="goToMenuUser()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> User List</button>
+            <button onclick="goToMenuRole()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Role List</button>
+        </div>
+    </div>
+
+    <div class="pt-4 mt-6 border-t border-gray-200">
+        <button onclick="logout()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 text-red-500 rounded">
+            <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
+            <span class="ml-3">Logout</span>
+        </button>
+    </div>
+</div> 
