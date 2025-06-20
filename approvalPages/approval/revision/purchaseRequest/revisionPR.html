@@ -183,16 +183,10 @@
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="rejectPR()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                    Reject
-                </button>
-                <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                    Receive
+                <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Submit
                 </button>
             </div>
-            <button onclick="revisionPR()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
-                Revision
-            </button>
         </div>
     </div>
     
@@ -224,7 +218,7 @@
             if (revisionFieldsByUser.has(currentUser.name)) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Already exist',
+                    title: 'all ready exist',
                     text: 'You already added a revision field. Each user can only add one field.'
                 });
                 return;
@@ -234,9 +228,13 @@
                 // Show container and add first field
                 container.classList.remove('hidden');
                 addRevisionField();
+                // Hide the add revision button after adding a field
+                hideAddRevisionButton();
             } else {
                 // Add another field
                 addRevisionField();
+                // Hide the add revision button after adding a field
+                hideAddRevisionButton();
             }
         }
 
@@ -256,13 +254,8 @@
                 return;
             }
             
-            // Check if current user already has a field
+            // Check if current user already has a field - no need to show alert, just return
             if (revisionFieldsByUser.has(currentUser.name)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Already exist',
-                    text: 'You already added a revision field. Each user can only add one field.'
-                });
                 return;
             }
             
@@ -436,6 +429,12 @@
             }
         }
         
+        // Hide the add revision button after adding a field
+        function hideAddRevisionButton() {
+            const addBtn = document.getElementById('addRevisionBtn');
+            addBtn.style.display = 'none';
+        }
+        
         // Check if revision remarks are filled to enable/disable revision button
         function checkRevisionButton() {
             const revisionButton = document.getElementById('revisionButton');
@@ -463,7 +462,118 @@
             }
         }
         
-        // Revision function for Purchase Request
+        // Function to submit Purchase Request after revision
+        function approvePR() {
+            // Get the checked by user ID
+            const checkedById = document.getElementById('checkedBy').value;
+            
+            if (!checkedById || checkedById === "") {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Silakan pilih user Checked by terlebih dahulu'
+                });
+                return;
+            }
+            
+            // Collect revision remarks if any
+            let revisionRemarks = "";
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            revisionFields.forEach((field, index) => {
+                if (field.value.trim() !== '') {
+                    if (revisionRemarks !== '') revisionRemarks += '\n\n';
+                    revisionRemarks += field.value.trim();
+                }
+            });
+            
+            // Confirm submission
+            Swal.fire({
+                title: 'Konfirmasi Submit',
+                text: 'Apakah Anda yakin ingin submit dokumen ini? Status akan berubah menjadi "Prepared" dan dokumen akan dikirim ke Checker.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Submit',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Mohon tunggu sementara permintaan Anda diproses.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Get current user ID
+                    const userId = getUserId();
+                    if (!userId) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Authentication Error',
+                            text: 'Unable to get user ID from token. Please login again.'
+                        });
+                        return;
+                    }
+                    
+                    // Prepare request data
+                    const requestData = {
+                        id: prId,
+                        UserId: userId,
+                        CheckedById: checkedById,
+                        StatusAt: "Revision",
+                        Action: "submit",
+                        Status: "Prepared", // Set status to Prepared
+                        Remarks: revisionRemarks || ""
+                    };
+                    
+                    // Send request to API
+                    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+                    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData)
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            return response.json().then(errorData => {
+                                throw new Error(errorData.message || `Failed to submit PR. Status: ${response.status}`);
+                            });
+                        }
+                    })
+                    .then(data => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: 'Dokumen Purchase Request berhasil disubmit dan dikirim ke Checker',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            // Navigate back to the revision dashboard
+                            window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error submitting PR: ' + error.message
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Revision function for Purchase Request (keeping this for compatibility)
         function revisionPR() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
@@ -497,7 +607,6 @@
             }
             
             // Call the existing function with the collected remarks
-            // This function should be implemented in revisionPR.js
             updatePRStatusWithRemarks('revision', allRemarks);
         }
     </script>
