@@ -170,14 +170,14 @@
               // Store the requirement in localStorage
               localStorage.setItem("requirePasswordChange", "true");
               // Redirect to password change page
-              window.location.href = "chancepass.html";
+              window.location.href = "changepass.html";
             } else {
               // Check with the API if user needs to change password
               checkFirstTimeLogin(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"])
                 .then(requireChange => {
                   if (requireChange) {
                     // Redirect to password change page
-                    window.location.href = "chancepass.html";
+                    window.location.href = "changepass.html";
                   } else {
                     // Redirect to dashboard
                     window.location.href = "dashboard.html";
@@ -220,7 +220,7 @@
         if (userInfo && userInfo.exp && Date.now() < userInfo.exp * 1000) {
           // Check if user needs to change password
           if (localStorage.getItem("requirePasswordChange") === "true") {
-            window.location.href = "chancepass.html";
+            window.location.href = "changepass.html";
             return true;
           }
           
