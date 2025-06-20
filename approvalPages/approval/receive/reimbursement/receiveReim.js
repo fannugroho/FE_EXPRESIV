@@ -60,12 +60,13 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("preparedBySelect", users);
-        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("acknowledgedBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        populateDropdown("receiveBySelect", users);
         
         // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect"];
+        const dropdownIds = ["preparedBySelect", "acknowledgedBySelect", "checkedBySelect", "approvedBySelect", "receiveBySelect"];
         dropdownIds.forEach(id => {
             const dropdown = document.getElementById(id);
             if (dropdown) {
@@ -221,6 +222,7 @@ function populateFormData(data) {
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
     if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
+    if (document.getElementById('receiveBySelect')) document.getElementById('receiveBySelect').value = data.receivedBy || '';
     
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
@@ -418,7 +420,7 @@ function onReject() {
             }
             
             // Make API call to reject the reimbursement
-            return fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
+            return fetch(`${BASE_URL}/api/reimbursements/receiver/${id}/reject`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -476,7 +478,7 @@ function onApprove() {
             }
             
             // Make API call to approve the reimbursement
-            fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
+            fetch(`${BASE_URL}/api/reimbursements/receiver/${id}/approve`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

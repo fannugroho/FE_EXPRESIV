@@ -17,6 +17,9 @@ window.onload = function() {
     if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Initialize toggleClosedBy
+    toggleClosedBy();
 };
 
 function fetchCADetails(caId) {
@@ -36,6 +39,9 @@ function fetchCADetails(caId) {
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
+                
+                // Update closedBy visibility based on transaction type
+                toggleClosedBy();
             }
         })
         .catch(error => {
@@ -68,6 +74,9 @@ function populateCADetails(data) {
         option.textContent = data.transactionType;
         option.selected = true;
         transactionTypeSelect.appendChild(option);
+        
+        // Update closedBy visibility based on transaction type
+        toggleClosedBy();
     }
 
     // Set department - create option directly from backend data
@@ -197,6 +206,7 @@ function filterUsers(fieldId) {
                 case 'acknowledgedBy': selectId = 'Acknowledged'; break;
                 case 'approvedBy': selectId = 'Approved'; break;
                 case 'receivedBy': selectId = 'Received'; break;
+                case 'closedBy': selectId = 'Closed'; break;
                 default: selectId = fieldId;
             }
             
@@ -227,7 +237,8 @@ function populateUserSelects(users, caData = null) {
         { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
         { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
         { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' }
+        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' },
+        { id: 'Closed', approvalKey: 'closedById', searchId: 'closedBySearch' }
     ];
     
     selects.forEach(selectInfo => {
@@ -258,13 +269,14 @@ function populateUserSelects(users, caData = null) {
         }
     });
     
-    // Find and populate the employee NIK using the stored employeeId
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use kansaiEmployeeId if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
+    // Populate employee field if it exists
+    if (window.currentEmployeeId && users.length > 0) {
+        const employeeField = document.getElementById('Employee');
+        if (employeeField) {
+            const employee = users.find(user => user.id === window.currentEmployeeId);
+            if (employee) {
+                employeeField.value = employee.employeeId || employee.id;
+            }
         }
     }
     
@@ -280,206 +292,213 @@ function populateUserSelects(users, caData = null) {
     });
 }
 
-// Function to approve CA (receive)
+// Function to approve cash advance
 function approveCash() {
-    Swal.fire({
-        title: 'Confirm Receipt',
-        text: 'Are you sure you want to receive this Cash Advance?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Receive',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            updateCAStatus('approve');
-        }
-    });
+    // Include closedBy in the data if applicable
+    updateCAStatus('received');
 }
 
-// Function to reject CA
+// Function to reject cash advance
 function rejectCash() {
+    // Confirm rejection
     Swal.fire({
-        title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Cash Advance?',
+        title: 'Are you sure?',
+        text: "You are about to reject this cash advance request.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Reject',
-        cancelButtonText: 'Cancel'
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, reject it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Ask for rejection remarks
-            Swal.fire({
-                title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
-            }).then((remarksResult) => {
-                if (remarksResult.isConfirmed) {
-                    updateCAStatusWithRemarks('reject', remarksResult.value);
-                }
-            });
+            updateCAStatus('rejected');
         }
     });
 }
 
-// Function to approve or reject the CA
+// Function to update cash advance status
 function updateCAStatus(status) {
-    if (!caId) {
+    const receivedById = document.getElementById('Received').value;
+    
+    // Check if closedBy is visible and required
+    let closedById = null;
+    const closedBySection = document.getElementById('closedBySection');
+    if (closedBySection && closedBySection.style.display !== 'none') {
+        closedById = document.getElementById('Closed').value;
+        
+        // Validate closedBy if Personal Loan
+        if (document.getElementById('typeTransaction').value === 'Personal Loan' && !closedById) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Please select a user for Closed by field'
+            });
+            return;
+        }
+    }
+    
+    // Validate required fields
+    if (!receivedById) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'CA ID not found'
+            text: 'Please select a user for Received by field'
         });
         return;
     }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    const requestData = {
+    
+    // Prepare data for API
+    const data = {
         id: caId,
-        UserId: userId,
-        StatusAt: "Receive",
-        Action: status,
-        Remarks: ''
+        status: status,
+        receivedById: receivedById
     };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'approve' ? 'Receiving' : 'Processing'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    fetch(`${BASE_URL}/api/cash-advance/status`, {
-        method: 'POST',
+    
+    // Add closedById if available
+    if (closedById) {
+        data.closedById = closedById;
+    }
+    
+    // Send update to API
+    fetch(`${BASE_URL}/api/cash-advance/update-status`, {
+        method: 'PUT',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(data)
     })
     .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: `CA ${status === 'approve' ? 'received' : 'rejected'} successfully`,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardReceive/cashAdvance/menuCashReceive.html';
-            });
-        } else {
+        if (!response.ok) {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+                throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
             });
         }
+        return response.json();
     })
-    .catch(error => {
+    .then(data => {
+        console.log('Success:', data);
+        
+        let title, text, icon;
+        if (status === 'received') {
+            title = 'Received!';
+            text = 'The cash advance has been received successfully.';
+            icon = 'success';
+        } else if (status === 'rejected') {
+            title = 'Rejected!';
+            text = 'The cash advance has been rejected.';
+            icon = 'error';
+        }
+        
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: icon,
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect back to menu
+            goToMenuReceiveCash();
+        });
+    })
+    .catch((error) => {
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} CA: ` + error.message
+            text: 'Failed to update cash advance status: ' + error.message
         });
     });
 }
 
-// Function to approve or reject the CA with remarks
-function updateCAStatusWithRemarks(status, remarks) {
-    if (!caId) {
+// Function to update cash advance status with remarks
+function updateCashStatusWithRemarks(status, remarks) {
+    const receivedById = document.getElementById('Received').value;
+    
+    // Check if closedBy is visible and required
+    let closedById = null;
+    const closedBySection = document.getElementById('closedBySection');
+    if (closedBySection && closedBySection.style.display !== 'none') {
+        closedById = document.getElementById('Closed').value;
+        
+        // Validate closedBy if Personal Loan
+        if (document.getElementById('typeTransaction').value === 'Personal Loan' && !closedById) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Please select a user for Closed by field'
+            });
+            return;
+        }
+    }
+    
+    // Validate required fields for revision
+    if (status === 'revision' && (!remarks || remarks.trim() === '')) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'CA ID not found'
+            text: 'Please provide revision remarks'
         });
         return;
     }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    const requestData = {
+    
+    // Prepare data for API
+    const data = {
         id: caId,
-        UserId: userId,
-        StatusAt: "Receive",
-        Action: status,
-        Remarks: remarks || ''
+        status: status,
+        remarks: remarks
     };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    fetch(`${BASE_URL}/api/cash-advance/status`, {
-        method: 'POST',
+    
+    // Add receivedById if available
+    if (receivedById) {
+        data.receivedById = receivedById;
+    }
+    
+    // Add closedById if available
+    if (closedById) {
+        data.closedById = closedById;
+    }
+    
+    // Send update to API
+    fetch(`${BASE_URL}/api/cash-advance/update-status`, {
+        method: 'PUT',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(data)
     })
     .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: `CA ${status === 'approve' ? 'received' : 'rejected'} successfully`,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardReceive/cashAdvance/menuCashReceive.html';
-            });
-        } else {
+        if (!response.ok) {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+                throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
             });
         }
+        return response.json();
     })
-    .catch(error => {
+    .then(data => {
+        console.log('Success:', data);
+        
+        let title, text, icon;
+        if (status === 'revision') {
+            title = 'Revision Requested!';
+            text = 'The cash advance has been sent back for revision.';
+            icon = 'info';
+        }
+        
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: icon,
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect back to menu
+            goToMenuReceiveCash();
+        });
+    })
+    .catch((error) => {
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} CA: ` + error.message
+            text: 'Failed to update cash advance status: ' + error.message
         });
     });
 }
@@ -595,5 +614,17 @@ function previewPDF(event) {
     let fileNames = Array.from(files).map(file => file.name).join(', ');
     if (fileNames) {
         fileInput.title = fileNames;
+    }
+}
+
+// Function to toggle closedBy visibility based on transaction type
+function toggleClosedBy() {
+    const transactionType = document.getElementById('typeTransaction').value;
+    const closedBySection = document.getElementById('closedBySection');
+    
+    if (transactionType === 'Personal Loan') {
+        closedBySection.style.display = 'block';
+    } else {
+        closedBySection.style.display = 'none';
     }
 } 
