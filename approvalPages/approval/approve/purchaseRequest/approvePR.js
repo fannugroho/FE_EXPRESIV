@@ -291,6 +291,9 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -796,8 +799,6 @@ function updatePRStatusWithRemarks(status, remarks) {
     });
 }
 
-
-
 function deleteRow(button) {
     button.closest("tr").remove();
 }
@@ -1060,5 +1061,41 @@ function displayAttachments(attachments) {
         });
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
+    }
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions && revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else if (revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'none';
     }
 }

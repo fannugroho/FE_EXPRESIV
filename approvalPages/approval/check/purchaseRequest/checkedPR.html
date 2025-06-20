@@ -240,7 +240,7 @@
     <script>
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
-        const MAX_REVISION_FIELDS = 4;
+        const MAX_REVISION_FIELDS = 1; // Limit to 1 revision per document
 
         // Toggle revision container visibility and add first field
         function toggleRevisionField() {
@@ -254,7 +254,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                    text: 'Only one revision is allowed per document'
                 });
                 return;
             }
@@ -289,7 +289,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                    text: 'Only one revision is allowed per document'
                 });
                 return;
             }
@@ -390,7 +390,7 @@
                 addBtn.style.pointerEvents = 'none';
                 
                 if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                    addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
+                    addBtn.textContent = 'Revision already added';
                 } else if (revisionFieldsByUser.has(currentUser.name)) {
                     addBtn.textContent = ' ';
                 }

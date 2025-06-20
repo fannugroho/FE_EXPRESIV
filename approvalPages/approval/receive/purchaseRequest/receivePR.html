@@ -112,6 +112,41 @@
           <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
         </div>
         
+        <!-- Revised Remarks Display Section (Read-only) -->
+        <div class="mt-4" id="revisedRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                </div>
+                
+                <!-- First Revision Remarks -->
+                <div id="firstRevisionContainer" class="mb-3" style="display: none;">
+                    <label class="text-sm font-medium text-gray-700">First Revision:</label>
+                    <div id="firstRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                </div>
+                
+                <!-- Second Revision Remarks -->
+                <div id="secondRevisionContainer" class="mb-3" style="display: none;">
+                    <label class="text-sm font-medium text-gray-700">Second Revision:</label>
+                    <div id="secondRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                </div>
+                
+                <!-- Third Revision Remarks -->
+                <div id="thirdRevisionContainer" class="mb-3" style="display: none;">
+                    <label class="text-sm font-medium text-gray-700">Third Revision:</label>
+                    <div id="thirdRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                </div>
+                
+                <!-- Fourth Revision Remarks -->
+                <div id="fourthRevisionContainer" class="mb-3" style="display: none;">
+                    <label class="text-sm font-medium text-gray-700">Fourth Revision:</label>
+                    <div id="fourthRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
@@ -202,7 +237,7 @@
     <script>
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
-        const MAX_REVISION_FIELDS = 4;
+        const MAX_REVISION_FIELDS = 1; // Limit to 1 revision per document
 
         // Toggle revision container visibility and add first field
         function toggleRevisionField() {
@@ -216,7 +251,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                    text: 'Only one revision is allowed per document'
                 });
                 return;
             }
@@ -251,7 +286,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+                    text: 'Only one revision is allowed per document'
                 });
                 return;
             }
@@ -352,7 +387,7 @@
                 addBtn.style.pointerEvents = 'none';
                 
                 if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                    addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
+                    addBtn.textContent = 'Revision already added';
                 } else if (revisionFieldsByUser.has(currentUser.name)) {
                     addBtn.textContent = ' ';
                 }
