@@ -383,5 +383,11 @@ function downloadPDF() {
     });
     
     // Save file
-    doc.save('Settlements_Approve.pdf');
+    doc.save('Settlements_Receive.pdf');
 }
+
+// Navigation functions for revision menus
+function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
+function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
+function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
+function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; }

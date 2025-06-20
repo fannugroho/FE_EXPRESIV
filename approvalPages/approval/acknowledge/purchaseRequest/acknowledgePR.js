@@ -103,8 +103,6 @@ function fetchPRDetails(prId, prType) {
             if (response.data) {
                 console.log(response.data);
                 populatePRDetails(response.data);
-                document.getElementById('prType').value = prType;
-                
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
             }
@@ -600,10 +598,7 @@ window.addEventListener("DOMContentLoaded", function() {
     });
     
     // If PR type is already selected, toggle fields accordingly
-    const prType = document.getElementById("prType");
-    if (prType && prType.value !== "choose") {
-        toggleFields();
-    }
+
 });
 
 // Function to make all fields read-only for approval view
