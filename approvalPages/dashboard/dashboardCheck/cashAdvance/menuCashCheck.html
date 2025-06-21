@@ -27,87 +27,8 @@
             <i class="fas fa-bars text-white text-2xl"></i>
         </button>
 
-        <aside id="sidebar" class="w-64 bg-white shadow-lg p-6 space-y-4">
-            <img src="../../../../image/Seiho.png" alt="Dentsu Soken" class="h-18 w-auto max-w-full mx-auto" />
-            <br>
-            
-            <button onclick="goToMenu()" class="menu-btn"><i class="fas fa-home"></i> Dashboard</button>
-
-            <div>
-                <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn">
-                    <i class="fas fa-file-invoice-dollar"></i> Purchase Request
-                </button>
-                <div id="MenuPurchaseReq" class="hidden pl-4">
-                    <button onclick="goToMenuPR()" class="submenu-btn"> Add Purchase Request</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Purchase Request</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Purchase Request</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Purchase Request</button>
-                    <button onclick="goToMenuReceivePR()" class="submenu-btn"> Receive Purchase Request</button>
-                </div>            
-            </div>
-
-            <div>
-                <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn">
-                    <i class="fas fa-hand-holding-usd"></i> Reimbursement
-                </button>
-                <div id="MenuReimbursement" class="hidden pl-4">
-                    <button onclick="goToMenuReim()" class="submenu-btn"> Add Reimbursement</button>
-                    <button onclick="goToMenuCheckPR()" class="submenu-btn"> Checked Reimbursement</button>
-                    <button onclick="goToMenuAcknowPR()" class="submenu-btn"> Acknowledge Reimbursement</button>
-                    <button onclick="goToMenuApprovPR()" class="submenu-btn"> Approval Reimbursement</button>
-                </div>            
-            </div>
-
-            <div>
-                <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn">
-                    <i class="fas fa-wallet"></i> Cash Advance
-                </button>
-                <div id="MenuCashAdvance" class="hidden pl-4">
-                    <button onclick="goToMenuCash()" class="submenu-btn"> Add Cash Advance</button>
-                    <button onclick="goToMenuCheckCash()" class="submenu-btn"> Checked Cash Advance</button>
-                    <button onclick="goToMenuAcknowCash()" class="submenu-btn"> Acknowledge Cash Advance</button>
-                    <button onclick="goToMenuApprovCash()" class="submenu-btn"> Approval Cash Advance</button>
-                </div>            
-            </div>
-
-            <div>
-                <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn">
-                    <i class="fas fa-balance-scale"></i> Settlement
-                </button>
-                <div id="MenuSettlement" class="hidden pl-4">
-                    <button onclick="goToMenuSettle()" class="submenu-btn"> Add Settlement</button>
-                    <button onclick="goToMenuCheckSettle()" class="submenu-btn"> Checked Settlement</button>
-                    <button onclick="goToMenuAcknowSettle()" class="submenu-btn"> Acknowledge Settlement</button>
-                    <button onclick="goToMenuApprovSettle()" class="submenu-btn"> Approval Settlement</button>
-                </div>            
-            </div>
-
-            <!--approval decesion report-->
-            <div>
-                <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn">
-                    <i class="fas fa-check-circle"></i> Approval Decision Report
-                </button>
-                <div id="ApprovalReport" class="hidden pl-4">
-                    <button onclick="goToMenuAPR()" class="submenu-btn"> PR Approval</button>
-                    <button onclick="goToMenuPO()" class="submenu-btn"> PO Approval</button>
-                    <button onclick="goToMenuBanking()" class="submenu-btn"> Outgoing Approval</button>
-                    <button onclick="goToMenuInvoice()" class="submenu-btn"> AR Invoice Approval</button>
-                </div>
-            </div>
-            
-            <!--settings-->
-            <div>
-                <button onclick="toggleSubMenu('settings')" class="menu-btn">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
-                <div id="settings" class="hidden pl-4">
-                    <button onclick="goToMenuRegist()" class="menu-btn"> Register User</button>
-                    <button onclick="goToMenuUser()" class="menu-btn"> User List</button>
-                    <button onclick="goToMenuRole()" class="menu-btn"> Role List</button>
-                </div>
-            </div>
-
-            <button onclick="logout()" class="menu-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        <aside id="sidebar" class="bg-white shadow-lg">
+            <!-- Sidebar content will be loaded by sidebar-loader.js -->
         </aside>
 
         <!-- User Avatar -->
@@ -292,8 +213,10 @@
     </nav>
 
     <!-- External JS -->
-    <!-- <script src="../../../../js/shared-menu.js"></script> -->
-    <script src="menuCashCheck.js"></script>
     <script src="../../../../js/auth.js"></script>
+    <!-- Shared Components -->
+    <script src="../../../../components/shared/sidebar-loader.js"></script>
+    <script src="../../../../components/shared/navigation.js"></script>
+    <script src="menuCashCheck.js"></script>
 </body>
 </html>
