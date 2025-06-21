@@ -796,8 +796,6 @@ function updatePRStatusWithRemarks(status, remarks) {
     });
 }
 
-
-
 function deleteRow(button) {
     button.closest("tr").remove();
 }
@@ -958,78 +956,73 @@ function updateItemDescription(selectElement) {
 
 // Function to print purchase request
 function printPR() {
-    // Kumpulkan semua data yang diperlukan dari form
-    const purchaseRequestNo = document.getElementById('purchaseRequestNo').value;
-    const dateIssued = document.getElementById('submissionDate').value;
-    const department = document.getElementById('department').value;
-    const classification = document.getElementById('classification').value;
-    const requesterName = document.getElementById('requesterName').value;
-    
-    // Ambil data approved/checked by dari input search
-    const checkedBy = document.getElementById('checkedBySearch').value;
-    const acknowledgedBy = document.getElementById('acknowledgeBySearch').value;
-    const approvedBy = document.getElementById('approvedBySearch').value;
-    const receivedDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini
-    
-    // Ambil data item dari tabel
-    const items = [];
-    const tableRows = document.getElementById('tableBody').querySelectorAll('tr');
-    const prType = document.getElementById('prType').value;
-    
-    tableRows.forEach(row => {
-        let item = {};
+    try {
+        console.log("Print function started");
+        // Kumpulkan semua data yang diperlukan dari form
+        const purchaseRequestNo = document.getElementById('purchaseRequestNo').value;
+        const dateIssued = document.getElementById('submissionDate').value;
+        const department = document.getElementById('department').value;
+        const classification = document.getElementById('classification').value;
+        const requesterName = document.getElementById('requesterName').value;
         
-        if (prType === 'Item') {
+        // Ambil data approved/checked by dari input search
+        const checkedBy = document.getElementById('checkedBySearch').value;
+        const acknowledgedBy = document.getElementById('acknowledgeBySearch').value;
+        const approvedBy = document.getElementById('approvedBySearch').value;
+        const receivedDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini
+        
+        // Ambil data item dari tabel
+        const items = [];
+        const tableRows = document.getElementById('tableBody').querySelectorAll('tr');
+        
+        // Karena hanya ada tipe item, kita langsung proses sebagai item
+        tableRows.forEach(row => {
+            // Ambil data item dari baris tabel
             const description = row.querySelector('td[id="tdItemName"] input')?.value || '';
             const purpose = row.querySelector('td[id="tdPurposed"] input')?.value || '';
             const quantity = row.querySelector('td[id="tdQuantity"] input')?.value || '';
             const price = row.querySelector('td[id="tdDetail"] input')?.value || '';
             
-            item = {
+            const item = {
                 description,
                 purpose,
                 quantity,
                 price,
                 eta: document.getElementById('requiredDate').value
             };
-        } else if (prType === 'Service') {
-            const description = row.querySelector('td[id="tdDescription"] input')?.value || '';
-            const purpose = row.querySelector('td[id="tdPurposeds"] input')?.value || '';
-            const quantity = row.querySelector('td[id="tdQty"] input')?.value || '';
             
-            item = {
-                description,
-                purpose,
-                quantity,
-                price: 0,
-                eta: document.getElementById('requiredDate').value
-            };
-        }
+            if (item.description) {
+                items.push(item);
+            }
+        });
         
-        if (item.description) {
-            items.push(item);
-        }
-    });
-    
-    // Buat URL dengan parameter
-    const url = new URL('printPR.html', window.location.href);
-    
-    // Tambahkan parameter dasar
-    url.searchParams.set('dateIssued', dateIssued);
-    url.searchParams.set('department', department);
-    url.searchParams.set('purchaseRequestNo', purchaseRequestNo);
-    url.searchParams.set('classification', classification);
-    url.searchParams.set('requesterName', requesterName);
-    url.searchParams.set('checkedBy', checkedBy);
-    url.searchParams.set('acknowledgedBy', acknowledgedBy);
-    url.searchParams.set('approvedBy', approvedBy);
-    url.searchParams.set('receivedDate', receivedDate);
-    
-    // Tambahkan items sebagai JSON string
-    url.searchParams.set('items', encodeURIComponent(JSON.stringify(items)));
-    
-    // Buka halaman print dalam tab baru
-    window.open(url.toString(), '_blank');
+        console.log("Items collected:", items);
+        
+        // Buat URL dengan parameter
+        const url = new URL('printPR.html', window.location.href);
+        
+        // Tambahkan parameter dasar
+        url.searchParams.set('dateIssued', dateIssued);
+        url.searchParams.set('department', department);
+        url.searchParams.set('purchaseRequestNo', purchaseRequestNo);
+        url.searchParams.set('classification', classification);
+        url.searchParams.set('requesterName', requesterName);
+        url.searchParams.set('checkedBy', checkedBy);
+        url.searchParams.set('acknowledgedBy', acknowledgedBy);
+        url.searchParams.set('approvedBy', approvedBy);
+        url.searchParams.set('receivedDate', receivedDate);
+        
+        // Tambahkan items sebagai JSON string
+        url.searchParams.set('items', encodeURIComponent(JSON.stringify(items)));
+        
+        console.log("Opening print page:", url.toString());
+        
+        // Buka halaman print dalam tab baru
+        window.open(url.toString(), '_blank');
+    } catch (error) {
+        console.error("Error in printPR function:", error);
+        alert("Terjadi kesalahan saat mencetak: " + error.message);
+    }
 }
 
 // Function to display attachments (similar to detail pages)
