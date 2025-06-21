@@ -78,6 +78,9 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -184,9 +187,8 @@ function fetchDropdownOptions(prData = null) {
     fetchDepartments();
     fetchUsers(prData);
     fetchClassifications();
-    if (document.getElementById("prType").value === "Item") {
-        fetchItemOptions();
-    }
+    fetchItemOptions();
+    
 }
 
 // Function to fetch departments from API
@@ -433,6 +435,43 @@ function rejectPR() {
     });
 }
 
+// Function to handle revision for Purchase Request
+function revisionPR() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updatePRStatusWithRemarks('revise', allRemarks);
+}
+
 // Function to approve or reject the PR
 function updatePRStatus(status) {
     if (!prId) {
@@ -584,8 +623,6 @@ function updatePRStatusWithRemarks(status, remarks) {
         });
     });
 }
-
-
 
 function deleteRow(button) {
     button.closest("tr").remove();
@@ -777,5 +814,41 @@ function displayAttachments(attachments) {
         });
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
+    }
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions && revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else if (revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'none';
     }
 }

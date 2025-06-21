@@ -376,7 +376,7 @@ function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    doc.text('Cash Advances Approve Report', 14, 16);
+    doc.text('Cash Advances Receive Report', 14, 16);
     doc.autoTable({
         head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
         body: docData,
@@ -384,5 +384,11 @@ function downloadPDF() {
     });
     
     // Save file
-    doc.save('Cash_Advances_Approve.pdf');
-} 
+    doc.save('Cash_Advances_Receive.pdf');
+}
+
+// Navigation functions for revision menus
+function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
+function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
+function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
+function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; } 

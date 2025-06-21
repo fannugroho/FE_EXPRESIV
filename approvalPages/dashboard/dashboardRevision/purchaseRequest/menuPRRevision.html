@@ -55,8 +55,8 @@
                     <p id="revisionCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                 </div>
                 <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
-                    <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
-                    <p id="draftCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                    <p id="preparedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                 </div>
             </div>
             
@@ -70,8 +70,8 @@
                         <button id="revisionTabBtn" onclick="switchTab('revision')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-file-alt mr-2"></i>Revision
                         </button>
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-file-alt mr-2"></i>Draft
+                        <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-file-alt mr-2"></i>Prepared
                         </button>
                     </div>
                     
@@ -132,9 +132,9 @@
             <i class="fas fa-file-alt text-xl"></i>
             <span>Revision</span>
         </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-alt text-xl"></i>
-            <span>Draft</span>
+            <span>Prepared</span>
         </button>
         <button onclick="downloadExcel()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-green-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-excel text-xl"></i>

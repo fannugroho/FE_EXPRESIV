@@ -173,10 +173,12 @@ function goToProfile() {
 
 function logout() {
     // Clear any authentication tokens or session data
-    localStorage.removeItem('token');
-    localStorage.removeItem('userInfo');
-    localStorage.removeItem('username');
-    
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserCode");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRoles");
     // Redirect to login page
     const basePath = getBasePath();
     window.location.href = `${basePath}pages/login.html`;

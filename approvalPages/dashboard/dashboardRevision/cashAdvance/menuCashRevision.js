@@ -266,34 +266,6 @@ function changePage(direction) {
     }
 }
 
-// Function to get user ID from localStorage
-function getUserId() {
-    const userStr = localStorage.getItem('loggedInUser');
-    if (!userStr) return null;
-    
-    try {
-        const user = JSON.parse(userStr);
-        return user.id || null;
-    } catch (e) {
-        console.error('Error parsing user data:', e);
-        return null;
-    }
-}
-
-// Function to get access token
-function getAccessToken() {
-    const userStr = localStorage.getItem('loggedInUser');
-    if (!userStr) return null;
-    
-    try {
-        const user = JSON.parse(userStr);
-        return user.token || null;
-    } catch (e) {
-        console.error('Error parsing user data:', e);
-        return null;
-    }
-}
-
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('hidden');

@@ -1,4 +1,6 @@
 let uploadedFiles = [];
+let existingAttachments = []; // Track existing attachments from API
+let attachmentsToKeep = []; // Track which existing attachments to keep
 
 let prId; // Declare global variable
 let prType; // Declare global variable
@@ -15,11 +17,24 @@ window.onload = function() {
         fetchPRDetails(prId, prType);
     }
     
-    // Hide approve/reject buttons if viewing from received or rejected tabs
-    if (currentTab === 'received' || currentTab === 'rejected') {
-        hideApprovalButtons();
-    }
+    // Setup button visibility based on tab
+    setupButtonVisibility();
 };
+
+// Function to setup button visibility based on tab parameter
+function setupButtonVisibility() {
+    const submitButtonContainer = document.getElementById('submitButtonContainer');
+    
+    if (currentTab === 'revision') {
+        // Show only submit button for revision tab
+        // Button visibility will be controlled by status in fetchPRDetails
+    } else if (currentTab === 'prepared') {
+        // Hide submit button for prepared tab
+        if (submitButtonContainer) {
+            submitButtonContainer.style.display = 'none';
+        }
+    }
+}
 
 function fetchPRDetails(prId, prType) {
     const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
@@ -39,11 +54,20 @@ function fetchPRDetails(prId, prType) {
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
+                
+                // Check if fields should be editable
+                const isEditable = response.data.status === 'Revision';
+                toggleEditableFields(isEditable);
+                
+                // Setup submit button for revision status
+                if (response.data.status === 'Revision') {
+                    document.getElementById('submitButtonContainer').style.display = 'block';
+                }
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error fetching PR details: ' + error.message);
+            // console.error('Error:', error);
+            // alert('Error fetching PR details: ' + error.message);
         });
 }
 
@@ -60,7 +84,7 @@ function populatePRDetails(data) {
     
     // Set remarks
     if (document.getElementById('remarks')) {
-        document.getElementById('remarks').value = data.remarks;
+        document.getElementById('remarks').value = data.remarks || '';
     }
 
     // Set status
@@ -73,10 +97,29 @@ function populatePRDetails(data) {
         document.getElementById('status').value = data.status;
     }
     
+    // Store and display attachments
+    if (data.attachments) {
+        existingAttachments = data.attachments;
+        attachmentsToKeep = data.attachments.map(att => att.id); // Initially keep all existing attachments
+        displayAttachments(data.attachments);
+    }
+    
+    // Store the values to be used after fetching options
+    window.currentValues = {
+        department: data.departmentName,
+        classification: data.classification,
+        status: data.status,
+        requesterId: data.requesterId,
+        departmentId: data.departmentId
+    };
+    
     // Handle item details (only item type is supported now)
     if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
     }
+    
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
     
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
@@ -87,8 +130,437 @@ function populatePRDetails(data) {
         console.log('No attachments found in data');
     }
     
-    // Make all fields read-only since this is an approval page
-    makeAllFieldsReadOnly();
+    // Make fields read-only if not editable
+    if (data.status !== 'Revision') {
+        makeAllFieldsReadOnly();
+    }
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
+}
+
+// Function to submit PR (similar to detailPR.js)
+function submitPR() {
+    if (!prId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'PR ID not found'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit PR',
+        text: 'Are you sure you want to submit this revised PR?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, submit it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updatePR(true);
+        }
+    });
+}
+
+// Function to update PR (similar to detailPR.js)
+async function updatePR(isSubmit = false) {
+    try {
+        // Create FormData object for the update
+        const formData = new FormData();
+        
+        // Add basic fields
+        formData.append('Id', prId);
+        formData.append('PurchaseRequestNo', document.getElementById('purchaseRequestNo').value);
+        
+        const userId = getUserId();
+        if (!userId) {
+            Swal.fire({
+                title: 'Authentication Error!',
+                text: 'Unable to get user ID from token. Please login again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Show loading state
+        const actionText = isSubmit ? 'Submit' : 'Update';
+        Swal.fire({
+            title: `${actionText.slice(0, -1)}ing...`,
+            text: `Please wait while we ${isSubmit ? 'submit' : 'update'} the PR.`,
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        formData.append('RequesterId', window.currentValues?.requesterId || userId);
+        formData.append('IsSubmit', isSubmit.toString());
+        
+        // Use the department ID from stored values
+        if (window.currentValues?.departmentId) {
+            formData.append('DepartmentId', window.currentValues.departmentId);
+        }
+        
+        // Format dates
+        const requiredDate = document.getElementById('requiredDate').value;
+        if (requiredDate) {
+            formData.append('RequiredDate', new Date(requiredDate).toISOString());
+        }
+        
+        const submissionDate = document.getElementById('submissionDate').value;
+        if (submissionDate) {
+            formData.append('SubmissionDate', submissionDate);
+        }
+        
+        // Use the classification from stored values
+        if (window.currentValues?.classification) {
+            formData.append('Classification', window.currentValues.classification);
+        }
+        
+        formData.append('Remarks', document.getElementById('remarks').value);
+        
+        // Approvals
+        formData.append('PreparedById', document.getElementById('preparedBy')?.value);
+        formData.append('CheckedById', document.getElementById('checkedBy')?.value);
+        formData.append('AcknowledgedById', document.getElementById('acknowledgedBy')?.value);
+        formData.append('ApprovedById', document.getElementById('approvedBy')?.value);
+        formData.append('ReceivedById', document.getElementById('receivedBy')?.value);
+        
+        // Item details
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        rows.forEach((row, index) => {
+            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
+            formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
+            formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
+            formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
+            formData.append(`ItemDetails[${index}].Quantity`, row.querySelector('.item-quantity').value);
+            formData.append(`ItemDetails[${index}].UOM`, row.querySelector('.item-uom').value);
+        });
+        
+        // Handle attachments according to backend logic
+        // Add existing attachments to keep (with their IDs)
+        attachmentsToKeep.forEach((attachmentId, index) => {
+            const existingAttachment = existingAttachments.find(att => att.id === attachmentId);
+            if (existingAttachment) {
+                formData.append(`Attachments[${index}].Id`, attachmentId);
+                formData.append(`Attachments[${index}].FileName`, existingAttachment.fileName || '');
+            }
+        });
+        
+        // Add new file uploads (with empty GUIDs)
+        uploadedFiles.forEach((file, index) => {
+            const attachmentIndex = attachmentsToKeep.length + index;
+            formData.append(`Attachments[${attachmentIndex}].Id`, '00000000-0000-0000-0000-000000000000');
+            formData.append(`Attachments[${attachmentIndex}].File`, file);
+        });
+        
+        // Submit the form data
+        const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
+        fetch(`${BASE_URL}/api/pr/${endpoint}/${prId}`, {
+            method: 'PUT',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: `PR has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Navigate back to the revision dashboard
+                    // window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
+                });
+            } else {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `Failed to ${isSubmit ? 'submit' : 'update'} PR. Status: ${response.status}`);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: `Error ${isSubmit ? 'submitting' : 'updating'} PR: ` + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Error preparing update data: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to toggle editable fields based on PR status (similar to detailPR.js)
+function toggleEditableFields(isEditable) {
+    // List all input fields that should be controlled by editable state
+    const editableFields = [
+        'requesterName',
+        'classification',
+        'submissionDate',
+        'requiredDate',
+        'remarks'
+    ];
+    
+    // Fields that should always be disabled/readonly (autofilled)
+    const alwaysDisabledFields = [
+        'purchaseRequestNo',
+        'status'
+    ];
+    
+    // Toggle editable fields
+    editableFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            if ((field.tagName === 'INPUT' && field.type !== 'checkbox' && field.type !== 'radio') || field.tagName === 'TEXTAREA') {
+                field.readOnly = !isEditable;
+            } else {
+                field.disabled = !isEditable;
+            }
+            
+            // Visual indication for non-editable fields
+            if (!isEditable) {
+                field.classList.add('bg-gray-100', 'cursor-not-allowed');
+            } else {
+                field.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                field.classList.add('bg-white');
+            }
+        }
+    });
+    
+    // Always keep autofilled fields disabled and gray
+    alwaysDisabledFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            if ((field.tagName === 'INPUT' && field.type !== 'checkbox' && field.type !== 'radio') || field.tagName === 'TEXTAREA') {
+                field.readOnly = true;
+            } else {
+                field.disabled = true;
+            }
+            field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+    
+    // Handle table inputs - only for editable fields in table
+    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description), #tableBody select.item-no');
+    tableInputs.forEach(input => {
+        if (input.tagName === 'SELECT' || input.type === 'checkbox' || input.type === 'radio') {
+            input.disabled = !isEditable;
+        } else {
+            input.readOnly = !isEditable;
+        }
+        
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+    
+    // Handle item description and UOM fields - always disabled but follow the item selection logic
+    const itemDescriptions = document.querySelectorAll('.item-description');
+    itemDescriptions.forEach(input => {
+        input.disabled = true; // Always disabled
+        input.classList.add('bg-gray-100'); // Always gray
+    });
+    
+    const itemUoms = document.querySelectorAll('.item-uom');
+    itemUoms.forEach(input => {
+        input.disabled = true; // Always disabled
+        input.classList.add('bg-gray-100'); // Always gray
+    });
+    
+    // Disable file upload input when not editable
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.disabled = !isEditable;
+        if (!isEditable) {
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    }
+    
+    // Update attachments display to show/hide remove buttons based on editable state
+    updateAttachmentsDisplay();
+    
+    // Handle approval search fields - make them editable if status is Revision
+    const approvalSearchFields = [
+        'preparedBySearch', 'checkedBySearch', 'acknowledgedBySearch', 
+        'approvedBySearch', 'receivedBySearch'
+    ];
+    
+    approvalSearchFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.readOnly = !isEditable;
+            if (!isEditable) {
+                field.classList.add('bg-gray-50');
+                // Remove the onkeyup event to prevent search triggering
+                field.removeAttribute('onkeyup');
+            } else {
+                field.classList.remove('bg-gray-50');
+                // Re-enable search functionality
+                const fieldName = fieldId.replace('Search', '');
+                field.setAttribute('onkeyup', `filterUsers('${fieldName}')`);
+            }
+        }
+    });
+}
+
+// Function to handle file upload (similar to detailPR.js)
+function previewPDF(event) {
+    const files = event.target.files;
+    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
+    
+    if (files.length + totalExistingFiles > 5) {
+        Swal.fire({
+            title: 'File Limit Exceeded!',
+            text: 'Maximum 5 PDF files are allowed.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        event.target.value = '';
+        return;
+    }
+    
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            Swal.fire({
+                title: 'Invalid File Type!',
+                text: 'Please upload a valid PDF file',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+
+    updateAttachmentsDisplay();
+}
+
+// Function to update the attachments display
+function updateAttachmentsDisplay() {
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    attachmentsList.innerHTML = '';
+    
+    // Check if editing is allowed
+    const isEditable = window.currentValues && window.currentValues.status === 'Revision';
+    
+    // Display existing attachments that are marked to keep
+    const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
+    existingToKeep.forEach(attachment => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-blue-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${attachment.fileName}</span>
+                <span class="text-xs text-gray-500 ml-2">(existing)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
+                ${isEditable ? 
+                `<button onclick="removeExistingAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Display new uploaded files
+    uploadedFiles.forEach((file, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-green-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${file.name}</span>
+                <span class="text-xs text-green-600 ml-2">(new)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                ${isEditable ? 
+                `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>` : ''}
+            </div>
+        `;
+        attachmentsList.appendChild(attachmentItem);
+    });
+    
+    // Show message if no attachments
+    if (existingToKeep.length === 0 && uploadedFiles.length === 0) {
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments</p>';
+    }
+}
+
+// Function to remove a new uploaded file
+function removeUploadedFile(index) {
+    uploadedFiles.splice(index, 1);
+    updateAttachmentsDisplay();
+}
+
+// Function to remove an existing attachment
+function removeExistingAttachment(attachmentId) {
+    const index = attachmentsToKeep.indexOf(attachmentId);
+    if (index > -1) {
+        attachmentsToKeep.splice(index, 1);
+        updateAttachmentsDisplay();
+    }
 }
 
 function populateServiceDetails(services) {
@@ -127,7 +599,7 @@ function populateItemDetails(items) {
     tableBody.innerHTML = ''; // Clear existing rows
     
     if (items.length === 0) {
-        console.log('No items to display');
+        addRow(); // Add empty row if no items
         return;
     }
     
@@ -137,46 +609,83 @@ function populateItemDetails(items) {
         } catch (error) {
         }
     });
-    
 }
 
 function addItemRow(item = null) {
     const tableBody = document.getElementById('tableBody');
-    if (!tableBody) {
-        console.error('tableBody element not found!');
-        return;
-    }
-    
     const row = document.createElement('tr');
-
-    // Display the actual API data in readonly inputs with consistent styling
     row.innerHTML = `
         <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no bg-gray-100" disabled>
-                <option value="${item?.itemNo || ''}" selected>${item?.itemCode || item?.itemNo || ''}</option>
+            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
+                <option value="" disabled ${!item ? 'selected' : ''}>Select Item</option>
             </select>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center bg-gray-100" maxlength="100" readonly />
+            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center" maxlength="100" required />
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center bg-gray-100" maxlength="100" readonly />
+            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center" maxlength="100" required />
         </td>
         <td class="p-2 border h-12">
-            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center bg-gray-100" readonly />
+            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center" min="1" required />
         </td>
         <td class="p-2 border bg-gray-100">
             <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
         </td>
         <td class="p-2 border text-center">
-            <!-- Read-only view, no action buttons -->
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
     `;
     
     tableBody.appendChild(row);
+    
+    // Store the item data to be used after fetching options
+    if (item) {
+        const selectElement = row.querySelector('.item-no');
+        selectElement.setAttribute('data-selected-item-id', item.itemNo); // itemNo is actually the item ID
+    }
+    
+    fetchItemOptions();
+}
+
+function addRow() {
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
+    
+    newRow.innerHTML = `
+        <td class="p-2 border bg-gray-100">
+            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
+                <option value="" disabled selected>Select Item</option>
+            </select>
+        </td>
+        <td class="p-2 border bg-gray-100">
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
+        </td>
+        <td class="p-2 border h-12">
+            <input type="text" class="w-full h-full item-detail text-center" maxlength="100" required />
+        </td>
+        <td class="p-2 border h-12">
+            <input type="text" class="w-full h-full item-purpose text-center" maxlength="100" required />
+        </td>
+        <td class="p-2 border h-12">
+            <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+        </td>
+        <td class="p-2 border bg-gray-100">
+            <input type="text" class="w-full item-uom bg-gray-100" disabled />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+        </td>
+    `;
+    
+    tableBody.appendChild(newRow);
+    
+    // Populate the new item select with items (no pre-selection)
+    const newItemSelect = newRow.querySelector('.item-no');
+    fetchItemOptionsForSelect(newItemSelect);
 }
 
 // Function to fetch all dropdown options
@@ -184,9 +693,47 @@ function fetchDropdownOptions(prData = null) {
     fetchDepartments();
     fetchUsers(prData);
     fetchClassifications();
-    if (document.getElementById("prType").value === "Item") {
-        fetchItemOptions();
-    }
+    fetchItemOptions();
+}
+
+// Function to fetch items for a specific select element (no pre-selection)
+function fetchItemOptionsForSelect(selectElement) {
+    fetch(`${BASE_URL}/api/items`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            populateItemSelectClean(data.data, selectElement);
+        })
+        .catch(error => {
+            console.error('Error fetching items:', error);
+        });
+}
+
+// Function to populate item select without any pre-selection (for new rows)
+function populateItemSelectClean(items, selectElement) {
+    if (!selectElement) return;
+    
+    selectElement.innerHTML = '<option value="" disabled selected>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
+        // Store the description and UOM as data attributes - handle both possible field names
+        option.setAttribute('data-item-code', item.itemCode || item.itemNo);
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
+        selectElement.appendChild(option);
+    });
+
+    // Add onchange event listener to auto-fill description and UOM
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
 }
 
 // Function to fetch departments from API
@@ -377,228 +924,6 @@ function populateUserSelects(users, prData = null) {
     });
 }
 
-// Function to receive PR (approve)
-function approvePR() {
-    Swal.fire({
-        title: 'Confirm Receipt',
-        text: 'Are you sure you want to receive this Purchase Request?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Receive',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            updatePRStatus('approve');
-        }
-    });
-}
-
-// Function to reject PR
-function rejectPR() {
-    Swal.fire({
-        title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Purchase Request?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Reject',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Ask for rejection remarks
-            Swal.fire({
-                title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
-            }).then((remarksResult) => {
-                if (remarksResult.isConfirmed) {
-                    updatePRStatusWithRemarks('reject', remarksResult.value);
-                }
-            });
-        }
-    });
-}
-
-// Function to approve or reject the PR
-function updatePRStatus(status) {
-    if (!prId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'PR ID not found'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    const requestData = {
-        id: prId,
-        UserId: userId,
-        StatusAt: "Receive",
-        Action: status,
-        Remarks: ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'approve' ? 'Receiving' : 'Processing'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
-    
-    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: `PR ${status === 'approve' ? 'received' : 'rejected'} successfully`,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the receive dashboard
-                goToMenuReceivePR();
-            });
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: `Error ${status === 'approve' ? 'receiving' : 'rejecting'} PR: ` + error.message
-        });
-    });
-}
-
-// Function to approve or reject the PR with remarks
-function updatePRStatusWithRemarks(status, remarks) {
-    if (!prId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'PR ID not found'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    let statusAt, successMessage, redirectAction;
-    
-    if (status === 'revision') {
-        statusAt = "Revision";
-        successMessage = 'PR revision submitted successfully';
-        redirectAction = () => window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
-    } else {
-        statusAt = "Receive";
-        successMessage = `PR ${status === 'approve' ? 'received' : 'rejected'} successfully`;
-        redirectAction = () => goToMenuReceivePR();
-    }
-
-    const requestData = {
-        id: prId,
-        UserId: userId,
-        StatusAt: statusAt,
-        Action: status,
-        Remarks: remarks || ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: status === 'revision' ? 'Processing Revision...' : `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
-    
-    fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: successMessage,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the appropriate dashboard
-                redirectAction();
-            });
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status === 'revision' ? 'submit revision' : status + ' PR'}. Status: ${response.status}`);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: `Error ${status === 'revision' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' PR'}: ` + error.message
-        });
-    });
-}
-
-
-
 function deleteRow(button) {
     button.closest("tr").remove();
 }
@@ -698,27 +1023,32 @@ function fetchItemOptions() {
 function populateItemSelect(items, selectElement) {
     if (!selectElement) return;
     
-    // Store the currently selected value
-    const currentValue = selectElement.value;
-    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
+    // Check if this select has a pre-selected item ID
+    const selectedItemId = selectElement.getAttribute('data-selected-item-id');
     
     selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
 
     items.forEach(item => {
         const option = document.createElement("option");
         option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-        // Store the description as a data attribute
+        option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
+        // Store the description and UOM as data attributes - handle both possible field names
+        option.setAttribute('data-item-code', item.itemCode || item.itemNo);
         option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
         selectElement.appendChild(option);
         
-        // If this item matches the current text or value, select it
-        if (option.textContent === currentText || option.value === currentValue) {
+        // If this item matches the selected item ID, select it
+        if (selectedItemId && (item.id === selectedItemId || item.itemCode === selectedItemId || item.itemNo === selectedItemId)) {
             option.selected = true;
+            // Trigger the update after setting as selected
+            setTimeout(() => {
+                updateItemDescription(selectElement);
+            }, 0);
         }
     });
 
-    // Add onchange event listener to auto-fill description
+    // Add onchange event listener to auto-fill description and UOM
     selectElement.onchange = function() {
         updateItemDescription(this);
     };
@@ -727,34 +1057,45 @@ function populateItemSelect(items, selectElement) {
 function updateItemDescription(selectElement) {
     const row = selectElement.closest('tr');
     const descriptionInput = row.querySelector('.item-description');
+    const uomInput = row.querySelector('.item-uom');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     
     // Check if a valid item is selected (not the placeholder option)
     if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
-        // Get description from data attribute first, fallback to parsing text
+        // Get the item code and set it as the text content
+        const itemCode = selectedOption.getAttribute('data-item-code');
+        selectedOption.textContent = itemCode || '';
+        
+        // Get description and UOM from data attributes and fill them automatically
         const itemDescription = selectedOption.getAttribute('data-description');
-        if (itemDescription) {
-            descriptionInput.value = itemDescription;
-            descriptionInput.textContent = itemDescription; // For textarea
-            descriptionInput.title = itemDescription; // For tooltip
-        } else {
-            // Fallback to old method for backward compatibility
-            const itemText = selectedOption.text;
-            const itemName = itemText.split(' - ')[1];
-            descriptionInput.value = itemName || '';
-            descriptionInput.textContent = itemName || '';
-            descriptionInput.title = itemName || '';
-        }
+        const itemUom = selectedOption.getAttribute('data-uom');
+        
+        descriptionInput.value = itemDescription || '';
+        descriptionInput.textContent = itemDescription || ''; // For textarea
+        descriptionInput.title = itemDescription || ''; // For tooltip
+        
+        uomInput.value = itemUom || '';
+        uomInput.title = itemUom || ''; // For tooltip
+        
+        // Keep the fields disabled and gray (not editable by user)
+        descriptionInput.disabled = true;
+        descriptionInput.classList.add('bg-gray-100');
+        uomInput.disabled = true;
+        uomInput.classList.add('bg-gray-100');
     } else {
-        // No valid item selected, clear the description
+        // No valid item selected, clear the fields
         descriptionInput.value = '';
         descriptionInput.textContent = '';
         descriptionInput.title = '';
+        uomInput.value = '';
+        uomInput.title = '';
+        
+        // Keep the fields disabled and gray
+        descriptionInput.disabled = true;
+        descriptionInput.classList.add('bg-gray-100');
+        uomInput.disabled = true;
+        uomInput.classList.add('bg-gray-100');
     }
-    
-    // Always keep description field disabled and gray
-    descriptionInput.disabled = true;
-    descriptionInput.classList.add('bg-gray-100');
 }
 
 // Function to display attachments (similar to detail pages)

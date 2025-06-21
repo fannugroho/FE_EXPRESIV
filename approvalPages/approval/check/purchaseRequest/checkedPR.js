@@ -37,7 +37,6 @@ function fetchPRDetails(prId, prType) {
                 console.log(response.data);
                 populatePRDetails(response.data);
                 
-                // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
             }
         })
@@ -78,6 +77,7 @@ function populatePRDetails(data) {
     const classificationSelect = document.getElementById('classification');
     if (data.classification && classificationSelect) {
         classificationSelect.innerHTML = ''; // Clear existing options
+        console.log('Classification:', data.classification);
         const option = document.createElement('option');
         option.value = data.classification; // Use classification as value since backend returns string
         option.textContent = data.classification;
@@ -104,6 +104,9 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -115,6 +118,42 @@ function populatePRDetails(data) {
     
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
 }
 
 function populateServiceDetails(services) {
@@ -207,10 +246,8 @@ function addItemRow(item = null) {
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(prData = null) {
-    fetchDepartments();
     fetchUsers(prData);
-    fetchClassifications();
-    fetchItemOptions(); // Always fetch items for item PRs
+    fetchItemOptions(); 
 }
 
 // Function to fetch departments from API
@@ -281,8 +318,6 @@ function populateDepartmentSelect(departments) {
 function populateClassificationSelect(classifications) {
     const classificationSelect = document.getElementById("classification");
     if (!classificationSelect) return;
-    
-    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
 
     classifications.forEach(classification => {
         const option = document.createElement("option");
@@ -292,7 +327,6 @@ function populateClassificationSelect(classifications) {
     });
 }
 
-// Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const searchText = searchInput.value.toLowerCase();
@@ -448,12 +482,6 @@ function rejectPR() {
     });
 }
 
-// Function to handle revision request
-function revisionPR() {
-    // This function is now handled in the HTML file
-    // It collects all revision remarks from the textareas
-    // and calls updatePRStatusWithRemarks with the collected remarks
-}
 
 // Function to approve or reject the PR
 function updatePRStatus(status) {
@@ -588,8 +616,8 @@ function updatePRStatusWithRemarks(status, remarks) {
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
-                // Navigate back to the dashboard
-                goToMenuCheckPR();
+                // // Navigate back to the dashboard
+                // goToMenuCheckPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -618,29 +646,10 @@ function updateApprovalStatus(id, statusKey) {
 }
 
 
-
-function fillItemDetails() {
-    const itemCode = document.getElementById("itemCode").value;
-    const itemName = document.getElementById("itemName");
-
-    const itemData = {
-        "ITM001": { name: "Laptop" },
-        "ITM002": { name: "Printer" },
-        "ITM003": { name: "Scanner" }
-    };
-
-    if (itemData[itemCode]) {
-        itemName.value = itemData[itemCode].name;
-    } else {
-        itemName.value = "";
-        alert("Item No not found!");
-    }
-}
-
-document.getElementById("docType")?.addEventListener("change", function () {
-    const prTable = document.getElementById("prTable");
-    prTable.style.display = this.value === "choose" ? "none" : "table";
-});
+// document.getElementById("docType")?.addEventListener("change", function () {
+//     const prTable = document.getElementById("prTable");
+//     prTable.style.display = this.value === "choose" ? "none" : "table";
+// });
 
 function previewPDF(event) {
     const files = event.target.files;
@@ -666,11 +675,11 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Initialize page
-window.addEventListener("DOMContentLoaded", function() {
-    // Page initialization complete
-    console.log('Check PR page initialized');
-});
+// // Initialize page
+// window.addEventListener("DOMContentLoaded", function() {
+//     // Page initialization complete
+//     console.log('Check PR page initialized');
+// });
 
 // Function to fetch items from API
 function fetchItemOptions() {

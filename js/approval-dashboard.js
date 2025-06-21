@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+  // Configuration
   // Initialize empty approvals array
   let approvals = [];
   let selectedRejectedUsers = []; // Array to store selected rejected users
@@ -123,12 +124,98 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentApprovals = [...approvals];
   
   // Initialize the dashboard
-  updateCounters();
-  renderApprovalTable(currentApprovals);
-  
+  async function initDashboard() {
+    try {
+      await loadAllUsers();
+      updateCounters();
+      renderApprovalTable(currentApprovals);
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+      showNotification('Failed to load user data', 'error');
+    }
+  }
+
+  // Load users by approval status from the backend
+  async function loadUsersByStatus(status = 'all') {
+    try {
+      console.log(`Loading users with status: ${status}`);
+      const response = await makeAuthenticatedRequest(`/api/users/by-approval-status?status=${status}`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('API Response:', result);
+      
+      // Handle different response formats - sometimes the API returns data directly
+      let users = [];
+      if (result.success === true || result.success === undefined) {
+        // If result has success=true or no success field, check for data
+        const userData = result.data || result || [];
+        
+        // Ensure userData is an array
+        if (!Array.isArray(userData)) {
+          console.warn('API returned non-array data:', userData);
+          return [];
+        }
+        
+        users = userData.map(user => {
+          let userStatus = 'pending';
+          if (user.approvalStatus) {
+            switch(user.approvalStatus.toLowerCase()) {
+              case 'approved': userStatus = 'approved'; break;
+              case 'rejected': userStatus = 'rejected'; break;
+              default: userStatus = 'pending'; break;
+            }
+          }
+          
+          return {
+            id: user.id,
+            userId: user.kansaiEmployeeId || user.username,
+            name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            department: user.department || 'Not specified',
+            position: user.position || 'Not specified',
+            email: user.email || 'Not specified',
+            phone: user.phoneNumber || 'Not specified',
+            status: userStatus,
+            submittedDate: new Date().toISOString().split('T')[0],
+            documents: [],
+            rejectionReason: user.rejectionReason,
+            approvalDate: user.approvalDate
+          };
+        });
+        return users;
+      } else {
+        // Only throw error if success is explicitly false
+        throw new Error(result.message || 'Failed to load users');
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showNotification('Failed to load users', 'error');
+      return [];
+    }
+  }
+
+  // Load all users (for initial load and counters)
+  async function loadAllUsers() {
+    try {
+      approvals = await loadUsersByStatus('all');
+      currentApprovals = [...approvals];
+    } catch (error) {
+      console.error('Error loading all users:', error);
+      approvals = [];
+      currentApprovals = [];
+    }
+  }
+
   // Set up event listeners
   filterButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       // Remove active class from all buttons
       filterButtons.forEach(btn => btn.classList.remove('active-filter'));
       
@@ -138,6 +225,21 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get filter value from button id
       currentFilter = button.id.replace('-btn', '');
       
+      // Load data by specific status for better performance
+      try {
+        if (currentFilter === 'all') {
+          await loadAllUsers();
+        } else {
+          const users = await loadUsersByStatus(currentFilter);
+          currentApprovals = users;
+        }
+        
+        // Apply search filter if there's a search term
+        applyFilters();
+      } catch (error) {
+        console.error('Error loading filtered data:', error);
+        showNotification('Failed to load filtered data', 'error');
+      }
       // Apply filters
       applyFilters();
       
@@ -150,37 +252,67 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', applyFilters);
   }
   
-  // Close modal
+  // Close modal handlers
   if (closeModalBtn && approvalModal) {
-    closeModalBtn.addEventListener('click', () => {
-      approvalModal.classList.add('hidden');
+    // Close button handler
+    closeModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
+    
+    // Close modal with ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !approvalModal.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+    
+    // Close modal when clicking ONLY on the gray overlay background
+    const modalOverlay = document.getElementById('modal-overlay');
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    }
+    
+    // Prevent modal from closing when clicking inside the modal content
+    const modalDialog = document.getElementById('modal-dialog');
+    if (modalDialog) {
+      modalDialog.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+    
+    // Prevent any clicks within the modal container from bubbling
+    approvalModal.addEventListener('click', (e) => {
+      // Only close if the click is directly on the modal container itself
+      // (not on any child elements)
+      if (e.target === approvalModal) {
+        closeModal();
+      }
     });
   }
   
   // Approve button
   if (approveBtn) {
-    approveBtn.addEventListener('click', () => {
+    approveBtn.addEventListener('click', async () => {
       const userId = approveBtn.dataset.userId;
       if (userId) {
-        updateApprovalStatus(userId, 'approved');
-        approvalModal.classList.add('hidden');
-        
-        // Show success message
-        showNotification('User approved successfully!', 'success');
+        await approveUser(userId);
       }
     });
   }
   
   // Reject button
   if (rejectBtn) {
-    rejectBtn.addEventListener('click', () => {
+    rejectBtn.addEventListener('click', async () => {
       const userId = rejectBtn.dataset.userId;
       if (userId) {
-        updateApprovalStatus(userId, 'rejected');
-        approvalModal.classList.add('hidden');
-        
-        // Show success message
-        showNotification('User rejected', 'error');
+        // Show rejection reason dialog
+        showRejectionDialog(userId);
       }
     });
   }
@@ -514,14 +646,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Apply filters (search and status)
+  // Apply search filter (status filtering is now done at backend level)
   function applyFilters() {
-    let filtered = [...approvals];
-    
-    // Apply status filter
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(approval => approval.status === currentFilter);
-    }
+    let filtered = [...currentApprovals];
     
     // Apply search filter
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
@@ -534,7 +661,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Update UI
-    currentApprovals = filtered;
     renderApprovalTable(filtered);
     
     // Add bulk action buttons if not already added
@@ -603,6 +729,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Render each approval row
     approvals.forEach(approval => {
       const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-50';
+      
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10">
+              <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fas fa-user text-blue-600"></i>
+              </div>
+            </div>
+            <div class="ml-4">
+              <div class="text-sm font-medium text-gray-900">${approval.name}</div>
+              <div class="text-sm text-gray-500">ID: ${approval.userId}</div>
+            </div>
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="text-sm text-gray-900">${approval.department}</div>
+          <div class="text-sm text-gray-500">${approval.position}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="text-sm text-gray-900">${approval.email}</div>
+          <div class="text-sm text-gray-500">${approval.phone}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          ${getStatusBadge(approval.status)}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          ${formatDate(approval.submittedDate)}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+          <div class="flex justify-end space-x-3">
+      `;
       
       // Add checkbox column for bulk actions
       const checkboxCell = document.createElement('td');
@@ -809,148 +968,79 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => rejectBtn.classList.remove('animate-pulse', 'ring-2', 'ring-red-500'), 1500);
     }
     
-    // Generate HTML for user details
+    // Build modal content - status info for approval
     let statusInfo = '';
-    if (user.status === 'approved') {
+    if (approval.status === 'approved') {
       statusInfo = `
-        <div class="mt-2 p-2 bg-green-50 rounded-md">
-          <p class="text-sm text-green-800">
-            <i class="fas fa-check-circle mr-1"></i> Approved on ${formatDate(user.approvedDate)} by ${user.approvedBy || 'Admin'}
-          </p>
+        <div class="mt-4 p-3 bg-green-50 rounded-md">
+          <p class="text-sm text-green-800"><strong>Approved on:</strong> ${approval.approvedDate}</p>
+          <p class="text-sm text-green-800"><strong>Approved by:</strong> ${approval.approvedBy}</p>
         </div>
       `;
-    } else if (user.status === 'rejected') {
+    } else if (approval.status === 'rejected') {
       statusInfo = `
-        <div class="mt-2 p-2 bg-red-50 rounded-md">
-          <p class="text-sm text-red-800">
-            <i class="fas fa-times-circle mr-1"></i> Rejected on ${formatDate(user.rejectedDate)} by ${user.rejectedBy || 'Admin'}
-          </p>
-          <p class="text-sm text-red-700 mt-1">Reason: ${user.rejectionReason || 'No reason provided'}</p>
+        <div class="mt-4 p-3 bg-red-50 rounded-md">
+          <p class="text-sm text-red-800"><strong>Rejected on:</strong> ${approval.rejectedDate}</p>
+          <p class="text-sm text-red-800"><strong>Rejected by:</strong> ${approval.rejectedBy}</p>
+          ${approval.rejectionReason ? `<p class="text-sm text-red-800"><strong>Reason:</strong> ${approval.rejectionReason}</p>` : ''}
         </div>
       `;
     }
     
     modalContent.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h4 class="font-medium text-gray-700 mb-2">User Information</h4>
-          <div class="space-y-2">
-            <div>
-              <span class="text-xs text-gray-500">Full Name</span>
-              <p class="font-medium">${user.name}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Employee ID</span>
-              <p>${user.userId}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Username</span>
-              <p>${user.username}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Email</span>
-              <p>${user.email}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Phone</span>
-              <p>${user.phone || 'Not provided'}</p>
-            </div>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Full Name</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.name}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Employee ID</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.userId}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Department</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.department}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Position</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.position}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Email</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.email}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Phone</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.phone}</p>
           </div>
         </div>
         
         <div>
-          <h4 class="font-medium text-gray-700 mb-2">Position Details</h4>
-          <div class="space-y-2">
-            <div>
-              <span class="text-xs text-gray-500">Department</span>
-              <p>${user.department}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Position</span>
-              <p>${user.position}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Submission Date</span>
-              <p>${formatDate(user.submittedDate)}</p>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500">Status</span>
-              <p>${getStatusBadge(user.status)}</p>
-            </div>
-          </div>
+          <p class="text-sm font-medium text-gray-500">Status</p>
+          <div class="mt-1">${getStatusBadge(approval.status)}</div>
         </div>
+        
+        <div>
+          <p class="text-sm font-medium text-gray-500">Submitted Date</p>
+          <p class="mt-1 text-sm text-gray-900">${formatDate(approval.submittedDate)}</p>
+        </div>
+        
+        <div>
+          <p class="text-sm font-medium text-gray-500">Documents</p>
+          <div class="mt-1">${getDocumentsList(approval.documents)}</div>
+        </div>
+        
+        ${statusInfo}
       </div>
-      
-      ${statusInfo}
-      
-      ${user.status === 'pending' ? `
-        <div class="mt-4">
-          <div id="rejection-reason-container" class="hidden mt-3">
-            <label for="rejection-reason" class="block text-sm font-medium text-gray-700">Rejection Reason</label>
-            <textarea id="rejection-reason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Please provide a reason for rejection..."></textarea>
-          </div>
-        </div>
-      ` : ''}
     `;
     
     // Show modal
     approvalModal.classList.remove('hidden');
     
-    // Add event listener for reject button to show rejection reason field
-    if (rejectBtn && user.status === 'pending') {
-      rejectBtn.addEventListener('click', function() {
-        const rejectionContainer = document.getElementById('rejection-reason-container');
-        if (rejectionContainer) {
-          rejectionContainer.classList.remove('hidden');
-          document.getElementById('rejection-reason').focus();
-        }
-      });
-      
-      // Update the reject button click handler
-      rejectBtn.onclick = function() {
-        const rejectionContainer = document.getElementById('rejection-reason-container');
-        
-        if (rejectionContainer && rejectionContainer.classList.contains('hidden')) {
-          // First click - show the rejection reason field
-          rejectionContainer.classList.remove('hidden');
-          document.getElementById('rejection-reason').focus();
-        } else {
-          // Second click - process the rejection
-          const rejectionReason = document.getElementById('rejection-reason').value.trim();
-          
-          if (!rejectionReason) {
-            alert('Please provide a reason for rejection');
-            return;
-          }
-          
-          // Update user status to rejected with reason
-          const userId = this.dataset.userId;
-          const userIndex = approvals.findIndex(a => a.id === userId);
-          
-          if (userIndex !== -1) {
-            approvals[userIndex].status = 'rejected';
-            approvals[userIndex].rejectedDate = new Date().toISOString().split('T')[0];
-            approvals[userIndex].rejectedBy = JSON.parse(localStorage.getItem('loggedInUser'))?.name || 'Admin';
-            approvals[userIndex].rejectionReason = rejectionReason;
-            
-            // Update local storage
-            updateLocalStorage();
-            
-            // Close modal
-            approvalModal.classList.add('hidden');
-            
-            // Re-render table
-            applyFilters();
-            
-            // Update counters
-            updateCounters();
-            
-            // Show notification
-            showNotification('User rejected successfully', 'success');
-          }
-        }
-      };
-    }
+    // Prevent document body from receiving click events while modal is open
+    document.body.style.pointerEvents = 'none';
+    approvalModal.style.pointerEvents = 'auto';
   }
   
   // Show notification
@@ -1072,4 +1162,65 @@ document.addEventListener('DOMContentLoaded', function() {
       headerCheckbox.hasEventListener = true;
     }
   }
+  
+  // Show rejection dialog
+  function showRejectionDialog(userId) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center';
+    overlay.innerHTML = `
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject User Registration</h3>
+        <div class="mb-4">
+          <label for="rejection-reason" class="block text-sm font-medium text-gray-700 mb-2">
+            Rejection Reason (Required)
+          </label>
+          <textarea 
+            id="rejection-reason" 
+            rows="3" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Please provide a reason for rejection..."
+            required
+          ></textarea>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="cancel-reject" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button id="confirm-reject" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700">
+            Reject User
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Handle cancel
+    overlay.querySelector('#cancel-reject').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+
+    // Handle confirm
+    overlay.querySelector('#confirm-reject').addEventListener('click', async () => {
+      const reason = overlay.querySelector('#rejection-reason').value.trim();
+      if (!reason) {
+        alert('Please provide a reason for rejection.');
+        return;
+      }
+      
+      document.body.removeChild(overlay);
+      await rejectUser(userId, reason);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+  }
+
+  // Initialize dashboard on load
+  initDashboard();
 }); 

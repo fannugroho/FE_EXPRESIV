@@ -34,7 +34,6 @@ function populateFormWithDocumentData(document) {
     document.getElementById('submissionDate').value = document.submissionDate || '';
     document.getElementById('requiredDate').value = document.requiredDate || '';
     document.getElementById('classification').value = document.classification || '';
-    document.getElementById('prType').value = document.prType || '';
     document.getElementById('status').value = document.status || '';
     
     // Menampilkan item-item PR
@@ -62,7 +61,6 @@ function populateFormWithDocumentData(document) {
 // Fungsi untuk menambahkan baris tabel dengan data
 function addRowWithData(itemData) {
     const tableBody = document.getElementById("tableBody");
-    const prType = document.getElementById("prType").value;
     const newRow = document.createElement("tr");
     
     if (prType === "Item") {
@@ -161,9 +159,6 @@ window.addEventListener("DOMContentLoaded", async function() {
             if (documentData) {
                 // Mengisi form dengan data dokumen
                 populateFormWithDocumentData(documentData);
-                
-                // Menampilkan tabel sesuai dengan tipe PR
-                toggleFields();
             }
         } catch (error) {
             console.error('Error:', error);
@@ -179,10 +174,6 @@ window.addEventListener("DOMContentLoaded", async function() {
     });
     
     // If PR type is already selected, toggle fields accordingly
-    const prType = document.getElementById("prType");
-    if (prType && prType.value !== "choose") {
-        toggleFields();
-    }
 });
 
 let prId; // Declare global variable
@@ -221,8 +212,6 @@ function fetchPRDetails(prId, prType) {
             if (response.data) {
                 console.log(response.data);
                 populatePRDetails(response.data);
-                document.getElementById('prType').value = prType;
-                toggleFields();
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
@@ -290,6 +279,9 @@ function populatePRDetails(data) {
     if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
     }
+    
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
     
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
@@ -1101,4 +1093,77 @@ function displayAttachments(attachments) {
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
     }
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions && revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else if (revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'none';
+    }
+}
+
+// Function to handle revision for Purchase Request
+function revisionPR() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updatePRStatusWithRemarks('revise', allRemarks);
 }

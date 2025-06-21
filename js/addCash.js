@@ -713,7 +713,7 @@ function populateUserSelects(users) {
 }
 
 function fetchTransactionType() {
-    fetch(`${BASE_URL}/api/transactiontypes`)
+    fetch(`${BASE_URL}/api/transactiontypes/filter?category=CashAdvance`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);

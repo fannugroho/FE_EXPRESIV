@@ -15,7 +15,7 @@ window.onload = function() {
         fetchPRDetails(prId, prType);
     }
     
-    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
+    // Hide approve/reject buttons if viewing from checked or rejected tabs
     if (currentTab === 'acknowledged' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
@@ -103,8 +103,6 @@ function fetchPRDetails(prId, prType) {
             if (response.data) {
                 console.log(response.data);
                 populatePRDetails(response.data);
-                document.getElementById('prType').value = prType;
-                
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
             }
@@ -146,6 +144,7 @@ function populatePRDetails(data) {
     const classificationSelect = document.getElementById('classification');
     if (data.classification && classificationSelect) {
         classificationSelect.innerHTML = ''; // Clear existing options
+        console.log('Classification:', data.classification);
         const option = document.createElement('option');
         option.value = data.classification; // Use classification as value since backend returns string
         option.textContent = data.classification;
@@ -172,6 +171,9 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -183,6 +185,42 @@ function populatePRDetails(data) {
     
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions && revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else if (revisedRemarksSection) {
+        revisedRemarksSection.style.display = 'none';
+    }
 }
 
 function populateServiceDetails(services) {
@@ -370,7 +408,7 @@ function populateUserSelects(users, prData = null) {
     });
 }
 
-// Function to approve PR (acknowledge)
+// Function to approve PR
 function approvePR() {
     Swal.fire({
         title: 'Confirm Acknowledgment',
@@ -391,37 +429,28 @@ function approvePR() {
 // Function to reject PR
 function rejectPR() {
     Swal.fire({
-        title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Purchase Request?',
-        icon: 'warning',
+        title: 'Reject PR',
+        input: 'textarea',
+        inputLabel: 'Please provide a reason for rejection',
+        inputPlaceholder: 'Enter your reason here...',
+        inputAttributes: {
+            'aria-label': 'Rejection reason'
+        },
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Reject',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Ask for rejection remarks
-            Swal.fire({
-                title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
-            }).then((remarksResult) => {
-                if (remarksResult.isConfirmed) {
-                    updatePRStatusWithRemarks('reject', remarksResult.value);
-                }
-            });
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        preConfirm: (remarks) => {
+            if (!remarks.trim()) {
+                Swal.showValidationMessage('Please enter a reason for rejection');
+                return false;
+            }
+            return remarks;
+        }
+    }).then((remarksResult) => {
+        if (remarksResult.isConfirmed) {
+            updatePRStatusWithRemarks('reject', remarksResult.value);
         }
     });
 }
@@ -523,6 +552,7 @@ function updatePRStatusWithRemarks(status, remarks) {
         return;
     }
 
+    console.log('updatePRStatusWithRemarks called with:', status, remarks);
     const requestData = {
         id: prId,
         UserId: userId,
@@ -533,7 +563,7 @@ function updatePRStatusWithRemarks(status, remarks) {
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        title: `${status === 'approve' ? 'Acknowledging' : (status === 'reject' ? 'Rejecting' : 'Requesting Revision')}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -555,12 +585,12 @@ function updatePRStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `PR ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: `PR ${status === 'approve' ? 'acknowledged' : (status === 'reject' ? 'rejected' : 'sent for revision')} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                goToMenuAcknowPR();
+                // goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -573,7 +603,7 @@ function updatePRStatusWithRemarks(status, remarks) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} PR: ` + error.message
+            text: `Error ${status === 'approve' ? 'acknowledging' : (status === 'reject' ? 'rejecting' : 'requesting revision for')} PR: ` + error.message
         });
     });
 }
@@ -600,10 +630,7 @@ window.addEventListener("DOMContentLoaded", function() {
     });
     
     // If PR type is already selected, toggle fields accordingly
-    const prType = document.getElementById("prType");
-    if (prType && prType.value !== "choose") {
-        toggleFields();
-    }
+
 });
 
 // Function to make all fields read-only for approval view
@@ -672,7 +699,7 @@ function hideApprovalButtons() {
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
-    if (buttonContainer && currentTab !== 'checked') {
+    if (buttonContainer && currentTab !== 'prepared') {
         buttonContainer.style.display = 'none';
     }
 }
@@ -743,4 +770,72 @@ function displayAttachments(attachments) {
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
+}
+
+// Function to handle revision for Purchase Request
+function revisionPR() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    console.log('revisionPR called with:', allRemarks);
+    updatePRStatusWithRemarks('revise', allRemarks);
+}
+
+// Function to populate item select
+function populateItemSelect(items, selectElement) {
+    if (!selectElement) return;
+    
+    // Store the currently selected value
+    const currentValue = selectElement.value;
+    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
+    
+    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        // Store the description as a data attribute
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        selectElement.appendChild(option);
+        
+        // If this item matches the current text or value, select it
+        if (option.textContent === currentText || option.value === currentValue) {
+            option.selected = true;
+        }
+    });
+
+    // Add onchange event listener to auto-fill description
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
 }
