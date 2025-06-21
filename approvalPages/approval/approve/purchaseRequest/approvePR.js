@@ -964,42 +964,76 @@ function printPR() {
         const department = document.getElementById('department').value;
         const classification = document.getElementById('classification').value;
         const requesterName = document.getElementById('requesterName').value;
+        const requiredDate = document.getElementById('requiredDate').value;
         
         // Ambil data approved/checked by dari input search
         const checkedBy = document.getElementById('checkedBySearch').value;
         const acknowledgedBy = document.getElementById('acknowledgeBySearch').value;
         const approvedBy = document.getElementById('approvedBySearch').value;
+        const receivedBy = document.getElementById('receivedBySearch').value;
         const receivedDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini
+        
+        // Get PR type from select element
+        const prTypeSelect = document.getElementById('prType');
+        const prType = prTypeSelect ? prTypeSelect.value : 'Item';
+        
+        // Get document status
+        const status = document.getElementById('status').value;
+        const isApproved = status === 'Approved' || status === 'Open'; // Consider "Open" as approved for printing purposes
         
         // Ambil data item dari tabel
         const items = [];
         const tableRows = document.getElementById('tableBody').querySelectorAll('tr');
         
-        // Karena hanya ada tipe item, kita langsung proses sebagai item
-        tableRows.forEach(row => {
-            // Ambil data item dari baris tabel
-            const description = row.querySelector('td[id="tdItemName"] input')?.value || '';
-            const purpose = row.querySelector('td[id="tdPurposed"] input')?.value || '';
-            const quantity = row.querySelector('td[id="tdQuantity"] input')?.value || '';
-            const price = row.querySelector('td[id="tdDetail"] input')?.value || '';
+        tableRows.forEach((row, index) => {
+            let description = '';
+            let price = 0;
+            let purpose = '';
+            let quantity = '';
+            let uom = '';
+            
+            // Extract data based on the current structure of the table
+            description = row.querySelector('.item-description')?.value || 
+                         row.querySelector('.item-description')?.textContent || '';
+            
+            purpose = row.querySelector('.item-purpose')?.value || '';
+            quantity = row.querySelector('.item-quantity')?.value || '';
+            uom = row.querySelector('.item-uom')?.value || 'Pcs'; // Default to 'Pcs' if not found
+            
+            // Try to get price from detail field or set to 0
+            price = parseFloat(row.querySelector('.item-detail')?.value || '0');
+            
+            // Skip empty rows
+            if (!description && !purpose && !quantity) {
+                return;
+            }
+            
+            // Hitung total amount (quantity * price)
+            const qty = parseFloat(quantity) || 0;
+            const totalAmount = price * qty;
             
             const item = {
-                description,
-                purpose,
-                quantity,
-                price,
-                eta: document.getElementById('requiredDate').value
+                itemNo: index + 1,
+                description: description || 'N/A',
+                purpose: purpose || 'N/A',
+                quantity: quantity || '0',
+                uom: uom || 'Pcs', // Default UoM if not specified
+                price: price || 0,
+                totalAmount: totalAmount || 0,
+                eta: requiredDate // Gunakan required date sebagai ETA
             };
             
-            if (item.description) {
-                items.push(item);
-            }
+            items.push(item);
         });
         
         console.log("Items collected:", items);
         
         // Buat URL dengan parameter
         const url = new URL('printPR.html', window.location.href);
+        
+        // Get current date for approval dates
+        const currentDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini dalam format YYYY-MM-DD
+        const formattedDate = new Date().toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
         
         // Tambahkan parameter dasar
         url.searchParams.set('dateIssued', dateIssued);
@@ -1010,7 +1044,20 @@ function printPR() {
         url.searchParams.set('checkedBy', checkedBy);
         url.searchParams.set('acknowledgedBy', acknowledgedBy);
         url.searchParams.set('approvedBy', approvedBy);
-        url.searchParams.set('receivedDate', receivedDate);
+        url.searchParams.set('receivedBy', receivedBy);
+        
+        // Set approval dates
+        url.searchParams.set('receivedDate', formattedDate);
+        url.searchParams.set('requestedDate', formattedDate);
+        url.searchParams.set('checkedDate', formattedDate);
+        url.searchParams.set('acknowledgedDate', formattedDate);
+        url.searchParams.set('approvedDate', formattedDate);
+        
+        // Add approval status parameters
+        url.searchParams.set('requestedApproved', 'true'); // Requester is always approved
+        url.searchParams.set('checkedApproved', isApproved ? 'true' : 'false');
+        url.searchParams.set('acknowledgedApproved', isApproved ? 'true' : 'false');
+        url.searchParams.set('finalApproved', isApproved ? 'true' : 'false');
         
         // Tambahkan items sebagai JSON string
         url.searchParams.set('items', encodeURIComponent(JSON.stringify(items)));
