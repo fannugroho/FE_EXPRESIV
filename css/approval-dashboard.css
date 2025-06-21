@@ -3,8 +3,8 @@
 /* Filter buttons */
 .filter-btn {
   background-color: #f3f4f6;
-  color: #4b5563;
-  transition: all 0.2s;
+  color: #6b7280;
+  transition: all 0.2s ease;
 }
 
 .filter-btn:hover {
@@ -12,63 +12,91 @@
 }
 
 .active-filter {
-  background-color: #dbeafe;
-  color: #1e40af;
-  font-weight: 500;
-}
-
-/* Approval Cards */
-.approval-card {
-  background-color: white;
-  border-radius: 0.5rem;
+  background-color: #3b82f6;
+  color: white;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-  transition: all 0.3s;
 }
 
-.approval-card:hover {
-  transform: translateY(-2px);
+.active-filter:hover {
+  background-color: #2563eb;
+}
+
+/* Checkbox styles */
+.user-checkbox {
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.user-checkbox:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Bulk actions container */
+#bulk-actions-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+#bulk-actions-container.hidden {
+  display: none;
+}
+
+/* Button animations */
+#restore-selected-btn, #delete-selected-btn {
+  transition: all 0.2s ease;
+}
+
+#restore-selected-btn:hover {
+  transform: translateY(-1px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.approval-header {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+#delete-selected-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.approval-body {
-  padding: 1rem;
+/* Table row hover effect */
+#approval-table tbody tr {
+  transition: background-color 0.2s ease;
 }
 
-.approval-footer {
-  padding: 0.75rem 1rem;
+#approval-table tbody tr:hover {
   background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
 }
 
-/* Status Indicators */
-.status-indicator {
+/* Status badges */
+.px-2.inline-flex.text-xs.leading-5.font-semibold.rounded-full {
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
+  border-radius: 9999px;
 }
 
 .status-pending {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: #FEF3C7;
+  color: #92400E;
 }
 
 .status-approved {
-  background-color: #def7ec;
-  color: #03543e;
+  background-color: #DEF7EC;
+  color: #03543E;
 }
 
 .status-rejected {
-  background-color: #fee2e2;
-  color: #9b1c1c;
+  background-color: #FEE2E2;
+  color: #991B1B;
 }
 
 /* Table Styles */
@@ -87,15 +115,6 @@
 /* Alternative fix: Remove sticky positioning entirely */
 /*
 #approval-table th {
-  background-color: #f9fafb;
-}
-*/
-
-#approval-table tbody tr {
-  transition: all 0.15s ease-in-out;
-}
-
-#approval-table tbody tr:hover {
   background-color: #f9fafb;
 }
 
@@ -254,4 +273,88 @@
   .modal-grid {
     grid-template-columns: 1fr;
   }
+  
+  #bulk-actions-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  #bulk-actions-container > div:last-child {
+    display: flex;
+    width: 100%;
+  }
+  
+  #restore-selected-btn, #delete-selected-btn {
+    flex: 1;
+  }
+
+  .action-btn span {
+    display: none;
+  }
 }
+
+/* Add styles for the checkbox column */
+th:first-child {
+  width: 50px;
+  min-width: 50px;
+}
+
+td:first-child {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+}
+
+#select-all-header-checkbox {
+  cursor: pointer;
+}
+
+.user-checkbox {
+  cursor: pointer;
+}
+
+/* Action buttons */
+.detail-btn, .delete-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.detail-btn {
+  background-color: #EBF5FF;
+  color: #1E40AF;
+}
+
+.detail-btn:hover {
+  background-color: #DBEAFE;
+  color: #1E3A8A;
+}
+
+.delete-btn {
+  background-color: #FEE2E2;
+  color: #B91C1C;
+}
+
+.delete-btn:hover {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+/* Modal styles */
+.modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.notification {
+  animation: fadeIn 0.3s ease-out;
+} 
