@@ -1,56 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+  // Configuration
   // Initialize empty approvals array
   let approvals = [];
-
-  // Check for registration data in localStorage
-  let registrationData = null;
-  let storedData = localStorage.getItem('registrationData');
-  if (storedData) {
-    try {
-      registrationData = JSON.parse(storedData);
-      // Add registration from localStorage to the list if it exists
-      if (registrationData && registrationData.excelData && registrationData.excelData.length > 0) {
-        const newUsers = registrationData.excelData.map((user, index) => {
-          // Use the first user's data as an example
-          const firstUser = user;
-          return {
-            id: `REG${index + 1}`.padStart(6, '0'),
-            userId: firstUser[0] || `EMP${100 + index + 1}`,
-            name: `${firstUser[2] || ''} ${firstUser[3] ? firstUser[3] + ' ' : ''}${firstUser[4] || ''}`.trim(),
-            department: firstUser[5] || 'Not specified',
-            position: firstUser[6] || 'Not specified',
-            email: firstUser[8] || 'Not specified',
-            phone: firstUser[7] || 'Not specified',
-            status: 'pending',
-            submittedDate: new Date().toISOString().split('T')[0],
-            documents: registrationData.documents ? registrationData.documents.map(doc => doc.name) : []
-          };
-        });
-        
-        // Set the approvals to only include the new registrations
-        approvals = newUsers;
-      }
-    } catch (error) {
-      console.error('Error parsing registration data:', error);
-    }
-  }
-
-  // If no users found in localStorage, check if we should add demo data
-  if (approvals.length === 0) {
-    // Create a single demo user if needed for demonstration purposes
-    approvals.push({
-      id: 'REG001',
-      userId: 'DEMO101',
-      name: 'Demo User',
-      department: 'IT',
-      position: 'Software Developer',
-      email: 'demo.user@kansaipaint.com',
-      phone: '+6281234567890',
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-      documents: []
-    });
-  }
 
   // Element references
   const approvalTableBody = document.getElementById('approval-table-body');
@@ -71,15 +22,100 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Current filter
   let currentFilter = 'all';
-  let currentApprovals = [...approvals];
-  
+  let currentApprovals = [];
   // Initialize the dashboard
-  updateCounters();
-  renderApprovalTable(currentApprovals);
-  
+  async function initDashboard() {
+    try {
+      await loadAllUsers();
+      updateCounters();
+      renderApprovalTable(currentApprovals);
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+      showNotification('Failed to load user data', 'error');
+    }
+  }
+
+  // Load users by approval status from the backend
+  async function loadUsersByStatus(status = 'all') {
+    try {
+      console.log(`Loading users with status: ${status}`);
+      const response = await makeAuthenticatedRequest(`/api/users/by-approval-status?status=${status}`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('API Response:', result);
+      
+      // Handle different response formats - sometimes the API returns data directly
+      let users = [];
+      if (result.success === true || result.success === undefined) {
+        // If result has success=true or no success field, check for data
+        const userData = result.data || result || [];
+        
+        // Ensure userData is an array
+        if (!Array.isArray(userData)) {
+          console.warn('API returned non-array data:', userData);
+          return [];
+        }
+        
+        users = userData.map(user => {
+          let userStatus = 'pending';
+          if (user.approvalStatus) {
+            switch(user.approvalStatus.toLowerCase()) {
+              case 'approved': userStatus = 'approved'; break;
+              case 'rejected': userStatus = 'rejected'; break;
+              default: userStatus = 'pending'; break;
+            }
+          }
+          
+          return {
+            id: user.id,
+            userId: user.kansaiEmployeeId || user.username,
+            name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            department: user.department || 'Not specified',
+            position: user.position || 'Not specified',
+            email: user.email || 'Not specified',
+            phone: user.phoneNumber || 'Not specified',
+            status: userStatus,
+            submittedDate: new Date().toISOString().split('T')[0],
+            documents: [],
+            rejectionReason: user.rejectionReason,
+            approvalDate: user.approvalDate
+          };
+        });
+        return users;
+      } else {
+        // Only throw error if success is explicitly false
+        throw new Error(result.message || 'Failed to load users');
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showNotification('Failed to load users', 'error');
+      return [];
+    }
+  }
+
+  // Load all users (for initial load and counters)
+  async function loadAllUsers() {
+    try {
+      approvals = await loadUsersByStatus('all');
+      currentApprovals = [...approvals];
+    } catch (error) {
+      console.error('Error loading all users:', error);
+      approvals = [];
+      currentApprovals = [];
+    }
+  }
+
   // Set up event listeners
   filterButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       // Remove active class from all buttons
       filterButtons.forEach(btn => btn.classList.remove('active-filter'));
       
@@ -89,8 +125,21 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get filter value from button id
       currentFilter = button.id.replace('-btn', '');
       
-      // Apply filters
-      applyFilters();
+      // Load data by specific status for better performance
+      try {
+        if (currentFilter === 'all') {
+          await loadAllUsers();
+        } else {
+          const users = await loadUsersByStatus(currentFilter);
+          currentApprovals = users;
+        }
+        
+        // Apply search filter if there's a search term
+        applyFilters();
+      } catch (error) {
+        console.error('Error loading filtered data:', error);
+        showNotification('Failed to load filtered data', 'error');
+      }
     });
   });
   
@@ -107,61 +156,104 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Approve button
   if (approveBtn) {
-    approveBtn.addEventListener('click', () => {
+    approveBtn.addEventListener('click', async () => {
       const userId = approveBtn.dataset.userId;
       if (userId) {
-        updateApprovalStatus(userId, 'approved');
-        approvalModal.classList.add('hidden');
-        
-        // Show success message
-        showNotification('User approved successfully!', 'success');
+        await approveUser(userId);
       }
     });
   }
   
   // Reject button
   if (rejectBtn) {
-    rejectBtn.addEventListener('click', () => {
+    rejectBtn.addEventListener('click', async () => {
       const userId = rejectBtn.dataset.userId;
       if (userId) {
-        updateApprovalStatus(userId, 'rejected');
-        approvalModal.classList.add('hidden');
-        
-        // Show success message
-        showNotification('User rejected', 'error');
+        // Show rejection reason dialog
+        showRejectionDialog(userId);
       }
     });
   }
-  
-  // Update approval status
-  function updateApprovalStatus(approvalId, newStatus) {
-    const approval = approvals.find(a => a.id === approvalId);
-    if (approval) {
-      approval.status = newStatus;
-      
-      if (newStatus === 'approved') {
-        approval.approvedDate = new Date().toISOString().split('T')[0];
-        approval.approvedBy = 'Admin User';
-      } else if (newStatus === 'rejected') {
-        approval.rejectedDate = new Date().toISOString().split('T')[0];
-        approval.rejectedBy = 'Admin User';
-        approval.rejectionReason = 'Rejected by administrator';
+
+  // Approve user function
+  async function approveUser(userId) {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/users/${userId}/approve`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      // Update UI
-      updateCounters();
-      applyFilters();
+
+      const result = await response.json();
+      if (result.code == 200) {
+        // Update local approval status
+        const approval = approvals.find(a => a.id === userId);
+        if (approval) {
+          approval.status = 'approved';
+          approval.approvedDate = new Date().toISOString().split('T')[0];
+          approval.approvedBy = 'Admin User';
+        }
+
+        // Close modal and refresh
+        approvalModal.classList.add('hidden');
+        updateCounters();
+        applyFilters();
+        showNotification('User approved successfully!', 'success');
+      } else {
+        throw new Error(result.message || 'Failed to approve user');
+      }
+    } catch (error) {
+      console.error('Error approving user:', error);
+      showNotification('Failed to approve user: ' + error.message, 'error');
+    }
+  }
+
+  // Reject user function
+  async function rejectUser(userId, rejectionReason = null) {
+    try {
+      const body = rejectionReason ? 
+        JSON.stringify({ rejectionReason: rejectionReason }) : 
+        JSON.stringify({});
+        
+      const response = await makeAuthenticatedRequest(`/api/users/${userId}/reject`, {
+        method: 'POST',
+        body: body
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.code == 200) {
+        // Update local approval status
+        const approval = approvals.find(a => a.id === userId);
+        if (approval) {
+          approval.status = 'rejected';
+          approval.rejectedDate = new Date().toISOString().split('T')[0];
+          approval.rejectedBy = 'Admin User';
+          approval.rejectionReason = rejectionReason || 'Rejected by administrator';
+        }
+
+        // Close modal and refresh
+        approvalModal.classList.add('hidden');
+        updateCounters();
+        applyFilters();
+        showNotification('User rejected successfully', 'warning');
+      } else {
+        throw new Error(result.message || 'Failed to reject user');
+      }
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      showNotification('Failed to reject user: ' + error.message, 'error');
     }
   }
   
-  // Apply filters (search and status)
+  // Apply search filter (status filtering is now done at backend level)
   function applyFilters() {
-    let filtered = [...approvals];
-    
-    // Apply status filter
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(approval => approval.status === currentFilter);
-    }
+    let filtered = [...currentApprovals];
     
     // Apply search filter
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
@@ -174,7 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Update UI
-    currentApprovals = filtered;
     renderApprovalTable(filtered);
   }
   
@@ -253,20 +344,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     approvals.forEach(approval => {
       const row = document.createElement('tr');
-      row.className = 'hover:bg-gray-50 transition-colors duration-150 ease-in-out';
+      row.className = 'hover:bg-gray-50';
       
-      // Build row HTML
       row.innerHTML = `
         <td class="px-6 py-4 whitespace-nowrap">
           <div class="flex items-center">
             <div class="flex-shrink-0 h-10 w-10">
-              <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <i class="fas fa-user"></i>
+              <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fas fa-user text-blue-600"></i>
               </div>
             </div>
             <div class="ml-4">
               <div class="text-sm font-medium text-gray-900">${approval.name}</div>
-              <div class="text-sm text-gray-500">${approval.userId}</div>
+              <div class="text-sm text-gray-500">ID: ${approval.userId}</div>
             </div>
           </div>
         </td>
@@ -342,104 +432,70 @@ document.addEventListener('DOMContentLoaded', function() {
       rejectBtn.style.display = (mode === 'view' || approval.status !== 'pending') ? 'none' : 'inline-flex';
     }
     
-    // Generate document list HTML
-    const getDocumentsList = (documents) => {
-      if (!documents || documents.length === 0) {
-        return '<p class="text-sm text-gray-500 italic">No documents attached</p>';
-      }
-      
-      let html = '<div class="document-list">';
-      
-      documents.forEach(doc => {
-        let icon = 'fa-file';
-        if (doc.endsWith('.pdf')) icon = 'fa-file-pdf';
-        else if (doc.match(/\.(jpg|jpeg|png|gif)$/i)) icon = 'fa-file-image';
-        
-        html += `<span class="document-item">
-          <i class="fas ${icon}"></i> ${doc}
-        </span>`;
-      });
-      
-      html += '</div>';
-      return html;
-    };
-    
     // Build modal content
-    modalContent.innerHTML = `
-      <div class="flex justify-between items-center mb-4">
-        <div>
-          <h4 class="text-xl font-semibold text-gray-900">${approval.name}</h4>
-          <p class="text-sm text-gray-600">${approval.department} - ${approval.position}</p>
-        </div>
-        <div>
-          <span class="status-indicator ${approval.status === 'pending' ? 'status-pending' : approval.status === 'approved' ? 'status-approved' : 'status-rejected'}">
-            <i class="fas ${approval.status === 'pending' ? 'fa-clock' : approval.status === 'approved' ? 'fa-check-circle' : 'fa-times-circle'} mr-1"></i>
-            ${approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
-          </span>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <h5 class="modal-section-title">Personal Information</h5>
-        <div class="modal-grid">
-          <div class="modal-data-item">
-            <div class="data-label">Employee ID</div>
-            <div class="data-value">${approval.userId}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Registration ID</div>
-            <div class="data-value">${approval.id}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Email</div>
-            <div class="data-value">${approval.email}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Phone</div>
-            <div class="data-value">${approval.phone}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <h5 class="modal-section-title">Registration Information</h5>
-        <div class="modal-grid">
-          <div class="modal-data-item">
-            <div class="data-label">Submitted Date</div>
-            <div class="data-value">${formatDate(approval.submittedDate)}</div>
-          </div>
-    `;
-    
+    let statusInfo = '';
     if (approval.status === 'approved') {
-      modalContent.innerHTML += `
-          <div class="modal-data-item">
-            <div class="data-label">Approved Date</div>
-            <div class="data-value">${formatDate(approval.approvedDate)}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Approved By</div>
-            <div class="data-value">${approval.approvedBy || 'System'}</div>
-          </div>
+      statusInfo = `
+        <div class="mt-4 p-3 bg-green-50 rounded-md">
+          <p class="text-sm text-green-800"><strong>Approved on:</strong> ${approval.approvedDate}</p>
+          <p class="text-sm text-green-800"><strong>Approved by:</strong> ${approval.approvedBy}</p>
+        </div>
       `;
     } else if (approval.status === 'rejected') {
-      modalContent.innerHTML += `
-          <div class="modal-data-item">
-            <div class="data-label">Rejected Date</div>
-            <div class="data-value">${formatDate(approval.rejectedDate)}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Rejected By</div>
-            <div class="data-value">${approval.rejectedBy || 'System'}</div>
-          </div>
-          <div class="modal-data-item col-span-2">
-            <div class="data-label">Rejection Reason</div>
-            <div class="data-value">${approval.rejectionReason || 'No reason provided'}</div>
-          </div>
+      statusInfo = `
+        <div class="mt-4 p-3 bg-red-50 rounded-md">
+          <p class="text-sm text-red-800"><strong>Rejected on:</strong> ${approval.rejectedDate}</p>
+          <p class="text-sm text-red-800"><strong>Rejected by:</strong> ${approval.rejectedBy}</p>
+          ${approval.rejectionReason ? `<p class="text-sm text-red-800"><strong>Reason:</strong> ${approval.rejectionReason}</p>` : ''}
+        </div>
       `;
     }
     
-    modalContent.innerHTML += `
+    modalContent.innerHTML = `
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Full Name</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.name}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Employee ID</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.userId}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Department</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.department}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Position</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.position}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Email</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.email}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Phone</p>
+            <p class="mt-1 text-sm text-gray-900">${approval.phone}</p>
+          </div>
         </div>
+        
+        <div>
+          <p class="text-sm font-medium text-gray-500">Status</p>
+          <div class="mt-1">${getStatusBadge(approval.status)}</div>
+        </div>
+        
+        <div>
+          <p class="text-sm font-medium text-gray-500">Submitted Date</p>
+          <p class="mt-1 text-sm text-gray-900">${formatDate(approval.submittedDate)}</p>
+        </div>
+        
+        <div>
+          <p class="text-sm font-medium text-gray-500">Documents</p>
+          <div class="mt-1">${getDocumentsList(approval.documents)}</div>
+        </div>
+        
+        ${statusInfo}
       </div>
     `;
     
@@ -447,89 +503,112 @@ document.addEventListener('DOMContentLoaded', function() {
     approvalModal.classList.remove('hidden');
   };
   
-  // Simple notification function
+  // Show notification function
   function showNotification(message, type = 'info') {
-    // Check if a notification container exists, create one if not
-    let container = document.getElementById('notification-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'notification-container';
-      container.className = 'fixed top-4 right-4 z-50 flex flex-col items-end space-y-2';
-      document.body.appendChild(container);
-    }
-    
     // Create notification element
     const notification = document.createElement('div');
-    notification.className = `
-      transform transition-all duration-300 ease-out
-      translate-x-0 opacity-100 scale-100
-      max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto
-      ring-1 ring-black ring-opacity-5 overflow-hidden
-    `;
+    notification.className = `notification fixed top-4 right-4 px-6 py-3 rounded-md shadow-lg max-w-sm`;
     
-    // Set icon and color based on type
-    let iconClass = 'fas fa-info-circle text-blue-500';
-    let borderColor = 'border-blue-500';
+    // IMPORTANT: Set very high z-index inline to override everything
+    notification.style.zIndex = '99999';
+    notification.style.position = 'fixed';
     
-    if (type === 'success') {
-      iconClass = 'fas fa-check-circle text-green-500';
-      borderColor = 'border-green-500';
-    } else if (type === 'error') {
-      iconClass = 'fas fa-exclamation-circle text-red-500';
-      borderColor = 'border-red-500';
-    } else if (type === 'warning') {
-      iconClass = 'fas fa-exclamation-triangle text-yellow-500';
-      borderColor = 'border-yellow-500';
+    // Set colors based on type
+    let bgColor = 'bg-blue-500';
+    let icon = 'fa-info-circle';
+    
+    switch(type) {
+      case 'success':
+        bgColor = 'bg-green-500';
+        icon = 'fa-check-circle';
+        break;
+      case 'error':
+        bgColor = 'bg-red-500';
+        icon = 'fa-exclamation-circle';
+        break;
+      case 'warning':
+        bgColor = 'bg-yellow-500';
+        icon = 'fa-exclamation-triangle';
+        break;
     }
     
-    // Build notification HTML
+    notification.className += ` ${bgColor} text-white`;
     notification.innerHTML = `
-      <div class="p-4 border-l-4 ${borderColor}">
-        <div class="flex items-start">
-          <div class="flex-shrink-0">
-            <i class="${iconClass}"></i>
-          </div>
-          <div class="ml-3 w-0 flex-1 pt-0.5">
-            <p class="text-sm font-medium text-gray-900">${message}</p>
-          </div>
-          <div class="ml-4 flex-shrink-0 flex">
-            <button class="rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
-              <span class="sr-only">Close</span>
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
+      <div class="flex items-center">
+        <i class="fas ${icon} mr-2"></i>
+        <span>${message}</span>
       </div>
     `;
     
-    // Add notification to container
-    container.appendChild(notification);
-    
-    // Setup close button
-    const closeBtn = notification.querySelector('button');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        notification.classList.replace('opacity-100', 'opacity-0');
-        notification.classList.replace('translate-x-0', 'translate-x-5');
-        notification.classList.replace('scale-100', 'scale-95');
-        
-        setTimeout(() => {
-          notification.remove();
-        }, 300);
-      });
-    }
+    // Add to DOM
+    document.body.appendChild(notification);
     
     // Auto remove after 5 seconds
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.classList.replace('opacity-100', 'opacity-0');
-        notification.classList.replace('translate-x-0', 'translate-x-5');
-        notification.classList.replace('scale-100', 'scale-95');
-        
-        setTimeout(() => {
-          notification.remove();
-        }, 300);
+        notification.parentNode.removeChild(notification);
       }
     }, 5000);
   }
+  
+  // Show rejection dialog
+  function showRejectionDialog(userId) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center';
+    overlay.innerHTML = `
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject User Registration</h3>
+        <div class="mb-4">
+          <label for="rejection-reason" class="block text-sm font-medium text-gray-700 mb-2">
+            Rejection Reason (Required)
+          </label>
+          <textarea 
+            id="rejection-reason" 
+            rows="3" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Please provide a reason for rejection..."
+            required
+          ></textarea>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="cancel-reject" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button id="confirm-reject" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700">
+            Reject User
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Handle cancel
+    overlay.querySelector('#cancel-reject').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+
+    // Handle confirm
+    overlay.querySelector('#confirm-reject').addEventListener('click', async () => {
+      const reason = overlay.querySelector('#rejection-reason').value.trim();
+      if (!reason) {
+        alert('Please provide a reason for rejection.');
+        return;
+      }
+      
+      document.body.removeChild(overlay);
+      await rejectUser(userId, reason);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+  }
+
+  // Initialize dashboard on load
+  initDashboard();
 }); 

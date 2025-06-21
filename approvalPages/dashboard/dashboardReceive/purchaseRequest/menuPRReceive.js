@@ -310,7 +310,7 @@ async function receiveDoc(id, prType) {
 }
 
 function detailDoc(id, prType) {
-    window.location.href = `../../approval/receive/purchaseRequest/receivePR.html?pr-id=${id}&pr-type=${prType}&tab=${currentTab}`;
+    window.location.href = `../../../approval/receive/purchaseRequest/receivePR.html?pr-id=${id}&pr-type=${prType}&tab=${currentTab}`;
 }
 
 function toggleSubMenu(menuId) {

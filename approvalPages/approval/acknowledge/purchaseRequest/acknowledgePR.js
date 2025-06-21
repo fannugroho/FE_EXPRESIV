@@ -552,6 +552,7 @@ function updatePRStatusWithRemarks(status, remarks) {
         return;
     }
 
+    console.log('updatePRStatusWithRemarks called with:', status, remarks);
     const requestData = {
         id: prId,
         UserId: userId,
@@ -589,7 +590,7 @@ function updatePRStatusWithRemarks(status, remarks) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                goToMenuAcknowPR();
+                // goToMenuAcknowPR();
             });
         } else {
             return response.json().then(errorData => {
@@ -769,4 +770,72 @@ function displayAttachments(attachments) {
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
+}
+
+// Function to handle revision for Purchase Request
+function revisionPR() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    console.log('revisionPR called with:', allRemarks);
+    updatePRStatusWithRemarks('revise', allRemarks);
+}
+
+// Function to populate item select
+function populateItemSelect(items, selectElement) {
+    if (!selectElement) return;
+    
+    // Store the currently selected value
+    const currentValue = selectElement.value;
+    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
+    
+    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id || item.itemCode;
+        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
+        // Store the description as a data attribute
+        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
+        selectElement.appendChild(option);
+        
+        // If this item matches the current text or value, select it
+        if (option.textContent === currentText || option.value === currentValue) {
+            option.selected = true;
+        }
+    });
+
+    // Add onchange event listener to auto-fill description
+    selectElement.onchange = function() {
+        updateItemDescription(this);
+    };
 }

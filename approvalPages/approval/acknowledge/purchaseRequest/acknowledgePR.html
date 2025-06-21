@@ -503,42 +503,8 @@
             }
         }
         
-        // Function to collect all revision remarks and submit
-        function revisionPR() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            // Call the existing function with the collected remarks
-            updatePRStatusWithRemarks('revision', allRemarks);
-        }
+        // NOTE: The revisionPR function has been moved to acknowledgePR.js file
+        // to maintain consistent code organization across all approval stages
     </script>
 </body>
 </html>

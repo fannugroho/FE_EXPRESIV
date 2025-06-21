@@ -187,9 +187,8 @@ function fetchDropdownOptions(prData = null) {
     fetchDepartments();
     fetchUsers(prData);
     fetchClassifications();
-    if (document.getElementById("prType").value === "Item") {
-        fetchItemOptions();
-    }
+    fetchItemOptions();
+    
 }
 
 // Function to fetch departments from API
@@ -434,6 +433,43 @@ function rejectPR() {
             });
         }
     });
+}
+
+// Function to handle revision for Purchase Request
+function revisionPR() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updatePRStatusWithRemarks('revise', allRemarks);
 }
 
 // Function to approve or reject the PR

@@ -465,10 +465,10 @@ function updateNotificationCount(count) {
 
 
 
-function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "Login.html"; 
-}
+// function logout() { 
+//     localStorage.removeItem("loggedInUser"); 
+//     window.location.href = "Login.html"; 
+// }
 
 function loadDashboard() {
     // Cek apakah data sudah diambil oleh fetchNotifications

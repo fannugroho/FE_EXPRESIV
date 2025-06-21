@@ -490,50 +490,8 @@
             }
         }
         
-        // Function to handle revision for Purchase Request
-        function revisionPR() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            // Here you can add the logic to process the revision
-            Swal.fire({
-                title: 'Revision Submitted',
-                text: 'Your revision request has been submitted successfully',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // You can add navigation logic here if needed
-                console.log('Revision remarks:', allRemarks);
-            });
-        }
+        // NOTE: The revisionPR function has been moved to approvePR.js file
+        // to maintain consistent code organization across all approval stages
 
         // Initialize revision functionality when page loads
         document.addEventListener('DOMContentLoaded', function() {

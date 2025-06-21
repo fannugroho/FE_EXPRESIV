@@ -498,43 +498,8 @@
             }
         }
         
-        // Revision function for Purchase Request
-        function revisionPR() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
-                });
-                return;
-            }
-            
-            // Call the existing function with the collected remarks
-            // This function should be implemented in receivePR.js
-            updatePRStatusWithRemarks('revision', allRemarks);
-        }
+        // NOTE: The revisionPR function has been moved to receivePR.js file
+        // to maintain consistent code organization across all approval stages
     </script>
 </body>
 </html>
