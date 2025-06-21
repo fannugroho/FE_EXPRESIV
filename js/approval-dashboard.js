@@ -1,55 +1,104 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize empty approvals array
   let approvals = [];
+  let selectedRejectedUsers = []; // Array to store selected rejected users
+  let selectedApprovedUsers = []; // Array to store selected approved users
+  
+  // Set logged in user information in the header
+  const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+  if (loggedInUser) {
+    document.getElementById('userName').textContent = loggedInUser.name || 'Admin User';
+    // Avatar is already set to default image
+  }
 
-  // Check for registration data in localStorage
-  let registrationData = null;
-  let storedData = localStorage.getItem('registrationData');
-  if (storedData) {
+  // Check for pending registrations in localStorage
+  let pendingRegistrations = localStorage.getItem('pendingRegistrations');
+  if (pendingRegistrations) {
     try {
-      registrationData = JSON.parse(storedData);
-      // Add registration from localStorage to the list if it exists
+      const registrationData = JSON.parse(pendingRegistrations);
+      // Process the registration data
       if (registrationData && registrationData.excelData && registrationData.excelData.length > 0) {
+        // Map Excel data to user objects
         const newUsers = registrationData.excelData.map((user, index) => {
-          // Use the first user's data as an example
-          const firstUser = user;
+          // Get column data based on expected Excel format
+          // Assuming columns: Username, Email, Password, First Name, Last Name, Kansai Employee ID, Position, Department Name
           return {
-            id: `REG${index + 1}`.padStart(6, '0'),
-            userId: firstUser[0] || `EMP${100 + index + 1}`,
-            name: `${firstUser[2] || ''} ${firstUser[3] ? firstUser[3] + ' ' : ''}${firstUser[4] || ''}`.trim(),
-            department: firstUser[5] || 'Not specified',
-            position: firstUser[6] || 'Not specified',
-            email: firstUser[8] || 'Not specified',
-            phone: firstUser[7] || 'Not specified',
+            id: `REG${Date.now()}${index}`.substring(0, 10),
+            userId: user[5] || `EMP${100 + index}`, // Kansai Employee ID
+            username: user[0] || '', // Username
+            email: user[1] || '', // Email
+            firstName: user[3] || '', // First Name
+            lastName: user[4] || '', // Last Name
+            name: `${user[3] || ''} ${user[4] || ''}`.trim(), // Full name
+            department: user[7] || 'Not specified', // Department
+            position: user[6] || 'Not specified', // Position
+            phone: '', // Phone (not in Excel)
             status: 'pending',
             submittedDate: new Date().toISOString().split('T')[0],
-            documents: registrationData.documents ? registrationData.documents.map(doc => doc.name) : []
+            originalData: user // Store original data for reference
           };
         });
         
-        // Set the approvals to only include the new registrations
-        approvals = newUsers;
+        // Add the new registrations to approvals array
+        approvals = [...newUsers];
       }
     } catch (error) {
-      console.error('Error parsing registration data:', error);
+      console.error('Error parsing pending registrations:', error);
     }
   }
 
   // If no users found in localStorage, check if we should add demo data
   if (approvals.length === 0) {
-    // Create a single demo user if needed for demonstration purposes
-    approvals.push({
-      id: 'REG001',
-      userId: 'DEMO101',
-      name: 'Demo User',
-      department: 'IT',
-      position: 'Software Developer',
-      email: 'demo.user@kansaipaint.com',
-      phone: '+6281234567890',
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-      documents: []
-    });
+    // Create demo users for demonstration purposes
+    approvals = [
+      {
+        id: 'REG001',
+        userId: 'EMP101',
+        username: 'johndoe',
+        email: 'john.doe@kansaipaint.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        name: 'John Doe',
+        department: 'IT',
+        position: 'Software Developer',
+        phone: '+6281234567890',
+        status: 'pending',
+        submittedDate: new Date().toISOString().split('T')[0]
+      },
+      {
+        id: 'REG002',
+        userId: 'EMP102',
+        username: 'janedoe',
+        email: 'jane.doe@kansaipaint.com',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        name: 'Jane Doe',
+        department: 'Finance',
+        position: 'Accountant',
+        phone: '+6281234567891',
+        status: 'approved',
+        submittedDate: '2023-06-15',
+        approvedDate: '2023-06-16',
+        approvedBy: 'Admin User'
+      },
+      {
+        id: 'REG003',
+        userId: 'EMP103',
+        username: 'bobsmith',
+        email: 'bob.smith@kansaipaint.com',
+        firstName: 'Bob',
+        lastName: 'Smith',
+        name: 'Bob Smith',
+        department: 'Sales',
+        position: 'Sales Manager',
+        phone: '+6281234567892',
+        status: 'rejected',
+        submittedDate: '2023-06-14',
+        rejectedDate: '2023-06-15',
+        rejectedBy: 'Admin User',
+        rejectionReason: 'Duplicate user account'
+      }
+    ];
   }
 
   // Element references
@@ -91,6 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Apply filters
       applyFilters();
+      
+      // Show/hide bulk action buttons based on filter
+      toggleBulkActionButtons();
     });
   });
   
@@ -133,24 +185,332 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Update approval status
-  function updateApprovalStatus(approvalId, newStatus) {
-    const approval = approvals.find(a => a.id === approvalId);
-    if (approval) {
-      approval.status = newStatus;
+  // Add bulk action buttons to the page
+  function addBulkActionButtons() {
+    // Check if buttons already exist
+    if (document.getElementById('bulk-actions-container')) {
+      return;
+    }
+    
+    const bulkActionsContainer = document.createElement('div');
+    bulkActionsContainer.id = 'bulk-actions-container';
+    bulkActionsContainer.className = 'bg-white p-4 rounded-lg shadow-sm mb-6 hidden';
+    
+    // Different content based on current filter
+    if (currentFilter === 'rejected') {
+      bulkActionsContainer.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <span class="text-sm font-medium text-gray-700">Use checkboxes to select users</span>
+            <span class="ml-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full" id="selected-count">0 selected</span>
+          </div>
+          <div>
+            <button id="restore-selected-btn" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2">
+              <i class="fas fa-undo mr-2"></i> Restore to Pending
+            </button>
+            <button id="delete-selected-btn" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              <i class="fas fa-trash-alt mr-2"></i> Delete Selected
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (currentFilter === 'approved') {
+      bulkActionsContainer.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <span class="text-sm font-medium text-gray-700">Use checkboxes to select users</span>
+            <span class="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full" id="selected-count">0 selected</span>
+          </div>
+          <div>
+            <button id="submit-selected-btn" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              <i class="fas fa-paper-plane mr-2"></i> Submit to User Management
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Insert after filters
+    const filtersContainer = document.querySelector('.bg-white.p-4.rounded-lg.shadow-sm.mb-6');
+    if (filtersContainer && filtersContainer.parentNode) {
+      filtersContainer.parentNode.insertBefore(bulkActionsContainer, filtersContainer.nextSibling);
       
-      if (newStatus === 'approved') {
-        approval.approvedDate = new Date().toISOString().split('T')[0];
-        approval.approvedBy = 'Admin User';
-      } else if (newStatus === 'rejected') {
-        approval.rejectedDate = new Date().toISOString().split('T')[0];
-        approval.rejectedBy = 'Admin User';
-        approval.rejectionReason = 'Rejected by administrator';
+      // Add event listeners based on current filter
+      if (currentFilter === 'rejected') {
+        const restoreSelectedBtn = document.getElementById('restore-selected-btn');
+        const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+        
+        if (restoreSelectedBtn) {
+          restoreSelectedBtn.addEventListener('click', function() {
+            if (selectedRejectedUsers.length === 0) {
+              showNotification('Please select users first', 'warning');
+              return;
+            }
+            
+            // Confirm restoration
+            if (confirm(`Are you sure you want to restore ${selectedRejectedUsers.length} user(s) to pending status?`)) {
+              // Store the count before clearing
+              const restoredCount = selectedRejectedUsers.length;
+              
+              // Restore each selected user
+              selectedRejectedUsers.forEach(userId => {
+                updateApprovalStatus(userId, 'pending');
+              });
+              
+              // Clear selection array
+              selectedRejectedUsers = [];
+              
+              // Show notification
+              showNotification(`${restoredCount} user(s) restored to pending status`, 'success');
+              
+              // Re-render with current filter
+              applyFilters();
+            }
+          });
+        }
+        
+        if (deleteSelectedBtn) {
+          deleteSelectedBtn.addEventListener('click', function() {
+            if (selectedRejectedUsers.length === 0) {
+              showNotification('Please select users first', 'warning');
+              return;
+            }
+            
+            // Confirm deletion
+            if (confirm(`Are you sure you want to permanently delete ${selectedRejectedUsers.length} user(s)? This action cannot be undone.`)) {
+              // Store the count before clearing
+              const deletedCount = selectedRejectedUsers.length;
+              
+              // Remove each selected user
+              approvals = approvals.filter(user => !selectedRejectedUsers.includes(user.id));
+              
+              // Update localStorage
+              updateLocalStorage();
+              
+              // Clear selection array
+              selectedRejectedUsers = [];
+              
+              // Show notification
+              showNotification(`${deletedCount} user(s) permanently deleted`, 'success');
+              
+              // Re-render with current filter
+              applyFilters();
+              
+              // Update counters
+              updateCounters();
+            }
+          });
+        }
+      } else if (currentFilter === 'approved') {
+        const submitSelectedBtn = document.getElementById('submit-selected-btn');
+        
+        if (submitSelectedBtn) {
+          submitSelectedBtn.addEventListener('click', function() {
+            if (selectedApprovedUsers.length === 0) {
+              showNotification('Please select users first', 'warning');
+              return;
+            }
+            
+            // Confirm submission
+            if (confirm(`Are you sure you want to submit ${selectedApprovedUsers.length} user(s) to User Management?`)) {
+              // Transfer users to User Management
+              transferUsersToUserManagement(selectedApprovedUsers);
+              
+              // Show notification
+              showNotification(`${selectedApprovedUsers.length} user(s) submitted to User Management`, 'success');
+              
+              // Clear selection array
+              selectedApprovedUsers = [];
+              
+              // Re-render with current filter
+              applyFilters();
+            }
+          });
+        }
       }
       
-      // Update UI
-      updateCounters();
-      applyFilters();
+      // Update selected count display
+      updateSelectedCount();
+    }
+  }
+  
+  // Update selected count display
+  function updateSelectedCount() {
+    const selectedCountEl = document.getElementById('selected-count');
+    if (!selectedCountEl) return;
+    
+    if (currentFilter === 'rejected') {
+      selectedCountEl.textContent = `${selectedRejectedUsers.length} selected`;
+    } else if (currentFilter === 'approved') {
+      selectedCountEl.textContent = `${selectedApprovedUsers.length} selected`;
+    }
+  }
+  
+  // Toggle bulk action buttons based on current filter
+  function toggleBulkActionButtons() {
+    // Remove existing bulk action buttons
+    const existingContainer = document.getElementById('bulk-actions-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+    
+    // Only add bulk action buttons for rejected and approved filters
+    if (currentFilter === 'rejected' || currentFilter === 'approved') {
+      addBulkActionButtons();
+      
+      // Show the container
+      const bulkActionsContainer = document.getElementById('bulk-actions-container');
+      if (bulkActionsContainer) {
+        bulkActionsContainer.classList.remove('hidden');
+      }
+    }
+    
+    // Update checkbox visibility in table
+    const table = document.getElementById('approval-table');
+    if (table) {
+      // Show/hide the checkbox header column
+      const headerCheckboxCell = table.querySelector('thead tr th:first-child');
+      if (headerCheckboxCell) {
+        if (currentFilter === 'rejected' || currentFilter === 'approved') {
+          headerCheckboxCell.classList.remove('hidden');
+        } else {
+          headerCheckboxCell.classList.add('hidden');
+        }
+      }
+      
+      // Show/hide checkbox cells in rows
+      const checkboxCells = table.querySelectorAll('tbody tr td:first-child');
+      checkboxCells.forEach(cell => {
+        if (currentFilter === 'rejected' || currentFilter === 'approved') {
+          cell.classList.remove('hidden');
+        } else {
+          cell.classList.add('hidden');
+        }
+      });
+    }
+  }
+  
+  // Transfer users to User Management
+  function transferUsersToUserManagement(userIds) {
+    // Get existing user approvals from localStorage
+    let userApprovals = [];
+    const storedApprovals = localStorage.getItem('userApprovals');
+    
+    if (storedApprovals) {
+      try {
+        userApprovals = JSON.parse(storedApprovals);
+      } catch (error) {
+        console.error('Error parsing user approvals:', error);
+        userApprovals = [];
+      }
+    }
+    
+    // Find users to transfer
+    const usersToTransfer = approvals.filter(user => userIds.includes(user.id));
+    
+    // Mark users as transferred
+    usersToTransfer.forEach(user => {
+      const index = approvals.findIndex(a => a.id === user.id);
+      if (index !== -1) {
+        // Update status to is transfer
+        approvals[index].status = 'is transfer';
+        approvals[index].transferDate = new Date().toISOString().split('T')[0];
+        approvals[index].transferredBy = JSON.parse(localStorage.getItem('loggedInUser'))?.name || 'Admin';
+        
+        // Add to userApprovals if not already there
+        if (!userApprovals.some(a => a.id === user.id)) {
+          userApprovals.push({...approvals[index]});
+        }
+      }
+    });
+    
+    // Save updated approvals to localStorage
+    updateLocalStorage();
+    
+    // Save user approvals to localStorage
+    localStorage.setItem('userApprovals', JSON.stringify(userApprovals));
+    
+    // Store transfer information for notification in dashboard-users.html
+    localStorage.setItem('lastTransfer', JSON.stringify({
+      count: usersToTransfer.length,
+      timestamp: new Date().toISOString()
+    }));
+    
+    // Update counters
+    updateCounters();
+    
+    // Redirect to dashboard-users.html after a short delay
+    setTimeout(() => {
+      window.location.href = 'dashboard-users.html?from=approval';
+    }, 1500);
+  }
+  
+  // Update approval status
+  function updateApprovalStatus(approvalId, newStatus) {
+    // Find the approval in the array
+    const index = approvals.findIndex(a => a.id === approvalId);
+    if (index === -1) return;
+    
+    const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+    const adminName = loggedInUser?.name || 'Admin User';
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    // Update status based on the new status
+    if (newStatus === 'approved') {
+      approvals[index].status = 'approved';
+      approvals[index].approvedDate = currentDate;
+      approvals[index].approvedBy = adminName;
+      
+      // Show success notification
+      showNotification(`User ${approvals[index].name} has been approved`, 'success');
+    } else if (newStatus === 'rejected') {
+      // Rejection is now handled in the showUserDetails function with reason
+      // This is kept for backward compatibility
+      approvals[index].status = 'rejected';
+      approvals[index].rejectedDate = currentDate;
+      approvals[index].rejectedBy = adminName;
+      
+      // Show notification
+      showNotification(`User ${approvals[index].name} has been rejected`, 'error');
+    } else if (newStatus === 'pending') {
+      // Restore from rejected to pending
+      approvals[index].status = 'pending';
+      delete approvals[index].rejectedDate;
+      delete approvals[index].rejectedBy;
+      delete approvals[index].rejectionReason;
+      
+      // Show notification
+      showNotification(`User ${approvals[index].name} has been restored to pending status`, 'info');
+    }
+    
+    // Update localStorage
+    updateLocalStorage();
+    
+    // Re-render the table with current filter
+    applyFilters();
+    
+    // Update counters
+    updateCounters();
+  }
+  
+  // Update localStorage with current approval data
+  function updateLocalStorage() {
+    // Store the updated approvals in localStorage
+    localStorage.setItem('userApprovals', JSON.stringify(approvals));
+    
+    // Update the pending registrations in localStorage
+    const pendingUsers = approvals.filter(user => user.status === 'pending');
+    if (pendingUsers.length > 0) {
+      // Keep the original pendingRegistrations format but update with current pending users
+      const pendingRegistrations = {
+        excelData: pendingUsers.map(user => user.originalData || []),
+        timestamp: new Date().toISOString(),
+        status: "pending"
+      };
+      localStorage.setItem('pendingRegistrations', JSON.stringify(pendingRegistrations));
+    } else {
+      // If no pending users, remove the pendingRegistrations from localStorage
+      localStorage.removeItem('pendingRegistrations');
     }
   }
   
@@ -176,6 +536,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update UI
     currentApprovals = filtered;
     renderApprovalTable(filtered);
+    
+    // Add bulk action buttons if not already added
+    addBulkActionButtons();
+    toggleBulkActionButtons();
   }
   
   // Update counter elements
@@ -207,6 +571,10 @@ document.addEventListener('DOMContentLoaded', function() {
         className = 'bg-red-100 text-red-800';
         icon = 'fa-times-circle';
         break;
+      case 'is transfer':
+        className = 'bg-blue-100 text-blue-800';
+        icon = 'fa-paper-plane';
+        break;
     }
     
     return `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${className}">
@@ -214,322 +582,494 @@ document.addEventListener('DOMContentLoaded', function() {
     </span>`;
   }
   
-  // Generate document list HTML
-  function getDocumentsList(documents) {
-    if (!documents || documents.length === 0) {
-      return '<span class="text-gray-400 italic">None</span>';
-    }
-    
-    let html = '<div class="flex flex-wrap gap-1">';
-    
-    documents.forEach(doc => {
-      let icon = 'fa-file';
-      if (doc.endsWith('.pdf')) icon = 'fa-file-pdf';
-      else if (doc.match(/\.(jpg|jpeg|png|gif)$/i)) icon = 'fa-file-image';
-      
-      html += `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-        <i class="fas ${icon} mr-1"></i> ${doc}
-      </span>`;
-    });
-    
-    html += '</div>';
-    return html;
-  }
-
   // Render approval table
   function renderApprovalTable(approvals) {
     if (!approvalTableBody) return;
     
+    // Clear the table body
     approvalTableBody.innerHTML = '';
     
+    // Show empty state if no approvals
     if (approvals.length === 0) {
-      if (approvalTable) approvalTable.parentElement.parentElement.classList.add('hidden');
+      if (approvalTable) approvalTable.classList.add('hidden');
       if (emptyState) emptyState.classList.remove('hidden');
       return;
     }
     
-    if (approvalTable) approvalTable.parentElement.parentElement.classList.remove('hidden');
+    // Show table if there are approvals
+    if (approvalTable) approvalTable.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     
+    // Render each approval row
     approvals.forEach(approval => {
       const row = document.createElement('tr');
-      row.className = 'hover:bg-gray-50 transition-colors duration-150 ease-in-out';
       
-      // Build row HTML
-      row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 h-10 w-10">
-              <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <i class="fas fa-user"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-sm font-medium text-gray-900">${approval.name}</div>
-              <div class="text-sm text-gray-500">${approval.userId}</div>
-            </div>
-          </div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="text-sm text-gray-900">${approval.department}</div>
-          <div class="text-sm text-gray-500">${approval.position}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="text-sm text-gray-900">${approval.email}</div>
-          <div class="text-sm text-gray-500">${approval.phone}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          ${getStatusBadge(approval.status)}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-          ${formatDate(approval.submittedDate)}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-          <div class="flex justify-end space-x-3">
-      `;
+      // Add checkbox column for bulk actions
+      const checkboxCell = document.createElement('td');
+      checkboxCell.className = 'px-6 py-4 whitespace-nowrap';
       
-      // Add appropriate action buttons based on status
-      if (approval.status === 'pending') {
-        row.innerHTML += `
-            <button type="button" class="inline-flex items-center px-2.5 py-1.5 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" onclick="showApprovalDetails('${approval.id}', 'reject')">
-              <i class="fas fa-times mr-1"></i> Reject
-            </button>
-            <button type="button" class="inline-flex items-center px-2.5 py-1.5 border border-green-300 shadow-sm text-xs font-medium rounded text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" onclick="showApprovalDetails('${approval.id}', 'approve')">
-              <i class="fas fa-check mr-1"></i> Approve
-            </button>
-        `;
+      // Only add checkbox for rejected or approved users
+      if (approval.status === 'rejected' || approval.status === 'approved') {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded';
+        checkbox.dataset.userId = approval.id;
+        checkbox.dataset.status = approval.status;
+        
+        // Add event listener to handle selection
+        checkbox.addEventListener('change', function() {
+          if (approval.status === 'rejected') {
+            if (this.checked) {
+              selectedRejectedUsers.push(approval.id);
+            } else {
+              const index = selectedRejectedUsers.indexOf(approval.id);
+              if (index > -1) selectedRejectedUsers.splice(index, 1);
+            }
+          } else if (approval.status === 'approved') {
+            if (this.checked) {
+              selectedApprovedUsers.push(approval.id);
+            } else {
+              const index = selectedApprovedUsers.indexOf(approval.id);
+              if (index > -1) selectedApprovedUsers.splice(index, 1);
+            }
+          }
+          
+          // Update header checkbox state
+          updateHeaderCheckbox();
+          
+          // Update selected count display
+          updateSelectedCount();
+        });
+        
+        checkboxCell.appendChild(checkbox);
       }
       
-      row.innerHTML += `
-            <button type="button" class="inline-flex items-center px-2.5 py-1.5 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="showApprovalDetails('${approval.id}', 'view')">
-              <i class="fas fa-eye mr-1"></i> View
-            </button>
+      // Hide checkbox cell if not on rejected or approved filter
+      if (currentFilter !== 'rejected' && currentFilter !== 'approved') {
+        checkboxCell.classList.add('hidden');
+      }
+      
+      row.appendChild(checkboxCell);
+      
+      // User information
+      const userCell = document.createElement('td');
+      userCell.className = 'px-6 py-4 whitespace-nowrap';
+      userCell.innerHTML = `
+        <div class="flex items-center">
+          <div class="flex-shrink-0 h-10 w-10">
+            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+              <i class="fas fa-user text-gray-500"></i>
+            </div>
           </div>
-        </td>
+          <div class="ml-4">
+            <div class="text-sm font-medium text-gray-900">${approval.name}</div>
+            <div class="text-sm text-gray-500">${approval.userId}</div>
+          </div>
+        </div>
+      `;
+      row.appendChild(userCell);
+      
+      // Department/Position
+      const deptCell = document.createElement('td');
+      deptCell.className = 'px-6 py-4 whitespace-nowrap';
+      deptCell.innerHTML = `
+        <div class="text-sm text-gray-900">${approval.department}</div>
+        <div class="text-sm text-gray-500">${approval.position}</div>
+      `;
+      row.appendChild(deptCell);
+      
+      // Contact information
+      const contactCell = document.createElement('td');
+      contactCell.className = 'px-6 py-4 whitespace-nowrap';
+      contactCell.innerHTML = `
+        <div class="text-sm text-gray-900">${approval.email}</div>
+        <div class="text-sm text-gray-500">${approval.phone || 'No phone'}</div>
+      `;
+      row.appendChild(contactCell);
+      
+      // Status
+      const statusCell = document.createElement('td');
+      statusCell.className = 'px-6 py-4 whitespace-nowrap';
+      statusCell.innerHTML = getStatusBadge(approval.status);
+      row.appendChild(statusCell);
+      
+      // Submitted date
+      const dateCell = document.createElement('td');
+      dateCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+      dateCell.textContent = formatDate(approval.submittedDate);
+      row.appendChild(dateCell);
+      
+      // Actions
+      const actionsCell = document.createElement('td');
+      actionsCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
+      
+      // Replace the existing actions with just Detail and Delete buttons
+      actionsCell.innerHTML = `
+        <button class="text-blue-600 hover:text-blue-900 mr-3 detail-btn" data-id="${approval.id}">
+          <i class="fas fa-eye"></i> Detail
+        </button>
+        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${approval.id}">
+          <i class="fas fa-trash-alt"></i> Delete
+        </button>
       `;
       
+      row.appendChild(actionsCell);
+      
+      // Add the row to the table
       approvalTableBody.appendChild(row);
     });
+    
+    // Add event listeners to action buttons
+    document.querySelectorAll('.detail-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.id;
+        showUserDetails(id);
+      });
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.id;
+        if (confirm('Are you sure you want to delete this user?')) {
+          // Find user index
+          const index = approvals.findIndex(approval => approval.id === id);
+          if (index !== -1) {
+            // Remove from array
+            approvals.splice(index, 1);
+            // Update local storage
+            updateLocalStorage();
+            // Re-render table
+            applyFilters();
+            // Update counters
+            updateCounters();
+            // Show notification
+            showNotification('User deleted successfully', 'success');
+          }
+        }
+      });
+    });
+    
+    // Add event listener to header checkbox
+    const headerCheckbox = document.getElementById('select-all-header-checkbox');
+    if (headerCheckbox) {
+      headerCheckbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"][data-user-id]');
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = this.checked;
+          
+          // Trigger change event to update selected arrays
+          const event = new Event('change');
+          checkbox.dispatchEvent(event);
+        });
+      });
+    }
+    
+    // Update the header checkbox state
+    updateHeaderCheckbox();
   }
   
   // Format date for display
   function formatDate(dateString) {
-    if (!dateString) return '';
+    if (!dateString) return 'N/A';
     
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   }
   
-  // Global function to show approval details
-  window.showApprovalDetails = function(approvalId, mode = 'view') {
-    const approval = approvals.find(a => a.id === approvalId);
-    if (!approval || !approvalModal || !modalContent) return;
+  // Show user details in modal
+  function showUserDetails(id, action = null) {
+    const user = approvals.find(a => a.id === id);
     
-    // Set data attributes for action buttons
-    if (approveBtn) {
-      approveBtn.dataset.userId = approvalId;
-      approveBtn.style.display = (mode === 'view' || approval.status !== 'pending') ? 'none' : 'inline-flex';
+    // Update modal title to include user's name
+    if (user) {
+      document.querySelector('#modal-title').textContent = `User Registration Details: ${user.name}`;
     }
+    if (!user || !modalContent || !approvalModal) return;
     
-    if (rejectBtn) {
-      rejectBtn.dataset.userId = approvalId;
-      rejectBtn.style.display = (mode === 'view' || approval.status !== 'pending') ? 'none' : 'inline-flex';
-    }
+    // Set user ID for approve/reject buttons
+    if (approveBtn) approveBtn.dataset.userId = id;
+    if (rejectBtn) rejectBtn.dataset.userId = id;
     
-    // Generate document list HTML
-    const getDocumentsList = (documents) => {
-      if (!documents || documents.length === 0) {
-        return '<p class="text-sm text-gray-500 italic">No documents attached</p>';
+    // Show/hide approval actions based on status
+    const approvalActions = document.querySelector('.approval-actions');
+    if (approvalActions) {
+      if (user.status === 'pending') {
+        approvalActions.classList.remove('hidden');
+      } else {
+        approvalActions.classList.add('hidden');
       }
-      
-      let html = '<div class="document-list">';
-      
-      documents.forEach(doc => {
-        let icon = 'fa-file';
-        if (doc.endsWith('.pdf')) icon = 'fa-file-pdf';
-        else if (doc.match(/\.(jpg|jpeg|png|gif)$/i)) icon = 'fa-file-image';
-        
-        html += `<span class="document-item">
-          <i class="fas ${icon}"></i> ${doc}
-        </span>`;
-      });
-      
-      html += '</div>';
-      return html;
-    };
+    }
     
-    // Build modal content
-    modalContent.innerHTML = `
-      <div class="flex justify-between items-center mb-4">
-        <div>
-          <h4 class="text-xl font-semibold text-gray-900">${approval.name}</h4>
-          <p class="text-sm text-gray-600">${approval.department} - ${approval.position}</p>
-        </div>
-        <div>
-          <span class="status-indicator ${approval.status === 'pending' ? 'status-pending' : approval.status === 'approved' ? 'status-approved' : 'status-rejected'}">
-            <i class="fas ${approval.status === 'pending' ? 'fa-clock' : approval.status === 'approved' ? 'fa-check-circle' : 'fa-times-circle'} mr-1"></i>
-            ${approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
-          </span>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <h5 class="modal-section-title">Personal Information</h5>
-        <div class="modal-grid">
-          <div class="modal-data-item">
-            <div class="data-label">Employee ID</div>
-            <div class="data-value">${approval.userId}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Registration ID</div>
-            <div class="data-value">${approval.id}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Email</div>
-            <div class="data-value">${approval.email}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Phone</div>
-            <div class="data-value">${approval.phone}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <h5 class="modal-section-title">Registration Information</h5>
-        <div class="modal-grid">
-          <div class="modal-data-item">
-            <div class="data-label">Submitted Date</div>
-            <div class="data-value">${formatDate(approval.submittedDate)}</div>
-          </div>
-    `;
+    // Highlight specific action if provided
+    if (action === 'approve' && approveBtn) {
+      approveBtn.classList.add('animate-pulse', 'ring-2', 'ring-green-500');
+      setTimeout(() => approveBtn.classList.remove('animate-pulse', 'ring-2', 'ring-green-500'), 1500);
+    } else if (action === 'reject' && rejectBtn) {
+      rejectBtn.classList.add('animate-pulse', 'ring-2', 'ring-red-500');
+      setTimeout(() => rejectBtn.classList.remove('animate-pulse', 'ring-2', 'ring-red-500'), 1500);
+    }
     
-    if (approval.status === 'approved') {
-      modalContent.innerHTML += `
-          <div class="modal-data-item">
-            <div class="data-label">Approved Date</div>
-            <div class="data-value">${formatDate(approval.approvedDate)}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Approved By</div>
-            <div class="data-value">${approval.approvedBy || 'System'}</div>
-          </div>
+    // Generate HTML for user details
+    let statusInfo = '';
+    if (user.status === 'approved') {
+      statusInfo = `
+        <div class="mt-2 p-2 bg-green-50 rounded-md">
+          <p class="text-sm text-green-800">
+            <i class="fas fa-check-circle mr-1"></i> Approved on ${formatDate(user.approvedDate)} by ${user.approvedBy || 'Admin'}
+          </p>
+        </div>
       `;
-    } else if (approval.status === 'rejected') {
-      modalContent.innerHTML += `
-          <div class="modal-data-item">
-            <div class="data-label">Rejected Date</div>
-            <div class="data-value">${formatDate(approval.rejectedDate)}</div>
-          </div>
-          <div class="modal-data-item">
-            <div class="data-label">Rejected By</div>
-            <div class="data-value">${approval.rejectedBy || 'System'}</div>
-          </div>
-          <div class="modal-data-item col-span-2">
-            <div class="data-label">Rejection Reason</div>
-            <div class="data-value">${approval.rejectionReason || 'No reason provided'}</div>
-          </div>
+    } else if (user.status === 'rejected') {
+      statusInfo = `
+        <div class="mt-2 p-2 bg-red-50 rounded-md">
+          <p class="text-sm text-red-800">
+            <i class="fas fa-times-circle mr-1"></i> Rejected on ${formatDate(user.rejectedDate)} by ${user.rejectedBy || 'Admin'}
+          </p>
+          <p class="text-sm text-red-700 mt-1">Reason: ${user.rejectionReason || 'No reason provided'}</p>
+        </div>
       `;
     }
     
-    modalContent.innerHTML += `
+    modalContent.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 class="font-medium text-gray-700 mb-2">User Information</h4>
+          <div class="space-y-2">
+            <div>
+              <span class="text-xs text-gray-500">Full Name</span>
+              <p class="font-medium">${user.name}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Employee ID</span>
+              <p>${user.userId}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Username</span>
+              <p>${user.username}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Email</span>
+              <p>${user.email}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Phone</span>
+              <p>${user.phone || 'Not provided'}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="font-medium text-gray-700 mb-2">Position Details</h4>
+          <div class="space-y-2">
+            <div>
+              <span class="text-xs text-gray-500">Department</span>
+              <p>${user.department}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Position</span>
+              <p>${user.position}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Submission Date</span>
+              <p>${formatDate(user.submittedDate)}</p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-500">Status</span>
+              <p>${getStatusBadge(user.status)}</p>
+            </div>
+          </div>
         </div>
       </div>
+      
+      ${statusInfo}
+      
+      ${user.status === 'pending' ? `
+        <div class="mt-4">
+          <div id="rejection-reason-container" class="hidden mt-3">
+            <label for="rejection-reason" class="block text-sm font-medium text-gray-700">Rejection Reason</label>
+            <textarea id="rejection-reason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Please provide a reason for rejection..."></textarea>
+          </div>
+        </div>
+      ` : ''}
     `;
     
     // Show modal
     approvalModal.classList.remove('hidden');
-  };
+    
+    // Add event listener for reject button to show rejection reason field
+    if (rejectBtn && user.status === 'pending') {
+      rejectBtn.addEventListener('click', function() {
+        const rejectionContainer = document.getElementById('rejection-reason-container');
+        if (rejectionContainer) {
+          rejectionContainer.classList.remove('hidden');
+          document.getElementById('rejection-reason').focus();
+        }
+      });
+      
+      // Update the reject button click handler
+      rejectBtn.onclick = function() {
+        const rejectionContainer = document.getElementById('rejection-reason-container');
+        
+        if (rejectionContainer && rejectionContainer.classList.contains('hidden')) {
+          // First click - show the rejection reason field
+          rejectionContainer.classList.remove('hidden');
+          document.getElementById('rejection-reason').focus();
+        } else {
+          // Second click - process the rejection
+          const rejectionReason = document.getElementById('rejection-reason').value.trim();
+          
+          if (!rejectionReason) {
+            alert('Please provide a reason for rejection');
+            return;
+          }
+          
+          // Update user status to rejected with reason
+          const userId = this.dataset.userId;
+          const userIndex = approvals.findIndex(a => a.id === userId);
+          
+          if (userIndex !== -1) {
+            approvals[userIndex].status = 'rejected';
+            approvals[userIndex].rejectedDate = new Date().toISOString().split('T')[0];
+            approvals[userIndex].rejectedBy = JSON.parse(localStorage.getItem('loggedInUser'))?.name || 'Admin';
+            approvals[userIndex].rejectionReason = rejectionReason;
+            
+            // Update local storage
+            updateLocalStorage();
+            
+            // Close modal
+            approvalModal.classList.add('hidden');
+            
+            // Re-render table
+            applyFilters();
+            
+            // Update counters
+            updateCounters();
+            
+            // Show notification
+            showNotification('User rejected successfully', 'success');
+          }
+        }
+      };
+    }
+  }
   
-  // Simple notification function
+  // Show notification
   function showNotification(message, type = 'info') {
-    // Check if a notification container exists, create one if not
-    let container = document.getElementById('notification-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'notification-container';
-      container.className = 'fixed top-4 right-4 z-50 flex flex-col items-end space-y-2';
-      document.body.appendChild(container);
+    // Check if notification container exists, if not create it
+    let notificationContainer = document.getElementById('notification-container');
+    
+    if (!notificationContainer) {
+      notificationContainer = document.createElement('div');
+      notificationContainer.id = 'notification-container';
+      notificationContainer.className = 'fixed top-4 right-4 z-50 flex flex-col space-y-2';
+      document.body.appendChild(notificationContainer);
     }
     
     // Create notification element
     const notification = document.createElement('div');
-    notification.className = `
-      transform transition-all duration-300 ease-out
-      translate-x-0 opacity-100 scale-100
-      max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto
-      ring-1 ring-black ring-opacity-5 overflow-hidden
-    `;
     
-    // Set icon and color based on type
-    let iconClass = 'fas fa-info-circle text-blue-500';
-    let borderColor = 'border-blue-500';
-    
-    if (type === 'success') {
-      iconClass = 'fas fa-check-circle text-green-500';
-      borderColor = 'border-green-500';
-    } else if (type === 'error') {
-      iconClass = 'fas fa-exclamation-circle text-red-500';
-      borderColor = 'border-red-500';
-    } else if (type === 'warning') {
-      iconClass = 'fas fa-exclamation-triangle text-yellow-500';
-      borderColor = 'border-yellow-500';
+    // Set classes based on type
+    let bgColor, textColor, icon;
+    switch (type) {
+      case 'success':
+        bgColor = 'bg-green-100';
+        textColor = 'text-green-800';
+        icon = 'fa-check-circle';
+        break;
+      case 'error':
+        bgColor = 'bg-red-100';
+        textColor = 'text-red-800';
+        icon = 'fa-times-circle';
+        break;
+      case 'warning':
+        bgColor = 'bg-yellow-100';
+        textColor = 'text-yellow-800';
+        icon = 'fa-exclamation-triangle';
+        break;
+      default:
+        bgColor = 'bg-blue-100';
+        textColor = 'text-blue-800';
+        icon = 'fa-info-circle';
     }
     
-    // Build notification HTML
+    notification.className = `${bgColor} ${textColor} px-4 py-3 rounded-lg shadow-md flex items-start transform transition-all duration-300 ease-in-out translate-x-full opacity-0`;
+    
     notification.innerHTML = `
-      <div class="p-4 border-l-4 ${borderColor}">
-        <div class="flex items-start">
-          <div class="flex-shrink-0">
-            <i class="${iconClass}"></i>
-          </div>
-          <div class="ml-3 w-0 flex-1 pt-0.5">
-            <p class="text-sm font-medium text-gray-900">${message}</p>
-          </div>
-          <div class="ml-4 flex-shrink-0 flex">
-            <button class="rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
-              <span class="sr-only">Close</span>
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+      <i class="fas ${icon} mt-0.5 mr-2"></i>
+      <div class="flex-1">${message}</div>
+      <button class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+        <i class="fas fa-times"></i>
+      </button>
     `;
     
-    // Add notification to container
-    container.appendChild(notification);
+    // Add to container
+    notificationContainer.appendChild(notification);
     
-    // Setup close button
-    const closeBtn = notification.querySelector('button');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        notification.classList.replace('opacity-100', 'opacity-0');
-        notification.classList.replace('translate-x-0', 'translate-x-5');
-        notification.classList.replace('scale-100', 'scale-95');
-        
-        setTimeout(() => {
-          notification.remove();
-        }, 300);
-      });
+    // Animate in
+    setTimeout(() => {
+      notification.classList.remove('translate-x-full', 'opacity-0');
+    }, 10);
+    
+    // Add click listener to close button
+    const closeButton = notification.querySelector('button');
+    closeButton.addEventListener('click', () => {
+      closeNotification(notification);
+    });
+    
+    // Auto close after 5 seconds
+    setTimeout(() => {
+      closeNotification(notification);
+    }, 5000);
+  }
+  
+  function closeNotification(notification) {
+    notification.classList.add('opacity-0', 'translate-x-full');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }
+
+  // Update the header checkbox state
+  function updateHeaderCheckbox() {
+    const headerCheckbox = document.getElementById('select-all-header-checkbox');
+    if (!headerCheckbox) return;
+    
+    // Get all visible checkboxes for the current filter
+    let checkboxes = [];
+    if (currentFilter === 'rejected') {
+      checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-status="rejected"]'));
+    } else if (currentFilter === 'approved') {
+      checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-status="approved"]'));
     }
     
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.classList.replace('opacity-100', 'opacity-0');
-        notification.classList.replace('translate-x-0', 'translate-x-5');
-        notification.classList.replace('scale-100', 'scale-95');
+    if (checkboxes.length === 0) {
+      headerCheckbox.checked = false;
+      headerCheckbox.indeterminate = false;
+      return;
+    }
+    
+    const allChecked = checkboxes.every(cb => cb.checked);
+    const someChecked = checkboxes.some(cb => cb.checked);
+    
+    headerCheckbox.checked = allChecked;
+    headerCheckbox.indeterminate = someChecked && !allChecked;
+    
+    // Add event listener to the header checkbox if not already added
+    if (!headerCheckbox.hasEventListener) {
+      headerCheckbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll(`input[type="checkbox"][data-status="${currentFilter}"]`);
         
-        setTimeout(() => {
-          notification.remove();
-        }, 300);
-      }
-    }, 5000);
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = this.checked;
+          
+          // Trigger change event to update selected arrays
+          const event = new Event('change');
+          checkbox.dispatchEvent(event);
+        });
+      });
+      
+      // Mark that we've added the event listener
+      headerCheckbox.hasEventListener = true;
+    }
   }
 }); 

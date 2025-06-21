@@ -371,18 +371,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     function saveExcelDataToStorage() {
-      // Create a metadata object with the file info
-      const metadata = {
-        fileName: originalFileName,
-        dateImported: new Date().toISOString(),
-        rowCount: excelData.length - 1, // Exclude header row
-        columnCount: excelData[0].length,
-        columns: excelData[0]
+      // Save the data to localStorage for use in the approval dashboard
+      const registrationData = {
+        excelData: excelData.slice(1), // Skip header row
+        originalFileName: originalFileName,
+        timestamp: new Date().toISOString(),
+        status: "pending" // Set default status to pending
       };
       
-      // Save both the data and metadata
-      localStorage.setItem("supplierData", JSON.stringify(excelData.slice(1))); // Save without header
-      localStorage.setItem("supplierDataMeta", JSON.stringify(metadata));
+      // Store in localStorage
+      localStorage.setItem('pendingRegistrations', JSON.stringify(registrationData));
+      
+      console.log("Excel data saved to localStorage for approval");
     }
   
     function displayExcelData(data) {
@@ -451,162 +451,24 @@ document.addEventListener("DOMContentLoaded", function () {
     // Form Submission with API Integration
     let registerForm = document.getElementById("registerForm");
     if (registerForm) {
-      registerForm.addEventListener("submit", async function(event) {
+      registerForm.addEventListener("submit", function(event) {
         event.preventDefault();
         
-        if (!validateForm()) {
-          return;
+        if (!excelData || excelData.length <= 1) {
+          showNotification('Please upload an Excel file with user data first.', 'error');
+          return false;
         }
         
-        // Show loading state
-        const submitBtn = registerForm.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-          <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Processing...
-        `;
+        // Save the data to localStorage
+        saveExcelDataToStorage();
         
-        const userData = prepareUserDataForAPI();
-        console.log(`🚀 Starting registration process for ${userData.length} users`);
-        console.log('User data prepared:', userData);
+        // Show success notification
+        showNotification('User data submitted for approval!', 'success');
         
-        const results = {
-          successful: [],
-          failed: []
-        };
-        
-        try {
-          // Register users one by one
-          for (let i = 0; i < userData.length; i++) {
-            const user = userData[i];
-            
-            // Update progress
-            submitBtn.innerHTML = `
-              <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Registering user ${i + 1} of ${userData.length}...
-            `;
-            
-            try {
-              console.log(`Registering user ${i + 1}:`, JSON.stringify(user, null, 2));
-              
-              const response = await fetch(`${BASE_URL}/api/authentication/register`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify(user)
-              });
-              
-              console.log(`Response status for ${user.username}:`, response.status, response.statusText);
-              
-              const result = await response.json();
-              console.log(`Response data for ${user.username}:`, result);
-              
-              if (response.ok && result.status && result.code === 200) {
-                console.log(`✅ Successfully registered: ${user.username}`);
-                results.successful.push({
-                  user: user,
-                  response: result
-                });
-              } else {
-                // Extract error message from backend response
-                let errorMessage = 'Registration failed';
-                
-                if (result.Message) {
-                  // Backend returns error with 'Message' property
-                  errorMessage = result.Message;
-                } else if (result.message) {
-                  // Fallback to lowercase 'message'
-                  errorMessage = result.message;
-                } else if (result.errors) {
-                  // Handle validation errors array
-                  errorMessage = Array.isArray(result.errors) 
-                    ? result.errors.join(', ') 
-                    : result.errors;
-                } else {
-                  // Fallback to HTTP status
-                  errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                }
-                
-                console.error(`❌ Failed to register ${user.username}:`, {
-                  status: response.status,
-                  statusText: response.statusText,
-                  statusCode: result.StatusCode,
-                  message: result.Message,
-                  fullResponse: result
-                });
-                
-                results.failed.push({
-                  user: user,
-                  error: errorMessage
-                });
-              }
-            } catch (error) {
-              console.error(`💥 Exception during registration of ${user.username}:`, error);
-              results.failed.push({
-                user: user,
-                error: error.message
-              });
-            }
-            
-            // Small delay between requests to avoid overwhelming the server
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-          // Show final results
-          const successCount = results.successful.length;
-          const failCount = results.failed.length;
-          
-          console.log(`📊 Registration Summary:`, {
-            total: userData.length,
-            successful: successCount,
-            failed: failCount,
-            successfulUsers: results.successful.map(r => r.user.username),
-            failedUsers: results.failed.map(r => `${r.user.username}: ${r.error}`)
-          });
-          
-          if (successCount > 0 && failCount === 0) {
-            showNotification(`Successfully registered ${successCount} users!`, "success");
-          } else if (successCount > 0 && failCount > 0) {
-            showNotification(`Registered ${successCount} users successfully, ${failCount} failed. Check console for details.`, "warning");
-          } else {
-            showNotification(`Registration failed for all ${failCount} users. Check console for details.`, "error");
-          }
-          
-          // Save results to localStorage for review
-          localStorage.setItem("registrationResults", JSON.stringify({
-            timestamp: new Date().toISOString(),
-            totalUsers: userData.length,
-            successful: results.successful,
-            failed: results.failed
-          }));
-          
-          // Clear form if all successful
-          if (failCount === 0) {
-            clearForm();
-          }
-          
-          // Show detailed results if there were failures
-          if (failCount > 0) {
-            showFailureDetails(results.failed);
-          }
-          
-        } catch (error) {
-          console.error('Registration process error:', error);
-          showNotification(`Registration process failed: ${error.message}`, "error");
-        } finally {
-          // Reset button state
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
-        }
+        // Redirect to the approval dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = 'approval-dashboard.html';
+        }, 1500);
       });
     }
     

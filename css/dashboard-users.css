@@ -40,77 +40,73 @@ th {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
+  border-radius: 9999px;
 }
 
 .status-active {
-  background-color: #def7ec;
-  color: #03543e;
+  background-color: #DEF7EC;
+  color: #03543E;
 }
 
 .status-pending {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: #FEF3C7;
+  color: #92400E;
 }
 
 .status-inactive {
-  background-color: #feebc8;
-  color: #9c4221;
+  background-color: #FEE2E2;
+  color: #991B1B;
 }
 
-.status-rejected {
-  background-color: #fee2e2;
-  color: #9b1c1c;
+.status-transfer {
+  background-color: #DBEAFE;
+  color: #1E40AF;
 }
 
 /* Action Buttons */
 .action-btn {
+  @apply p-2 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none;
+  transition: all 0.2s ease;
+}
+
+.view-btn, .delete-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
   transition: all 0.2s;
-  margin-left: 0.25rem;
 }
 
 .view-btn {
-  background-color: #ebf5ff;
-  color: #1e40af;
+  background-color: #EBF5FF;
+  color: #1E40AF;
 }
 
 .view-btn:hover {
-  background-color: #dbeafe;
-}
-
-.edit-btn {
-  background-color: #fdf5f3;
-  color: #0891b2;
-}
-
-.edit-btn:hover {
-  background-color: #e0f2fe;
+  background-color: #DBEAFE;
+  color: #1E3A8A;
 }
 
 .delete-btn {
-  background-color: #fef2f2;
-  color: #dc2626;
+  background-color: #FEE2E2;
+  color: #B91C1C;
 }
 
 .delete-btn:hover {
-  background-color: #fee2e2;
+  background-color: #FEE2E2;
+  color: #991B1B;
 }
 
 /* Animation Effects */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.fade-in {
+.notification {
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -142,12 +138,13 @@ th {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
   font-size: 0.75rem;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  margin-right: 0.25rem;
-  margin-bottom: 0.25rem;
+  font-weight: 500;
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .document-badge i {
@@ -173,4 +170,99 @@ th {
     width: 24px;
     height: 24px;
   }
+}
+
+/* Modal animations */
+#userDetailsModal,
+#resetPasswordModal {
+  transition: opacity 0.3s ease;
+}
+
+#userDetailsModal.hidden,
+#resetPasswordModal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#userDetailsModal:not(.hidden),
+#resetPasswordModal:not(.hidden) {
+  opacity: 1;
+}
+
+/* Reset password modal */
+#tempPassword {
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+
+#generatePasswordBtn {
+  transition: all 0.2s ease;
+}
+
+#generatePasswordBtn:hover {
+  background-color: #dbeafe;
+}
+
+/* Notification system */
+#notification-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#notification-container > div {
+  transition: all 0.3s ease;
+  max-width: 24rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .document-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  #notification-container {
+    left: 1rem;
+    right: 1rem;
+  }
+  
+  #notification-container > div {
+    max-width: 100%;
+  }
+  
+  .action-btn span {
+    display: none;
+  }
+}
+
+/* Transferred users styling */
+tr.bg-blue-50 {
+  position: relative;
+}
+
+tr.bg-blue-50::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #3b82f6;
+}
+
+tr.bg-blue-50 .text-sm {
+  font-weight: 500;
+}
+
+/* Status badge for transferred users */
+.status-transfer {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #93C5FD;
 } 
