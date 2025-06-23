@@ -72,11 +72,6 @@
     border-radius: 20px;
 }
 
-/* Main content should have margin to accommodate fixed sidebar */
-.flex-1 {
-    margin-left: 16rem;
-}
-
 /* Responsive table styles */
 @media (max-width: 1024px) {
     table th, table td {
