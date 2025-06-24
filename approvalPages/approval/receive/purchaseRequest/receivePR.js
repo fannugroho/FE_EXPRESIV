@@ -852,3 +852,79 @@ function displayRevisedRemarks(data) {
         revisedRemarksSection.style.display = 'none';
     }
 }
+
+// Function to print PR document
+function printPR() {
+    // Get all necessary data from the form
+    const prData = {
+        purchaseRequestNo: document.getElementById('purchaseRequestNo').value || '',
+        requesterName: document.getElementById('requesterName').value || '',
+        department: document.getElementById('department').value || '',
+        submissionDate: document.getElementById('submissionDate').value || '',
+        classification: document.getElementById('classification').value || '',
+        preparedBy: document.getElementById('preparedBySearch').value || '',
+        acknowledgedBy: document.getElementById('acknowledgedBySearch').value || '',
+        checkedBy: document.getElementById('checkedBySearch').value || '',
+        approvedBy: document.getElementById('approvedBySearch').value || '',
+        receivedBy: document.getElementById('receivedBySearch').value || '',
+    };
+    
+    // Get current date for display
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    
+    // Get items from the table
+    const items = [];
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        // Extract data from each row
+        const description = row.querySelector('.item-description') ? row.querySelector('.item-description').value || '' : '';
+        const detail = row.querySelector('.item-detail') ? row.querySelector('.item-detail').value || '' : '';
+        const purpose = row.querySelector('.item-purpose') ? row.querySelector('.item-purpose').value || '' : '';
+        const quantity = row.querySelector('.item-quantity') ? row.querySelector('.item-quantity').value || '' : '';
+        const uom = row.querySelector('.item-uom') ? row.querySelector('.item-uom').value || 'Pcs' : 'Pcs';
+        
+        items.push({
+            description: description,
+            detail: detail,
+            purpose: purpose,
+            quantity: quantity,
+            uom: uom
+        });
+    });
+    
+    // Create URL parameters for the print page
+    const params = new URLSearchParams();
+    params.append('purchaseRequestNo', prData.purchaseRequestNo);
+    params.append('requesterName', prData.requesterName);
+    params.append('department', prData.department);
+    params.append('dateIssued', prData.submissionDate);
+    params.append('classification', prData.classification);
+    
+    // Add approval information
+    params.append('requestedBy', prData.requesterName);
+    params.append('checkedBy', prData.checkedBy);
+    params.append('acknowledgedBy', prData.acknowledgedBy);
+    params.append('approvedBy', prData.approvedBy);
+    params.append('receivedBy', prData.receivedBy);
+    
+    // Add approval dates (using current date for simplicity)
+    params.append('requestedDate', currentDate);
+    params.append('checkedDate', currentDate);
+    params.append('acknowledgedDate', currentDate);
+    params.append('approvedDate', currentDate);
+    params.append('receivedDate', currentDate);
+    
+    // Add approval status flags
+    params.append('receivedApproved', 'true');
+    params.append('requestedApproved', 'true');
+    params.append('checkedApproved', 'true');
+    params.append('acknowledgedApproved', 'true');
+    params.append('finalApproved', 'true');
+    
+    // Add items data as JSON
+    params.append('items', encodeURIComponent(JSON.stringify(items)));
+    
+    // Open the print page in a new window
+    window.open(`printPR.html?${params.toString()}`, '_blank');
+}
