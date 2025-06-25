@@ -79,13 +79,45 @@
         </div>            
     </div>
 
-    <div class="menu-category">Approval Center</div>
+    <div class="menu-category">Approval Report</div>
 
     <div class="mb-1">
         <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
-                <span class="ml-3">Decision Report</span>
+                <span class="ml-3">Purchase Order</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
+            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+        </div>
+    </div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="ml-3">AR Invoice</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
+            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+        </div>
+    </div>
+
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="ml-3">Outgoing Payment</span>
             </div>
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>

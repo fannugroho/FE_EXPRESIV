@@ -500,101 +500,94 @@ async function saveDocument(isSubmit = false) {
             }
         }
         
-        // Collect settlement items from table
-        const tableRows = document.querySelectorAll("#tableBody tr");
+        // Handle table data
+        const tableRows = document.getElementById("tableBody").querySelectorAll("tr");
+        const items = [];
+        
         tableRows.forEach((row, index) => {
-            const inputs = row.querySelectorAll('input');
-            if (inputs.length >= 4) {
-                const description = inputs[0].value; // Description input
-                const glAccount = inputs[1].value;   // GLAccount input
-                const accountName = inputs[2].value; // AccountName input
-                const amount = inputs[3].value;      // Amount input
-                
-                if (description) formData.append(`SettlementItems[${index}].Description`, description);
-                if (glAccount) formData.append(`SettlementItems[${index}].GLAccount`, glAccount);
-                if (accountName) formData.append(`SettlementItems[${index}].AccountName`, accountName);
-                if (amount) formData.append(`SettlementItems[${index}].Amount`, amount);
+            const category = row.querySelector('input[id="Category"]').value;
+            const glAccount = row.querySelector('input[id="GLAccount"]').value;
+            const description = row.querySelector('input[id="Description"]').value;
+            const amount = row.querySelector('input[id="Amount"]').value;
+            
+            if (category && description && amount) {
+                const item = {
+                    Category: category,
+                    GLAccount: glAccount || "",
+                    Description: description,
+                    Amount: parseFloat(amount.replace(/,/g, ''))
+                };
+                items.push(item);
             }
         });
         
-        // Handle approval fields 
-    
+        // Validate that we have at least one item
+        if (items.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation Error!',
+                text: 'Please add at least one item with Category, Description and Amount',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        // Add items as JSON string
+        formData.append('Items', JSON.stringify(items));
+        
+        // Add approval workflow users
         const preparedById = document.getElementById("preparedDropdown").value;
-        if (preparedById) formData.append('PreparedById', preparedById);
-            
-        
-
         const checkedById = document.getElementById("checkedDropdown").value;
-        if (checkedById) formData.append('CheckedById', checkedById);
-     
-        
-        const approvedById = document.getElementById("approvedDropdown").value;
-        if (approvedById) formData.append('ApprovedById', approvedById);
-     
-        
         const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
-        if (acknowledgedById) formData.append('AcknowledgedById', acknowledgedById);
-        
+        const approvedById = document.getElementById("approvedDropdown").value;
         const receivedById = document.getElementById("receivedDropdown").value;
+        
+        if (preparedById) formData.append('PreparedById', preparedById);
+        if (checkedById) formData.append('CheckedById', checkedById);
+        if (acknowledgedById) formData.append('AcknowledgedById', acknowledgedById);
+        if (approvedById) formData.append('ApprovedById', approvedById);
         if (receivedById) formData.append('ReceivedById', receivedById);
         
-        // Send API request
-        const response = await fetch(`${BASE_URL}/api/settlements`, {
+        // Log FormData contents for debugging
+        console.log("FormData contents:");
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        // Send the request
+        const response = await fetch(`${BASE_URL}/api/settlement`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            },
             body: formData
         });
         
-        if (response.ok) {
-            // Success response (status 200)
-            if (isSubmit) {
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: 'Settlement berhasil di-submit',
-                    confirmButtonColor: '#3085d6'
-                });
-            } else {
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Settlement has been saved as draft',
-                    confirmButtonColor: '#3085d6'
-                });
-            }
-            
-            // Redirect back to menu page
-            window.location.href = "../pages/menuSettle.html";
-        } else if (response.status === 404) {
-            // Handle 404 error for Cash Advance not found
-            const errorData = await response.json();
+        const responseData = await response.json();
+        
+        if (response.ok && responseData.status) {
             Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: errorData.Message || 'Cash Advance is not found',
-                confirmButtonColor: '#d33'
+                icon: 'success',
+                title: 'Success!',
+                text: isSubmit ? 'Settlement has been submitted successfully!' : 'Settlement has been saved successfully!',
+                confirmButtonColor: '#3085d6'
+            }).then(() => {
+                // Redirect to menu page
+                window.location.href = '../pages/menuSettle.html';
             });
         } else {
-            // Handle other errors
-            let errorMessage = `Failed to ${isSubmit ? 'submit' : 'save'} settlement. Please try again.`;
-            try {
-                const errorData = await response.json();
-                if (errorData.message || errorData.Message) {
-                    errorMessage = errorData.message || errorData.Message;
-                }
-            } catch (parseError) {
-                console.log("Could not parse error response:", parseError);
-            }
-            
+            // Show error message
             Swal.fire({
                 icon: 'error',
                 title: 'Error!',
-                text: errorMessage,
+                text: responseData.message || 'An error occurred while saving the settlement.',
                 confirmButtonColor: '#d33'
             });
         }
-        
     } catch (error) {
         console.error('Error saving settlement:', error);
+        
+        // Show error alert
         Swal.fire({
             icon: 'error',
             title: 'Error!',
@@ -647,16 +640,16 @@ function previewPDF(event) {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <input type="text" id="Category" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
+            <input type="number" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full bg-gray-100" disabled />
+            <input type="text" id="Description" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <input type="text" id="Amount" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
