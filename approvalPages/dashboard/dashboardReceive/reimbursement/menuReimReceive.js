@@ -95,22 +95,22 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "Menu.html"; }
-function goToAddDoc() {window.location.href = "AddDoc.html"; }
-function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReceiveReim() { window.location.href = "MenuReceiveReim.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+// function goToMenu() { window.location.href = "Menu.html"; }
+// function goToAddDoc() {window.location.href = "AddDoc.html"; }
+// function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
+// function goToAddCash() {window.location.href = "AddCash.html"; }
+// function goToAddSettle() {window.location.href = "AddSettle.html"; }
+// function goToAddPO() {window.location.href = "AddPO.html"; }
+// function goToMenuPR() { window.location.href = "MenuPR.html"; }
+// function goToMenuReceiveReim() { window.location.href = "MenuReceiveReim.html"; }
+// function goToMenuReim() { window.location.href = "MenuReim.html"; }
+// function goToMenuCash() { window.location.href = "MenuCash.html"; }
+// function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
+// function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
+// function goToMenuPO() { window.location.href = "MenuPO.html"; }
+// function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
+// function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
+// function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
