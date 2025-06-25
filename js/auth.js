@@ -112,10 +112,14 @@ async function makeAuthenticatedRequest(endpoint, options = {}) {
   
   // Set default headers
   const defaultHeaders = {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Authorization': `Bearer ${token}`
   };
+  
+  // Only set Content-Type to application/json if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
   
   // Merge with provided headers
   const headers = {
@@ -245,7 +249,7 @@ async function loadUserPermissions() {
 
     if (response.ok) {
       const result = await response.json();
-      if (result.success) {
+      if (result.status) {
         userPermissions = result.data;
         localStorage.setItem('userPermissions', JSON.stringify(userPermissions));
         console.log('User permissions loaded:', userPermissions);

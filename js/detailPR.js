@@ -227,39 +227,33 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
-function fetchPRDetails(prId, prType) {
-    fetch(`${BASE_URL}/api/pr/item/${prId}`)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(response => {
-            if (response.data) {
-                console.log(response.data);
-                populatePRDetails(response.data);
-                
-                // Always fetch dropdown options
-                fetchDropdownOptions(response.data);
-                
-        
-                const isEditable = response.data && response.data.status === 'Draft';
-                toggleEditableFields(isEditable);
-                
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                title: 'Error!',
-                text: 'Error fetching PR details: ' + error.message,
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
+async function fetchPRDetails(prId, prType) {
+    try {
+        const response = await makeAuthenticatedRequest(`/api/pr/item/${prId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+        }
+        const responseData = await response.json();
+        if (responseData.data) {
+            console.log(responseData.data);
+            populatePRDetails(responseData.data);
+            
+            // Always fetch dropdown options
+            fetchDropdownOptions(responseData.data);
+            
+            const isEditable = responseData.data && responseData.data.status === 'Draft';
+            toggleEditableFields(isEditable);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Error fetching PR details: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
         });
+    }
 }
 
 // Function to fetch all dropdown options
@@ -271,94 +265,79 @@ function fetchDropdownOptions(approvalData = null) {
 }
 
 // Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Department data:", data);
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
+async function fetchDepartments() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/department');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
 }
 
 // Function to fetch users from API
-function fetchUsers(approvalData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // console.log("User data:", data);
-            populateUserSelects(data.data, approvalData);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
+async function fetchUsers(approvalData = null) {
+    try {
+        const response = await makeAuthenticatedRequest('/api/users');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        // console.log("User data:", data);
+        populateUserSelects(data.data, approvalData);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
 }
 
 // Function to fetch classifications from API
-function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateClassificationSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching classifications:', error);
-        });
+async function fetchClassifications() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/classifications');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        populateClassificationSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching classifications:', error);
+    }
 }
 
 // Function to fetch items from API
-function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Item data:", data);
-            // Populate all item selects in the document
-            document.querySelectorAll('.item-no').forEach(select => {
-                populateItemSelect(data.data, select);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
+async function fetchItemOptions() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/items');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Item data:", data);
+        // Populate all item selects in the document
+        document.querySelectorAll('.item-no').forEach(select => {
+            populateItemSelect(data.data, select);
         });
+    } catch (error) {
+        console.error('Error fetching items:', error);
+    }
 }
 
 // Function to fetch items for a specific select element (no pre-selection)
-function fetchItemOptionsForSelect(selectElement) {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateItemSelectClean(data.data, selectElement);
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
+async function fetchItemOptionsForSelect(selectElement) {
+    try {
+        const response = await makeAuthenticatedRequest('/api/items');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        populateItemSelectClean(data.data, selectElement);
+    } catch (error) {
+        console.error('Error fetching items:', error);
+    }
 }
 
 // Function to populate department select
@@ -924,7 +903,7 @@ async function confirmDelete() {
                 Swal.showLoading();
             }
         });
-        fetch(`${BASE_URL}/api/pr/item/${prId}`, {
+        makeAuthenticatedRequest(`/api/pr/item/${prId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
@@ -1104,7 +1083,7 @@ async function updatePR(isSubmit = false) {
 
         
         // Submit the form data
-        fetch(`${BASE_URL}/api/pr/item/${prId}`, {
+        makeAuthenticatedRequest(`/api/pr/item/${prId}`, {
             method: 'PUT',
             body: formData
         })
