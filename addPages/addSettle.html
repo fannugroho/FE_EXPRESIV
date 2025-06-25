@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Document - Japanese Themed CRUD</title>
+    <title>Add Document - Settlement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         /* Dropdown styling */
@@ -95,10 +95,10 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-
-                    <th id="thDescription" class="p-2">Description</th>
+                    <th id="thCategory" class="p-2">Category</th>
+                    <!-- <th id="thAccountName" class="p-2">Account Name</th> -->
                     <th id="thGLAccount" class="p-2">G/L Account</th>
-                    <th id="thAccountName" class="p-2">Account Name</th>
+                    <th id="thDescription" class="p-2">Description</th>
                     <th id="thAmount" class="p-2">Amount</th>
                     <th id="thActions" class="p-2">Action</th>
            
@@ -106,14 +106,14 @@
             </thead>
             <tbody id="tableBody">
                 <tr>                    
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="Description" maxlength="200" class="w-full" required />
+                    <td id="tdCategory" class="p-2 border">
+                        <input type="text" id="Category" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdGLAccount" class="p-2 border">
-                        <input type="text" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
+                        <input type="number" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
                     </td>
-                    <td id="tdAccountName" class="p-2 border">
-                        <input type="text" id="AccountName" maxlength="200" class="w-full bg-gray-100" disabled />
+                    <td id="tdDescription" class="p-2 border">
+                        <input type="text" id="Description" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdAmount" class="p-2 border">
                         <input type="text" id="Amount" maxlength="200" class="w-full" required />

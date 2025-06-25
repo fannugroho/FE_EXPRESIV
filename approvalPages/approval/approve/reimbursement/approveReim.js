@@ -219,7 +219,7 @@ function populateFormData(data) {
     // Approvers information - safely check if elements exist
     if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
+    if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
@@ -556,8 +556,54 @@ function printReimbursement() {
         return;
     }
     
+    // Collect all field values to pass to print page
+    const payTo = document.getElementById('payTo').value;
+    const voucherNo = document.getElementById('voucherNo').value;
+    const submissionDate = document.getElementById('submissionDate').value;
+    const department = document.getElementById('department').value;
+    const referenceDoc = document.getElementById('referenceDoc').value;
+    
+    // Get selected values from dropdowns
+    const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
+    const checkedBy = document.getElementById('checkedBySelect').options[document.getElementById('checkedBySelect').selectedIndex]?.text || '';
+    const acknowledgeBy = document.getElementById('acknowledgeBySelect') ? 
+        document.getElementById('acknowledgeBySelect').options[document.getElementById('acknowledgeBySelect').selectedIndex]?.text || '' : '';
+    const approvedBy = document.getElementById('approvedBySelect').options[document.getElementById('approvedBySelect').selectedIndex]?.text || '';
+    const receivedBy = document.getElementById('receivedBySelect') ? 
+        document.getElementById('receivedBySelect').options[document.getElementById('receivedBySelect').selectedIndex]?.text || '' : '';
+    
+    // Calculate total amount from reimbursement details
+    let totalAmount = 0;
+    const detailsRows = document.querySelectorAll('#reimbursementDetails tr');
+    const details = [];
+    
+    detailsRows.forEach(row => {
+        const descriptionCell = row.querySelector('td:nth-child(1) input');
+        const accountCell = row.querySelector('td:nth-child(2) input');
+        const accountNameCell = row.querySelector('td:nth-child(3) input');
+        const amountCell = row.querySelector('td:nth-child(4) input');
+        
+        if (descriptionCell && accountCell && accountNameCell && amountCell) {
+            const amount = parseFloat(amountCell.value) || 0;
+            totalAmount += amount;
+            
+            details.push({
+                description: descriptionCell.value,
+                glAccount: accountCell.value,
+                accountName: accountNameCell.value,
+                amount: amount
+            });
+        }
+    });
+    
+    // Encode the details as JSON and then as URI component
+    const detailsParam = encodeURIComponent(JSON.stringify(details));
+    
+    // Build URL with all parameters
+    const printUrl = `printReim.html?reim-id=${reimId}&payTo=${encodeURIComponent(payTo)}&voucherNo=${encodeURIComponent(voucherNo)}&submissionDate=${encodeURIComponent(submissionDate)}&department=${encodeURIComponent(department)}&referenceDoc=${encodeURIComponent(referenceDoc)}&preparedBy=${encodeURIComponent(preparedBy)}&checkedBy=${encodeURIComponent(checkedBy)}&acknowledgeBy=${encodeURIComponent(acknowledgeBy)}&approvedBy=${encodeURIComponent(approvedBy)}&receivedBy=${encodeURIComponent(receivedBy)}&totalAmount=${encodeURIComponent(totalAmount)}&details=${detailsParam}`;
+    
     // Open the print page in a new window/tab
-    window.open(`printReim.html?reim-id=${reimId}`, '_blank');
+    window.open(printUrl, '_blank');
 }
 
 // Event listener for document type change

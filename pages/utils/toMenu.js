@@ -120,6 +120,11 @@ function goToMenuBanking() {
     window.location.href = `${basePath}pages/MenuBanking.html`; 
 }
 
+function goToMenuOP() { 
+    const basePath = getRelativeBasePath();
+    window.location.href = `${basePath}pages/outgoingPayment.html`; 
+}
+
 function goToProfil() { 
     const basePath = getRelativeBasePath();
     window.location.href = `${basePath}pages/profil.html`; 

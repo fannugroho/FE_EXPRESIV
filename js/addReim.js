@@ -266,124 +266,138 @@ document.getElementById("docType")?.addEventListener("change", function () {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 files are allowed.');
-        return;
-    }
-
-    Array.from(files).forEach(file => {
-        // Check if file with same name already exists
-        const fileExists = uploadedFiles.some(existingFile => 
-            existingFile.name === file.name && 
-            existingFile.size === file.size
-        );
-        
-        // Only add if it doesn't exist
-        if (!fileExists) {
-            uploadedFiles.push(file);
+    if (!files || files.length === 0) return;
+    
+    // Add files to our uploadedFiles array
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Check if file is PDF
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                title: 'Error',
+                text: 'Only PDF files are allowed',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            continue;
         }
-    });
-
+        uploadedFiles.push(file);
+    }
+    
+    // Display the list of files
     displayFileList();
 }
 
 function displayFileList() {
-    // Get existing file list 
-    const fileListContainer = document.getElementById("fileList");
+    const fileListElement = document.getElementById('fileList');
+    if (!fileListElement) return;
     
-    // Clear existing content
-    fileListContainer.innerHTML = "";
+    fileListElement.innerHTML = '';
     
-    // Add header if there are files
-    if (uploadedFiles.length > 0) {
-        const header = document.createElement("div");
-        header.className = "font-bold mt-2 mb-1";
-        header.textContent = "Selected Files:";
-        fileListContainer.appendChild(header);
+    if (uploadedFiles.length === 0) {
+        fileListElement.innerHTML = '<p class="text-gray-500">No files uploaded</p>';
+        return;
     }
     
-    // Add each file to the list
+    // Create a list of files with view and delete options
     uploadedFiles.forEach((file, index) => {
-        const fileItem = document.createElement("div");
-        fileItem.className = "flex justify-between items-center p-2 border-b";
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-2 border-b';
         fileItem.innerHTML = `
-            <span>${file.name}</span>
+            <span class="text-blue-600">${file.name}</span>
             <div>
-                <button type="button" onclick="viewFile(${index})" class="text-blue-500 mr-2">View</button>
-                <button type="button" onclick="removeFile(${index})" class="text-red-500">X</button>
+                <button type="button" onclick="viewFile(${index})" class="text-blue-500 hover:text-blue-700 mr-2">
+                    👁️
+                </button>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                    🗑️
+                </button>
             </div>
         `;
-        fileListContainer.appendChild(fileItem);
+        fileListElement.appendChild(fileItem);
     });
 }
 
 function viewFile(index) {
-    const file = uploadedFiles[index];
-    if (!file) return;
-    
-    // Create URL for the file
-    const fileURL = URL.createObjectURL(file);
-    
-    // Create modal container
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
-    modal.id = 'pdfViewerModal';
-    
-    // Create modal content
-    modal.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-lg font-semibold">${file.name}</h3>
-                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
-                    <span class="text-2xl">&times;</span>
-                </button>
+    if (index >= 0 && index < uploadedFiles.length) {
+        const file = uploadedFiles[index];
+        
+        // Create a URL for the file
+        const fileURL = URL.createObjectURL(file);
+        
+        // Create modal to view the PDF
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white p-4 rounded-lg w-4/5 h-4/5 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">${file.name}</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <div class="flex-grow overflow-auto">
+                    <iframe src="${fileURL}" class="w-full h-full"></iframe>
+                </div>
             </div>
-            <div class="flex-grow p-4 overflow-auto">
-                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
-            </div>
-        </div>
-    `;
-    
-    // Add to body
-    document.body.appendChild(modal);
-    
-    // Prevent scrolling on the body
-    document.body.style.overflow = 'hidden';
+        `;
+        
+        document.body.appendChild(modal);
+    }
 }
 
 function closeModal() {
-    const modal = document.getElementById('pdfViewerModal');
+    const modal = document.querySelector('.fixed.inset-0');
     if (modal) {
         modal.remove();
-        // Restore scrolling
-        document.body.style.overflow = '';
     }
 }
 
 function removeFile(index) {
-    uploadedFiles.splice(index, 1);
-    displayFileList();
+    if (index >= 0 && index < uploadedFiles.length) {
+        uploadedFiles.splice(index, 1);
+        displayFileList();
+    }
 }
 
 function addRow() {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-
+    const tableBody = document.getElementById('tableBody');
+    const newRow = document.createElement('tr');
+    
     newRow.innerHTML = `
-        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="200" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full" required /></td>
-        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full bg-gray-200" disabled/>
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
         </td>
     `;
-
+    
     tableBody.appendChild(newRow);
 }
 
 function deleteRow(button) {
-    button.closest("tr").remove();
+    const tableBody = document.getElementById('tableBody');
+    // Don't delete the last row
+    if (tableBody.rows.length > 1) {
+        button.closest('tr').remove();
+    } else {
+        // If it's the last row, just clear the inputs
+        const row = button.closest('tr');
+        const inputs = row.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+    }
 }
 
 function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
@@ -393,7 +407,9 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReim() { window.location.href = "../pages/menuReim.html"; }
+function goToMenuReim() { 
+    window.location.href = "../pages/menuReim.html"; 
+}
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
 function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
@@ -756,153 +772,176 @@ function populateDropdown(dropdownId, users) {
     }
 }
 
-function submitDocument() {
-    Swal.fire({
-        title: 'Konfirmasi',
-        text: 'Apakah dokumen sudah benar?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya',
-        cancelButtonText: 'Batal'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                await processDocument(true);
+async function submitDocument() {
+    try {
+        // Basic validation
+        const requesterName = document.getElementById('requesterNameSearch').value;
+        const department = document.getElementById('department').value;
+        const postingDate = document.getElementById('postingDate').value;
+        const currency = document.getElementById('currency').value;
+        const typeOfTransaction = document.getElementById('typeOfTransaction').value;
+        
+        // Check required fields
+        if (!requesterName || !department || !postingDate || !currency || !typeOfTransaction) {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please fill all required fields (Requester Name, Department, Submission Date, Currency, Type of Transaction)',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Validate table has at least one row with data
+        const tableRows = document.querySelectorAll('#tableBody tr');
+        let hasValidRow = false;
+        
+        for (const row of tableRows) {
+            const inputs = row.querySelectorAll('input');
+            if (inputs[0].value && inputs[3].value) {
+                hasValidRow = true;
+                break;
+            }
+        }
+        
+        if (!hasValidRow) {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please add at least one reimbursement item with Category and Amount',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Confirm submission
+        Swal.fire({
+            title: 'Confirm Submission',
+            text: 'Are you sure you want to submit this reimbursement document?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Submit',
+            cancelButtonText: 'Cancel'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                // Show loading
                 Swal.fire({
-                    title: 'Berhasil',
-                    text: 'Dokumen berhasil di-submit.',
+                    title: 'Processing',
+                    text: 'Submitting your reimbursement...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Process document with isSubmit=true
+                await processDocument(true);
+                
+                // Show success message
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Reimbursement has been submitted successfully',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
-                    goToMenuReim(); // Navigate to menu page after clicking OK
-                });
-            } catch (error) {
-                console.error("Error submitting reimbursement:", error);
-                Swal.fire({
-                    title: 'Error',
-                    text: `Error: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
+                    // Navigate back to menu
+                    goToMenuReim();
                 });
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error("Error submitting document:", error);
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to submit: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
 }
 
 // Common function to process document with isSubmit parameter
 async function processDocument(isSubmit) {
-    // Step 1: Collect reimbursement details from the form
-    const reimbursementDetails = [];
-    const tableRows = document.querySelectorAll("#tableBody tr");
-    
-    tableRows.forEach(row => {
-        const inputs = row.querySelectorAll("input");
-        if (inputs.length >= 4) {
-            reimbursementDetails.push({
-                description: inputs[0].value || "",
-                // glAccount: inputs[1].value || "",
-                // accountName: inputs[2].value || "",
-                amount: parseFloat(inputs[3].value) || 0
-            });
-        }
-    });
-
-    // Step 2: Prepare the request data
-    const getElementValue = (id) => {
-        const element = document.getElementById(id);
-        return element ? element.value : "";
-    };
-    
-    // Get approval values directly from select elements or search inputs
-    const getApprovalValue = (id) => {
-        const selectElement = document.getElementById(`${id}Select`);
-        
-        // Always use the select element value which contains the ID
-        return selectElement ? selectElement.value : "";
-    };
-
-    const reimbursementData = {
-        voucherNo: getElementValue("voucherNo"),
-        requesterName: document.getElementById("requesterNameSearch").value, // Use the search input value
-        department: getElementValue("department"),
-        payTo: getApprovalValue("payTo"),
-        currency: getElementValue("currency"),
-        submissionDate: getElementValue("postingDate"),
-        status: getElementValue("status"),
-        referenceDoc: getElementValue("referenceDoc"),
-        typeOfTransaction: getElementValue("typeOfTransaction"),
-        remarks: getElementValue("remarks"),
-        preparedBy: getApprovalValue("preparedBy"),
-        checkedBy: getApprovalValue("checkedBy"),
-        acknowledgedBy: getApprovalValue("acknowledgeBy"),
-        approvedBy: getApprovalValue("approvedBy"),
-        receivedBy: getApprovalValue("receivedBy"),
-        reimbursementDetails: reimbursementDetails,
-        isSubmit: isSubmit
-    };
-
-    console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
-
-    // Step 3: Send the POST request to create reimbursement
-    const response = await fetch(`${BASE_URL}/api/reimbursements`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(reimbursementData)
-    });
-
-    let errorText = '';
     try {
-        const errorData = await response.clone().json();
-        if (errorData && errorData.message) {
-            errorText = errorData.message;
+        // Get the token from localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('Authentication token not found. Please log in again.');
         }
-        if (errorData && errorData.errors) {
-            errorText += ': ' + JSON.stringify(errorData.errors);
-        }
-    } catch (e) {
-        // If we can't parse the error as JSON, use text
-        errorText = await response.clone().text();
-    }
 
-    if (!response.ok) {
-        throw new Error(errorText || `API error: ${response.status}`);
-    }
+        const getElementValue = (id) => {
+            const element = document.getElementById(id);
+            return element ? element.value : '';
+        };
 
-    const result = await response.json();
-    
-    if (!result.status || result.code !== 200) {
-        throw new Error(result.message || 'Failed to create reimbursement');
-    }
+        const getApprovalValue = (id) => {
+            const searchInput = document.getElementById(`${id}Search`);
+            return searchInput ? searchInput.value : '';
+        };
 
-    // Step 4: Upload attachments if there are any
-    const reimbursementId = result.data.id;
-    
-    if (uploadedFiles.length > 0) {
-        const formData = new FormData();
-        
-        uploadedFiles.forEach(file => {
-            formData.append('files', file);
+        // Collect table data
+        const tableRows = document.querySelectorAll('#tableBody tr');
+        const items = Array.from(tableRows).map(row => {
+            const inputs = row.querySelectorAll('input');
+            return {
+                category: inputs[0].value,
+                glAccount: inputs[1].value,
+                description: inputs[2].value,
+                amount: parseFloat(inputs[3].value) || 0
+            };
         });
 
-        const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+        // Calculate total amount
+        const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('voucherNo', getElementValue('voucherNo'));
+        formData.append('requesterName', getElementValue('requesterNameSearch'));
+        formData.append('department', getElementValue('department'));
+        formData.append('currency', getElementValue('currency'));
+        formData.append('payTo', getElementValue('requesterNameSearch')); // Using requester as payTo
+        formData.append('postingDate', getElementValue('postingDate'));
+        formData.append('status', isSubmit ? 'Submitted' : 'Draft');
+        formData.append('referenceDoc', getElementValue('referenceDoc'));
+        formData.append('typeOfTransaction', getElementValue('typeOfTransaction'));
+        formData.append('remarks', getElementValue('remarks'));
+        formData.append('totalAmount', totalAmount.toString());
+        
+        // Approval fields
+        formData.append('preparedBy', getApprovalValue('preparedBy'));
+        formData.append('acknowledgeBy', getApprovalValue('acknowledgeBy'));
+        formData.append('checkedBy', getApprovalValue('checkedBy'));
+        formData.append('approvedBy', getApprovalValue('approvedBy'));
+        formData.append('receivedBy', getApprovalValue('receivedBy'));
+        
+        // Add items as JSON string
+        formData.append('items', JSON.stringify(items));
+        
+        // Add files
+        uploadedFiles.forEach((file, index) => {
+            formData.append(`file${index}`, file);
+        });
+
+        // Send to API
+        const response = await fetch(`${BASE_URL}/api/reimbursements`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
 
-        if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json();
-            throw new Error(errorData.message || `Upload error: ${uploadResponse.status}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save reimbursement');
         }
 
-        const uploadResult = await uploadResponse.json();
-        
-        if (!uploadResult.status || uploadResult.code !== 200) {
-            throw new Error(uploadResult.message || 'Failed to upload attachments');
-        }
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("Error processing document:", error);
+        throw error;
     }
-    
-    return result;
 }
     
