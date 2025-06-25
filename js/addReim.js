@@ -281,9 +281,9 @@ function previewPDF(event) {
             });
             continue;
         }
-        uploadedFiles.push(file);
-    }
-    
+            uploadedFiles.push(file);
+        }
+
     // Display the list of files
     displayFileList();
 }
@@ -320,27 +320,27 @@ function displayFileList() {
 
 function viewFile(index) {
     if (index >= 0 && index < uploadedFiles.length) {
-        const file = uploadedFiles[index];
-        
+    const file = uploadedFiles[index];
+    
         // Create a URL for the file
-        const fileURL = URL.createObjectURL(file);
-        
+    const fileURL = URL.createObjectURL(file);
+    
         // Create modal to view the PDF
-        const modal = document.createElement('div');
+    const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        modal.innerHTML = `
+    modal.innerHTML = `
             <div class="bg-white p-4 rounded-lg w-4/5 h-4/5 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">${file.name}</h3>
+                <h3 class="text-lg font-semibold">${file.name}</h3>
                     <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">✕</button>
-                </div>
+            </div>
                 <div class="flex-grow overflow-auto">
                     <iframe src="${fileURL}" class="w-full h-full"></iframe>
-                </div>
             </div>
-        `;
-        
-        document.body.appendChild(modal);
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
     }
 }
 
@@ -353,15 +353,15 @@ function closeModal() {
 
 function removeFile(index) {
     if (index >= 0 && index < uploadedFiles.length) {
-        uploadedFiles.splice(index, 1);
-        displayFileList();
+    uploadedFiles.splice(index, 1);
+    displayFileList();
     }
 }
 
 function addRow() {
     const tableBody = document.getElementById('tableBody');
     const newRow = document.createElement('tr');
-    
+
     newRow.innerHTML = `
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full" required />
@@ -381,7 +381,7 @@ function addRow() {
             </button>
         </td>
     `;
-    
+
     tableBody.appendChild(newRow);
 }
 
@@ -783,7 +783,7 @@ async function submitDocument() {
         
         // Check required fields
         if (!requesterName || !department || !postingDate || !currency || !typeOfTransaction) {
-            Swal.fire({
+    Swal.fire({
                 title: 'Validation Error',
                 text: 'Please fill all required fields (Requester Name, Department, Submission Date, Currency, Type of Transaction)',
                 icon: 'error',
@@ -818,12 +818,12 @@ async function submitDocument() {
         Swal.fire({
             title: 'Confirm Submission',
             text: 'Are you sure you want to submit this reimbursement document?',
-            icon: 'question',
-            showCancelButton: true,
+        icon: 'question',
+        showCancelButton: true,
             confirmButtonText: 'Yes, Submit',
             cancelButtonText: 'Cancel'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
+    }).then(async (result) => {
+        if (result.isConfirmed) {
                 // Show loading
                 Swal.fire({
                     title: 'Processing',
@@ -848,16 +848,16 @@ async function submitDocument() {
                     goToMenuReim();
                 });
             }
-        });
-    } catch (error) {
+                });
+            } catch (error) {
         console.error("Error submitting document:", error);
-        Swal.fire({
-            title: 'Error',
+                Swal.fire({
+                    title: 'Error',
             text: `Failed to submit: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-    }
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
 }
 
 // Common function to process document with isSubmit parameter
@@ -869,12 +869,12 @@ async function processDocument(isSubmit) {
             throw new Error('Authentication token not found. Please log in again.');
         }
 
-        const getElementValue = (id) => {
-            const element = document.getElementById(id);
+    const getElementValue = (id) => {
+        const element = document.getElementById(id);
             return element ? element.value : '';
-        };
-
-        const getApprovalValue = (id) => {
+    };
+    
+    const getApprovalValue = (id) => {
             const searchInput = document.getElementById(`${id}Search`);
             return searchInput ? searchInput.value : '';
         };
