@@ -1,176 +1,122 @@
 document.addEventListener('DOMContentLoaded', function() {
+  // Use BASE_URL from auth.js - make sure auth.js is loaded before this script
+  
   // Initialize roles array
   let roles = [];
+  let permissions = []; // Will be fetched from backend
   let currentRoleId = null;
   
-  // Permission groups and pages
-  const websitePages = [
-    // Dashboard & Administration
-    { id: 'dashboard', name: 'Dashboard', group: 'Dashboard & Administration' },
-    { id: 'dashboard-users', name: 'User Management', group: 'Dashboard & Administration' },
-    { id: 'dashboard-roles', name: 'Role Management', group: 'Dashboard & Administration' },
-    { id: 'approval-dashboard', name: 'Approval Dashboard', group: 'Dashboard & Administration' },
-    { id: 'profil', name: 'User Profile', group: 'Dashboard & Administration' },
-    { id: 'register', name: 'Registration', group: 'Dashboard & Administration' },
-    
-    // Menu Access
-    { id: 'menuReim', name: 'Reimbursement Menu', group: 'Menu Access' },
-    { id: 'menuSettle', name: 'Settlement Menu', group: 'Menu Access' },
-    { id: 'menuCash', name: 'Cash Advance Menu', group: 'Menu Access' },
-    { id: 'menuPR', name: 'Purchase Request Menu', group: 'Menu Access' },
-    
-    // Detail Access
-    { id: 'detailReim', name: 'Reimbursement Details', group: 'Detail Access' },
-    { id: 'detailSettle', name: 'Settlement Details', group: 'Detail Access' },
-    { id: 'detailCash', name: 'Cash Advance Details', group: 'Detail Access' },
-    { id: 'detailPR', name: 'Purchase Request Details', group: 'Detail Access' },
-    
-    // Creation Access
-    { id: 'addReim', name: 'Create Reimbursement', group: 'Creation Access' },
-    { id: 'addSettle', name: 'Create Settlement', group: 'Creation Access' },
-    { id: 'addCash', name: 'Create Cash Advance', group: 'Creation Access' },
-    { id: 'addPR', name: 'Create Purchase Request', group: 'Creation Access' },
-    
-    // PR Processing
-    { id: 'menuPRReceive', name: 'PR Receiving Menu', group: 'PR Processing' },
-    { id: 'receivePR', name: 'Receive PR', group: 'PR Processing' },
-    
-    // Checking Process
-    { id: 'menuPRCheck', name: 'PR Check Menu', group: 'Checking Process' },
-    { id: 'menuSettleCheck', name: 'Settlement Check Menu', group: 'Checking Process' },
-    { id: 'menuCashCheck', name: 'Cash Advance Check Menu', group: 'Checking Process' },
-    { id: 'menuReimCheck', name: 'Reimbursement Check Menu', group: 'Checking Process' },
-    { id: 'checkedPR', name: 'Checked PR', group: 'Checking Process' },
-    { id: 'checkedSettle', name: 'Checked Settlement', group: 'Checking Process' },
-    { id: 'checkedCash', name: 'Checked Cash Advance', group: 'Checking Process' },
-    { id: 'checkedReim', name: 'Checked Reimbursement', group: 'Checking Process' },
-    
-    // Acknowledgement Process
-    { id: 'menuPRAcknow', name: 'PR Acknowledgement Menu', group: 'Acknowledgement Process' },
-    { id: 'menuSettleAcknow', name: 'Settlement Acknowledgement Menu', group: 'Acknowledgement Process' },
-    { id: 'menuCashAcknow', name: 'Cash Advance Acknowledgement Menu', group: 'Acknowledgement Process' },
-    { id: 'menuReimAcknow', name: 'Reimbursement Acknowledgement Menu', group: 'Acknowledgement Process' },
-    { id: 'acknowledgePR', name: 'Acknowledge PR', group: 'Acknowledgement Process' },
-    { id: 'acknowledgeSettle', name: 'Acknowledge Settlement', group: 'Acknowledgement Process' },
-    { id: 'acknowledgeCash', name: 'Acknowledge Cash Advance', group: 'Acknowledgement Process' },
-    { id: 'acknowledgeReim', name: 'Acknowledge Reimbursement', group: 'Acknowledgement Process' },
-    
-    // Approval Process
-    { id: 'menuPRApprove', name: 'PR Approval Menu', group: 'Approval Process' },
-    { id: 'menuSettleApprove', name: 'Settlement Approval Menu', group: 'Approval Process' },
-    { id: 'menuCashApprove', name: 'Cash Advance Approval Menu', group: 'Approval Process' },
-    { id: 'menuReimApprove', name: 'Reimbursement Approval Menu', group: 'Approval Process' },
-    { id: 'approvePR', name: 'Approve PR', group: 'Approval Process' },
-    { id: 'approveSettle', name: 'Approve Settlement', group: 'Approval Process' },
-    { id: 'approveCash', name: 'Approve Cash Advance', group: 'Approval Process' },
-    { id: 'approveReim', name: 'Approve Reimbursement', group: 'Approval Process' }
-  ];
-  
-  // Get stored roles data if available
-  const storedRoles = localStorage.getItem('rolesData');
-  if (storedRoles) {
+  // Fetch roles and permissions from backend on page load
+  async function initializePage() {
     try {
-      roles = JSON.parse(storedRoles);
+      await loadPermissions();
+      await loadRoles();
+      updateUICounters();
+      populateRolesTable();
     } catch (error) {
-      console.error('Error parsing stored roles:', error);
+      console.error('Error initializing page:', error);
+      showError('Failed to load data from server');
     }
   }
-  
-  // If no roles exist, create a default Admin role
-  if (roles.length === 0) {
-    const adminRole = {
-      id: generateId(),
-      name: 'Administrator',
-      createdDate: formatDate(new Date()),
-      lastModified: formatDate(new Date()),
-      permissions: websitePages.map(page => page.id) // Admin has access to all pages
-    };
-    roles.push(adminRole);
-    saveRolesToStorage();
+
+  // Load permissions from backend
+  async function loadPermissions() {
+    try {
+      const response = await makeAuthenticatedRequest('/api/permissions', {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch permissions');
+      }
+      
+      const result = await response.json();
+      permissions = result.data || [];
+      console.log('Loaded permissions:', permissions);
+    } catch (error) {
+      console.error('Error loading permissions:', error);
+      // Fallback to some basic permissions if API fails
+      permissions = [
+        { id: '1', name: 'MANAGE_USERS', description: 'Permission to manage users' },
+        { id: '2', name: 'MANAGE_ROLES', description: 'Permission to manage roles' },
+        { id: '3', name: 'APPROVE_PR', description: 'Permission to approve purchase requests' },
+        { id: '4', name: 'SUBMIT_USER', description: 'Permission to submit user registrations' },
+        { id: '5', name: 'USER_APPROVAL', description: 'Permission to approve user registrations' },
+        { id: '6', name: 'PREPARE_PR', description: 'Permission to prepare purchase requests' },
+        { id: '7', name: 'ACKNOWLEDGE_PR', description: 'Permission to acknowledge purchase requests' },
+        { id: '8', name: 'CHECK_PR', description: 'Permission to check purchase requests' },
+        { id: '9', name: 'RECEIVE_PR', description: 'Permission to receive purchase requests' }
+      ];
+    }
+  }
+
+  // Load roles from backend
+  async function loadRoles() {
+    try {
+      const response = await makeAuthenticatedRequest('/api/roles', {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch roles');
+      }
+      
+      const result = await response.json();
+      const roleNames = result.data || [];
+      
+      // For each role, get its permissions
+      roles = [];
+      for (const roleName of roleNames) {
+        const rolePermissions = await getRolePermissions(roleName);
+        roles.push({
+          id: roleName.toLowerCase().replace(/\s+/g, '-'),
+          name: roleName,
+          createdDate: formatDate(new Date()), // Note: We don't have actual creation dates
+          lastModified: formatDate(new Date()),
+          permissions: rolePermissions.map(p => p.name)
+        });
+      }
+    } catch (error) {
+      console.error('Error loading roles:', error);
+      roles = []; // Empty array if API fails
+    }
+  }
+
+  // Get permissions for a specific role
+  async function getRolePermissions(roleName) {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/permissions/role/${encodeURIComponent(roleName)}`, {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        return [];
+      }
+      
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error loading role permissions:', error);
+      return [];
+    }
+  }
+
+  // Get auth token - using function from auth.js
+  function getAuthToken() {
+    return getAccessToken();
+  }
+
+  // Show error message
+  function showError(message) {
+    alert(message); // Replace with better error handling
+  }
+
+  // Show success message
+  function showSuccess(message) {
+    alert(message); // Replace with better success handling
   }
 
   // Update UI elements
-  updateUICounters();
-  populateRolesTable();
-  
-  // Add event listeners
-  const addRoleBtn = document.getElementById('addRoleBtn');
-  const saveRoleBtn = document.getElementById('saveRoleBtn');
-  const cancelRoleBtn = document.getElementById('cancelRoleBtn');
-  const roleModal = document.getElementById('roleModal');
-  const searchInput = document.getElementById('search');
-  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-  const deleteConfirmModal = document.getElementById('deleteConfirmModal');
-  const presetRolesBtn = document.getElementById('presetRolesBtn');
-  const presetRolesMenu = document.getElementById('presetRolesMenu');
-  
-  // Preset Roles dropdown
-  if (presetRolesBtn) {
-    presetRolesBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      presetRolesMenu.classList.toggle('hidden');
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!presetRolesBtn.contains(e.target) && !presetRolesMenu.contains(e.target)) {
-        presetRolesMenu.classList.add('hidden');
-      }
-    });
-    
-    // Preset role item click
-    const presetRoleItems = document.querySelectorAll('.preset-role-item');
-    presetRoleItems.forEach(item => {
-      item.addEventListener('click', function(e) {
-        e.preventDefault();
-        const preset = this.getAttribute('data-preset');
-        createPresetRole(preset);
-        presetRolesMenu.classList.add('hidden');
-      });
-    });
-  }
-  
-  // Add Role button click
-  if (addRoleBtn) {
-    addRoleBtn.addEventListener('click', function() {
-      openRoleModal();
-    });
-  }
-  
-  // Save Role button click
-  if (saveRoleBtn) {
-    saveRoleBtn.addEventListener('click', function() {
-      saveRole();
-    });
-  }
-  
-  // Cancel Role button click
-  if (cancelRoleBtn) {
-    cancelRoleBtn.addEventListener('click', function() {
-      closeRoleModal();
-    });
-  }
-  
-  // Cancel Delete button click
-  if (cancelDeleteBtn) {
-    cancelDeleteBtn.addEventListener('click', function() {
-      closeDeleteModal();
-    });
-  }
-  
-  // Search input
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      const searchTerm = searchInput.value.toLowerCase();
-      const filteredRoles = roles.filter(role => 
-        role.name.toLowerCase().includes(searchTerm)
-      );
-      populateRolesTable(filteredRoles);
-    });
-  }
-  
-  // Functions
   function updateUICounters() {
     document.getElementById('totalRoles').textContent = roles.length;
     document.getElementById('totalItems').textContent = roles.length;
@@ -227,38 +173,23 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('totalItems').textContent = data.length;
   }
   
-  function getPermissionBadges(permissions) {
-    if (!permissions || permissions.length === 0) {
+  function getPermissionBadges(rolePermissions) {
+    if (!rolePermissions || rolePermissions.length === 0) {
       return '<span class="text-gray-400 text-xs italic">No permissions</span>';
     }
     
-    // Count permissions by group
-    const groupCounts = {};
-    permissions.forEach(permId => {
-      const page = websitePages.find(p => p.id === permId);
-      if (page) {
-        if (!groupCounts[page.group]) {
-          groupCounts[page.group] = 0;
-        }
-        groupCounts[page.group]++;
-      }
-    });
-    
-    // Display badges for groups with their counts
+    // Show permission badges
     let badges = '';
+    const maxVisible = 3;
     
-    // Show at most 3 groups
-    const groups = Object.keys(groupCounts);
-    const visibleGroups = groups.slice(0, 3);
+    for (let i = 0; i < Math.min(rolePermissions.length, maxVisible); i++) {
+      const permission = permissions.find(p => p.name === rolePermissions[i]);
+      const displayName = permission ? permission.name : rolePermissions[i];
+      badges += `<span class="permission-badge"><i class="fas fa-shield-alt"></i> ${displayName}</span>`;
+    }
     
-    visibleGroups.forEach(group => {
-      const count = groupCounts[group];
-      const totalInGroup = websitePages.filter(p => p.group === group).length;
-      badges += `<span class="permission-badge"><i class="fas fa-layer-group"></i> ${group}: ${count}/${totalInGroup}</span>`;
-    });
-    
-    if (groups.length > 3) {
-      badges += `<span class="permission-badge">+${groups.length - 3} more groups</span>`;
+    if (rolePermissions.length > maxVisible) {
+      badges += `<span class="permission-badge">+${rolePermissions.length - maxVisible} more</span>`;
     }
     
     return badges;
@@ -274,15 +205,6 @@ document.addEventListener('DOMContentLoaded', function() {
     roleNameInput.value = '';
     permissionsContainer.innerHTML = '';
     
-    // Group pages by group
-    const pagesByGroup = {};
-    websitePages.forEach(page => {
-      if (!pagesByGroup[page.group]) {
-        pagesByGroup[page.group] = [];
-      }
-      pagesByGroup[page.group].push(page);
-    });
-    
     // If editing existing role, populate with role data
     let selectedPermissions = [];
     if (roleId) {
@@ -296,31 +218,57 @@ document.addEventListener('DOMContentLoaded', function() {
       modalTitle.textContent = 'Add New Role';
     }
     
+    // Group permissions by type for better organization
+    const permissionGroups = {
+      'System Administration': permissions.filter(p => 
+        p.name.includes('MANAGE') || p.name.includes('USER') || p.name.includes('ROLE')
+      ),
+      'Purchase Request Process': permissions.filter(p => 
+        p.name.includes('PR') || p.name.includes('PREPARE') || p.name.includes('RECEIVE')
+      ),
+      'Approval Process': permissions.filter(p => 
+        p.name.includes('APPROVE')
+      ),
+      'Checking Process': permissions.filter(p => 
+        p.name.includes('CHECK')
+      ),
+      'Acknowledgement Process': permissions.filter(p => 
+        p.name.includes('ACKNOWLEDGE')
+      ),
+      'Other Permissions': permissions.filter(p => 
+        !p.name.includes('MANAGE') && !p.name.includes('USER') && !p.name.includes('ROLE') &&
+        !p.name.includes('PR') && !p.name.includes('PREPARE') && !p.name.includes('RECEIVE') &&
+        !p.name.includes('APPROVE') && !p.name.includes('CHECK') && !p.name.includes('ACKNOWLEDGE')
+      )
+    };
+    
     // Populate permissions checkboxes by group
-    Object.keys(pagesByGroup).forEach(group => {
-      const groupPages = pagesByGroup[group];
+    Object.keys(permissionGroups).forEach(groupName => {
+      const groupPermissions = permissionGroups[groupName];
+      
+      if (groupPermissions.length === 0) return; // Skip empty groups
       
       // Add group header
       const groupHeader = document.createElement('div');
       groupHeader.className = 'permission-category';
-      groupHeader.textContent = group;
+      groupHeader.textContent = groupName;
       
       // Add "Select All" checkbox for this group
       const selectAllDiv = document.createElement('div');
       selectAllDiv.className = 'permission-checkbox select-all';
       
-      const groupId = group.replace(/\s+/g, '-').toLowerCase();
-      const allChecked = groupPages.every(page => selectedPermissions.includes(page.id));
+      const groupId = groupName.replace(/\s+/g, '-').toLowerCase();
+      const allChecked = groupPermissions.every(permission => selectedPermissions.includes(permission.name));
       
       selectAllDiv.innerHTML = `
         <input type="checkbox" id="select-all-${groupId}" ${allChecked ? 'checked' : ''}>
-        <label for="select-all-${groupId}"><strong>Select All</strong></label>
+        <label for="select-all-${groupId}"><strong>Select All ${groupName}</strong></label>
       `;
       
       // Add event listener to the "Select All" checkbox
       selectAllDiv.querySelector('input').addEventListener('change', function(e) {
         const isChecked = e.target.checked;
-        const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${group}"]`);
+        const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${groupName}"]`);
         groupCheckboxes.forEach(checkbox => {
           checkbox.checked = isChecked;
         });
@@ -329,22 +277,28 @@ document.addEventListener('DOMContentLoaded', function() {
       permissionsContainer.appendChild(groupHeader);
       permissionsContainer.appendChild(selectAllDiv);
       
-      // Add page checkboxes
-      groupPages.forEach(page => {
+      // Add individual permission checkboxes
+      groupPermissions.forEach(permission => {
         const checkboxDiv = document.createElement('div');
         checkboxDiv.className = 'permission-checkbox';
         
-        const isChecked = selectedPermissions.includes(page.id);
+        const isChecked = selectedPermissions.includes(permission.name);
         checkboxDiv.innerHTML = `
-          <input type="checkbox" id="perm-${page.id}" value="${page.id}" data-group="${group}" ${isChecked ? 'checked' : ''}>
-          <label for="perm-${page.id}">${page.name}</label>
+          <input type="checkbox" id="perm-${permission.name}" value="${permission.name}" data-group="${groupName}" ${isChecked ? 'checked' : ''}>
+          <label for="perm-${permission.name}">
+            <strong>${permission.name}</strong>
+            <span class="permission-description">${permission.description}</span>
+          </label>
         `;
         
         // Add event listener to update "Select All" when individual permissions are changed
         checkboxDiv.querySelector('input').addEventListener('change', function() {
-          const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${group}"]`);
+          const groupCheckboxes = permissionsContainer.querySelectorAll(`input[data-group="${groupName}"]`);
           const allChecked = Array.from(groupCheckboxes).every(checkbox => checkbox.checked);
-          permissionsContainer.querySelector(`#select-all-${groupId}`).checked = allChecked;
+          const selectAllCheckbox = permissionsContainer.querySelector(`#select-all-${groupId}`);
+          if (selectAllCheckbox) {
+            selectAllCheckbox.checked = allChecked;
+          }
         });
         
         permissionsContainer.appendChild(checkboxDiv);
@@ -352,76 +306,129 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Show modal
-    roleModal.classList.remove('hidden');
+    document.getElementById('roleModal').classList.remove('hidden');
   }
   
   function closeRoleModal() {
-    roleModal.classList.add('hidden');
+    document.getElementById('roleModal').classList.add('hidden');
     currentRoleId = null;
   }
   
   function closeDeleteModal() {
-    deleteConfirmModal.classList.add('hidden');
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
     currentRoleId = null;
   }
   
-  function saveRole() {
+  async function saveRole() {
     const roleName = document.getElementById('roleName').value.trim();
     if (!roleName) {
-      alert('Please enter a role name');
+      showError('Please enter a role name');
       return;
     }
     
-    // Get selected permissions
-    const permissionCheckboxes = document.querySelectorAll('#permissionsContainer input[type="checkbox"]:checked');
-    const selectedPermissions = Array.from(permissionCheckboxes).map(cb => cb.value);
+    // Get selected permissions (exclude "Select All" checkboxes)
+    const permissionCheckboxes = document.querySelectorAll('#permissionsContainer input[type="checkbox"]:checked:not([id^="select-all"])');
+    const selectedPermissions = Array.from(permissionCheckboxes).map(cb => cb.value).filter(value => value && value !== 'on');
     
-    if (selectedPermissions.length === 0) {
-      alert('Please select at least one permission');
-      return;
-    }
+    console.log('Selected permissions:', selectedPermissions);
+    console.log('All checked checkboxes:', Array.from(permissionCheckboxes).map(cb => ({ id: cb.id, value: cb.value })));
     
-    const now = formatDate(new Date());
-    
-    if (currentRoleId) {
-      // Update existing role
-      const roleIndex = roles.findIndex(r => r.id === currentRoleId);
-      if (roleIndex !== -1) {
-        roles[roleIndex].name = roleName;
-        roles[roleIndex].permissions = selectedPermissions;
-        roles[roleIndex].lastModified = now;
+    try {
+      if (currentRoleId) {
+        // Update existing role
+        await updateRole(currentRoleId, roleName, selectedPermissions);
+      } else {
+        // Create new role
+        await createRole(roleName, selectedPermissions);
       }
-    } else {
-      // Add new role
-      const newRole = {
-        id: generateId(),
-        name: roleName,
-        createdDate: now,
-        lastModified: now,
-        permissions: selectedPermissions
-      };
-      roles.push(newRole);
+      
+      // Reload data and update UI
+      await loadRoles();
+      updateUICounters();
+      populateRolesTable();
+      closeRoleModal();
+      showSuccess(`Role ${currentRoleId ? 'updated' : 'created'} successfully!`);
+      
+    } catch (error) {
+      console.error('Error saving role:', error);
+      showError(`Failed to ${currentRoleId ? 'update' : 'create'} role: ${error.message}`);
+    }
+  }
+
+  // Create new role
+  async function createRole(roleName, selectedPermissions) {
+    // First create the role
+    const createResponse = await makeAuthenticatedRequest('/api/roles', {
+      method: 'POST',
+      body: JSON.stringify(roleName)
+    });
+    
+    if (!createResponse.ok) {
+      throw new Error('Failed to create role');
     }
     
-    // Save to localStorage
-    saveRolesToStorage();
-    
-    // Update UI
-    updateUICounters();
-    populateRolesTable();
-    
-    // Close modal
-    closeRoleModal();
+    // Then assign permissions to the role
+    for (const permissionName of selectedPermissions) {
+      await assignPermissionToRole(roleName, permissionName);
+    }
   }
-  
-  // Save roles to localStorage
-  function saveRolesToStorage() {
-    localStorage.setItem('rolesData', JSON.stringify(roles));
+
+      // Update existing role
+  async function updateRole(roleId, roleName, selectedPermissions) {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) {
+      throw new Error('Role not found');
+    }
+    
+    const currentPermissions = role.permissions;
+    
+    // Remove permissions that are no longer selected
+    const permissionsToRemove = currentPermissions.filter(p => !selectedPermissions.includes(p));
+    for (const permissionName of permissionsToRemove) {
+      await removePermissionFromRole(role.name, permissionName);
+    }
+    
+    // Add new permissions
+    const permissionsToAdd = selectedPermissions.filter(p => !currentPermissions.includes(p));
+    for (const permissionName of permissionsToAdd) {
+      await assignPermissionToRole(role.name, permissionName);
+    }
   }
-  
-  // Generate unique ID
-  function generateId() {
-    return 'role_' + Date.now() + Math.floor(Math.random() * 1000);
+
+  // Assign permission to role
+  async function assignPermissionToRole(roleName, permissionName) {
+    console.log('Assigning permission:', { roleName, permissionName });
+    
+    const requestBody = {
+      RoleName: roleName,
+      PermissionName: permissionName
+    };
+    
+    console.log('Request body:', requestBody);
+    
+    const response = await makeAuthenticatedRequest('/api/permissions/assign', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`Failed to assign permission ${permissionName} to role ${roleName}: ${response.status} ${errorText}`);
+    }
+  }
+
+  // Remove permission from role
+  async function removePermissionFromRole(roleName, permissionName) {
+    const response = await makeAuthenticatedRequest(`/api/permissions/remove?roleName=${encodeURIComponent(roleName)}&permissionName=${encodeURIComponent(permissionName)}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to remove permission ${permissionName} from role ${roleName}`);
+    }
   }
   
   // Format date
@@ -450,141 +457,195 @@ document.addEventListener('DOMContentLoaded', function() {
   
   window.deleteRole = function(roleId) {
     currentRoleId = roleId;
-    deleteConfirmModal.classList.remove('hidden');
+    document.getElementById('deleteConfirmModal').classList.remove('hidden');
     
     // Set up confirmation button
-    confirmDeleteBtn.onclick = function() {
-      if (currentRoleId) {
-        const roleIndex = roles.findIndex(r => r.id === currentRoleId);
-        if (roleIndex !== -1) {
-          // Don't allow deleting the last role
+    document.getElementById('confirmDeleteBtn').onclick = async function() {
+      try {
+        const role = roles.find(r => r.id === roleId);
+        if (!role) {
+          throw new Error('Role not found');
+        }
+        
+        // Don't allow deleting the last role or Admin role
           if (roles.length <= 1) {
-            alert('Cannot delete the last remaining role');
+          showError('Cannot delete the last remaining role');
+          closeDeleteModal();
+          return;
+        }
+        
+        if (role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'administrator') {
+          showError('Cannot delete the Administrator role');
             closeDeleteModal();
             return;
           }
           
-          // Remove role
-          roles.splice(roleIndex, 1);
-          saveRolesToStorage();
-          
-          // Update UI
-          updateUICounters();
-          populateRolesTable();
+        // Delete role via API
+        const response = await makeAuthenticatedRequest(`/api/roles/${encodeURIComponent(role.name)}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete role');
         }
+        
+        // Reload data and update UI
+        await loadRoles();
+        updateUICounters();
+        populateRolesTable();
+        closeDeleteModal();
+        showSuccess('Role deleted successfully!');
+        
+      } catch (error) {
+        console.error('Error deleting role:', error);
+        showError(`Failed to delete role: ${error.message}`);
+        closeDeleteModal();
       }
-      closeDeleteModal();
     };
   };
   
-  // Utility function to create preset roles with predefined permissions
-  window.createPresetRole = function(preset) {
-    // Close any open modals
-    closeRoleModal();
-    closeDeleteModal();
-    
-    const now = formatDate(new Date());
-    let newRole = {
-      id: generateId(),
-      createdDate: now,
-      lastModified: now,
-      permissions: []
-    };
-    
-    switch(preset) {
-      case 'admin':
-        newRole.name = 'Administrator';
-        // All permissions
-        newRole.permissions = websitePages.map(page => page.id);
-        break;
-        
-      case 'finance':
-        newRole.name = 'Finance Officer';
-        // Finance permissions: dashboards, checks, approvals for financial documents
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.group === 'Dashboard & Administration' || 
-            page.group === 'Menu Access' || 
-            page.group === 'Detail Access' ||
-            page.group === 'Checking Process'
-          )
-          .map(page => page.id);
-        break;
-        
-      case 'requester':
-        newRole.name = 'Requester';
-        // Requester permissions: can create requests but not approve
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.id === 'dashboard' || 
-            page.id === 'profil' ||
-            page.group === 'Menu Access' || 
-            page.group === 'Detail Access' ||
-            page.group === 'Creation Access'
-          )
-          .map(page => page.id);
-        break;
-        
-      case 'approver':
-        newRole.name = 'Approver';
-        // Approver permissions: can view and approve, but not create
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.id === 'dashboard' || 
-            page.id === 'approval-dashboard' ||
-            page.id === 'profil' ||
-            page.group === 'Detail Access' ||
-            page.group === 'Approval Process'
-          )
-          .map(page => page.id);
-        break;
-        
-      case 'checker':
-        newRole.name = 'Document Checker';
-        // Checker permissions: can check documents
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.id === 'dashboard' || 
-            page.id === 'profil' ||
-            page.group === 'Detail Access' ||
-            page.group === 'Checking Process'
-          )
-          .map(page => page.id);
-        break;
-        
-      case 'acknowledger':
-        newRole.name = 'Document Acknowledger';
-        // Acknowledger permissions: can acknowledge documents
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.id === 'dashboard' || 
-            page.id === 'profil' ||
-            page.group === 'Detail Access' ||
-            page.group === 'Acknowledgement Process'
-          )
-          .map(page => page.id);
-        break;
-        
-      case 'receiver':
-        newRole.name = 'PR Receiver';
-        // Receiver permissions: can receive PR
-        newRole.permissions = websitePages
-          .filter(page => 
-            page.id === 'dashboard' || 
-            page.id === 'profil' ||
-            page.id === 'detailPR' ||
-            page.group === 'PR Processing'
-          )
-          .map(page => page.id);
-        break;
+  // Create preset role functionality
+  async function createPresetRole(preset) {
+    try {
+      const presetRoles = {
+        'admin': {
+          name: 'Administrator',
+          permissions: permissions.map(p => p.name) // All permissions
+        },
+        'finance': {
+          name: 'Finance Officer',
+          permissions: permissions.filter(p => 
+            p.name.includes('MANAGE') || 
+            p.name.includes('APPROVE') || 
+            p.name.includes('CHECK')
+          ).map(p => p.name)
+        },
+        'requester': {
+          name: 'Requester',
+          permissions: permissions.filter(p => 
+            p.name.includes('SUBMIT') || 
+            p.name.includes('PREPARE')
+          ).map(p => p.name)
+        },
+        'approver': {
+          name: 'Approver',
+          permissions: permissions.filter(p => 
+            p.name.includes('APPROVE')
+          ).map(p => p.name)
+        },
+        'checker': {
+          name: 'Document Checker',
+          permissions: permissions.filter(p => 
+            p.name.includes('CHECK')
+          ).map(p => p.name)
+        },
+        'acknowledger': {
+          name: 'Document Acknowledger',
+          permissions: permissions.filter(p => 
+            p.name.includes('ACKNOWLEDGE')
+          ).map(p => p.name)
+        },
+        'receiver': {
+          name: 'PR Receiver',
+          permissions: permissions.filter(p => 
+            p.name.includes('RECEIVE')
+          ).map(p => p.name)
+        }
+      };
+
+      const roleConfig = presetRoles[preset];
+      if (!roleConfig) {
+        throw new Error('Unknown preset type');
+      }
+
+      await createRole(roleConfig.name, roleConfig.permissions);
+      
+      // Reload data and update UI
+      await loadRoles();
+      updateUICounters();
+      populateRolesTable();
+      showSuccess(`${roleConfig.name} role created successfully!`);
+      
+    } catch (error) {
+      console.error('Error creating preset role:', error);
+      showError(`Failed to create preset role: ${error.message}`);
     }
+  }
+
+  // Add event listeners
+  const addRoleBtn = document.getElementById('addRoleBtn');
+  const saveRoleBtn = document.getElementById('saveRoleBtn');
+  const cancelRoleBtn = document.getElementById('cancelRoleBtn');
+  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+  const searchInput = document.getElementById('search');
+  const presetRolesBtn = document.getElementById('presetRolesBtn');
+  const presetRolesMenu = document.getElementById('presetRolesMenu');
+  
+  // Add Role button click
+  if (addRoleBtn) {
+    addRoleBtn.addEventListener('click', function() {
+      openRoleModal();
+    });
+  }
+  
+  // Save Role button click
+  if (saveRoleBtn) {
+    saveRoleBtn.addEventListener('click', function() {
+      saveRole();
+    });
+  }
+  
+  // Cancel Role button click
+  if (cancelRoleBtn) {
+    cancelRoleBtn.addEventListener('click', function() {
+      closeRoleModal();
+    });
+  }
+  
+  // Cancel Delete button click
+  if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener('click', function() {
+      closeDeleteModal();
+    });
+  }
+  
+  // Search input
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const filteredRoles = roles.filter(role => 
+        role.name.toLowerCase().includes(searchTerm)
+      );
+      populateRolesTable(filteredRoles);
+    });
+  }
+
+  // Preset Roles dropdown
+  if (presetRolesBtn) {
+    presetRolesBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      presetRolesMenu.classList.toggle('hidden');
+    });
     
-    // Add the new role
-    roles.push(newRole);
-    saveRolesToStorage();
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!presetRolesBtn.contains(e.target) && !presetRolesMenu.contains(e.target)) {
+        presetRolesMenu.classList.add('hidden');
+      }
+    });
     
-    // Update UI
-    updateUICounters();
-    populateRolesTable();
-  };
+    // Preset role item click
+    const presetRoleItems = document.querySelectorAll('.preset-role-item');
+    presetRoleItems.forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const preset = this.getAttribute('data-preset');
+        createPresetRole(preset);
+        presetRolesMenu.classList.add('hidden');
+      });
+    });
+  }
+
+  // Initialize the page
+  initializePage();
 }); 

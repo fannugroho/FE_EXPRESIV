@@ -1,6 +1,6 @@
 // Current tab state
-let currentTab = 'acknowledge'; // Default tab
-    
+let currentTab = 'revision'; // Default tab
+
 // Pagination variables
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -10,6 +10,7 @@ let allSettlements = [];
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
+    loadUserProfileInfo();
     
     // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
@@ -32,25 +33,72 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadDashboard() {
     try {
-        // Get user ID for approver ID
+        // Get user ID 
         const userId = getUserId();
         if (!userId) {
             alert("Unable to get user ID from token. Please login again.");
             return;
         }
 
+        // Update counters by fetching both statuses
+        await updateCounters(userId);   
+        
+        // Filter and display documents based on current tab
+        await filterAndDisplayDocuments(userId);
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
+    }
+}
+
+// Function to update counters by fetching data for both statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status
+        const revisionResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/revision?filterType=revision`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const preparedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/revision?filterType=prepared&userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const revisionData = revisionResponse.ok ? await revisionResponse.json() : { data: [] };
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+
+        const revisionCount = revisionData.data ? revisionData.data.length : 0;
+        const preparedCount = preparedData.data ? preparedData.data.length : 0;
+
+        // Update counters in the UI
+        document.getElementById("revisionCount").textContent = revisionCount;
+        document.getElementById("preparedCount").textContent = preparedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        
+        // Fallback to zero counts
+        document.getElementById("revisionCount").textContent = 0;
+        document.getElementById("preparedCount").textContent = 0;
+    }
+}
+
+// Function to filter and display documents based on current tab
+async function filterAndDisplayDocuments(userId) {
+    try {
         let url;
         
         // Build URL based on current tab
-        if (currentTab === 'acknowledge') {
-            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`;
-        } else if (currentTab === 'approved') {
-            url = `${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`;
-        } else if (currentTab === 'rejected') {
-            url = `${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`;
+        if (currentTab === 'revision') {
+            url = `${BASE_URL}/api/settlements/dashboard/revision?filterType=revision`;
+        } else if (currentTab === 'prepared') {
+            url = `${BASE_URL}/api/settlements/dashboard/revision?filterType=prepared&userId=${userId}`;
         }
 
-        console.log('Fetching dashboard data from:', url);
+        console.log('Fetching documents from:', url);
 
         const response = await fetch(url, {
             method: 'GET',
@@ -65,13 +113,10 @@ async function loadDashboard() {
         }
 
         const result = await response.json();
-        console.log('Dashboard API response:', result);
+        console.log('API response:', result);
 
         if (result.status && result.data) {
             const documents = result.data;
-            
-            // Update counters by fetching all statuses
-            await updateCounters(userId);
             
             // Update the table with filtered documents
             updateTable(documents);
@@ -86,52 +131,10 @@ async function loadDashboard() {
         }
         
     } catch (error) {
-        console.error('Error loading dashboard:', error);
-        alert('Failed to load dashboard data. Please try again.');
-        
+        console.error('Error filtering documents:', error);
         // Fallback to empty state
         updateTable([]);
         updatePaginationInfo(0);
-    }
-}
-
-// Function to update counters by fetching data for all statuses
-async function updateCounters(userId) {
-    try {
-        // Fetch counts for each status using new API endpoints
-        const acknowledgeResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const approvedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-
-        const acknowledgeData = acknowledgeResponse.ok ? await acknowledgeResponse.json() : { data: [] };
-        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
-        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
-
-        const acknowledgeCount = acknowledgeData.data ? acknowledgeData.data.length : 0;
-        const approvedCount = approvedData.data ? approvedData.data.length : 0;
-        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
-        const totalCount = acknowledgeCount + approvedCount + rejectedCount;
-
-        // Update counters - map to correct HTML elements
-        document.getElementById("totalCount").textContent = totalCount;
-        document.getElementById("acknowledgeCount").textContent = acknowledgeCount;
-        document.getElementById("approvedCount").textContent = approvedCount;
-        document.getElementById("rejectedCount").textContent = rejectedCount;
-        
-    } catch (error) {
-        console.error('Error updating counters:', error);
-        
-        // Fallback to zero counts
-        document.getElementById("totalCount").textContent = 0;
-        document.getElementById("acknowledgeCount").textContent = 0;
-        document.getElementById("approvedCount").textContent = 0;
-        document.getElementById("rejectedCount").textContent = 0;
     }
 }
 
@@ -145,7 +148,7 @@ function updateTable(documents = []) {
     if (documents.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="7" class="p-4 text-center text-gray-500">
+            <td colspan="8" class="p-4 text-center text-gray-500">
                 No documents found for the selected tab.
             </td>
         `;
@@ -158,37 +161,47 @@ function updateTable(documents = []) {
     const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
     const paginatedDocs = documents.slice(startIndex, endIndex);
     
+    // Show/hide remarks column based on tab
+    const remarksHeader = document.getElementById('remarksHeader');
+    if (remarksHeader) {
+        remarksHeader.style.display = currentTab === 'revision' ? 'table-cell' : 'none';
+    }
+    
     paginatedDocs.forEach(doc => {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
         // Format submission date
-        let formattedDate = '';
-        if (doc.submissionDate) {
-            const date = new Date(doc.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
-        }
+        const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
         
-        row.innerHTML = `
-            <td class="p-2">${doc.id ? doc.id.substring(0, 10) : ''}</td>
-            <td class="p-2">${doc.settlementNumber || ''}</td>
-            <td class="p-2">${doc.requesterName || ''}</td>
-            <td class="p-2">${doc.departmentName || ''}</td>
-            <td class="p-2">${formattedDate}</td>
+        // Create row HTML
+        let rowHTML = `
+            <td class="p-2">${doc.id ? doc.id.toString().substring(0, 10) : ''}</td>
+            <td class="p-2">${doc.settlementNumber || '-'}</td>
+            <td class="p-2">${doc.requesterName || '-'}</td>
+            <td class="p-2">${doc.departmentName || '-'}</td>
+            <td class="p-2">${submissionDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
                     ${doc.status || ''}
                 </span>
-            </td>
+            </td>`;
+            
+        // Add remarks column if in revision tab
+        if (currentTab === 'revision') {
+            rowHTML += `<td class="p-2">${doc.remarks || '-'}</td>`;
+        }
+        
+        // Add tools column
+        rowHTML += `
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailSettle('${doc.id || ''}')">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="reviseSettle('${doc.id || ''}')">
                     Detail
                 </button>
             </td>
         `;
         
+        row.innerHTML = rowHTML;
         tableBody.appendChild(row);
     });
 }
@@ -221,16 +234,21 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'acknowledge') {
-        document.getElementById('acknowledgeTabBtn').classList.add('tab-active');
-    } else if (tabName === 'approved') {
-        document.getElementById('approvedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    if (tabName === 'revision') {
+        document.getElementById('revisionTabBtn').classList.add('tab-active');
+    } else if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
     }
     
-    // Reload dashboard with the new filter
-    loadDashboard();
+    // Get user ID and reload data for the selected tab
+    const userId = getUserId();
+    if (!userId) {
+        alert("Unable to get user ID from token. Please login again.");
+        return;
+    }
+    
+    // Filter and display documents based on the selected tab
+    filterAndDisplayDocuments(userId);
 }
 
 // Helper function to get status styling
@@ -258,11 +276,6 @@ function changePage(direction) {
     }
 }
 
-// Function to navigate to total documents page
-function goToTotalDocs() {
-    switchTab('acknowledge');
-}
-
 // Navigation functions
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -280,9 +293,9 @@ function goToProfile() {
     window.location.href = "../../../../pages/profil.html";
 }
 
-// Function to redirect to detail page with settlement ID
-function detailSettle(settleId) {
-    window.location.href = `../../../approval/approve/settlement/approveSettle.html?settle-id=${settleId}&tab=${currentTab}`;
+// Function to redirect to revision page with settlement ID
+function reviseSettle(settleId) {
+    window.location.href = `../../../approval/revision/settlement/revisionSettle.html?settle-id=${settleId}&tab=${currentTab}`;
 }
 
 // Load user profile information

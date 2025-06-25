@@ -700,8 +700,8 @@ function updateReimStatusWithRemarks(status, remarks) {
 
     let statusAt, successMessage, redirectUrl;
     
-    if (status === 'revision') {
-        statusAt = "Revision";
+    if (status === 'revise') {
+        statusAt = "Revise";
         successMessage = 'Reimbursement revision submitted successfully';
         redirectUrl = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
     } else {
@@ -720,7 +720,7 @@ function updateReimStatusWithRemarks(status, remarks) {
 
     // Show loading
     Swal.fire({
-        title: status === 'revision' ? 'Processing Revision...' : `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
+        title: status === 'revise' ? 'Processing Revision...' : `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -749,7 +749,7 @@ function updateReimStatusWithRemarks(status, remarks) {
             });
         } else {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status === 'revision' ? 'submit revision' : status + ' Reimbursement'}. Status: ${response.status}`);
+                throw new Error(errorData.message || `Failed to ${status === 'revise' ? 'submit revision' : status + ' Reimbursement'}. Status: ${response.status}`);
             });
         }
     })
@@ -758,7 +758,7 @@ function updateReimStatusWithRemarks(status, remarks) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'revision' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' Reimbursement'}: ` + error.message
+            text: `Error ${status === 'revise' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' Reimbursement'}: ` + error.message
         });
     });
 }

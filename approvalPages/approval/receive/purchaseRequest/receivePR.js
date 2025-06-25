@@ -184,28 +184,7 @@ function addItemRow(item = null) {
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(prData = null) {
-    fetchDepartments();
     fetchUsers(prData);
-    fetchClassifications();
-    fetchItemOptions();
-    
-}
-
-// Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
 }
 
 // Function to fetch users from API
@@ -223,51 +202,6 @@ function fetchUsers(prData = null) {
         .catch(error => {
             console.error('Error fetching users:', error);
         });
-}
-
-// Function to fetch classifications from API
-function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateClassificationSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching classifications:', error);
-        });
-}
-
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-}
-
-function populateClassificationSelect(classifications) {
-    const classificationSelect = document.getElementById("classification");
-    if (!classificationSelect) return;
-    
-    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
-
-    classifications.forEach(classification => {
-        const option = document.createElement("option");
-        option.value = classification.id;
-        option.textContent = classification.name;
-        classificationSelect.appendChild(option);
-    });
 }
 
 // Function to filter users for the search dropdown in approval section
@@ -699,55 +633,7 @@ function hideApprovalButtons() {
     }
 }
 
-function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Item data:", data);
-            // Populate all item selects in the document
-            document.querySelectorAll('.item-no').forEach(select => {
-                populateItemSelect(data.data, select);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
-}
-
-// Function to populate item select
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    // Store the currently selected value
-    const currentValue = selectElement.value;
-    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-        // Store the description as a data attribute
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        selectElement.appendChild(option);
-        
-        // If this item matches the current text or value, select it
-        if (option.textContent === currentText || option.value === currentValue) {
-            option.selected = true;
-        }
-    });
-
-    // Add onchange event listener to auto-fill description
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
+// Note: Item fetching functions removed since ItemNo now stores ItemCode directly
 
 function updateItemDescription(selectElement) {
     const row = selectElement.closest('tr');

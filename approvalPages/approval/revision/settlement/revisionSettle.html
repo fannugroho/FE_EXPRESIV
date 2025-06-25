@@ -46,7 +46,13 @@
                 <input type="text" id="settlementRefNo" placeholder="Settlement Ref No" class="w-full p-2 border rounded" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester Name" class="w-full p-2 border rounded" readonly>
+                <div class="relative">
+                    <input type="text" id="requesterName" placeholder="Search Requester" class="w-full p-2 border rounded search-input" onkeyup="filterRequesters()" autocomplete="off">
+                    <select id="requesterSelect" class="hidden">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                    <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded" disabled>
@@ -102,6 +108,11 @@
                 <!-- Rows will be added by JavaScript -->
             </tbody>
         </table>
+
+        <!-- Add Row button -->
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
 
         <!-- approval signatories -->
         <div class="mt-4">
@@ -484,7 +495,7 @@
             
             // Call the existing function with the collected remarks
             // This function should be implemented in revisionSettle.js
-            updateSettlementStatusWithRemarks('revision', allRemarks);
+            updateSettlementStatusWithRemarks('revise', allRemarks);
         }
     </script>
 </body>

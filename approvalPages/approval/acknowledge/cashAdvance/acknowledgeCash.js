@@ -654,7 +654,7 @@ function submitRevision() {
             const revisionData = {
                 id: caId,
                 UserId: userId,
-                Status: 'revision',
+                Status: 'revise',
                 RevisionRemarks: revisionRemarks.trim()
             };
 

@@ -487,7 +487,7 @@ function populateItemSelect(items, selectElement) {
 
     items.forEach(item => {
         const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
+        option.value = item.itemCode; // Use itemCode instead of id
         option.textContent = `${item.itemCode} - ${item.itemName}`;
         // Store the description and UOM as data attributes
         option.setAttribute('data-item-code', item.itemCode);

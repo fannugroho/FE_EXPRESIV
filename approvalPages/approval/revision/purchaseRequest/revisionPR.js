@@ -645,7 +645,7 @@ function addItemRow(item = null) {
     // Store the item data to be used after fetching options
     if (item) {
         const selectElement = row.querySelector('.item-no');
-        selectElement.setAttribute('data-selected-item-id', item.itemNo); // itemNo is actually the item ID
+        selectElement.setAttribute('data-selected-item-code', item.itemNo); // itemNo is actually the itemCode
     }
     
     fetchItemOptions();
@@ -721,7 +721,7 @@ function populateItemSelectClean(items, selectElement) {
 
     items.forEach(item => {
         const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
+        option.value = item.itemCode; // Use itemCode instead of id
         option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
         // Store the description and UOM as data attributes - handle both possible field names
         option.setAttribute('data-item-code', item.itemCode || item.itemNo);
@@ -1023,14 +1023,14 @@ function fetchItemOptions() {
 function populateItemSelect(items, selectElement) {
     if (!selectElement) return;
     
-    // Check if this select has a pre-selected item ID
-    const selectedItemId = selectElement.getAttribute('data-selected-item-id');
+    // Check if this select has a pre-selected item code
+    const selectedItemCode = selectElement.getAttribute('data-selected-item-code');
     
     selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
 
     items.forEach(item => {
         const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
+        option.value = item.itemCode; // Use itemCode instead of id
         option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
         // Store the description and UOM as data attributes - handle both possible field names
         option.setAttribute('data-item-code', item.itemCode || item.itemNo);
@@ -1038,8 +1038,8 @@ function populateItemSelect(items, selectElement) {
         option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
         selectElement.appendChild(option);
         
-        // If this item matches the selected item ID, select it
-        if (selectedItemId && (item.id === selectedItemId || item.itemCode === selectedItemId || item.itemNo === selectedItemId)) {
+        // If this item matches the selected item code, select it
+        if (selectedItemCode && item.itemCode === selectedItemCode) {
             option.selected = true;
             // Trigger the update after setting as selected
             setTimeout(() => {

@@ -327,7 +327,6 @@ function addItemRow(item = null) {
 // Function to fetch all dropdown options
 function fetchDropdownOptions(prData = null) {
     fetchUsers(prData);
-    fetchItemOptions();
 }
 
 // Function to fetch users from API
@@ -350,25 +349,7 @@ function fetchUsers(prData = null) {
 }
 
 // Function to fetch item options from API
-function fetchItemOptions() {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Items data:', data.data);
-            // Populate all item selects in the document
-            document.querySelectorAll('.item-no').forEach(select => {
-                populateItemSelect(data.data, select);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
-}
+
 
 function populateUserSelects(users, prData = null) {
     const selects = [
@@ -810,32 +791,4 @@ function revisionPR() {
     updatePRStatusWithRemarks('revise', allRemarks);
 }
 
-// Function to populate item select
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    // Store the currently selected value
-    const currentValue = selectElement.value;
-    const currentText = selectElement.options[selectElement.selectedIndex]?.text;
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
-        option.textContent = `${item.itemNo || item.itemCode} - ${item.name || item.itemName}`;
-        // Store the description as a data attribute
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        selectElement.appendChild(option);
-        
-        // If this item matches the current text or value, select it
-        if (option.textContent === currentText || option.value === currentValue) {
-            option.selected = true;
-        }
-    });
-
-    // Add onchange event listener to auto-fill description
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
+// Note: Item fetching functions removed since ItemNo now stores ItemCode directly

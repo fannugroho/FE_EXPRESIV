@@ -93,6 +93,7 @@
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Draft">Draft</option>
+                    <option value="Revision">Revision</option>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
                     <option value="Checked">Checked</option>
@@ -167,6 +168,35 @@
             <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
                 <label class="font-semibold text-red-600">Rejection Reason</label>
                 <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            </div>
+
+            <!-- Revision Remarks section - only visible when there are revisions -->
+            <div class="mt-4" id="revisedRemarksSection" style="display: none;">
+                <label class="font-semibold text-orange-600">Revision History (<span id="revisedCount">0</span> revision(s))</label>
+                
+                <!-- First Revision -->
+                <div class="mt-2" id="firstRevisionContainer" style="display: none;">
+                    <label class="text-sm font-medium text-orange-500">1st Revision:</label>
+                    <div class="p-2 border border-orange-200 rounded-md bg-orange-50 text-sm" id="firstRevisionRemarks"></div>
+                </div>
+                
+                <!-- Second Revision -->
+                <div class="mt-2" id="secondRevisionContainer" style="display: none;">
+                    <label class="text-sm font-medium text-orange-500">2nd Revision:</label>
+                    <div class="p-2 border border-orange-200 rounded-md bg-orange-50 text-sm" id="secondRevisionRemarks"></div>
+                </div>
+                
+                <!-- Third Revision -->
+                <div class="mt-2" id="thirdRevisionContainer" style="display: none;">
+                    <label class="text-sm font-medium text-orange-500">3rd Revision:</label>
+                    <div class="p-2 border border-orange-200 rounded-md bg-orange-50 text-sm" id="thirdRevisionRemarks"></div>
+                </div>
+                
+                <!-- Fourth Revision -->
+                <div class="mt-2" id="fourthRevisionContainer" style="display: none;">
+                    <label class="text-sm font-medium text-orange-500">4th Revision:</label>
+                    <div class="p-2 border border-orange-200 rounded-md bg-orange-50 text-sm" id="fourthRevisionRemarks"></div>
+                </div>
             </div>
 
         <!-- Approval section -->
