@@ -108,7 +108,7 @@
             </tfoot>
         </table>
         
-        <!-- Invoice Details Section -->
+        <!-- Invoice Details Section
         <div class="mb-4">
             <p class="mb-2">Detail Invoice Number : <span id="invoiceNumberText"></span></p>
             
@@ -133,11 +133,11 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+        </div> -->
         
         <!-- Department Section -->
         <div class="flex items-center mb-4">
-            <p class="mr-4">Department :</p>
+            <p id="departmentText" class="mr-4">Department :</p>
             <div class="flex space-x-8">
                 <div class="flex items-center">
                     <div class="checkbox mr-2" id="productionCheckbox"></div>
@@ -160,23 +160,16 @@
         
         <!-- Supporting Document Section -->
         <div class="mb-4">
-            <p class="mb-2">Supporting Document :</p>
+            <p id="attachdoc" class="mb-2">Supporting Document :</p>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <p>Purchasing requisition form</p>
-                    <p>Purchasing order form</p>
-                    <p>Invoice</p>
-                    <p>Invoice tax</p>
-                    <p>Delivery order from supplier</p>
-                    <p>Quitance</p>
-                </div>
-                <div>
-                    <p>: ......................................................</p>
-                    <p>: ......................................................</p>
-                    <p>: ......................................................</p>
-                    <p>: ......................................................</p>
-                    <p>: ......................................................</p>
-                    <p>: ......................................................</p>
+                    <p>Reference Doc : <span id="refdoc"></span></p>
+                    <p>Purchasing requisition form : ............................................</p>
+                    <p>Purchasing order form : ............................................</p>
+                    <p>Invoice : ............................................</p>
+                    <p>Invoice tax : ............................................</p>
+                    <p>Delivery order from supplier : ............................................</p>
+                    <p>Quitance : ............................................</p>
                 </div>
             </div>
         </div>
@@ -190,30 +183,38 @@
                     <span>Cash</span>
                 </div>
                 <div class="flex items-center">
-                    <div class="checkbox checked mr-2" id="bankRemittanceCheckbox"></div>
+                    <div class="checkbox mr-2" id="bankRemittanceCheckbox"></div>
                     <span>Bank Remittance</span>
                 </div>
             </div>
         </div>
         
         <!-- Signature Section -->
-        <div class="grid grid-cols-4 gap-4 mt-6">
+        <div class="grid grid-cols-5 gap-4 mt-6">
             <div>
                 <p class="text-center">Voucher is Prepared by :</p>
                 <div class="signature-box"></div>
+                <p class="text-center mt-2" id="preparedBy"></p>
             </div>
             <div>
                 <p class="text-center">Voucher is Checked by :</p>
                 <div class="signature-box"></div>
+                <p class="text-center mt-2" id="checkedBy"></p>
+            </div>
+            <div>
+                <p class="text-center">Voucher is Acknowledge by :</p>
+                <div class="signature-box"></div>
+                <p class="text-center mt-2" id="acknowledgeBy"></p>
             </div>
             <div>
                 <p class="text-center">Voucher is Approved by :</p>
                 <div class="signature-box"></div>
-                <p class="text-center mt-2" id="approvedByText">N. Widya M.</p>
+                <p class="text-center mt-2" id="approvedByText"></p>
             </div>
             <div>
                 <p class="text-center">Cash is Received by :</p>
                 <div class="signature-box"></div>
+                <p class="text-center mt-2" id="receivedBy"></p>
             </div>
         </div>
         

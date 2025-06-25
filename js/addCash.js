@@ -62,10 +62,14 @@ async function saveDocument(isSubmit = false) {
         // Add CashAdvanceDetails - collect all rows from the table
         const tableRows = document.querySelectorAll('#tableBody tr');
         tableRows.forEach((row, index) => {
-            const description = row.querySelector('input[type="text"]').value;
-            const amount = row.querySelector('input[type="number"]').value;
+            const category = row.querySelector('.category').value;
+            const glAccount = row.querySelector('.glAccount').value;
+            const description = row.querySelector('.description').value;
+            const amount = row.querySelector('.total').value;
             
             if (description && amount) {
+                formData.append(`CashAdvanceDetails[${index}][Category]`, category);
+                formData.append(`CashAdvanceDetails[${index}][GLAccount]`, glAccount);
                 formData.append(`CashAdvanceDetails[${index}][Description]`, description);
                 formData.append(`CashAdvanceDetails[${index}][Amount]`, amount);
             }
@@ -290,28 +294,34 @@ function deleteFile(index) {
 }
 
 function addRow() {
-const tableBody = document.getElementById("tableBody");
-const newRow = document.createElement("tr");
-
-newRow.innerHTML = `
-<td class="p-2 border">
-    <input type="text" maxlength="30" class="w-full" required />
-</td>
-<td class="p-2 border">
-    <input type="number" maxlength="10" class="w-full" required />
-</td>
-<td class="p-2 border text-center">
-    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-        🗑
-    </button>
-</td>
-`;
-
-tableBody.appendChild(newRow);
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
+    
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <input type="text" class="category w-full" maxlength="200" />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="glAccount w-full" maxlength="200" />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="description w-full" maxlength="200" />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="total w-full" maxlength="10" required step="000.000.000,01"/>
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
+        </td>
+    `;
+    
+    tableBody.appendChild(newRow);
 }
 
 function deleteRow(button) {
-button.closest("tr").remove(); // Hapus baris tempat tombol diklik
+    button.closest("tr").remove(); // Hapus baris tempat tombol diklik
 }
 
 function fetchDepartments() {

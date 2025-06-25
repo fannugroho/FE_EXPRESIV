@@ -7,6 +7,29 @@ function getReimbursementIdFromUrl() {
     return urlParams.get('reim-id');
 }
 
+// Get all parameters from URL
+function getUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = {};
+    
+    // Extract all parameters
+    for (const [key, value] of urlParams.entries()) {
+        params[key] = value;
+    }
+    
+    // Special handling for details JSON
+    if (params.details) {
+        try {
+            params.details = JSON.parse(decodeURIComponent(params.details));
+        } catch (error) {
+            console.error('Error parsing details JSON:', error);
+            params.details = [];
+        }
+    }
+    
+    return params;
+}
+
 // Convert number to words (for amount in words)
 function numberToWords(num) {
     const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
@@ -111,50 +134,117 @@ async function fetchReimbursementData() {
     }
 }
 
-// Populate print page with reimbursement data
-function populatePrintData(data) {
+// Populate print page with reimbursement data from URL parameters or API data
+function populatePrintData(apiData = null) {
+    // Get data from URL parameters first
+    const urlParams = getUrlParameters();
+    
+    // Use URL parameters if available, otherwise fall back to API data
+    const data = {
+        payTo: urlParams.payTo || (apiData ? apiData.payTo : ''),
+        voucherNo: urlParams.voucherNo || (apiData ? apiData.voucherNo : ''),
+        submissionDate: urlParams.submissionDate || (apiData ? apiData.submissionDate : ''),
+        department: urlParams.department || (apiData ? apiData.department : ''),
+        referenceDoc: urlParams.referenceDoc || (apiData ? apiData.referenceDoc : ''),
+        preparedBy: urlParams.preparedBy || (apiData ? apiData.preparedBy : ''),
+        checkedBy: urlParams.checkedBy || (apiData ? apiData.checkedBy : ''),
+        acknowledgeBy: urlParams.acknowledgeBy || (apiData ? apiData.acknowledgeBy : ''),
+        approvedBy: urlParams.approvedBy || (apiData ? apiData.approvedBy : ''),
+        receivedBy: urlParams.receivedBy || (apiData ? apiData.receivedBy : ''),
+        totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
+        reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : [])
+    };
+    
     // Populate header information
     document.getElementById('payToText').textContent = data.payTo || '';
     document.getElementById('voucherNoText').textContent = data.voucherNo || '';
-    document.getElementById('submissionDateText').textContent = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString('en-GB') : '';
     
-    // Set department checkbox
+    // Format date if it's a string in YYYY-MM-DD format
+    if (data.submissionDate) {
+        if (typeof data.submissionDate === 'string' && data.submissionDate.includes('-')) {
+            const dateParts = data.submissionDate.split('-');
+            if (dateParts.length === 3) {
+                // Convert from YYYY-MM-DD to DD/MM/YYYY
+                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                document.getElementById('submissionDateText').textContent = formattedDate;
+            } else {
+                document.getElementById('submissionDateText').textContent = data.submissionDate;
+            }
+        } else {
+            // If it's a date object from API
+            document.getElementById('submissionDateText').textContent = new Date(data.submissionDate).toLocaleDateString('en-GB');
+        }
+    }
+    
+    // Set department text and checkbox
     if (data.department) {
+        // Just display the department name, don't modify the label
         const dept = data.department.toLowerCase();
-        if (dept === 'production') {
+        if (dept.includes('production')) {
             document.getElementById('productionCheckbox').classList.add('checked');
-        } else if (dept === 'marketing') {
+        } else if (dept.includes('marketing') || dept.includes('sales')) {
             document.getElementById('marketingCheckbox').classList.add('checked');
-        } else if (dept === 'technical') {
+        } else if (dept.includes('technical')) {
             document.getElementById('technicalCheckbox').classList.add('checked');
-        } else if (dept === 'admninistration') {
+        } else if (dept.includes('admin')) {
             document.getElementById('administrationCheckbox').classList.add('checked');
         }
     }
     
-    // Set reference document as invoice number
-    document.getElementById('invoiceNumberText').textContent = data.referenceDoc || '';
+    // Set reference document
+    if (document.getElementById('refdoc')) {
+        document.getElementById('refdoc').textContent = `Reference Doc: ${data.referenceDoc || ''}`;
+    }
     
-    // Set approver name if available
-    if (data.approvedBy) {
+    // Set approver names in signature section
+    if (document.getElementById('preparedBy') && data.preparedBy) {
+        document.getElementById('preparedBy').textContent = data.preparedBy;
+    }
+    
+    if (document.getElementById('checkedBy') && data.checkedBy) {
+        document.getElementById('checkedBy').textContent = data.checkedBy;
+    }
+    
+    if (document.getElementById('acknowledgeBy') && data.acknowledgeBy) {
+        document.getElementById('acknowledgeBy').textContent = data.acknowledgeBy;
+    }
+    
+    if (document.getElementById('approvedBy') && data.approvedBy) {
+        document.getElementById('approvedBy').textContent = data.approvedBy;
+    }
+    
+    if (document.getElementById('approvedByText') && data.approvedBy) {
         document.getElementById('approvedByText').textContent = data.approvedBy;
     }
     
+    if (document.getElementById('receivedBy') && data.receivedBy) {
+        document.getElementById('receivedBy').textContent = data.receivedBy;
+    }
+    
     // Populate reimbursement details table
-    populateDetailsTable(data.reimbursementDetails);
+    populateDetailsTable(data.reimbursementDetails, data.totalAmount);
+}
+
+// Helper function to calculate total from details
+function calculateTotalFromDetails(details) {
+    if (!details || !Array.isArray(details)) return 0;
+    
+    return details.reduce((sum, detail) => {
+        return sum + (parseFloat(detail.amount) || 0);
+    }, 0);
 }
 
 // Populate reimbursement details table
-function populateDetailsTable(details) {
+function populateDetailsTable(details, totalAmount = null) {
     const tableBody = document.getElementById('reimbursementDetailsTable');
     tableBody.innerHTML = ''; // Clear existing rows
     
-    let totalAmount = 0;
+    let calculatedTotal = 0;
     
     if (details && details.length > 0) {
         details.forEach(detail => {
             const amount = parseFloat(detail.amount) || 0;
-            totalAmount += amount;
+            calculatedTotal += amount;
             
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -168,13 +258,16 @@ function populateDetailsTable(details) {
         });
     }
     
+    // Use provided total amount or calculated total
+    const finalTotal = totalAmount !== null ? parseFloat(totalAmount) : calculatedTotal;
+    
     // Update totals
-    document.getElementById('totalDebitText').textContent = formatCurrency(totalAmount);
-    document.getElementById('totalCreditText').textContent = formatCurrency(totalAmount);
+    document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
+    document.getElementById('totalCreditText').textContent = formatCurrency(finalTotal);
     
     // Update amount payment and amount in words
-    document.getElementById('amountText').textContent = formatCurrency(totalAmount);
-    document.getElementById('amountInWordText').textContent = `${numberToWords(totalAmount)} rupiah`;
+    document.getElementById('amountText').textContent = formatCurrency(finalTotal);
+    document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
 }
 
 // Go back to previous page
@@ -184,5 +277,12 @@ function goBack() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    fetchReimbursementData();
+    // Try to populate from URL parameters first
+    const urlParams = getUrlParameters();
+    if (urlParams && Object.keys(urlParams).length > 1) { // More than just reim-id
+        populatePrintData();
+    } else {
+        // Fall back to API if URL parameters are insufficient
+        fetchReimbursementData();
+    }
 }); 
