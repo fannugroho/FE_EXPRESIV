@@ -369,7 +369,7 @@ function logout() { localStorage.removeItem("loggedInUser"); window.location.hre
 
 function detailDoc(opId) {
     // Navigate to outgoing payment detail page
-    window.location.href = `/detailPages/detailOutgoingPayment.html?op-id=${opId}`;
+    window.location.href = `/detailPages/detailOPVendor.html?op-id=${opId}`;
 }
 
 window.onload = loadDashboard;
