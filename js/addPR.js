@@ -261,78 +261,66 @@ window.onload = function(){
     });
 }
 
-function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Classification data:", data);
-            populateClassificationSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching classifications:', error);
-        });
+async function fetchClassifications() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/classifications');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Classification data:", data);
+        populateClassificationSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching classifications:', error);
+    }
 }
 
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Department data:", data);
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
+async function fetchDepartments() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/department');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
 }
 
-function fetchUsers() {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("User data:", data);
-            populateUserSelects(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
+async function fetchUsers() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/users');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("User data:", data);
+        populateUserSelects(data.data);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
 }
 
-function fetchItemOptions(selectElement = null) {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (selectElement) {
-                populateItemSelect(data.data, selectElement);
-            } else {
-                // Populate all item selects in the document
-                document.querySelectorAll('.item-no').forEach(select => {
-                    populateItemSelect(data.data, select);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
+async function fetchItemOptions(selectElement = null) {
+    try {
+        const response = await makeAuthenticatedRequest('/api/items');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        if (selectElement) {
+            populateItemSelect(data.data, selectElement);
+        } else {
+            // Populate all item selects in the document
+            document.querySelectorAll('.item-no').forEach(select => {
+                populateItemSelect(data.data, select);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching items:', error);
+    }
 }
 
 function populateDepartmentSelect(departments) {
@@ -487,7 +475,7 @@ function populateItemSelect(items, selectElement) {
 
     items.forEach(item => {
         const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
+        option.value = item.itemCode; // Use itemCode instead of id
         option.textContent = `${item.itemCode} - ${item.itemName}`;
         // Store the description and UOM as data attributes
         option.setAttribute('data-item-code', item.itemCode);
@@ -748,7 +736,7 @@ async function submitDocument(isSubmit = false) {
         });
         
         // Submit the form data
-        const response = await fetch(`${BASE_URL}/api/pr/item`, {
+        const response = await makeAuthenticatedRequest('/api/pr/item', {
             method: 'POST',
             body: formData
         });

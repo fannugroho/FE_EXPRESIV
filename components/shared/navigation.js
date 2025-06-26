@@ -50,6 +50,11 @@ function goToMenuReceivePR() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/purchaseRequest/menuPRReceive.html`;
 }
 
+function goToMenuRevisionPR() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html`;
+}
+
 // Reimbursement Navigation
 function goToMenuReim() {
     const basePath = getBasePath();
@@ -74,6 +79,11 @@ function goToMenuApprovReim() {
 function goToMenuReceiveReim() {
     const basePath = getBasePath();
     window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/reimbursement/menuReimReceive.html`;
+}
+
+function goToMenuRevisionReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html`;
 }
 
 // Cash Advance Navigation
@@ -102,6 +112,11 @@ function goToMenuReceiveCash() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/cashAdvance/menuCashReceive.html`;
 }
 
+function goToMenuRevisionCash() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/cashAdvance/menuCashRevision.html`;
+}
+
 // Settlement Navigation
 function goToMenuSettle() {
     const basePath = getBasePath();
@@ -126,6 +141,11 @@ function goToMenuApprovSettle() {
 function goToMenuReceiveSettle() {
     const basePath = getBasePath();
     window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/settlement/menuSettleReceive.html`;
+}
+
+function goToMenuRevisionSettle() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/settlement/menuSettleRevision.html`;
 }
 
 // Decision Report Navigation

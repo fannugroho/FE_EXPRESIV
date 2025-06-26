@@ -154,7 +154,8 @@
             const userObject = {
               id: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
               name: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
-              roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || []
+              roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || [],
+              isFirstLogin: result.data.isFirstLogin === true
             };
             
             localStorage.setItem("loggedInUser", JSON.stringify(userObject));
@@ -165,8 +166,12 @@
             // Show success message
             alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
             
-            // Check if this is a first-time login (password needs to be changed)
-            if (result.data.requirePasswordChange) {
+            // Check if this is a first-time login
+            if (result.data.isFirstLogin === true) {
+              console.log("First login detected, redirecting to change password page");
+              // Redirect to password change page
+              window.location.href = "changepass.html";
+            } else if (result.data.requirePasswordChange) {
               // Store the requirement in localStorage
               localStorage.setItem("requirePasswordChange", "true");
               // Redirect to password change page

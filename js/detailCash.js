@@ -730,6 +730,9 @@ function populateForm(data) {
         }
     }
 
+    // Handle revision remarks display
+    displayRevisionRemarks(data);
+
     // Handle attachments if they exist
     if (data.attachments && data.attachments.length > 0) {
         console.log('Attachments found:', data.attachments);
@@ -744,12 +747,54 @@ function populateForm(data) {
     }
 
     // Check if status is not Draft and make fields read-only
-    if (data.status && data.status.toLowerCase() !== 'draft') {
+    if (data.status && data.status.toLowerCase() !== 'draft' && data.status.toLowerCase() !== 'revision') {
         makeAllFieldsReadOnlyForNonDraft();
     }
 
     // Fetch dropdown options with approval data
     fetchDropdownOptions(approvalData);
+}
+
+// Function to display revision remarks from API
+function displayRevisionRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisionCount && parseInt(data.revisionCount) > 0;
+    
+    if (hasRevisions) {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'block';
+        }
+        if (revisedCountElement) {
+            revisedCountElement.textContent = data.revisionCount || '0';
+        }
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'none';
+        }
+    }
 }
 
 function populateTable(cashAdvanceDetails) {
@@ -1499,9 +1544,9 @@ function printCashAdvanceVoucher() {
     });
 }
 
-// Function to make all fields read-only when status is not Draft
+// Function to make all fields read-only when status is not Draft or Revision
 function makeAllFieldsReadOnlyForNonDraft() {
-    console.log('Status is not Draft - making all fields read-only');
+    console.log('Status is not Draft or Revision - making all fields read-only');
     
     // Make all input fields read-only
     const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], input[type="file"], textarea');
