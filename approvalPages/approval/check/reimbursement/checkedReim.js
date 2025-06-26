@@ -312,10 +312,7 @@ function populateFormData(data) {
         displayAttachments(data.reimbursementAttachments);
     }
     
-    // Show revision history if available
-    if (data.revisionHistory && data.revisionHistory.length > 0) {
-        displayRevisionHistory(data.revisionHistory);
-    }
+    // Revision history handling removed - field not available in API
 }
 
 // Helper function to set approval values in both select and search input
@@ -335,39 +332,7 @@ function setApprovalValue(fieldPrefix, userId) {
     }
 }
 
-// Display revision history if available
-function displayRevisionHistory(revisions) {
-    // Check if we have revision history to display
-    if (!revisions || revisions.length === 0) return;
-    
-    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCount = document.getElementById('revisedCount');
-    
-    if (revisedRemarksSection && revisedCount) {
-        // Show the revision history section
-        revisedRemarksSection.style.display = 'block';
-        revisedCount.textContent = revisions.length;
-        
-        // Display up to 4 revisions
-        const maxRevisions = Math.min(revisions.length, 4);
-        for (let i = 0; i < maxRevisions; i++) {
-            const containerIndex = i + 1;
-            const containerElement = document.getElementById(`${getOrdinal(containerIndex)}RevisionContainer`);
-            const remarksElement = document.getElementById(`${getOrdinal(containerIndex)}RevisionRemarks`);
-            
-            if (containerElement && remarksElement) {
-                containerElement.style.display = 'block';
-                remarksElement.textContent = revisions[i].remarks || 'No remarks provided';
-            }
-        }
-    }
-}
-
-// Helper function to get ordinal string
-function getOrdinal(num) {
-    const ordinals = ['first', 'second', 'third', 'fourth'];
-    return ordinals[num - 1] || '';
-}
+// Display revision history function removed - field not available in API
 
 // Populate reimbursement details table
 function populateReimbursementDetails(details) {
