@@ -63,9 +63,10 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        populateDropdown("receivedBySelect", users);
         
-        // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect"];
+        // Make all dropdowns readonly
+        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receivedBySelect"];
         dropdownIds.forEach(id => {
             const dropdown = document.getElementById(id);
             if (dropdown) {
@@ -180,7 +181,85 @@ function populateDropdown(dropdownId, users) {
         console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
     
+    // Store users data for searching in searchable fields
+    const searchableFields = [
+        "preparedBySelect", 
+        "acknowledgeBySelect", 
+        "checkedBySelect", 
+        "approvedBySelect",
+        "receivedBySelect"
+    ];
+    
+    if (searchableFields.includes(dropdownId)) {
+        const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
+        if (searchInput) {
+            // Store users data for searching
+            searchInput.dataset.users = JSON.stringify(users.map(user => {
+                let displayName = user.fullName || '';
+                if (!displayName.trim()) {
+                    displayName = user.username || `User ${user.id}`;
+                }
+                return {
+                    id: user.id,
+                    name: displayName.trim()
+                };
+            }));
+        }
+    }
+    
     console.log(`Finished populating ${dropdownId}`);
+}
+
+// Function to filter and display user dropdown
+function filterUsers(fieldId) {
+    const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) return;
+    
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    let filteredUsers = [];
+    
+    // Handle all searchable selects
+    if (fieldId === 'preparedBySelect' || 
+        fieldId === 'acknowledgeBySelect' || 
+        fieldId === 'checkedBySelect' || 
+        fieldId === 'approvedBySelect' ||
+        fieldId === 'receivedBySelect') {
+        try {
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            
+            // Show search results - readonly for checker view
+            filteredUsers.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = user.name;
+                option.onclick = function() {
+                    searchInput.value = user.name;
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error parsing users data:", error);
+        }
+    }
+    
+    // Show message if no results
+    if (filteredUsers.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Name Not Found';
+        dropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    dropdown.classList.remove('hidden');
 }
 
 // Populate form fields with data
@@ -213,13 +292,12 @@ function populateFormData(data) {
     if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
-    // Approvers information - safely check if elements exist
-    if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
-    if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
-    if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
-    
-    // Set checkbox states based on if values exist - removed checks for elements that don't exist
+    // Set approval values in both select and search inputs
+    setApprovalValue('preparedBy', data.preparedBy);
+    setApprovalValue('acknowledgeBy', data.acknowledgedBy);
+    setApprovalValue('checkedBy', data.checkedBy);
+    setApprovalValue('approvedBy', data.approvedBy);
+    setApprovalValue('receivedBy', data.receivedBy);
     
     // Handle reimbursement details (table rows)
     if (data.reimbursementDetails) {
@@ -233,6 +311,62 @@ function populateFormData(data) {
     if (data.reimbursementAttachments) {
         displayAttachments(data.reimbursementAttachments);
     }
+    
+    // Show revision history if available
+    if (data.revisionHistory && data.revisionHistory.length > 0) {
+        displayRevisionHistory(data.revisionHistory);
+    }
+}
+
+// Helper function to set approval values in both select and search input
+function setApprovalValue(fieldPrefix, userId) {
+    if (!userId) return;
+    
+    const selectElement = document.getElementById(`${fieldPrefix}Select`);
+    const searchInput = document.getElementById(`${fieldPrefix}Search`);
+    
+    if (selectElement) {
+        selectElement.value = userId;
+        
+        // Also set the search input value
+        if (searchInput && selectElement.selectedOptions[0]) {
+            searchInput.value = selectElement.selectedOptions[0].textContent;
+        }
+    }
+}
+
+// Display revision history if available
+function displayRevisionHistory(revisions) {
+    // Check if we have revision history to display
+    if (!revisions || revisions.length === 0) return;
+    
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
+    
+    if (revisedRemarksSection && revisedCount) {
+        // Show the revision history section
+        revisedRemarksSection.style.display = 'block';
+        revisedCount.textContent = revisions.length;
+        
+        // Display up to 4 revisions
+        const maxRevisions = Math.min(revisions.length, 4);
+        for (let i = 0; i < maxRevisions; i++) {
+            const containerIndex = i + 1;
+            const containerElement = document.getElementById(`${getOrdinal(containerIndex)}RevisionContainer`);
+            const remarksElement = document.getElementById(`${getOrdinal(containerIndex)}RevisionRemarks`);
+            
+            if (containerElement && remarksElement) {
+                containerElement.style.display = 'block';
+                remarksElement.textContent = revisions[i].remarks || 'No remarks provided';
+            }
+        }
+    }
+}
+
+// Helper function to get ordinal string
+function getOrdinal(num) {
+    const ordinals = ['first', 'second', 'third', 'fourth'];
+    return ordinals[num - 1] || '';
 }
 
 // Populate reimbursement details table
@@ -333,57 +467,6 @@ function addRow() {
 function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
-}
-
-// Submit reimbursement update to API
-async function submitReimbursementUpdate() {
-    // Get reimbursement ID from URL
-    const id = getReimbursementIdFromUrl();
-    if (!id) {
-        Swal.fire('Error', 'No reimbursement ID found', 'error');
-        return;
-    }
-    
-    // Collect reimbursement details from table
-    const detailsTable = document.getElementById('reimbursementDetails');
-    const rows = detailsTable.querySelectorAll('tr');
-    const reimbursementDetails = [];
-    
-    rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        const deleteButton = row.querySelector('button');
-        const detailId = deleteButton.getAttribute('data-id') || null;
-        
-        reimbursementDetails.push({
-            id: detailId,
-            description: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
-        });
-    });
-    
-    // Build request data
-    const requestData = {
-        requesterName: document.getElementById('requesterName').value,
-        department: document.getElementById('department').value,
-        currency: document.getElementById('currency').value,
-        payTo: document.getElementById('requesterName').value, // Use requesterName for payTo
-        referenceDoc: document.getElementById('referenceDoc').value,
-        typeOfTransaction: document.getElementById('typeOfTransaction').value,
-        remarks: document.getElementById('remarks').value,
-        reimbursementDetails: reimbursementDetails
-    };
-    
-    // API call removed
-    Swal.fire(
-        'Updated!',
-        'Reimbursement has been updated successfully.',
-        'success'
-    ).then(() => {
-        // Reload the data to show the latest changes
-        fetchReimbursementData();
-    });
 }
 
 // Function to go back to menu
@@ -511,14 +594,86 @@ function onApprove() {
     });
 }
 
-function updateApprovalStatus(docNumber, statusKey) {
-    let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
-    let docIndex = documents.findIndex(doc => doc.docNumber === docNumber);
-    if (docIndex !== -1) {
-        documents[docIndex].approvals[statusKey] = true;
-        localStorage.setItem("documentsReim", JSON.stringify(documents));
-        alert(`Document ${statusKey} updated!`);
+function revisionReim() {
+    // Get all revision remarks from textarea fields
+    const revisionTextareas = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
+    
+    revisionTextareas.forEach(textarea => {
+        if (textarea.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += textarea.value.trim();
+        }
+    });
+    
+    if (allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add revision remarks before submitting'
+        });
+        return;
     }
+    
+    // Confirmation dialog
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'Are you sure you want to submit this revision?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, Submit Revision!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Get reimbursement ID from URL
+            const id = getReimbursementIdFromUrl();
+            if (!id) {
+                Swal.fire('Error', 'No reimbursement ID found', 'error');
+                return;
+            }
+            
+            // Make API call to submit revision
+            fetch(`${BASE_URL}/api/reimbursements/checker/${id}/revision`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
+                },
+                body: JSON.stringify({
+                    remarks: allRemarks
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Success!',
+                        'Revision remarks have been submitted successfully.',
+                        'success'
+                    ).then(() => {
+                        // Return to menu
+                        goToMenuReim();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to submit revision',
+                        'error'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting revision:', error);
+                Swal.fire(
+                    'Error',
+                    'An error occurred while submitting the revision',
+                    'error'
+                );
+            });
+        }
+    });
 }
 
 function previewPDF(event) {
@@ -541,20 +696,75 @@ function previewPDF(event) {
 
 function displayFileList() {
     // Implementation for displaying file list
-    // This function was referenced but not defined in the original code
     console.log('Files uploaded:', uploadedFiles);
 }
 
-// Event listener for document type change
+// Event listener for document ready
 document.addEventListener('DOMContentLoaded', function() {
     // Load users and departments first
     Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
     });
+    
+    // Setup event listeners for search dropdowns
+    const searchFields = [
+        'preparedBySearch',
+        'acknowledgeBySearch',
+        'checkedBySearch',
+        'approvedBySearch',
+        'receivedBySearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            // Disable search input for read-only view
+            searchInput.readOnly = true;
+            
+            // Add input event for real-time filtering
+            searchInput.addEventListener('input', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+            
+            // Add focus event to show dropdown
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+        }
+    });
+    
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch',
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
 });
-
-// Function to update reimbursement status with remarks - removed and replaced with dummy in HTML
-// This function has been replaced by a dummy implementation in the HTML file
 
     
