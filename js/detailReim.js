@@ -511,6 +511,7 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users, false);
         populateDropdown("checkedBySelect", users, false);
         populateDropdown("approvedBySelect", users, false);
+        populateDropdown("receivedBySelect", users, false);
         
         // Auto-fill preparedBy with current logged-in user
         autofillPreparedByWithCurrentUser(users);
@@ -540,7 +541,8 @@ function filterUsers(fieldId) {
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
         fieldId === 'checkedBySelect' || 
-        fieldId === 'approvedBySelect') {
+        fieldId === 'approvedBySelect' ||
+        fieldId === 'receivedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
             filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
@@ -680,7 +682,8 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         "preparedBySelect", 
         "acknowledgeBySelect", 
         "checkedBySelect", 
-        "approvedBySelect"
+        "approvedBySelect",
+        "receivedBySelect"
     ];
     
     if (searchableFields.includes(dropdownId)) {
@@ -765,6 +768,7 @@ function populateFormData(data) {
     setApprovalValue('acknowledgeBy', data.acknowledgedBy);
     setApprovalValue('checkedBy', data.checkedBy);
     setApprovalValue('approvedBy', data.approvedBy);
+    setApprovalValue('receivedBy', data.receivedBy);
     
     // Update Submit button state based on preparedDate
     updateSubmitButtonState(data.preparedDate);
@@ -900,6 +904,7 @@ async function submitReimbursementUpdate() {
         acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
         checkedBy: document.getElementById('checkedBySelect').value || null,
         approvedBy: document.getElementById('approvedBySelect').value || null,
+        receivedBy: document.getElementById('receivedBySelect').value || null,
         reimbursementDetails: reimbursementDetails
     };
     
@@ -957,7 +962,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'preparedBySearch',
         'acknowledgeBySearch',
         'checkedBySearch',
-        'approvedBySearch'
+        'approvedBySearch',
+        'receivedBySearch'
     ];
     
     searchFields.forEach(fieldId => {
@@ -984,7 +990,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedBySelectDropdown', 
             'acknowledgeBySelectDropdown', 
             'checkedBySelectDropdown', 
-            'approvedBySelectDropdown'
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
         ];
         
         const searchInputs = [
@@ -993,7 +1000,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedBySearch', 
             'acknowledgeBySearch', 
             'checkedBySearch', 
-            'approvedBySearch'
+            'approvedBySearch',
+            'receivedBySearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {

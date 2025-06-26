@@ -554,50 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Function to update reimbursement status with remarks
-function updateReimStatusWithRemarks(status, remarks) {
-    if (!reimbursementId) {
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        return;
-    }
-
-    const requestData = {
-        id: reimbursementId,
-        UserId: userId,
-        StatusAt: "Check",
-        Action: status,
-        Remarks: remarks || ''
-    };
-
-    fetch(`${BASE_URL}/api/reimbursements/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (response.ok) {
-            // Navigate back to the dashboard
-            goToMenuReim();
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Gagal ${status} reimbursement. Status: ${response.status}`);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: `Error ${status === 'approve' ? 'menyetujui' : (status === 'reject' ? 'menolak' : 'meminta revisi')} reimbursement: ` + error.message
-        });
-    });
-}
+// Function to update reimbursement status with remarks - removed and replaced with dummy in HTML
+// This function has been replaced by a dummy implementation in the HTML file
 
     
