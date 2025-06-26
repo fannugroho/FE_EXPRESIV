@@ -215,6 +215,17 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
+// Fungsi untuk mengatur tanggal minimum pada field Issuance Date
+function setMinDateToday() {
+    const today = new Date();
+    // Format tanggal ke YYYY-MM-DD untuk input type="date"
+    const formattedDate = today.toISOString().split('T')[0];
+    
+    // Set nilai minimum untuk field Issuance Date ke hari ini
+    const submissionDateInput = document.getElementById("submissionDate");
+    submissionDateInput.min = formattedDate;
+}
+
 // Setup event listener untuk dropdown approval
 window.onload = function(){
     // Kode onload yang sudah ada
@@ -222,6 +233,9 @@ window.onload = function(){
     fetchUsers();
     fetchItemOptions();
     fetchClassifications();
+    
+    // Set min date untuk Issuance Date
+    setMinDateToday();
     
     // Ensure all description and UOM fields are initially empty and properly styled
     document.querySelectorAll('.item-description').forEach(input => {
@@ -607,9 +621,19 @@ function validateRequiredFields() {
     // Check dates
     const issuanceDate = document.getElementById("submissionDate").value;
     const requiredDate = document.getElementById("requiredDate").value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset waktu ke 00:00:00
     
     if (!issuanceDate) {
         errors.push("Issuance date is required");
+    } else {
+        // Validasi backdate
+        const selectedDate = new Date(issuanceDate);
+        selectedDate.setHours(0, 0, 0, 0); // Reset waktu ke 00:00:00
+        
+        if (selectedDate < today) {
+            errors.push("Issuance date cannot be backdate (date in the past)");
+        }
     }
     
     if (!requiredDate) {
@@ -641,12 +665,12 @@ async function submitDocument(isSubmit = false) {
     // Show confirmation dialog only for submit
     if (isSubmit) {
         const result = await Swal.fire({
-            title: 'Konfirmasi',
-            text: 'Apakah dokumen sudah benar?',
+            title: 'Confirmation',      
+            text: 'Is the document correct?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya',
-            cancelButtonText: 'Batal'
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel'
         });
 
         if (!result.isConfirmed) {
@@ -655,8 +679,8 @@ async function submitDocument(isSubmit = false) {
     }
 
     // Show loading indicator
-    const loadingTitle = isSubmit ? 'Mengirim...' : 'Menyimpan...';
-    const loadingText = isSubmit ? 'Sedang mengirim dokumen, harap tunggu...' : 'Sedang menyimpan dokumen, harap tunggu...';
+    const loadingTitle = isSubmit ? 'Sending...' : 'Saving...';
+    const loadingText = isSubmit ? 'Sending document, please wait...' : 'Saving document, please wait...';
     
     Swal.fire({
         title: loadingTitle,
@@ -782,16 +806,16 @@ async function submitDocument(isSubmit = false) {
         if (isSubmit) {
             // Show success message with SweetAlert for submit
             await Swal.fire({
-                title: 'Berhasil',
-                text: 'dokumen sudah berhasil dibuat',
+                title: 'Success',
+                text: 'Document has been created successfully',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
         } else {
             // Show success message with SweetAlert for save
             await Swal.fire({
-                title: 'Berhasil',
-                text: 'Purchase Request berhasil disimpan sebagai draft',
+                title: 'Success!',
+                text: 'Purchase Request has been saved as draft',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
