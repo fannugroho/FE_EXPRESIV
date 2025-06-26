@@ -260,7 +260,6 @@ async function fetchPRDetails(prId, prType) {
 function fetchDropdownOptions(approvalData = null) {
     fetchDepartments();
     fetchUsers(approvalData);
-    fetchClassifications();
     fetchItemOptions();
 }
 
@@ -291,20 +290,6 @@ async function fetchUsers(approvalData = null) {
         populateUserSelects(data.data, approvalData);
     } catch (error) {
         console.error('Error fetching users:', error);
-    }
-}
-
-// Function to fetch classifications from API
-async function fetchClassifications() {
-    try {
-        const response = await makeAuthenticatedRequest('/api/classifications');
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
-        }
-        const data = await response.json();
-        populateClassificationSelect(data.data);
-    } catch (error) {
-        console.error('Error fetching classifications:', error);
     }
 }
 
@@ -370,48 +355,6 @@ function populateDepartmentSelect(departments) {
     // If we have a current value and it wasn't matched by text, try to select by value
     if (currentValue && departmentSelect.value !== currentValue) {
         departmentSelect.value = currentValue;
-    }
-}
-
-// Function to populate classification select
-function populateClassificationSelect(classifications) {
-    const classificationSelect = document.getElementById("classification");
-    if (!classificationSelect) return;
-    
-    // Store the currently selected value
-    const currentValue = classificationSelect.value;
-    const currentText = classificationSelect.options[classificationSelect.selectedIndex]?.text;
-
-    console.log(currentValue);
-    console.log(currentText);
-    console.log("Saved classification:", window.currentValues?.classification);
-    
-    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
-
-    let matchFound = false;
-    classifications.forEach(classification => {
-        const option = document.createElement("option");
-        option.value = classification.id;
-        option.textContent = classification.name;
-        classificationSelect.appendChild(option);
-        
-        // First priority: match with saved classification from API data
-        if (window.currentValues && window.currentValues.classification && classification.name === window.currentValues.classification) {
-            console.log("Classification matches saved value:", classification.name);
-            option.selected = true;
-            matchFound = true;
-        }
-        // Second priority: match with current text if no match with saved value
-        else if (!matchFound && classification.name === currentText) {
-            console.log("Classification matches current text");
-            option.selected = true;
-            matchFound = true;
-        }
-    });
-    
-    // If we have a current value and it wasn't matched by text, try to select by value
-    if (!matchFound && currentValue && classificationSelect.value !== currentValue) {
-        classificationSelect.value = currentValue;
     }
 }
 
@@ -687,6 +630,18 @@ function populatePRDetails(data) {
     if (data && data.status) {
         document.getElementById('status').value = data.status;
         console.log(data.status);
+    }
+
+    // Set classification - create option directly from backend data
+    const classificationSelect = document.getElementById('classification');
+    if (data.classification && classificationSelect) {
+        classificationSelect.innerHTML = ''; // Clear existing options
+        console.log('Classification:', data.classification);
+        const option = document.createElement('option');
+        option.value = data.classification; // Use classification as value since backend returns string
+        option.textContent = data.classification;
+        option.selected = true;
+        classificationSelect.appendChild(option);
     }
 
     // Store and display attachments
