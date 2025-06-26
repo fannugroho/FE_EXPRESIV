@@ -405,26 +405,33 @@ function populateClassificationSelect(classifications) {
 
     console.log(currentValue);
     console.log(currentText);
+    console.log("Saved classification:", window.currentValues?.classification);
     
     classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
 
+    let matchFound = false;
     classifications.forEach(classification => {
         const option = document.createElement("option");
         option.value = classification.id;
         option.textContent = classification.name;
         classificationSelect.appendChild(option);
         
-        // If this classification matches the current text, select it
-        if (classification.name === currentText) {
+        // First priority: match with saved classification from API data
+        if (window.currentValues && window.currentValues.classification && classification.name === window.currentValues.classification) {
+            console.log("Classification matches saved value:", classification.name);
+            option.selected = true;
+            matchFound = true;
+        }
+        // Second priority: match with current text if no match with saved value
+        else if (!matchFound && classification.name === currentText) {
             console.log("Classification matches current text");
             option.selected = true;
+            matchFound = true;
         }
-
-        
     });
     
     // If we have a current value and it wasn't matched by text, try to select by value
-    if (currentValue && classificationSelect.value !== currentValue) {
+    if (!matchFound && currentValue && classificationSelect.value !== currentValue) {
         classificationSelect.value = currentValue;
     }
 }
