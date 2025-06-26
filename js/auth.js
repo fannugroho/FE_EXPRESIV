@@ -391,8 +391,8 @@ function applyPermissionVisibility() {
 // Page-based permission mapping
 const PAGE_PERMISSIONS = {
   // Purchase Request pages
-  'addPR.html': ['PREPARE_PR'],
-  'detailPR.html': ['PREPARE_PR'],
+  // 'addPR.html': ['PREPARE_PR'],
+  // 'detailPR.html': ['PREPARE_PR'],
   
   // You can add more page mappings here
   // 'addCash.html': ['PREPARE_CASH_ADVANCE'],
