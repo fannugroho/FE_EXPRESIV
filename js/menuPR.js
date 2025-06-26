@@ -96,27 +96,71 @@ function switchTab(tabName) {
     
     // Fetch documents for the new tab
     fetchPurchaseRequests(currentPage, currentSearchTerm, currentSearchType);
+    
+    // Perbarui jumlah dokumen saat tab berubah
+    loadDashboardCounts();
 }
 
 async function loadDashboardCounts() {
     const userId = getUserId();
     
     try {
-        // Load counts for all statuses
-        const response = await fetch(`${BASE_URL}/api/pr/dashboard/count?requesterId=${userId}`);
-        const data = await response.json();
+        // Fetch counts for each status using separate API calls
+        const draftResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=draft`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=prepared`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const checkedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=checked`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const acknowledgedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=acknowledged`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const approvedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=approved`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const receivedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=received`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=rejected`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        // Parse responses
+        const draftData = draftResponse.ok ? await draftResponse.json() : { data: [] };
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const acknowledgedData = acknowledgedResponse.ok ? await acknowledgedResponse.json() : { data: [] };
+        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const receivedData = receivedResponse.ok ? await receivedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Calculate counts
+        const draftCount = draftData.data ? draftData.data.length : 0;
+        const preparedCount = preparedData.data ? preparedData.data.length : 0;
+        const checkedCount = checkedData.data ? checkedData.data.length : 0;
+        const acknowledgedCount = acknowledgedData.data ? acknowledgedData.data.length : 0;
+        const approvedCount = approvedData.data ? approvedData.data.length : 0;
+        const receivedCount = receivedData.data ? receivedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
         
-        if (data && data.data) {
-            const counts = data.data;
-            document.getElementById("totalCount").textContent = counts.totalDocuments || 0;
-            document.getElementById("draftCount").textContent = counts.totalDocumentsDraft || 0;
-            document.getElementById("preparedCount").textContent = counts.totalDocumentsPrepared || 0;
-            document.getElementById("checkedCount").textContent = counts.totalDocumentsChecked || 0;
-            document.getElementById("acknowledgedCount").textContent = counts.totalDocumentsAcknowledged || 0;
-            document.getElementById("approvedCount").textContent = counts.totalDocumentsApproved || 0;
-            document.getElementById("receivedCount").textContent = counts.totalDocumentsReceived || 0;
-            document.getElementById("rejectedCount").textContent = counts.totalDocumentsRejected || 0;
-        }
+        // Calculate total
+        const totalCount = draftCount + preparedCount + checkedCount + acknowledgedCount + 
+                          approvedCount + receivedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("draftCount").textContent = draftCount;
+        document.getElementById("preparedCount").textContent = preparedCount;
+        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
+        document.getElementById("approvedCount").textContent = approvedCount;
+        document.getElementById("receivedCount").textContent = receivedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+        console.log('Dashboard counts updated successfully');
     } catch (error) {
         console.error('Error loading dashboard counts:', error);
         // Set default values on error
