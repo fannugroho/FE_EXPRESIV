@@ -14,22 +14,35 @@ z-index: 10;
     scrollbar-width: thin;
 }
 
+/* Styling untuk Requester Name yang panjang */
+.requester-name-cell {
+    max-width: 150px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 5px;
+    scrollbar-width: thin;
+}
+
 /* Custom scrollbar styling untuk Webkit browser (Chrome, Safari, dll) */
-.pr-number-cell::-webkit-scrollbar {
+.pr-number-cell::-webkit-scrollbar,
+.requester-name-cell::-webkit-scrollbar {
     height: 6px;
 }
 
-.pr-number-cell::-webkit-scrollbar-track {
+.pr-number-cell::-webkit-scrollbar-track,
+.requester-name-cell::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 4px;
 }
 
-.pr-number-cell::-webkit-scrollbar-thumb {
+.pr-number-cell::-webkit-scrollbar-thumb,
+.requester-name-cell::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 4px;
 }
 
-.pr-number-cell::-webkit-scrollbar-thumb:hover {
+.pr-number-cell::-webkit-scrollbar-thumb:hover,
+.requester-name-cell::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 

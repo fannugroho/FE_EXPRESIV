@@ -194,12 +194,17 @@ function populatePurchaseRequests(data) {
         // Check if PR Number is longer than 15 characters
         const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
         
+        // Check if Requester Name is longer than 15 characters
+        const requesterNameClass = doc.requesterName && doc.requesterName.length > 15 ? 'requester-name-cell' : '';
+        
         const row = `<tr class='w-full border-b'>
             <td class='p-2'>${(currentPage - 1) * itemsPerPage + index + 1}</td>
             <td class='p-2'>
                 <div class="${prNumberClass}">${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</div>
             </td>
-            <td class='p-2'>${doc.requesterName}</td>
+            <td class='p-2'>
+                <div class="${requesterNameClass}">${doc.requesterName || ''}</div>
+            </td>
             <td class='p-2'>${doc.departmentName}</td>
             <td class='p-2'>${submissionDate}</td>
             <td class='p-2'>${requiredDate}</td>
