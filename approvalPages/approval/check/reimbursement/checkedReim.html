@@ -78,6 +78,7 @@
                     <option value="Approved">Approved</option>
                     <option value="Paid">Paid</option>
                     <option value="Rejected">Rejected</option>
+                    <option value="Revised">Revised</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
@@ -502,7 +503,7 @@
             }
         }
         
-        // Dummy revisionReim function with confirmation and SweetAlert notification
+        // revisionReim function to send revision to the API
         function revisionReim() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
@@ -547,12 +548,50 @@
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Display dummy SweetAlert for successful submission
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted',
-                        text: 'Revision remarks have been submitted successfully (Dummy Alert)',
-                        html: `<div class="text-left"><strong>Remarks:</strong><br>${allRemarks.replace(/\n/g, '<br>')}</div>`
+                    // Get reimbursement ID from URL
+                    const id = getReimbursementIdFromUrl();
+                    if (!id) {
+                        Swal.fire('Error', 'No reimbursement ID found', 'error');
+                        return;
+                    }
+                    
+                    // Make API call to submit revision using the new endpoint
+                    fetch(`${BASE_URL}/api/reimbursements/revision/${id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${getAccessToken()}`
+                        },
+                        body: JSON.stringify({
+                            remarks: allRemarks
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status && result.code === 200) {
+                            Swal.fire(
+                                'Success!',
+                                'Revision remarks have been submitted successfully.',
+                                'success'
+                            ).then(() => {
+                                // Return to menu
+                                goToMenuReim();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error',
+                                result.message || 'Failed to submit revision',
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting revision:', error);
+                        Swal.fire(
+                            'Error',
+                            'An error occurred while submitting the revision',
+                            'error'
+                        );
                     });
                 }
             });

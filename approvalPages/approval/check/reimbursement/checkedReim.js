@@ -312,7 +312,8 @@ function populateFormData(data) {
         displayAttachments(data.reimbursementAttachments);
     }
     
-    // Revision history handling removed - field not available in API
+    // Display revision history from API data
+    displayRevisionHistory(data);
 }
 
 // Helper function to set approval values in both select and search input
@@ -332,7 +333,69 @@ function setApprovalValue(fieldPrefix, userId) {
     }
 }
 
-// Display revision history function removed - field not available in API
+// Display revision history based on API data
+function displayRevisionHistory(data) {
+    // Check if we have any revision data to display
+    if (!data || (!data.firstRevisionDate && !data.secondRevisionDate && !data.thirdRevisionDate && !data.fourthRevisionDate)) {
+        return; // No revision history to display
+    }
+    
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
+    
+    if (revisedRemarksSection && revisedCount) {
+        // Count the number of revisions based on date fields
+        let revisionCount = 0;
+        if (data.firstRevisionDate) revisionCount++;
+        if (data.secondRevisionDate) revisionCount++;
+        if (data.thirdRevisionDate) revisionCount++;
+        if (data.fourthRevisionDate) revisionCount++;
+        
+        // Only show revision history section if at least one revision exists
+        if (data.firstRevisionDate) {
+            // Show the revision history section
+            revisedRemarksSection.style.display = 'block';
+            revisedCount.textContent = revisionCount;
+            
+            // Display each revision container that has data
+            if (data.firstRevisionDate) {
+                const container = document.getElementById('firstRevisionContainer');
+                const remarks = document.getElementById('firstRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.firstRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.secondRevisionDate) {
+                const container = document.getElementById('secondRevisionContainer');
+                const remarks = document.getElementById('secondRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.secondRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.thirdRevisionDate) {
+                const container = document.getElementById('thirdRevisionContainer');
+                const remarks = document.getElementById('thirdRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.thirdRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.fourthRevisionDate) {
+                const container = document.getElementById('fourthRevisionContainer');
+                const remarks = document.getElementById('fourthRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
+                }
+            }
+        }
+    }
+}
 
 // Populate reimbursement details table
 function populateReimbursementDetails(details) {
@@ -552,88 +615,6 @@ function onApprove() {
                 Swal.fire(
                     'Error',
                     'An error occurred while approving the document',
-                    'error'
-                );
-            });
-        }
-    });
-}
-
-function revisionReim() {
-    // Get all revision remarks from textarea fields
-    const revisionTextareas = document.querySelectorAll('#revisionContainer textarea');
-    let allRemarks = '';
-    
-    revisionTextareas.forEach(textarea => {
-        if (textarea.value.trim() !== '') {
-            if (allRemarks !== '') allRemarks += '\n\n';
-            allRemarks += textarea.value.trim();
-        }
-    });
-    
-    if (allRemarks.trim() === '') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Please add revision remarks before submitting'
-        });
-        return;
-    }
-    
-    // Confirmation dialog
-    Swal.fire({
-        title: 'Are you sure?',
-        text: 'Are you sure you want to submit this revision?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, Submit Revision!',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Get reimbursement ID from URL
-            const id = getReimbursementIdFromUrl();
-            if (!id) {
-                Swal.fire('Error', 'No reimbursement ID found', 'error');
-                return;
-            }
-            
-            // Make API call to submit revision
-            fetch(`${BASE_URL}/api/reimbursements/checker/${id}/revision`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAccessToken()}`
-                },
-                body: JSON.stringify({
-                    remarks: allRemarks
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Success!',
-                        'Revision remarks have been submitted successfully.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
-                    Swal.fire(
-                        'Error',
-                        result.message || 'Failed to submit revision',
-                        'error'
-                    );
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting revision:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while submitting the revision',
                     'error'
                 );
             });
