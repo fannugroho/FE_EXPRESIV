@@ -126,8 +126,8 @@ async function fetchNotifications() {
         // Simpan dokumen untuk dashboard
         window.allDocuments = transformedDocs;
         
-        // Gunakan data ini untuk memperbarui dashboard
-        updateDashboardCounts(transformedDocs);
+        // Tidak lagi memanggil updateDashboardCounts karena sekarang menggunakan loadDashboard() dengan multiple API calls
+        // updateDashboardCounts(transformedDocs);
         
         return transformedDocs;
         
@@ -137,7 +137,72 @@ async function fetchNotifications() {
     }
 }
 
+// Fungsi untuk memuat dashboard dengan multiple API calls
+async function loadDashboard() {
+    try {
+        // Dapatkan user ID yang sedang login
+        const userId = getUserId();
+        if (!userId) {
+            console.error("User ID tidak ditemukan, tidak bisa memuat dashboard");
+            return;
+        }
+
+        console.log("Memuat dashboard untuk user ID:", userId);
+        
+        // Fetch dokumen untuk setiap jenis dokumen yang dibuat oleh user yang login
+        const prResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const reimResponse = await fetch(`${BASE_URL}/api/reimbursement/dashboard?requesterId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const cashResponse = await fetch(`${BASE_URL}/api/cashadvance/dashboard?requesterId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const settleResponse = await fetch(`${BASE_URL}/api/settlement/dashboard?requesterId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        // Parse responses
+        const prData = prResponse.ok ? await prResponse.json() : { data: [] };
+        const reimData = reimResponse.ok ? await reimResponse.json() : { data: [] };
+        const cashData = cashResponse.ok ? await cashResponse.json() : { data: [] };
+        const settleData = settleResponse.ok ? await settleResponse.json() : { data: [] };
+
+        // Hitung jumlah dokumen untuk setiap jenis
+        const prCount = prData.data ? prData.data.length : 0;
+        const reimCount = reimData.data ? reimData.data.length : 0;
+        const cashCount = cashData.data ? cashData.data.length : 0;
+        const settleCount = settleData.data ? settleData.data.length : 0;
+        
+        // Update counters pada dashboard
+        safeSetTextContent("totalDocs", prCount);
+        safeSetTextContent("openDocs", reimCount);
+        safeSetTextContent("preparedDocs", cashCount);
+        safeSetTextContent("checkedDocs", settleCount);
+        
+        console.log('Dashboard counts updated successfully for user', userId, {
+            "Purchase Request": prCount,
+            "Reimbursement": reimCount,
+            "Cash Advance": cashCount,
+            "Settlement": settleCount
+        });
+        
+    } catch (error) {
+        console.error('Error loading dashboard counts:', error);
+        // Set default values on error
+        safeSetTextContent("totalDocs", 0);
+        safeSetTextContent("openDocs", 0);
+        safeSetTextContent("preparedDocs", 0);
+        safeSetTextContent("checkedDocs", 0);
+    }
+}
+
 // Fungsi untuk menghitung jumlah dokumen untuk dashboard
+// Fungsi ini tidak lagi digunakan karena digantikan oleh loadDashboard() dengan multiple API calls
 function updateDashboardCounts(documents) {
     try {
         // Filter dokumen berdasarkan status "Prepared" untuk setiap jenis dokumen
@@ -422,105 +487,6 @@ function updateNotificationCount(count) {
     if (badge) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.style.display = count > 0 ? 'flex' : 'none';
-    }
-}
-
-// // Fungsi Navigasi
-// function goToMenu() { window.location.href = "dashboard.html"; }
-// function goToAddDoc() { window.location.href = "AddDoc.html"; }
-// function goToAddReim() { window.location.href = "AddReim.html"; }
-// function goToAddCash() { window.location.href = "AddCash.html"; }
-// function goToAddSettle() { window.location.href = "AddSettle.html"; }
-// function goToAddPO() { window.location.href = "AddPO.html"; }
-// function goToMenuPR() { window.location.href = "MenuPR.html"; }
-// function goToMenuRegist() { window.location.href = "register.html"; }
-// function goToMenuUser() { window.location.href = "dashboard-users.html"; }
-// function goToMenuReim() { window.location.href = "MenuReim.html"; }
-// function goToMenuCash() { window.location.href = "MenuCash.html"; }
-// function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-// function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-// function goToMenuPO() { window.location.href = "MenuPO.html"; }
-// function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-// function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-// function goToMenuCheckPR() { window.location.href = "MenuCheckPR.html"; }
-// function goToMenuAcknowPR() { window.location.href = "MenuAcknowPR.html"; }
-// function goToMenuApprovPR() { window.location.href = "MenuApprovPR.html"; }
-// function goToMenuReceivePR() { window.location.href = "MenuReceivePR.html"; }
-// function goToMenuReimbursement() { window.location.href = "MenuReimbursement.html"; }
-// function goToMenuCashAdvance() { window.location.href = "MenuCashAdvance.html"; }
-// function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
-// function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
-// function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
-// function goToMenuCheckReim() { window.location.href = "MenuCheckReim.html"; }
-// function goToMenuAcknowReim() { window.location.href = "MenuAcknowReim.html"; }
-// function goToMenuApprovReim() { window.location.href = "MenuApprovReim.html"; }
-// function goToMenuCheckCash() { window.location.href = "MenuCheckCash.html"; }
-// function goToMenuAcknowCash() { window.location.href = "MenuAcknowCash.html"; }
-// function goToMenuApprovCash() { window.location.href = "MenuApprovCash.html"; }
-// function goToMenuReceiveCash() { window.location.href = "MenuReceiveCash.html"; }
-// function goToMenuCheckSettle() { window.location.href = "MenuCheckSettle.html"; }
-// function goToMenuAcknowSettle() { window.location.href = "MenuAcknowSettle.html"; }
-// function goToMenuApprovSettle() { window.location.href = "MenuApprovSettle.html"; }
-// function goToMenuReceiveSettle() { window.location.href = "MenuReceiveSettle.html"; }
-
-
-
-// function logout() { 
-//     localStorage.removeItem("loggedInUser"); 
-//     window.location.href = "Login.html"; 
-// }
-
-function loadDashboard() {
-    // Cek apakah data sudah diambil oleh fetchNotifications
-    if (window.allDocuments) {
-        updateDashboardCounts(window.allDocuments);
-        return;
-    }
-    
-    // Jika belum, coba ambil dari localStorage
-    try {
-        const documents = JSON.parse(localStorage.getItem("documents")) || [];
-        
-        // Filter dokumen berdasarkan status "Prepared" untuk setiap jenis dokumen
-        const prDocs = documents.filter(doc => 
-            (doc.docType === "Purchase Request" || doc.type === "Purchase Request") && 
-            (doc.status === "Prepared" || doc.docStatus === "Prepared")
-        ).length;
-        
-        const reimDocs = documents.filter(doc => 
-            (doc.docType === "Reimbursement" || doc.type === "Reimbursement") && 
-            (doc.status === "Prepared" || doc.docStatus === "Prepared")
-        ).length;
-        
-        const cashDocs = documents.filter(doc => 
-            (doc.docType === "Cash Advance" || doc.type === "Cash Advance") && 
-            (doc.status === "Prepared" || doc.docStatus === "Prepared")
-        ).length;
-        
-        const settleDocs = documents.filter(doc => 
-            (doc.docType === "Settlement" || doc.type === "Settlement") && 
-            (doc.status === "Prepared" || doc.docStatus === "Prepared")
-        ).length;
-        
-        // Update nilai di dashboard
-        safeSetTextContent("totalDocs", prDocs);
-        safeSetTextContent("openDocs", reimDocs);
-        safeSetTextContent("preparedDocs", cashDocs);
-        safeSetTextContent("checkedDocs", settleDocs);
-        
-        console.log("Dashboard dokumen (dari localStorage):", {
-            "Purchase Request": prDocs,
-            "Reimbursement": reimDocs,
-            "Cash Advance": cashDocs,
-            "Settlement": settleDocs
-        });
-    } catch (error) {
-        console.error("Error saat memuat dashboard:", error);
-        // Jika error, tampilkan nilai default
-        safeSetTextContent("totalDocs", 0);
-        safeSetTextContent("openDocs", 0);
-        safeSetTextContent("preparedDocs", 0);
-        safeSetTextContent("checkedDocs", 0);
     }
 }
 

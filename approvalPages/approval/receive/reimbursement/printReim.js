@@ -152,7 +152,14 @@ function populatePrintData(apiData = null) {
         approvedBy: urlParams.approvedBy || (apiData ? apiData.approvedBy : ''),
         receivedBy: urlParams.receivedBy || (apiData ? apiData.receivedBy : ''),
         totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
-        reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : [])
+        reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
+        typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
+        remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
+        preparedByDate: urlParams.preparedByDate || (apiData ? apiData.preparedByDate : ''),
+        checkedByDate: urlParams.checkedByDate || (apiData ? apiData.checkedByDate : ''),
+        acknowledgeByDate: urlParams.acknowledgeByDate || (apiData ? apiData.acknowledgeByDate : ''),
+        approvedByDate: urlParams.approvedByDate || (apiData ? apiData.approvedByDate : ''),
+        receivedByDate: urlParams.receivedByDate || (apiData ? apiData.receivedByDate : '')
     };
     
     // Populate header information
@@ -174,6 +181,22 @@ function populatePrintData(apiData = null) {
             // If it's a date object from API
             document.getElementById('submissionDateText').textContent = new Date(data.submissionDate).toLocaleDateString('en-GB');
         }
+    }
+    
+    // Set type of transaction
+    if (document.getElementById('typeOfTransactionText')) {
+        document.getElementById('typeOfTransactionText').textContent = data.typeOfTransaction || getTypeOfTransactionFromUrl() || '';
+        console.log('Type of Transaction set to:', data.typeOfTransaction);
+    } else {
+        console.warn('typeOfTransactionText element not found in the document');
+    }
+    
+    // Set remarks
+    if (document.getElementById('remarksText')) {
+        document.getElementById('remarksText').textContent = data.remarks || '';
+        console.log('Remarks set to:', data.remarks);
+    } else {
+        console.warn('remarksText element not found in the document');
     }
     
     // Set department text and checkbox
@@ -221,8 +244,49 @@ function populatePrintData(apiData = null) {
         document.getElementById('receivedBy').textContent = data.receivedBy;
     }
     
+    // Set approval dates
+    if (document.getElementById('preparedByDate')) {
+        document.getElementById('preparedByDate').textContent = formatDateIfExists(data.preparedByDate);
+    }
+    
+    if (document.getElementById('checkedByDate')) {
+        document.getElementById('checkedByDate').textContent = formatDateIfExists(data.checkedByDate);
+    }
+    
+    if (document.getElementById('acknowledgeByDate')) {
+        document.getElementById('acknowledgeByDate').textContent = formatDateIfExists(data.acknowledgeByDate);
+    }
+    
+    if (document.getElementById('approvedByDate')) {
+        document.getElementById('approvedByDate').textContent = formatDateIfExists(data.approvedByDate);
+    }
+    
+    if (document.getElementById('receivedByDate')) {
+        document.getElementById('receivedByDate').textContent = formatDateIfExists(data.receivedByDate);
+    }
+    
     // Populate reimbursement details table
     populateDetailsTable(data.reimbursementDetails, data.totalAmount);
+}
+
+// Format date if it exists
+function formatDateIfExists(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        if (typeof dateString === 'string' && dateString.includes('-')) {
+            const dateParts = dateString.split('-');
+            if (dateParts.length === 3) {
+                // Convert from YYYY-MM-DD to DD/MM/YYYY
+                return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            }
+        }
+        // If it's a date object or other format
+        return new Date(dateString).toLocaleDateString('en-GB');
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString; // Return as is if there's an error
+    }
 }
 
 // Helper function to calculate total from details

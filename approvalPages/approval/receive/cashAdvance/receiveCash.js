@@ -431,7 +431,7 @@ function updateCashStatusWithRemarks(status, remarks) {
     }
     
     // Validate required fields for revision
-    if (status === 'revision' && (!remarks || remarks.trim() === '')) {
+    if (status === 'revise' && (!remarks || remarks.trim() === '')) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -477,7 +477,7 @@ function updateCashStatusWithRemarks(status, remarks) {
         console.log('Success:', data);
         
         let title, text, icon;
-        if (status === 'revision') {
+        if (status === 'revise') {
             title = 'Revision Requested!';
             text = 'The cash advance has been sent back for revision.';
             icon = 'info';

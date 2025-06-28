@@ -8,98 +8,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Set logged in user information in the header
   const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
   if (loggedInUser) {
-    document.getElementById('userName').textContent = loggedInUser.name || 'Admin User';
-    // Avatar is already set to default image
-  }
-
-  // Check for pending registrations in localStorage
-  let pendingRegistrations = localStorage.getItem('pendingRegistrations');
-  if (pendingRegistrations) {
-    try {
-      const registrationData = JSON.parse(pendingRegistrations);
-      // Process the registration data
-      if (registrationData && registrationData.excelData && registrationData.excelData.length > 0) {
-        // Map Excel data to user objects
-        const newUsers = registrationData.excelData.map((user, index) => {
-          // Get column data based on expected Excel format
-          // Assuming columns: Username, Email, Password, First Name, Last Name, Kansai Employee ID, Position, Department Name
-          return {
-            id: `REG${Date.now()}${index}`.substring(0, 10),
-            userId: user[5] || `EMP${100 + index}`, // Kansai Employee ID
-            username: user[0] || '', // Username
-            email: user[1] || '', // Email
-            firstName: user[3] || '', // First Name
-            lastName: user[4] || '', // Last Name
-            name: `${user[3] || ''} ${user[4] || ''}`.trim(), // Full name
-            department: user[7] || 'Not specified', // Department
-            position: user[6] || 'Not specified', // Position
-            phone: '', // Phone (not in Excel)
-            status: 'pending',
-            submittedDate: new Date().toISOString().split('T')[0],
-            originalData: user // Store original data for reference
-          };
-        });
-        
-        // Add the new registrations to approvals array
-        approvals = [...newUsers];
-      }
-    } catch (error) {
-      console.error('Error parsing pending registrations:', error);
+    const userNameEl = document.getElementById('userName');
+    if (userNameEl) {
+      userNameEl.textContent = loggedInUser.name || 'Admin User';
     }
-  }
-
-  // If no users found in localStorage, check if we should add demo data
-  if (approvals.length === 0) {
-    // Create demo users for demonstration purposes
-    approvals = [
-      {
-        id: 'REG001',
-        userId: 'EMP101',
-        username: 'johndoe',
-        email: 'john.doe@kansaipaint.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        name: 'John Doe',
-        department: 'IT',
-        position: 'Software Developer',
-        phone: '+6281234567890',
-        status: 'pending',
-        submittedDate: new Date().toISOString().split('T')[0]
-      },
-      {
-        id: 'REG002',
-        userId: 'EMP102',
-        username: 'janedoe',
-        email: 'jane.doe@kansaipaint.com',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        name: 'Jane Doe',
-        department: 'Finance',
-        position: 'Accountant',
-        phone: '+6281234567891',
-        status: 'approved',
-        submittedDate: '2023-06-15',
-        approvedDate: '2023-06-16',
-        approvedBy: 'Admin User'
-      },
-      {
-        id: 'REG003',
-        userId: 'EMP103',
-        username: 'bobsmith',
-        email: 'bob.smith@kansaipaint.com',
-        firstName: 'Bob',
-        lastName: 'Smith',
-        name: 'Bob Smith',
-        department: 'Sales',
-        position: 'Sales Manager',
-        phone: '+6281234567892',
-        status: 'rejected',
-        submittedDate: '2023-06-14',
-        rejectedDate: '2023-06-15',
-        rejectedBy: 'Admin User',
-        rejectionReason: 'Duplicate user account'
-      }
-    ];
+    // Avatar is already set to default image
   }
 
   // Element references
@@ -183,10 +96,15 @@ document.addEventListener('DOMContentLoaded', function() {
             email: user.email || 'Not specified',
             phone: user.phoneNumber || 'Not specified',
             status: userStatus,
-            submittedDate: new Date().toISOString().split('T')[0],
-            documents: [],
+            submittedDate: user.createdDate ? formatDate(user.createdDate) : formatDate(new Date().toISOString()),
+            documents: user.documents || [],
             rejectionReason: user.rejectionReason,
-            approvalDate: user.approvalDate
+            approvalDate: user.approvalDate,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            isActive: user.isActive,
+            emailConfirmed: user.emailConfirmed
           };
         });
         return users;
@@ -301,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
     approveBtn.addEventListener('click', async () => {
       const userId = approveBtn.dataset.userId;
       if (userId) {
-        await approveUser(userId);
+        showApproveConfirmDialog(userId);
       }
     });
   }
@@ -577,72 +495,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1500);
   }
   
-  // Update approval status
-  function updateApprovalStatus(approvalId, newStatus) {
-    // Find the approval in the array
-    const index = approvals.findIndex(a => a.id === approvalId);
-    if (index === -1) return;
-    
-    const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-    const adminName = loggedInUser?.name || 'Admin User';
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    // Update status based on the new status
-    if (newStatus === 'approved') {
-      approvals[index].status = 'approved';
-      approvals[index].approvedDate = currentDate;
-      approvals[index].approvedBy = adminName;
+  // API function to approve user
+  async function approveUser(userId) {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/users/${userId}/approve`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
-      // Show success notification
-      showNotification(`User ${approvals[index].name} has been approved`, 'success');
-    } else if (newStatus === 'rejected') {
-      // Rejection is now handled in the showUserDetails function with reason
-      // This is kept for backward compatibility
-      approvals[index].status = 'rejected';
-      approvals[index].rejectedDate = currentDate;
-      approvals[index].rejectedBy = adminName;
-      
-      // Show notification
-      showNotification(`User ${approvals[index].name} has been rejected`, 'error');
-    } else if (newStatus === 'pending') {
-      // Restore from rejected to pending
-      approvals[index].status = 'pending';
-      delete approvals[index].rejectedDate;
-      delete approvals[index].rejectedBy;
-      delete approvals[index].rejectionReason;
-      
-      // Show notification
-      showNotification(`User ${approvals[index].name} has been restored to pending status`, 'info');
+      if (result.status) {
+        // Find and update the user in local array
+        const userIndex = approvals.findIndex(a => a.id === userId);
+        if (userIndex !== -1) {
+          approvals[userIndex].status = 'approved';
+          approvals[userIndex].approvalDate = new Date().toISOString();
+        }
+        
+        // Reload data to get updated status from server
+        await loadAllUsers();
+        applyFilters();
+        updateCounters();
+        
+        showNotification(result.data || 'User approved successfully', 'success');
+        closeModal();
+      } else {
+        throw new Error(result.message || 'Failed to approve user');
+      }
+    } catch (error) {
+      console.error('Error approving user:', error);
+      showNotification(error.message || 'Failed to approve user', 'error');
     }
-    
-    // Update localStorage
-    updateLocalStorage();
-    
-    // Re-render the table with current filter
-    applyFilters();
-    
-    // Update counters
-    updateCounters();
+  }
+
+  // API function to reject user
+  async function rejectUser(userId, rejectionReason) {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/users/${userId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({
+          rejectionReason: rejectionReason
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.status) {
+        // Find and update the user in local array
+        const userIndex = approvals.findIndex(a => a.id === userId);
+        if (userIndex !== -1) {
+          approvals[userIndex].status = 'rejected';
+          approvals[userIndex].rejectionReason = rejectionReason;
+          approvals[userIndex].approvalDate = new Date().toISOString();
+        }
+        
+        // Reload data to get updated status from server
+        await loadAllUsers();
+        applyFilters();
+        updateCounters();
+        
+        showNotification(result.data || 'User rejected successfully', 'success');
+        closeModal();
+      } else {
+        throw new Error(result.message || 'Failed to reject user');
+      }
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      showNotification(error.message || 'Failed to reject user', 'error');
+    }
   }
   
-  // Update localStorage with current approval data
-  function updateLocalStorage() {
-    // Store the updated approvals in localStorage
-    localStorage.setItem('userApprovals', JSON.stringify(approvals));
-    
-    // Update the pending registrations in localStorage
-    const pendingUsers = approvals.filter(user => user.status === 'pending');
-    if (pendingUsers.length > 0) {
-      // Keep the original pendingRegistrations format but update with current pending users
-      const pendingRegistrations = {
-        excelData: pendingUsers.map(user => user.originalData || []),
-        timestamp: new Date().toISOString(),
-        status: "pending"
-      };
-      localStorage.setItem('pendingRegistrations', JSON.stringify(pendingRegistrations));
-    } else {
-      // If no pending users, remove the pendingRegistrations from localStorage
-      localStorage.removeItem('pendingRegistrations');
+  // Helper function to refresh data and update UI
+  async function refreshData() {
+    try {
+      await loadAllUsers();
+      applyFilters();
+      updateCounters();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
     }
   }
   
@@ -656,7 +598,9 @@ document.addEventListener('DOMContentLoaded', function() {
       filtered = filtered.filter(approval => 
         approval.name.toLowerCase().includes(searchTerm) ||
         approval.userId.toLowerCase().includes(searchTerm) ||
-        approval.department.toLowerCase().includes(searchTerm)
+        (approval.username && approval.username.toLowerCase().includes(searchTerm)) ||
+        approval.department.toLowerCase().includes(searchTerm) ||
+        approval.email.toLowerCase().includes(searchTerm)
       );
     }
     
@@ -730,38 +674,6 @@ document.addEventListener('DOMContentLoaded', function() {
     approvals.forEach(approval => {
       const row = document.createElement('tr');
       row.className = 'hover:bg-gray-50';
-      
-      row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 h-10 w-10">
-              <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <i class="fas fa-user text-blue-600"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-sm font-medium text-gray-900">${approval.name}</div>
-              <div class="text-sm text-gray-500">ID: ${approval.userId}</div>
-            </div>
-          </div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="text-sm text-gray-900">${approval.department}</div>
-          <div class="text-sm text-gray-500">${approval.position}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="text-sm text-gray-900">${approval.email}</div>
-          <div class="text-sm text-gray-500">${approval.phone}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          ${getStatusBadge(approval.status)}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-          ${formatDate(approval.submittedDate)}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-          <div class="flex justify-end space-x-3">
-      `;
       
       // Add checkbox column for bulk actions
       const checkboxCell = document.createElement('td');
@@ -862,16 +774,26 @@ document.addEventListener('DOMContentLoaded', function() {
       const actionsCell = document.createElement('td');
       actionsCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
       
-      // Replace the existing actions with just Detail and Delete buttons
-      actionsCell.innerHTML = `
+      // Show different actions based on approval status
+      let actionsHtml = `
         <button class="text-blue-600 hover:text-blue-900 mr-3 detail-btn" data-id="${approval.id}">
           <i class="fas fa-eye"></i> Detail
         </button>
-        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${approval.id}">
-          <i class="fas fa-trash-alt"></i> Delete
-        </button>
       `;
       
+      // Add approve/reject buttons only for pending users
+      if (approval.status === 'pending') {
+        actionsHtml += `
+          <button class="text-green-600 hover:text-green-900 mr-3 approve-btn" data-id="${approval.id}">
+            <i class="fas fa-check"></i> Approve
+          </button>
+          <button class="text-red-600 hover:text-red-900 mr-3 reject-btn" data-id="${approval.id}">
+            <i class="fas fa-times"></i> Reject
+          </button>
+        `;
+      }
+      
+      actionsCell.innerHTML = actionsHtml;
       row.appendChild(actionsCell);
       
       // Add the row to the table
@@ -886,25 +808,17 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
     
-    document.querySelectorAll('.delete-btn').forEach(button => {
+    document.querySelectorAll('.approve-btn').forEach(button => {
       button.addEventListener('click', () => {
         const id = button.dataset.id;
-        if (confirm('Are you sure you want to delete this user?')) {
-          // Find user index
-          const index = approvals.findIndex(approval => approval.id === id);
-          if (index !== -1) {
-            // Remove from array
-            approvals.splice(index, 1);
-            // Update local storage
-            updateLocalStorage();
-            // Re-render table
-            applyFilters();
-            // Update counters
-            updateCounters();
-            // Show notification
-            showNotification('User deleted successfully', 'success');
-          }
-        }
+        showApproveConfirmDialog(id);
+      });
+    });
+    
+    document.querySelectorAll('.reject-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.id;
+        showRejectionDialog(id);
       });
     });
     
@@ -936,53 +850,44 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Show user details in modal
-  function showUserDetails(id, action = null) {
+  function showUserDetails(id) {
     const user = approvals.find(a => a.id === id);
     
-    // Update modal title to include user's name
-    if (user) {
-      document.querySelector('#modal-title').textContent = `User Registration Details: ${user.name}`;
-    }
     if (!user || !modalContent || !approvalModal) return;
     
-    // Set user ID for approve/reject buttons
-    if (approveBtn) approveBtn.dataset.userId = id;
-    if (rejectBtn) rejectBtn.dataset.userId = id;
+    // Update modal title to include user's name
+    const modalTitle = document.querySelector('#modal-title');
+    if (modalTitle) {
+      modalTitle.textContent = `User Registration Details: ${user.name}`;
+    }
     
-    // Show/hide approval actions based on status
+    // Hide approval actions in details modal since we have buttons in table
     const approvalActions = document.querySelector('.approval-actions');
     if (approvalActions) {
-      if (user.status === 'pending') {
-        approvalActions.classList.remove('hidden');
-      } else {
-        approvalActions.classList.add('hidden');
-      }
+      approvalActions.classList.add('hidden');
     }
     
-    // Highlight specific action if provided
-    if (action === 'approve' && approveBtn) {
-      approveBtn.classList.add('animate-pulse', 'ring-2', 'ring-green-500');
-      setTimeout(() => approveBtn.classList.remove('animate-pulse', 'ring-2', 'ring-green-500'), 1500);
-    } else if (action === 'reject' && rejectBtn) {
-      rejectBtn.classList.add('animate-pulse', 'ring-2', 'ring-red-500');
-      setTimeout(() => rejectBtn.classList.remove('animate-pulse', 'ring-2', 'ring-red-500'), 1500);
-    }
-    
-    // Build modal content - status info for approval
+    // Build status info
     let statusInfo = '';
-    if (approval.status === 'approved') {
+    if (user.status === 'approved') {
       statusInfo = `
         <div class="mt-4 p-3 bg-green-50 rounded-md">
-          <p class="text-sm text-green-800"><strong>Approved on:</strong> ${approval.approvedDate}</p>
-          <p class="text-sm text-green-800"><strong>Approved by:</strong> ${approval.approvedBy}</p>
+          <p class="text-sm text-green-800"><strong>Status:</strong> Approved</p>
+          ${user.approvalDate ? `<p class="text-sm text-green-800"><strong>Approved on:</strong> ${formatDate(user.approvalDate)}</p>` : ''}
         </div>
       `;
-    } else if (approval.status === 'rejected') {
+    } else if (user.status === 'rejected') {
       statusInfo = `
         <div class="mt-4 p-3 bg-red-50 rounded-md">
-          <p class="text-sm text-red-800"><strong>Rejected on:</strong> ${approval.rejectedDate}</p>
-          <p class="text-sm text-red-800"><strong>Rejected by:</strong> ${approval.rejectedBy}</p>
-          ${approval.rejectionReason ? `<p class="text-sm text-red-800"><strong>Reason:</strong> ${approval.rejectionReason}</p>` : ''}
+          <p class="text-sm text-red-800"><strong>Status:</strong> Rejected</p>
+          ${user.approvalDate ? `<p class="text-sm text-red-800"><strong>Rejected on:</strong> ${formatDate(user.approvalDate)}</p>` : ''}
+          ${user.rejectionReason ? `<p class="text-sm text-red-800"><strong>Reason:</strong> ${user.rejectionReason}</p>` : ''}
+        </div>
+      `;
+    } else {
+      statusInfo = `
+        <div class="mt-4 p-3 bg-yellow-50 rounded-md">
+          <p class="text-sm text-yellow-800"><strong>Status:</strong> Pending Approval</p>
         </div>
       `;
     }
@@ -992,43 +897,41 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-sm font-medium text-gray-500">Full Name</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.name}</p>
+            <p class="mt-1 text-sm text-gray-900">${user.name || 'Not specified'}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-500">Employee ID</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.userId}</p>
+            <p class="text-sm font-medium text-gray-500">Username</p>
+            <p class="mt-1 text-sm text-gray-900">${user.username || 'Not specified'}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-500">Department</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.department}</p>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500">Position</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.position}</p>
+            <p class="text-sm font-medium text-gray-500">Kansai Employee ID (NIK)</p>
+            <p class="mt-1 text-sm text-gray-900">${user.userId || 'Not specified'}</p>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Email</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.email}</p>
+            <p class="mt-1 text-sm text-gray-900">${user.email || 'Not specified'}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Department</p>
+            <p class="mt-1 text-sm text-gray-900">${user.department || 'Not specified'}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Position</p>
+            <p class="mt-1 text-sm text-gray-900">${user.position || 'Not specified'}</p>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Phone</p>
-            <p class="mt-1 text-sm text-gray-900">${approval.phone}</p>
+            <p class="mt-1 text-sm text-gray-900">${user.phone || 'Not specified'}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Registration Date</p>
+            <p class="mt-1 text-sm text-gray-900">${formatDate(user.submittedDate)}</p>
           </div>
         </div>
         
         <div>
-          <p class="text-sm font-medium text-gray-500">Status</p>
-          <div class="mt-1">${getStatusBadge(approval.status)}</div>
-        </div>
-        
-        <div>
-          <p class="text-sm font-medium text-gray-500">Submitted Date</p>
-          <p class="mt-1 text-sm text-gray-900">${formatDate(approval.submittedDate)}</p>
-        </div>
-        
-        <div>
-          <p class="text-sm font-medium text-gray-500">Documents</p>
-          <div class="mt-1">${getDocumentsList(approval.documents)}</div>
+          <p class="text-sm font-medium text-gray-500">Account Status</p>
+          <div class="mt-1">${getStatusBadge(user.status)}</div>
         </div>
         
         ${statusInfo}
@@ -1041,6 +944,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prevent document body from receiving click events while modal is open
     document.body.style.pointerEvents = 'none';
     approvalModal.style.pointerEvents = 'auto';
+  }
+
+  // Function to close modal
+  function closeModal() {
+    if (approvalModal) {
+      approvalModal.classList.add('hidden');
+      document.body.style.pointerEvents = 'auto';
+    }
   }
   
   // Show notification
@@ -1082,12 +993,22 @@ document.addEventListener('DOMContentLoaded', function() {
         icon = 'fa-info-circle';
     }
     
+    // Set close button color based on type
+    let closeButtonColor = 'text-gray-400 hover:text-gray-600';
+    if (type === 'success') {
+      closeButtonColor = 'text-green-400 hover:text-green-600';
+    } else if (type === 'error') {
+      closeButtonColor = 'text-red-400 hover:text-red-600';
+    } else if (type === 'warning') {
+      closeButtonColor = 'text-yellow-400 hover:text-yellow-600';
+    }
+    
     notification.className = `${bgColor} ${textColor} px-4 py-3 rounded-lg shadow-md flex items-start transform transition-all duration-300 ease-in-out translate-x-full opacity-0`;
     
     notification.innerHTML = `
       <i class="fas ${icon} mt-0.5 mr-2"></i>
       <div class="flex-1">${message}</div>
-      <button class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+      <button class="ml-4 ${closeButtonColor} focus:outline-none">
         <i class="fas fa-times"></i>
       </button>
     `;
@@ -1163,14 +1084,76 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Show rejection dialog
-  function showRejectionDialog(userId) {
+  // Show approve confirmation dialog
+  function showApproveConfirmDialog(userId) {
+    const user = approvals.find(a => a.id === userId);
+    if (!user) return;
+
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center';
     overlay.innerHTML = `
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject User Registration</h3>
+        <div class="flex items-center mb-4">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+          </div>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Approve User Registration</h3>
+        <p class="text-sm text-gray-500 mb-4 text-center">
+          Are you sure you want to approve the registration for <strong>${user.name}</strong>?
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button id="cancel-approve" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button id="confirm-approve" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700">
+            <i class="fas fa-check mr-2"></i>Approve User
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Handle cancel
+    overlay.querySelector('#cancel-approve').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+
+    // Handle confirm
+    overlay.querySelector('#confirm-approve').addEventListener('click', async () => {
+      document.body.removeChild(overlay);
+      await approveUser(userId);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+  }
+
+  // Show rejection dialog
+  function showRejectionDialog(userId) {
+    const user = approvals.find(a => a.id === userId);
+    if (!user) return;
+
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center';
+    overlay.innerHTML = `
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex items-center mb-4">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <i class="fas fa-times-circle text-red-600 text-xl"></i>
+          </div>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Reject User Registration</h3>
+        <p class="text-sm text-gray-500 mb-4 text-center">
+          You are about to reject the registration for <strong>${user.name}</strong>.
+        </p>
         <div class="mb-4">
           <label for="rejection-reason" class="block text-sm font-medium text-gray-700 mb-2">
             Rejection Reason (Required)
@@ -1188,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             Cancel
           </button>
           <button id="confirm-reject" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700">
-            Reject User
+            <i class="fas fa-times mr-2"></i>Reject User
           </button>
         </div>
       </div>
@@ -1205,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function() {
     overlay.querySelector('#confirm-reject').addEventListener('click', async () => {
       const reason = overlay.querySelector('#rejection-reason').value.trim();
       if (!reason) {
-        alert('Please provide a reason for rejection.');
+        showNotification('Please provide a reason for rejection.', 'warning');
         return;
       }
       
@@ -1219,6 +1202,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.removeChild(overlay);
       }
     });
+
+    // Auto-focus on textarea
+    setTimeout(() => {
+      const textarea = overlay.querySelector('#rejection-reason');
+      if (textarea) textarea.focus();
+    }, 100);
   }
 
   // Initialize dashboard on load

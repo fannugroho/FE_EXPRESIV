@@ -1,77 +1,87 @@
 // Pagination variables
 let currentPage = 1;
-const itemsPerPage = 10;
+const itemsPerPage = 20;
 let allPurchaseRequests = [];
 let filteredPurchaseRequests = [];
 let currentTab = 'all'; // Track the current active tab
+let currentSearchTerm = '';
+let currentSearchType = 'pr';
+let totalItems = 0;
 
-async function fetchPurchaseRequests() {
+async function fetchPurchaseRequests(page = 1, searchTerm = '', searchType = 'pr') {
     const userId = getUserId();
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        pageNumber: page,
+        pageSize: itemsPerPage,
+        requesterId: userId
+    });
+    
+    // Add search parameters based on search type
+    if (searchTerm) {
+        switch (searchType) {
+            case 'pr':
+                params.append('purchaseRequestNo', searchTerm);
+                break;
+            case 'requester':
+                params.append('requesterName', searchTerm);
+                break;
+            case 'status':
+                params.append('status', searchTerm);
+                break;
+            case 'date':
+                // For date search, try to parse and use date range
+                const dateValue = new Date(searchTerm);
+                if (!isNaN(dateValue.getTime())) {
+                    params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
+                    params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
+                }
+                break;
+            default:
+                params.append('searchTerm', searchTerm);
+        }
+    }
+    
+    // Add status filter for tabs
+    if (currentTab !== 'all') {
+        params.append('status', currentTab);
+    }
 
-    fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            if (data && data.data) {
-                // Store all purchase requests
-                console.log(data.data);
-                allPurchaseRequests = data.data;
-                filterPurchaseRequests(); // Apply current filters
-            }
-        })
-        .catch(error => console.error('Error fetching purchase requests:', error));
+    try {
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard?${params.toString()}`);
+        const data = await response.json();
+        
+        console.log('API Response:', data);
+        
+        if (data && data.data) {
+            allPurchaseRequests = data.data;
+            filteredPurchaseRequests = data.data; // Since filtering is now done server-side
+            
+            // Update pagination info
+            updatePaginationInfo(data.data.length);
+            populatePurchaseRequests(data.data);
+        }
+    } catch (error) {
+        console.error('Error fetching purchase requests:', error);
+    }
 }
 
-// Function to filter purchase requests based on tab and search term
+// Function to trigger search and filtering (now server-side)
 function filterPurchaseRequests(searchTerm = '') {
     // Reset to page 1 when filtering
     currentPage = 1;
+    currentSearchTerm = searchTerm;
+    currentSearchType = document.getElementById('searchType')?.value || 'pr';
     
-    // Apply tab filter
-    if (currentTab === 'draft') {
-        filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
-            doc.status?.toLowerCase() === 'draft'
-        );
-    } else if (currentTab === 'prepared') {
-        filteredPurchaseRequests = allPurchaseRequests.filter(doc => 
-            doc.status?.toLowerCase() === 'prepared'
-        );
-    } else {
-        // 'all' tab or default
-        filteredPurchaseRequests = [...allPurchaseRequests];
-    }
-    
-    // Apply search filter if there's a search term
-    if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const searchType = document.getElementById('searchType').value;
-        
-        filteredPurchaseRequests = filteredPurchaseRequests.filter(doc => {
-            switch(searchType) {
-                case 'pr':
-                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
-                case 'requester':
-                    return doc.requesterName?.toLowerCase().includes(term);
-                case 'date':
-                    // Convert date to match the search format (YYYY-MM-DD)
-                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toISOString().split('T')[0] : '';
-                    return submissionDate.includes(term);
-                case 'status':
-                    return doc.status?.toLowerCase().includes(term);
-                default:
-                    return doc.purchaseRequestNo?.toLowerCase().includes(term);
-            }
-        });
-    }
-    
-    // Update the table and dashboard counts
-    populatePurchaseRequests(filteredPurchaseRequests);
-    updateDashboardCounts(allPurchaseRequests);
+    // Fetch new data with filters
+    fetchPurchaseRequests(currentPage, currentSearchTerm, currentSearchType);
 }
 
 // Function to switch between tabs
 function switchTab(tabName) {
     currentTab = tabName;
+    currentPage = 1; // Reset to first page when switching tabs
     
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
@@ -84,74 +94,93 @@ function switchTab(tabName) {
         document.getElementById('allTabBtn').classList.add('tab-active');
     }
     
-    // Filter documents based on the new tab
-    filterPurchaseRequests();
+    // Fetch documents for the new tab
+    fetchPurchaseRequests(currentPage, currentSearchTerm, currentSearchType);
+    
+    // Perbarui jumlah dokumen saat tab berubah
+    loadDashboardCounts();
 }
 
-function updateDashboardCounts(data) {
-    // Update total count
-    document.getElementById("totalCount").textContent = data.length;
+async function loadDashboardCounts() {
+    const userId = getUserId();
     
-    // Count documents by status
-    const statusCounts = {
-        draft: 0,
-        prepared: 0,
-        checked: 0,
-        acknowledged: 0,
-        approved: 0,
-        received: 0,
-        rejected: 0
-    };
-    
-    data.forEach(doc => {
-        const status = doc.status ? doc.status.toLowerCase() : 'draft';
+    try {
+        // Fetch counts for each status using separate API calls
+        const draftResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=draft`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=prepared`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const checkedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=checked`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const acknowledgedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=acknowledged`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const approvedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=approved`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const receivedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=received`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const rejectedResponse = await fetch(`${BASE_URL}/api/pr/dashboard?requesterId=${userId}&status=rejected`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        // Parse responses
+        const draftData = draftResponse.ok ? await draftResponse.json() : { data: [] };
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
+        const acknowledgedData = acknowledgedResponse.ok ? await acknowledgedResponse.json() : { data: [] };
+        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
+        const receivedData = receivedResponse.ok ? await receivedResponse.json() : { data: [] };
+        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+
+        // Calculate counts
+        const draftCount = draftData.data ? draftData.data.length : 0;
+        const preparedCount = preparedData.data ? preparedData.data.length : 0;
+        const checkedCount = checkedData.data ? checkedData.data.length : 0;
+        const acknowledgedCount = acknowledgedData.data ? acknowledgedData.data.length : 0;
+        const approvedCount = approvedData.data ? approvedData.data.length : 0;
+        const receivedCount = receivedData.data ? receivedData.data.length : 0;
+        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
         
-        switch(status) {
-            case 'draft':
-                statusCounts.draft++;
-                break;
-            case 'prepared':
-                statusCounts.prepared++;
-                break;
-            case 'checked':
-                statusCounts.checked++;
-                break;
-            case 'acknowledged':
-                statusCounts.acknowledged++;
-                break;
-            case 'approved':
-                statusCounts.approved++;
-                break;
-            case 'received':
-                statusCounts.received++;
-                break;
-            case 'rejected':
-                statusCounts.rejected++;
-                break;
-        }
-    });
-    
-    // Update the dashboard cards with correct IDs
-    document.getElementById("draftCount").textContent = statusCounts.draft;
-    document.getElementById("preparedCount").textContent = statusCounts.prepared;
-    document.getElementById("checkedCount").textContent = statusCounts.checked;
-    document.getElementById("acknowledgedCount").textContent = statusCounts.acknowledged;
-    document.getElementById("approvedCount").textContent = statusCounts.approved;
-    document.getElementById("receivedCount").textContent = statusCounts.received;
-    document.getElementById("rejectedCount").textContent = statusCounts.rejected;
+        // Calculate total
+        const totalCount = draftCount + preparedCount + checkedCount + acknowledgedCount + 
+                          approvedCount + receivedCount + rejectedCount;
+
+        // Update counters
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("draftCount").textContent = draftCount;
+        document.getElementById("preparedCount").textContent = preparedCount;
+        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
+        document.getElementById("approvedCount").textContent = approvedCount;
+        document.getElementById("receivedCount").textContent = receivedCount;
+        document.getElementById("rejectedCount").textContent = rejectedCount;
+        
+        console.log('Dashboard counts updated successfully');
+    } catch (error) {
+        console.error('Error loading dashboard counts:', error);
+        // Set default values on error
+        document.getElementById("totalCount").textContent = 0;
+        document.getElementById("draftCount").textContent = 0;
+        document.getElementById("preparedCount").textContent = 0;
+        document.getElementById("checkedCount").textContent = 0;
+        document.getElementById("acknowledgedCount").textContent = 0;
+        document.getElementById("approvedCount").textContent = 0;
+        document.getElementById("receivedCount").textContent = 0;
+        document.getElementById("rejectedCount").textContent = 0;
+    }
 }
 
 function populatePurchaseRequests(data) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
-    // Calculate pagination indices
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, data.length);
-    const paginatedData = data.slice(startIndex, endIndex);
-    
-    // Display paginated data
-    paginatedData.forEach((doc, index) => {
+    // Data is already paginated from the server, so display all items
+    data.forEach((doc, index) => {
         // Format dates for display
         const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
         const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';
@@ -165,12 +194,17 @@ function populatePurchaseRequests(data) {
         // Check if PR Number is longer than 15 characters
         const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
         
+        // Check if Requester Name is longer than 15 characters
+        const requesterNameClass = doc.requesterName && doc.requesterName.length > 15 ? 'requester-name-cell' : '';
+        
         const row = `<tr class='w-full border-b'>
-            <td class='p-2'>${startIndex + index + 1}</td>
+            <td class='p-2'>${(currentPage - 1) * itemsPerPage + index + 1}</td>
             <td class='p-2'>
                 <div class="${prNumberClass}">${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</div>
             </td>
-            <td class='p-2'>${doc.requesterName}</td>
+            <td class='p-2'>
+                <div class="${requesterNameClass}">${doc.requesterName || ''}</div>
+            </td>
             <td class='p-2'>${doc.departmentName}</td>
             <td class='p-2'>${submissionDate}</td>
             <td class='p-2'>${requiredDate}</td>
@@ -182,27 +216,23 @@ function populatePurchaseRequests(data) {
         </tr>`;
         tableBody.innerHTML += row;
     });
-    
-    // Update pagination info
-    updatePaginationInfo(data.length);
 }
 
 // Function to update pagination information
-function updatePaginationInfo(totalItems) {
-    const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+function updatePaginationInfo(currentPageItems) {
+    const startItem = currentPageItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = (currentPage - 1) * itemsPerPage + currentPageItems;
     
     document.getElementById('startItem').textContent = startItem;
     document.getElementById('endItem').textContent = endItem;
-    document.getElementById('totalItems').textContent = totalItems;
+    document.getElementById('totalItems').textContent = `${endItem}+`; // Show + since we don't know total count
     
-    // Update pagination buttons
-    updatePaginationButtons(totalItems);
+    // Update pagination buttons - we'll assume there are more pages if we got a full page
+    updatePaginationButtons(currentPageItems);
 }
 
 // Function to update pagination buttons state
-function updatePaginationButtons(totalItems) {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+function updatePaginationButtons(currentPageItems) {
     document.getElementById('currentPage').textContent = currentPage;
     
     // Update prev/next button states
@@ -210,17 +240,17 @@ function updatePaginationButtons(totalItems) {
     const nextBtn = document.getElementById('nextPage');
     
     prevBtn.classList.toggle('disabled', currentPage <= 1);
-    nextBtn.classList.toggle('disabled', currentPage >= totalPages);
+    // Assume there are more pages if we got a full page of results
+    nextBtn.classList.toggle('disabled', currentPageItems < itemsPerPage);
 }
 
 // Function to change page
 function changePage(direction) {
-    const totalPages = Math.ceil(filteredPurchaseRequests.length / itemsPerPage);
     const newPage = currentPage + direction;
     
-    if (newPage >= 1 && newPage <= totalPages) {
+    if (newPage >= 1) {
         currentPage = newPage;
-        populatePurchaseRequests(filteredPurchaseRequests);
+        fetchPurchaseRequests(currentPage, currentSearchTerm, currentSearchType);
     }
 }
 
@@ -257,9 +287,44 @@ function toggleSubMenu(menuId) {
 }
 
 // Fungsi Download Excel
-function downloadExcel() {
-    // Use the currently filtered data
-    const dataToExport = [...filteredPurchaseRequests];
+async function downloadExcel() {
+    // Fetch all data for export (without pagination)
+    const userId = getUserId();
+    const params = new URLSearchParams({
+        pageSize: 10000, // Large number to get all records
+        requesterId: userId
+    });
+    
+    // Add current filters
+    if (currentSearchTerm) {
+        switch (currentSearchType) {
+            case 'pr':
+                params.append('purchaseRequestNo', currentSearchTerm);
+                break;
+            case 'requester':
+                params.append('requesterName', currentSearchTerm);
+                break;
+            case 'status':
+                params.append('status', currentSearchTerm);
+                break;
+            case 'date':
+                const dateValue = new Date(currentSearchTerm);
+                if (!isNaN(dateValue.getTime())) {
+                    params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
+                    params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
+                }
+                break;
+        }
+    }
+    
+    if (currentTab !== 'all') {
+        params.append('status', currentTab);
+    }
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard?${params.toString()}`);
+        const data = await response.json();
+        const dataToExport = data?.data || [];
     
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
@@ -307,31 +372,70 @@ function downloadExcel() {
     // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
     
-    // Generate the Excel file with current filter in the filename
-    XLSX.writeFile(workbook, `purchase_request_${statusText.toLowerCase()}_list.xlsx`);
+        // Generate the Excel file with current filter in the filename
+        XLSX.writeFile(workbook, `purchase_request_${statusText.toLowerCase()}_list.xlsx`);
+    } catch (error) {
+        console.error('Error exporting Excel:', error);
+        alert('Error exporting data to Excel. Please try again.');
+    }
 }
 
 // Fungsi Download PDF
-function downloadPDF() {
-    // Use the jsPDF library
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+async function downloadPDF() {
+    // Fetch all data for export (without pagination)
+    const userId = getUserId();
+    const params = new URLSearchParams({
+        pageSize: 10000, // Large number to get all records
+        requesterId: userId
+    });
     
-    // Get current tab name for the title
-    const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+    // Add current filters
+    if (currentSearchTerm) {
+        switch (currentSearchType) {
+            case 'pr':
+                params.append('purchaseRequestNo', currentSearchTerm);
+                break;
+            case 'requester':
+                params.append('requesterName', currentSearchTerm);
+                break;
+            case 'status':
+                params.append('status', currentSearchTerm);
+                break;
+            case 'date':
+                const dateValue = new Date(currentSearchTerm);
+                if (!isNaN(dateValue.getTime())) {
+                    params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
+                    params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
+                }
+                break;
+        }
+    }
     
-    // Add title with current filter information
-    doc.setFontSize(16);
-    doc.text(`Purchase Request Report - ${statusText}`, 14, 15);
+    if (currentTab !== 'all') {
+        params.append('status', currentTab);
+    }
     
-    // Add timestamp
-    const now = new Date();
-    const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-    doc.setFontSize(10);
-    doc.text(timestamp, 14, 22);
-    
-    // Create table data from the filtered documents
-    const dataToExport = [...filteredPurchaseRequests];
+    try {
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard?${params.toString()}`);
+        const data = await response.json();
+        const dataToExport = data?.data || [];
+        
+        // Use the jsPDF library
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Get current tab name for the title
+        const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+        
+        // Add title with current filter information
+        doc.setFontSize(16);
+        doc.text(`Purchase Request Report - ${statusText}`, 14, 15);
+        
+        // Add timestamp
+        const now = new Date();
+        const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        doc.setFontSize(10);
+        doc.text(timestamp, 14, 22);
     const tableData = dataToExport.map(doc => {
         // Format dates
         const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
@@ -387,33 +491,59 @@ function downloadPDF() {
     doc.setFontSize(10);
     doc.text(`Total Records: ${dataToExport.length}`, 14, finalY + 10);
     
-    // Save the PDF with current filter in the filename
-    doc.save(`purchase_request_${statusText.toLowerCase()}_list.pdf`);
+        // Save the PDF with current filter in the filename
+        doc.save(`purchase_request_${statusText.toLowerCase()}_list.pdf`);
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        alert('Error exporting data to PDF. Please try again.');
+    }
 }
 
 // Add window.onload event listener
 window.onload = function() {
-    fetchPurchaseRequests();
+    // Load initial data and dashboard counts
+    fetchPurchaseRequests(1, '', 'pr');
+    loadDashboardCounts();
     
-    // Add event listener for search input
+    // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', handleSearch);
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
+        });
     }
     
     // Add event listener to the search type dropdown
     const searchType = document.getElementById('searchType');
     if (searchType) {
         searchType.addEventListener('change', function() {
-            const searchTerm = document.getElementById('searchInput').value.trim();
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'date') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date...';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            const searchTerm = searchInput.value.trim();
             filterPurchaseRequests(searchTerm);
         });
     }
 };
 
 // Function to handle search input
-function handleSearch(event) {
-    const searchTerm = event.target.value.trim();
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
     filterPurchaseRequests(searchTerm);
 }
 

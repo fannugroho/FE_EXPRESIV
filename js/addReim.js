@@ -379,6 +379,7 @@ function addRow() {
         </td>
     `;
 
+
     tableBody.appendChild(newRow);
 }
 

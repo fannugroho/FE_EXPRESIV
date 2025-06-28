@@ -215,6 +215,17 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
+// Fungsi untuk mengatur tanggal minimum pada field Issuance Date
+function setMinDateToday() {
+    const today = new Date();
+    // Format tanggal ke YYYY-MM-DD untuk input type="date"
+    const formattedDate = today.toISOString().split('T')[0];
+    
+    // Set nilai minimum untuk field Issuance Date ke hari ini
+    const submissionDateInput = document.getElementById("submissionDate");
+    submissionDateInput.min = formattedDate;
+}
+
 // Setup event listener untuk dropdown approval
 window.onload = function(){
     // Kode onload yang sudah ada
@@ -222,6 +233,9 @@ window.onload = function(){
     fetchUsers();
     fetchItemOptions();
     fetchClassifications();
+    
+    // Set min date untuk Issuance Date
+    setMinDateToday();
     
     // Ensure all description and UOM fields are initially empty and properly styled
     document.querySelectorAll('.item-description').forEach(input => {
@@ -261,78 +275,66 @@ window.onload = function(){
     });
 }
 
-function fetchClassifications() {
-    fetch(`${BASE_URL}/api/classifications`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Classification data:", data);
-            populateClassificationSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching classifications:', error);
-        });
+async function fetchClassifications() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/classifications');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Classification data:", data);
+        populateClassificationSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching classifications:', error);
+    }
 }
 
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Department data:", data);
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
+async function fetchDepartments() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/department');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
 }
 
-function fetchUsers() {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("User data:", data);
-            populateUserSelects(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
+async function fetchUsers() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/users');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("User data:", data);
+        populateUserSelects(data.data);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
 }
 
-function fetchItemOptions(selectElement = null) {
-    fetch(`${BASE_URL}/api/items`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (selectElement) {
-                populateItemSelect(data.data, selectElement);
-            } else {
-                // Populate all item selects in the document
-                document.querySelectorAll('.item-no').forEach(select => {
-                    populateItemSelect(data.data, select);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching items:', error);
-        });
+async function fetchItemOptions(selectElement = null) {
+    try {
+        const response = await makeAuthenticatedRequest('/api/items');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        if (selectElement) {
+            populateItemSelect(data.data, selectElement);
+        } else {
+            // Populate all item selects in the document
+            document.querySelectorAll('.item-no').forEach(select => {
+                populateItemSelect(data.data, select);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching items:', error);
+    }
 }
 
 function populateDepartmentSelect(departments) {
@@ -487,7 +489,7 @@ function populateItemSelect(items, selectElement) {
 
     items.forEach(item => {
         const option = document.createElement("option");
-        option.value = item.id || item.itemCode;
+        option.value = item.itemCode; // Use itemCode instead of id
         option.textContent = `${item.itemCode} - ${item.itemName}`;
         // Store the description and UOM as data attributes
         option.setAttribute('data-item-code', item.itemCode);
@@ -619,9 +621,19 @@ function validateRequiredFields() {
     // Check dates
     const issuanceDate = document.getElementById("submissionDate").value;
     const requiredDate = document.getElementById("requiredDate").value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset waktu ke 00:00:00
     
     if (!issuanceDate) {
         errors.push("Issuance date is required");
+    } else {
+        // Validasi backdate
+        const selectedDate = new Date(issuanceDate);
+        selectedDate.setHours(0, 0, 0, 0); // Reset waktu ke 00:00:00
+        
+        if (selectedDate < today) {
+            errors.push("Issuance date cannot be backdate (date in the past)");
+        }
     }
     
     if (!requiredDate) {
@@ -653,12 +665,12 @@ async function submitDocument(isSubmit = false) {
     // Show confirmation dialog only for submit
     if (isSubmit) {
         const result = await Swal.fire({
-            title: 'Konfirmasi',
-            text: 'Apakah dokumen sudah benar?',
+            title: 'Confirmation',      
+            text: 'Is the document correct?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya',
-            cancelButtonText: 'Batal'
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel'
         });
 
         if (!result.isConfirmed) {
@@ -667,8 +679,8 @@ async function submitDocument(isSubmit = false) {
     }
 
     // Show loading indicator
-    const loadingTitle = isSubmit ? 'Mengirim...' : 'Menyimpan...';
-    const loadingText = isSubmit ? 'Sedang mengirim dokumen, harap tunggu...' : 'Sedang menyimpan dokumen, harap tunggu...';
+    const loadingTitle = isSubmit ? 'Sending...' : 'Saving...';
+    const loadingText = isSubmit ? 'Sending document, please wait...' : 'Saving document, please wait...';
     
     Swal.fire({
         title: loadingTitle,
@@ -748,7 +760,7 @@ async function submitDocument(isSubmit = false) {
         });
         
         // Submit the form data
-        const response = await fetch(`${BASE_URL}/api/pr/item`, {
+        const response = await makeAuthenticatedRequest('/api/pr/item', {
             method: 'POST',
             body: formData
         });
@@ -794,16 +806,16 @@ async function submitDocument(isSubmit = false) {
         if (isSubmit) {
             // Show success message with SweetAlert for submit
             await Swal.fire({
-                title: 'Berhasil',
-                text: 'dokumen sudah berhasil dibuat',
+                title: 'Success',
+                text: 'Document has been created successfully',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
         } else {
             // Show success message with SweetAlert for save
             await Swal.fire({
-                title: 'Berhasil',
-                text: 'Purchase Request berhasil disimpan sebagai draft',
+                title: 'Success!',
+                text: 'Purchase Request has been saved as draft',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });

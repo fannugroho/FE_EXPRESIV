@@ -500,6 +500,9 @@ function populateFormWithData(data) {
         }
     }
 
+    // Handle revision remarks display
+    displayRevisionRemarks(data);
+
     // Populate settlement items table
     populateSettlementItemsTable(data.settlementItems || []);
 
@@ -514,7 +517,7 @@ function populateFormWithData(data) {
     }
 
     // Check if editable after populating data
-    const isEditable = data.status === 'Draft';
+    const isEditable = data.status === 'Draft' || data.status === 'Revision';
     toggleEditableFields(isEditable);
 
     // Fetch dropdown options with approval data
@@ -526,6 +529,48 @@ function populateFormWithData(data) {
         attachmentsToKeep = data.attachments.map(att => att.id); // Initially keep all existing attachments
     }
     displayAttachments(data.attachments || []);
+}
+
+// Function to display revision remarks from API
+function displayRevisionRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisionCount && parseInt(data.revisionCount) > 0;
+    
+    if (hasRevisions) {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'block';
+        }
+        if (revisedCountElement) {
+            revisedCountElement.textContent = data.revisionCount || '0';
+        }
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
+        ];
+        
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
+                }
+            }
+        });
+    } else {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'none';
+        }
+    }
 }
 
 // Populate settlement items table
@@ -1184,7 +1229,7 @@ function toggleEditableFields(isEditable) {
             button.disabled = !isEditable;
             if (!isEditable) {
                 button.classList.add('opacity-50', 'cursor-not-allowed');
-                button.title = 'You can only perform this action on settlements with Draft status';
+                button.title = 'You can only perform this action on settlements with Draft or Revision status';
             } else {
                 button.classList.remove('opacity-50', 'cursor-not-allowed');
                 button.title = '';

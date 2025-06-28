@@ -1,11 +1,11 @@
 // Current tab state
 let currentTab = 'revision'; // Default tab
-let allCashAdvances = [];
 
 // Pagination variables
 let currentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
+let allCashAdvances = [];
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -33,15 +33,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadDashboard() {
     try {
-        // Get user ID for approver ID
+        // Get user ID 
         const userId = getUserId();
         if (!userId) {
             alert("Unable to get user ID from token. Please login again.");
             return;
         }
 
-        // Fetch all cash advances
-        const response = await fetch(`${BASE_URL}/api/cash-advance/dashboard`, {
+        // Update counters by fetching both statuses
+        await updateCounters(userId);   
+        
+        // Filter and display documents based on current tab
+        await filterAndDisplayDocuments(userId);
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+        
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
+    }
+}
+
+// Function to update counters by fetching data for both statuses
+async function updateCounters(userId) {
+    try {
+        // Fetch counts for each status
+        const revisionResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/revision?filterType=revision`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const preparedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/revision?filterType=prepared&userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+
+        const revisionData = revisionResponse.ok ? await revisionResponse.json() : { data: [] };
+        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
+
+        const revisionCount = revisionData.data ? revisionData.data.length : 0;
+        const preparedCount = preparedData.data ? preparedData.data.length : 0;
+
+        // Update counters in the UI
+        document.getElementById("revisionCount").textContent = revisionCount;
+        document.getElementById("preparedCount").textContent = preparedCount;
+        
+    } catch (error) {
+        console.error('Error updating counters:', error);
+        
+        // Fallback to zero counts
+        document.getElementById("revisionCount").textContent = 0;
+        document.getElementById("preparedCount").textContent = 0;
+    }
+}
+
+// Function to filter and display documents based on current tab
+async function filterAndDisplayDocuments(userId) {
+    try {
+        let url;
+        
+        // Build URL based on current tab
+        if (currentTab === 'revision') {
+            url = `${BASE_URL}/api/cash-advance/dashboard/revision?filterType=revision`;
+        } else if (currentTab === 'prepared') {
+            url = `${BASE_URL}/api/cash-advance/dashboard/revision?filterType=prepared&userId=${userId}`;
+        }
+
+        console.log('Fetching documents from:', url);
+
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -54,16 +113,16 @@ async function loadDashboard() {
         }
 
         const result = await response.json();
-        console.log('Dashboard API response:', result);
+        console.log('API response:', result);
 
         if (result.status && result.data) {
-            allCashAdvances = result.data;
+            const documents = result.data;
             
-            // Update counters
-            updateCounters();
+            // Update the table with filtered documents
+            updateTable(documents);
             
-            // Filter documents based on current tab
-            filterAndDisplayDocuments();
+            // Update pagination info
+            updatePaginationInfo(documents.length);
         } else {
             console.error('API response error:', result.message);
             // Fallback to empty state
@@ -72,59 +131,36 @@ async function loadDashboard() {
         }
         
     } catch (error) {
-        console.error('Error loading dashboard:', error);
-        alert('Failed to load dashboard data. Please try again.');
-        
+        console.error('Error filtering documents:', error);
         // Fallback to empty state
         updateTable([]);
         updatePaginationInfo(0);
     }
 }
 
-// Function to update counters
-function updateCounters() {
-    if (!allCashAdvances || allCashAdvances.length === 0) {
-        document.getElementById("revisionCount").textContent = 0;
-        document.getElementById("draftCount").textContent = 0;
-        document.getElementById("preparedCount").textContent = 0;
+// Function to switch between tabs
+function switchTab(tabName) {
+    currentTab = tabName;
+    currentPage = 1; // Reset to first page
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
+    
+    if (tabName === 'revision') {
+        document.getElementById('revisionTabBtn').classList.add('tab-active');
+    } else if (tabName === 'prepared') {
+        document.getElementById('preparedTabBtn').classList.add('tab-active');
+    }
+    
+    // Get user ID and reload data for the selected tab
+    const userId = getUserId();
+    if (!userId) {
+        alert("Unable to get user ID from token. Please login again.");
         return;
     }
     
-    // Count documents by status
-    const revisionDocs = allCashAdvances.filter(doc => doc.status === "Revision");
-    const draftDocs = allCashAdvances.filter(doc => doc.status === "Draft");
-    const preparedDocs = allCashAdvances.filter(doc => doc.status === "Prepared");
-    
-    // Update counters in the UI
-    document.getElementById("revisionCount").textContent = revisionDocs.length;
-    document.getElementById("draftCount").textContent = draftDocs.length;
-    document.getElementById("preparedCount").textContent = preparedDocs.length;
-}
-
-// Function to filter and display documents based on current tab
-function filterAndDisplayDocuments() {
-    if (!allCashAdvances || allCashAdvances.length === 0) {
-        updateTable([]);
-        updatePaginationInfo(0);
-        return;
-    }
-    
-    let filteredDocuments = [];
-    
-    // Filter based on current tab
-    if (currentTab === 'revision') {
-        filteredDocuments = allCashAdvances.filter(doc => doc.status === "Revision");
-    } else if (currentTab === 'draft') {
-        filteredDocuments = allCashAdvances.filter(doc => doc.status === "Draft");
-    } else if (currentTab === 'prepared') {
-        filteredDocuments = allCashAdvances.filter(doc => doc.status === "Prepared");
-    }
-    
-    // Update table with filtered documents
-    updateTable(filteredDocuments);
-    
-    // Update pagination info
-    updatePaginationInfo(filteredDocuments.length);
+    // Filter and display documents based on the selected tab
+    filterAndDisplayDocuments(userId);
 }
 
 // Function to update table with documents
@@ -161,21 +197,15 @@ function updateTable(documents = []) {
         row.classList.add('border-t', 'hover:bg-gray-100');
         
         // Format submission date
-        let formattedDate = '';
-        if (doc.submissionDate) {
-            const date = new Date(doc.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
-        }
+        const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
         
         // Create row HTML
         let rowHTML = `
-            <td class="p-2">${doc.id ? doc.id.substring(0, 10) : ''}</td>
-            <td class="p-2">${doc.cashAdvanceNo || ''}</td>
-            <td class="p-2">${doc.requesterName || ''}</td>
-            <td class="p-2">${doc.departmentName || ''}</td>
-            <td class="p-2">${formattedDate}</td>
+            <td class="p-2">${doc.id ? doc.id.toString().substring(0, 10) : ''}</td>
+            <td class="p-2">${doc.cashAdvanceNo || '-'}</td>
+            <td class="p-2">${doc.requesterName || '-'}</td>
+            <td class="p-2">${doc.departmentName || '-'}</td>
+            <td class="p-2">${submissionDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
                     ${doc.status || ''}
@@ -184,13 +214,13 @@ function updateTable(documents = []) {
             
         // Add remarks column if in revision tab
         if (currentTab === 'revision') {
-            rowHTML += `<td class="p-2">${doc.remarks || ''}</td>`;
+            rowHTML += `<td class="p-2">${doc.remarks || '-'}</td>`;
         }
         
         // Add tools column
         rowHTML += `
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailCash('${doc.id || ''}')">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="reviseCash('${doc.id || ''}')">
                     Detail
                 </button>
             </td>
@@ -221,25 +251,7 @@ function updatePaginationInfo(totalItems) {
     document.getElementById('currentPage').textContent = currentPage;
 }
 
-// Function to switch between tabs
-function switchTab(tabName) {
-    currentTab = tabName;
-    currentPage = 1; // Reset to first page
-    
-    // Update active tab styling
-    document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
-    
-    if (tabName === 'revision') {
-        document.getElementById('revisionTabBtn').classList.add('tab-active');
-    } else if (tabName === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-    } else if (tabName === 'prepared') {
-        document.getElementById('preparedTabBtn').classList.add('tab-active');
-    }
-    
-    // Filter and display documents based on the selected tab
-    filterAndDisplayDocuments();
-}
+
 
 // Helper function to get status styling
 function getStatusClass(status) {
@@ -262,7 +274,7 @@ function changePage(direction) {
     
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
-        filterAndDisplayDocuments();
+        updateTable(filteredData); // Use stored filtered data for pagination
     }
 }
 
@@ -279,11 +291,8 @@ function goToProfile() {
     window.location.href = "../../../../pages/profil.html";
 }
 
-function detailCash(caId) {
-    // Save the ID to localStorage for the detail page to use
-    localStorage.setItem('selectedCashAdvanceId', caId);
-    // Navigate to the detail page
-    window.location.href = `../../../../detailPages/detailCash.html?id=${caId}`;
+function reviseCash(caId) {
+    window.location.href = `../../../approval/revision/cashAdvance/revisionCash.html?ca-id=${caId}&tab=${currentTab}`;
 }
 
 function loadUserProfileInfo() {

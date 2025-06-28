@@ -447,7 +447,7 @@ function updateCAStatusWithRemarks(status, remarks) {
     };
     
     // If this is a revision, we need to handle it differently
-    if (status === 'revision') {
+    if (status === 'revise') {
         requestData.RevisionRemarks = remarks;
     }
 
@@ -455,7 +455,7 @@ function updateCAStatusWithRemarks(status, remarks) {
     let actionText = 'Processing';
     if (status === 'approve') actionText = 'Approving';
     else if (status === 'reject') actionText = 'Rejecting';
-    else if (status === 'revision') actionText = 'Submitting Revision';
+            else if (status === 'revise') actionText = 'Submitting Revision';
     
     Swal.fire({
         title: `${actionText}...`,
@@ -478,7 +478,7 @@ function updateCAStatusWithRemarks(status, remarks) {
             let successMessage = 'Operation completed successfully';
             if (status === 'approve') successMessage = 'CA approved successfully';
             else if (status === 'reject') successMessage = 'CA rejected successfully';
-            else if (status === 'revision') successMessage = 'Revision submitted successfully';
+            else if (status === 'revise') successMessage = 'Revision submitted successfully';
             
             Swal.fire({
                 icon: 'success',
@@ -501,7 +501,7 @@ function updateCAStatusWithRemarks(status, remarks) {
         let errorAction = 'processing';
         if (status === 'approve') errorAction = 'approving';
         else if (status === 'reject') errorAction = 'rejecting';
-        else if (status === 'revision') errorAction = 'submitting revision for';
+        else if (status === 'revise') errorAction = 'submitting revision for';
         
         Swal.fire({
             icon: 'error',
@@ -591,7 +591,7 @@ function submitRevision() {
     }).then((result) => {
         if (result.isConfirmed) {
             // Call the existing function with the collected remarks
-            updateCAStatusWithRemarks('revision', allRemarks);
+            updateCAStatusWithRemarks('revise', allRemarks);
         }
     });
 }

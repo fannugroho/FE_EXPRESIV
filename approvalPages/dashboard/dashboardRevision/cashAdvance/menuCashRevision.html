@@ -40,14 +40,10 @@
             </h2>
             
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
-                <div class="hidden md:grid grid-cols-3 gap-4 mb-6">
+                <div class="hidden md:grid grid-cols-2 gap-4 mb-6">
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                         <h3 class="text-lg font-semibold">Revision</h3>
                         <p id="revisionCount" class="text-2xl font-bold text-blue-600">0</p>
-                    </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h3 class="text-lg font-semibold">Draft</h3>
-                        <p id="draftCount" class="text-2xl font-bold text-green-600">0</p>
                     </div>
                     <div class="p-6 bg-white rounded-lg shadow-lg text-center">
                         <h3 class="text-lg font-semibold">Prepared</h3>
@@ -64,9 +60,6 @@
                     <div class="flex mb-4 border-b">
                         <button id="revisionTabBtn" onclick="switchTab('revision')" class="px-4 py-2 tab-active rounded-t-lg">
                             <i class="fas fa-file-alt mr-2"></i>Revision
-                        </button>
-                        <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
-                            <i class="fas fa-check mr-2"></i>Draft
                         </button>
                         <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
                             <i class="fas fa-check mr-2"></i>Prepared
@@ -126,10 +119,10 @@
         <button onclick="switchTab('revision')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
           <i class="fas fa-file-alt text-xl"></i>
           <span>Revision</span>
-          </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-          <i class="fas fa-file-alt text-xl"></i>
-          <span>Draft</span>
+        </button>
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+          <i class="fas fa-check text-xl"></i>
+          <span>Prepared</span>
         </button>
     </nav>
 
