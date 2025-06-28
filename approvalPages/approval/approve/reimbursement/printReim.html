@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print Payment Voucher</title>
+    <!--tambahkan disini-->
+    <script>
+        // Function untuk mendapatkan parameter dari URL
+        function getTypeOfTransactionFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('typeOfTransaction');
+        }
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="printReim.js"></script>
@@ -51,6 +59,57 @@
             height: 100px;
             margin-top: 5px;
         }
+        
+        /* Logo styling */
+        .logo {
+            width: 150px;
+            margin-bottom: 5px;
+        }
+        
+        .logo-section {
+            width: 40%;
+        }
+        
+        .company-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        /* Approval stamp styling */
+        .approval-stamp {
+            position: relative;
+            width: 100%;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        
+        .approval-stamp-text {
+            color: #0056b3;
+            font-weight: bold;
+            font-size: 16px;
+            transform: rotate(-15deg);
+            border: 2px solid #0056b3;
+            border-radius: 5px;
+            padding: 3px 10px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+        }
+        
+        /* Approval date styling */
+        .approval-date {
+            font-size: 12px;
+            color: #555;
+            margin-top: 5px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body class="p-8">
@@ -67,8 +126,9 @@
         
         <!-- Header -->
         <div class="flex justify-between mb-2">
-            <div>
-                <h1 class="text-lg font-bold">PT KANSAI PAINT INDONESIA</h1>
+            <div class="logo-section">
+                <img src="../../../../image/Seiho.png" alt="Kansai Paint Logo" class="logo" onerror="this.src='data:image/png;base64,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'">
+                <!--<div class="company-name">PT. KANSAI PAINT INDONESIA</div>-->
                 <p class="text-sm">Blok DD-7 & DD-6 Kawasan Industri MM2100 Cibitung</p>
                 <p class="text-sm">Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
                 <p class="mt-4">Payment to : <span id="payToText"></span></p>
@@ -83,6 +143,11 @@
         <!-- Payment Voucher Title -->
         <div class="text-center font-bold text-xl my-4">
             PAYMENT VOUCHER
+        </div>
+        
+        <!-- Type of Transaction -->
+        <div class="text-center mb-4">
+            <p>Type of Transaction: <span id="typeOfTransactionText" class="font-semibold"></span></p>
         </div>
         
         <!-- Main Payment Table -->
@@ -102,8 +167,8 @@
             <tfoot>
                 <tr>
                     <td colspan="3" class="border p-2 text-right font-bold">Total</td>
-                    <td class="border p-2" id="totalDebitText">IDR</td>
-                    <td class="border p-2" id="totalCreditText">IDR</td>
+                    <td class="border p-2" id="totalDebitText"></td>
+                    <td class="border p-2" id="totalCreditText"></td>
                 </tr>
             </tfoot>
         </table>
@@ -163,13 +228,15 @@
             <p id="attachdoc" class="mb-2">Supporting Document :</p>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <p>Reference Doc : <span id="refdoc"></span></p>
-                    <p>Purchasing requisition form : ............................................</p>
-                    <p>Purchasing order form : ............................................</p>
-                    <p>Invoice : ............................................</p>
-                    <p>Invoice tax : ............................................</p>
-                    <p>Delivery order from supplier : ............................................</p>
-                    <p>Quitance : ............................................</p>
+                    <p><span id="refdoc"></span></p>
+                    <p>Note/Remark : <span id="remarksText"></span></p>
+                    <!--
+                    <p>Purchasing requisition form : </p>
+                    <p>Purchasing order form : </p>
+                    <p>Invoice : </p>
+                    <p>Invoice tax : </p>
+                    <p>Delivery order from supplier : </p>
+                    <p>Quitance : </p>-->
                 </div>
             </div>
         </div>
@@ -192,29 +259,59 @@
         <!-- Signature Section -->
         <div class="grid grid-cols-5 gap-4 mt-6">
             <div>
-                <p class="text-center">Voucher is Prepared by :</p>
-                <div class="signature-box"></div>
+                <p class="text-center">Prepared by :</p>
+                <br>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Approved</span>
+                </div>
+                <div class="text-center">
                 <p class="text-center mt-2" id="preparedBy"></p>
+                <p class="approval-date" id="preparedByDate"></p>
+                </div>
             </div>
             <div>
-                <p class="text-center">Voucher is Checked by :</p>
-                <div class="signature-box"></div>
+                <p class="text-center">Checked by :</p>
+                <br>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Approved</span>
+                </div>
+                <div class="text-center">
                 <p class="text-center mt-2" id="checkedBy"></p>
+                <p class="approval-date" id="checkedByDate"></p>
+                </div>
             </div>
             <div>
-                <p class="text-center">Voucher is Acknowledge by :</p>
-                <div class="signature-box"></div>
+                <p class="text-center">Acknowledge by :</p>
+                <br>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Approved</span>
+                </div>
+                <div class="text-center">
                 <p class="text-center mt-2" id="acknowledgeBy"></p>
+                <p class="approval-date" id="acknowledgeByDate"></p>
+                </div>
             </div>
             <div>
-                <p class="text-center">Voucher is Approved by :</p>
-                <div class="signature-box"></div>
+                <p class="text-center">Approved by :</p>
+                <br>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Approved</span>
+                </div>
+                <div class="text-center">
                 <p class="text-center mt-2" id="approvedByText"></p>
+                <p class="approval-date" id="approvedByDate"></p>
+                </div>
             </div>
             <div>
-                <p class="text-center">Cash is Received by :</p>
-                <div class="signature-box"></div>
+                <p class="text-center">Received by :</p>
+                <br>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Received</span>
+                </div>
+                <div class="text-center">
                 <p class="text-center mt-2" id="receivedBy"></p>
+                <p class="approval-date" id="receivedByDate"></p>
+            </div>
             </div>
         </div>
         

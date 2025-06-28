@@ -152,12 +152,24 @@ function populatePrintData(apiData = null) {
         approvedBy: urlParams.approvedBy || (apiData ? apiData.approvedBy : ''),
         receivedBy: urlParams.receivedBy || (apiData ? apiData.receivedBy : ''),
         totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
-        reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : [])
+        reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
+        typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
+        remarks: urlParams.remarks || (apiData ? apiData.remarks : '')
     };
     
     // Populate header information
     document.getElementById('payToText').textContent = data.payTo || '';
     document.getElementById('voucherNoText').textContent = data.voucherNo || '';
+    
+    // Set Type of Transaction
+    if (document.getElementById('typeOfTransactionText')) {
+        document.getElementById('typeOfTransactionText').textContent = data.typeOfTransaction || '';
+    }
+    
+    // Set Remarks
+    if (document.getElementById('remarksText')) {
+        document.getElementById('remarksText').textContent = data.remarks || '';
+    }
     
     // Format date if it's a string in YYYY-MM-DD format
     if (data.submissionDate) {
@@ -221,6 +233,35 @@ function populatePrintData(apiData = null) {
         document.getElementById('receivedBy').textContent = data.receivedBy;
     }
     
+    // Show approval stamps based on status
+    const approvalStamps = document.querySelectorAll('.approval-stamp');
+    if (approvalStamps.length >= 5) {
+        // Default to visible if we have data, hidden if not
+        approvalStamps[0].style.visibility = data.preparedBy ? 'visible' : 'hidden';
+        approvalStamps[1].style.visibility = data.checkedBy ? 'visible' : 'hidden';
+        approvalStamps[2].style.visibility = data.acknowledgeBy ? 'visible' : 'hidden';
+        approvalStamps[3].style.visibility = data.approvedBy ? 'visible' : 'hidden';
+        approvalStamps[4].style.visibility = data.receivedBy ? 'visible' : 'hidden';
+    }
+    
+    // Set approval dates (current date as placeholder)
+    const currentDate = new Date().toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+    if (document.getElementById('preparedByDate')) {
+        document.getElementById('preparedByDate').textContent = currentDate;
+    }
+    if (document.getElementById('checkedByDate')) {
+        document.getElementById('checkedByDate').textContent = currentDate;
+    }
+    if (document.getElementById('acknowledgeByDate')) {
+        document.getElementById('acknowledgeByDate').textContent = currentDate;
+    }
+    if (document.getElementById('approvedByDate')) {
+        document.getElementById('approvedByDate').textContent = currentDate;
+    }
+    if (document.getElementById('receivedByDate')) {
+        document.getElementById('receivedByDate').textContent = currentDate;
+    }
+    
     // Populate reimbursement details table
     populateDetailsTable(data.reimbursementDetails, data.totalAmount);
 }
@@ -263,7 +304,7 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update totals
     document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
-    document.getElementById('totalCreditText').textContent = formatCurrency(finalTotal);
+    //document.getElementById('totalCreditText').textContent = formatCurrency(finalTotal);
     
     // Update amount payment and amount in words
     document.getElementById('amountText').textContent = formatCurrency(finalTotal);
