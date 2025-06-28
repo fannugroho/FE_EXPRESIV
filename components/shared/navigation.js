@@ -76,6 +76,11 @@ function goToMenuReceiveReim() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/reimbursement/menuReimReceive.html`;
 }
 
+function goToMenuRevisionReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html`;
+}
+
 // Cash Advance Navigation
 function goToMenuCash() {
     const basePath = getBasePath();
