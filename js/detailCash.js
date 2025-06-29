@@ -7,6 +7,504 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 let rowCounter = 1;
 let cashAdvanceData = null;
 
+// Function to get available categories based on department and transaction type from API
+async function getAvailableCategories(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get available account names based on category, department, and transaction type from API
+async function getAvailableAccountNames(category, departmentId, transactionType) {
+    if (!category || !departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch account names');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching account names:', error);
+        return [];
+    }
+}
+
+// Function to get COA based on category, account name, department, and transaction type from API
+async function getCOA(category, accountName, departmentId, transactionType) {
+    if (!category || !accountName || !departmentId || !transactionType) return '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch COA');
+        }
+        const data = await response.json();
+        return data.data?.coa || data.coa || ''; // Handle different response structures
+    } catch (error) {
+        console.error('Error fetching COA:', error);
+        return '';
+    }
+}
+
+// Function to setup category dropdown for a row
+async function setupCategoryDropdown(row) {
+    const categoryInput = row.querySelector('.category-input');
+    const categoryDropdown = row.querySelector('.category-dropdown');
+    const accountNameSelect = row.querySelector('.account-name');
+    const coaInput = row.querySelector('.coa');
+    
+    if (!categoryInput || !categoryDropdown) return;
+    
+    // Initially disable category input and account name
+    updateFieldsBasedOnPrerequisites(row);
+    
+    // Get current values
+    const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    categoryInput.addEventListener('input', async function() {
+        const departmentId = departmentSelect.value;
+        const transactionType = transactionTypeSelect.value;
+        const requesterValue = requesterSearchInput.value;
+        
+        // Validate prerequisites
+        if (!requesterValue || !departmentId || !transactionType) {
+            showValidationMessage(categoryInput, 'Please select requester and transaction type first');
+            categoryDropdown.classList.add('hidden');
+            return;
+        }
+        
+        const searchText = this.value.toLowerCase();
+        const availableCategories = await getAvailableCategories(departmentId, transactionType);
+        
+        // Clear dropdown
+        categoryDropdown.innerHTML = '';
+        
+        // Filter categories based on search text
+        const filteredCategories = availableCategories.filter(category => 
+            category.toLowerCase().includes(searchText)
+        );
+        
+        // Add historical categories to filtered list if they match search
+        const historicalCategories = categoryInput.historicalCategories || [];
+        const filteredHistoricalCategories = historicalCategories.filter(category => 
+            category.toLowerCase().includes(searchText) && 
+            !filteredCategories.includes(category)
+        );
+        
+        const allFilteredCategories = [...filteredCategories, ...filteredHistoricalCategories];
+        
+        if (allFilteredCategories.length > 0) {
+            // Add regular categories
+            filteredCategories.forEach(category => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.textContent = category;
+                option.onclick = function() {
+                    categoryInput.value = category;
+                    categoryDropdown.classList.add('hidden');
+                    
+                    // Update account name dropdown
+                    updateAccountNameDropdown(row, category, departmentId, transactionType);
+                    
+                    // Clear COA when category changes
+                    if (coaInput) coaInput.value = '';
+                    
+                    // Enable account name dropdown now that category is selected
+                    enableAccountNameField(row);
+                };
+                categoryDropdown.appendChild(option);
+            });
+            
+            // Add historical categories with visual distinction
+            filteredHistoricalCategories.forEach(category => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span style="font-style: italic; color: #6b7280;">${category} (Historical)</span>`;
+                option.onclick = function() {
+                    categoryInput.value = category;
+                    categoryDropdown.classList.add('hidden');
+                    
+                    // Update account name dropdown for historical category
+                    updateAccountNameDropdown(row, category, departmentId, transactionType);
+                    
+                    // Clear COA when category changes
+                    if (coaInput) coaInput.value = '';
+                    
+                    // Enable account name dropdown now that category is selected
+                    enableAccountNameField(row);
+                };
+                categoryDropdown.appendChild(option);
+            });
+            
+            categoryDropdown.classList.remove('hidden');
+        } else {
+            categoryDropdown.classList.add('hidden');
+        }
+    });
+    
+    categoryInput.addEventListener('focus', async function() {
+        const departmentId = departmentSelect.value;
+        const transactionType = transactionTypeSelect.value;
+        const requesterValue = requesterSearchInput.value;
+        
+        // Validate prerequisites
+        if (!requesterValue || !departmentId || !transactionType) {
+            showValidationMessage(this, 'Please select requester and transaction type first');
+            this.blur(); // Remove focus
+            return;
+        }
+        
+        const availableCategories = await getAvailableCategories(departmentId, transactionType);
+        
+        // Clear dropdown
+        categoryDropdown.innerHTML = '';
+        
+        // Combine available categories with historical ones
+        const historicalCategories = categoryInput.historicalCategories || [];
+        const allCategories = [...availableCategories];
+        
+        // Add historical categories that aren't already in available categories
+        historicalCategories.forEach(histCat => {
+            if (!availableCategories.includes(histCat)) {
+                allCategories.push(histCat);
+            }
+        });
+        
+        if (allCategories.length > 0) {
+            // Add regular categories
+            availableCategories.forEach(category => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.textContent = category;
+                option.onclick = function() {
+                    categoryInput.value = category;
+                    categoryDropdown.classList.add('hidden');
+                    
+                    // Update account name dropdown
+                    updateAccountNameDropdown(row, category, departmentId, transactionType);
+                    
+                    // Clear COA when category changes
+                    if (coaInput) coaInput.value = '';
+                    
+                    // Enable account name dropdown now that category is selected
+                    enableAccountNameField(row);
+                };
+                categoryDropdown.appendChild(option);
+            });
+            
+            // Add historical categories with visual distinction
+            historicalCategories.forEach(category => {
+                if (!availableCategories.includes(category)) {
+                    const option = document.createElement('div');
+                    option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                    option.innerHTML = `<span style="font-style: italic; color: #6b7280;">${category} (Historical)</span>`;
+                    option.onclick = function() {
+                        categoryInput.value = category;
+                        categoryDropdown.classList.add('hidden');
+                        
+                        // Update account name dropdown for historical category
+                        updateAccountNameDropdown(row, category, departmentId, transactionType);
+                        
+                        // Clear COA when category changes
+                        if (coaInput) coaInput.value = '';
+                        
+                        // Enable account name dropdown now that category is selected
+                        enableAccountNameField(row);
+                    };
+                    categoryDropdown.appendChild(option);
+                }
+            });
+            
+            categoryDropdown.classList.remove('hidden');
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!categoryInput.contains(event.target) && !categoryDropdown.contains(event.target)) {
+            categoryDropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Function to show validation messages
+function showValidationMessage(element, message) {
+    // Remove existing validation message
+    const existingMessage = element.parentElement.querySelector('.validation-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create and show new validation message
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'validation-message text-red-500 text-sm mt-1';
+    messageDiv.textContent = message;
+    element.parentElement.appendChild(messageDiv);
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+        if (messageDiv.parentElement) {
+            messageDiv.remove();
+        }
+    }, 3000);
+}
+
+// Function to update field states based on prerequisites
+function updateFieldsBasedOnPrerequisites(row) {
+    const categoryInput = row.querySelector('.category-input');
+    const accountNameSelect = row.querySelector('.account-name');
+    
+    const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    const departmentId = departmentSelect?.value;
+    const transactionType = transactionTypeSelect?.value;
+    const requesterValue = requesterSearchInput?.value;
+    const categoryValue = categoryInput?.value;
+    
+    if (!requesterValue || !departmentId || !transactionType) {
+        // Disable category input
+        if (categoryInput) {
+            categoryInput.disabled = true;
+            categoryInput.placeholder = 'Select requester and transaction type first';
+            categoryInput.classList.add('bg-gray-100');
+        }
+        // Disable account name
+        if (accountNameSelect) {
+            accountNameSelect.disabled = true;
+            accountNameSelect.classList.add('bg-gray-100');
+        }
+    } else {
+        // Enable category input
+        if (categoryInput) {
+            categoryInput.disabled = false;
+            categoryInput.placeholder = 'Search category...';
+            categoryInput.classList.remove('bg-gray-100');
+        }
+        
+        // Check if category is selected to enable account name
+        if (!categoryValue) {
+            if (accountNameSelect) {
+                accountNameSelect.disabled = true;
+                accountNameSelect.classList.add('bg-gray-100');
+            }
+        } else {
+            enableAccountNameField(row);
+        }
+    }
+}
+
+// Function to enable account name field
+function enableAccountNameField(row) {
+    const accountNameSelect = row.querySelector('.account-name');
+    if (accountNameSelect) {
+        accountNameSelect.disabled = false;
+        accountNameSelect.classList.remove('bg-gray-100');
+    }
+}
+
+// Function to ensure category exists in available options (for historical data)
+async function ensureCategoryAvailable(categoryInput, existingCategory, departmentId, transactionType) {
+    if (!existingCategory || !categoryInput) return;
+    
+    // Get available categories
+    const availableCategories = await getAvailableCategories(departmentId, transactionType);
+    
+    // Check if existing category exists in available options
+    const categoryExists = availableCategories.some(cat => cat.toLowerCase() === existingCategory.toLowerCase());
+    
+    if (!categoryExists) {
+        // Add the historical category to a global list for this input
+        if (!categoryInput.historicalCategories) {
+            categoryInput.historicalCategories = [];
+        }
+        if (!categoryInput.historicalCategories.includes(existingCategory)) {
+            categoryInput.historicalCategories.push(existingCategory);
+            console.log(`Added historical category: ${existingCategory}`);
+        }
+    }
+}
+
+// Function to update account name dropdown based on selected category
+async function updateAccountNameDropdown(row, category, departmentId, transactionType, existingAccountName = null, existingCoa = null) {
+    const accountNameSelect = row.querySelector('.account-name');
+    const coaInput = row.querySelector('.coa');
+    
+    if (!accountNameSelect) return;
+    
+    // Validate prerequisites
+    if (!category) {
+        showValidationMessage(accountNameSelect, 'Please select a category first');
+        return;
+    }
+    
+    // Store the current selected value before clearing
+    const currentSelectedValue = accountNameSelect.value || existingAccountName;
+    
+    // Clear existing options
+    accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
+    
+    // Get available account names for the selected category
+    const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
+    
+    // Check if existing account name exists in the fetched options
+    let existingAccountNameFound = false;
+    
+    accountNames.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.accountName;
+        option.textContent = item.accountName;
+        option.dataset.coa = item.coa;
+        option.dataset.remarks = item.remarks || '';
+        accountNameSelect.appendChild(option);
+        
+        // Check if this matches the existing account name
+        if (currentSelectedValue && item.accountName === currentSelectedValue) {
+            existingAccountNameFound = true;
+        }
+    });
+    
+    // If existing account name doesn't exist in current options, add it
+    if (currentSelectedValue && !existingAccountNameFound) {
+        const option = document.createElement('option');
+        option.value = currentSelectedValue;
+        option.textContent = `${currentSelectedValue} (Historical)`;
+        option.dataset.coa = existingCoa || '';
+        option.dataset.remarks = 'Historical data - no longer in master data';
+        option.style.fontStyle = 'italic';
+        option.style.color = '#6b7280'; // Gray color to indicate historical
+        accountNameSelect.appendChild(option);
+        console.log(`Added historical account name: ${currentSelectedValue}`);
+    }
+    
+    // Set the selected value
+    if (currentSelectedValue) {
+        accountNameSelect.value = currentSelectedValue;
+        // Also set the COA if we have it
+        if (existingCoa && coaInput) {
+            coaInput.value = existingCoa;
+        }
+    }
+    
+    // Add event listener for account name selection
+    accountNameSelect.addEventListener('change', async function() {
+        const selectedAccountName = this.value;
+        if (selectedAccountName && category && departmentId && transactionType) {
+            const coa = await getCOA(category, selectedAccountName, departmentId, transactionType);
+            if (coaInput) coaInput.value = coa;
+        } else {
+            if (coaInput) coaInput.value = '';
+        }
+    });
+    
+    // Enable the account name field
+    enableAccountNameField(row);
+}
+
+// Function to refresh all category dropdowns when department or transaction type changes
+async function refreshAllCategoryDropdowns() {
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    for (const row of tableRows) {
+        const categoryInput = row.querySelector('.category-input');
+        const accountNameSelect = row.querySelector('.account-name');
+        const coaInput = row.querySelector('.coa');
+        
+        // Don't clear existing values if they exist, just update states
+        if (categoryInput && !categoryInput.value) categoryInput.value = '';
+        if (accountNameSelect && !accountNameSelect.value) accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
+        if (coaInput && !coaInput.value) coaInput.value = '';
+        
+        // Update field states based on prerequisites
+        updateFieldsBasedOnPrerequisites(row);
+        
+        // Re-setup dropdown
+        await setupCategoryDropdown(row);
+    }
+}
+
+// Function to add visual emphasis to requester selection
+function emphasizeRequesterSelection() {
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    if (requesterSearchInput && !requesterSearchInput.value) {
+        requesterSearchInput.style.border = '2px solid #ef4444';
+        requesterSearchInput.style.backgroundColor = '#fef2f2';
+        
+        // Add a helper text
+        const helperText = document.createElement('div');
+        helperText.id = 'requester-helper';
+        helperText.className = 'text-red-600 text-sm mt-1 font-medium';
+        helperText.textContent = '⚠️ Please select a requester first to auto-fill department';
+        
+        if (!document.getElementById('requester-helper')) {
+            requesterSearchInput.parentElement.appendChild(helperText);
+        }
+    }
+}
+
+// Function to remove requester emphasis
+function removeRequesterEmphasis() {
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    const helperText = document.getElementById('requester-helper');
+    
+    if (requesterSearchInput) {
+        requesterSearchInput.style.border = '';
+        requesterSearchInput.style.backgroundColor = '';
+    }
+    
+    if (helperText) {
+        helperText.remove();
+    }
+}
+
+// Function to add visual emphasis to transaction type selection
+function emphasizeTransactionTypeSelection() {
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
+    if (transactionTypeSelect && !transactionTypeSelect.value) {
+        transactionTypeSelect.style.border = '2px solid #f59e0b';
+        transactionTypeSelect.style.backgroundColor = '#fef3c7';
+        
+        // Add a helper text
+        const helperText = document.createElement('div');
+        helperText.id = 'transaction-type-helper';
+        helperText.className = 'text-amber-600 text-sm mt-1 font-medium';
+        helperText.textContent = '⚠️ Please select transaction type to enable expense categories';
+        
+        if (!document.getElementById('transaction-type-helper')) {
+            transactionTypeSelect.parentElement.appendChild(helperText);
+        }
+    }
+}
+
+// Function to remove transaction type emphasis
+function removeTransactionTypeEmphasis() {
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
+    const helperText = document.getElementById('transaction-type-helper');
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.style.border = '';
+        transactionTypeSelect.style.backgroundColor = '';
+    }
+    
+    if (helperText) {
+        helperText.remove();
+    }
+}
+
 // Helper function to get logged-in user ID
 function getUserId() {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
@@ -41,13 +539,10 @@ function fetchDepartments() {
 
 // Function to populate department select
 function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("departmentId");
+    const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
     if (!departmentSelect) return;
     
-    // Store the currently selected value
-    const currentValue = departmentSelect.value;
-    const currentText = departmentSelect.options[departmentSelect.selectedIndex]?.text;
-    
+    // Clear and create options from API data like revisionCash.js
     departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
 
     departments.forEach(department => {
@@ -55,16 +550,17 @@ function populateDepartmentSelect(departments) {
         option.value = department.id;
         option.textContent = department.name;
         departmentSelect.appendChild(option);
-        
-        // If this department matches the current text, select it
-        if (department.name === currentText) {
-            option.selected = true;
-        }
     });
     
-    // If we have a current value and it wasn't matched by text, try to select by value
-    if (currentValue && departmentSelect.value !== currentValue) {
-        departmentSelect.value = currentValue;
+    // Set the value from stored data if available
+    if (window.currentValues && window.currentValues.departmentId) {
+        departmentSelect.value = window.currentValues.departmentId;
+    } else if (window.currentValues && window.currentValues.departmentName) {
+        // Try to find by name if ID not available
+        const matchingDept = departments.find(dept => dept.name === window.currentValues.departmentName);
+        if (matchingDept) {
+            departmentSelect.value = matchingDept.id;
+        }
     }
 }
 
@@ -87,13 +583,16 @@ function fetchUsers(approvalData = null) {
 }
 
 // Function to populate user selects
-function populateUserSelects(users, approvalData = null) {
+function populateUserSelects(users, caData = null) {
     // Store users globally for search functionality
     window.requesters = users.map(user => ({
         id: user.id,
         fullName: user.fullName,
         department: user.department
     }));
+    
+    // Store all users globally
+    window.allUsers = users;
     
     // Store employees globally for reference
     window.employees = users.map(user => ({
@@ -103,10 +602,17 @@ function populateUserSelects(users, approvalData = null) {
         department: user.department
     }));
 
-    // Populate RequesterId dropdown with search functionality (like addCash.js)
+    // Set status select from stored data
+    if (window.currentValues && window.currentValues.status) {
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.value = window.currentValues.status;
+        }
+    }
+
+    // Populate RequesterId dropdown
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
-        // Clear existing options first
         requesterSelect.innerHTML = '<option value="">Select a requester</option>';
         
         users.forEach(user => {
@@ -115,6 +621,11 @@ function populateUserSelects(users, approvalData = null) {
             option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
+        
+        // Set the requester value from cash advance data if available
+        if (caData && caData.requesterId) {
+            requesterSelect.value = caData.requesterId;
+        }
     }
 
     // Setup search functionality for requester
@@ -143,16 +654,15 @@ function populateUserSelects(users, approvalData = null) {
                 option.innerText = requester.fullName;
                 option.onclick = function() {
                     requesterSearchInput.value = requester.fullName;
-                    // // Auto-fill the paidTo field with the selected requester name
-                    // const paidToField = document.getElementById('paidTo');
-                    // if (paidToField) {
-                    //     paidToField.value = requester.fullName;
-                    // }
+                    document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
-                    //update department
+                    
+                    // Remove requester emphasis when selected
+                    removeRequesterEmphasis();
+                    
+                    // Update department - use correct field ID
                     const departmentSelect = document.getElementById('departmentId');
-                    if (requester.department) {
-                        // Find the department option and select it
+                    if (requester.department && departmentSelect) {
                         const departmentOptions = departmentSelect.options;
                         for (let i = 0; i < departmentOptions.length; i++) {
                             if (departmentOptions[i].textContent === requester.department) {
@@ -160,15 +670,10 @@ function populateUserSelects(users, approvalData = null) {
                                 break;
                             }
                         }
-                        // If no matching option found, create and select a new one
-                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
-                            const newOption = document.createElement('option');
-                            newOption.value = requester.department;
-                            newOption.textContent = requester.department;
-                            newOption.selected = true;
-                            departmentSelect.appendChild(newOption);
-                        }
                     }
+                    
+                    // Refresh category dropdowns after requester selection
+                    refreshAllCategoryDropdowns();
                 };
                 requesterDropdown.appendChild(option);
             });
@@ -192,73 +697,92 @@ function populateUserSelects(users, approvalData = null) {
         populateRequesterDropdown();
     }
 
-    // Auto-populate employee fields with logged-in user data (same as addCash)
-    const loggedInUserId = getUserId();
-    console.log("Logged in user ID:", loggedInUserId);
-    console.log("Available employees:", window.employees);
-    
-    if(loggedInUserId && window.employees) {
-        const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
-        console.log("Found logged in employee:", loggedInEmployee);
-        
-        if(loggedInEmployee) {
-            const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
-            const employeeName = loggedInEmployee.fullName || '';
-            
-            // Auto-fill employee fields
-            document.getElementById("employeeId").value = employeeNIK;
-            document.getElementById("employeeName").value = employeeName;
-            
-            console.log("Auto-populated employee fields:", {
-                employeeNIK: employeeNIK,
-                employeeName: employeeName
-            });
-        } else {
-            console.warn("Could not find logged in employee in employees array");
+    // Handle employee fields from stored values or current user
+    if (window.currentValues && window.currentValues.employeeId) {
+        const employee = users.find(user => user.id === window.currentValues.employeeId);
+        if (employee) {
+            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
+            document.getElementById('employeeId').value = employeeIdentifier;
+            document.getElementById('employeeName').value = employee.fullName;
         }
     } else {
-        console.warn("Missing logged in user ID or employees array");
+        // Auto-populate with logged-in user if no data from API
+        const loggedInUserId = getUserId();
+        if (loggedInUserId && window.employees) {
+            const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
+            if (loggedInEmployee) {
+                const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
+                const employeeName = loggedInEmployee.fullName || '';
+                
+                document.getElementById("employeeId").value = employeeNIK;
+                document.getElementById("employeeName").value = employeeName;
+            }
+        }
     }
 
-    // Populate approval dropdowns with search functionality (same as addCash)
+    // Populate approval dropdowns
     const approvalSelects = [
-        "Approval.PreparedById",
-        "Approval.CheckedById", 
-        "Approval.ApprovedById",
-        "Approval.AcknowledgedById",
-        "Approval.ReceivedById",
-        "Approval.ClosedById"
+        { id: 'Approval.PreparedById', searchId: 'Approval.PreparedByIdSearch', approvalKey: 'preparedById' },
+        { id: 'Approval.CheckedById', searchId: 'Approval.CheckedByIdSearch', approvalKey: 'checkedById' },
+        { id: 'Approval.ApprovedById', searchId: 'Approval.ApprovedByIdSearch', approvalKey: 'approvedById' },
+        { id: 'Approval.AcknowledgedById', searchId: 'Approval.AcknowledgedByIdSearch', approvalKey: 'acknowledgedById' },
+        { id: 'Approval.ReceivedById', searchId: 'Approval.ReceivedByIdSearch', approvalKey: 'receivedById' },
+        { id: 'Approval.ClosedById', searchId: 'Approval.ClosedByIdSearch', approvalKey: 'closedById' }
     ];
 
-    approvalSelects.forEach(selectId => {
-        const select = document.getElementById(selectId);
+    approvalSelects.forEach(selectInfo => {
+        const select = document.getElementById(selectInfo.id);
         if (select) {
+            select.innerHTML = '<option value="" disabled>Select User</option>';
+            
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
                 option.textContent = user.fullName;
                 select.appendChild(option);
-                // Auto-select and disable for Proposed by (Approval.PreparedById)
-                if(selectId == "Approval.PreparedById"){
-                   if(user.id == getUserId()){
-                    option.selected = true;
-                    select.disabled = true;
-                    // Update the search input for Proposed by
-                    const proposedBySearch = document.getElementById('Approval.PreparedByIdSearch');
-                    if (proposedBySearch) {
-                        proposedBySearch.value = user.fullName;
-                        proposedBySearch.disabled = true;
-                    }
-                   }
-                }
             });
+            
+            // Set the value from cash advance data if available and update search input
+            if (caData && caData[selectInfo.approvalKey]) {
+                select.value = caData[selectInfo.approvalKey];
+                
+                // Update the search input to display the selected user's name
+                const searchInput = document.getElementById(selectInfo.searchId);
+                if (searchInput) {
+                    const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
+                    if (selectedUser) {
+                        searchInput.value = selectedUser.fullName;
+                    }
+                }
+            }
+            
+            // Auto-select and disable for Proposed by
+            if (selectInfo.id === "Approval.PreparedById") {
+                const loggedInUserId = getUserId();
+                const loggedInUser = users.find(user => user.id === loggedInUserId);
+                if (loggedInUser && !caData) {
+                    select.value = loggedInUserId;
+                    select.disabled = true;
+                    const searchInput = document.getElementById(selectInfo.searchId);
+                    if (searchInput) {
+                        searchInput.value = loggedInUser.fullName;
+                        searchInput.disabled = true;
+                    }
+                }
+            }
         }
     });
-    
-    // Set approval values from approvalData if available (after populating options)
-    if (approvalData) {
-        populateApprovals(approvalData);
-    }
+
+    // Setup click-outside-to-close behavior for all dropdowns
+    document.addEventListener('click', function(event) {
+        const dropdowns = document.querySelectorAll('.search-dropdown');
+        dropdowns.forEach(dropdown => {
+            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
+            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
 }
 
 // Function to fetch transaction types from API
@@ -281,31 +805,40 @@ function fetchTransactionType() {
 
 // Function to populate transaction type select
 function populateTransactionTypeSelect(transactionTypes) {
-    const transactionTypeSelect = document.getElementById("transactionType");
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
     if (!transactionTypeSelect) return;
     
-    // Store the currently selected value
-    const currentValue = transactionTypeSelect.value;
-    const currentText = transactionTypeSelect.options[transactionTypeSelect.selectedIndex]?.text;
-    
+    // Clear and create options from API data like revisionCash.js
     transactionTypeSelect.innerHTML = '<option value="" disabled>Select Transaction Type</option>';
 
-    transactionTypes.forEach(transactionType => {
+    transactionTypes.forEach(type => {
         const option = document.createElement("option");
-        option.value = transactionType.name;
-        option.textContent = transactionType.name;
+        option.value = type.name; // Use name as value like addCash.js
+        option.textContent = type.name;
         transactionTypeSelect.appendChild(option);
-        
-        // If this transaction type matches the current text, select it
-        if (transactionType.name === currentText) {
-            option.selected = true;
-        }
     });
     
-    // If we have a current value and it wasn't matched by text, try to select by value
-    if (currentValue && transactionTypeSelect.value !== currentValue) {
-        transactionTypeSelect.value = currentValue;
+    // Set the value from stored data if available
+    if (window.currentValues && window.currentValues.transactionType) {
+        // Direct match by name since we're using name as value
+        transactionTypeSelect.value = window.currentValues.transactionType;
+        // Remove transaction type emphasis since we have a value
+        removeTransactionTypeEmphasis();
+    } else {
+        // Add initial emphasis if no value is selected
+        emphasizeTransactionTypeSelection();
     }
+
+    // Add event listener for transaction type change
+    transactionTypeSelect.addEventListener('change', function() {
+        // Remove emphasis when transaction type is selected
+        if (this.value) {
+            removeTransactionTypeEmphasis();
+        }
+        
+        // Refresh all category dropdowns when transaction type changes
+        refreshAllCategoryDropdowns();
+    });
 }
 
 function saveDocument() {
@@ -462,16 +995,28 @@ function updateAttachmentsDisplay() {
     console.log(`Total attachments: ${totalAttachments} (${existingToKeep.length} existing, ${uploadedFiles.length} new)`);
 }
 
-function addRow() {
+async function addRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
 
     newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+        <td class="p-2 border relative">
+            <input type="text" class="category-input w-full" placeholder="Select requester and transaction type first" disabled />
+            <div class="category-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <select class="account-name w-full bg-gray-100" disabled>
+                <option value="">Select Account Name</option>
+            </select>
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="description w-full" maxlength="200" />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="total w-full" maxlength="10" required step="0.01"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -481,6 +1026,9 @@ function addRow() {
     `;
 
     tableBody.appendChild(newRow);
+    
+    // Setup category dropdown for the new row
+    await setupCategoryDropdown(newRow);
 }
 
 function deleteRow(button) {
@@ -550,101 +1098,28 @@ function deleteDocument() {
     });
 }
 
-function loadCashAdvanceData() {
-    // Get the ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('ca-id');
-    
-    if (!id) {
-        Swal.fire('Error!', 'ID cash advance tidak ditemukan di URL.', 'error');
-        return;
-    }
-    
-    // Call the GET API
-    fetch(`${BASE_URL}/api/cash-advance/${id}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (response.status === 200) {
-            return response.json();
-        } else if (response.status === 404) {
-            throw new Error('Data cash advance tidak ditemukan');
-        } else {
-            throw new Error(`Error: ${response.status}`);
-        }
-    })
-    .then(result => {
-        if (result.status && result.data) {
-            console.log("result", result);
-            populateForm(result.data);
-        } else {
-            Swal.fire('Error!', result.message || 'Gagal memuat data cash advance.', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (error.message.includes('tidak ditemukan')) {
-            Swal.fire('Error!', 'Data cash advance tidak ditemukan.', 'error');
-        } else {
-            Swal.fire('Error!', 'Terjadi kesalahan saat memuat data cash advance.', 'error');
-        }
-    });
-}
+// Old loadCashAdvanceData function removed - replaced by fetchCashAdvanceDetail
 
-function populateForm(data) {
+async function populateForm(data) {
     // Store the global cash advance data
     cashAdvanceData = data;
     console.log("cashAdvanceData", cashAdvanceData);
-    // Populate basic fields with updated IDs
+    
+    // Store values to be used after fetching options
+    window.currentValues = {
+        transactionType: data.transactionType,
+        departmentName: data.departmentName,
+        departmentId: data.departmentId,
+        status: data.status,
+        employeeId: data.employeeId
+    };
+    
+    // Populate basic fields with correct IDs to match HTML
     document.getElementById("cashAdvanceNo").value = data.cashAdvanceNo || '';
-    
-    // Auto-populate employee fields with data from API (but don't override auto-filled logged-in user data)
-    if (!document.getElementById("employeeId").value) {
-        // Handle employee NIK - find user by ID and use kansaiEmployeeId
-        if (data.employeeId && window.employees) {
-            const employee = window.employees.find(emp => emp.id === data.employeeId);
-            if (employee && employee.kansaiEmployeeId) {
-                document.getElementById("employeeId").value = employee.kansaiEmployeeId;
-            } else {
-                // Fallback to original value if not found
-                document.getElementById("employeeId").value = data.employeeId;
-            }
-        }
-    }
-    
-    if (!document.getElementById("employeeName").value) {
-        document.getElementById("employeeName").value = data.employeeName || '';
-    }
-    
-    // Handle requester name with search functionality  
-    if (data.requesterName) {
-        document.getElementById("requesterSearch").value = data.requesterName;
-        // Store the requester ID if available - since options are pre-populated, we can directly set the value
-        if (data.requesterId) {
-            const requesterIdElement = document.getElementById('RequesterId');
-            // Always store in global variable as backup
-            window.cashAdvanceRequesterId = data.requesterId;
-            
-            if (requesterIdElement) {
-                requesterIdElement.value = data.requesterId;
-                console.log("Requester ID:", data.requesterId);
-                console.log("Requester ID2:", requesterIdElement.value);
-            } else {
-                console.warn("RequesterId element not found in DOM, but stored in global variable");
-            }
-        } else {
-            console.error("No requesterId found in API data - this is a business logic error");
-        }
-    }
-    
     document.getElementById("purpose").value = data.purpose || '';
     
     // Handle PayTo business partner
     if (data.payTo && data.payToBusinessPartnerName) {
-        // Set the search input and hidden field for PayTo
         const paidToSearchInput = document.getElementById('paidToSearch');
         const paidToHiddenInput = document.getElementById('paidTo');
         
@@ -654,57 +1129,19 @@ function populateForm(data) {
         }
     }
     
-    // Handle department - try to set by ID first, then by name
-    const departmentSelect = document.getElementById("departmentId");
-    if (data.departmentId && data.departmentId !== "00000000-0000-0000-0000-000000000000") {
-        departmentSelect.value = data.departmentId;
-    } else if (data.departmentName) {
-        // If department ID is not valid, try to find by name
-        const departmentOptions = departmentSelect.options;
-        for (let i = 0; i < departmentOptions.length; i++) {
-            if (departmentOptions[i].textContent === data.departmentName) {
-                departmentSelect.selectedIndex = i;
-                break;
-            }
-        }
-        // If no matching option found, create and select a new one
-        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
-            const newOption = document.createElement('option');
-            newOption.value = data.departmentName;
-            newOption.textContent = data.departmentName;
-            newOption.selected = true;
-            departmentSelect.appendChild(newOption);
-        }
-    }
-    
     // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
-        // Extract date part directly to avoid timezone issues
         const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById("submissionDate").value = formattedDate;
     }
     
-    document.getElementById("status").value = data.status || '';
-    document.getElementById("transactionType").value = data.transactionType || '';
-    
-    // Call toggleClosedByVisibility after setting transaction type
-    if (typeof toggleClosedByVisibility === 'function') {
-        toggleClosedByVisibility();
+    // Handle requester name with search functionality  
+    if (data.requesterName) {
+        document.getElementById("requesterSearch").value = data.requesterName;
+        // Store the requester ID for later use
+        window.cashAdvanceRequesterId = data.requesterId;
+        removeRequesterEmphasis();
     }
-    
-    // Populate table with cash advance details
-    populateTable(data.cashAdvanceDetails || []);
-    
-    // Populate approval section using the direct fields from API response
-    const approvalData = {
-        preparedById: data.preparedById,
-        checkedById: data.checkedById,
-        approvedById: data.approvedById,
-        acknowledgedById: data.acknowledgedById,
-        receivedById: data.receivedById,
-        closedById: data.closedById
-    };
-    populateApprovals(approvalData);
     
     // Handle remarks if exists
     const remarksTextarea = document.querySelector('textarea');
@@ -714,7 +1151,6 @@ function populateForm(data) {
     
     // Handle rejection remarks if status is Rejected
     if (data.status === 'Rejected' && data.rejectedRemarks) {
-        // Show the rejection remarks section
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         const rejectionTextarea = document.getElementById('rejectionRemarks');
         
@@ -723,7 +1159,6 @@ function populateForm(data) {
             rejectionTextarea.value = data.rejectedRemarks;
         }
     } else {
-        // Hide the rejection remarks section if status is not Rejected
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         if (rejectionSection) {
             rejectionSection.style.display = 'none';
@@ -733,26 +1168,20 @@ function populateForm(data) {
     // Handle revision remarks display
     displayRevisionRemarks(data);
 
-    // Handle attachments if they exist
-    if (data.attachments && data.attachments.length > 0) {
-        console.log('Attachments found:', data.attachments);
-        // You can implement attachment display logic here if needed
-    }
-
     // Store and display attachments
     if (data.attachments) {
         existingAttachments = data.attachments;
-        attachmentsToKeep = data.attachments.map(att => att.id); // Initially keep all existing attachments
+        attachmentsToKeep = data.attachments.map(att => att.id);
         displayAttachments(data.attachments);
     }
+
+    // Populate table with cash advance details
+    await populateTable(data.cashAdvanceDetails || []);
 
     // Check if status is not Draft and make fields read-only
     if (data.status && data.status.toLowerCase() !== 'draft' && data.status.toLowerCase() !== 'revision') {
         makeAllFieldsReadOnlyForNonDraft();
     }
-
-    // Fetch dropdown options with approval data
-    fetchDropdownOptions(approvalData);
 }
 
 // Function to display revision remarks from API
@@ -797,22 +1226,35 @@ function displayRevisionRemarks(data) {
     }
 }
 
-function populateTable(cashAdvanceDetails) {
+async function populateTable(cashAdvanceDetails) {
     const tableBody = document.getElementById("tableBody");
     
     // Clear existing rows
     tableBody.innerHTML = '';
     
     // Add rows for each detail
-    cashAdvanceDetails.forEach((detail, index) => {
+    for (const detail of cashAdvanceDetails) {
         const newRow = document.createElement("tr");
         
         newRow.innerHTML = `
-            <td class="p-2 border">
-                <input type="text" maxlength="200" class="w-full" value="${detail.description || ''}" />
+            <td class="p-2 border relative">
+                <input type="text" class="category-input w-full" placeholder="Search category..." value="${detail.category || ''}" />
+                <div class="category-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
             </td>
             <td class="p-2 border">
-                <input type="number" maxlength="10" class="w-full" value="${detail.amount || ''}" required />
+                <select class="account-name w-full">
+                    <option value="">Select Account Name</option>
+                    ${detail.accountName ? `<option value="${detail.accountName}" selected>${detail.accountName}</option>` : ''}
+                </select>
+            </td>
+            <td class="p-2 border">
+                <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" value="${detail.coa || ''}" />
+            </td>
+            <td class="p-2 border">
+                <input type="text" class="description w-full" maxlength="200" value="${detail.description || ''}" />
+            </td>
+            <td class="p-2 border">
+                <input type="number" class="total w-full" maxlength="10" value="${detail.amount || ''}" required step="0.01"/>
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -822,11 +1264,36 @@ function populateTable(cashAdvanceDetails) {
         `;
         
         tableBody.appendChild(newRow);
-    });
+        
+        // Get department and transaction type values
+        const departmentId = document.getElementById("departmentId").value;
+        const transactionType = document.getElementById("transactionType").value;
+        
+        // Setup category dropdown for each row
+        await setupCategoryDropdown(newRow);
+        
+        // Ensure historical category is available if it doesn't exist in master data
+        if (detail.category) {
+            const categoryInput = newRow.querySelector('.category-input');
+            await ensureCategoryAvailable(categoryInput, detail.category, departmentId, transactionType);
+        }
+        
+        // If row has account name and category, populate account name dropdown with historical support
+        if (detail.category) {
+            await updateAccountNameDropdown(
+                newRow, 
+                detail.category, 
+                departmentId, 
+                transactionType, 
+                detail.accountName, // Pass existing account name
+                detail.coa // Pass existing COA
+            );
+        }
+    }
     
     // If no details exist, add one empty row
     if (cashAdvanceDetails.length === 0) {
-        addRow();
+        await addRow();
     }
 }
 
@@ -879,153 +1346,62 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
-// Update the populateApprovals function to work with new search structure
-function populateApprovals(approval) {
-    // Check if requesters data is available, if not, retry after a short delay
-    if (!window.requesters) {
-        console.log('Requesters data not yet available, retrying in 100ms...');
-        setTimeout(() => populateApprovals(approval), 100);
-        return;
-    }
-    
-    // Proposed by - find user and set in search input if there's a preparedById
-    const preparedSelect = document.getElementById("Approval.PreparedById");
-    if (preparedSelect && approval.preparedById) {
-        preparedSelect.value = approval.preparedById;
-        const preparedUser = window.requesters.find(user => user.id === approval.preparedById);
-        if (preparedUser) {
-            const preparedSearchInput = document.getElementById('Approval.PreparedByIdSearch');
-            if (preparedSearchInput) {
-                preparedSearchInput.value = preparedUser.fullName;
-            }
-        }
-    }
-    
-    // Checked by - find user and set in search input if there's a checkedById
-    const checkedSelect = document.getElementById("Approval.CheckedById");
-    if (checkedSelect && approval.checkedById) {
-        checkedSelect.value = approval.checkedById;
-        const checkedUser = window.requesters.find(user => user.id === approval.checkedById);
-        if (checkedUser) {
-            const checkedSearchInput = document.getElementById('Approval.CheckedByIdSearch');
-            if (checkedSearchInput) {
-                checkedSearchInput.value = checkedUser.fullName;
-            }
-        }
-    }
-    
-    // Approved by - find user and set in search input if there's an approvedById
-    const approvedSelect = document.getElementById("Approval.ApprovedById");
-    if (approvedSelect && approval.approvedById) {
-        approvedSelect.value = approval.approvedById;
-        const approvedUser = window.requesters.find(user => user.id === approval.approvedById);
-        if (approvedUser) {
-            const approvedSearchInput = document.getElementById('Approval.ApprovedByIdSearch');
-            if (approvedSearchInput) {
-                approvedSearchInput.value = approvedUser.fullName;
-            }
-        }
-    }
-    
-    // Acknowledged by - find user and set in search input if there's an acknowledgedById
-    const acknowledgedSelect = document.getElementById("Approval.AcknowledgedById");
-    if (acknowledgedSelect && approval.acknowledgedById) {
-        acknowledgedSelect.value = approval.acknowledgedById;
-        const acknowledgedUser = window.requesters.find(user => user.id === approval.acknowledgedById);
-        if (acknowledgedUser) {
-            const acknowledgedSearchInput = document.getElementById('Approval.AcknowledgedByIdSearch');
-            if (acknowledgedSearchInput) {
-                acknowledgedSearchInput.value = acknowledgedUser.fullName;
-            }
-        }
-    }
 
-    // Received by - find user and set in search input if there's a receivedById
-    const receivedSelect = document.getElementById("Approval.ReceivedById");
-    if (receivedSelect && approval.receivedById) {
-        receivedSelect.value = approval.receivedById;
-        const receivedUser = window.requesters.find(user => user.id === approval.receivedById);
-        if (receivedUser) {
-            const receivedSearchInput = document.getElementById('Approval.ReceivedByIdSearch');
-            if (receivedSearchInput) {
-                receivedSearchInput.value = receivedUser.fullName;
-            }
-        }
-    }
 
-    // Closed by - find user and set in search input if there's a closedById (for personal loan)
-    const closedSelect = document.getElementById("Approval.ClosedById");
-    if (closedSelect && approval.closedById) {
-        closedSelect.value = approval.closedById;
-        const closedUser = window.requesters.find(user => user.id === approval.closedById);
-        if (closedUser) {
-            const closedSearchInput = document.getElementById('Approval.ClosedByIdSearch');
-            if (closedSearchInput) {
-                closedSearchInput.value = closedUser.fullName;
-            }
-        }
+// Initialize all dropdowns when page loads
+document.addEventListener('DOMContentLoaded', async function() {
+    fetchDepartments();
+    fetchUsers();
+    fetchTransactionType();
+    fetchBusinessPartners();
+    
+    // Get cash advance ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const cashAdvanceId = urlParams.get('ca-id'); // Use 'ca-id' to be consistent with existing code
+    
+    if (cashAdvanceId) {
+        await fetchCashAdvanceDetail(cashAdvanceId);
+    } else {
+        console.warn('No cash advance ID found in URL parameters');
+        Swal.fire('Error!', 'Cash advance ID not found in URL.', 'error');
     }
-}
-
-// Load data when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Fetch dropdown options first
-    fetchDropdownOptions();
     
-    // Then load cash advance data
-    loadCashAdvanceData();
-    
-    // Setup event listener untuk hide dropdown saat klik di luar
-    document.addEventListener('click', function(event) {
-        const dropdowns = [
-            'Approval.PreparedByIdDropdown', 
-            'Approval.CheckedByIdDropdown', 
-            'Approval.ApprovedByIdDropdown', 
-            'Approval.AcknowledgedByIdDropdown',
-            'Approval.ReceivedByIdDropdown',
-            'Approval.ClosedByIdDropdown'
-        ];
+    // Setup initial rows after a small delay to ensure DOM is ready
+    setTimeout(async () => {
+        const rows = document.querySelectorAll('#tableBody tr');
+        for (const row of rows) {
+            await setupCategoryDropdown(row);
+        }
         
-        const searchInputs = [
-            'Approval.PreparedByIdSearch', 
-            'Approval.CheckedByIdSearch', 
-            'Approval.ApprovedByIdSearch', 
-            'Approval.AcknowledgedByIdSearch',
-            'Approval.ReceivedByIdSearch',
-            'Approval.ClosedByIdSearch'
-        ];
+        // Add initial emphasis if fields are empty after data load
+        const requesterValue = document.getElementById("requesterSearch")?.value;
+        const transactionTypeValue = document.getElementById("transactionType")?.value; // Use correct field ID
         
-        dropdowns.forEach((dropdownId, index) => {
-            const dropdown = document.getElementById(dropdownId);
-            const input = document.getElementById(searchInputs[index]);
-            
-            if (dropdown && input) {
-                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            }
+        if (!requesterValue) {
+            emphasizeRequesterSelection();
+        }
+        
+        if (!transactionTypeValue) {
+            emphasizeTransactionTypeSelection();
+        }
+    }, 500);
+    
+    // Add event listener for department change
+    const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            refreshAllCategoryDropdowns();
         });
-    });
+    }
     
-    // Trigger initial dropdown on focus for each search field
-    const searchFields = [
-        'Approval.PreparedByIdSearch',
-        'Approval.CheckedByIdSearch',
-        'Approval.ApprovedByIdSearch',
-        'Approval.AcknowledgedByIdSearch',
-        'Approval.ReceivedByIdSearch',
-        'Approval.ClosedByIdSearch'
-    ];
-    
-    searchFields.forEach(fieldId => {
-        const searchInput = document.getElementById(fieldId);
-        if (searchInput) {
-            searchInput.addEventListener('focus', function() {
-                const actualFieldId = fieldId.replace('Search', '');
-                filterUsers(actualFieldId);
-            });
-        }
-    });
+    // Add event listener for transaction type change
+    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', function() {
+            removeTransactionTypeEmphasis();
+            refreshAllCategoryDropdowns();
+        });
+    }
 });
 
 function updateCash(isSubmit = false) {
@@ -1043,6 +1419,18 @@ function updateCash(isSubmit = false) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Validate required fields before submission
+            const validationResult = validateFormFields(isSubmit);
+            if (!validationResult.isValid) {
+                Swal.fire({
+                    title: 'Validation Error',
+                    text: validationResult.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
             // Get the ID from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('ca-id');
@@ -1094,9 +1482,9 @@ function updateCash(isSubmit = false) {
             formData.append('EmployeeNIK', document.getElementById("employeeId").value);
             formData.append('RequesterId', requesterId);
             formData.append('Purpose', document.getElementById("purpose").value);
-            formData.append('DepartmentId', document.getElementById("departmentId").value);
+            formData.append('DepartmentId', document.getElementById("departmentId").value); // Use correct field ID
             formData.append('SubmissionDate', document.getElementById("submissionDate").value);
-            formData.append('TransactionType', document.getElementById("transactionType").value);
+            formData.append('TransactionType', document.getElementById("transactionType").value); // Use correct field ID
             
             // Handle remarks if exists
             const remarksTextarea = document.querySelector('textarea');
@@ -1112,15 +1500,29 @@ function updateCash(isSubmit = false) {
             formData.append('ReceivedById', document.getElementById("Approval.ReceivedById")?.value || '');
             formData.append('ClosedById', document.getElementById("Approval.ClosedById")?.value || '');
             
-            // Add CashAdvanceDetails - collect all rows from the table
+            // Add CashAdvanceDetails - collect all rows from the table with validation
             const tableRows = document.querySelectorAll('#tableBody tr');
-            tableRows.forEach((row, index) => {
-                const description = row.querySelector('input[type="text"]')?.value;
-                const amount = row.querySelector('input[type="number"]')?.value;
+            let detailIndex = 0;
+            tableRows.forEach((row) => {
+                const categoryInput = row.querySelector('.category-input');
+                const accountNameSelect = row.querySelector('.account-name');
+                const coaInput = row.querySelector('.coa');
+                const descriptionInput = row.querySelector('.description');
+                const amountInput = row.querySelector('.total');
+                
+                const category = categoryInput?.value;
+                const accountName = accountNameSelect?.value;
+                const coa = coaInput?.value;
+                const description = descriptionInput?.value;
+                const amount = amountInput?.value;
                 
                 if (description && amount) {
-                    formData.append(`CashAdvanceDetails[${index}][Description]`, description);
-                    formData.append(`CashAdvanceDetails[${index}][Amount]`, amount);
+                    formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
+                    formData.append(`CashAdvanceDetails[${detailIndex}][AccountName]`, accountName || '');
+                    formData.append(`CashAdvanceDetails[${detailIndex}][Coa]`, coa || '');
+                    formData.append(`CashAdvanceDetails[${detailIndex}][Description]`, description);
+                    formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, amount);
+                    detailIndex++;
                 }
             });
 
@@ -1174,7 +1576,7 @@ function updateCash(isSubmit = false) {
                         confirmButtonText: 'OK'
                     }).then(() => {
                         // Reload the cash advance data to show updated information
-                        loadCashAdvanceData();
+                        fetchCashAdvanceDetail(id);
                         
                         // Clear uploaded files since they're now saved
                         uploadedFiles = [];
@@ -1273,7 +1675,7 @@ function numberToWords(num) {
 function printCashAdvanceVoucher() {
     // Get data from the form
     const cashAdvanceNo = document.getElementById("cashAdvanceNo").value;
-    const departmentId = document.getElementById("departmentId").value;
+    const departmentId = document.getElementById("department").value;
     const paidTo = document.getElementById("paidTo").value;
     const purpose = document.getElementById("purpose").value;
     const submissionDate = document.getElementById("submissionDate").value;
@@ -1698,4 +2100,118 @@ function setupBusinessPartnerSearch(businessPartners) {
         // Initial population
         populateBusinessPartnerDropdown();
     }
+}
+
+// Function to validate form fields
+function validateFormFields(isSubmit) {
+    // Check requester selection
+    const requesterSearch = document.getElementById("requesterSearch").value;
+    if (!requesterSearch) {
+        return {
+            isValid: false,
+            message: 'Please select a requester first.'
+        };
+    }
+
+    // Check transaction type
+    const transactionType = document.getElementById("transactionType").value; // Use correct field ID
+    if (!transactionType) {
+        return {
+            isValid: false,
+            message: 'Please select a transaction type.'
+        };
+    }
+
+    // Check department (via requester)
+    const department = document.getElementById("departmentId").value; // Use correct field ID
+    if (!department) {
+        return {
+            isValid: false,
+            message: 'Please select a requester to auto-fill the department.'
+        };
+    }
+
+    // Check expense details if submitting
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    let hasValidDetails = false;
+    let invalidRows = [];
+
+    tableRows.forEach((row, index) => {
+        const category = row.querySelector('.category-input').value;
+        const accountName = row.querySelector('.account-name').value;
+        const coa = row.querySelector('.coa').value;
+        const description = row.querySelector('.description').value;
+        const amount = row.querySelector('.total').value;
+
+        if (description && amount) {
+            hasValidDetails = true;
+            
+            if (isSubmit && (!category || !accountName || !coa)) {
+                invalidRows.push(index + 1);
+            }
+        }
+    });
+
+    if (!hasValidDetails) {
+        return {
+            isValid: false,
+            message: 'Please add at least one expense detail with description and amount.'
+        };
+    }
+
+    if (isSubmit && invalidRows.length > 0) {
+        return {
+            isValid: false,
+            message: `Please complete category and account name selection for row(s): ${invalidRows.join(', ')}`
+        };
+    }
+
+    return { isValid: true };
+}
+
+// Function to fetch cash advance details when the page loads (similar to detailPR.js)
+async function fetchCashAdvanceDetail(cashAdvanceId) {
+    try {
+        // Show loading state
+        console.log('Fetching cash advance details for ID:', cashAdvanceId);
+        
+        const response = await fetch(`${BASE_URL}/api/cash-advance/${cashAdvanceId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.status === 200) {
+            const result = await response.json();
+            if (result.status && result.data) {
+                console.log("Cash advance data fetched:", result.data);
+                
+                // Always fetch dropdown options first, then populate form
+                fetchDropdownOptions(result.data);
+                await populateForm(result.data);
+            } else {
+                Swal.fire('Error!', result.message || 'Failed to load cash advance data.', 'error');
+            }
+        } else if (response.status === 404) {
+            Swal.fire('Error!', 'Cash advance not found.', 'error');
+        } else {
+            Swal.fire('Error!', `Error: ${response.status}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error fetching cash advance details:', error);
+        if (error.message.includes('not found')) {
+            Swal.fire('Error!', 'Cash advance not found.', 'error');
+        } else {
+            Swal.fire('Error!', 'An error occurred while loading cash advance data.', 'error');
+        }
+    }
+}
+
+// Function to fetch all dropdown options (consistent with detailPR.js pattern)
+function fetchDropdownOptions(caData = null) {
+    fetchDepartments();
+    fetchUsers(caData);
+    fetchTransactionType();
+    fetchBusinessPartners();
 }
