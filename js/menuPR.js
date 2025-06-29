@@ -550,3 +550,7 @@ function handleSearch() {
 function detailDoc(id, prType) {
     window.location.href = `../detailPages/detailPR.html?pr-id=${id}&pr-type=${prType}`;
 }
+
+function goToAddPR() {
+    window.location.href = '../addPages/addPR.html';
+}

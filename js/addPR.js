@@ -213,11 +213,19 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
+// Helper function to format date as YYYY-MM-DD without timezone issues
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Fungsi untuk mengatur tanggal minimum pada field Issuance Date dan set default values
 function setMinDateToday() {
     const today = new Date();
-    // Format tanggal ke YYYY-MM-DD untuk input type="date"
-    const formattedDate = today.toISOString().split('T')[0];
+    // Format tanggal ke YYYY-MM-DD untuk input type="date" without timezone conversion
+    const formattedDate = formatDateForInput(today);
     
     // Set nilai minimum untuk field Issuance Date ke hari ini
     const submissionDateInput = document.getElementById("submissionDate");
@@ -229,7 +237,7 @@ function setMinDateToday() {
     // Set default required date to 2 weeks from today
     const twoWeeksFromToday = new Date(today);
     twoWeeksFromToday.setDate(today.getDate() + 14);
-    const requiredDateFormatted = twoWeeksFromToday.toISOString().split('T')[0];
+    const requiredDateFormatted = formatDateForInput(twoWeeksFromToday);
     
     const requiredDateInput = document.getElementById("requiredDate");
     requiredDateInput.value = requiredDateFormatted;
@@ -239,15 +247,15 @@ function setMinDateToday() {
     
     // Add event listener to automatically update required date when issuance date changes
     submissionDateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
+        const selectedDate = new Date(this.value + 'T00:00:00'); // Add time to avoid timezone issues
         const minRequiredDate = new Date(selectedDate);
         minRequiredDate.setDate(selectedDate.getDate() + 14);
         
-        const minRequiredFormatted = minRequiredDate.toISOString().split('T')[0];
+        const minRequiredFormatted = formatDateForInput(minRequiredDate);
         requiredDateInput.min = minRequiredFormatted;
         
         // If current required date is less than minimum, update it
-        const currentRequiredDate = new Date(requiredDateInput.value);
+        const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
         if (currentRequiredDate < minRequiredDate) {
             requiredDateInput.value = minRequiredFormatted;
         }
@@ -891,4 +899,8 @@ async function submitDocument(isSubmit = false) {
             confirmButtonText: 'OK'
         });
     }
+}
+
+function goToMenuPR() {
+    window.location.href = '../pages/menuPR.html';
 }

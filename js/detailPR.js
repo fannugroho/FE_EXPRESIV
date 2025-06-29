@@ -4,10 +4,18 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 
 let prId; // Declare global variable
 
+// Helper function to format date as YYYY-MM-DD without timezone issues
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Function to setup date fields with validation and defaults
 function setupDateFields() {
     const today = new Date();
-    const formattedDate = today.toISOString().split('T')[0];
+    const formattedDate = formatDateForInput(today);
     
     const submissionDateInput = document.getElementById("submissionDate");
     const requiredDateInput = document.getElementById("requiredDate");
@@ -17,15 +25,15 @@ function setupDateFields() {
     
     // Add event listener to automatically update required date when issuance date changes
     submissionDateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
+        const selectedDate = new Date(this.value + 'T00:00:00'); // Add time to avoid timezone issues
         const minRequiredDate = new Date(selectedDate);
         minRequiredDate.setDate(selectedDate.getDate() + 14);
         
-        const minRequiredFormatted = minRequiredDate.toISOString().split('T')[0];
+        const minRequiredFormatted = formatDateForInput(minRequiredDate);
         requiredDateInput.min = minRequiredFormatted;
         
         // If current required date is less than minimum, update it
-        const currentRequiredDate = new Date(requiredDateInput.value);
+        const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
         if (currentRequiredDate < minRequiredDate || !requiredDateInput.value) {
             requiredDateInput.value = minRequiredFormatted;
         }
@@ -41,7 +49,7 @@ function setDefaultDatesIfEmpty() {
     const status = window.currentValues?.status || document.getElementById('status')?.value;
     if (status === 'Draft') {
         const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0];
+        const formattedDate = formatDateForInput(today);
         
         // Set default issuance date to today if empty
         if (!submissionDateInput.value) {
@@ -50,10 +58,10 @@ function setDefaultDatesIfEmpty() {
         
         // Set default required date to 2 weeks from issuance date if empty
         if (!requiredDateInput.value) {
-            const issuanceDate = submissionDateInput.value ? new Date(submissionDateInput.value) : today;
+            const issuanceDate = submissionDateInput.value ? new Date(submissionDateInput.value + 'T00:00:00') : today;
             const twoWeeksFromIssuance = new Date(issuanceDate);
             twoWeeksFromIssuance.setDate(issuanceDate.getDate() + 14);
-            const requiredDateFormatted = twoWeeksFromIssuance.toISOString().split('T')[0];
+            const requiredDateFormatted = formatDateForInput(twoWeeksFromIssuance);
             
             requiredDateInput.value = requiredDateFormatted;
         }
@@ -1375,3 +1383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function goToMenuPR() {
+    window.location.href = '../pages/menuPR.html';
+}
