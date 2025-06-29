@@ -511,6 +511,7 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users, false);
         populateDropdown("checkedBySelect", users, false);
         populateDropdown("approvedBySelect", users, false);
+        populateDropdown("receivedBySelect", users, false);
         
         // Auto-fill preparedBy with current logged-in user
         autofillPreparedByWithCurrentUser(users);
@@ -540,7 +541,8 @@ function filterUsers(fieldId) {
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
         fieldId === 'checkedBySelect' || 
-        fieldId === 'approvedBySelect') {
+        fieldId === 'approvedBySelect' ||
+        fieldId === 'receivedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
             filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
@@ -680,7 +682,8 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         "preparedBySelect", 
         "acknowledgeBySelect", 
         "checkedBySelect", 
-        "approvedBySelect"
+        "approvedBySelect",
+        "receivedBySelect"
     ];
     
     if (searchableFields.includes(dropdownId)) {
@@ -765,12 +768,16 @@ function populateFormData(data) {
     setApprovalValue('acknowledgeBy', data.acknowledgedBy);
     setApprovalValue('checkedBy', data.checkedBy);
     setApprovalValue('approvedBy', data.approvedBy);
+    setApprovalValue('receivedBy', data.receivedBy);
     
     // Update Submit button state based on preparedDate
     updateSubmitButtonState(data.preparedDate);
     
     populateReimbursementDetails(data.reimbursementDetails);
     displayAttachments(data.reimbursementAttachments);
+    
+    // Display revision history
+    displayRevisionHistory(data);
 }
 
 // Helper function to set approval values in both select and search input
@@ -900,6 +907,7 @@ async function submitReimbursementUpdate() {
         acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
         checkedBy: document.getElementById('checkedBySelect').value || null,
         approvedBy: document.getElementById('approvedBySelect').value || null,
+        receivedBy: document.getElementById('receivedBySelect').value || null,
         reimbursementDetails: reimbursementDetails
     };
     
@@ -957,7 +965,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'preparedBySearch',
         'acknowledgeBySearch',
         'checkedBySearch',
-        'approvedBySearch'
+        'approvedBySearch',
+        'receivedBySearch'
     ];
     
     searchFields.forEach(fieldId => {
@@ -984,7 +993,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedBySelectDropdown', 
             'acknowledgeBySelectDropdown', 
             'checkedBySelectDropdown', 
-            'approvedBySelectDropdown'
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
         ];
         
         const searchInputs = [
@@ -993,7 +1003,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'preparedBySearch', 
             'acknowledgeBySearch', 
             'checkedBySearch', 
-            'approvedBySearch'
+            'approvedBySearch',
+            'receivedBySearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -1008,5 +1019,69 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Display revision history based on API data
+function displayRevisionHistory(data) {
+    // Check if we have any revision data to display
+    if (!data || (!data.firstRevisionDate && !data.secondRevisionDate && !data.thirdRevisionDate && !data.fourthRevisionDate)) {
+        return; // No revision history to display
+    }
+    
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
+    
+    if (revisedRemarksSection && revisedCount) {
+        // Count the number of revisions based on date fields
+        let revisionCount = 0;
+        if (data.firstRevisionDate) revisionCount++;
+        if (data.secondRevisionDate) revisionCount++;
+        if (data.thirdRevisionDate) revisionCount++;
+        if (data.fourthRevisionDate) revisionCount++;
+        
+        // Only show revision history section if at least one revision exists
+        if (data.firstRevisionDate) {
+            // Show the revision history section
+            revisedRemarksSection.style.display = 'block';
+            revisedCount.textContent = revisionCount;
+            
+            // Display each revision container that has data
+            if (data.firstRevisionDate) {
+                const container = document.getElementById('firstRevisionContainer');
+                const remarks = document.getElementById('firstRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.firstRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.secondRevisionDate) {
+                const container = document.getElementById('secondRevisionContainer');
+                const remarks = document.getElementById('secondRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.secondRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.thirdRevisionDate) {
+                const container = document.getElementById('thirdRevisionContainer');
+                const remarks = document.getElementById('thirdRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.thirdRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.fourthRevisionDate) {
+                const container = document.getElementById('fourthRevisionContainer');
+                const remarks = document.getElementById('fourthRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
+                }
+            }
+        }
+    }
+}
 
     

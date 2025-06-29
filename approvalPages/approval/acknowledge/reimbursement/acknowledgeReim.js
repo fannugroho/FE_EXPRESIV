@@ -59,9 +59,10 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        populateDropdown("receivedBySelect", users);
         
         // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect"];
+        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receivedBySelect"];
         dropdownIds.forEach(id => {
             const dropdown = document.getElementById(id);
             if (dropdown) {
@@ -210,6 +211,7 @@ function populateFormData(data) {
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
     if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
+    if (document.getElementById('receivedBySelect')) document.getElementById('receivedBySelect').value = data.receivedBy || '';
     
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
@@ -225,6 +227,9 @@ function populateFormData(data) {
     if (data.reimbursementAttachments) {
         displayAttachments(data.reimbursementAttachments);
     }
+    
+    // Display revision history from API data
+    displayRevisionHistory(data);
 }
 
 // Populate reimbursement details table
@@ -535,6 +540,70 @@ function displayFileList() {
     // Implementation for displaying file list
     // This function was referenced but not defined in the original code
     console.log('Files uploaded:', uploadedFiles);
+}
+
+// Display revision history based on API data
+function displayRevisionHistory(data) {
+    // Check if we have any revision data to display
+    if (!data || (!data.firstRevisionDate && !data.secondRevisionDate && !data.thirdRevisionDate && !data.fourthRevisionDate)) {
+        return; // No revision history to display
+    }
+    
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
+    
+    if (revisedRemarksSection && revisedCount) {
+        // Count the number of revisions based on date fields
+        let revisionCount = 0;
+        if (data.firstRevisionDate) revisionCount++;
+        if (data.secondRevisionDate) revisionCount++;
+        if (data.thirdRevisionDate) revisionCount++;
+        if (data.fourthRevisionDate) revisionCount++;
+        
+        // Only show revision history section if at least one revision exists
+        if (data.firstRevisionDate) {
+            // Show the revision history section
+            revisedRemarksSection.style.display = 'block';
+            revisedCount.textContent = revisionCount;
+            
+            // Display each revision container that has data
+            if (data.firstRevisionDate) {
+                const container = document.getElementById('firstRevisionContainer');
+                const remarks = document.getElementById('firstRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.firstRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.secondRevisionDate) {
+                const container = document.getElementById('secondRevisionContainer');
+                const remarks = document.getElementById('secondRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.secondRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.thirdRevisionDate) {
+                const container = document.getElementById('thirdRevisionContainer');
+                const remarks = document.getElementById('thirdRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.thirdRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.fourthRevisionDate) {
+                const container = document.getElementById('fourthRevisionContainer');
+                const remarks = document.getElementById('fourthRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
+                }
+            }
+        }
+    }
 }
 
 // Event listener for document type change
