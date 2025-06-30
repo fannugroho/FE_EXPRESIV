@@ -289,9 +289,10 @@ function populateDetailsTable(details, totalAmount = null) {
             
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="border p-2">${detail.description || ''}</td>
+                <td class="border p-2">${detail.category || ''}</td>
                 <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.accountName || ''}</td>
+                <td class="border p-2">${detail.description || ''}</td>
                 <td class="border p-2">${formatCurrency(amount)}</td>
                 <td class="border p-2"></td>
             `;

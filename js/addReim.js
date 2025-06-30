@@ -367,10 +367,13 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
+            <input type="number" maxlength="10" class="w-full bg-gray-200" disabled/>
         </td>
         <td class="p-2 border">
             <input type="text" maxlength="200" class="w-full bg-gray-200" disabled/>
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/> 
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />
@@ -886,8 +889,9 @@ async function processDocument(isSubmit) {
             return {
                 category: inputs[0].value,
                 glAccount: inputs[1].value,
-                description: inputs[2].value,
-                amount: parseFloat(inputs[3].value) || 0
+                accountName: inputs[2].value,
+                description: inputs[3].value,
+                amount: parseFloat(inputs[4].value) || 0
             };
         });
 

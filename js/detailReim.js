@@ -799,13 +799,16 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.accountName || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
                 </td>
                 <td class="p-2 border">
                     <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
@@ -874,10 +877,11 @@ async function submitReimbursementUpdate() {
         
         reimbursementDetails.push({
             id: detailId,
-            description: inputs[0].value,
+            category: inputs[0].value,
             glAccount: inputs[1].value,
             accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
+            description: inputs[3].value,
+            amount: parseFloat(inputs[4].value) || 0
         });
     });
     

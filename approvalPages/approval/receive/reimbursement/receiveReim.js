@@ -255,13 +255,16 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
@@ -361,10 +364,11 @@ async function submitReimbursementUpdate() {
         
         reimbursementDetails.push({
             id: detailId,
-            description: inputs[0].value,
+            category: inputs[0].value,
             glAccount: inputs[1].value,
             accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
+            description: inputs[3].value,
+            amount: parseFloat(inputs[4].value) || 0,
         });
     });
     
@@ -583,19 +587,21 @@ function printReimbursement() {
     const details = [];
     
     detailsRows.forEach(row => {
-        const descriptionCell = row.querySelector('td:nth-child(1) input');
+        const categoryCell = row.querySelector('td:nth-child(1) input');
         const accountCell = row.querySelector('td:nth-child(2) input');
         const accountNameCell = row.querySelector('td:nth-child(3) input');
-        const amountCell = row.querySelector('td:nth-child(4) input');
+        const descriptionCell = row.querySelector('td:nth-child(4) input');
+        const amountCell = row.querySelector('td:nth-child(5) input');
         
-        if (descriptionCell && accountCell && accountNameCell && amountCell) {
+        if (categoryCell && accountCell && accountNameCell && descriptionCell && amountCell) {
             const amount = parseFloat(amountCell.value) || 0;
             totalAmount += amount;
             
             details.push({
-                description: descriptionCell.value,
+                category: categoryCell.value,
                 glAccount: accountCell.value,
                 accountName: accountNameCell.value,
+                description: descriptionCell.value,
                 amount: amount
             });
         }
