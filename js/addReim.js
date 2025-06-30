@@ -370,21 +370,10 @@ function addRow() {
     const newRow = document.createElement("tr");
 
     newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full bg-gray-200" disabled/>
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full bg-gray-200" disabled/>
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/> 
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
-        </td>
+        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
+        <td class="p-2 border"><input type="text" maxlength="200" class="w-full bg-gray-200" disabled /></td>
+        <td class="p-2 border"><input type="text" maxlength="10" class="w-full bg-gray-200" disabled /></td>
+        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
@@ -827,53 +816,75 @@ async function processDocument(isSubmit) {
     
     // Get approval values directly from select elements or search inputs
     const getApprovalValue = (id) => {
-            const searchInput = document.getElementById(`${id}Search`);
-            return searchInput ? searchInput.value : '';
-        };
+        const selectElement = document.getElementById(`${id}Select`);
+        
+        // Always use the select element value which contains the ID
+        return selectElement ? selectElement.value : "";
+    };
 
-        // Collect table data
-        const tableRows = document.querySelectorAll('#tableBody tr');
-        const items = Array.from(tableRows).map(row => {
-            const inputs = row.querySelectorAll('input');
-            return {
-                category: inputs[0].value,
-                glAccount: inputs[1].value,
-                accountName: inputs[2].value,
-                description: inputs[3].value,
-                amount: parseFloat(inputs[4].value) || 0
-            };
-        });
+    const reimbursementData = {
+        voucherNo: getElementValue("voucherNo"),
+        requesterName: document.getElementById("requesterNameSearch").value, // Use the search input value
+        department: getElementValue("department"),
+        payTo: getApprovalValue("payTo"),
+        currency: getElementValue("currency"),
+        submissionDate: getElementValue("postingDate"),
+        status: getElementValue("status"),
+        referenceDoc: getElementValue("referenceDoc"),
+        typeOfTransaction: getElementValue("typeOfTransaction"),
+        remarks: getElementValue("remarks"),
+        preparedBy: getApprovalValue("preparedBy"),
+        checkedBy: getApprovalValue("checkedBy"),
+        acknowledgedBy: getApprovalValue("acknowledgeBy"),
+        approvedBy: getApprovalValue("approvedBy"),
+        receivedBy: getApprovalValue("receivedBy"),
+        reimbursementDetails: reimbursementDetails,
+        isSubmit: isSubmit
+    };
 
-        // Calculate total amount
-        const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+    console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
 
-        // Prepare form data
+    // Step 3: Send the POST request to create reimbursement
+    const response = await fetch(`${BASE_URL}/api/reimbursements`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reimbursementData)
+    });
+
+    let errorText = '';
+    try {
+        const errorData = await response.clone().json();
+        if (errorData && errorData.message) {
+            errorText = errorData.message;
+        }
+        if (errorData && errorData.errors) {
+            errorText += ': ' + JSON.stringify(errorData.errors);
+        }
+    } catch (e) {
+        // If we can't parse the error as JSON, use text
+        errorText = await response.clone().text();
+    }
+
+    if (!response.ok) {
+        throw new Error(errorText || `API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.status || result.code !== 200) {
+        throw new Error(result.message || 'Failed to create reimbursement');
+    }
+
+    // Step 4: Upload attachments if there are any
+    const reimbursementId = result.data.id;
+    
+    if (uploadedFiles.length > 0) {
         const formData = new FormData();
-        formData.append('voucherNo', getElementValue('voucherNo'));
-        formData.append('requesterName', getElementValue('requesterNameSearch'));
-        formData.append('department', getElementValue('department'));
-        formData.append('currency', getElementValue('currency'));
-        formData.append('payTo', getElementValue('requesterNameSearch')); // Using requester as payTo
-        formData.append('postingDate', getElementValue('postingDate'));
-        formData.append('status', isSubmit ? 'Submitted' : 'Draft');
-        formData.append('referenceDoc', getElementValue('referenceDoc'));
-        formData.append('typeOfTransaction', getElementValue('typeOfTransaction'));
-        formData.append('remarks', getElementValue('remarks'));
-        formData.append('totalAmount', totalAmount.toString());
         
-        // Approval fields
-        formData.append('preparedBy', getApprovalValue('preparedBy'));
-        formData.append('acknowledgeBy', getApprovalValue('acknowledgeBy'));
-        formData.append('checkedBy', getApprovalValue('checkedBy'));
-        formData.append('approvedBy', getApprovalValue('approvedBy'));
-        formData.append('receivedBy', getApprovalValue('receivedBy'));
-        
-        // Add items as JSON string
-        formData.append('items', JSON.stringify(items));
-        
-        // Add files
-        uploadedFiles.forEach((file, index) => {
-            formData.append(`file${index}`, file);
+        uploadedFiles.forEach(file => {
+            formData.append('files', file);
         });
 
         const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
