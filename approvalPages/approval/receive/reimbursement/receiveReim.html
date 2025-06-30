@@ -13,7 +13,7 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReceiveReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button onclick="goToMenuReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Document Reimbursement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
@@ -57,6 +57,7 @@
                     <option value="Approved">Approved</option>
                     <option value="Received">Received</option>
                     <option value="Rejected">Rejected</option>
+                    <option value="Revised">Revised</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
@@ -67,9 +68,11 @@
                 <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeOfTransaction" class="w-full p-2 border rounded" disabled>
+                <select id="typeOfTransaction" class="w-full p-2 border rounded">
                     <option value="Medical">Medical</option>
-                    <option value="Transport">Transport</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Golf Competition">Golf Competition</option>
+                    <option value="Others">Others</option>
                 </select>
             </div>
         </div>
@@ -99,6 +102,41 @@
             <div class="mt-4">
               <label>Remarks</label>
               <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
+            </div>
+            
+            <!-- Revised Remarks Display Section (Read-only) -->
+            <div class="mt-4" id="revisedRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+                <div class="bg-gray-50 p-4 rounded-lg border">
+                    <div class="mb-2">
+                        <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                        <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                    </div>
+                    
+                    <!-- First Revision Remarks -->
+                    <div id="firstRevisionContainer" class="mb-3" style="display: none;">
+                        <label class="text-sm font-medium text-gray-700">First Revision:</label>
+                        <div id="firstRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                    </div>
+                    
+                    <!-- Second Revision Remarks -->
+                    <div id="secondRevisionContainer" class="mb-3" style="display: none;">
+                        <label class="text-sm font-medium text-gray-700">Second Revision:</label>
+                        <div id="secondRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                    </div>
+                    
+                    <!-- Third Revision Remarks -->
+                    <div id="thirdRevisionContainer" class="mb-3" style="display: none;">
+                        <label class="text-sm font-medium text-gray-700">Third Revision:</label>
+                        <div id="thirdRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                    </div>
+                    
+                    <!-- Fourth Revision Remarks -->
+                    <div id="fourthRevisionContainer" class="mb-3" style="display: none;">
+                        <label class="text-sm font-medium text-gray-700">Fourth Revision:</label>
+                        <div id="fourthRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
+                    </div>
+                </div>
             </div>
             
             <!-- Revision Remarks Section -->
@@ -469,9 +507,65 @@
                 return;
             }
             
-            // Call the existing function with the collected remarks
-            // This function should be implemented in receiveReim.js
-            updateReimStatusWithRemarks('revise', allRemarks);
+            // First show confirmation dialog
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Are you sure you want to submit this revision?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Submit Revision!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Get reimbursement ID from URL
+                    const id = getReimbursementIdFromUrl();
+                    if (!id) {
+                        Swal.fire('Error', 'No reimbursement ID found', 'error');
+                        return;
+                    }
+                    
+                    // Make API call to submit revision using the new endpoint
+                    fetch(`${BASE_URL}/api/reimbursements/revision/${id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${getAccessToken()}`
+                        },
+                        body: JSON.stringify({
+                            remarks: allRemarks
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status && result.code === 200) {
+                            Swal.fire(
+                                'Success!',
+                                'Revision remarks have been submitted successfully.',
+                                'success'
+                            ).then(() => {
+                                // Return to menu
+                                goToMenuReim();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error',
+                                result.message || 'Failed to submit revision',
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting revision:', error);
+                        Swal.fire(
+                            'Error',
+                            'An error occurred while submitting the revision',
+                            'error'
+                        );
+                    });
+                }
+            });
         }
     </script>
 </body>

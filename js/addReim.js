@@ -266,101 +266,108 @@ document.getElementById("docType")?.addEventListener("change", function () {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    // Add files to our uploadedFiles array
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Check if file is PDF
-        if (file.type !== 'application/pdf') {
-            Swal.fire({
-                title: 'Error',
-                text: 'Only PDF files are allowed',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            continue;
-        }
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 files are allowed.');
+        return;
+    }
+
+    Array.from(files).forEach(file => {
+        // Check if file with same name already exists
+        const fileExists = uploadedFiles.some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size
+        );
+        
+        // Only add if it doesn't exist
+        if (!fileExists) {
             uploadedFiles.push(file);
         }
+    });
 
-    // Display the list of files
     displayFileList();
 }
 
 function displayFileList() {
-    const fileListElement = document.getElementById('fileList');
-    if (!fileListElement) return;
+    // Get existing file list 
+    const fileListContainer = document.getElementById("fileList");
     
-    fileListElement.innerHTML = '';
+    // Clear existing content
+    fileListContainer.innerHTML = "";
     
-    if (uploadedFiles.length === 0) {
-        fileListElement.innerHTML = '<p class="text-gray-500">No files uploaded</p>';
-        return;
+    // Add header if there are files
+    if (uploadedFiles.length > 0) {
+        const header = document.createElement("div");
+        header.className = "font-bold mt-2 mb-1";
+        header.textContent = "Selected Files:";
+        fileListContainer.appendChild(header);
     }
     
-    // Create a list of files with view and delete options
+    // Add each file to the list
     uploadedFiles.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'flex items-center justify-between p-2 border-b';
+        const fileItem = document.createElement("div");
+        fileItem.className = "flex justify-between items-center p-2 border-b";
         fileItem.innerHTML = `
-            <span class="text-blue-600">${file.name}</span>
+            <span>${file.name}</span>
             <div>
-                <button type="button" onclick="viewFile(${index})" class="text-blue-500 hover:text-blue-700 mr-2">
-                    👁️
-                </button>
-                <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
-                    🗑️
-                </button>
+                <button type="button" onclick="viewFile(${index})" class="text-blue-500 mr-2">View</button>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500">X</button>
             </div>
         `;
-        fileListElement.appendChild(fileItem);
+        fileListContainer.appendChild(fileItem);
     });
 }
 
 function viewFile(index) {
-    if (index >= 0 && index < uploadedFiles.length) {
     const file = uploadedFiles[index];
+    if (!file) return;
     
-        // Create a URL for the file
+    // Create URL for the file
     const fileURL = URL.createObjectURL(file);
     
-        // Create modal to view the PDF
+    // Create modal container
     const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+    modal.id = 'pdfViewerModal';
+    
+    // Create modal content
     modal.innerHTML = `
-            <div class="bg-white p-4 rounded-lg w-4/5 h-4/5 flex flex-col">
-                <div class="flex justify-between items-center mb-4">
+        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
                 <h3 class="text-lg font-semibold">${file.name}</h3>
-                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
+                    <span class="text-2xl">&times;</span>
+                </button>
             </div>
-                <div class="flex-grow overflow-auto">
-                    <iframe src="${fileURL}" class="w-full h-full"></iframe>
+            <div class="flex-grow p-4 overflow-auto">
+                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
             </div>
         </div>
     `;
     
+    // Add to body
     document.body.appendChild(modal);
-    }
+    
+    // Prevent scrolling on the body
+    document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-    const modal = document.querySelector('.fixed.inset-0');
+    const modal = document.getElementById('pdfViewerModal');
     if (modal) {
         modal.remove();
+        // Restore scrolling
+        document.body.style.overflow = '';
     }
 }
 
 function removeFile(index) {
-    if (index >= 0 && index < uploadedFiles.length) {
     uploadedFiles.splice(index, 1);
     displayFileList();
-    }
 }
 
 function addRow() {
-    const tableBody = document.getElementById('tableBody');
-    const newRow = document.createElement('tr');
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
 
     newRow.innerHTML = `
         <td class="p-2 border">
@@ -379,28 +386,16 @@ function addRow() {
             <input type="number" maxlength="10" class="w-full" required />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
     `;
+
 
     tableBody.appendChild(newRow);
 }
 
 function deleteRow(button) {
-    const tableBody = document.getElementById('tableBody');
-    // Don't delete the last row
-    if (tableBody.rows.length > 1) {
-        button.closest('tr').remove();
-    } else {
-        // If it's the last row, just clear the inputs
-        const row = button.closest('tr');
-        const inputs = row.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.value = '';
-        });
-    }
+    button.closest("tr").remove();
 }
 
 function goToMenuPR() { window.location.href = "../pages/menuPR.html"; }
@@ -410,9 +405,7 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReim() { 
-    window.location.href = "../pages/menuReim.html"; 
-}
+function goToMenuReim() { window.location.href = "../pages/menuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
 function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
@@ -775,108 +768,64 @@ function populateDropdown(dropdownId, users) {
     }
 }
 
-async function submitDocument() {
-    try {
-        // Basic validation
-        const requesterName = document.getElementById('requesterNameSearch').value;
-        const department = document.getElementById('department').value;
-        const postingDate = document.getElementById('postingDate').value;
-        const currency = document.getElementById('currency').value;
-        const typeOfTransaction = document.getElementById('typeOfTransaction').value;
-        
-        // Check required fields
-        if (!requesterName || !department || !postingDate || !currency || !typeOfTransaction) {
+function submitDocument() {
     Swal.fire({
-                title: 'Validation Error',
-                text: 'Please fill all required fields (Requester Name, Department, Submission Date, Currency, Type of Transaction)',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-        
-        // Validate table has at least one row with data
-        const tableRows = document.querySelectorAll('#tableBody tr');
-        let hasValidRow = false;
-        
-        for (const row of tableRows) {
-            const inputs = row.querySelectorAll('input');
-            if (inputs[0].value && inputs[3].value) {
-                hasValidRow = true;
-                break;
-            }
-        }
-        
-        if (!hasValidRow) {
-            Swal.fire({
-                title: 'Validation Error',
-                text: 'Please add at least one reimbursement item with Category and Amount',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        // Confirm submission
-        Swal.fire({
-            title: 'Confirm Submission',
-            text: 'Are you sure you want to submit this reimbursement document?',
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
         icon: 'question',
         showCancelButton: true,
-            confirmButtonText: 'Yes, Submit',
-            cancelButtonText: 'Cancel'
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal'
     }).then(async (result) => {
         if (result.isConfirmed) {
-                // Show loading
-                Swal.fire({
-                    title: 'Processing',
-                    text: 'Submitting your reimbursement...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Process document with isSubmit=true
+            try {
                 await processDocument(true);
-                
-                // Show success message
                 Swal.fire({
-                    title: 'Success',
-                    text: 'Reimbursement has been submitted successfully',
+                    title: 'Berhasil',
+                    text: 'Dokumen berhasil di-submit.',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
-                    // Navigate back to menu
-                    goToMenuReim();
-                });
-            }
+                    goToMenuReim(); // Navigate to menu page after clicking OK
                 });
             } catch (error) {
-        console.error("Error submitting document:", error);
+                console.error("Error submitting reimbursement:", error);
                 Swal.fire({
                     title: 'Error',
-            text: `Failed to submit: ${error.message}`,
+                    text: `Error: ${error.message}`,
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
             }
+        }
+    });
 }
 
 // Common function to process document with isSubmit parameter
 async function processDocument(isSubmit) {
-    try {
-        // Get the token from localStorage
-        const token = localStorage.getItem('token');
-        if (!token) {
-            throw new Error('Authentication token not found. Please log in again.');
+    // Step 1: Collect reimbursement details from the form
+    const reimbursementDetails = [];
+    const tableRows = document.querySelectorAll("#tableBody tr");
+    
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll("input");
+        if (inputs.length >= 4) {
+            reimbursementDetails.push({
+                description: inputs[0].value || "",
+                // glAccount: inputs[1].value || "",
+                // accountName: inputs[2].value || "",
+                amount: parseFloat(inputs[3].value) || 0
+            });
         }
+    });
 
+    // Step 2: Prepare the request data
     const getElementValue = (id) => {
         const element = document.getElementById(id);
-            return element ? element.value : '';
+        return element ? element.value : "";
     };
     
+    // Get approval values directly from select elements or search inputs
     const getApprovalValue = (id) => {
             const searchInput = document.getElementById(`${id}Search`);
             return searchInput ? searchInput.value : '';
@@ -927,25 +876,23 @@ async function processDocument(isSubmit) {
             formData.append(`file${index}`, file);
         });
 
-        // Send to API
-        const response = await fetch(`${BASE_URL}/api/reimbursements`, {
+        const uploadResponse = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
             body: formData
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to save reimbursement');
+        if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.message || `Upload error: ${uploadResponse.status}`);
         }
 
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error("Error processing document:", error);
-        throw error;
+        const uploadResult = await uploadResponse.json();
+        
+        if (!uploadResult.status || uploadResult.code !== 200) {
+            throw new Error(uploadResult.message || 'Failed to upload attachments');
+        }
     }
+    
+    return result;
 }
     

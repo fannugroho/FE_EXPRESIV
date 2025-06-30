@@ -4,11 +4,79 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 
 let prId; // Declare global variable
 
+// Helper function to format date as YYYY-MM-DD without timezone issues
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Function to setup date fields with validation and defaults
+function setupDateFields() {
+    const today = new Date();
+    const formattedDate = formatDateForInput(today);
+    
+    const submissionDateInput = document.getElementById("submissionDate");
+    const requiredDateInput = document.getElementById("requiredDate");
+    
+    // Set minimum date for issuance date to today
+    submissionDateInput.min = formattedDate;
+    
+    // Add event listener to automatically update required date when issuance date changes
+    submissionDateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value + 'T00:00:00'); // Add time to avoid timezone issues
+        const minRequiredDate = new Date(selectedDate);
+        minRequiredDate.setDate(selectedDate.getDate() + 14);
+        
+        const minRequiredFormatted = formatDateForInput(minRequiredDate);
+        requiredDateInput.min = minRequiredFormatted;
+        
+        // If current required date is less than minimum, update it
+        const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
+        if (currentRequiredDate < minRequiredDate || !requiredDateInput.value) {
+            requiredDateInput.value = minRequiredFormatted;
+        }
+    });
+}
+
+// Function to set default dates (called after checking if fields are empty)
+function setDefaultDatesIfEmpty() {
+    const submissionDateInput = document.getElementById("submissionDate");
+    const requiredDateInput = document.getElementById("requiredDate");
+    
+    // Only set defaults if the PR is in Draft status and fields are empty
+    const status = window.currentValues?.status || document.getElementById('status')?.value;
+    if (status === 'Draft') {
+        const today = new Date();
+        const formattedDate = formatDateForInput(today);
+        
+        // Set default issuance date to today if empty
+        if (!submissionDateInput.value) {
+            submissionDateInput.value = formattedDate;
+        }
+        
+        // Set default required date to 2 weeks from issuance date if empty
+        if (!requiredDateInput.value) {
+            const issuanceDate = submissionDateInput.value ? new Date(submissionDateInput.value + 'T00:00:00') : today;
+            const twoWeeksFromIssuance = new Date(issuanceDate);
+            twoWeeksFromIssuance.setDate(issuanceDate.getDate() + 14);
+            const requiredDateFormatted = formatDateForInput(twoWeeksFromIssuance);
+            
+            requiredDateInput.value = requiredDateFormatted;
+        }
+    }
+}
+
 // Function to fetch PR details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     prId = urlParams.get('pr-id');
     prType = urlParams.get('pr-type');
+    
+    // Set up date validation and defaults
+    setupDateFields();
+    
     fetchPRDetails(prId, prType);
     
     // Ensure all description and UOM fields are initially empty and properly styled
@@ -293,6 +361,9 @@ async function fetchUsers(approvalData = null) {
     }
 }
 
+// Store items globally for search functionality
+let allItems = [];
+
 // Function to fetch items from API
 async function fetchItemOptions() {
     try {
@@ -302,27 +373,120 @@ async function fetchItemOptions() {
         }
         const data = await response.json();
         console.log("Item data:", data);
-        // Populate all item selects in the document
-        document.querySelectorAll('.item-no').forEach(select => {
-            populateItemSelect(data.data, select);
+        allItems = data.data; // Store items globally
+        
+        // Setup searchable dropdowns for all existing item inputs
+        document.querySelectorAll('.item-input').forEach(input => {
+            const row = input.closest('tr');
+            setupItemDropdown(row);
         });
     } catch (error) {
         console.error('Error fetching items:', error);
     }
 }
 
-// Function to fetch items for a specific select element (no pre-selection)
-async function fetchItemOptionsForSelect(selectElement) {
-    try {
-        const response = await makeAuthenticatedRequest('/api/items');
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
+// Function to setup searchable item dropdown for a row
+function setupItemDropdown(row, existingItemCode = null) {
+    const itemInput = row.querySelector('.item-input');
+    const itemDropdown = row.querySelector('.item-dropdown');
+    const descriptionInput = row.querySelector('.item-description');
+    const uomInput = row.querySelector('.item-uom');
+    
+    if (!itemInput || !itemDropdown) return;
+    
+    // Set existing item code if provided
+    if (existingItemCode) {
+        itemInput.value = existingItemCode;
+        const existingItem = allItems.find(item => item.itemCode === existingItemCode);
+        if (existingItem) {
+            updateItemDescriptionFromData(row, existingItem);
         }
-        const data = await response.json();
-        populateItemSelectClean(data.data, selectElement);
-    } catch (error) {
-        console.error('Error fetching items:', error);
     }
+    
+    itemInput.addEventListener('input', function() {
+        const searchText = this.value.toLowerCase();
+        
+        // Clear dropdown
+        itemDropdown.innerHTML = '';
+        
+        // Filter items based on search text (search in both itemCode and itemName)
+        const filteredItems = allItems.filter(item => 
+            item.itemCode.toLowerCase().includes(searchText) ||
+            item.itemName.toLowerCase().includes(searchText)
+        );
+        
+        if (filteredItems.length > 0) {
+            filteredItems.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.onclick = function() {
+                    itemInput.value = item.itemCode;
+                    itemInput.setAttribute('data-selected-item', JSON.stringify(item));
+                    itemDropdown.classList.add('hidden');
+                    
+                    // Update description and UOM
+                    updateItemDescriptionFromData(row, item);
+                };
+                itemDropdown.appendChild(option);
+            });
+            itemDropdown.classList.remove('hidden');
+        } else {
+            itemDropdown.classList.add('hidden');
+        }
+    });
+    
+    itemInput.addEventListener('focus', function() {
+        if (allItems.length > 0) {
+            // Show all items on focus
+            itemDropdown.innerHTML = '';
+            
+            allItems.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.onclick = function() {
+                    itemInput.value = item.itemCode;
+                    itemInput.setAttribute('data-selected-item', JSON.stringify(item));
+                    itemDropdown.classList.add('hidden');
+                    
+                    // Update description and UOM
+                    updateItemDescriptionFromData(row, item);
+                };
+                itemDropdown.appendChild(option);
+            });
+            itemDropdown.classList.remove('hidden');
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!itemInput.contains(event.target) && !itemDropdown.contains(event.target)) {
+            itemDropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Function to update description and UOM from item data
+function updateItemDescriptionFromData(row, item) {
+    const descriptionInput = row.querySelector('.item-description');
+    const uomInput = row.querySelector('.item-uom');
+    
+    const itemDescription = item.description || item.name || item.itemName || '';
+    const itemUom = item.uom || item.unitOfMeasure || '';
+    
+    descriptionInput.value = itemDescription;
+    descriptionInput.textContent = itemDescription; // For textarea
+    descriptionInput.title = itemDescription; // For tooltip
+    
+    uomInput.value = itemUom;
+    uomInput.title = itemUom; // For tooltip
+    
+    // Keep the fields disabled and gray (not editable by user)
+    descriptionInput.disabled = true;
+    descriptionInput.classList.add('bg-gray-100');
+    uomInput.disabled = true;
+    uomInput.classList.add('bg-gray-100');
 }
 
 // Function to populate department select
@@ -358,63 +522,7 @@ function populateDepartmentSelect(departments) {
     }
 }
 
-// Function to populate item select
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    // Check if this select has a pre-selected item code
-    const selectedItemCode = selectElement.getAttribute('data-selected-item-code');
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.itemCode; // Use itemCode instead of id
-        option.textContent = `${item.itemCode} - ${item.itemName}`;
-        // Store the description and UOM as data attributes
-        option.setAttribute('data-item-code', item.itemCode);
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
-        selectElement.appendChild(option);
-        
-        // If this item matches the selected item code, select it
-        if (selectedItemCode && item.itemCode === selectedItemCode) {
-            option.selected = true;
-            // Trigger the update after setting as selected
-            setTimeout(() => {
-                updateItemDescription(selectElement);
-            }, 0);
-        }
-    });
-
-    // Add onchange event listener to auto-fill description and UOM
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
-
-// Function to populate item select without any pre-selection (for new rows)
-function populateItemSelectClean(items, selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="" disabled selected>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.itemCode; // Use itemCode instead of id
-        option.textContent = `${item.itemCode} - ${item.itemName}`;
-        // Store the description and UOM as data attributes
-        option.setAttribute('data-item-code', item.itemCode);
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
-        selectElement.appendChild(option);
-    });
-
-    // Add onchange event listener to auto-fill description and UOM
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
+// Legacy functions kept for backward compatibility (no longer used)
 
 // Function to toggle editable fields based on PR status
 function toggleEditableFields(isEditable) {
@@ -478,9 +586,9 @@ function toggleEditableFields(isEditable) {
     }
     
     // Handle table inputs - only for editable fields in table
-    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description), #tableBody select.item-no');
+    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description):not(.item-uom)');
     tableInputs.forEach(input => {
-        if (input.tagName === 'SELECT' || input.type === 'checkbox' || input.type === 'radio') {
+        if (input.type === 'checkbox' || input.type === 'radio') {
             input.disabled = !isEditable;
         } else {
             input.readOnly = !isEditable;
@@ -664,6 +772,9 @@ function populatePRDetails(data) {
         populateItemDetails(data.itemDetails);
     }
     
+    // Set default dates if fields are empty (only for Draft status)
+    setDefaultDatesIfEmpty();
+    
     // Check if editable after populating data
     const isEditable = window.currentValues.status === 'Draft';
     toggleEditableFields(isEditable);
@@ -689,10 +800,9 @@ function addItemRow(item = null) {
     const tableBody = document.getElementById('tableBody');
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
-                <option value="" disabled ${!item ? 'selected' : ''}>Select Item</option>
-            </select>
+        <td class="p-2 border relative">
+            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." value="${item?.itemNo || ''}" />
+            <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
@@ -716,13 +826,8 @@ function addItemRow(item = null) {
     
     tableBody.appendChild(row);
     
-    // Store the item data to be used after fetching options
-    if (item) {
-        const selectElement = row.querySelector('.item-no');
-        selectElement.setAttribute('data-selected-item-code', item.itemNo); // itemNo is actually the itemCode
-    }
-    
-    fetchItemOptions();
+    // Setup searchable item dropdown for the new row
+    setupItemDropdown(row, item?.itemNo);
 }
 
 function addRow() {
@@ -730,10 +835,9 @@ function addRow() {
     const newRow = document.createElement("tr");
     
     newRow.innerHTML = `
-        <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
-                <option value="" disabled selected>Select Item</option>
-            </select>
+        <td class="p-2 border relative">
+            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." />
+            <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
@@ -757,62 +861,14 @@ function addRow() {
     
     tableBody.appendChild(newRow);
     
-    // Populate the new item select with items (no pre-selection)
-    const newItemSelect = newRow.querySelector('.item-no');
-    fetchItemOptionsForSelect(newItemSelect);
+    // Setup searchable item dropdown for the new row
+    setupItemDropdown(newRow);
 }
 
+// Legacy function kept for backward compatibility (no longer used)
 function updateItemDescription(selectElement) {
-    const row = selectElement.closest('tr');
-    const descriptionInput = row.querySelector('.item-description');
-    const uomInput = row.querySelector('.item-uom');
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    
-    // Check if a valid item is selected (not the placeholder option)
-    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
-        // Get the item code and set it as the text content
-        const itemCode = selectedOption.getAttribute('data-item-code');
-        selectedOption.textContent = itemCode || '';
-        
-        // Force the select element to resize to fit only the item code
-        // selectElement.style.width = 'auto';
-        // const tempOption = document.createElement('option');
-        // tempOption.textContent = itemCode;
-        // selectElement.appendChild(tempOption);
-        // const newWidth = tempOption.offsetWidth + 120; // Add some padding
-        // selectElement.removeChild(tempOption);
-        // selectElement.style.width = newWidth + 'px';
-        
-        // Get description and UOM from data attributes and fill them automatically
-        const itemDescription = selectedOption.getAttribute('data-description');
-        const itemUom = selectedOption.getAttribute('data-uom');
-        
-        descriptionInput.value = itemDescription || '';
-        descriptionInput.textContent = itemDescription || ''; // For textarea
-        descriptionInput.title = itemDescription || ''; // For tooltip
-        
-        uomInput.value = itemUom || '';
-        uomInput.title = itemUom || ''; // For tooltip
-        
-        // Keep the fields disabled and gray (not editable by user)
-        descriptionInput.disabled = true;
-        descriptionInput.classList.add('bg-gray-100');
-        uomInput.disabled = true;
-        uomInput.classList.add('bg-gray-100');
-    } else {
-        // No valid item selected, clear the fields
-        descriptionInput.value = '';
-        descriptionInput.textContent = '';
-        descriptionInput.title = '';
-        uomInput.value = '';
-        uomInput.title = '';
-        
-        // Keep the fields disabled and gray
-        descriptionInput.disabled = true;
-        descriptionInput.classList.add('bg-gray-100');
-        uomInput.disabled = true;
-        uomInput.classList.add('bg-gray-100');
-    }
+    // This function is kept for backward compatibility but no longer used
+    // The new searchable implementation uses updateItemDescriptionFromData instead
 }
 
 function deleteRow(button) {
@@ -1014,7 +1070,7 @@ async function updatePR(isSubmit = false) {
         const rows = document.querySelectorAll('#tableBody tr');
         
         rows.forEach((row, index) => {
-            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
+            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-input').value);
             formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
             formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
             formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
@@ -1327,3 +1383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function goToMenuPR() {
+    window.location.href = '../pages/menuPR.html';
+}

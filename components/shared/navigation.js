@@ -56,6 +56,11 @@ function goToMenuRevisionPR() {
 }
 
 // Reimbursement Navigation
+function goToAddReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}addPages/addReim.html`;
+}
+
 function goToMenuReim() {
     const basePath = getBasePath();
     window.location.href = `${basePath}pages/menuReim.html`;
