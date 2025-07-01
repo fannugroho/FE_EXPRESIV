@@ -63,14 +63,41 @@ function populatePRDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
 
-    // Set status
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
+
+    // Set classification - create option directly from backend data
+    const classificationSelect = document.getElementById('classification');
+    if (data.classification && classificationSelect) {
+        classificationSelect.innerHTML = ''; // Clear existing options
+        console.log('Classification:', data.classification);
+        const option = document.createElement('option');
+        option.value = data.classification; // Use classification as value since backend returns string
+        option.textContent = data.classification;
+        option.selected = true;
+        classificationSelect.appendChild(option);
+    }
+
+    // Set status - create option directly from backend data
     if (data && data.status) {
         console.log('Status:', data.status);
-        var option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        document.getElementById('status').appendChild(option);
-        document.getElementById('status').value = data.status;
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.innerHTML = ''; // Clear existing options
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
     }
     
     // Handle item details (only item type is supported now)
@@ -315,6 +342,11 @@ function populateUserSelects(users, prData = null) {
 
 // Function to receive PR (approve)
 function approvePR() {
+    // Prevent double-clicking
+    if (isProcessing) {
+        return;
+    }
+    
     Swal.fire({
         title: 'Confirm Receipt',
         text: 'Are you sure you want to receive this Purchase Request?',
@@ -417,6 +449,9 @@ function updatePRStatus(status) {
         return;
     }
 
+    // Set processing flag to prevent double-clicks
+    isProcessing = true;
+
     const userId = getUserId();
     if (!userId) {
         Swal.fire({
@@ -424,6 +459,7 @@ function updatePRStatus(status) {
             title: 'Authentication Error',
             text: 'Unable to get user ID from token. Please login again.'
         });
+        isProcessing = false;
         return;
     }
 
@@ -467,12 +503,14 @@ function updatePRStatus(status) {
                 goToMenuReceivePR();
             });
         } else {
+            isProcessing = false; // Reset flag on error
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
+        isProcessing = false; // Reset flag on error
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
@@ -814,3 +852,11 @@ function printPR() {
     // Open the print page in a new window
     window.open(`printPR.html?${params.toString()}`, '_blank');
 }
+
+// Navigation function to go back to receive dashboard
+function goToMenuReceivePR() {
+    window.location.href = '../../../dashboard/dashboardReceive/purchaseRequest/menuPRReceive.html';
+}
+
+// Add variable to prevent double-clicking
+let isProcessing = false;

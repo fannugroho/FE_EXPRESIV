@@ -418,7 +418,18 @@ async function saveDocument(isSubmit = false) {
         // Add all form fields to FormData
         formData.append('CashAdvanceNo', document.getElementById("CashAdvanceNo").value);
         formData.append('EmployeeNIK', document.getElementById("EmployeeNIK").value);
-        formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
+        // Requester must be explicitly selected
+        const requesterId = document.getElementById("RequesterId").value;
+        if (!requesterId) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please select a requester before submitting the Cash Advance.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        formData.append('RequesterId', requesterId);
         formData.append('Purpose', document.getElementById("Purpose").value);
         formData.append('DepartmentId', document.getElementById("department").value);
         formData.append('SubmissionDate', document.getElementById("SubmissionDate").value);

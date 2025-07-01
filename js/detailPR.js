@@ -20,24 +20,40 @@ function setupDateFields() {
     const submissionDateInput = document.getElementById("submissionDate");
     const requiredDateInput = document.getElementById("requiredDate");
     
-    // Set minimum date for issuance date to today
-    submissionDateInput.min = formattedDate;
-    
-    // Add event listener to automatically update required date when issuance date changes
-    submissionDateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value + 'T00:00:00'); // Add time to avoid timezone issues
-        const minRequiredDate = new Date(selectedDate);
-        minRequiredDate.setDate(selectedDate.getDate() + 14);
+    if (submissionDateInput && requiredDateInput) {
+        // Set minimum date for submission date to today
+        submissionDateInput.min = formattedDate;
         
-        const minRequiredFormatted = formatDateForInput(minRequiredDate);
-        requiredDateInput.min = minRequiredFormatted;
+        // Function to update required date minimum based on submission date
+        const updateRequiredDateMin = function() {
+            const submissionValue = submissionDateInput.value;
+            if (submissionValue) {
+                const selectedDate = new Date(submissionValue + 'T00:00:00'); // Add time to avoid timezone issues
+                const minRequiredDate = new Date(selectedDate);
+                minRequiredDate.setDate(selectedDate.getDate() + 14); // 2 weeks = 14 days
+                
+                const minRequiredFormatted = formatDateForInput(minRequiredDate);
+                requiredDateInput.min = minRequiredFormatted;
+                
+                // If current required date is less than minimum, update it
+                if (requiredDateInput.value) {
+                    const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
+                    if (currentRequiredDate < minRequiredDate) {
+                        requiredDateInput.value = minRequiredFormatted;
+                    }
+                } else {
+                    // If no required date is set, set it to minimum (2 weeks from submission)
+                    requiredDateInput.value = minRequiredFormatted;
+                }
+            }
+        };
         
-        // If current required date is less than minimum, update it
-        const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
-        if (currentRequiredDate < minRequiredDate || !requiredDateInput.value) {
-            requiredDateInput.value = minRequiredFormatted;
-        }
-    });
+        // Add event listener to automatically update required date when submission date changes
+        submissionDateInput.addEventListener('change', updateRequiredDateMin);
+        
+        // Store the update function globally so it can be called after data is populated
+        window.updateRequiredDateMin = updateRequiredDateMin;
+    }
 }
 
 // Function to set default dates (called after checking if fields are empty)
@@ -114,12 +130,24 @@ function populateUserSelects(users, approvalData = null) {
     // Populate RequesterId dropdown with search functionality
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
+        console.log("Before populating users, RequesterId value:", requesterSelect.value);
+        const currentValue = requesterSelect.value; // Store current value
+        
+        // Clear existing options except the currently selected one
+        requesterSelect.innerHTML = '<option value="" disabled>Select Requester</option>';
+        
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
             option.textContent = user.fullName;
+            // Pre-select if this matches the current value
+            if (currentValue && user.id === currentValue) {
+                option.selected = true;
+            }
             requesterSelect.appendChild(option);
         });
+        
+        console.log("After populating users, RequesterId value:", requesterSelect.value);
     }
 
     // Setup search functionality for requester
@@ -304,7 +332,9 @@ async function fetchPRDetails(prId, prType) {
         }
         const responseData = await response.json();
         if (responseData.data) {
-            console.log(responseData.data);
+            console.log("API Response Data:", responseData.data);
+            console.log("Requester ID from API:", responseData.data.requesterId);
+            console.log("Requester Name from API:", responseData.data.requesterName);
             populatePRDetails(responseData.data);
             
             // Always fetch dropdown options
@@ -327,6 +357,7 @@ async function fetchPRDetails(prId, prType) {
 // Function to fetch all dropdown options
 function fetchDropdownOptions(approvalData = null) {
     fetchDepartments();
+    fetchClassifications();
     fetchUsers(approvalData);
     fetchItemOptions();
 }
@@ -343,6 +374,21 @@ async function fetchDepartments() {
         populateDepartmentSelect(data.data);
     } catch (error) {
         console.error('Error fetching departments:', error);
+    }
+}
+
+// Function to fetch classifications from API
+async function fetchClassifications() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/classifications');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const data = await response.json();
+        console.log("Classification data:", data);
+        populateClassificationSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching classifications:', error);
     }
 }
 
@@ -519,6 +565,39 @@ function populateDepartmentSelect(departments) {
     // If we have a current value and it wasn't matched by text, try to select by value
     if (currentValue && departmentSelect.value !== currentValue) {
         departmentSelect.value = currentValue;
+    }
+}
+
+// Function to populate classification select
+function populateClassificationSelect(classifications) {
+    const classificationSelect = document.getElementById("classification");
+    if (!classificationSelect) return;
+    
+    // Store the currently selected value
+    const currentValue = classificationSelect.value;
+    const currentText = classificationSelect.options[classificationSelect.selectedIndex]?.text;
+    
+    classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
+
+    classifications.forEach(classification => {
+        const option = document.createElement("option");
+        option.value = classification.id;
+        option.textContent = classification.name;
+        classificationSelect.appendChild(option);
+        
+        // If this classification matches the current text, select it
+        if (classification.name === currentText) {
+            option.selected = true;
+        }
+
+        if (window.currentValues && window.currentValues.classification && classification.name === window.currentValues.classification) {
+            option.selected = true;
+        }
+    });
+    
+    // If we have a current value and it wasn't matched by text, try to select by value
+    if (currentValue && classificationSelect.value !== currentValue) {
+        classificationSelect.value = currentValue;
     }
 }
 
@@ -700,11 +779,17 @@ function populatePRDetails(data) {
     
     // Handle requester name with search functionality
     if (data.requesterName) {
+        console.log("Setting requesterSearch to:", data.requesterName);
         document.getElementById('requesterSearch').value = data.requesterName;
         // Store the requester ID if available
         if (data.requesterId) {
+            console.log("Setting RequesterId to:", data.requesterId);
             document.getElementById('RequesterId').value = data.requesterId;
+        } else {
+            console.log("No requesterId found in data. Available fields:", Object.keys(data));
         }
+    } else {
+        console.log("No requesterName found in data");
     }
     
     // Format and set dates - extract date part directly to avoid timezone issues
@@ -740,17 +825,7 @@ function populatePRDetails(data) {
         console.log(data.status);
     }
 
-    // Set classification - create option directly from backend data
-    const classificationSelect = document.getElementById('classification');
-    if (data.classification && classificationSelect) {
-        classificationSelect.innerHTML = ''; // Clear existing options
-        console.log('Classification:', data.classification);
-        const option = document.createElement('option');
-        option.value = data.classification; // Use classification as value since backend returns string
-        option.textContent = data.classification;
-        option.selected = true;
-        classificationSelect.appendChild(option);
-    }
+    // Classification will be set when API data is fetched via populateClassificationSelect
 
     // Store and display attachments
     if (data.attachments) {
@@ -774,6 +849,11 @@ function populatePRDetails(data) {
     
     // Set default dates if fields are empty (only for Draft status)
     setDefaultDatesIfEmpty();
+    
+    // Apply date validation after data is populated
+    if (window.updateRequiredDateMin) {
+        window.updateRequiredDateMin();
+    }
     
     // Check if editable after populating data
     const isEditable = window.currentValues.status === 'Draft';
@@ -1032,7 +1112,27 @@ async function updatePR(isSubmit = false) {
         });
 
 
-        formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
+        // Always use the original requester ID, don't fallback to logged-in user
+        const requesterIdElement = document.getElementById("RequesterId");
+        console.log("RequesterId element found:", !!requesterIdElement);
+        if (requesterIdElement) {
+            console.log("RequesterId element value:", requesterIdElement.value);
+            console.log("All options in RequesterId select:", Array.from(requesterIdElement.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+        }
+        
+        const requesterIdValue = requesterIdElement?.value;
+        if (!requesterIdValue) {
+            console.log("RequesterId is empty, current value:", requesterIdValue);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Requester ID is missing. Please refresh the page and try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        formData.append('RequesterId', requesterIdValue);
+        console.log("RequesterId:", requesterIdValue);
         formData.append('IsSubmit', isSubmit.toString()); // Add IsSubmit parameter
         
         // Use the department ID from the select
@@ -1098,8 +1198,8 @@ async function updatePR(isSubmit = false) {
         console.log('Attachments to keep:', attachmentsToKeep);
         console.log('New files to upload:', uploadedFiles);
 
+        console.log("formData", formData);
 
-        
         // Submit the form data
         makeAuthenticatedRequest(`/api/pr/item/${prId}`, {
             method: 'PUT',

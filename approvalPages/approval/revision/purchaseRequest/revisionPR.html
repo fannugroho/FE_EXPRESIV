@@ -34,7 +34,7 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReceivePR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button onclick="goToMenuRevisionPR()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Purchase Request Details</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
@@ -43,7 +43,13 @@
                 <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester Name" class="w-full p-2 border rounded" readonly>
+                <div class="relative">
+                    <input type="text" id="requesterSearch" placeholder="Search Requester" class="w-full p-2 border rounded search-input" onkeyup="filterRequesters()" autocomplete="off">
+                    <select id="RequesterId" class="hidden">
+                        <option value="" disabled>Select Requester</option>
+                    </select>
+                    <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded" disabled>
@@ -167,12 +173,12 @@
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
                     <select id="acknowledgedBy" class="hidden">
                         <option value="Supervisor1">Supervisor 1</option>
                         <option value="Supervisor2">Supervisor 2</option>
                     </select>
-                    <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
