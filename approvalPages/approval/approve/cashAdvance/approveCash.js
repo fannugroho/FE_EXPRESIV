@@ -3,6 +3,57 @@ let uploadedFiles = [];
 let caId; // Declare global variable
 let currentTab; // Declare global variable for tab
 
+// Function to get available categories based on department and transaction type from API
+async function getAvailableCategories(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get available account names based on category, department, and transaction type from API
+async function getAvailableAccountNames(category, departmentId, transactionType) {
+    if (!category || !departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch account names');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching account names:', error);
+        return [];
+    }
+}
+
+// Function to get COA based on category, account name, department, and transaction type from API
+async function getCOA(category, accountName, departmentId, transactionType) {
+    if (!category || !accountName || !departmentId || !transactionType) return '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch COA');
+        }
+        const data = await response.json();
+        return data.data?.coa || data.coa || ''; // Handle different response structures
+    } catch (error) {
+        console.error('Error fetching COA:', error);
+        return '';
+    }
+}
+
 // Function to fetch CA details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -137,10 +188,19 @@ function populateCashAdvanceDetails(details) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
-                <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.category || ''}" class="category-input w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.accountName || ''}" class="account-name w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.coa || ''}" class="coa w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.description || ''}" class="description w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="number" value="${detail.amount || ''}" class="amount w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -560,6 +620,10 @@ function goToMenuCash() {
     window.location.href = "../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html";
 }
 
+function goToMenuApprovCash() {
+    window.location.href = "../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html";
+}
+
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
     // Make all input fields read-only except revision textarea
@@ -671,10 +735,19 @@ function addRow() {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
+            <input type="text" class="category-input w-full bg-gray-100" readonly />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="text" class="account-name w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="coa w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="description w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="amount w-full" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -762,88 +835,89 @@ function printCash() {
         (departmentSelect.options[departmentSelect.selectedIndex] ? 
             departmentSelect.options[departmentSelect.selectedIndex].text : '') : '';
     
-    // Get date and status
-    const submissionDate = document.getElementById('postingDate').value || '';
-    const statusSelect = document.getElementById('docStatus');
-    const status = statusSelect ? 
-        (statusSelect.options[statusSelect.selectedIndex] ? 
-            statusSelect.options[statusSelect.selectedIndex].value : '') : '';
+    // Get items from table - menggunakan ID cashTable yang benar
+    const items = [];
+    const table = document.getElementById('cashTable');
+    if (table) {
+        const rows = table.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            const categoryInput = row.querySelector('.category-input');
+            const accountNameInput = row.querySelector('.account-name');
+            const coaInput = row.querySelector('.coa');
+            const descriptionInput = row.querySelector('.description');
+            const amountInput = row.querySelector('.amount');
+            
+            if (categoryInput && accountNameInput && amountInput) {
+                items.push({
+                    category: categoryInput.value || '',
+                    accountName: accountNameInput.value || '',
+                    coa: coaInput ? coaInput.value || '' : '',
+                    description: descriptionInput ? descriptionInput.value || '' : '',
+                    amount: amountInput.value || '0'
+                });
+            }
+        });
+    }
     
-    // Get transaction type
-    const transactionTypeSelect = document.getElementById('typeTransaction');
-    const transactionType = transactionTypeSelect ? 
-        (transactionTypeSelect.options[transactionTypeSelect.selectedIndex] ? 
-            transactionTypeSelect.options[transactionTypeSelect.selectedIndex].value : '') : '';
-    
-    // Get remarks if exists
-    const remarks = document.getElementById('remarks').value || '';
-    
-    // Get approval signatories
-    const preparedBySelect = document.getElementById('preparedSelect');
-    const preparedBy = preparedBySelect ? 
-        (preparedBySelect.options[preparedBySelect.selectedIndex] ? 
-            preparedBySelect.options[preparedBySelect.selectedIndex].text : '') : '';
-    
-    const checkedBySelect = document.getElementById('checkedSelect');
-    const checkedBy = checkedBySelect ? 
-        (checkedBySelect.options[checkedBySelect.selectedIndex] ? 
-            checkedBySelect.options[checkedBySelect.selectedIndex].text : '') : '';
-    
-    const acknowledgedBySelect = document.getElementById('acknowledgedSelect');
-    const acknowledgedBy = acknowledgedBySelect ? 
-        (acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex] ? 
-            acknowledgedBySelect.options[acknowledgedBySelect.selectedIndex].text : '') : '';
-    
-    const approvedBySelect = document.getElementById('approvedSelect');
-    const approvedBy = approvedBySelect ? 
-        (approvedBySelect.options[approvedBySelect.selectedIndex] ? 
-            approvedBySelect.options[approvedBySelect.selectedIndex].text : '') : '';
-    
-    // Collect table items
-    const tableItems = [];
-    const rows = document.querySelectorAll('#tableBody tr');
-    let hasValidItems = false;
-    
-    rows.forEach(row => {
-        const descriptionInput = row.querySelector('input[type="text"]');
-        const amountInput = row.querySelector('input[type="number"]');
-        
-        if (descriptionInput && amountInput && 
-            descriptionInput.value.trim() !== '' && 
-            amountInput.value.trim() !== '') {
-            tableItems.push({
-                description: descriptionInput.value,
-                amount: amountInput.value
-            });
-            hasValidItems = true;
-        }
+    // Calculate total amount
+    let totalAmount = 0;
+    items.forEach(item => {
+        totalAmount += parseFloat(item.amount) || 0;
     });
     
-    // Convert items array to JSON string and encode for URL
-    const itemsParam = encodeURIComponent(JSON.stringify(tableItems));
+    // Get approval information - menggunakan ID yang benar
+    const proposedBy = document.getElementById('preparedBySearch').value || '';
+    const checkedBy = document.getElementById('checkedBySearch').value || '';
+    const acknowledgedBy = document.getElementById('acknowledgedBySearch').value || '';
+    const approvedBy = document.getElementById('approvedBySearch').value || '';
+    const receivedBy = document.getElementById('receivedBySearch').value || '';
+    const closedBy = document.getElementById('closedBySearch') ? document.getElementById('closedBySearch').value || '' : '';
     
-    // Create URL with parameters
-    const url = `printCashAdv.html?cashAdvanceNo=${encodeURIComponent(cashAdvanceNo)}`
-        + `&employeeNik=${encodeURIComponent(employeeId)}`
-        + `&employeeName=${encodeURIComponent(employeeName)}`
-        + `&requesterName=${encodeURIComponent(requesterName)}`
-        + `&purpose=${encodeURIComponent(purpose)}`
+    // Get approval status
+    const proposedApproved = document.getElementById('preparedBySearch').value ? 'true' : 'false';
+    const checkedApproved = document.getElementById('checkedBySearch').value ? 'true' : 'false';
+    const acknowledgedApproved = document.getElementById('acknowledgedBySearch').value ? 'true' : 'false';
+    const approvedApproved = document.getElementById('approvedBySearch').value ? 'true' : 'false';
+    const receivedApproved = document.getElementById('receivedBySearch').value ? 'true' : 'false';
+    
+    // Get remarks
+    const remarks = document.getElementById('remarks').value || '';
+    
+    // Get transaction type
+    const transactionType = document.getElementById('typeTransaction').value || '';
+    
+    // Build URL with parameters
+    const printUrl = `printCashAdv.html?ca-id=${encodeURIComponent(caId || cashAdvanceNo)}`
+        + `&invno=${encodeURIComponent(cashAdvanceNo)}`
+        + `&Employee=${encodeURIComponent(employeeId)}`
+        + `&EmployeeName=${encodeURIComponent(employeeName)}`
+        + `&requester=${encodeURIComponent(requesterName)}`
+        + `&purposed=${encodeURIComponent(purpose)}`
         + `&paidTo=${encodeURIComponent(paidTo)}`
         + `&department=${encodeURIComponent(department)}`
-        + `&submissionDate=${encodeURIComponent(submissionDate)}`
-        + `&status=${encodeURIComponent(status)}`
-        + `&transactionType=${encodeURIComponent(transactionType)}`
+        + `&items=${encodeURIComponent(JSON.stringify(items))}`
+        + `&amount=${encodeURIComponent(totalAmount)}`
+        + `&prepared=${encodeURIComponent(proposedBy)}`
+        + `&Checked=${encodeURIComponent(checkedBy)}`
+        + `&Acknowledged=${encodeURIComponent(acknowledgedBy)}`
+        + `&Approved=${encodeURIComponent(approvedBy)}`
+        + `&Received=${encodeURIComponent(receivedBy)}`
+        + `&Closed=${encodeURIComponent(closedBy)}`
         + `&remarks=${encodeURIComponent(remarks)}`
-        + `&proposedBy=${encodeURIComponent(preparedBy)}`
-        + `&checkedBy=${encodeURIComponent(checkedBy)}`
-        + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
-        + `&approvedBy=${encodeURIComponent(approvedBy)}`
-        + `&items=${itemsParam}`;
+        + `&transactionType=${encodeURIComponent(transactionType)}`
+        + `&postingDate=${encodeURIComponent(document.getElementById('postingDate').value || new Date().toISOString().split('T')[0])}`
+        + `&proposedApproved=${proposedApproved}`
+        + `&checkedApproved=${checkedApproved}`
+        + `&acknowledgedApproved=${acknowledgedApproved}`
+        + `&approvedApproved=${approvedApproved}`
+        + `&receivedApproved=${receivedApproved}`;
     
-    console.log("Opening print URL:", url); // Debug log
+    // Open print window
+    window.open(printUrl, '_blank');
     
-    // Open the print page in a new tab
-    window.open(url, '_blank');
+    // Tambahkan log untuk debugging
+    console.log("Opening print window with URL:", printUrl);
+    console.log("Items data:", items);
 }
 
 // Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)

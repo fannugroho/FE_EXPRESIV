@@ -97,6 +97,9 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Account Name</th>
+                    <th class="p-2">GL Account (COA)</th>
                     <th class="p-2">Description</th>
                     <th class="p-2">Amount</th>
                     <th class="p-2">Action</th>
@@ -105,13 +108,19 @@
             <tbody id="tableBody">
                 <tr>
                     <td class="p-2 border">
-                        <input type="text" maxlength="200" class="w-full" required />
+                        <input type="text" class="category-input w-full bg-gray-100" readonly />
                     </td>                                                                            
                     <td class="p-2 border">
-                        <input type="number" maxlength="10" class="w-full" required />
+                        <input type="text" class="account-name w-full bg-gray-100" readonly />
                     </td>
-                    <td class="p-2 border text-center">
-                        <span class="text-gray-400">View Only</span>
+                    <td class="p-2 border">
+                        <input type="number" class="coa w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="description w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" class="amount w-full bg-gray-100" readonly />
                     </td>
                 </tr>
             </tbody>

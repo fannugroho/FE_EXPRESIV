@@ -3,6 +3,57 @@ let uploadedFiles = [];
 let caId; // Declare global variable
 let currentTab; // Declare global variable for tab
 
+// Function to get available categories based on department and transaction type from API
+async function getAvailableCategories(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get available account names based on category, department, and transaction type from API
+async function getAvailableAccountNames(category, departmentId, transactionType) {
+    if (!category || !departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch account names');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching account names:', error);
+        return [];
+    }
+}
+
+// Function to get COA based on category, account name, department, and transaction type from API
+async function getCOA(category, accountName, departmentId, transactionType) {
+    if (!category || !accountName || !departmentId || !transactionType) return '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch COA');
+        }
+        const data = await response.json();
+        return data.data?.coa || data.coa || ''; // Handle different response structures
+    } catch (error) {
+        console.error('Error fetching COA:', error);
+        return '';
+    }
+}
+
 // Function to fetch CA details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -136,6 +187,15 @@ function populateCashAdvanceDetails(details) {
     details.forEach(detail => {
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td class="p-2 border">
+                <input type="text" value="${detail.category || ''}" class="category-input w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.accountName || ''}" class="account-name w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.coa || ''}" class="coa w-full bg-gray-100" readonly />
+            </td>
             <td class="p-2 border">
                 <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
@@ -440,6 +500,11 @@ function goToMenuCash() {
     window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
 }
 
+// Function for Back button navigation
+function goToMenuAcknowCash() {
+    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
+}
+
 function previewPDF(event) {
     const files = event.target.files;
     if (files.length + uploadedFiles.length > 5) {
@@ -468,7 +533,16 @@ function addRow() {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
+            <input type="text" class="category-input w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="account-name w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="coa w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />
@@ -606,15 +680,35 @@ function displayAttachments(attachments) {
     }
 }
 
-// Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)
+// Function to submit revision with multiple fields
 function submitRevision() {
-    const revisionRemarks = document.getElementById('revision').value;
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
     
-    if (!revisionRemarks || revisionRemarks.trim() === '') {
+    // Check if revision button is disabled
+    if (document.getElementById('revisionBtn').disabled) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Missing Revision Remarks',
-            text: 'Please enter revision remarks before submitting.'
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
         });
         return;
     }
@@ -655,7 +749,7 @@ function submitRevision() {
                 id: caId,
                 UserId: userId,
                 Status: 'revise',
-                RevisionRemarks: revisionRemarks.trim()
+                RevisionRemarks: allRemarks.trim()
             };
 
             // Show loading
@@ -722,8 +816,16 @@ function submitRevision() {
                     timer: 3000,
                     showConfirmButton: true
                 }).then(() => {
-                    // Clear the revision field
-                    document.getElementById('revision').value = '';
+                    // Clear the revision fields
+                    const revisionContainer = document.getElementById('revisionContainer');
+                    revisionContainer.innerHTML = '';
+                    revisionContainer.classList.add('hidden');
+                    
+                    // Reset add button
+                    const addBtn = document.getElementById('addRevisionBtn');
+                    addBtn.textContent = '+ Add revision';
+                    addBtn.style.display = 'block';
+                    
                     // Disable revision button again
                     const revisionBtn = document.getElementById('revisionBtn');
                     revisionBtn.disabled = true;
@@ -735,5 +837,243 @@ function submitRevision() {
             }, 1500); // Simulate API delay
         }
     });
+}
+
+// Function to toggle revision field visibility and add first field
+function toggleRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if maximum limit is reached
+    if (revisionFields.length >= 4) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Batas Maksimal',
+            text: 'Maksimal hanya 4 revision field yang diperbolehkan'
+        });
+        return;
+    }
+    
+    // Check if current user already has a revision field
+    if (hasUserAlreadyAddedRevision()) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sudah Ada Revision',
+            text: 'Anda sudah menambahkan revision. Setiap user hanya diperbolehkan menambahkan satu revision.'
+        });
+        return;
+    }
+    
+    if (container.classList.contains('hidden')) {
+        // Show container and add first field
+        container.classList.remove('hidden');
+        addRevisionField();
+        updateAddButton();
+    } else {
+        // Add another field
+        addRevisionField();
+        updateAddButton();
+    }
+}
+
+// Function to add revision field
+function addRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    
+    // Create wrapper div for the textarea and delete button
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+    
+    // Create textarea
+    const newField = document.createElement('textarea');
+    newField.className = 'w-full p-2 border rounded-md';
+    newField.placeholder = 'Enter additional revision details';
+    
+    // Add event listener for input to handle protected prefix
+    newField.addEventListener('input', handleRevisionInput);
+    
+    // Initialize with user prefix
+    initializeWithUserPrefix(newField);
+    
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.innerHTML = '&times;'; // × symbol
+    deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+    deleteButton.title = 'Hapus field revision ini';
+    deleteButton.onclick = function() {
+        // Check if user can delete this field (only allow deleting own field)
+        const userInfo = getUserInfo();
+        const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        if (!newField.value.startsWith(userPrefix)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tidak Diizinkan',
+                text: 'Anda hanya bisa menghapus revision field yang Anda buat sendiri'
+            });
+            return;
+        }
+        
+        fieldWrapper.remove();
+        checkRevisionButton(); // Update button state after removing a field
+        checkRevisionContainer(); // Check if container should be hidden
+    };
+    
+    // Add textarea and delete button to wrapper
+    fieldWrapper.appendChild(newField);
+    fieldWrapper.appendChild(deleteButton);
+    
+    // Add wrapper to container
+    container.appendChild(fieldWrapper);
+    
+    // Update the revision button state
+    checkRevisionButton();
+    updateAddButton();
+}
+
+// Check if revision container should be hidden when all fields are removed
+function checkRevisionContainer() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    if (revisionFields.length === 0) {
+        container.classList.add('hidden');
+        addBtn.textContent = '+ Add revision';
+        addBtn.style.display = 'block';
+    } else {
+        updateAddButton();
+    }
+}
+
+// Check if current user already has a revision field
+function hasUserAlreadyAddedRevision() {
+    const userInfo = getUserInfo();
+    const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    for (let field of revisionFields) {
+        if (field.value.startsWith(userPrefix)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Update add button based on current state
+function updateAddButton() {
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    const hasUserRevision = hasUserAlreadyAddedRevision();
+    
+    if (revisionFields.length >= 4) {
+        // Maximum limit reached
+        addBtn.textContent = 'Maksimal 4 revision tercapai';
+        addBtn.style.display = 'none';
+    } else if (hasUserRevision) {
+        // User already has a revision
+        addBtn.textContent = 'Anda sudah menambahkan revision';
+        addBtn.style.display = 'none';
+    } else {
+        // User can still add revision
+        if (revisionFields.length === 0) {
+            addBtn.textContent = '+ Add revision';
+        } else {
+            addBtn.textContent = '+ Add more revision';
+        }
+        addBtn.style.display = 'block';
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Acknowledger'; // Default role for this page since we're on the acknowledger page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the acknowledger page, the role is Acknowledger
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
+// Function to initialize textarea with user prefix
+function initializeWithUserPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix
+function handleRevisionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        // Restore the prefix
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            
+            // Reset cursor position after the prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+    
+    // Update revision button state
+    checkRevisionButton();
+}
+
+// Check if revision remarks are filled to enable/disable revision button
+function checkRevisionButton() {
+    const revisionButton = document.getElementById('revisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    let hasContent = false;
+    
+    // Check if there are any revision fields and if they have content
+    if (revisionFields.length > 0) {
+        revisionFields.forEach(field => {
+            const prefixLength = parseInt(field.dataset.prefixLength || '0');
+            // Check if there's content beyond the prefix
+            if (field.value.trim().length > prefixLength) {
+                hasContent = true;
+            }
+        });
+    }
+    
+    if (hasContent) {
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = false;
+    } else {
+        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = true;
+    }
 }
 

@@ -368,120 +368,55 @@ function updateCAStatus(status) {
         data.closedById = closedById;
     }
     
-    console.log('Sending data to API:', data);
-    
-    // Use makeAuthenticatedRequest if available, otherwise fallback to fetch
-    if (typeof makeAuthenticatedRequest === 'function') {
-        makeAuthenticatedRequest('/api/cash-advance/update-status', {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            console.log('Success:', response);
-            
-            let title, text, icon;
-            if (status === 'received') {
-                title = 'Received!';
-                text = 'The cash advance has been received successfully.';
-                icon = 'success';
-            } else if (status === 'rejected') {
-                title = 'Rejected!';
-                text = 'The cash advance has been rejected.';
-                icon = 'error';
-            }
-            
-            Swal.fire({
-                title: title,
-                text: text,
-                icon: icon,
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // Redirect back to menu
-                goToMenuReceiveCash();
+    // Send update to API
+    fetch(`${BASE_URL}/api/cash-advance/update-status`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAccessToken()}`
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
             });
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to update cash advance status: ' + error.message
-            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+        
+        let title, text, icon;
+        if (status === 'received') {
+            title = 'Received!';
+            text = 'The cash advance has been received successfully.';
+            icon = 'success';
+        } else if (status === 'rejected') {
+            title = 'Rejected!';
+            text = 'The cash advance has been rejected.';
+            icon = 'error';
+        }
+        
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: icon,
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect back to menu
+            goToMenuReceiveCash();
         });
-    } else {
-        // Fallback to regular fetch with improved error handling
-        fetch(`${BASE_URL}/api/cash-advance/update-status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            
-            if (!response.ok) {
-                return response.text().then(text => {
-                    console.log('Error response text:', text);
-                    try {
-                        if (text && text.trim()) {
-                            return JSON.parse(text);
-                        } else {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                    } catch (e) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                });
-            }
-            
-            return response.text().then(text => {
-                if (!text || !text.trim()) {
-                    // Handle empty response
-                    return { success: true };
-                }
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    console.log('Response is not JSON:', text);
-                    return { success: true };
-                }
-            });
-        })
-        .then(data => {
-            console.log('Success:', data);
-            
-            let title, text, icon;
-            if (status === 'received') {
-                title = 'Received!';
-                text = 'The cash advance has been received successfully.';
-                icon = 'success';
-            } else if (status === 'rejected') {
-                title = 'Rejected!';
-                text = 'The cash advance has been rejected.';
-                icon = 'error';
-            }
-            
-            Swal.fire({
-                title: title,
-                text: text,
-                icon: icon,
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // Redirect back to menu
-                goToMenuReceiveCash();
-            });
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to update cash advance status: ' + error.message
-            });
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to update cash advance status: ' + error.message
         });
-    }
+    });
 }
 
 // Function to update cash advance status with remarks
@@ -532,8 +467,6 @@ function updateCashStatusWithRemarks(status, remarks) {
         data.closedById = closedById;
     }
     
-    console.log('Sending data to API with remarks:', data);
-    
     // Send update to API
     fetch(`${BASE_URL}/api/cash-advance/update-status`, {
         method: 'PUT',
@@ -544,35 +477,12 @@ function updateCashStatusWithRemarks(status, remarks) {
         body: JSON.stringify(data)
     })
     .then(response => {
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
-            return response.text().then(text => {
-                console.log('Error response text:', text);
-                try {
-                    if (text && text.trim()) {
-                        return JSON.parse(text);
-                    } else {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                } catch (e) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
             });
         }
-        
-        return response.text().then(text => {
-            if (!text || !text.trim()) {
-                // Handle empty response
-                return { success: true };
-            }
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                console.log('Response is not JSON:', text);
-                return { success: true };
-            }
-        });
+        return response.json();
     })
     .then(data => {
         console.log('Success:', data);

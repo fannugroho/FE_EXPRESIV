@@ -191,24 +191,31 @@ function populatePurchaseRequests(data) {
         // Get status from approval object
         const status = doc.status ? doc.status : "Open";
         
-        // Check if PR Number is longer than 15 characters
-        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'pr-number-cell' : '';
-        
-        // Check if Requester Name is longer than 15 characters
-        const requesterNameClass = doc.requesterName && doc.requesterName.length > 15 ? 'requester-name-cell' : '';
+        // Check if fields are longer than 10 characters and apply scrollable class
+        const docNumberClass = doc.id && doc.id.length > 10 ? 'scrollable-cell' : '';
+        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 10 ? 'scrollable-cell' : '';
+        const requesterNameClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
+        const departmentClass = doc.departmentName && doc.departmentName.length > 10 ? 'scrollable-cell' : '';
+        const poNumberClass = poNumber && poNumber.length > 10 ? 'scrollable-cell' : '';
         
         const row = `<tr class='w-full border-b'>
-            <td class='p-2'>${(currentPage - 1) * itemsPerPage + index + 1}</td>
+            <td class='p-2'>
+                <div class="${docNumberClass}">${(currentPage - 1) * itemsPerPage + index + 1}</div>
+            </td>
             <td class='p-2'>
                 <div class="${prNumberClass}">${doc.purchaseRequestNo ? doc.purchaseRequestNo : ''}</div>
             </td>
             <td class='p-2'>
                 <div class="${requesterNameClass}">${doc.requesterName || ''}</div>
             </td>
-            <td class='p-2'>${doc.departmentName}</td>
+            <td class='p-2'>
+                <div class="${departmentClass}">${doc.departmentName || ''}</div>
+            </td>
             <td class='p-2'>${submissionDate}</td>
             <td class='p-2'>${requiredDate}</td>
-            <td class='p-2'>${poNumber}</td>
+            <td class='p-2'>
+                <div class="${poNumberClass}">${poNumber}</div>
+            </td>
             <td class='p-2'>${status}</td>
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>

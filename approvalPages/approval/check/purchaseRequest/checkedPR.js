@@ -704,12 +704,20 @@ function makeAllFieldsReadOnly() {
 function hideApprovalButtons() {
     const approveButton = document.querySelector('button[onclick="approvePR()"]');
     const rejectButton = document.querySelector('button[onclick="rejectPR()"]');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
     
     if (approveButton) {
         approveButton.style.display = 'none';
     }
     if (rejectButton) {
         rejectButton.style.display = 'none';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
     }
     
     // Also hide any parent container if needed

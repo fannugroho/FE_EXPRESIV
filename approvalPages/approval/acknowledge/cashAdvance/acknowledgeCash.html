@@ -96,20 +96,32 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th id="thDescription" class="p-2">Description</th>
-                    <th id="thTotal" class="p-2">Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Account Name</th>
+                    <th class="p-2">GL Account (COA)</th>
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Amount</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="Description" maxlength="200" class="w-full" readonly />
+                    <td class="p-2 border">
+                        <input type="text" class="category-input w-full bg-gray-100" readonly />
                     </td>
-                    <td id="tdTotal" class="p-2 border">
-                        <input type="number" id="Total" maxlength="10" class="w-full" required />
+                    <td class="p-2 border">
+                        <input type="text" class="account-name w-full bg-gray-100" readonly />
                     </td>
-                    <td id="tdAction" class="p-2 border text-center">
+                    <td class="p-2 border">
+                        <input type="text" class="coa w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" maxlength="200" class="w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" maxlength="10" class="w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border text-center">
                         <span class="text-gray-400">View Only</span>
                     </td>
                 </tr>
@@ -126,10 +138,18 @@
           <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
         </div>
 
-        <div class="mt-4">
-          <label class="text-red-600">Needed Revision</label>
-          <textarea id="revision" class="w-full p-2 border rounded-md"></textarea>
-        </div>
+            <!-- Revision Remarks Section -->
+            <div class="mt-4">
+                <div class="flex justify-between items-center">
+                    <!--<label class="text-red-600">Need Revision</label>-->
+                    <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+                </div>
+                <div id="revisionContainer" class="hidden">
+                    <!-- Revision fields will be added here by JavaScript -->
+                </div>
+            </div>
+        
+        <br>
 
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
@@ -225,32 +245,25 @@
         // Call toggleClosedBy when page loads to set initial visibility
         document.addEventListener('DOMContentLoaded', function() {
             toggleClosedBy();
+            
+            const revisionContainer = document.getElementById('revisionContainer');
+            
+            // Use event delegation to handle input events on all textareas
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    checkRevisionButton();
+                    updateAddButton(); // Update button state when content changes
+                }
+            });
+            
+            // Initialize button state
+            checkRevisionButton();
+            updateAddButton();
         });
 
-        // Event listener untuk textarea revision
-        document.getElementById('revision').addEventListener('input', function() {
-            const revisionBtn = document.getElementById('revisionBtn');
-            if (this.value.trim() !== '') {
-                revisionBtn.disabled = false;
-                revisionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else {
-                revisionBtn.disabled = true;
-                revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        });
+        // Event listeners are now handled via event delegation in DOMContentLoaded
 
-        function submitRevision() {
-            const revisionText = document.getElementById('revision').value;
-            if (revisionText.trim() !== '') {
-                // Di sini Anda bisa menambahkan logika untuk memproses revisi
-                Swal.fire({
-                    title: 'Revision Submitted',
-                    text: 'Your revision request has been submitted successfully',
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                });
-            }
-        }
+        // submitRevision function is now defined in acknowledgeCash.js
     </script>
 </body>
 </html>

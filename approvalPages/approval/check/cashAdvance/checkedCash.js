@@ -3,6 +3,40 @@ let uploadedFiles = [];
 let caId; // Declare global variable
 let currentTab; // Declare global variable for tab
 
+// Function to get available categories based on department and transaction type from API
+async function getAvailableCategories(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get available account names based on category, department, and transaction type from API
+async function getAvailableAccountNames(category, departmentId, transactionType) {
+    if (!category || !departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch account names');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching account names:', error);
+        return [];
+    }
+}
+
 // Function to fetch CA details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -137,6 +171,15 @@ function populateCashAdvanceDetails(details) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
+                <input type="text" value="${detail.category || ''}" class="category-input w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.accountName || ''}" class="account-name w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.coa || ''}" class="coa w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
                 <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
@@ -144,6 +187,7 @@ function populateCashAdvanceDetails(details) {
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
+                <span class="text-gray-400">View Only</span>
             </td>
         `;
         tableBody.appendChild(row);
@@ -666,7 +710,16 @@ function addRow() {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
+            <input type="text" class="category-input w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="account-name w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="coa w-full bg-gray-100" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" readonly />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required />

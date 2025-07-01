@@ -4,6 +4,10 @@ let prId; // Declare global variable
 let prType; // Declare global variable
 let currentTab; // Declare global variable for tab
 
+// Declare global variables for search
+let currentSearchTerm = '';
+let currentSearchType = 'description';
+
 // Function to fetch PR details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -15,7 +19,7 @@ window.onload = function() {
         fetchPRDetails(prId, prType);
     }
     
-    // Hide approve/reject buttons if viewing from checked or rejected tabs
+    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
     if (currentTab === 'acknowledged' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
@@ -30,6 +34,37 @@ window.onload = function() {
             }
         });
     });
+    
+    // Add event listener for search input with debouncing
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
+        });
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update placeholder based on search type
+            searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+            
+            // Update current search type
+            currentSearchType = this.value;
+            
+            // Trigger search with current term
+            if (currentSearchTerm) {
+                handleSearch();
+            }
+        });
+    }
 };
 
 // Function to filter users for the search dropdown in approval section
@@ -127,6 +162,11 @@ function populatePRDetails(data) {
     // Set remarks
     if (document.getElementById('remarks')) {
         document.getElementById('remarks').value = data.remarks;
+    }
+    
+    // Hide buttons if status is "Acknowledged"
+    if (data.status === 'Acknowledged') {
+        hideApprovalButtons();
     }
 
     // Set department - create option directly from backend data
@@ -255,22 +295,21 @@ function populateServiceDetails(services) {
 
 function populateItemDetails(items) {
     const tableBody = document.getElementById('tableBody');
-    
     tableBody.innerHTML = ''; // Clear existing rows
     
-    if (items.length === 0) {
-        console.log('No items to display');
-        return;
-    }
-    
-    items.forEach((item, index) => {
-        try {
-            console.log('Adding item row with data:', item);
+    if (items && items.length > 0) {
+        items.forEach((item, index) => {
             addItemRow(item);
-        } catch (error) {
+        });
+        
+        // Apply any active search filter after populating
+        if (currentSearchTerm) {
+            handleSearch();
         }
-    });
-    
+    } else {
+        // Add an empty row if no items
+        addItemRow();
+    }
 }
 
 function addItemRow(item = null) {
@@ -389,49 +428,97 @@ function populateUserSelects(users, prData = null) {
     });
 }
 
-// Function to approve PR
+// Function to reset search
+function resetSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    currentSearchTerm = '';
+    
+    // Reset display of all rows
+    const tableBody = document.getElementById('tableBody');
+    const rows = tableBody.getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        rows[i].style.display = '';
+    }
+}
+
+// Update the approvePR, rejectPR, and revisionPR functions to reset search first
 function approvePR() {
+    resetSearch(); // Reset search before proceeding
+    
     Swal.fire({
-        title: 'Confirm Acknowledgment',
-        text: 'Are you sure you want to acknowledge this Purchase Request?',
+        title: 'Acknowledge Purchase Request',
+        text: 'Are you sure you want to acknowledge this purchase request?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Acknowledge',
+        confirmButtonText: 'Yes, acknowledge it',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updatePRStatus('approve');
+            updatePRStatus('acknowledge');
         }
     });
 }
 
-// Function to reject PR
 function rejectPR() {
+    resetSearch(); // Reset search before proceeding
+    
     Swal.fire({
-        title: 'Reject PR',
+        title: 'Reject Purchase Request',
+        text: 'Please provide a reason for rejection:',
         input: 'textarea',
-        inputLabel: 'Please provide a reason for rejection',
-        inputPlaceholder: 'Enter your reason here...',
-        inputAttributes: {
-            'aria-label': 'Rejection reason'
-        },
+        inputPlaceholder: 'Enter rejection reason here...',
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        preConfirm: (remarks) => {
-            if (!remarks.trim()) {
-                Swal.showValidationMessage('Please enter a reason for rejection');
-                return false;
+        inputValidator: (value) => {
+            if (!value) {
+                return 'You need to provide a reason for rejection!';
             }
-            return remarks;
         }
-    }).then((remarksResult) => {
-        if (remarksResult.isConfirmed) {
-            updatePRStatusWithRemarks('reject', remarksResult.value);
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updatePRStatusWithRemarks('reject', result.value);
+        }
+    });
+}
+
+function revisionPR() {
+    resetSearch(); // Reset search before proceeding
+    
+    // Get all revision fields
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    if (!revisionFields.length) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No Revision Details',
+            text: 'Please add revision details before submitting'
+        });
+        return;
+    }
+    
+    // Collect all revision remarks
+    let revisionRemarks = '';
+    revisionFields.forEach(field => {
+        revisionRemarks += field.value.trim() + '\n\n';
+    });
+    
+    // Confirm with user
+    Swal.fire({
+        title: 'Request Revision',
+        text: 'Are you sure you want to request revision for this purchase request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, request revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updatePRStatusWithRemarks('revision', revisionRemarks.trim());
         }
     });
 }
@@ -670,12 +757,20 @@ function makeAllFieldsReadOnly() {
 function hideApprovalButtons() {
     const approveButton = document.querySelector('button[onclick="approvePR()"]');
     const rejectButton = document.querySelector('button[onclick="rejectPR()"]');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
     
     if (approveButton) {
         approveButton.style.display = 'none';
     }
     if (rejectButton) {
         rejectButton.style.display = 'none';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
     }
     
     // Also hide any parent container if needed
@@ -753,42 +848,44 @@ function displayAttachments(attachments) {
     }
 }
 
-// Function to handle revision for Purchase Request
-function revisionPR() {
-    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+// Function to handle search input
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    currentSearchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    currentSearchType = document.getElementById('searchType').value;
     
-    // Check if revision button is disabled
-    if (document.getElementById('revisionButton').disabled) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Please add and fill revision field first'
-        });
-        return;
-    }
+    // Get all rows from the table body
+    const tableBody = document.getElementById('tableBody');
+    const rows = tableBody.getElementsByTagName('tr');
     
-    let allRemarks = '';
-    
-    revisionFields.forEach((field, index) => {
-        // Include the entire content including the prefix
-        if (field.value.trim() !== '') {
-            if (allRemarks !== '') allRemarks += '\n\n';
-            allRemarks += field.value.trim();
+    // Loop through all rows and hide/show based on search term
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        let cellValue = '';
+        
+        // Get the appropriate cell based on search type
+        switch (currentSearchType) {
+            case 'description':
+                cellValue = row.cells[1].textContent.toLowerCase(); // Description is in the 2nd column (index 1)
+                break;
+            case 'detail':
+                cellValue = row.cells[2].textContent.toLowerCase(); // Detail is in the 3rd column (index 2)
+                break;
+            case 'purpose':
+                cellValue = row.cells[3].textContent.toLowerCase(); // Purpose is in the 4th column (index 3)
+                break;
+            case 'quantity':
+                cellValue = row.cells[4].textContent.toLowerCase(); // Quantity is in the 5th column (index 4)
+                break;
+            default:
+                cellValue = row.cells[1].textContent.toLowerCase(); // Default to description
         }
-    });
-    
-    if (revisionFields.length === 0 || allRemarks.trim() === '') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Please add and fill revision field first'
-        });
-        return;
+        
+        // Show/hide row based on search term
+        if (cellValue.includes(currentSearchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
     }
-    
-    // Call the existing function with the collected remarks
-    console.log('revisionPR called with:', allRemarks);
-    updatePRStatusWithRemarks('revise', allRemarks);
 }
-
-// Note: Item fetching functions removed since ItemNo now stores ItemCode directly

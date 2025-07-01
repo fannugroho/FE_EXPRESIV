@@ -1,9 +1,46 @@
 // Current tab state
 let currentTab = 'checked'; // Default tab
+let currentSearchTerm = '';
+let currentSearchType = 'pr';
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
+    
+    // Add event listener for search input with debouncing
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
+        });
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'date') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date...';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            currentSearchTerm = '';
+            currentSearchType = this.value;
+            loadDashboard();
+        });
+    }
     
     // Set up event listener for select all checkbox
     document.getElementById("selectAll").addEventListener("change", function() {
@@ -50,6 +87,25 @@ function loadDashboard() {
     } else if (currentTab === 'rejected') {
         filteredDocs = documents.filter(doc => doc.status === "Rejected");
     }
+    
+    // Apply search filter if search term exists
+    if (currentSearchTerm) {
+        filteredDocs = filteredDocs.filter(doc => {
+            switch (currentSearchType) {
+                case 'pr':
+                    return doc.purchaseRequestNo && doc.purchaseRequestNo.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                case 'requester':
+                    return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                case 'status':
+                    return doc.status && doc.status.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                case 'date':
+                    // Simple date comparison (would need refinement for production)
+                    return doc.submissionDate && doc.submissionDate.includes(currentSearchTerm);
+                default:
+                    return true;
+            }
+        });
+    }
 
     // Sort the filtered docs (newest first)
     const sortedDocs = filteredDocs.slice().reverse();
@@ -62,15 +118,32 @@ function loadDashboard() {
         tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No documents found</td></tr>`;
     } else {
         sortedDocs.forEach(doc => {
+            // Check if fields are longer than 10 characters and apply scrollable class
+            const docNumberClass = doc.id && doc.id.length > 10 ? 'scrollable-cell' : '';
+            const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 10 ? 'scrollable-cell' : '';
+            const requesterNameClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
+            const departmentClass = doc.departmentName && doc.departmentName.length > 10 ? 'scrollable-cell' : '';
+            const poNumberClass = doc.poNumber && doc.poNumber.length > 10 ? 'scrollable-cell' : '';
+            
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
-                <td class='p-2'>${doc.id}</td>
-                <td class='p-2'>${doc.purchaseRequestNo || '-'}</td>
-                <td class='p-2'>${doc.requesterName || '-'}</td>
-                <td class='p-2'>${doc.departmentName || '-'}</td>
+                <td class='p-2'>
+                    <div class="${docNumberClass}">${doc.id}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${requesterNameClass}">${doc.requesterName || '-'}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${departmentClass}">${doc.departmentName || '-'}</div>
+                </td>
                 <td class='p-2'>${doc.submissionDate || '-'}</td>
                 <td class='p-2'>${doc.requiredDate || '-'}</td>
-                <td class='p-2'>${doc.poNumber || '-'}</td>
+                <td class='p-2'>
+                    <div class="${poNumberClass}">${doc.poNumber || '-'}</div>
+                </td>
                 <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
                 <td class='p-2'>
                     <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
@@ -99,7 +172,22 @@ function switchTab(tabName) {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
     
+    // Reset search when switching tabs
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        currentSearchTerm = '';
+    }
+    
     // Reload dashboard with the new filter
+    loadDashboard();
+}
+
+// Function to handle search input
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    currentSearchTerm = searchInput ? searchInput.value.trim() : '';
+    currentSearchType = document.getElementById('searchType').value;
     loadDashboard();
 }
 
