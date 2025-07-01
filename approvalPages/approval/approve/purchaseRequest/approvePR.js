@@ -517,6 +517,11 @@ function populateUserSelects(users, prData = null) {
 
 // Function to approve PR
 function approvePR() {
+    // Prevent double-clicking
+    if (isProcessing) {
+        return;
+    }
+    
     Swal.fire({
         title: 'Confirm Approval',
         text: 'Are you sure you want to approve this Purchase Request?',
@@ -582,6 +587,9 @@ function updatePRStatus(status) {
         return;
     }
 
+    // Set processing flag to prevent double-clicks
+    isProcessing = true;
+
     const userId = getUserId();
     if (!userId) {
         Swal.fire({
@@ -589,6 +597,7 @@ function updatePRStatus(status) {
             title: 'Authentication Error',
             text: 'Unable to get user ID from token. Please login again.'
         });
+        isProcessing = false;
         return;
     }
 
@@ -632,12 +641,14 @@ function updatePRStatus(status) {
                 goToMenuApprovPR();
             });
         } else {
+            isProcessing = false; // Reset flag on error
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
+        isProcessing = false; // Reset flag on error
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
@@ -658,6 +669,9 @@ function updatePRStatusWithRemarks(status, remarks) {
         return;
     }
 
+    // Set processing flag to prevent double-clicks
+    isProcessing = true;
+
     const userId = getUserId();
     if (!userId) {
         Swal.fire({
@@ -665,6 +679,7 @@ function updatePRStatusWithRemarks(status, remarks) {
             title: 'Authentication Error',
             text: 'Unable to get user ID from token. Please login again.'
         });
+        isProcessing = false;
         return;
     }
 
@@ -708,12 +723,14 @@ function updatePRStatusWithRemarks(status, remarks) {
                 goToMenuApprovPR();
             });
         } else {
+            isProcessing = false; // Reset flag on error
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
+        isProcessing = false; // Reset flag on error
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
@@ -1053,3 +1070,11 @@ function revisionPR() {
     // Call the existing function with the collected remarks
     updatePRStatusWithRemarks('revise', allRemarks);
 }
+
+// Navigation function to go back to approve dashboard  
+function goToMenuApprovPR() {
+    window.location.href = '../../../dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html';
+}
+
+// Add variable to prevent double-clicking
+let isProcessing = false;

@@ -5,6 +5,87 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 let prId; // Declare global variable
 let prType; // Declare global variable
 let currentTab; // Declare global variable for tab
+let allItems = []; // Store items globally for search functionality
+
+// Helper function to format date as YYYY-MM-DD without timezone issues
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Function to setup date fields with validation and defaults
+function setupDateFields() {
+    const today = new Date();
+    const formattedDate = formatDateForInput(today);
+    
+    const submissionDateInput = document.getElementById("submissionDate");
+    const requiredDateInput = document.getElementById("requiredDate");
+    
+    if (submissionDateInput && requiredDateInput) {
+        // Set minimum date for submission date to today
+        submissionDateInput.min = formattedDate;
+        
+        // Function to update required date minimum based on submission date
+        const updateRequiredDateMin = function() {
+            const submissionValue = submissionDateInput.value;
+            if (submissionValue) {
+                const selectedDate = new Date(submissionValue + 'T00:00:00'); // Add time to avoid timezone issues
+                const minRequiredDate = new Date(selectedDate);
+                minRequiredDate.setDate(selectedDate.getDate() + 14); // 2 weeks = 14 days
+                
+                const minRequiredFormatted = formatDateForInput(minRequiredDate);
+                requiredDateInput.min = minRequiredFormatted;
+                
+                // If current required date is less than minimum, update it
+                if (requiredDateInput.value) {
+                    const currentRequiredDate = new Date(requiredDateInput.value + 'T00:00:00');
+                    if (currentRequiredDate < minRequiredDate) {
+                        requiredDateInput.value = minRequiredFormatted;
+                    }
+                } else {
+                    // If no required date is set, set it to minimum (2 weeks from submission)
+                    requiredDateInput.value = minRequiredFormatted;
+                }
+            }
+        };
+        
+        // Add event listener to automatically update required date when submission date changes
+        submissionDateInput.addEventListener('change', updateRequiredDateMin);
+        
+        // Store the update function globally so it can be called after data is populated
+        window.updateRequiredDateMin = updateRequiredDateMin;
+    }
+}
+
+// Function to set default dates (called after checking if fields are empty)
+function setDefaultDatesIfEmpty() {
+    const submissionDateInput = document.getElementById("submissionDate");
+    const requiredDateInput = document.getElementById("requiredDate");
+    
+    // Only set defaults if the PR is in Revision status and fields are empty
+    const status = window.currentValues?.status || document.getElementById('status')?.value;
+    if (status === 'Revision') {
+        const today = new Date();
+        const formattedDate = formatDateForInput(today);
+        
+        // Set default submission date to today if empty
+        if (!submissionDateInput.value) {
+            submissionDateInput.value = formattedDate;
+        }
+        
+        // Set default required date to 2 weeks (14 days) from submission date if empty
+        if (!requiredDateInput.value) {
+            const submissionDate = submissionDateInput.value ? new Date(submissionDateInput.value + 'T00:00:00') : today;
+            const twoWeeksFromSubmission = new Date(submissionDate);
+            twoWeeksFromSubmission.setDate(submissionDate.getDate() + 14); // 2 weeks = 14 days
+            const requiredDateFormatted = formatDateForInput(twoWeeksFromSubmission);
+            
+            requiredDateInput.value = requiredDateFormatted;
+        }
+    }
+}
 
 // Function to fetch PR details when the page loads
 window.onload = function() {
@@ -13,12 +94,28 @@ window.onload = function() {
     prType = urlParams.get('pr-type');
     currentTab = urlParams.get('tab'); // Get the tab parameter
     
+    // Set up date validation and defaults
+    setupDateFields();
+    
     if (prId && prType) {
         fetchPRDetails(prId, prType);
     }
     
     // Setup button visibility based on tab
     setupButtonVisibility();
+    
+    // Ensure all description and UOM fields are initially empty and properly styled
+    document.querySelectorAll('.item-description').forEach(input => {
+        input.value = '';
+        input.disabled = true;
+        input.classList.add('bg-gray-100');
+    });
+    
+    document.querySelectorAll('.item-uom').forEach(input => {
+        input.value = '';
+        input.disabled = true;
+        input.classList.add('bg-gray-100');
+    });
 };
 
 // Function to setup button visibility based on tab parameter
@@ -70,9 +167,29 @@ async function fetchPRDetails(prId, prType) {
 function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
-    document.getElementById('requesterName').value = data.requesterName;
+    
+    // Handle requester name with search functionality (editable in revision)
+    if (data.requesterName) {
+        console.log("Setting requesterSearch to:", data.requesterName);
+        const requesterSearchInput = document.getElementById('requesterSearch');
+        if (requesterSearchInput) {
+            requesterSearchInput.value = data.requesterName;
+        }
+        // Store the requester ID if available
+        if (data.requesterId) {
+            console.log("Setting RequesterId to:", data.requesterId);
+            const requesterIdInput = document.getElementById('RequesterId');
+            if (requesterIdInput) {
+                requesterIdInput.value = data.requesterId;
+            }
+        } else {
+            console.log("No requesterId found in data. Available fields:", Object.keys(data));
+        }
+    } else {
+        console.log("No requesterName found in data");
+    }
   
-    // Format and set dates
+    // Format and set dates - extract date part directly to avoid timezone issues
     const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     const requiredDate = data.requiredDate ? data.requiredDate.split('T')[0] : '';
     document.getElementById('submissionDate').value = submissionDate;
@@ -91,6 +208,19 @@ function populatePRDetails(data) {
         option.textContent = data.status;
         document.getElementById('status').appendChild(option);
         document.getElementById('status').value = data.status;
+    }
+
+    // Set classification - add a temporary option with name as value
+    const classificationSelect = document.getElementById('classification');
+    if (data.classification && classificationSelect) {
+        console.log('Setting classification to:', data.classification);
+        // Create a temporary option that will be replaced when API data loads
+        const tempOption = document.createElement('option');
+        tempOption.value = data.classification; // Use name as value (e.g., "Material")
+        tempOption.textContent = data.classification; // Use name as text
+        tempOption.selected = true;
+        classificationSelect.innerHTML = '';
+        classificationSelect.appendChild(tempOption);
     }
     
     // Store and display attachments
@@ -124,6 +254,14 @@ function populatePRDetails(data) {
         displayAttachments(data.attachments);
     } else {
         console.log('No attachments found in data');
+    }
+    
+    // Set default dates if fields are empty (only for Revision status)
+    setDefaultDatesIfEmpty();
+    
+    // Apply date validation after data is populated
+    if (window.updateRequiredDateMin) {
+        window.updateRequiredDateMin();
     }
     
     // Make fields read-only if not editable
@@ -230,7 +368,27 @@ async function updatePR(isSubmit = false) {
             }
         });
 
-        formData.append('RequesterId', window.currentValues?.requesterId || userId);
+        // Use the selected requester (now editable in revision mode)
+        const requesterIdElement = document.getElementById("RequesterId");
+        console.log("RequesterId element found:", !!requesterIdElement);
+        if (requesterIdElement) {
+            console.log("RequesterId element value:", requesterIdElement.value);
+            console.log("All options in RequesterId select:", Array.from(requesterIdElement.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+        }
+        
+        const requesterIdValue = requesterIdElement?.value;
+        if (!requesterIdValue) {
+            console.log("RequesterId is empty, current value:", requesterIdValue);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Requester ID is missing. Please select a requester.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        formData.append('RequesterId', requesterIdValue);
+        console.log("RequesterId:", requesterIdValue);
         formData.append('IsSubmit', isSubmit.toString());
         
         // Use the department ID from stored values
@@ -267,7 +425,7 @@ async function updatePR(isSubmit = false) {
         const rows = document.querySelectorAll('#tableBody tr');
         
         rows.forEach((row, index) => {
-            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-no').value);
+            formData.append(`ItemDetails[${index}].ItemNo`, row.querySelector('.item-input').value);
             formData.append(`ItemDetails[${index}].Description`, row.querySelector('.item-description').value);
             formData.append(`ItemDetails[${index}].Detail`, row.querySelector('.item-detail').value);
             formData.append(`ItemDetails[${index}].Purpose`, row.querySelector('.item-purpose').value);
@@ -307,7 +465,7 @@ async function updatePR(isSubmit = false) {
                     confirmButtonText: 'OK'
                 }).then(() => {
                     // Navigate back to the revision dashboard
-                    // window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
+                    goToMenuRevisionPR();
                 });
             } else {
                 return response.json().then(errorData => {
@@ -339,7 +497,7 @@ async function updatePR(isSubmit = false) {
 function toggleEditableFields(isEditable) {
     // List all input fields that should be controlled by editable state
     const editableFields = [
-        'requesterName',
+        'requesterSearch', // Requester name search input (now editable in revision)
         'classification',
         'submissionDate',
         'requiredDate',
@@ -373,7 +531,7 @@ function toggleEditableFields(isEditable) {
     });
     
     // Always keep autofilled fields disabled and gray
-    alwaysDisabledFields.forEach(fieldId => {
+            alwaysDisabledFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
             if ((field.tagName === 'INPUT' && field.type !== 'checkbox' && field.type !== 'radio') || field.tagName === 'TEXTAREA') {
@@ -385,10 +543,18 @@ function toggleEditableFields(isEditable) {
         }
     });
     
+    // Handle requester dropdown
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    if (requesterDropdown) {
+        if (!isEditable) {
+            requesterDropdown.style.display = 'none';
+        }
+    }
+    
     // Handle table inputs - only for editable fields in table
-    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description), #tableBody select.item-no');
+    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description):not(.item-uom)');
     tableInputs.forEach(input => {
-        if (input.tagName === 'SELECT' || input.type === 'checkbox' || input.type === 'radio') {
+        if (input.type === 'checkbox' || input.type === 'radio') {
             input.disabled = !isEditable;
         } else {
             input.readOnly = !isEditable;
@@ -591,7 +757,6 @@ function populateServiceDetails(services) {
 
 function populateItemDetails(items) {
     const tableBody = document.getElementById('tableBody');
-    
     tableBody.innerHTML = ''; // Clear existing rows
     
     if (items.length === 0) {
@@ -599,11 +764,8 @@ function populateItemDetails(items) {
         return;
     }
     
-    items.forEach((item, index) => {
-        try {
-            addItemRow(item);
-        } catch (error) {
-        }
+    items.forEach(item => {
+        addItemRow(item);
     });
 }
 
@@ -611,10 +773,9 @@ function addItemRow(item = null) {
     const tableBody = document.getElementById('tableBody');
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
-                <option value="" disabled ${!item ? 'selected' : ''}>Select Item</option>
-            </select>
+        <td class="p-2 border relative">
+            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." value="${item?.itemNo || ''}" />
+            <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
@@ -638,13 +799,8 @@ function addItemRow(item = null) {
     
     tableBody.appendChild(row);
     
-    // Store the item data to be used after fetching options
-    if (item) {
-        const selectElement = row.querySelector('.item-no');
-        selectElement.setAttribute('data-selected-item-code', item.itemNo); // itemNo is actually the itemCode
-    }
-    
-    fetchItemOptions();
+    // Setup searchable item dropdown for the new row
+    setupItemDropdown(row, item?.itemNo);
 }
 
 function addRow() {
@@ -652,10 +808,9 @@ function addRow() {
     const newRow = document.createElement("tr");
     
     newRow.innerHTML = `
-        <td class="p-2 border bg-gray-100">
-            <select class="w-full p-2 border rounded item-no" onchange="updateItemDescription(this)">
-                <option value="" disabled selected>Select Item</option>
-            </select>
+        <td class="p-2 border relative">
+            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." />
+            <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
@@ -679,9 +834,8 @@ function addRow() {
     
     tableBody.appendChild(newRow);
     
-    // Populate the new item select with items (no pre-selection)
-    const newItemSelect = newRow.querySelector('.item-no');
-    fetchItemOptionsForSelect(newItemSelect);
+    // Setup searchable item dropdown for the new row
+    setupItemDropdown(newRow);
 }
 
 // Function to fetch all dropdown options
@@ -692,42 +846,7 @@ function fetchDropdownOptions(prData = null) {
     fetchItemOptions();
 }
 
-// Function to fetch items for a specific select element (no pre-selection)
-async function fetchItemOptionsForSelect(selectElement) {
-    try {
-        const response = await makeAuthenticatedRequest('/api/items');
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
-        }
-        const data = await response.json();
-        populateItemSelectClean(data.data, selectElement);
-    } catch (error) {
-        console.error('Error fetching items:', error);
-    }
-}
-
-// Function to populate item select without any pre-selection (for new rows)
-function populateItemSelectClean(items, selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="" disabled selected>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.itemCode; // Use itemCode instead of id
-        option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
-        // Store the description and UOM as data attributes - handle both possible field names
-        option.setAttribute('data-item-code', item.itemCode || item.itemNo);
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
-        selectElement.appendChild(option);
-    });
-
-    // Add onchange event listener to auto-fill description and UOM
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
+// Legacy item select functions removed - now using modern searchable dropdowns
 
 // Function to fetch departments from API
 async function fetchDepartments() {
@@ -789,14 +908,95 @@ function populateClassificationSelect(classifications) {
     const classificationSelect = document.getElementById("classification");
     if (!classificationSelect) return;
     
+    // Store the currently selected value and text
+    const currentValue = classificationSelect.value;
+    const currentText = classificationSelect.options[classificationSelect.selectedIndex]?.text;
+    
     classificationSelect.innerHTML = '<option value="" disabled>Select Classification</option>';
 
     classifications.forEach(classification => {
         const option = document.createElement("option");
-        option.value = classification.id;
-        option.textContent = classification.name;
+        option.value = classification.name; // Use name as value
+        option.textContent = classification.name; // Use name as text
         classificationSelect.appendChild(option);
+        
+        // If this classification matches the current text or stored value, select it
+        if (classification.name === currentText || classification.name === currentValue) {
+            option.selected = true;
+        }
+
+        if (window.currentValues && window.currentValues.classification && classification.name === window.currentValues.classification) {
+            option.selected = true;
+        }
     });
+}
+
+// Function to filter requesters for the requester search dropdown
+function filterRequesters() {
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (!requesterSearchInput || !requesterDropdown) return;
+    
+    const searchText = requesterSearchInput.value.toLowerCase();
+    
+    // Clear dropdown
+    requesterDropdown.innerHTML = '';
+    
+    // Filter requesters based on search text
+    const filteredRequesters = window.requesters ? 
+        window.requesters.filter(r => r.fullName.toLowerCase().includes(searchText)) : 
+        [];
+    
+    // Show filtered results
+    filteredRequesters.forEach(requester => {
+        const option = document.createElement('div');
+        option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+        option.innerText = requester.fullName;
+        option.onclick = function() {
+            requesterSearchInput.value = requester.fullName;
+            const requesterIdSelect = document.getElementById('RequesterId');
+            if (requesterIdSelect) {
+                requesterIdSelect.value = requester.id;
+            }
+            requesterDropdown.classList.add('hidden');
+            console.log("Requester selected:", requester);
+            
+            // Update department
+            const departmentSelect = document.getElementById('department');
+            if (requester.department && departmentSelect) {
+                // Find the department option and select it
+                const departmentOptions = departmentSelect.options;
+                for (let i = 0; i < departmentOptions.length; i++) {
+                    if (departmentOptions[i].textContent === requester.department) {
+                        console.log("Department matches current text");
+                        departmentSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+                // If no matching option found, create and select a new one
+                if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                    const newOption = document.createElement('option');
+                    newOption.value = requester.department;
+                    newOption.textContent = requester.department;
+                    newOption.selected = true;
+                    departmentSelect.appendChild(newOption);
+                }
+            }
+        };
+        requesterDropdown.appendChild(option);
+    });
+    
+    // Show "no results" message if no requesters found
+    if (filteredRequesters.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching requesters';
+        requesterDropdown.appendChild(noResults);
+    }
+    
+    // Show dropdown
+    requesterDropdown.classList.remove('hidden');
 }
 
 // Function to filter users for the search dropdown in approval section
@@ -859,6 +1059,121 @@ function filterUsers(fieldId) {
 function populateUserSelects(users, prData = null) {
     // Store users globally for search functionality
     window.allUsers = users;
+    
+    // Store requesters globally for search functionality
+    window.requesters = users.map(user => ({
+        id: user.id,
+        fullName: user.fullName,
+        department: user.department
+    }));
+
+    // Store employees globally for reference
+    window.employees = users.map(user => ({
+        id: user.id,
+        kansaiEmployeeId: user.kansaiEmployeeId,
+        fullName: user.fullName,
+        department: user.department
+    }));
+
+    // Populate RequesterId dropdown with search functionality
+    const requesterSelect = document.getElementById("RequesterId");
+    if (requesterSelect) {
+        console.log("Before populating users, RequesterId value:", requesterSelect.value);
+        const currentValue = requesterSelect.value; // Store current value
+        
+        // Clear existing options except the currently selected one
+        requesterSelect.innerHTML = '<option value="" disabled>Select Requester</option>';
+        
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.fullName;
+            // Pre-select if this matches the current value
+            if (currentValue && user.id === currentValue) {
+                option.selected = true;
+            }
+            requesterSelect.appendChild(option);
+        });
+        
+        console.log("After populating users, RequesterId value:", requesterSelect.value);
+    }
+
+    // Setup search functionality for requester
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (requesterSearchInput && requesterDropdown) {
+        // Function to filter requesters
+        window.filterRequesters = function() {
+            const searchText = requesterSearchInput.value.toLowerCase();
+            populateRequesterDropdown(searchText);
+            requesterDropdown.classList.remove('hidden');
+        };
+
+        // Function to populate dropdown with filtered requesters
+        function populateRequesterDropdown(filter = '') {
+            requesterDropdown.innerHTML = '';
+            
+            const filteredRequesters = window.requesters.filter(r => 
+                r.fullName.toLowerCase().includes(filter)
+            );
+            
+            filteredRequesters.forEach(requester => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerText = requester.fullName;
+                option.onclick = function() {
+                    requesterSearchInput.value = requester.fullName;
+                    const requesterIdSelect = document.getElementById('RequesterId');
+                    if (requesterIdSelect) {
+                        requesterIdSelect.value = requester.id;
+                    }
+                    requesterDropdown.classList.add('hidden');
+                    console.log("Requester selected:", requester);
+                    
+                    // Update department
+                    const departmentSelect = document.getElementById('department');
+                    if (requester.department && departmentSelect) {
+                        // Find the department option and select it
+                        const departmentOptions = departmentSelect.options;
+                        for (let i = 0; i < departmentOptions.length; i++) {
+                            if (departmentOptions[i].textContent === requester.department) {
+                                console.log("Department matches current text");
+                                departmentSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        // If no matching option found, create and select a new one
+                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = requester.department;
+                            newOption.textContent = requester.department;
+                            newOption.selected = true;
+                            departmentSelect.appendChild(newOption);
+                        }
+                    }
+                };
+                requesterDropdown.appendChild(option);
+            });
+            
+            if (filteredRequesters.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No matching requesters';
+                requesterDropdown.appendChild(noResults);
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+                requesterDropdown.classList.add('hidden');
+            }
+        });
+
+        // Initial population
+        populateRequesterDropdown();
+    }
     
     const selects = [
         { id: 'preparedBy', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
@@ -983,6 +1298,7 @@ function hideApprovalButtons() {
     }
 }
 
+// Function to fetch items from API
 async function fetchItemOptions() {
     try {
         const response = await makeAuthenticatedRequest('/api/items');
@@ -991,93 +1307,124 @@ async function fetchItemOptions() {
         }
         const data = await response.json();
         console.log("Item data:", data);
-        // Populate all item selects in the document
-        document.querySelectorAll('.item-no').forEach(select => {
-            populateItemSelect(data.data, select);
+        allItems = data.data; // Store items globally
+        
+        // Setup searchable dropdowns for all existing item inputs
+        document.querySelectorAll('.item-input').forEach(input => {
+            const row = input.closest('tr');
+            setupItemDropdown(row);
         });
     } catch (error) {
         console.error('Error fetching items:', error);
     }
 }
 
-// Function to populate item select
-function populateItemSelect(items, selectElement) {
-    if (!selectElement) return;
-    
-    // Check if this select has a pre-selected item code
-    const selectedItemCode = selectElement.getAttribute('data-selected-item-code');
-    
-    selectElement.innerHTML = '<option value="" disabled>Select Item</option>';
-
-    items.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.itemCode; // Use itemCode instead of id
-        option.textContent = `${item.itemCode || item.itemNo} - ${item.itemName || item.name}`;
-        // Store the description and UOM as data attributes - handle both possible field names
-        option.setAttribute('data-item-code', item.itemCode || item.itemNo);
-        option.setAttribute('data-description', item.description || item.name || item.itemName || '');
-        option.setAttribute('data-uom', item.uom || item.unitOfMeasure || '');
-        selectElement.appendChild(option);
-        
-        // If this item matches the selected item code, select it
-        if (selectedItemCode && item.itemCode === selectedItemCode) {
-            option.selected = true;
-            // Trigger the update after setting as selected
-            setTimeout(() => {
-                updateItemDescription(selectElement);
-            }, 0);
-        }
-    });
-
-    // Add onchange event listener to auto-fill description and UOM
-    selectElement.onchange = function() {
-        updateItemDescription(this);
-    };
-}
-
-function updateItemDescription(selectElement) {
-    const row = selectElement.closest('tr');
+// Function to setup searchable item dropdown for a row
+function setupItemDropdown(row, existingItemCode = null) {
+    const itemInput = row.querySelector('.item-input');
+    const itemDropdown = row.querySelector('.item-dropdown');
     const descriptionInput = row.querySelector('.item-description');
     const uomInput = row.querySelector('.item-uom');
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
     
-    // Check if a valid item is selected (not the placeholder option)
-    if (selectedOption && !selectedOption.disabled && selectedOption.value && selectedOption.value !== "") {
-        // Get the item code and set it as the text content
-        const itemCode = selectedOption.getAttribute('data-item-code');
-        selectedOption.textContent = itemCode || '';
-        
-        // Get description and UOM from data attributes and fill them automatically
-        const itemDescription = selectedOption.getAttribute('data-description');
-        const itemUom = selectedOption.getAttribute('data-uom');
-        
-        descriptionInput.value = itemDescription || '';
-        descriptionInput.textContent = itemDescription || ''; // For textarea
-        descriptionInput.title = itemDescription || ''; // For tooltip
-        
-        uomInput.value = itemUom || '';
-        uomInput.title = itemUom || ''; // For tooltip
-        
-        // Keep the fields disabled and gray (not editable by user)
-        descriptionInput.disabled = true;
-        descriptionInput.classList.add('bg-gray-100');
-        uomInput.disabled = true;
-        uomInput.classList.add('bg-gray-100');
-    } else {
-        // No valid item selected, clear the fields
-        descriptionInput.value = '';
-        descriptionInput.textContent = '';
-        descriptionInput.title = '';
-        uomInput.value = '';
-        uomInput.title = '';
-        
-        // Keep the fields disabled and gray
-        descriptionInput.disabled = true;
-        descriptionInput.classList.add('bg-gray-100');
-        uomInput.disabled = true;
-        uomInput.classList.add('bg-gray-100');
+    if (!itemInput || !itemDropdown) return;
+    
+    // Set existing item code if provided
+    if (existingItemCode) {
+        itemInput.value = existingItemCode;
+        const existingItem = allItems.find(item => item.itemCode === existingItemCode);
+        if (existingItem) {
+            updateItemDescriptionFromData(row, existingItem);
+        }
     }
+    
+    itemInput.addEventListener('input', function() {
+        const searchText = this.value.toLowerCase();
+        
+        // Clear dropdown
+        itemDropdown.innerHTML = '';
+        
+        // Filter items based on search text (search in both itemCode and itemName)
+        const filteredItems = allItems.filter(item => 
+            item.itemCode.toLowerCase().includes(searchText) ||
+            item.itemName.toLowerCase().includes(searchText)
+        );
+        
+        if (filteredItems.length > 0) {
+            filteredItems.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.onclick = function() {
+                    itemInput.value = item.itemCode;
+                    itemInput.setAttribute('data-selected-item', JSON.stringify(item));
+                    itemDropdown.classList.add('hidden');
+                    
+                    // Update description and UOM
+                    updateItemDescriptionFromData(row, item);
+                };
+                itemDropdown.appendChild(option);
+            });
+            itemDropdown.classList.remove('hidden');
+        } else {
+            itemDropdown.classList.add('hidden');
+        }
+    });
+    
+    itemInput.addEventListener('focus', function() {
+        if (allItems.length > 0) {
+            // Show all items on focus
+            itemDropdown.innerHTML = '';
+            
+            allItems.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.onclick = function() {
+                    itemInput.value = item.itemCode;
+                    itemInput.setAttribute('data-selected-item', JSON.stringify(item));
+                    itemDropdown.classList.add('hidden');
+                    
+                    // Update description and UOM
+                    updateItemDescriptionFromData(row, item);
+                };
+                itemDropdown.appendChild(option);
+            });
+            itemDropdown.classList.remove('hidden');
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!itemInput.contains(event.target) && !itemDropdown.contains(event.target)) {
+            itemDropdown.classList.add('hidden');
+        }
+    });
 }
+
+// Function to update description and UOM from item data
+function updateItemDescriptionFromData(row, item) {
+    const descriptionInput = row.querySelector('.item-description');
+    const uomInput = row.querySelector('.item-uom');
+    
+    const itemDescription = item.description || item.name || item.itemName || '';
+    const itemUom = item.uom || item.unitOfMeasure || '';
+    
+    descriptionInput.value = itemDescription;
+    descriptionInput.textContent = itemDescription; // For textarea
+    descriptionInput.title = itemDescription; // For tooltip
+    
+    uomInput.value = itemUom;
+    uomInput.title = itemUom; // For tooltip
+    
+    // Keep the fields disabled and gray (not editable by user)
+    descriptionInput.disabled = true;
+    descriptionInput.classList.add('bg-gray-100');
+    uomInput.disabled = true;
+    uomInput.classList.add('bg-gray-100');
+}
+
+// Legacy functions kept for backward compatibility but no longer used
+// The new searchable implementation uses setupItemDropdown and updateItemDescriptionFromData instead
 
 // Function to display attachments (similar to detail pages)
 function displayAttachments(attachments) {
@@ -1113,3 +1460,43 @@ function displayAttachments(attachments) {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
 }
+
+// Navigation function to go back to revision dashboard
+function goToMenuRevisionPR() {
+    window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
+}
+
+// Add DOMContentLoaded event listener for dropdown functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'requesterDropdown',
+            'preparedByDropdown', 
+            'checkedByDropdown', 
+            'acknowledgedByDropdown', 
+            'approvedByDropdown', 
+            'receivedByDropdown'
+        ];
+        
+        const searchInputs = [
+            'requesterSearch',
+            'preparedBySearch', 
+            'checkedBySearch', 
+            'acknowledgedBySearch', 
+            'approvedBySearch', 
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+});

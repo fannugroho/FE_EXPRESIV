@@ -364,10 +364,8 @@ function changePage(direction) {
 
 // Navigation functions
 function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('hidden');
-    }
+    // Sidebar is now permanently visible, do nothing
+    return false;
 }
 
 function toggleSubMenu(menuId) {
@@ -523,53 +521,53 @@ function downloadPDF() {
 }
 
 // Navigation functions
-// function goToMenu() { window.location.href = "../../../../pages/dashboard.html"; }
-// function logout() { 
-//     localStorage.removeItem("loggedInUser"); 
-//     window.location.href = "../../../../pages/login.html"; 
-// }
+function goToMenu() { window.location.href = "../../../../pages/dashboard.html"; }
+function logout() { 
+    localStorage.removeItem("loggedInUser"); 
+    window.location.href = "../../../../pages/login.html"; 
+}
 
-// // Menu navigation functions
-// function goToMenuPR() { window.location.href = "../../../../pages/menuPR.html"; }
-// function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
-// function goToMenuCash() { window.location.href = "../../../../pages/menuCash.html"; }
-// function goToMenuSettle() { window.location.href = "../../../../pages/menuSettle.html"; }
+// Menu navigation functions
+function goToMenuPR() { window.location.href = "../../../../pages/menuPR.html"; }
+function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
+function goToMenuCash() { window.location.href = "../../../../pages/menuCash.html"; }
+function goToMenuSettle() { window.location.href = "../../../../pages/menuSettle.html"; }
 
-// // PR submenu navigation
-// function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-// function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
-// function goToMenuApprovPR() { window.location.href = "../../dashboardApprove/purchaseRequest/menuPRApprove.html"; }
-// function goToMenuReceivePR() { window.location.href = "../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
-// function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
+// PR submenu navigation
+function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
+function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
+function goToMenuApprovPR() { window.location.href = "../../dashboardApprove/purchaseRequest/menuPRApprove.html"; }
+function goToMenuReceivePR() { window.location.href = "../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
+function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
 
-// // Cash submenu navigation
-// function goToMenuCheckCash() { window.location.href = "../../dashboardCheck/cashAdvance/menuCashCheck.html"; }
-// function goToMenuAcknowCash() { window.location.href = "../../dashboardAcknowledge/cashAdvance/menuCashAcknow.html"; }
-// function goToMenuApprovCash() { window.location.href = "../../dashboardApprove/cashAdvance/menuCashApprove.html"; }
-// function goToMenuReceiveCash() { window.location.href = "../../dashboardReceive/cashAdvance/menuCashReceive.html"; }
-// function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
+// Cash submenu navigation
+function goToMenuCheckCash() { window.location.href = "../../dashboardCheck/cashAdvance/menuCashCheck.html"; }
+function goToMenuAcknowCash() { window.location.href = "../../dashboardAcknowledge/cashAdvance/menuCashAcknow.html"; }
+function goToMenuApprovCash() { window.location.href = "../../dashboardApprove/cashAdvance/menuCashApprove.html"; }
+function goToMenuReceiveCash() { window.location.href = "../../dashboardReceive/cashAdvance/menuCashReceive.html"; }
+function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
 
-// // Reimbursement submenu navigation
-// function goToMenuCheckReim() { window.location.href = "../../dashboardCheck/reimbursement/menuReimCheck.html"; }
-// function goToMenuAcknowReim() { window.location.href = "../../dashboardAcknowledge/reimbursement/menuReimAcknow.html"; }
-// function goToMenuApprovReim() { window.location.href = "../../dashboardApprove/reimbursement/menuReimApprove.html"; }
-// function goToMenuReceiveReim() { window.location.href = "../../dashboardReceive/reimbursement/menuReimReceive.html"; }
-// function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
+// Reimbursement submenu navigation
+function goToMenuCheckReim() { window.location.href = "../../dashboardCheck/reimbursement/menuReimCheck.html"; }
+function goToMenuAcknowReim() { window.location.href = "../../dashboardAcknowledge/reimbursement/menuReimAcknow.html"; }
+function goToMenuApprovReim() { window.location.href = "../../dashboardApprove/reimbursement/menuReimApprove.html"; }
+function goToMenuReceiveReim() { window.location.href = "../../dashboardReceive/reimbursement/menuReimReceive.html"; }
+function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
 
-// // Settlement submenu navigation
-// function goToMenuCheckSettle() { window.location.href = "../../dashboardCheck/settlement/menuSettleCheck.html"; }
-// function goToMenuAcknowSettle() { window.location.href = "../../dashboardAcknowledge/settlement/menuSettleAcknow.html"; }
-// function goToMenuApprovSettle() { window.location.href = "../../dashboardApprove/settlement/menuSettleApprove.html"; }
-// function goToMenuReceiveSettle() { window.location.href = "../../dashboardReceive/settlement/menuSettleReceive.html"; }
-// function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; }
+// Settlement submenu navigation
+function goToMenuCheckSettle() { window.location.href = "../../dashboardCheck/settlement/menuSettleCheck.html"; }
+function goToMenuAcknowSettle() { window.location.href = "../../dashboardAcknowledge/settlement/menuSettleAcknow.html"; }
+function goToMenuApprovSettle() { window.location.href = "../../dashboardApprove/settlement/menuSettleApprove.html"; }
+function goToMenuReceiveSettle() { window.location.href = "../../dashboardReceive/settlement/menuSettleReceive.html"; }
+function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; }
 
-// // Settings navigation
-// function goToMenuRegist() { window.location.href = "../../../../pages/register.html"; }
-// function goToMenuUser() { window.location.href = "../../../../pages/dashboard-users.html"; }
-// function goToMenuRole() { window.location.href = "../../../../pages/dashboard-roles.html"; }
+// Settings navigation
+function goToMenuRegist() { window.location.href = "../../../../pages/register.html"; }
+function goToMenuUser() { window.location.href = "../../../../pages/dashboard-users.html"; }
+function goToMenuRole() { window.location.href = "../../../../pages/dashboard-roles.html"; }
 
-// // Approval Decision Report navigation
-// function goToMenuAPR() { window.location.href = "../../../../decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html"; }
-// function goToMenuPO() { window.location.href = "#"; }
-// function goToMenuBanking() { window.location.href = "#"; }
-// function goToMenuInvoice() { window.location.href = "#"; }
+// Approval Decision Report navigation
+function goToMenuAPR() { window.location.href = "../../../../decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html"; }
+function goToMenuPO() { window.location.href = "#"; }
+function goToMenuBanking() { window.location.href = "#"; }
+function goToMenuInvoice() { window.location.href = "#"; }

@@ -773,8 +773,18 @@ async function submitDocument(isSubmit = false) {
         console.log("User ID:", userId);
         console.log("IsSubmit:", isSubmit);
         
-        // Add basic fields
-        formData.append('RequesterId', document.getElementById("RequesterId").value || userId);
+        // Add basic fields - requester must be explicitly selected
+        const requesterId = document.getElementById("RequesterId").value;
+        if (!requesterId) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please select a requester before submitting the PR.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        formData.append('RequesterId', requesterId);
         formData.append('DepartmentId', document.getElementById("department").value);
         formData.append('IsSubmit', isSubmit.toString()); // Convert boolean to string
 

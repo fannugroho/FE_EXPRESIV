@@ -412,16 +412,13 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
@@ -498,58 +495,6 @@ function addRow() {
 function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
-}
-
-// Submit reimbursement update to API
-async function submitReimbursementUpdate() {
-    // Get reimbursement ID from URL
-    const id = getReimbursementIdFromUrl();
-    if (!id) {
-        Swal.fire('Error', 'No reimbursement ID found', 'error');
-        return;
-    }
-    
-    // Collect reimbursement details from table
-    const detailsTable = document.getElementById('reimbursementDetails');
-    const rows = detailsTable.querySelectorAll('tr');
-    const reimbursementDetails = [];
-    
-    rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        const deleteButton = row.querySelector('button');
-        const detailId = deleteButton.getAttribute('data-id') || null;
-        
-        reimbursementDetails.push({
-            id: detailId,
-            category: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            description: inputs[3].value,
-            amount: parseFloat(inputs[4].value) || 0
-        });
-    });
-    
-    // Build request data
-    const requestData = {
-        requesterName: document.getElementById('requesterName').value,
-        department: document.getElementById('department').value,
-        currency: document.getElementById('currency').value,
-        payTo: document.getElementById('requesterName').value, // Use requesterName for payTo
-        referenceDoc: document.getElementById('referenceDoc').value,
-        typeOfTransaction: document.getElementById('typeOfTransaction').value,
-        remarks: document.getElementById('remarks').value,
-        reimbursementDetails: reimbursementDetails
-    };
-    
-    // API call removed
-    Swal.fire(
-        'Updated!',
-        'Reimbursement has been updated successfully.',
-        'success'
-    ).then(() => {
-        // Reload the data to show the latest changes
-        fetchReimbursementData();
-    });
 }
 
 // Function to go back to menu

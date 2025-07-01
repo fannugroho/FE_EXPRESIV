@@ -534,6 +534,9 @@ function updatePRStatus(status) {
         return;
     }
 
+    // Set processing flag to prevent double-clicks
+    isProcessing = true;
+
     const userId = getUserId();
     if (!userId) {
         Swal.fire({
@@ -541,6 +544,7 @@ function updatePRStatus(status) {
             title: 'Authentication Error',
             text: 'Unable to get user ID from token. Please login again.'
         });
+        isProcessing = false;
         return;
     }
 
@@ -584,12 +588,14 @@ function updatePRStatus(status) {
                 goToMenuAcknowPR();
             });
         } else {
+            isProcessing = false; // Reset flag on error
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
+        isProcessing = false; // Reset flag on error
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
@@ -610,6 +616,9 @@ function updatePRStatusWithRemarks(status, remarks) {
         return;
     }
 
+    // Set processing flag to prevent double-clicks
+    isProcessing = true;
+
     const userId = getUserId();
     if (!userId) {
         Swal.fire({
@@ -617,6 +626,7 @@ function updatePRStatusWithRemarks(status, remarks) {
             title: 'Authentication Error',
             text: 'Unable to get user ID from token. Please login again.'
         });
+        isProcessing = false;
         return;
     }
 
@@ -658,15 +668,17 @@ function updatePRStatusWithRemarks(status, remarks) {
                 showConfirmButton: false
             }).then(() => {
                 // Navigate back to the dashboard
-                // goToMenuAcknowPR();
+                goToMenuAcknowPR();
             });
         } else {
+            isProcessing = false; // Reset flag on error
             return response.json().then(errorData => {
                 throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
+        isProcessing = false; // Reset flag on error
         console.error('Error:', error);
         Swal.fire({
             icon: 'error',
