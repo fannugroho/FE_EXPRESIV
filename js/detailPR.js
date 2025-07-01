@@ -133,6 +133,10 @@ function populateUserSelects(users, approvalData = null) {
         console.log("Before populating users, RequesterId value:", requesterSelect.value);
         const currentValue = requesterSelect.value; // Store current value
         
+        // Get requester ID from approval data if available
+        const requesterIdFromData = approvalData?.requesterId;
+        const targetRequesterId = requesterIdFromData || currentValue;
+        
         // Clear existing options except the currently selected one
         requesterSelect.innerHTML = '<option value="" disabled>Select Requester</option>';
         
@@ -140,14 +144,29 @@ function populateUserSelects(users, approvalData = null) {
             const option = document.createElement('option');
             option.value = user.id;
             option.textContent = user.fullName;
-            // Pre-select if this matches the current value
-            if (currentValue && user.id === currentValue) {
+            // Pre-select if this matches the target requester ID
+            if (targetRequesterId && user.id === targetRequesterId) {
                 option.selected = true;
             }
             requesterSelect.appendChild(option);
         });
         
+        // Ensure the correct value is set
+        if (targetRequesterId) {
+            requesterSelect.value = targetRequesterId;
+            
+            // Update the search input to show the selected requester's name
+            const requesterSearchInput = document.getElementById('requesterSearch');
+            if (requesterSearchInput) {
+                const selectedUser = users.find(user => user.id === targetRequesterId);
+                if (selectedUser) {
+                    requesterSearchInput.value = selectedUser.fullName;
+                }
+            }
+        }
+        
         console.log("After populating users, RequesterId value:", requesterSelect.value);
+        console.log("Target RequesterId was:", targetRequesterId);
     }
 
     // Setup search functionality for requester
@@ -335,10 +354,12 @@ async function fetchPRDetails(prId, prType) {
             console.log("API Response Data:", responseData.data);
             console.log("Requester ID from API:", responseData.data.requesterId);
             console.log("Requester Name from API:", responseData.data.requesterName);
-            populatePRDetails(responseData.data);
             
-            // Always fetch dropdown options
-            fetchDropdownOptions(responseData.data);
+            // Fetch dropdown options FIRST, especially items
+            await fetchDropdownOptions(responseData.data);
+            
+            // Then populate PR details so items can be properly matched
+            populatePRDetails(responseData.data);
             
             const isEditable = responseData.data && responseData.data.status === 'Draft';
             toggleEditableFields(isEditable);
@@ -355,11 +376,16 @@ async function fetchPRDetails(prId, prType) {
 }
 
 // Function to fetch all dropdown options
-function fetchDropdownOptions(approvalData = null) {
-    fetchDepartments();
-    fetchClassifications();
-    fetchUsers(approvalData);
-    fetchItemOptions();
+async function fetchDropdownOptions(approvalData = null) {
+    // Fetch items first since they're critical for proper item selection
+    await fetchItemOptions();
+    
+    // Fetch other dropdown options in parallel
+    await Promise.all([
+        fetchDepartments(),
+        fetchClassifications(),
+        fetchUsers() // Don't pass approval data here, will be handled later in populatePRDetails
+    ]);
 }
 
 // Function to fetch departments from API
@@ -401,7 +427,25 @@ async function fetchUsers(approvalData = null) {
         }
         const data = await response.json();
         // console.log("User data:", data);
-        populateUserSelects(data.data, approvalData);
+        
+        // Store users globally first
+        window.allUsers = data.data;
+        window.requesters = data.data.map(user => ({
+            id: user.id,
+            fullName: user.fullName,
+            department: user.department
+        }));
+        window.employees = data.data.map(user => ({
+            id: user.id,
+            kansaiEmployeeId: user.kansaiEmployeeId,
+            fullName: user.fullName,
+            department: user.department
+        }));
+        
+        // Only call populateUserSelects if we have approval data (i.e., when called from fetchDropdownOptions)
+        if (approvalData) {
+            populateUserSelects(data.data, approvalData);
+        }
     } catch (error) {
         console.error('Error fetching users:', error);
     }
@@ -421,11 +465,8 @@ async function fetchItemOptions() {
         console.log("Item data:", data);
         allItems = data.data; // Store items globally
         
-        // Setup searchable dropdowns for all existing item inputs
-        document.querySelectorAll('.item-input').forEach(input => {
-            const row = input.closest('tr');
-            setupItemDropdown(row);
-        });
+        // Note: Item dropdowns will be set up properly when populateItemDetails() 
+        // is called after items are loaded, so no need to set them up here
     } catch (error) {
         console.error('Error fetching items:', error);
     }
@@ -845,6 +886,11 @@ function populatePRDetails(data) {
     // Handle item details
     if (data.itemDetails) {
         populateItemDetails(data.itemDetails);
+    }
+    
+    // Now that requester data is set, populate user selects with proper selection
+    if (window.allUsers) {
+        populateUserSelects(window.allUsers, data);
     }
     
     // Set default dates if fields are empty (only for Draft status)
