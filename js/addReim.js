@@ -370,12 +370,25 @@ function addRow() {
     const newRow = document.createElement("tr");
 
     newRow.innerHTML = `
-        <td class="p-2 border"><input type="text" maxlength="30" class="w-full" required /></td>
-        <td class="p-2 border"><input type="text" maxlength="200" class="w-full bg-gray-200" disabled /></td>
-        <td class="p-2 border"><input type="text" maxlength="10" class="w-full bg-gray-200" disabled /></td>
-        <td class="p-2 border"><input type="number" maxlength="10" class="w-full" required /></td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full" required/>
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full" required />
+        </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
         </td>
     `;
 
@@ -800,10 +813,11 @@ async function processDocument(isSubmit) {
         const inputs = row.querySelectorAll("input");
         if (inputs.length >= 4) {
             reimbursementDetails.push({
-                description: inputs[0].value || "",
-                // glAccount: inputs[1].value || "",
-                // accountName: inputs[2].value || "",
-                amount: parseFloat(inputs[3].value) || 0
+                category: inputs[0].value || "",
+                description: inputs[1].value || "",
+                glAccount: inputs[2].value || "",
+                accountName: inputs[3].value || "",
+                amount: inputs[4].value || ""
             });
         }
     });
