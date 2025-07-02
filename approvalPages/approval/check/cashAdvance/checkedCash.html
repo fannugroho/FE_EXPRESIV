@@ -96,30 +96,32 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-
-                    <th id="thDescription" class="p-2">Description</th>
-                <!--    <th id="thGLAccount" class="p-2">G/L Account</th>
-                    <th id="thGLAccountName" class="p-2">Account Name</th> -->
-                    <th id="thTotal" class="p-2">Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
-           
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Account Name</th>
+                    <th class="p-2">GL Account (COA)</th>
+                    <th class="p-2">Description</th>
+                    <th class="p-2">Amount</th>
+                    <th class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdDescription" class="p-2 border">
+                    <td class="p-2 border">
+                        <input type="text" class="category-input w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="account-name w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="coa w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
                         <input type="text" id="Description" maxlength="200" class="w-full" readonly />
                     </td>
-            <!--    <td id="tdGLAccont" class="p-2 border">
-                        <input type="number" id="GLAccount" maxlength="10" class="w-full" required />
-                    </td>
-                    <td id="tdGLAccontName" class="p-2 border">
-                        <input type="text" id="AccountName" maxlength="10" class="w-full" required /> 
-                    </td>                                                                               -->
-                    <td id="tdTotal" class="p-2 border">
+                    <td class="p-2 border">
                         <input type="number" id="Total" maxlength="10" class="w-full" required />
                     </td>
-                    <td id="tdAction" class="p-2 border text-center">
+                    <td class="p-2 border text-center">
                         <span class="text-gray-400">View Only</span>
                     </td>
                 </tr>
