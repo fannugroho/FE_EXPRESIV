@@ -1,5 +1,7 @@
 // Current tab state
 let currentTab = 'revision'; // Default tab
+let currentSearchTerm = '';
+let currentSearchType = 'pr';
 
 // Pagination variables
 let currentPage = 1;
@@ -11,6 +13,41 @@ let allPurchaseRequests = [];
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     loadUserProfileInfo();
+    
+    // Add event listener for search input with debouncing
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
+        });
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'date') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date...';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            currentSearchTerm = '';
+            currentSearchType = this.value;
+            loadDashboard();
+        });
+    }
     
     // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
@@ -89,14 +126,42 @@ async function updateCounters(userId) {
 // Function to filter and display documents based on current tab
 async function filterAndDisplayDocuments(userId) {
     try {
-        let url;
+        // Build base URL and params
+        let baseUrl = `${BASE_URL}/api/pr/dashboard/revision`;
+        const params = new URLSearchParams();
         
         // Build URL based on current tab
         if (currentTab === 'revision') {
-            url = `${BASE_URL}/api/pr/dashboard/revision?filterType=revision`;
+            params.append('filterType', 'revision');
         } else if (currentTab === 'prepared') {
-            url = `${BASE_URL}/api/pr/dashboard/revision?filterType=prepared&userId=${userId}`;
+            params.append('filterType', 'prepared');
+            params.append('userId', userId);
         }
+        
+        // Add search parameters if available
+        if (currentSearchTerm) {
+            switch (currentSearchType) {
+                case 'pr':
+                    params.append('purchaseRequestNo', currentSearchTerm);
+                    break;
+                case 'requester':
+                    params.append('requesterName', currentSearchTerm);
+                    break;
+                case 'status':
+                    params.append('status', currentSearchTerm);
+                    break;
+                case 'date':
+                    // For date search, try to parse and use date range
+                    const dateValue = new Date(currentSearchTerm);
+                    if (!isNaN(dateValue.getTime())) {
+                        params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
+                        params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
+                    }
+                    break;
+            }
+        }
+        
+        const url = `${baseUrl}?${params.toString()}`;
 
         console.log('Fetching documents from:', url);
 
@@ -175,15 +240,24 @@ function updateTable(documents = []) {
         const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
         const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
         
+        // Check if fields are longer than 10 characters and apply scrollable class
+        const docIdValue = doc.id ? doc.id.toString().substring(0, 10) : '';
+        const docNumberClass = docIdValue.length > 10 ? 'scrollable-cell' : '';
+        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 10 ? 'scrollable-cell' : '';
+        const requesterNameClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
+        const departmentClass = doc.departmentName && doc.departmentName.length > 10 ? 'scrollable-cell' : '';
+        const poNumberClass = doc.poNumber && doc.poNumber.length > 10 ? 'scrollable-cell' : '';
+        const remarksClass = doc.remarks && doc.remarks.length > 10 ? 'scrollable-cell' : '';
+        
         // Create row HTML
         let rowHTML = `
-            <td class="p-2">${doc.id ? doc.id.toString().substring(0, 10) : ''}</td>
-            <td class="p-2">${doc.purchaseRequestNo || '-'}</td>
-            <td class="p-2">${doc.requesterName || '-'}</td>
-            <td class="p-2">${doc.departmentName || '-'}</td>
+            <td class="p-2"><div class="${docNumberClass}">${docIdValue}</div></td>
+            <td class="p-2"><div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div></td>
+            <td class="p-2"><div class="${requesterNameClass}">${doc.requesterName || '-'}</div></td>
+            <td class="p-2"><div class="${departmentClass}">${doc.departmentName || '-'}</div></td>
             <td class="p-2">${submissionDate}</td>
             <td class="p-2">${requiredDate}</td>
-            <td class="p-2">${doc.poNumber || '-'}</td>
+            <td class="p-2"><div class="${poNumberClass}">${doc.poNumber || '-'}</div></td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
                     ${doc.status || ''}
@@ -192,7 +266,7 @@ function updateTable(documents = []) {
             
         // Add remarks column if in revision tab
         if (currentTab === 'revision') {
-            rowHTML += `<td class="p-2">${doc.remarks || '-'}</td>`;
+            rowHTML += `<td class="p-2"><div class="${remarksClass}">${doc.remarks || '-'}</div></td>`;
         }
         
         // Add tools column
@@ -243,6 +317,13 @@ function switchTab(tabName) {
         document.getElementById('preparedTabBtn').classList.add('tab-active');
     }
     
+    // Reset search when switching tabs
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        currentSearchTerm = '';
+    }
+    
     // Get user ID and reload data for the selected tab
     const userId = getUserId();
     if (!userId) {
@@ -283,10 +364,8 @@ function changePage(direction) {
 
 // Navigation functions
 function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('hidden');
-    }
+    // Sidebar is now permanently visible, do nothing
+    return false;
 }
 
 function toggleSubMenu(menuId) {
@@ -296,6 +375,14 @@ function toggleSubMenu(menuId) {
 // Function to navigate to user profile page
 function goToProfile() {
     window.location.href = "../../../../pages/profil.html";
+}
+
+// Function to handle search input
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    currentSearchTerm = searchInput ? searchInput.value.trim() : '';
+    currentSearchType = document.getElementById('searchType').value;
+    loadDashboard();
 }
 
 // Function to redirect to revision page with purchase request ID
@@ -434,53 +521,53 @@ function downloadPDF() {
 }
 
 // Navigation functions
-// function goToMenu() { window.location.href = "../../../../pages/dashboard.html"; }
-// function logout() { 
-//     localStorage.removeItem("loggedInUser"); 
-//     window.location.href = "../../../../pages/login.html"; 
-// }
+function goToMenu() { window.location.href = "../../../../pages/dashboard.html"; }
+function logout() { 
+    localStorage.removeItem("loggedInUser"); 
+    window.location.href = "../../../../pages/login.html"; 
+}
 
-// // Menu navigation functions
-// function goToMenuPR() { window.location.href = "../../../../pages/menuPR.html"; }
-// function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
-// function goToMenuCash() { window.location.href = "../../../../pages/menuCash.html"; }
-// function goToMenuSettle() { window.location.href = "../../../../pages/menuSettle.html"; }
+// Menu navigation functions
+function goToMenuPR() { window.location.href = "../../../../pages/menuPR.html"; }
+function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
+function goToMenuCash() { window.location.href = "../../../../pages/menuCash.html"; }
+function goToMenuSettle() { window.location.href = "../../../../pages/menuSettle.html"; }
 
-// // PR submenu navigation
-// function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
-// function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
-// function goToMenuApprovPR() { window.location.href = "../../dashboardApprove/purchaseRequest/menuPRApprove.html"; }
-// function goToMenuReceivePR() { window.location.href = "../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
-// function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
+// PR submenu navigation
+function goToMenuCheckPR() { window.location.href = "../../dashboardCheck/purchaseRequest/menuPRCheck.html"; }
+function goToMenuAcknowPR() { window.location.href = "../../dashboardAcknowledge/purchaseRequest/menuPRAcknow.html"; }
+function goToMenuApprovPR() { window.location.href = "../../dashboardApprove/purchaseRequest/menuPRApprove.html"; }
+function goToMenuReceivePR() { window.location.href = "../../dashboardReceive/purchaseRequest/menuPRReceive.html"; }
+function goToMenuRevisionPR() { window.location.href = "../../dashboardRevision/purchaseRequest/menuPRRevision.html"; }
 
-// // Cash submenu navigation
-// function goToMenuCheckCash() { window.location.href = "../../dashboardCheck/cashAdvance/menuCashCheck.html"; }
-// function goToMenuAcknowCash() { window.location.href = "../../dashboardAcknowledge/cashAdvance/menuCashAcknow.html"; }
-// function goToMenuApprovCash() { window.location.href = "../../dashboardApprove/cashAdvance/menuCashApprove.html"; }
-// function goToMenuReceiveCash() { window.location.href = "../../dashboardReceive/cashAdvance/menuCashReceive.html"; }
-// function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
+// Cash submenu navigation
+function goToMenuCheckCash() { window.location.href = "../../dashboardCheck/cashAdvance/menuCashCheck.html"; }
+function goToMenuAcknowCash() { window.location.href = "../../dashboardAcknowledge/cashAdvance/menuCashAcknow.html"; }
+function goToMenuApprovCash() { window.location.href = "../../dashboardApprove/cashAdvance/menuCashApprove.html"; }
+function goToMenuReceiveCash() { window.location.href = "../../dashboardReceive/cashAdvance/menuCashReceive.html"; }
+function goToMenuRevisionCash() { window.location.href = "../../dashboardRevision/cashAdvance/menuCashRevision.html"; }
 
-// // Reimbursement submenu navigation
-// function goToMenuCheckReim() { window.location.href = "../../dashboardCheck/reimbursement/menuReimCheck.html"; }
-// function goToMenuAcknowReim() { window.location.href = "../../dashboardAcknowledge/reimbursement/menuReimAcknow.html"; }
-// function goToMenuApprovReim() { window.location.href = "../../dashboardApprove/reimbursement/menuReimApprove.html"; }
-// function goToMenuReceiveReim() { window.location.href = "../../dashboardReceive/reimbursement/menuReimReceive.html"; }
-// function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
+// Reimbursement submenu navigation
+function goToMenuCheckReim() { window.location.href = "../../dashboardCheck/reimbursement/menuReimCheck.html"; }
+function goToMenuAcknowReim() { window.location.href = "../../dashboardAcknowledge/reimbursement/menuReimAcknow.html"; }
+function goToMenuApprovReim() { window.location.href = "../../dashboardApprove/reimbursement/menuReimApprove.html"; }
+function goToMenuReceiveReim() { window.location.href = "../../dashboardReceive/reimbursement/menuReimReceive.html"; }
+function goToMenuRevisionReim() { window.location.href = "../../dashboardRevision/reimbursement/menuReimRevision.html"; }
 
-// // Settlement submenu navigation
-// function goToMenuCheckSettle() { window.location.href = "../../dashboardCheck/settlement/menuSettleCheck.html"; }
-// function goToMenuAcknowSettle() { window.location.href = "../../dashboardAcknowledge/settlement/menuSettleAcknow.html"; }
-// function goToMenuApprovSettle() { window.location.href = "../../dashboardApprove/settlement/menuSettleApprove.html"; }
-// function goToMenuReceiveSettle() { window.location.href = "../../dashboardReceive/settlement/menuSettleReceive.html"; }
-// function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; }
+// Settlement submenu navigation
+function goToMenuCheckSettle() { window.location.href = "../../dashboardCheck/settlement/menuSettleCheck.html"; }
+function goToMenuAcknowSettle() { window.location.href = "../../dashboardAcknowledge/settlement/menuSettleAcknow.html"; }
+function goToMenuApprovSettle() { window.location.href = "../../dashboardApprove/settlement/menuSettleApprove.html"; }
+function goToMenuReceiveSettle() { window.location.href = "../../dashboardReceive/settlement/menuSettleReceive.html"; }
+function goToMenuRevisionSettle() { window.location.href = "../../dashboardRevision/settlement/menuSettleRevision.html"; }
 
-// // Settings navigation
-// function goToMenuRegist() { window.location.href = "../../../../pages/register.html"; }
-// function goToMenuUser() { window.location.href = "../../../../pages/dashboard-users.html"; }
-// function goToMenuRole() { window.location.href = "../../../../pages/dashboard-roles.html"; }
+// Settings navigation
+function goToMenuRegist() { window.location.href = "../../../../pages/register.html"; }
+function goToMenuUser() { window.location.href = "../../../../pages/dashboard-users.html"; }
+function goToMenuRole() { window.location.href = "../../../../pages/dashboard-roles.html"; }
 
-// // Approval Decision Report navigation
-// function goToMenuAPR() { window.location.href = "../../../../decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html"; }
-// function goToMenuPO() { window.location.href = "#"; }
-// function goToMenuBanking() { window.location.href = "#"; }
-// function goToMenuInvoice() { window.location.href = "#"; }
+// Approval Decision Report navigation
+function goToMenuAPR() { window.location.href = "../../../../decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html"; }
+function goToMenuPO() { window.location.href = "#"; }
+function goToMenuBanking() { window.location.href = "#"; }
+function goToMenuInvoice() { window.location.href = "#"; }

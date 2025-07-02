@@ -1,5 +1,7 @@
 // Current tab state
 let currentTab = 'checked'; // Default tab
+let currentSearchTerm = '';
+let currentSearchType = 'pr';
 
 // API Configuration
 
@@ -9,13 +11,40 @@ let currentTab = 'checked'; // Default tab
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     
-    // Set up event listener for select all checkbox
-    document.getElementById("selectAll").addEventListener("change", function() {
-        const checkboxes = document.querySelectorAll(".rowCheckbox");
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
+    // Add event listener for search input with debouncing
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
         });
-    });
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'date') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date...';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            currentSearchTerm = '';
+            currentSearchType = this.value;
+            loadDashboard();
+        });
+    }
 
     // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
@@ -45,16 +74,47 @@ async function loadDashboard() {
             return;
         }
 
-        let url;
+        // Build base URL and params
+        let baseUrl;
+        const params = new URLSearchParams();
+        params.append('ApproverId', userId);
+        params.append('ApproverRole', 'acknowledged');
         
         // Build URL based on current tab
         if (currentTab === 'checked') {
-            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`;
+            baseUrl = `${BASE_URL}/api/pr/dashboard/approval`;
+            params.append('isApproved', 'false');
         } else if (currentTab === 'acknowledged') {
-            url = `${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`;
+            baseUrl = `${BASE_URL}/api/pr/dashboard/approval`;
+            params.append('isApproved', 'true');
         } else if (currentTab === 'rejected') {
-            url = `${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`;
+            baseUrl = `${BASE_URL}/api/pr/dashboard/rejected`;
         }
+        
+        // Add search parameters if available
+        if (currentSearchTerm) {
+            switch (currentSearchType) {
+                case 'pr':
+                    params.append('purchaseRequestNo', currentSearchTerm);
+                    break;
+                case 'requester':
+                    params.append('requesterName', currentSearchTerm);
+                    break;
+                case 'status':
+                    params.append('status', currentSearchTerm);
+                    break;
+                case 'date':
+                    // For date search, try to parse and use date range
+                    const dateValue = new Date(currentSearchTerm);
+                    if (!isNaN(dateValue.getTime())) {
+                        params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
+                        params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
+                    }
+                    break;
+            }
+        }
+        
+        const url = `${baseUrl}?${params.toString()}`;
 
         console.log('Fetching dashboard data from:', url);
 
@@ -153,15 +213,31 @@ function updateTable(documents) {
             const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
             const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
             
+            // Check if fields are longer than 10 characters and apply scrollable class
+            const docNumberClass = (index + 1).toString().length > 10 ? 'scrollable-cell' : '';
+            const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 10 ? 'scrollable-cell' : '';
+            const requesterNameClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
+            const departmentClass = doc.departmentName && doc.departmentName.length > 10 ? 'scrollable-cell' : '';
+            const poNumberClass = doc.poNumber && doc.poNumber.length > 10 ? 'scrollable-cell' : '';
+            
             const row = `<tr class='w-full border-b'>
-                <td class='p-2'><input type="checkbox" class="rowCheckbox"></td>
-                <td class='p-2 scrollable-column'>${index + 1}</td>
-                <td class='p-2 scrollable-column'>${doc.purchaseRequestNo || '-'}</td>
-                <td class='p-2 scrollable-column'>${doc.requesterName || '-'}</td>
-                <td class='p-2'>${doc.departmentName || '-'}</td>
+                <td class='p-2'>
+                    <div class="${docNumberClass}">${index + 1}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${requesterNameClass}">${doc.requesterName || '-'}</div>
+                </td>
+                <td class='p-2'>
+                    <div class="${departmentClass}">${doc.departmentName || '-'}</div>
+                </td>
                 <td class='p-2'>${submissionDate}</td>
                 <td class='p-2'>${requiredDate}</td>
-                <td class='p-2'>${doc.poNumber || '-'}</td>
+                <td class='p-2'>
+                    <div class="${poNumberClass}">${doc.poNumber || '-'}</div>
+                </td>
                 <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">${doc.status}</span></td>
                 <td class='p-2'>
                     <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
@@ -187,7 +263,22 @@ function switchTab(tabName) {
         document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
     
+    // Reset search when switching tabs
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        currentSearchTerm = '';
+    }
+    
     // Reload dashboard with the new filter
+    loadDashboard();
+}
+
+// Function to handle search input
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    currentSearchTerm = searchInput ? searchInput.value.trim() : '';
+    currentSearchType = document.getElementById('searchType').value;
     loadDashboard();
 }
 
