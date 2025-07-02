@@ -271,11 +271,6 @@ function populateItemDetails(items) {
         items.forEach((item, index) => {
             addItemRow(item);
         });
-        
-        // Apply any active search filter after populating
-        if (currentSearchTerm) {
-            handleSearch();
-        }
     } else {
         // Add an empty row if no items
         addItemRow();
@@ -409,7 +404,7 @@ function approvePR() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updatePRStatus('acknowledge');
+            updatePRStatus('approve');
         }
     });
 }
