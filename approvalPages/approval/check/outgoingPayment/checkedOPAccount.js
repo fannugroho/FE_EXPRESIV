@@ -304,6 +304,13 @@ function updateTotalAmountDue() {
         netTotalInput.value = formatCurrency(total);
         netTotalInput.numericValue = total;
     }
+
+    // Update the total tax
+    const totalTaxInput = document.getElementById('totalTax');
+    if (totalTaxInput) {
+        totalTaxInput.value = formatCurrency(total);
+        totalTaxInput.numericValue = total;
+    }
     
     // Update the total amount due
     const totalAmountDueInput = document.getElementById('totalAmountDue');

@@ -109,7 +109,7 @@ async function loadDashboard() {
                     if (!isNaN(dateValue.getTime())) {
                         params.append('submissionDateFrom', dateValue.toISOString().split('T')[0]);
                         params.append('submissionDateTo', dateValue.toISOString().split('T')[0]);
-                    }
+        }
                     break;
             }
         }

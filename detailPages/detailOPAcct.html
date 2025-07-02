@@ -41,8 +41,8 @@
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Payment No.</h3>
-                <input type="text" id="cashAdvanceNo" placeholder="Outgoing Payment no" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <h3 class="text-lg font-semibold mb-2">Outgoing Payment No.</h3>
+                <input type="text" id="outgoingPaymentNo" placeholder="Outgoing Payment no" class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="employeeId" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -108,7 +108,6 @@
                     <th id="AcctName" class="p-2">Account Name</th>
                     <th id="Descrip" class="p-2">Description</th>
                     <th id="DocTotal" class="p-2">Net Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -125,11 +124,6 @@
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
                     </td>
-                    <td id="tdAction" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
-                    </td>
                 </tr>
             </tbody>
         </table>
@@ -137,6 +131,11 @@
         <div class="mt-4 flex justify-end space-x-2">
             <label>Net Total :</label>
             <input type="text" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+        <!--WTax Total-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Tax:</label>
+            <input type="text" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
         </div>
          <!--Total Amount Due-->
         <div class="mt-4 flex justify-end space-x-2">
@@ -230,10 +229,6 @@
         <br>
 
         <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="confirmDelete()" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Delete
-            </button> <!-- ID : nanti get ID dari url parameter-->
-
             <button onclick="updateCash(false)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Update
             </button> <!-- ID : TBD-->
@@ -320,6 +315,7 @@
             
             // Update Net Total and Total Amount Due fields
             document.getElementById('netTotal').value = formattedTotal;
+            document.getElementById('totalTax').value = formattedTotal;
             document.getElementById('totalAmountDue').value = formattedTotal;
         }
 
@@ -363,11 +359,6 @@
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
-                </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                        🗑
-                    </button>
                 </td>
             `;
             
