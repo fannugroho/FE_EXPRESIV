@@ -872,9 +872,9 @@ function saveDocument() {
     alert("Dokumen berhasil disimpan!");
 }
 
-// function goToMenuCash() {
-//     window.location.href = "../pages/MenuCash.html";
-// }
+function goToMenuCash() {
+    window.location.href = "../pages/MenuCash.html";
+}
 
 // Only add event listener if the element exists (to prevent errors)
 const docTypeElement = document.getElementById("docType");
@@ -2024,7 +2024,7 @@ function displayAttachments(attachments) {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners`)
+    fetch(`${BASE_URL}/api/business-partners/type/employee`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -2041,7 +2041,7 @@ function fetchBusinessPartners() {
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
-    // Store business partners globally for search functionality
+    // Store business partners globally for search functionality - only store active employee business partners
     window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
         id: bp.id,
         code: bp.code,
