@@ -1,5 +1,7 @@
 // Using BASE_URL from auth.js instead of hardcoded baseUrl
 let uploadedFiles = [];
+let businessPartners = []; // Added to store business partners
+let transactionTypes = []; // Added to store transaction types
 
 // Data pengguna contoh (mockup)
 // const mockUsers = [
@@ -29,7 +31,64 @@ function filterUsers(fieldId) {
     
     let filteredUsers = [];
     
-    // Handle all searchable selects
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        try {
+            const filtered = businessPartners.filter(bp => 
+                bp.name.toLowerCase().includes(searchText) || 
+                bp.code.toLowerCase().includes(searchText)
+            );
+            
+            // Tampilkan hasil pencarian
+            filtered.forEach(bp => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = `${bp.code} - ${bp.name}`;
+                option.onclick = function() {
+                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this business partner
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === bp.id) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!optionExists && selectElement.options.length > 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = bp.id;
+                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = bp.id;
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+            
+            // Tampilkan pesan jika tidak ada hasil
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No Business Partner Found';
+                dropdown.appendChild(noResults);
+            }
+            
+            // Tampilkan dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering business partners:", error);
+        }
+    }
+    
+    // Handle all other searchable selects
     if (fieldId === 'requesterNameSelect' || 
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
@@ -91,19 +150,9 @@ function filterUsers(fieldId) {
                     
                     dropdown.classList.add('hidden');
                     
-                    // Auto-fill payToSelect and department when requesterName is selected
+                    // Auto-fill department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
                         console.log('Requester selected:', user.name, 'ID:', user.id);
-                        
-                        const payToSelect = document.getElementById('payToSelect');
-                        if (payToSelect) {
-                            for (let i = 0; i < payToSelect.options.length; i++) {
-                                if (payToSelect.options[i].textContent === user.name) {
-                                    payToSelect.selectedIndex = i;
-                                    break;
-                                }
-                            }
-                        }
                         
                         // Auto-fill department based on selected user ID
                         console.log('Calling autoFillDepartmentFromRequesterById with user ID:', user.id);
@@ -155,6 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fetch users and departments from API to populate dropdowns
     fetchUsers();
     fetchDepartments();
+    fetchBusinessPartners(); // Added to fetch business partners
+    fetchTransactionTypes(); // Added to fetch transaction types
     
     // Setup event listener untuk hide dropdown saat klik di luar
     document.addEventListener('click', function(event) {
@@ -164,7 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'checkedBySelectDropdown', 
             'approvedBySelectDropdown',
             'receivedBySelectDropdown',
-            'requesterNameSelectDropdown'
+            'requesterNameSelectDropdown',
+            'payToSelectDropdown' // Add payTo dropdown
         ];
         
         const searchInputs = [
@@ -173,7 +225,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'checkedBySearch', 
             'approvedBySearch',
             'receivedBySearch',
-            'requesterNameSearch'
+            'requesterNameSearch',
+            'payToSearch' // Add payTo search input
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -195,7 +248,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'checkedBySearch',
         'approvedBySearch',
         'receivedBySearch',
-        'requesterNameSearch'
+        'requesterNameSearch',
+        'payToSearch' // Add payTo search field
     ];
     
     searchFields.forEach(fieldId => {
@@ -439,7 +493,6 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users);
-        populateDropdown("payToSelect", users);
         populateDropdown("preparedBySelect", users);
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
@@ -449,24 +502,13 @@ async function fetchUsers() {
         // Auto-fill preparedBy with logged-in user
         autoFillPreparedBy(users);
         
-        // Add event listener to requesterNameSelect to auto-fill payToSelect and department
+        // Add event listener to requesterNameSelect for department only (remove payToSelect related code)
         const requesterSelect = document.getElementById("requesterNameSelect");
         const requesterSearchInput = document.getElementById("requesterNameSearch");
-        const payToSelect = document.getElementById("payToSelect");
         
-        if (requesterSelect && payToSelect) {
+        if (requesterSelect) {
             requesterSelect.addEventListener("change", function() {
-                // Find the corresponding user ID for the selected name
                 const selectedName = this.value;
-                const selectedOption = this.options[this.selectedIndex];
-                
-                // Find matching user in payToSelect by display text
-                for (let i = 0; i < payToSelect.options.length; i++) {
-                    if (payToSelect.options[i].textContent === selectedName) {
-                        payToSelect.selectedIndex = i;
-                        break;
-                    }
-                }
                 
                 // Auto-fill department based on requester
                 autoFillDepartmentFromRequester(selectedName, users);
@@ -474,17 +516,9 @@ async function fetchUsers() {
         }
         
         // Add change event for the search input as well
-        if (requesterSearchInput && payToSelect) {
+        if (requesterSearchInput) {
             requesterSearchInput.addEventListener("change", function() {
                 const selectedName = this.value;
-                
-                // Find matching user in payToSelect by display text
-                for (let i = 0; i < payToSelect.options.length; i++) {
-                    if (payToSelect.options[i].textContent === selectedName) {
-                        payToSelect.selectedIndex = i;
-                        break;
-                    }
-                }
                 
                 // Auto-fill department based on requester
                 autoFillDepartmentFromRequester(selectedName, users);
@@ -840,7 +874,7 @@ async function processDocument(isSubmit) {
         voucherNo: getElementValue("voucherNo"),
         requesterName: document.getElementById("requesterNameSearch").value, // Use the search input value
         department: getElementValue("department"),
-        payTo: getApprovalValue("payTo"),
+        payTo: getApprovalValue("payTo"), // Use select element value which contains the ID
         currency: getElementValue("currency"),
         submissionDate: getElementValue("postingDate"),
         status: getElementValue("status"),
@@ -919,5 +953,79 @@ async function processDocument(isSubmit) {
     }
     
     return result;
+}
+
+// Function to fetch business partners
+async function fetchBusinessPartners() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/business-partners`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+        
+        businessPartners = result.data;
+        console.log('Stored', businessPartners.length, 'business partners in global cache');
+        
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+    }
+}
+
+// Function to fetch transaction types
+async function fetchTransactionTypes() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/transactiontypes/filter?category=Reimbursement`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch transaction types');
+        }
+        
+        transactionTypes = result.data;
+        console.log('Stored', transactionTypes.length, 'transaction types in global cache');
+        
+        // Populate transaction types dropdown
+        populateTransactionTypesDropdown(transactionTypes);
+        
+    } catch (error) {
+        console.error("Error fetching transaction types:", error);
+    }
+}
+
+// Function to populate transaction types dropdown
+function populateTransactionTypesDropdown(types) {
+    const typeSelect = document.getElementById("typeOfTransaction");
+    if (!typeSelect) return;
+    
+    // Clear existing options
+    typeSelect.innerHTML = '';
+    
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select Transaction Type";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    typeSelect.appendChild(defaultOption);
+    
+    // Add transaction types
+    types.forEach(type => {
+        const option = document.createElement("option");
+        option.value = type.name; // Send name as the value
+        option.textContent = type.name;
+        typeSelect.appendChild(option);
+    });
 }
     

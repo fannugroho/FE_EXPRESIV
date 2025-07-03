@@ -64,9 +64,13 @@
                 <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded">
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <select id="payToSelect" class="w-full p-2 border rounded" disabled>
-                    <option value="" disabled selected>Choose Name</option>
-                </select>
+                <div class="relative">
+                    <input type="text" id="payToSearch" placeholder="Search business partner..." class="w-full p-2 border rounded search-input">
+                    <div id="payToSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="payToSelect" class="hidden">
+                        <option value="" disabled selected>Choose Business Partner</option>
+                    </select>
+                </div>
             </div>
             
             <div>
@@ -87,10 +91,8 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="typeOfTransaction" class="w-full p-2 border rounded">
-                    <option value="Medical">Medical</option>
-                    <option value="Transportation">Transportation</option>
-                    <option value="Golf Competition">Golf Competition</option>
-                    <option value="Others">Others</option>
+                    <option value="" disabled selected>Select Transaction Type</option>
+                    <!-- Options will be populated from API -->
                 </select>
             </div>
         </div>
