@@ -2,18 +2,18 @@
 let uploadedFiles = [];
 
 // Data pengguna contoh (mockup)
-const mockUsers = [
-    { id: 1, name: "Ahmad Baihaki", department: "Finance" },
-    { id: 2, name: "Budi Santoso", department: "Purchasing" },
-    { id: 3, name: "Cahya Wijaya", department: "IT" },
-    { id: 4, name: "Dewi Sartika", department: "HR" },
-    { id: 5, name: "Eko Purnomo", department: "Logistics" },
-    { id: 6, name: "Fajar Nugraha", department: "Production" },
-    { id: 7, name: "Gita Nirmala", department: "Finance" },
-    { id: 8, name: "Hadi Gunawan", department: "Marketing" },
-    { id: 9, name: "Indah Permata", department: "Sales" },
-    { id: 10, name: "Joko Widodo", department: "Management" }
-];
+// const mockUsers = [
+//     { id: 1, name: "Ahmad Baihaki", department: "Finance" },
+//     { id: 2, name: "Budi Santoso", department: "Purchasing" },
+//     { id: 3, name: "Cahya Wijaya", department: "IT" },
+//     { id: 4, name: "Dewi Sartika", department: "HR" },
+//     { id: 5, name: "Eko Purnomo", department: "Logistics" },
+//     { id: 6, name: "Fajar Nugraha", department: "Production" },
+//     { id: 7, name: "Gita Nirmala", department: "Finance" },
+//     { id: 8, name: "Hadi Gunawan", department: "Marketing" },
+//     { id: 9, name: "Indah Permata", department: "Sales" },
+//     { id: 10, name: "Joko Widodo", department: "Management" }
+// ];
 
 // Fungsi untuk memfilter dan menampilkan dropdown pengguna
 function filterUsers(fieldId) {
@@ -814,9 +814,9 @@ async function processDocument(isSubmit) {
         if (inputs.length >= 4) {
             reimbursementDetails.push({
                 category: inputs[0].value || "",
-                description: inputs[1].value || "",
+                accountName: inputs[1].value || "",
                 glAccount: inputs[2].value || "",
-                accountName: inputs[3].value || "",
+                description: inputs[3].value || "",
                 amount: inputs[4].value || ""
             });
         }
