@@ -84,6 +84,7 @@
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                 <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <div id="fileList" class="mt-2"></div>
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Doc.</h3>
                 <select type="" id="cashAdvanceDoc" class="w-full p-2 border rounded bg-white">
                     <option value="" disabled selected>Loading...</option>
@@ -110,7 +111,7 @@
                         <input type="text" id="Category" maxlength="200" class="w-full" required />
                     </td>
                     <td id="tdGLAccount" class="p-2 border">
-                        <input type="number" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
+                        <input type="number" id="GLAccount" maxlength="200" class="w-full bg-gray-100" required />
                     </td>
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="Description" maxlength="200" class="w-full" required />

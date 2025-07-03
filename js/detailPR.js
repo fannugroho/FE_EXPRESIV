@@ -354,6 +354,14 @@ async function fetchPRDetails(prId, prType) {
             console.log("API Response Data:", responseData.data);
             console.log("Requester ID from API:", responseData.data.requesterId);
             console.log("Requester Name from API:", responseData.data.requesterName);
+            console.log("Classification from API:", responseData.data.classification);
+            
+            // Simpan nilai klasifikasi terlebih dahulu
+            window.currentValues = {
+                department: responseData.data.departmentName,
+                classification: responseData.data.classification,
+                status: responseData.data.status 
+            };
             
             // Fetch dropdown options FIRST, especially items
             await fetchDropdownOptions(responseData.data);
@@ -406,6 +414,7 @@ async function fetchDepartments() {
 // Function to fetch classifications from API
 async function fetchClassifications() {
     try {
+        console.log("Fetching classifications with currentValues:", window.currentValues);
         const response = await makeAuthenticatedRequest('/api/classifications');
         if (!response.ok) {
             throw new Error('Network response was not ok: ' + response.statusText);
@@ -614,6 +623,10 @@ function populateClassificationSelect(classifications) {
     const classificationSelect = document.getElementById("classification");
     if (!classificationSelect) return;
     
+    // Log untuk debugging
+    console.log("Classifications from API:", classifications);
+    console.log("Current classification value:", window.currentValues?.classification);
+    
     // Store the currently selected value
     const currentValue = classificationSelect.value;
     const currentText = classificationSelect.options[classificationSelect.selectedIndex]?.text;
@@ -626,17 +639,17 @@ function populateClassificationSelect(classifications) {
         option.textContent = classification.name;
         classificationSelect.appendChild(option);
         
-        // If this classification matches the current text, select it
-        if (classification.name === currentText) {
+        // Coba cocokkan berdasarkan nama atau ID
+        if ((window.currentValues && window.currentValues.classification && 
+            (classification.name === window.currentValues.classification || 
+             classification.id === window.currentValues.classification)) ||
+            classification.name === currentText) {
             option.selected = true;
-        }
-
-        if (window.currentValues && window.currentValues.classification && classification.name === window.currentValues.classification) {
-            option.selected = true;
+            console.log("Classification matched:", classification.name);
         }
     });
     
-    // If we have a current value and it wasn't matched by text, try to select by value
+    // Jika masih belum ada yang terpilih, coba pilih berdasarkan nilai
     if (currentValue && classificationSelect.value !== currentValue) {
         classificationSelect.value = currentValue;
     }
@@ -875,13 +888,8 @@ function populatePRDetails(data) {
         displayAttachments(data.attachments);
     }
 
-    // Store the values to be used after fetching options
-    window.currentValues = {
-        department: data.departmentName,
-        classification: data.classification,
-        status: data.status 
-    };
-    
+    // Log untuk debugging nilai klasifikasi yang tersimpan
+    console.log("Current values when populating PR details:", window.currentValues);
     
     // Handle item details
     if (data.itemDetails) {

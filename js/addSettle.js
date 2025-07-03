@@ -45,7 +45,7 @@ function filterUsers(fieldId) {
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        noResults.innerText = 'No matching requesters';
         dropdown.appendChild(noResults);
     }
     
@@ -55,9 +55,94 @@ function filterUsers(fieldId) {
 
 // Function to display the list of uploaded files
 function displayFileList() {
-    // This function can be implemented to show uploaded files if needed
-    // For now, it's a placeholder to prevent errors
-    console.log('Files uploaded:', uploadedFiles.length);
+    // Get existing file list or create new one if it doesn't exist
+    let fileListContainer = document.getElementById("fileList");
+    
+    // If container doesn't exist, create it
+    if (!fileListContainer) {
+        fileListContainer = document.createElement("div");
+        fileListContainer.id = "fileList";
+        
+        // Find the file input element
+        const fileInput = document.getElementById("Reference");
+        if (fileInput && fileInput.parentNode) {
+            // Add the container after the file input
+            fileInput.parentNode.appendChild(fileListContainer);
+        }
+    }
+    
+    // Clear existing content
+    fileListContainer.innerHTML = "";
+    
+    // Add header if there are files
+    if (uploadedFiles.length > 0) {
+        const header = document.createElement("div");
+        header.className = "font-bold mt-2 mb-1";
+        header.textContent = "Selected Files:";
+        fileListContainer.appendChild(header);
+    }
+    
+    // Add each file to the list
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement("div");
+        fileItem.className = "flex justify-between items-center p-2 border-b";
+        fileItem.innerHTML = `
+            <span>${file.name}</span>
+            <div>
+                <button type="button" onclick="viewFile(${index})" class="text-blue-500 mr-2">View</button>
+                <button type="button" onclick="removeFile(${index})" class="text-red-500">X</button>
+            </div>
+        `;
+        fileListContainer.appendChild(fileItem);
+    });
+}
+
+function viewFile(index) {
+    const file = uploadedFiles[index];
+    if (!file) return;
+    
+    // Create URL for the file
+    const fileURL = URL.createObjectURL(file);
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+    modal.id = 'pdfViewerModal';
+    
+    // Create modal content
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-semibold">${file.name}</h3>
+                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
+                    <span class="text-2xl">&times;</span>
+                </button>
+            </div>
+            <div class="flex-grow p-4 overflow-auto">
+                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
+            </div>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(modal);
+    
+    // Prevent scrolling on the body
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    const modal = document.getElementById('pdfViewerModal');
+    if (modal) {
+        modal.remove();
+        // Restore scrolling
+        document.body.style.overflow = '';
+    }
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
 }
 
 function fetchDepartments() {
@@ -620,10 +705,6 @@ function goToMenuSettle() {
 
 function previewPDF(event) {
       const files = event.target.files;
-      if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-      }
       Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
           uploadedFiles.push(file);
