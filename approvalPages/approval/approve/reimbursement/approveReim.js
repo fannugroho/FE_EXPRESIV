@@ -258,65 +258,32 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="100" class="w-full" required readonly />
-                </td>
-                <td class="p-2 border">
                     <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="20" class="w-full" required readonly />
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="100" class="w-full" required readonly />
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${formatAmount(detail.amount) || ''}" class="w-full text-right" required readonly />
+                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
                 </td>
-                <td class="p-2 border">
-                    <button type="button" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteRow(this)" disabled>Delete</button>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
+                        🗑
+                    </button>
                 </td>
             `;
             tableBody.appendChild(row);
         });
-        
-        // Calculate and update total amount
-        updateTotalAmount();
     } else {
-        console.log('No reimbursement details found in data');
+        // Add an empty row if no details
+        addRow();
     }
-}
-
-// Format amount with thousand separator and 2 decimal places
-function formatAmount(amount) {
-    if (!amount) return '0.00';
     
-    // Convert to number if it's a string
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
-    // Format with thousand separator and 2 decimal places
-    return numAmount.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// Calculate and update the total amount
-function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails td:nth-child(5) input');
-    let total = 0;
-    
-    amountInputs.forEach(input => {
-        // Extract numeric value from formatted string
-        const value = input.value.replace(/,/g, '');
-        const amount = parseFloat(value) || 0;
-        total += amount;
-    });
-    
-    // Update total amount field with formatted value
-    const totalAmountField = document.getElementById('totalAmount');
-    if (totalAmountField) {
-        totalAmountField.value = formatAmount(total);
-    }
+    // Calculate and update total amount
+    updateTotalAmount();
 }
 
 // Display attachments
@@ -827,6 +794,29 @@ function displayRevisionHistory(data) {
                 }
             }
         }
+    }
+}
+
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        total += value;
+    });
+    
+    // Format the total with commas for thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update the total amount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
     }
 }
 
