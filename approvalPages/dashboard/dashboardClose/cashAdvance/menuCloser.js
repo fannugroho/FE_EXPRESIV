@@ -7,7 +7,6 @@ const itemsPerPage = 10;
 let filteredData = [];
 let allCashAdvances = [];
 
-
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the default tab
@@ -43,12 +42,13 @@ async function loadDashboard() {
 
         let url;
         
-        // Build URL based on current tab
+        // Build URL based on current tab using the correct endpoint from CashAdvanceController
         if (currentTab === 'received') {
-            url = `${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=true`;
+            // For received tab, show documents that need to be closed (Personal Loan with Received status)
+            url = `${BASE_URL}/api/cash-advance/dashboard/approval?approverId=${userId}&approverRole=received&isApproved=true`;
         } else if (currentTab === 'closed') {
-            // For closed tab, we might need a different endpoint or status
-            url = `${BASE_URL}/api/cash-advance/dashboard/closed?ApproverId=${userId}&ApproverRole=closer`;
+            // For closed tab, show documents that have been closed
+            url = `${BASE_URL}/api/cash-advance/dashboard/approval?approverId=${userId}&approverRole=closed&isApproved=true`;
         }
 
         console.log('Fetching dashboard data from:', url);
@@ -69,7 +69,19 @@ async function loadDashboard() {
         console.log('Dashboard API response:', result);
 
         if (result.status && result.data) {
-            const documents = result.data;
+            let documents = result.data;
+            
+            // Filter documents based on current tab requirements
+            if (currentTab === 'received') {
+                // Only show Personal Loan transactions that are received (ready to be closed)
+                documents = documents.filter(doc => 
+                    doc.transactionType === 'Personal Loan' && 
+                    doc.status === 'Received'
+                );
+            } else if (currentTab === 'closed') {
+                // Show closed documents
+                documents = documents.filter(doc => doc.status === 'Closed');
+            }
             
             // Update counters by fetching all statuses
             await updateCounters(userId);
@@ -99,36 +111,66 @@ async function loadDashboard() {
 // Function to update counters by fetching data for all statuses
 async function updateCounters(userId) {
     try {
-        // Fetch counts for each status using new API endpoints
-        const receivedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/approval?ApproverId=${userId}&ApproverRole=received&isApproved=true`, {
+        // Fetch counts for each status using the correct endpoint
+        const receivedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/approval?approverId=${userId}&approverRole=received&isApproved=true`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        const closedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/closed?ApproverId=${userId}&ApproverRole=closer`, {
+        
+        const closedResponse = await fetch(`${BASE_URL}/api/cash-advance/dashboard/approval?approverId=${userId}&approverRole=closed&isApproved=true`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
 
         const receivedData = receivedResponse.ok ? await receivedResponse.json() : { data: [] };
         const closedData = closedResponse.ok ? await closedResponse.json() : { data: [] };
 
-        const receivedCount = receivedData.data ? receivedData.data.length : 0;
-        const closedCount = closedData.data ? closedData.data.length : 0;
+        // Filter received data for Personal Loan transactions only
+        const receivedCashAdvances = receivedData.data ? receivedData.data.filter(doc => 
+            doc.transactionType === 'Personal Loan' && doc.status === 'Received'
+        ) : [];
+        
+        // Filter closed data
+        const closedCashAdvances = closedData.data ? closedData.data.filter(doc => 
+            doc.status === 'Closed'
+        ) : [];
 
-        // Update counters - map to existing HTML elements
-        document.getElementById("receivedCount").textContent = receivedCount;
-        document.getElementById("closedCount").textContent = closedCount;
+        const receivedCount = receivedCashAdvances.length;
+        const closedCount = closedCashAdvances.length;
+
+        // Update counters - check if elements exist before setting textContent
+        const receivedCountElement = document.getElementById("receivedCount");
+        const closedCountElement = document.getElementById("closedCount");
+        
+        if (receivedCountElement) {
+            receivedCountElement.textContent = receivedCount;
+        }
+        if (closedCountElement) {
+            closedCountElement.textContent = closedCount;
+        }
         
     } catch (error) {
         console.error('Error updating counters:', error);
         
         // Fallback to zero counts
-        document.getElementById("receivedCount").textContent = 0;
-        document.getElementById("closedCount").textContent = 0;
+        const receivedCountElement = document.getElementById("receivedCount");
+        const closedCountElement = document.getElementById("closedCount");
+        
+        if (receivedCountElement) {
+            receivedCountElement.textContent = 0;
+        }
+        if (closedCountElement) {
+            closedCountElement.textContent = 0;
+        }
     }
 }
 
 // Function to update table with documents
 function updateTable(documents = []) {
     const tableBody = document.getElementById('recentDocs');
+    if (!tableBody) {
+        console.error('Table body element "recentDocs" not found');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     filteredData = documents;
@@ -202,57 +244,54 @@ function updateTable(documents = []) {
         }
         
         row.innerHTML = rowHTML;
-        
         tableBody.appendChild(row);
     });
 }
 
 // Function to update pagination info
 function updatePaginationInfo(totalItems) {
-    const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
     
-    document.getElementById('startItem').textContent = startItem;
-    document.getElementById('endItem').textContent = endItem;
-    document.getElementById('totalItems').textContent = totalItems;
+    // Check if pagination info element exists
+    const pageInfoElement = document.getElementById('pageInfo');
+    if (pageInfoElement) {
+        pageInfoElement.textContent = `${startItem}-${endItem} of ${totalItems}`;
+    } else {
+        console.warn('Pagination info element "pageInfo" not found');
+    }
     
-    // Update pagination buttons
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const prevButton = document.getElementById('prevPage');
-    const nextButton = document.getElementById('nextPage');
+    // Update button states - check if elements exist
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
     
-    prevButton.classList.toggle('disabled', currentPage <= 1);
-    nextButton.classList.toggle('disabled', currentPage >= totalPages);
-    
-    document.getElementById('currentPage').textContent = currentPage;
+    if (prevBtn) {
+        prevBtn.disabled = currentPage === 1;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+    }
 }
 
 // Function to switch between tabs
 function switchTab(tabName) {
-    console.log('Switching to tab:', tabName);
     currentTab = tabName;
     currentPage = 1; // Reset to first page
     
     // Update active tab styling
-    document.querySelectorAll('[id$="TabBtn"]').forEach(el => el.classList.remove('tab-active'));
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
     
-    if (tabName === 'received') {
-        document.getElementById('receivedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'closed') {
-        document.getElementById('closedTabBtn').classList.add('tab-active');
+    const activeTab = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+    if (activeTab) {
+        activeTab.classList.remove('bg-gray-200', 'text-gray-700');
+        activeTab.classList.add('bg-blue-500', 'text-white');
     }
     
-    // Show/hide remarks column based on tab
-    const remarksHeader = document.getElementById('remarksHeader');
-    if (remarksHeader) {
-        if (tabName === 'closed') {
-            remarksHeader.style.display = 'table-cell';
-        } else {
-            remarksHeader.style.display = 'none';
-        }
-    }
-    
-    // Reload dashboard with the new filter
+    // Load dashboard data for new tab
     loadDashboard();
 }
 
@@ -285,7 +324,7 @@ function changePage(direction) {
 
 // Function to navigate to total documents page
 function goToTotalDocs() {
-    switchTab('approved');
+    switchTab('closed');
 }
 
 // Navigation functions
@@ -297,59 +336,102 @@ function toggleSidebar() {
 }
 
 function toggleSubMenu(menuId) {
-    document.getElementById(menuId).classList.toggle("hidden");
+    const subMenu = document.getElementById(menuId);
+    if (subMenu) {
+        subMenu.classList.toggle("hidden");
+    }
 }
 
-// Function to navigate to user profile page
-function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
-}
+
 
 // Function to redirect to detail page with cash advance ID
 function detailCash(caId) {
-    window.location.href = `../../../approval/receive/cashAdvance/receiveCash.html?ca-id=${caId}&tab=${currentTab}`;
+    window.location.href = `../../../approval/close/cashAdvance/closeCash.html?ca-id=${caId}&tab=${currentTab}`;
 }
 
-// Function to close cash advance
+// Function to close cash advance using the new status update API
 async function closeCashAdvance(caId) {
     if (!caId) {
         alert('Invalid cash advance ID');
         return;
     }
     
-    const remarks = prompt('Please enter closing remarks (optional):');
-    if (remarks === null) return; // User cancelled
+    // Show confirmation dialog
+    const result = await Swal.fire({
+        title: 'Confirm Close',
+        text: 'Are you sure you want to close this Cash Advance?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Close',
+        cancelButtonText: 'Cancel'
+    });
+    
+    if (!result.isConfirmed) return;
     
     try {
-        const response = await fetch(`${BASE_URL}/api/cash-advance/close/${caId}`, {
+        const userId = getUserId();
+        if (!userId) {
+            alert('Unable to get user ID from token. Please login again.');
+            return;
+        }
+        
+        // Show loading
+        Swal.fire({
+            title: 'Closing Cash Advance...',
+            text: 'Please wait while we process your request.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Use the new status update API
+        const response = await fetch(`${BASE_URL}/api/cash-advance/status`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAccessToken()}`
             },
             body: JSON.stringify({
-                remarks: remarks || '',
-                closerId: getUserId()
+                id: caId,
+                UserId: userId,
+                StatusAt: "Close",
+                Action: "close",
+                Remarks: ''
             })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
+        // const result = await response.json();
         
-        if (result.status) {
-            alert('Cash advance closed successfully!');
+        console.log(result);
+        if (result.status !== false) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Cash advance closed successfully!',
+                timer: 2000,
+                showConfirmButton: false
+            });
             // Reload dashboard to reflect changes
             loadDashboard();
         } else {
-            alert(result.message || 'Failed to close cash advance');
+            throw new Error(result.message || 'Failed to close cash advance');
         }
         
     } catch (error) {
         console.error('Error closing cash advance:', error);
-        alert('Failed to close cash advance. Please try again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to close cash advance. Please try again.'
+        });
     }
 }
 
@@ -393,7 +475,7 @@ function downloadExcel() {
     
     // Create worksheet data
     const worksheetData = [
-        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
+        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status', 'Transaction Type']
     ];
     
     filteredData.forEach(doc => {
@@ -403,7 +485,8 @@ function downloadExcel() {
             doc.requesterName || '',
             doc.departmentName || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-            doc.status || ''
+            doc.status || '',
+            doc.transactionType || ''
         ]);
     });
     
@@ -412,10 +495,10 @@ function downloadExcel() {
     
     // Create workbook
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances');
+    XLSX.utils.book_append_sheet(wb, ws, 'Cash Advances Close');
     
     // Save file
-    XLSX.writeFile(wb, 'Cash_Advances_Approve.xlsx');
+    XLSX.writeFile(wb, 'Cash_Advances_Close.xlsx');
 }
 
 // Download as PDF
@@ -435,7 +518,8 @@ function downloadPDF() {
             doc.requesterName || '',
             doc.departmentName || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-            doc.status || ''
+            doc.status || '',
+            doc.transactionType || ''
         ]);
     });
     
@@ -443,13 +527,13 @@ function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    doc.text('Cash Advances Approve Report', 14, 16);
+    doc.text('Cash Advances Close Report', 14, 16);
     doc.autoTable({
-        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
+        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status', 'Transaction Type']],
         body: docData,
         startY: 20
     });
     
     // Save file
-    doc.save('Cash_Advances_Approve.pdf');
+    doc.save('Cash_Advances_Close.pdf');
 } 
