@@ -235,7 +235,7 @@
                 <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Approved
                 </button>
-                <button onclick="printPR()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="printPR()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Print
                 </button>
             </div>
@@ -510,6 +510,15 @@
             // Initialize button states
             checkRevisionButton();
             updateAddButtonState();
+        });
+
+        // Initialize button visibility when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if updateButtonVisibility function exists
+            if (typeof updateButtonVisibility === 'function') {
+                // Call the function to hide/show print button based on initial status
+                updateButtonVisibility();
+            }
         });
     </script>
 </body>

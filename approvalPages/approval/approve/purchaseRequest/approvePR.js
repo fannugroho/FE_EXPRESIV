@@ -174,6 +174,15 @@ window.addEventListener("DOMContentLoaded", async function() {
     });
     
     // If PR type is already selected, toggle fields accordingly
+    
+    // Initialize button visibility
+    updateButtonVisibility();
+    
+    // Add event listener for status changes
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', updateButtonVisibility);
+    }
 });
 
 let prId; // Declare global variable
@@ -261,19 +270,19 @@ function populatePRDetails(data) {
         classificationSelect.appendChild(option);
     }
 
-    // Set status - create option directly from backend data
-    if (data && data.status) {
-        console.log('Status:', data.status);
-        const statusSelect = document.getElementById('status');
-        if (statusSelect) {
-            statusSelect.innerHTML = ''; // Clear existing options
-            const option = document.createElement('option');
-            option.value = data.status;
-            option.textContent = data.status;
-            option.selected = true;
-            statusSelect.appendChild(option);
+    // Set status and update button visibility
+    const statusSelect = document.getElementById('status');
+    if (statusSelect && data.status) {
+        for (let i = 0; i < statusSelect.options.length; i++) {
+            if (statusSelect.options[i].text === data.status) {
+                statusSelect.selectedIndex = i;
+                break;
+            }
         }
     }
+    
+    // Update button visibility based on status
+    updateButtonVisibility();
     
     // Handle item details (only item type is supported now)
     if (data.itemDetails) {
@@ -1078,3 +1087,18 @@ function goToMenuApprovPR() {
 
 // Add variable to prevent double-clicking
 let isProcessing = false;
+
+// Function to update button visibility based on status
+function updateButtonVisibility() {
+    const statusSelect = document.getElementById('status');
+    const printButton = document.querySelector('button[onclick="printPR()"]');
+    
+    if (statusSelect && printButton) {
+        // Tampilkan tombol print hanya jika status = "Approved"
+        if (statusSelect.value === "Open" && statusSelect.options[statusSelect.selectedIndex].text === "Approved") {
+            printButton.style.display = "block";
+        } else {
+            printButton.style.display = "none";
+        }
+    }
+}

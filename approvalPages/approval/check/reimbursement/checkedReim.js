@@ -412,6 +412,9 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                </td>
+                <td class="p-2 border">
                     <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
@@ -434,6 +437,11 @@ function populateReimbursementDetails(details) {
     } else {
         // Add an empty row if no details
         addRow();
+    }
+    
+    // Calculate and update the total amount
+    if (typeof updateTotalAmount === 'function') {
+        updateTotalAmount();
     }
 }
 
@@ -474,6 +482,9 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full" required readonly />
         </td>
         <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required readonly />
+        </td>
+        <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full" required readonly />
         </td>
         <td class="p-2 border">
@@ -495,6 +506,11 @@ function addRow() {
 function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
+    
+    // Update the total amount after removing a row
+    if (typeof updateTotalAmount === 'function') {
+        updateTotalAmount();
+    }
 }
 
 // Function to go back to menu

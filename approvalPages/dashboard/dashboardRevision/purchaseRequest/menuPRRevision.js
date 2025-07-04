@@ -240,45 +240,49 @@ function updateTable(documents = []) {
         const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
         const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
         
-        // Check if fields are longer than 10 characters and apply scrollable class
-        const docIdValue = doc.id ? doc.id.toString().substring(0, 10) : '';
-        const docNumberClass = docIdValue.length > 10 ? 'scrollable-cell' : '';
-        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 10 ? 'scrollable-cell' : '';
-        const requesterNameClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
-        const departmentClass = doc.departmentName && doc.departmentName.length > 10 ? 'scrollable-cell' : '';
-        const poNumberClass = doc.poNumber && doc.poNumber.length > 10 ? 'scrollable-cell' : '';
-        const remarksClass = doc.remarks && doc.remarks.length > 10 ? 'scrollable-cell' : '';
+        // Check if fields are longer than 15 characters and apply scrollable class
+        const docNumberClass = doc.id && doc.id.toString().length > 15 ? 'scrollable-cell' : '';
+        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'scrollable-cell' : '';
+        const requesterNameClass = doc.requesterName && doc.requesterName.length > 15 ? 'scrollable-cell' : '';
+        const departmentClass = doc.departmentName && doc.departmentName.length > 15 ? 'scrollable-cell' : '';
+        const poNumberClass = doc.poNumber && doc.poNumber.length > 15 ? 'scrollable-cell' : '';
+        const remarksClass = doc.remarks && doc.remarks.length > 15 ? 'scrollable-cell' : '';
         
-        // Create row HTML
-        let rowHTML = `
-            <td class="p-2"><div class="${docNumberClass}">${docIdValue}</div></td>
-            <td class="p-2"><div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div></td>
-            <td class="p-2"><div class="${requesterNameClass}">${doc.requesterName || '-'}</div></td>
-            <td class="p-2"><div class="${departmentClass}">${doc.departmentName || '-'}</div></td>
+        // Build row HTML with scrollable cells
+        row.innerHTML = `
+            <td class="p-2">
+                <div class="${docNumberClass}">${doc.id || '-'}</div>
+            </td>
+            <td class="p-2">
+                <div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div>
+            </td>
+            <td class="p-2">
+                <div class="${requesterNameClass}">${doc.requesterName || '-'}</div>
+            </td>
+            <td class="p-2">
+                <div class="${departmentClass}">${doc.departmentName || '-'}</div>
+            </td>
             <td class="p-2">${submissionDate}</td>
             <td class="p-2">${requiredDate}</td>
-            <td class="p-2"><div class="${poNumberClass}">${doc.poNumber || '-'}</div></td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
-                    ${doc.status || ''}
+                <div class="${poNumberClass}">${doc.poNumber || '-'}</div>
+            </td>
+            <td class="p-2">
+                <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(doc.status)}">
+                    ${doc.status || '-'}
                 </span>
-            </td>`;
-            
-        // Add remarks column if in revision tab
-        if (currentTab === 'revision') {
-            rowHTML += `<td class="p-2"><div class="${remarksClass}">${doc.remarks || '-'}</div></td>`;
-        }
-        
-        // Add tools column
-        rowHTML += `
+            </td>
+            ${currentTab === 'revision' ? 
+                `<td class="p-2">
+                    <div class="${remarksClass}">${doc.remarks || '-'}</div>
+                </td>` : ''}
             <td class="p-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailDoc('${doc.id || ''}', '${doc.prType || 'item'}')">
-                    Detail
+                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs">
+                    <i class="fas fa-eye mr-1"></i>View
                 </button>
             </td>
         `;
         
-        row.innerHTML = rowHTML;
         tableBody.appendChild(row);
     });
 }

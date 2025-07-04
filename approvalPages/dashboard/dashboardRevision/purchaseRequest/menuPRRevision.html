@@ -207,6 +207,33 @@
             cursor: not-allowed;
         }
         
+        /* Scrollable cell styling for long content */
+        .scrollable-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 4px;
+            position: relative;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
         /* Mobile responsive improvements */
         @media (max-width: 768px) {
             #sidebar {
@@ -223,6 +250,10 @@
             .flex-1 {
                 margin-left: 0 !important;
                 width: 100%;
+            }
+            
+            .scrollable-cell {
+                max-width: 100px;
             }
         }
     </style>

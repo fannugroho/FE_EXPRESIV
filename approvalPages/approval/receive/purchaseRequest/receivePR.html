@@ -224,7 +224,7 @@
                 <button onclick="approvePR()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Receive
                 </button>
-                <button onclick="printPR()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="printPR()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Print
                 </button>
             </div>
@@ -411,6 +411,9 @@
             // Initialize button states
             checkRevisionButton();
             updateAddButtonState();
+            
+            // Initialize print button visibility
+            setTimeout(togglePrintButton, 500); // Slight delay to ensure status is loaded
         });
         
         // Function to get current user information
