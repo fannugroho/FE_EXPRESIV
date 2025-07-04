@@ -81,6 +81,7 @@
             <thead class="bg-gray-100">
                 <br>
                 <tr>
+                    <th class="p-2">Category</th>
                     <th class="p-2">Description</th>
                     <th class="p-2">G/L Account</th>
                     <th class="p-2">Account Name</th>
@@ -93,10 +94,20 @@
             </tbody>
         </table>
         
-        <!-- Tombol Tambah Baris -->
+        <!-- Tombol Tambah Baris 
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
             + 
-        </button>
+        </button>-->
+
+        <!-- Total Amount Field -->
+        <div class="flex justify-end mt-4">
+            <div class="w-1/3">
+                <div class="flex items-center">
+                    <label class="font-semibold text-lg mr-4">Total Amount:</label>
+                    <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                </div>
+            </div>
+        </div>
 
             <div class="mt-4">
               <label>Remarks</label>
@@ -358,207 +369,4 @@
                 addBtn.style.pointerEvents = 'none';
                 
                 if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                    addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
-                } else if (revisionFieldsByUser.has(currentUser.name)) {
-                    addBtn.textContent = ' ';
-                }
-            }
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const revisionContainer = document.getElementById('revisionContainer');
-            
-            // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
-                if (event.target.tagName === 'TEXTAREA') {
-                    checkRevisionButton();
-                }
-            });
-            
-            // Initialize button states
-            checkRevisionButton();
-            updateAddButtonState();
-        });
-        
-        // Function to get current user information
-        function getUserInfo() {
-            // Use functions from auth.js to get user information
-            let userName = 'Unknown User';
-            let userRole = 'Acknowledger'; // Default role for this page
-            
-            try {
-                // Get user info from getCurrentUser function in auth.js
-                const currentUser = getCurrentUser();
-                if (currentUser && currentUser.username) {
-                    userName = currentUser.username;
-                }
-            } catch (e) {
-                console.error('Error getting user info:', e);
-            }
-            
-            return { name: userName, role: userRole };
-        }
-        
-        // Function to initialize textarea with user prefix
-        function initializeWithUserPrefix(textarea) {
-            const userInfo = getUserInfo();
-            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-            textarea.value = prefix;
-            
-            // Store the prefix length as a data attribute
-            textarea.dataset.prefixLength = prefix.length;
-            
-            // Set selection range after the prefix
-            textarea.setSelectionRange(prefix.length, prefix.length);
-            textarea.focus();
-        }
-        
-        // Function to handle input and protect the prefix
-        function handleRevisionInput(event) {
-            const textarea = event.target;
-            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-            
-            // If user tries to modify content before the prefix length
-            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
-                // Restore the prefix
-                const userInfo = getUserInfo();
-                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-                
-                // Only restore if the prefix is damaged
-                if (!textarea.value.startsWith(prefix)) {
-                    const userText = textarea.value.substring(prefixLength);
-                    textarea.value = prefix + userText;
-                    
-                    // Reset cursor position after the prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                } else {
-                    // Just move cursor after prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                }
-            }
-        }
-        
-        // Check if revision remarks are filled to enable/disable revision button
-        function checkRevisionButton() {
-            const revisionButton = document.getElementById('revisionButton');
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            let hasContent = false;
-            
-            // Check if there are any revision fields and if they have content
-            if (revisionFields.length > 0) {
-                revisionFields.forEach(field => {
-                    const prefixLength = parseInt(field.dataset.prefixLength || '0');
-                    // Check if there's content beyond the prefix
-                    if (field.value.trim().length > prefixLength) {
-                        hasContent = true;
-                    }
-                });
-            }
-            
-            if (hasContent) {
-                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = false;
-            } else {
-                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = true;
-            }
-        }
-        
-        // Function to collect all revision remarks and submit
-        function revisionReim() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            // First show confirmation dialog
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "Are you sure you want to submit this revision?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, Submit Revision!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Get reimbursement ID from URL
-                    const id = getReimbursementIdFromUrl();
-                    if (!id) {
-                        Swal.fire('Error', 'No reimbursement ID found', 'error');
-                        return;
-                    }
-                    
-                    // Make API call to submit revision using the new endpoint
-                    fetch(`${BASE_URL}/api/reimbursements/revision/${id}`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${getAccessToken()}`
-                        },
-                        body: JSON.stringify({
-                            remarks: allRemarks
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status && result.code === 200) {
-                            Swal.fire(
-                                'Success!',
-                                'Revision remarks have been submitted successfully.',
-                                'success'
-                            ).then(() => {
-                                // Return to menu
-                                goToMenuReim();
-                            });
-                        } else {
-                            Swal.fire(
-                                'Error',
-                                result.message || 'Failed to submit revision',
-                                'error'
-                            );
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error submitting revision:', error);
-                        Swal.fire(
-                            'Error',
-                            'An error occurred while submitting the revision',
-                            'error'
-                        );
-                    });
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                    addBtn.textContent = `
