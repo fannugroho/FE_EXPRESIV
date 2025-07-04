@@ -239,6 +239,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Handle table row dropdowns
+        const categoryDropdowns = document.querySelectorAll('.category-dropdown');
+        const accountNameDropdowns = document.querySelectorAll('.account-name-dropdown');
+        
+        categoryDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.category-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        accountNameDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.account-name-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
     });
     
     // Trigger initial dropdown on focus for each search field
@@ -267,6 +285,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+    
+    // Setup event listeners for the first row that already exists
+    const firstRow = document.querySelector('#tableBody tr');
+    if (firstRow) {
+        setupRowEventListeners(firstRow);
+        // Also populate categories for the first row if available
+        populateCategoriesForNewRow(firstRow);
+    }
+    
+    // Setup event listeners for department and transaction type changes
+    const departmentSelect = document.getElementById('department');
+    const transactionTypeSelect = document.getElementById('typeOfTransaction');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', handleDependencyChange);
+    }
 });
 
 async function saveDocument() {
@@ -425,19 +463,31 @@ function addRow() {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <div class="relative">
+                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                <select class="hidden category-select">
+                    <option value="" disabled selected>Choose Category</option>
+                </select>
+            </div>
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <div class="relative">
+                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                <select class="hidden account-name-select">
+                    <option value="" disabled selected>Choose Account Name</option>
+                </select>
+            </div>
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required/>
+            <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required />
+            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -446,8 +496,13 @@ function addRow() {
         </td>
     `;
 
-
     tableBody.appendChild(newRow);
+    
+    // Setup event listeners for the new row
+    setupRowEventListeners(newRow);
+    
+    // Populate categories for the new row if data is available
+    populateCategoriesForNewRow(newRow);
 }
 
 function deleteRow(button) {
@@ -734,6 +789,12 @@ function setDepartmentValue(departmentName) {
     departmentSelect.disabled = wasDisabled;
     console.log('Department auto-filled successfully:', departmentName);
     console.log('Final selected value:', departmentSelect.value);
+    
+    // Trigger dependency change to update categories if transaction type is also selected
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    if (transactionType) {
+        handleDependencyChange();
+    }
 }
 
 // Legacy function for backward compatibility (keeping the old function name)
@@ -844,14 +905,19 @@ async function processDocument(isSubmit) {
     const tableRows = document.querySelectorAll("#tableBody tr");
     
     tableRows.forEach(row => {
-        const inputs = row.querySelectorAll("input");
-        if (inputs.length >= 4) {
+        // Get category from search input
+        const categoryInput = row.querySelector('.category-search');
+        const accountNameInput = row.querySelector('.account-name-search');
+        const glAccountInput = row.querySelector('.gl-account');
+        const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
+        
+        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
             reimbursementDetails.push({
-                category: inputs[0].value || "",
-                accountName: inputs[1].value || "",
-                glAccount: inputs[2].value || "",
-                description: inputs[3].value || "",
-                amount: inputs[4].value || ""
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: inputs[0].value || "", // Description input
+                amount: inputs[1].value || "" // Amount input
             });
         }
     });
@@ -1027,5 +1093,330 @@ function populateTransactionTypesDropdown(types) {
         option.textContent = type.name;
         typeSelect.appendChild(option);
     });
+}
+
+// Store global data for categories and account names
+let allCategories = [];
+let allAccountNames = [];
+
+// Function to get department ID by name
+async function getDepartmentIdByName(departmentName) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const departments = result.data;
+        
+        const department = departments.find(dept => dept.name === departmentName);
+        return department ? department.id : null;
+    } catch (error) {
+        console.error("Error fetching department ID:", error);
+        return null;
+    }
+}
+
+// Function to fetch categories based on department and transaction type
+async function fetchCategories(departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const categories = await response.json();
+        allCategories = categories;
+        console.log('Fetched categories:', categories);
+        
+        // Update all category dropdowns in table rows
+        updateAllCategoryDropdowns();
+        
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        allCategories = [];
+        updateAllCategoryDropdowns();
+    }
+}
+
+// Function to fetch account names based on category, department and transaction type
+async function fetchAccountNames(category, departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const accountNames = await response.json();
+        allAccountNames = accountNames;
+        console.log('Fetched account names:', accountNames);
+        
+        return accountNames;
+        
+    } catch (error) {
+        console.error("Error fetching account names:", error);
+        return [];
+    }
+}
+
+// Function to update all category dropdowns
+function updateAllCategoryDropdowns() {
+    const categorySearchInputs = document.querySelectorAll('.category-search');
+    
+    categorySearchInputs.forEach(input => {
+        // Store categories data for searching
+        input.dataset.categories = JSON.stringify(allCategories);
+        
+        // Clear current value if categories changed
+        const currentValue = input.value;
+        if (currentValue && !allCategories.includes(currentValue)) {
+            input.value = '';
+            const row = input.closest('tr');
+            const accountNameSearch = row.querySelector('.account-name-search');
+            const glAccount = row.querySelector('.gl-account');
+            if (accountNameSearch) accountNameSearch.value = '';
+            if (glAccount) glAccount.value = '';
+        }
+    });
+}
+
+// Function to setup event listeners for table rows
+function setupRowEventListeners(row) {
+    const categorySearch = row.querySelector('.category-search');
+    const categoryDropdown = row.querySelector('.category-dropdown');
+    const accountNameSearch = row.querySelector('.account-name-search');
+    const accountNameDropdown = row.querySelector('.account-name-dropdown');
+    
+    if (categorySearch) {
+        // Populate with existing categories if available
+        if (allCategories.length > 0) {
+            categorySearch.dataset.categories = JSON.stringify(allCategories);
+        }
+        
+        categorySearch.addEventListener('focus', function() {
+            filterCategories(this);
+        });
+        
+        categorySearch.addEventListener('input', function() {
+            filterCategories(this);
+        });
+    }
+    
+    if (accountNameSearch) {
+        accountNameSearch.addEventListener('focus', function() {
+            filterAccountNames(this);
+        });
+        
+        accountNameSearch.addEventListener('input', function() {
+            filterAccountNames(this);
+        });
+    }
+}
+
+// Function to filter and display categories
+function filterCategories(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.category-dropdown');
+    
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const categories = JSON.parse(input.dataset.categories || '[]');
+        const filtered = categories.filter(category => 
+            category.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(category => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = category;
+            option.onclick = function() {
+                input.value = category;
+                const selectElement = input.parentElement.querySelector('.category-select');
+                if (selectElement) {
+                    selectElement.value = category;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Clear account name and GL account when category changes
+                const row = input.closest('tr');
+                const accountNameSearch = row.querySelector('.account-name-search');
+                const glAccount = row.querySelector('.gl-account');
+                if (accountNameSearch) accountNameSearch.value = '';
+                if (glAccount) glAccount.value = '';
+                
+                // Trigger account names fetch
+                loadAccountNamesForRow(row);
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Categories Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering categories:", error);
+    }
+}
+
+// Function to filter and display account names
+function filterAccountNames(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.account-name-dropdown');
+    
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const accountNames = JSON.parse(input.dataset.accountNames || '[]');
+        const filtered = accountNames.filter(account => 
+            account.accountName.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(account => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = account.accountName;
+            option.onclick = function() {
+                input.value = account.accountName;
+                const selectElement = input.parentElement.querySelector('.account-name-select');
+                if (selectElement) {
+                    selectElement.value = account.accountName;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Auto-fill GL Account
+                const row = input.closest('tr');
+                const glAccount = row.querySelector('.gl-account');
+                if (glAccount) {
+                    glAccount.value = account.coa;
+                }
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Account Names Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering account names:", error);
+    }
+}
+
+// Function to load account names for a specific row
+async function loadAccountNamesForRow(row) {
+    const categoryInput = row.querySelector('.category-search');
+    const accountNameInput = row.querySelector('.account-name-search');
+    
+    if (!categoryInput || !accountNameInput) return;
+    
+    const category = categoryInput.value;
+    if (!category) return;
+    
+    // Get current department and transaction type
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not selected');
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        const accountNames = await fetchAccountNames(category, departmentId, transactionType);
+        
+        // Store account names data for this row
+        accountNameInput.dataset.accountNames = JSON.stringify(accountNames);
+        
+    } catch (error) {
+        console.error('Error loading account names for row:', error);
+    }
+}
+
+// Function to handle department or transaction type changes
+async function handleDependencyChange() {
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not fully selected');
+        allCategories = [];
+        updateAllCategoryDropdowns();
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        // Fetch new categories
+        await fetchCategories(departmentId, transactionType);
+        
+    } catch (error) {
+        console.error('Error handling dependency change:', error);
+    }
+}
+
+// Function to populate categories for a new row
+function populateCategoriesForNewRow(row) {
+    const categorySearch = row.querySelector('.category-search');
+    
+    if (categorySearch && allCategories.length > 0) {
+        // Store categories data for the new row
+        categorySearch.dataset.categories = JSON.stringify(allCategories);
+        console.log('Populated categories for new row:', allCategories.length, 'categories');
+    } else if (categorySearch) {
+        console.log('No categories available to populate for new row');
+        
+        // Check if department and transaction type are selected, if so trigger fetch
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            console.log('Department and transaction type are selected, triggering category fetch...');
+            handleDependencyChange().then(() => {
+                // After categories are fetched, populate this row
+                if (allCategories.length > 0) {
+                    categorySearch.dataset.categories = JSON.stringify(allCategories);
+                    console.log('Categories populated after fetch for new row');
+                }
+            });
+        }
+    }
 }
     
