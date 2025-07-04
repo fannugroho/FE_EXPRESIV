@@ -240,45 +240,44 @@ function updateTable(documents = []) {
         const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
         const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
         
-        // Check if fields are longer than 15 characters and apply scrollable class
-        const docNumberClass = doc.id && doc.id.toString().length > 15 ? 'scrollable-cell' : '';
-        const prNumberClass = doc.purchaseRequestNo && doc.purchaseRequestNo.length > 15 ? 'scrollable-cell' : '';
-        const requesterNameClass = doc.requesterName && doc.requesterName.length > 15 ? 'scrollable-cell' : '';
-        const departmentClass = doc.departmentName && doc.departmentName.length > 15 ? 'scrollable-cell' : '';
-        const poNumberClass = doc.poNumber && doc.poNumber.length > 15 ? 'scrollable-cell' : '';
-        const remarksClass = doc.remarks && doc.remarks.length > 15 ? 'scrollable-cell' : '';
+        // Get values for each cell and check if they need scrolling
+        const docId = doc.id || '-';
+        const prNumber = doc.purchaseRequestNo || '-';
+        const requesterName = doc.requesterName || '-';
+        const departmentName = doc.departmentName || '-';
+        const poNumber = doc.poNumber || '-';
         
-        // Build row HTML with scrollable cells
+        // Create cell classes based on content length
+        const docIdClass = docId.toString().length > 8 ? 'scrollable-cell' : '';
+        const prNumberClass = prNumber.toString().length > 8 ? 'scrollable-cell' : '';
+        const requesterClass = requesterName.toString().length > 8 ? 'scrollable-cell' : '';
+        const departmentClass = departmentName.toString().length > 8 ? 'scrollable-cell' : '';
+        const poNumberClass = poNumber.toString().length > 8 ? 'scrollable-cell' : '';
+        
+        // Get status styling
+        const statusClass = getStatusClass(doc.status);
+        const statusText = doc.status || 'Unknown';
+        const remarks = doc.remarks || '-';
+        const remarksClass = remarks.toString().length > 8 ? 'scrollable-cell' : '';
+        
+        // Build row HTML with data attributes for content length checking
         row.innerHTML = `
-            <td class="p-2">
-                <div class="${docNumberClass}">${doc.id || '-'}</div>
-            </td>
-            <td class="p-2">
-                <div class="${prNumberClass}">${doc.purchaseRequestNo || '-'}</div>
-            </td>
-            <td class="p-2">
-                <div class="${requesterNameClass}">${doc.requesterName || '-'}</div>
-            </td>
-            <td class="p-2">
-                <div class="${departmentClass}">${doc.departmentName || '-'}</div>
-            </td>
+            <td class="p-2 ${docIdClass}" data-content="${docId}">${docId}</td>
+            <td class="p-2 ${prNumberClass}" data-content="${prNumber}">${prNumber}</td>
+            <td class="p-2 ${requesterClass}" data-content="${requesterName}">${requesterName}</td>
+            <td class="p-2 ${departmentClass}" data-content="${departmentName}">${departmentName}</td>
             <td class="p-2">${submissionDate}</td>
             <td class="p-2">${requiredDate}</td>
+            <td class="p-2 ${poNumberClass}" data-content="${poNumber}">${poNumber}</td>
             <td class="p-2">
-                <div class="${poNumberClass}">${doc.poNumber || '-'}</div>
-            </td>
-            <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(doc.status)}">
-                    ${doc.status || '-'}
+                <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                    ${statusText}
                 </span>
             </td>
-            ${currentTab === 'revision' ? 
-                `<td class="p-2">
-                    <div class="${remarksClass}">${doc.remarks || '-'}</div>
-                </td>` : ''}
+            ${currentTab === 'revision' ? `<td class="p-2 ${remarksClass}" data-content="${remarks}">${remarks}</td>` : ''}
             <td class="p-2">
-                <button onclick="detailDoc('${doc.id}', '${doc.prType}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs">
-                    <i class="fas fa-eye mr-1"></i>View
+                <button onclick="detailDoc('${doc.id}', '${doc.type}')" class="text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-600 rounded-md text-xs">
+                    Detail
                 </button>
             </td>
         `;
