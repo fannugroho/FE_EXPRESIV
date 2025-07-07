@@ -401,11 +401,19 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
         }
     }
     
-    // Add event listener for account name selection
-    accountNameSelect.addEventListener('change', async function() {
+    // Remove existing event listeners to avoid conflicts
+    const newAccountNameSelect = accountNameSelect.cloneNode(true);
+    accountNameSelect.parentNode.replaceChild(newAccountNameSelect, accountNameSelect);
+    
+    // Add event listener for account name selection - use dataset.coa instead of API call
+    newAccountNameSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
         const selectedAccountName = this.value;
-        if (selectedAccountName && category && departmentId && transactionType) {
-            const coa = await getCOA(category, selectedAccountName, departmentId, transactionType);
+        
+        if (selectedAccountName && selectedOption) {
+            // Use COA data that's already available from dataset
+            const coa = selectedOption.dataset.coa || '';
+            console.log('Using COA from dataset:', coa, 'for account:', selectedAccountName);
             if (coaInput) coaInput.value = coa;
         } else {
             if (coaInput) coaInput.value = '';
@@ -1229,6 +1237,7 @@ function displayRevisionRemarks(data) {
 async function populateTable(cashAdvanceDetails) {
     const tableBody = document.getElementById("tableBody");
     
+    console.log("cashAdvanceDetails", cashAdvanceDetails);
     // Clear existing rows
     tableBody.innerHTML = '';
     
@@ -1242,10 +1251,12 @@ async function populateTable(cashAdvanceDetails) {
                 <div class="category-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
             </td>
             <td class="p-2 border">
-                <select class="account-name w-full">
-                    <option value="">Select Account Name</option>
-                    ${detail.accountName ? `<option value="${detail.accountName}" selected>${detail.accountName}</option>` : ''}
-                </select>
+             <select class="account-name w-full">
+                ${detail.accountName 
+                    ? `<option value="${detail.accountName}" selected>${detail.accountName}</option>` 
+                    : `<option value="" selected>Select Account Name</option>`
+                }
+            </select>
             </td>
             <td class="p-2 border">
                 <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" value="${detail.coa || ''}" />

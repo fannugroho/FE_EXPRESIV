@@ -339,11 +339,19 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
         accountNameSelect.appendChild(option);
     });
     
-    // Add event listener for account name selection
-    accountNameSelect.addEventListener('change', async function() {
+    // Remove existing event listeners to avoid conflicts
+    const newAccountNameSelect = accountNameSelect.cloneNode(true);
+    accountNameSelect.parentNode.replaceChild(newAccountNameSelect, accountNameSelect);
+    
+    // Add event listener for account name selection - use dataset.coa instead of API call
+    newAccountNameSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
         const selectedAccountName = this.value;
-        if (selectedAccountName && category && departmentId && transactionType) {
-            const coa = await getCOA(category, selectedAccountName, departmentId, transactionType);
+        
+        if (selectedAccountName && selectedOption) {
+            // Use COA data that's already available from dataset
+            const coa = selectedOption.dataset.coa || '';
+            console.log('Using COA from dataset:', coa, 'for account:', selectedAccountName);
             if (coaInput) coaInput.value = coa;
         } else {
             if (coaInput) coaInput.value = '';
