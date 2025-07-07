@@ -179,9 +179,9 @@ window.addEventListener("DOMContentLoaded", async function() {
     updateButtonVisibility();
     
     // Add event listener for status changes
-    const statusSelect = document.getElementById('status');
-    if (statusSelect) {
-        statusSelect.addEventListener('change', updateButtonVisibility);
+    const statusInput = document.getElementById('status');
+    if (statusInput) {
+        statusInput.addEventListener('input', updateButtonVisibility);
     }
 });
 
@@ -271,14 +271,9 @@ function populatePRDetails(data) {
     }
 
     // Set status and update button visibility
-    const statusSelect = document.getElementById('status');
-    if (statusSelect && data.status) {
-        for (let i = 0; i < statusSelect.options.length; i++) {
-            if (statusSelect.options[i].text === data.status) {
-                statusSelect.selectedIndex = i;
-                break;
-            }
-        }
+    const statusInput = document.getElementById('status');
+    if (statusInput && data.status) {
+        statusInput.value = data.status;
     }
     
     // Update button visibility based on status
@@ -371,13 +366,13 @@ function addItemRow(item = null) {
             </select>
         </td>
         <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled title="${item?.description || ''}" style="height: 40px;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center bg-gray-100" maxlength="100" readonly />
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap bg-gray-100" maxlength="100" readonly style="resize: none; height: 40px;">${item?.detail || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center bg-gray-100" maxlength="100" readonly />
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap bg-gray-100" maxlength="100" readonly style="resize: none; height: 40px;">${item?.purpose || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
             <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center bg-gray-100" readonly />
@@ -1090,12 +1085,12 @@ let isProcessing = false;
 
 // Function to update button visibility based on status
 function updateButtonVisibility() {
-    const statusSelect = document.getElementById('status');
+    const statusInput = document.getElementById('status');
     const printButton = document.querySelector('button[onclick="printPR()"]');
     
-    if (statusSelect && printButton) {
+    if (statusInput && printButton) {
         // Tampilkan tombol print hanya jika status = "Approved"
-        if (statusSelect.value === "Open" && statusSelect.options[statusSelect.selectedIndex].text === "Approved") {
+        if (statusInput.value === "Approved") {
             printButton.style.display = "block";
         } else {
             printButton.style.display = "none";

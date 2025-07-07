@@ -873,6 +873,9 @@ function populatePRDetails(data) {
         }
     }
 
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+
     // Set status
     if (data && data.status) {
         document.getElementById('status').value = data.status;
@@ -939,13 +942,13 @@ function addItemRow(item = null) {
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled title="${item?.description || ''}" style="word-wrap: break-word; white-space: pre-wrap;">${item?.description || ''}</textarea>
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled title="${item?.description || ''}" style="height: 40px;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.detail || ''}" class="w-full h-full item-detail text-center" maxlength="100" required />
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;">${item?.detail || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" value="${item?.purpose || ''}" class="w-full h-full item-purpose text-center" maxlength="100" required />
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;">${item?.purpose || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
             <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center" min="1" required />
@@ -974,13 +977,13 @@ function addRow() {
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" class="w-full h-full item-detail text-center" maxlength="100" required />
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" class="w-full h-full item-purpose text-center" maxlength="100" required />
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
             <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
@@ -1501,42 +1504,104 @@ document.getElementById("docType")?.addEventListener("change", function () {
 // 
 // Function to display attachments (initial load)
 function displayAttachments(attachments) {
-    // Just call the update function which handles both existing and new files
-    updateAttachmentsDisplay();
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    // Clear the attachments list
+    attachmentsList.innerHTML = '';
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach((attachment, index) => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex justify-between items-center p-1 mb-1 bg-white rounded';
+            
+            // Create file name display with icon
+            const fileNameDisplay = document.createElement('div');
+            fileNameDisplay.className = 'flex items-center';
+            
+            // Add PDF icon
+            const fileIcon = document.createElement('span');
+            fileIcon.className = 'text-red-500 mr-2';
+            fileIcon.innerHTML = '📄'; // PDF icon
+            fileNameDisplay.appendChild(fileIcon);
+            
+            // Add file name
+            const fileName = document.createElement('span');
+            fileName.textContent = attachment.fileName || `Attachment ${index + 1}`;
+            fileName.className = 'text-sm';
+            fileNameDisplay.appendChild(fileName);
+            
+            attachmentItem.appendChild(fileNameDisplay);
+            
+            // Add download/view button
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'flex space-x-2';
+            
+            // View button
+            const viewButton = document.createElement('button');
+            viewButton.type = 'button';
+            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm';
+            viewButton.innerHTML = '👁️'; // Eye icon
+            viewButton.title = 'View attachment';
+            viewButton.onclick = function() {
+                window.open(attachment.filePath, '_blank');
+            };
+            actionButtons.appendChild(viewButton);
+            
+            // Delete button (only shown for Draft status)
+            if (window.currentValues?.status === 'Draft') {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm';
+                deleteButton.innerHTML = '🗑️'; // Trash icon
+                deleteButton.title = 'Remove attachment';
+                deleteButton.onclick = function() {
+                    removeExistingAttachment(attachment.id);
+                };
+                actionButtons.appendChild(deleteButton);
+            }
+            
+            attachmentItem.appendChild(actionButtons);
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
 }
 
-// Add DOMContentLoaded event listener for dropdown functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Setup event listener untuk hide dropdown saat klik di luar
-    document.addEventListener('click', function(event) {
-        const dropdowns = [
-            'preparedByDropdown', 
-            'checkedByDropdown', 
-            'acknowledgeByDropdown', 
-            'approvedByDropdown', 
-            'receivedByDropdown'
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
         ];
         
-        const searchInputs = [
-            'preparedBySearch', 
-            'checkedBySearch', 
-            'acknowledgeBySearch', 
-            'approvedBySearch', 
-            'receivedBySearch'
-        ];
-        
-        dropdowns.forEach((dropdownId, index) => {
-            const dropdown = document.getElementById(dropdownId);
-            const input = document.getElementById(searchInputs[index]);
-            
-            if (dropdown && input) {
-                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
                 }
             }
         });
-    });
-});
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
+}
 
 function goToMenuPR() {
     window.location.href = '../pages/menuPR.html';
