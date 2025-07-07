@@ -154,7 +154,6 @@ function fetchDepartments() {
             return response.json();
         })
         .then(data => {
-            console.log("Department data:", data);
             populateDepartmentSelect(data.data);
         })
         .catch(error => {
@@ -181,7 +180,6 @@ function fetchUsers() {
             return response.json();
         })
         .then(data => {
-            console.log("User data:", data);
             populateUserSelects(data.data);
         })
         .catch(error => {
@@ -198,7 +196,6 @@ function fetchTransactionType() {
             return response.json();
         })
         .then(data => {
-            console.log("Transaction Type data:", data);
             populateTransactionTypeSelect(data.data);
         })
         .catch(error => {
@@ -207,7 +204,7 @@ function fetchTransactionType() {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners`)
+    fetch(`${BASE_URL}/api/business-partners/type/all`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -215,7 +212,6 @@ function fetchBusinessPartners() {
             return response.json();
         })
         .then(data => {
-            console.log("Business Partners data:", data);
             setupBusinessPartnerSearch(data.data);
         })
         .catch(error => {
@@ -225,12 +221,31 @@ function fetchBusinessPartners() {
 
 function populateTransactionTypeSelect(transactionTypes) {
     const transactionTypeSelect = document.getElementById("type");
+    if (transactionTypeSelect) {
+        // Clear existing options and add the default selection option
+        transactionTypeSelect.innerHTML = '<option value="" disabled selected>Select Type Of Transaction</option>';
+        
     transactionTypes.forEach(transactionType => {
         const option = document.createElement('option');
         option.value = transactionType.name;
         option.textContent = transactionType.name;
         transactionTypeSelect.appendChild(option);
     });
+
+        // Add event listener for transaction type change
+        transactionTypeSelect.addEventListener('change', function() {
+            // Remove emphasis when transaction type is selected
+            if (this.value) {
+                removeTransactionTypeEmphasis();
+            }
+            
+            // Refresh all category dropdowns when transaction type changes
+            refreshAllCategoryDropdowns();
+        });
+        
+        // Add initial emphasis to transaction type since no value is selected by default
+        emphasizeTransactionTypeSelection();
+    }
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
@@ -352,8 +367,10 @@ function populateUserSelects(users) {
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
 
+                    // Remove requester emphasis when selected
+                    removeRequesterEmphasis();
+
                     window.kansaiEmployeeId = requester.kansaiEmployeeId;
-                    console.log("requester", requester);
                     //update department
                     const departmentSelect = document.getElementById('department');
                     if (requester.department) {
@@ -374,6 +391,9 @@ function populateUserSelects(users) {
                             departmentSelect.appendChild(newOption);
                         }
                     }
+                    
+                    // Refresh category dropdowns after requester selection
+                    refreshAllCategoryDropdowns();
                 };
                 requesterDropdown.appendChild(option);
             });
@@ -442,12 +462,8 @@ function populateUserSelects(users) {
     }
     
     // Auto-populate employee fields with logged-in user data (like in addCash)
-    console.log("Logged in user ID:", loggedInUserId);
-    console.log("Available employees:", window.employees);
-    
     if(loggedInUserId && window.employees) {
         const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
-        console.log("Found logged in employee:", loggedInEmployee);
         
         if(loggedInEmployee) {
             const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
@@ -455,18 +471,10 @@ function populateUserSelects(users) {
             
             document.getElementById("Employee").value = employeeNIK;
             document.getElementById("EmployeeName").value = employeeName;
-            
-            console.log("Auto-populated employee fields:", {
-                employeeNIK: employeeNIK,
-                employeeName: employeeName
-            });
-        } else {
-            console.warn("Could not find logged in employee in employees array");
         }
-    } else {
-        console.warn("Missing logged in user ID or employees array");
     }
 }
+
 async function saveDocument(isSubmit = false) {
     // Show confirmation dialog only for submit
     if (isSubmit) {
@@ -495,19 +503,12 @@ async function saveDocument(isSubmit = false) {
         // Basic validation
         let kansaiEmployeeId;
         if(window.kansaiEmployeeId){
-            console.log("Kansai Employee ID:", window.kansaiEmployeeId);
             kansaiEmployeeId = window.kansaiEmployeeId;
         }else{
             kansaiEmployeeId = document.getElementById("Employee").value;
         }
 
-        console.log("Kansai Employee ID:", kansaiEmployeeId);
         const cashAdvanceReferenceId = document.getElementById("cashAdvanceDoc").value;
-        
-        console.log("Validation check values:", {
-            kansaiEmployeeId: kansaiEmployeeId,
-            cashAdvanceReferenceId: cashAdvanceReferenceId
-        });
         
         
         if (!kansaiEmployeeId) {
@@ -585,40 +586,63 @@ async function saveDocument(isSubmit = false) {
             }
         }
         
-        // Handle table data
+        // Handle table data with new structure
         const tableRows = document.getElementById("tableBody").querySelectorAll("tr");
-        const items = [];
+        let detailIndex = 0;
         
         tableRows.forEach((row, index) => {
-            const category = row.querySelector('input[id="Category"]').value;
-            const glAccount = row.querySelector('input[id="GLAccount"]').value;
-            const description = row.querySelector('input[id="Description"]').value;
-            const amount = row.querySelector('input[id="Amount"]').value;
+            const category = row.querySelector('.category-input').value;
+            const accountName = row.querySelector('.account-name').value;
+            const glAccount = row.querySelector('.coa').value;
+            const description = row.querySelector('.description').value;
+            const amount = row.querySelector('.total').value;
             
-            if (category && description && amount) {
-                const item = {
-                    Category: category,
-                    GLAccount: glAccount || "",
-                    Description: description,
-                    Amount: parseFloat(amount.replace(/,/g, ''))
-                };
-                items.push(item);
+            if (description && amount) {
+                // Add settlement items using proper model binding format
+                formData.append(`SettlementItems[${detailIndex}][Category]`, category || '');
+                formData.append(`SettlementItems[${detailIndex}][AccountName]`, accountName || '');
+                formData.append(`SettlementItems[${detailIndex}][GLAccount]`, glAccount || '');
+                formData.append(`SettlementItems[${detailIndex}][Description]`, description);
+                formData.append(`SettlementItems[${detailIndex}][Amount]`, amount);
+                detailIndex++;
             }
         });
         
         // Validate that we have at least one item
-        if (items.length === 0) {
+        if (detailIndex === 0) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation Error!',
-                text: 'Please add at least one item with Category, Description and Amount',
+                text: 'Please add at least one item with Description and Amount',
                 confirmButtonColor: '#3085d6'
             });
             return;
         }
         
-        // Add items as JSON string
-        formData.append('Items', JSON.stringify(items));
+        // Validate categories and account names for submit
+        if (isSubmit) {
+            let invalidRows = [];
+            tableRows.forEach((row, index) => {
+                const category = row.querySelector('.category-input').value;
+                const accountName = row.querySelector('.account-name').value;
+                const description = row.querySelector('.description').value;
+                const amount = row.querySelector('.total').value;
+                
+                if (description && amount && (!category || !accountName)) {
+                    invalidRows.push(index + 1);
+                }
+            });
+            
+            if (invalidRows.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validation Error!',
+                    text: `Please complete category and account name selection for row(s): ${invalidRows.join(', ')}`,
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+        }
         
         // Add approval workflow users
         const preparedById = document.getElementById("preparedDropdown").value;
@@ -633,18 +657,12 @@ async function saveDocument(isSubmit = false) {
         if (approvedById) formData.append('ApprovedById', approvedById);
         if (receivedById) formData.append('ReceivedById', receivedById);
         
-        // Log FormData contents for debugging
-        console.log("FormData contents:");
-        for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
-        }
-        
         // Send the request
-        const response = await fetch(`${BASE_URL}/api/settlement`, {
+        const response = await fetch(`${BASE_URL}/api/settlements`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${getToken()}`
-            },
+            // headers: {
+            //     'Authorization': `Bearer ${getToken()}`
+            // },
             body: formData
         });
         
@@ -715,22 +733,28 @@ function previewPDF(event) {
       displayFileList();
     }
 
-        function addRow() {
+async function addRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
 
     newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" id="Category" maxlength="200" class="w-full" required />
+        <td class="p-2 border relative">
+            <input type="text" class="category-input w-full" placeholder="Select requester and transaction type first" disabled />
+            <div class="category-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border">
-            <input type="number" id="GLAccount" maxlength="200" class="w-full bg-gray-100" disabled />
+            <select class="account-name w-full bg-gray-100" disabled>
+                <option value="">Select Account Name</option>
+            </select>
         </td>
         <td class="p-2 border">
-            <input type="text" id="Description" maxlength="200" class="w-full" required />
+            <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" />
         </td>
         <td class="p-2 border">
-            <input type="text" id="Amount" maxlength="200" class="w-full" required />
+            <input type="text" class="description w-full" maxlength="200" />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="total w-full" maxlength="10" required step="0.01"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -740,6 +764,9 @@ function previewPDF(event) {
     `;
 
     tableBody.appendChild(newRow);
+    
+    // Setup category dropdown for the new row
+    await setupCategoryDropdown(newRow);
 }
 
 function deleteRow(button) {
@@ -769,7 +796,6 @@ async function loadCashAdvanceOptions() {
         // Populate dropdown with API data
         if (responseData.status && responseData.data && Array.isArray(responseData.data)) {
             responseData.data.forEach(cashAdvance => {
-                console.log("Cash Advance:", cashAdvance);
                 const option = document.createElement('option');
                 option.value = cashAdvance.id;
                 option.textContent = cashAdvance.cashAdvanceNo;
@@ -805,19 +831,39 @@ function setDefaultDate() {
         
         const currentDate = `${year}-${month}-${day}`;
         postingDateInput.value = currentDate;
-        
-        console.log("Default posting date set to:", currentDate);
     }
 }
 
+
+
 // Load cash advance options when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     loadCashAdvanceOptions();
     fetchDepartments();
     fetchUsers();
     fetchTransactionType();
     fetchBusinessPartners();
     setDefaultDate(); // Set default date
+    
+    // Setup initial row after a small delay to ensure DOM is ready
+    setTimeout(async () => {
+        const firstRow = document.querySelector('#tableBody tr');
+        if (firstRow) {
+            await setupCategoryDropdown(firstRow);
+        }
+        
+        // Add initial emphasis to both requester and transaction type
+        emphasizeRequesterSelection();
+        emphasizeTransactionTypeSelection();
+    }, 500);
+    
+    // Add event listener for department change
+    const departmentSelect = document.getElementById("department");
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            refreshAllCategoryDropdowns();
+        });
+    }
     
     // Setup event listener untuk hide dropdown saat klik di luar
     document.addEventListener('click', function(event) {
@@ -868,3 +914,389 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Function to get available categories based on department and transaction type from API
+async function getAvailableCategories(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get available account names based on category, department, and transaction type from API
+async function getAvailableAccountNames(category, departmentId, transactionType) {
+    if (!category || !departmentId || !transactionType) return [];
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch account names');
+        }
+        const data = await response.json();
+        return data.data || data; // Handle both wrapped and direct array responses
+    } catch (error) {
+        console.error('Error fetching account names:', error);
+        return [];
+    }
+}
+
+// Function to get COA based on category, account name, department, and transaction type from API
+async function getCOA(category, accountName, departmentId, transactionType) {
+    if (!category || !accountName || !departmentId || !transactionType) return '';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch COA');
+        }
+        const data = await response.json();
+        return data.data?.coa || data.coa || ''; // Handle different response structures
+    } catch (error) {
+        console.error('Error fetching COA:', error);
+        return '';
+    }
+}
+
+// Function to add visual emphasis to requester selection
+function emphasizeRequesterSelection() {
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    if (requesterSearchInput && !requesterSearchInput.value) {
+        requesterSearchInput.style.border = '2px solid #ef4444';
+        requesterSearchInput.style.backgroundColor = '#fef2f2';
+        
+        // Add a helper text
+        const helperText = document.createElement('div');
+        helperText.id = 'requester-helper';
+        helperText.className = 'text-red-600 text-sm mt-1 font-medium';
+        helperText.textContent = '⚠️ Please select a requester first to auto-fill department';
+        
+        if (!document.getElementById('requester-helper')) {
+            requesterSearchInput.parentElement.appendChild(helperText);
+        }
+    }
+}
+
+// Function to remove requester emphasis
+function removeRequesterEmphasis() {
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    const helperText = document.getElementById('requester-helper');
+    
+    if (requesterSearchInput) {
+        requesterSearchInput.style.border = '';
+        requesterSearchInput.style.backgroundColor = '';
+    }
+    
+    if (helperText) {
+        helperText.remove();
+    }
+}
+
+// Function to add visual emphasis to transaction type selection
+function emphasizeTransactionTypeSelection() {
+    const transactionTypeSelect = document.getElementById("type");
+    if (transactionTypeSelect && !transactionTypeSelect.value) {
+        transactionTypeSelect.style.border = '2px solid #f59e0b';
+        transactionTypeSelect.style.backgroundColor = '#fef3c7';
+        
+        // Add a helper text
+        const helperText = document.createElement('div');
+        helperText.id = 'transaction-type-helper';
+        helperText.className = 'text-amber-600 text-sm mt-1 font-medium';
+        helperText.textContent = '⚠️ Please select transaction type to enable expense categories';
+        
+        if (!document.getElementById('transaction-type-helper')) {
+            // Insert the helper text right after the transaction type select element
+            transactionTypeSelect.insertAdjacentElement('afterend', helperText);
+        }
+    }
+}
+
+// Function to remove transaction type emphasis
+function removeTransactionTypeEmphasis() {
+    const transactionTypeSelect = document.getElementById("type");
+    const helperText = document.getElementById('transaction-type-helper');
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.style.border = '';
+        transactionTypeSelect.style.backgroundColor = '';
+    }
+    
+    if (helperText) {
+        helperText.remove();
+    }
+}
+
+
+
+// Function to update field states based on prerequisites
+function updateFieldsBasedOnPrerequisites(row) {
+    const categoryInput = row.querySelector('.category-input');
+    const accountNameSelect = row.querySelector('.account-name');
+    
+    const departmentSelect = document.getElementById("department");
+    const transactionTypeSelect = document.getElementById("type");
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    const departmentId = departmentSelect?.value;
+    const transactionType = transactionTypeSelect?.value;
+    const requesterValue = requesterSearchInput?.value;
+    const categoryValue = categoryInput?.value;
+    
+    if (!requesterValue || !departmentId || !transactionType) {
+        // Disable category input
+        if (categoryInput) {
+            categoryInput.disabled = true;
+            categoryInput.placeholder = 'Select requester and transaction type first';
+            categoryInput.classList.add('bg-gray-100');
+        }
+        // Disable account name
+        if (accountNameSelect) {
+            accountNameSelect.disabled = true;
+            accountNameSelect.classList.add('bg-gray-100');
+        }
+    } else {
+        // Enable category input
+        if (categoryInput) {
+            categoryInput.disabled = false;
+            categoryInput.placeholder = 'Search category...';
+            categoryInput.classList.remove('bg-gray-100');
+        }
+        
+        // Check if category is selected to enable account name
+        if (!categoryValue) {
+            if (accountNameSelect) {
+                accountNameSelect.disabled = true;
+                accountNameSelect.classList.add('bg-gray-100');
+            }
+        } else {
+            enableAccountNameField(row);
+        }
+    }
+}
+
+// Function to setup category dropdown for a row
+async function setupCategoryDropdown(row) {
+    const categoryInput = row.querySelector('.category-input');
+    const categoryDropdown = row.querySelector('.category-dropdown');
+    const accountNameSelect = row.querySelector('.account-name');
+    const coaInput = row.querySelector('.coa');
+    
+    if (!categoryInput || !categoryDropdown) return;
+    
+    // Initially disable category input and account name
+    updateFieldsBasedOnPrerequisites(row);
+    
+    // Get current values
+    const departmentSelect = document.getElementById("department");
+    const transactionTypeSelect = document.getElementById("type");
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    categoryInput.addEventListener('input', async function() {
+        const departmentId = departmentSelect.value;
+        const transactionType = transactionTypeSelect.value;
+        const requesterValue = requesterSearchInput.value;
+        
+        // Validate prerequisites
+        if (!requesterValue || !departmentId || !transactionType) {
+            showValidationMessage(categoryInput, 'Please select requester and transaction type first');
+            categoryDropdown.classList.add('hidden');
+            return;
+        }
+        
+        const searchText = this.value.toLowerCase();
+        const availableCategories = await getAvailableCategories(departmentId, transactionType);
+        
+        // Clear dropdown
+        categoryDropdown.innerHTML = '';
+        
+        // Filter categories based on search text
+        const filteredCategories = availableCategories.filter(category => 
+            category.toLowerCase().includes(searchText)
+        );
+        
+        if (filteredCategories.length > 0) {
+            filteredCategories.forEach(category => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.textContent = category;
+                option.onclick = function() {
+                    categoryInput.value = category;
+                    categoryDropdown.classList.add('hidden');
+                    
+                    // Update account name dropdown
+                    updateAccountNameDropdown(row, category, departmentId, transactionType);
+                    
+                    // Clear COA when category changes
+                    if (coaInput) coaInput.value = '';
+                    
+                    // Enable account name dropdown now that category is selected
+                    enableAccountNameField(row);
+                };
+                categoryDropdown.appendChild(option);
+            });
+            categoryDropdown.classList.remove('hidden');
+        } else {
+            categoryDropdown.classList.add('hidden');
+        }
+    });
+    
+    categoryInput.addEventListener('focus', async function() {
+        const departmentId = departmentSelect.value;
+        const transactionType = transactionTypeSelect.value;
+        const requesterValue = requesterSearchInput.value;
+        
+        // Validate prerequisites
+        if (!requesterValue || !departmentId || !transactionType) {
+            showValidationMessage(this, 'Please select requester and transaction type first');
+            this.blur(); // Remove focus
+            return;
+        }
+        
+        const availableCategories = await getAvailableCategories(departmentId, transactionType);
+        
+        // Clear dropdown
+        categoryDropdown.innerHTML = '';
+        
+        if (availableCategories.length > 0) {
+            availableCategories.forEach(category => {
+                const option = document.createElement('div');
+                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                option.textContent = category;
+                option.onclick = function() {
+                    categoryInput.value = category;
+                    categoryDropdown.classList.add('hidden');
+                    
+                    // Update account name dropdown
+                    updateAccountNameDropdown(row, category, departmentId, transactionType);
+                    
+                    // Clear COA when category changes
+                    if (coaInput) coaInput.value = '';
+                    
+                    // Enable account name dropdown now that category is selected
+                    enableAccountNameField(row);
+                };
+                categoryDropdown.appendChild(option);
+            });
+            categoryDropdown.classList.remove('hidden');
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!categoryInput.contains(event.target) && !categoryDropdown.contains(event.target)) {
+            categoryDropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Function to show validation messages
+function showValidationMessage(element, message) {
+    // Remove existing validation message
+    const existingMessage = element.parentElement.querySelector('.validation-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create and show new validation message
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'validation-message text-red-500 text-sm mt-1';
+    messageDiv.textContent = message;
+    element.parentElement.appendChild(messageDiv);
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+        if (messageDiv.parentElement) {
+            messageDiv.remove();
+        }
+    }, 3000);
+}
+
+// Function to enable account name field
+function enableAccountNameField(row) {
+    const accountNameSelect = row.querySelector('.account-name');
+    if (accountNameSelect) {
+        accountNameSelect.disabled = false;
+        accountNameSelect.classList.remove('bg-gray-100');
+    }
+}
+
+// Function to update account name dropdown based on selected category
+async function updateAccountNameDropdown(row, category, departmentId, transactionType) {
+    const accountNameSelect = row.querySelector('.account-name');
+    const coaInput = row.querySelector('.coa');
+    
+    if (!accountNameSelect) return;
+    
+    // Validate prerequisites
+    if (!category) {
+        showValidationMessage(accountNameSelect, 'Please select a category first');
+        return;
+    }
+    
+    // Clear existing options
+    accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
+    
+    // Get available account names for the selected category
+    const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
+    
+    accountNames.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.accountName;
+        option.textContent = item.accountName;
+        option.dataset.coa = item.coa;
+        option.dataset.remarks = item.remarks || '';
+        accountNameSelect.appendChild(option);
+    });
+    
+    // Remove existing event listeners to avoid conflicts
+    const newAccountNameSelect = accountNameSelect.cloneNode(true);
+    accountNameSelect.parentNode.replaceChild(newAccountNameSelect, accountNameSelect);
+    
+    // Add event listener for account name selection - use dataset.coa instead of API call
+    newAccountNameSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const selectedAccountName = this.value;
+        
+        if (selectedAccountName && selectedOption) {
+            // Use COA data that's already available from dataset
+            const coa = selectedOption.dataset.coa || '';
+            console.log('Using COA from dataset:', coa, 'for account:', selectedAccountName);
+            if (coaInput) coaInput.value = coa;
+        } else {
+            if (coaInput) coaInput.value = '';
+        }
+    });
+    
+    // Enable the account name field
+    enableAccountNameField(row);
+}
+
+// Function to refresh all category dropdowns when department or transaction type changes
+async function refreshAllCategoryDropdowns() {
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    for (const row of tableRows) {
+        const categoryInput = row.querySelector('.category-input');
+        const accountNameSelect = row.querySelector('.account-name');
+        const coaInput = row.querySelector('.coa');
+        
+        // Clear existing values
+        if (categoryInput) categoryInput.value = '';
+        if (accountNameSelect) accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
+        if (coaInput) coaInput.value = '';
+        
+        // Update field states based on prerequisites
+        updateFieldsBasedOnPrerequisites(row);
+        
+        // Re-setup dropdown
+        await setupCategoryDropdown(row);
+    }
+}

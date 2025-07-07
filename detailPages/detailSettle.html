@@ -122,31 +122,36 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-
-                    <th id="thDescription" class="p-2">Description</th>
-                    <th id="thGLAccount" class="p-2">G/L Account</th>
+                    <th id="thCategory" class="p-2">Category</th>
                     <th id="thAccountName" class="p-2">Account Name</th>
+                    <th id="thGLAccount" class="p-2">G/L Account</th>
+                    <th id="thDescription" class="p-2">Description</th>
                     <th id="thAmount" class="p-2">Amount</th>
                     <th id="thActions" class="p-2">Action</th>
-           
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr>                    
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="description" maxlength="200" class="w-full" />
+                <tr>
+                    <td class="p-2 border relative">
+                        <input type="text" class="category-input w-full" placeholder="Select requester and transaction type first" disabled />
+                        <div class="category-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
                     </td>
-                    <td id="tdGLAccount" class="p-2 border gray-column">
-                        <input type="text" id="glAccount" maxlength="200" class="w-full bg-gray-100" disabled />
+                    <td class="p-2 border">
+                        <select class="account-name w-full bg-gray-100" disabled>
+                            <option value="">Select Account Name</option>
+                        </select>
                     </td>
-                    <td id="tdAccountName" class="p-2 border gray-column">
-                        <input type="text" id="accountName" maxlength="200" class="w-full bg-gray-100" disabled />
+                    <td class="p-2 border">
+                        <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" />
                     </td>
-                    <td id="tdAmount" class="p-2 border">
-                        <input type="number" id="amount" maxlength="200" class="w-full" />
+                    <td class="p-2 border">
+                        <input type="text" class="description w-full" maxlength="200" />
                     </td>
-                    <td id="tdActions" class="p-2 border text-center">
-                        <button type="button" id="servicePrice" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                    <td class="p-2 border">
+                        <input type="number" class="total w-full" maxlength="10" required step="0.01"/>
+                    </td>
+                    <td class="p-2 border text-center">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
                             🗑
                         </button>
                     </td>

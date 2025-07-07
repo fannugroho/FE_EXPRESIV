@@ -126,6 +126,15 @@ function populateSettlementItems(items) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
+                <input type="text" value="${item.category || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.accountName || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.glAccount || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
                 <input type="text" value="${item.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">

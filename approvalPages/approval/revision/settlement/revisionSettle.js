@@ -153,6 +153,15 @@ function populateSettlementItems(items) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
+                <input type="text" value="${item.category || ''}" class="w-full settlement-category" maxlength="200" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.accountName || ''}" class="w-full settlement-account-name" maxlength="200" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.glAccount || ''}" class="w-full settlement-gl-account" maxlength="50" readonly />
+            </td>
+            <td class="p-2 border">
                 <input type="text" value="${item.description || ''}" class="w-full settlement-description" maxlength="200" required />
             </td>
             <td class="p-2 border">
@@ -172,6 +181,15 @@ function addRow() {
     const newRow = document.createElement("tr");
     
     newRow.innerHTML = `
+        <td class="p-2 border">
+            <input type="text" class="w-full settlement-category" maxlength="200" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="w-full settlement-account-name" maxlength="200" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="w-full settlement-gl-account" maxlength="50" readonly />
+        </td>
         <td class="p-2 border">
             <input type="text" class="w-full settlement-description" maxlength="200" required />
         </td>
