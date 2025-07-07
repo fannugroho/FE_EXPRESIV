@@ -292,6 +292,9 @@ function populateFormData(data) {
     if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
+    // Call toggleButtonsBasedOnStatus after setting the status
+    toggleButtonsBasedOnStatus();
+    
     // Set approval values in both select and search inputs
     setApprovalValue('preparedBy', data.preparedBy);
     setApprovalValue('acknowledgeBy', data.acknowledgedBy);
@@ -661,6 +664,47 @@ function displayFileList() {
     console.log('Files uploaded:', uploadedFiles);
 }
 
+// Function to toggle buttons visibility based on status
+function toggleButtonsBasedOnStatus() {
+    const statusSelect = document.getElementById('status');
+    const rejectButton = document.querySelector('button[onclick="onReject()"]');
+    const approveButton = document.querySelector('button[onclick="onApprove()"]');
+    const revisionButton = document.getElementById('revisionButton');
+    
+    if (statusSelect) {
+        const isChecked = statusSelect.value === 'Checked';
+        
+        // Handle buttons visibility
+        if (rejectButton) rejectButton.style.display = isChecked ? 'none' : 'block';
+        if (approveButton) approveButton.style.display = isChecked ? 'none' : 'block';
+        if (revisionButton) revisionButton.style.display = isChecked ? 'none' : 'block';
+        
+        // Make all input fields read-only when status is Checked
+        if (isChecked) {
+            // Disable all input fields
+            const allInputs = document.querySelectorAll('input, textarea, select');
+            allInputs.forEach(input => {
+                input.readOnly = true;
+                if (input.tagName === 'SELECT') {
+                    input.disabled = true;
+                }
+            });
+            
+            // Disable add revision button
+            const addRevisionBtn = document.getElementById('addRevisionBtn');
+            if (addRevisionBtn) {
+                addRevisionBtn.style.display = 'none';
+            }
+            
+            // Hide revision container
+            const revisionContainer = document.getElementById('revisionContainer');
+            if (revisionContainer) {
+                revisionContainer.classList.add('hidden');
+            }
+        }
+    }
+}
+
 // Event listener for document ready
 document.addEventListener('DOMContentLoaded', function() {
     // Load users and departments first
@@ -727,6 +771,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Add event listener for status select element
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', toggleButtonsBasedOnStatus);
+    }
+
+    // Call toggleButtonsBasedOnStatus initially
+    toggleButtonsBasedOnStatus();
 });
 
     

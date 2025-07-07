@@ -128,7 +128,7 @@
                         <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
                     </td>
                     <td class="p-2 border">
-                        <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" maxlength="20" required />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -215,5 +215,244 @@
     <script src="../js/addReim.js"></script>
     <script src="../js/auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+    // Fungsi untuk memformat angka dengan format Indonesia (titik sebagai pemisah ribuan, koma sebagai pemisah desimal)
+    function formatCurrencyIDR(number) {
+        // Handle input kosong atau tidak valid
+        if (number === null || number === undefined || number === '') {
+            return '0.00';
+        }
+        
+        // Parse angka, pastikan dapat menangani nilai yang sangat besar
+        let num;
+        try {
+            // Handle input string yang mungkin sangat besar
+            if (typeof number === 'string') {
+                // Hapus semua karakter non-numerik kecuali titik desimal dan koma
+                const cleanedStr = number.replace(/[^\d,.]/g, '');
+                // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
+                if (cleanedStr.length > 15) {
+                    // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
+                    // Hapus koma dan parse
+                    num = Number(cleanedStr.replace(/,/g, ''));
+                } else {
+                    num = parseFloat(cleanedStr.replace(/,/g, ''));
+                }
+            } else {
+                num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
+            }
+            
+            // Jika parsing gagal, kembalikan string kosong
+            if (isNaN(num)) {
+                return '0.00';
+            }
+        } catch (e) {
+            console.error('Error parsing number:', e);
+            return '0.00';
+        }
+        
+        // Batasi maksimum 100 triliun
+        const maxAmount = 100000000000000; // 100 triliun
+        if (num > maxAmount) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Melebihi Batas',
+                text: 'Total amount tidak boleh melebihi 100 triliun rupiah'
+            });
+            num = maxAmount;
+        }
+        
+        // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
+        // Untuk angka yang sangat besar, gunakan metode manual
+        if (num >= 1e12) { // Jika angka >= 1 triliun
+            let strNum = num.toString();
+            let result = '';
+            let count = 0;
+            
+            // Tambahkan koma setiap 3 digit dari belakang
+            for (let i = strNum.length - 1; i >= 0; i--) {
+                result = strNum[i] + result;
+                count++;
+                if (count % 3 === 0 && i > 0) {
+                    result = ',' + result;
+                }
+            }
+            
+            // Tambahkan 2 desimal
+            return result + '.00';
+        } else {
+            // Untuk angka yang lebih kecil, gunakan toLocaleString
+            return num.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    }
+
+    // Fungsi untuk mengurai format angka US kembali ke angka
+    function parseCurrencyIDR(formattedValue) {
+        if (!formattedValue) return 0;
+        
+        try {
+            // Tangani format US (pemisah ribuan: ',', pemisah desimal: '.')
+            // Hapus koma (pemisah ribuan)
+            const numericValue = formattedValue.toString().replace(/,/g, '');
+            
+            return parseFloat(numericValue) || 0;
+        } catch (e) {
+            console.error('Error parsing currency:', e);
+            return 0;
+        }
+    }
+
+    // Fungsi untuk memformat input nilai mata uang saat pengguna mengetik
+    function formatCurrencyInputIDR(input) {
+        // Simpan posisi kursor
+        const cursorPos = input.selectionStart;
+        const originalLength = input.value.length;
+        
+        // Ambil nilai dan hapus semua karakter non-digit, titik dan koma
+        let value = input.value.replace(/[^\d,.]/g, '');
+        
+        // Pastikan hanya ada satu pemisah desimal
+        let parts = value.split('.');
+        if (parts.length > 1) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+        
+        // Hapus batasan 10 digit
+        // Tidak ada batasan panjang digit di sini
+        
+        // Parse nilai ke angka untuk perhitungan
+        const numValue = parseCurrencyIDR(value);
+        
+        // Format dengan format US
+        const formattedValue = formatCurrencyIDR(numValue);
+        
+        // Perbarui nilai input
+        input.value = formattedValue;
+        
+        // Hitung dan perbarui total
+        updateTotalAmount();
+        
+        // Sesuaikan posisi kursor
+        const newLength = input.value.length;
+        const newCursorPos = cursorPos + (newLength - originalLength);
+        input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+    }
+
+    // Fungsi untuk menghitung total amount dari semua baris
+    function updateTotalAmount() {
+        const amountInputs = document.querySelectorAll('#tableBody tr td:nth-child(5) input');
+        let total = 0;
+        
+        amountInputs.forEach(input => {
+            // Ekstrak nilai numerik dari input
+            const amountText = input.value.trim();
+            // Konversi dari format US ke format standar untuk perhitungan
+            const numericValue = parseCurrencyIDR(amountText);
+            total += numericValue;
+        });
+        
+        // Periksa jika total melebihi 100 triliun
+        const maxAmount = 100000000000000; // 100 triliun
+        if (total > maxAmount) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Melebihi Batas',
+                text: 'Total amount tidak boleh melebihi 100 triliun rupiah'
+            });
+            total = maxAmount;
+        }
+        
+        // Format total dengan format US dan tampilkan
+        const formattedTotal = formatCurrencyIDR(total);
+        
+        // Tambahkan atau perbarui elemen untuk menampilkan total
+        let totalContainer = document.querySelector('.total-amount-container');
+        
+        if (!totalContainer) {
+            // Buat container total jika belum ada
+            totalContainer = document.createElement('div');
+            totalContainer.className = 'total-amount-container flex justify-end mt-4';
+            
+            const tableContainer = document.getElementById('reimTable').parentNode;
+            tableContainer.insertBefore(totalContainer, document.querySelector('button[onclick="addRow()"]'));
+            
+            // Buat struktur HTML untuk total
+            totalContainer.innerHTML = `
+                <div class="w-1/3">
+                    <div class="flex items-center">
+                        <label class="font-semibold text-lg mr-4">Total Amount:</label>
+                        <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Perbarui nilai total
+        document.getElementById('totalAmount').value = formattedTotal;
+    }
+
+    // Modifikasi fungsi addRow untuk menggunakan format US
+    function modifyAddRowForIDR() {
+        const originalAddRow = window.addRow;
+        
+        window.addRow = function() {
+            originalAddRow();
+            
+            // Ambil baris terakhir yang baru ditambahkan
+            const tableBody = document.getElementById('tableBody');
+            const newRow = tableBody.lastElementChild;
+            
+            // Ubah input untuk format IDR
+            const amountInput = newRow.querySelector('td:nth-child(5) input');
+            if (amountInput) {
+                amountInput.type = 'text';
+                amountInput.classList.add('currency-input-idr');
+                amountInput.removeAttribute('maxlength'); // Hapus batasan maxlength jika ada
+                amountInput.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+            }
+        };
+        
+        // Ubah semua baris yang sudah ada
+        const existingRows = document.querySelectorAll('#tableBody tr');
+        existingRows.forEach(row => {
+            const amountInput = row.querySelector('td:nth-child(5) input');
+            if (amountInput) {
+                amountInput.type = 'text';
+                amountInput.classList.add('currency-input-idr');
+                amountInput.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                
+                // Format nilai awal jika ada
+                if (amountInput.value) {
+                    formatCurrencyInputIDR(amountInput);
+                }
+            }
+        });
+        
+        // Inisialisasi total amount
+        updateTotalAmount();
+    }
+
+    // Jalankan modifikasi setelah dokumen dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hapus batasan maxlength dari input yang sudah ada
+        const existingInputs = document.querySelectorAll('.currency-input-idr');
+        existingInputs.forEach(input => {
+            input.removeAttribute('maxlength');
+        });
+        
+        setTimeout(modifyAddRowForIDR, 500); // Delay sedikit untuk memastikan JS lain sudah dimuat
+        
+        // Log untuk debugging
+        console.log('Currency formatter initialized');
+    });
+    </script>
 </body>
 </html>
