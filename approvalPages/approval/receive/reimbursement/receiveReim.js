@@ -214,7 +214,7 @@ function populateFormData(data) {
     
     if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    //if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
     // Approvers information - safely check if elements exist
@@ -241,6 +241,18 @@ function populateFormData(data) {
     
     // Display revision history from API data
     displayRevisionHistory(data);
+    
+    // Fix untuk typeOfTransaction - pastikan nilai ditampilkan dengan benar
+    if (document.getElementById('typeOfTransaction')) {
+        const typeSelect = document.getElementById('typeOfTransaction');
+        // Aktifkan sementara untuk mengatur nilai
+        typeSelect.disabled = false;
+        typeSelect.value = data.typeOfTransaction || '';
+        // Nonaktifkan kembali
+        typeSelect.disabled = true;
+        typeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+        console.log('Set typeOfTransaction to:', data.typeOfTransaction);
+    }
 }
 
 // Populate reimbursement details table
