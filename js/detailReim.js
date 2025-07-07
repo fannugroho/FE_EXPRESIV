@@ -533,7 +533,6 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users, true); // Use name as value
-        populateDropdown("payToSelect", users, false); // Use ID as value
         populateDropdown("preparedBySelect", users, false);
         populateDropdown("acknowledgeBySelect", users, false);
         populateDropdown("checkedBySelect", users, false);
@@ -562,9 +561,65 @@ function filterUsers(fieldId) {
     
     let filteredUsers = [];
     
-    // Handle all searchable selects
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        try {
+            const filtered = businessPartners.filter(bp => 
+                bp.name.toLowerCase().includes(searchText) || 
+                bp.code.toLowerCase().includes(searchText)
+            );
+            
+            // Display search results
+            filtered.forEach(bp => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = `${bp.code} - ${bp.name}`;
+                option.onclick = function() {
+                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this business partner
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === bp.id) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!optionExists && selectElement.options.length > 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = bp.id;
+                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = bp.id;
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+            
+            // Show message if no results
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No Business Partner Found';
+                dropdown.appendChild(noResults);
+            }
+            
+            // Show dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering business partners:", error);
+        }
+    }
+    
+    // Handle all other searchable selects
     if (fieldId === 'requesterNameSelect' || 
-        fieldId === 'payToSelect' ||
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
         fieldId === 'checkedBySelect' || 
@@ -627,18 +682,35 @@ function filterUsers(fieldId) {
                     
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
+                        // Auto-fill payTo with the same user (find in business partners)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
                         
                         if (payToSearch && payToSelect) {
-                            // Find the matching user to get the ID
-                            payToSearch.value = user.name;
+                            // Find matching business partner by name
+                            const matchingBP = businessPartners.find(bp => 
+                                bp.name.toLowerCase() === user.name.toLowerCase()
+                            );
                             
-                            // Set the ID as the value in the select element
-                            for (let i = 0; i < payToSelect.options.length; i++) {
-                                if (payToSelect.options[i].textContent === user.name) {
-                                    payToSelect.selectedIndex = i;
-                                    break;
+                            if (matchingBP) {
+                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                                
+                                // Set the business partner ID as the value in the select element
+                                let optionExists = false;
+                                for (let i = 0; i < payToSelect.options.length; i++) {
+                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                        payToSelect.selectedIndex = i;
+                                        optionExists = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!optionExists && payToSelect.options.length > 0) {
+                                    const newOption = document.createElement('option');
+                                    newOption.value = matchingBP.id;
+                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    payToSelect.appendChild(newOption);
+                                    payToSelect.value = matchingBP.id;
                                 }
                             }
                         }
@@ -705,7 +777,6 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
     // Store users data for searching in searchable fields
     const searchableFields = [
         "requesterNameSelect", 
-        "payToSelect",
         "preparedBySelect", 
         "acknowledgeBySelect", 
         "checkedBySelect", 
@@ -763,17 +834,34 @@ function populateFormData(data) {
     setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
     
-    // Update for searchable payTo
+    // Update for searchable payTo with business partners
     const payToSearch = document.getElementById('payToSearch');
     const payToSelect = document.getElementById('payToSelect');
     if (payToSearch && data.payTo) {
-        // Find the corresponding name for the payTo ID
-        if (payToSelect) {
-            for (let i = 0; i < payToSelect.options.length; i++) {
-                if (payToSelect.options[i].value === data.payTo.toString()) {
-                    payToSelect.selectedIndex = i;
-                    payToSearch.value = payToSelect.options[i].textContent;
-                    break;
+        // Find the corresponding business partner for the payTo ID
+        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
+        
+        if (matchingBP) {
+            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+            payToSearch.value = displayText;
+            
+            if (payToSelect) {
+                // Find or create option with this business partner
+                let optionExists = false;
+                for (let i = 0; i < payToSelect.options.length; i++) {
+                    if (payToSelect.options[i].value === data.payTo.toString()) {
+                        payToSelect.selectedIndex = i;
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = matchingBP.id;
+                    newOption.textContent = displayText;
+                    payToSelect.appendChild(newOption);
+                    payToSelect.value = matchingBP.id;
                 }
             }
         }
