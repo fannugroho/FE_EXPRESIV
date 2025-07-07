@@ -131,13 +131,13 @@ function addRow() {
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto whitespace-pre-wrap break-words" rows="3" maxlength="200" disabled style="word-wrap: break-word; white-space: pre-wrap;"></textarea>
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" class="w-full h-full item-detail text-center" maxlength="100" required />
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="text" class="w-full h-full item-purpose text-center" maxlength="100" required />
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
             <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
