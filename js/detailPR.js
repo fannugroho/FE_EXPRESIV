@@ -873,6 +873,9 @@ function populatePRDetails(data) {
         }
     }
 
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+
     // Set status
     if (data && data.status) {
         document.getElementById('status').value = data.status;
@@ -1501,42 +1504,104 @@ document.getElementById("docType")?.addEventListener("change", function () {
 // 
 // Function to display attachments (initial load)
 function displayAttachments(attachments) {
-    // Just call the update function which handles both existing and new files
-    updateAttachmentsDisplay();
+    const attachmentsList = document.getElementById('attachmentsList');
+    if (!attachmentsList) return;
+    
+    // Clear the attachments list
+    attachmentsList.innerHTML = '';
+    
+    if (attachments && attachments.length > 0) {
+        attachments.forEach((attachment, index) => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex justify-between items-center p-1 mb-1 bg-white rounded';
+            
+            // Create file name display with icon
+            const fileNameDisplay = document.createElement('div');
+            fileNameDisplay.className = 'flex items-center';
+            
+            // Add PDF icon
+            const fileIcon = document.createElement('span');
+            fileIcon.className = 'text-red-500 mr-2';
+            fileIcon.innerHTML = '📄'; // PDF icon
+            fileNameDisplay.appendChild(fileIcon);
+            
+            // Add file name
+            const fileName = document.createElement('span');
+            fileName.textContent = attachment.fileName || `Attachment ${index + 1}`;
+            fileName.className = 'text-sm';
+            fileNameDisplay.appendChild(fileName);
+            
+            attachmentItem.appendChild(fileNameDisplay);
+            
+            // Add download/view button
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'flex space-x-2';
+            
+            // View button
+            const viewButton = document.createElement('button');
+            viewButton.type = 'button';
+            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm';
+            viewButton.innerHTML = '👁️'; // Eye icon
+            viewButton.title = 'View attachment';
+            viewButton.onclick = function() {
+                window.open(attachment.filePath, '_blank');
+            };
+            actionButtons.appendChild(viewButton);
+            
+            // Delete button (only shown for Draft status)
+            if (window.currentValues?.status === 'Draft') {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm';
+                deleteButton.innerHTML = '🗑️'; // Trash icon
+                deleteButton.title = 'Remove attachment';
+                deleteButton.onclick = function() {
+                    removeExistingAttachment(attachment.id);
+                };
+                actionButtons.appendChild(deleteButton);
+            }
+            
+            attachmentItem.appendChild(actionButtons);
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
 }
 
-// Add DOMContentLoaded event listener for dropdown functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Setup event listener untuk hide dropdown saat klik di luar
-    document.addEventListener('click', function(event) {
-        const dropdowns = [
-            'preparedByDropdown', 
-            'checkedByDropdown', 
-            'acknowledgeByDropdown', 
-            'approvedByDropdown', 
-            'receivedByDropdown'
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revision remarks
+    const hasRevisions = data.revisedCount && parseInt(data.revisedCount) > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisedCount || '0';
+        
+        // Display individual revision remarks
+        const revisionFields = [
+            { data: data.firstRevisionRemarks, containerId: 'firstRevisionContainer', elementId: 'firstRevisionRemarks' },
+            { data: data.secondRevisionRemarks, containerId: 'secondRevisionContainer', elementId: 'secondRevisionRemarks' },
+            { data: data.thirdRevisionRemarks, containerId: 'thirdRevisionContainer', elementId: 'thirdRevisionRemarks' },
+            { data: data.fourthRevisionRemarks, containerId: 'fourthRevisionContainer', elementId: 'fourthRevisionRemarks' }
         ];
         
-        const searchInputs = [
-            'preparedBySearch', 
-            'checkedBySearch', 
-            'acknowledgeBySearch', 
-            'approvedBySearch', 
-            'receivedBySearch'
-        ];
-        
-        dropdowns.forEach((dropdownId, index) => {
-            const dropdown = document.getElementById(dropdownId);
-            const input = document.getElementById(searchInputs[index]);
-            
-            if (dropdown && input) {
-                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
+        revisionFields.forEach(field => {
+            if (field.data && field.data.trim() !== '') {
+                const container = document.getElementById(field.containerId);
+                const element = document.getElementById(field.elementId);
+                
+                if (container && element) {
+                    container.style.display = 'block';
+                    element.textContent = field.data;
                 }
             }
         });
-    });
-});
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
+}
 
 function goToMenuPR() {
     window.location.href = '../pages/menuPR.html';
