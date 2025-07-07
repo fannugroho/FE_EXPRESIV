@@ -484,10 +484,10 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="250" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="number" maxlength="100" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
