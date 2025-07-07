@@ -1468,7 +1468,7 @@ function populateTransactionTypesDropdown(types) {
 // Function to fetch business partners
 async function fetchBusinessPartners() {
     try {
-        const response = await fetch(`${BASE_URL}/api/business-partners`);
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
         
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
