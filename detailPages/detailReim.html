@@ -53,15 +53,7 @@
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded">
-                    <option value="Admin">Admin</option>
-                    <option value="Sales & Marketing">Sales & Marketing</option>
-                    <option value="QA & QC">QA & QC</option>
-                    <option value="Technical">Technical</option>
-                    <option value="SHE">SHE</option>
-                    <option value="Logistic">Logistic</option>
-                    <option value="Production">Production</option>
-                    <option value="PE, MF">PE, MF</option>
-                    <option value="Production Indirect">Production Indirect</option>
+                    <option value="" disabled selected>Select Department</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
@@ -69,10 +61,10 @@
 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <div class="relative">
-                    <input type="text" id="payToSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" readonly>
+                    <input type="text" id="payToSearch" placeholder="Search business partner..." class="w-full p-2 border rounded search-input">
                     <div id="payToSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="payToSelect" class="hidden" disabled>
-                        <option value="" disabled selected>Choose Name</option>
+                    <select id="payToSelect" class="hidden">
+                        <option value="" disabled selected>Choose Business Partner</option>
                     </select>
                 </div>        
             </div>
@@ -102,10 +94,8 @@
 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="typeOfTransaction" class="w-full p-2 border rounded">
-                    <option value="Medical">Medical</option>
-                    <option value="Transportation">Transportation</option>
-                    <option value="Golf Competition">Golf Competition</option>
-                    <option value="Others">Others</option>
+                    <option value="" disabled selected>Select Transaction Type</option>
+                    <!-- Options will be populated from API -->
                 </select>
             </div>
         </div>
@@ -114,9 +104,10 @@
             <thead class="bg-gray-100">
                 <br>
                 <tr>
-                    <th class="p-2">Description</th>
-                    <th class="p-2">G/L Account</th>
+                    <th class="p-2">Category</th>
                     <th class="p-2">Account Name</th>
+                    <th class="p-2">G/L Account</th>
+                    <th class="p-2">Description</th>
                     <th class="p-2">Amount</th>
                     <th class="p-2">Action</th>
                 </tr>
