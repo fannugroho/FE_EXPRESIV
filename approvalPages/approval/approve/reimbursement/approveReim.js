@@ -243,8 +243,42 @@ function populateFormData(data) {
     displayRevisionHistory(data);
 }
 
-// Populate reimbursement details table
-function populateReimbursementDetails(details) {
+// Function to format amount with decimal places
+function formatAmount(amount) {
+    // Ensure amount is a number
+    const numericValue = parseFloat(amount) || 0;
+    
+    // Format with thousands separator and 2 decimal places
+    return numericValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        // Get numeric value from data-raw-value attribute
+        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        total += numericValue;
+    });
+    
+    // Format total with thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update total amount field
+    document.getElementById('totalAmount').value = formattedTotal;
+}
+
+// Override populateReimbursementDetails to use proper amount formatting
+const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
+window.populateReimbursementDetails = function(details) {
     const tableBody = document.getElementById('reimbursementDetails');
     if (!tableBody) {
         console.error('reimbursementDetails table body not found');
@@ -255,6 +289,9 @@ function populateReimbursementDetails(details) {
     
     if (details && details.length > 0) {
         details.forEach(detail => {
+            // Format amount with decimal places
+            const formattedAmount = formatAmount(detail.amount);
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
@@ -270,7 +307,7 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required readonly />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
@@ -285,9 +322,46 @@ function populateReimbursementDetails(details) {
         addRow();
     }
     
-    // Calculate and update total amount
+    // Calculate and update the total amount
     updateTotalAmount();
-}
+};
+
+// Override addRow to use the same amount formatting
+window.addRow = function() {
+    const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="30" class="w-full" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required readonly />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
+                🗑
+            </button>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
+    
+    // Update total amount
+    updateTotalAmount();
+};
 
 // Display attachments
 function displayAttachments(attachments) {
@@ -310,37 +384,6 @@ function displayAttachments(attachments) {
             attachmentsList.appendChild(attachmentItem);
         });
     }
-}
-
-// Add a new empty row to the reimbursement details table
-function addRow() {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
-                🗑
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(newRow);
 }
 
 // Delete a row from the reimbursement details table
@@ -797,29 +840,6 @@ function displayRevisionHistory(data) {
                 }
             }
         }
-    }
-}
-
-// Function to calculate and update the total amount
-function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
-    let total = 0;
-    
-    amountInputs.forEach(input => {
-        const value = parseFloat(input.value) || 0;
-        total += value;
-    });
-    
-    // Format the total with commas for thousands separator
-    const formattedTotal = total.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    
-    // Update the total amount field
-    const totalAmountField = document.getElementById('totalAmount');
-    if (totalAmountField) {
-        totalAmountField.value = formattedTotal;
     }
 }
 

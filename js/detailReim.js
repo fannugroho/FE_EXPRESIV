@@ -1746,4 +1746,157 @@ function populateCategoriesForNewRow(row) {
     }
 }
 
+// Function to format amount with decimal places
+function formatAmount(amount) {
+    // Ensure amount is a number
+    const numericValue = parseFloat(amount) || 0;
+    
+    // Format with thousands separator and 2 decimal places
+    return numericValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        // Get numeric value from data-raw-value attribute
+        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        total += numericValue;
+    });
+    
+    // Format total with thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update total amount field
+    document.getElementById('totalAmount').value = formattedTotal;
+}
+
+// Override populateReimbursementDetails to use proper amount formatting
+const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
+window.populateReimbursementDetails = function(details) {
+    const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
+    tableBody.innerHTML = ''; // Clear existing rows
+    
+    if (details && details.length > 0) {
+        details.forEach(detail => {
+            // Format amount with decimal places
+            const formattedAmount = formatAmount(detail.amount);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required oninput="formatInputAmount(this)" />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } else {
+        // Add an empty row if no details
+        addRow();
+    }
+    
+    // Calculate and update the total amount
+    updateTotalAmount();
+};
+
+// Format input amount as user types
+function formatInputAmount(input) {
+    // Get the raw input value without formatting
+    const rawValue = input.value.replace(/[^\d.-]/g, '');
+    const numericValue = parseFloat(rawValue) || 0;
+    
+    // Store the raw numeric value as an attribute
+    input.setAttribute('data-raw-value', numericValue);
+    
+    // Format the display value
+    input.value = formatAmount(numericValue);
+    
+    // Update the total amount
+    updateTotalAmount();
+}
+
+// Override addRow to use the same amount formatting
+window.addRow = function() {
+    const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="30" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required oninput="formatInputAmount(this)" />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
+    
+    // Update total amount
+    updateTotalAmount();
+};
+
+// Override deleteRow to update total amount after deletion
+const originalDeleteRow = window.deleteRow;
+window.deleteRow = function(button) {
+    if (typeof originalDeleteRow === 'function') {
+        originalDeleteRow(button);
+    } else {
+        // Default implementation if original function doesn't exist
+        const row = button.closest('tr');
+        if (row) {
+            row.remove();
+        }
+    }
+    
+    // Update total amount after row deletion
+    updateTotalAmount();
+};
+
     
