@@ -270,13 +270,16 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
                 </td>
                 <td class="p-2 border">
                     <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />

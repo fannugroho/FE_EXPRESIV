@@ -184,13 +184,16 @@ function addSettleDetailRow(item = null, index = 0) {
     
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.category || '' : ''}" readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.accountName || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
             <input type="text" class="w-full bg-gray-100" value="${item ? item.glAccount || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.accountName || '' : ''}" readonly />
+            <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
         </td>
         <td class="p-2 border">
             <input type="number" class="w-full bg-gray-100" value="${item ? item.amount || '' : ''}" readonly />

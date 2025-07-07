@@ -71,16 +71,31 @@ function addRow() {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
+            <div class="relative">
+                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                <select class="hidden category-select">
+                    <option value="" disabled selected>Choose Category</option>
+                </select>
+            </div>
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
+            <div class="relative">
+                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                <select class="hidden account-name-select">
+                    <option value="" disabled selected>Choose Account Name</option>
+                </select>
+            </div>
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-200" disabled/>
+            <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -89,6 +104,12 @@ function addRow() {
         </td>
     `;
     tableBody.appendChild(newRow);
+    
+    // Setup event listeners for the new row
+    setupRowEventListeners(newRow);
+    
+    // Populate categories for the new row if data is available
+    populateCategoriesForNewRow(newRow);
 }
 
 function deleteRow(button) {
@@ -359,6 +380,12 @@ function setDepartmentValue(departmentName) {
         newOption.selected = true;
         departmentSelect.appendChild(newOption);
     }
+    
+    // Trigger dependency change to update categories if transaction type is also selected
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    if (transactionType) {
+        handleDependencyChange();
+    }
 }
 
 // Helper function to auto-fill department based on selected requester
@@ -506,7 +533,6 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users, true); // Use name as value
-        populateDropdown("payToSelect", users, false); // Use ID as value
         populateDropdown("preparedBySelect", users, false);
         populateDropdown("acknowledgeBySelect", users, false);
         populateDropdown("checkedBySelect", users, false);
@@ -535,9 +561,65 @@ function filterUsers(fieldId) {
     
     let filteredUsers = [];
     
-    // Handle all searchable selects
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        try {
+            const filtered = businessPartners.filter(bp => 
+                bp.name.toLowerCase().includes(searchText) || 
+                bp.code.toLowerCase().includes(searchText)
+            );
+            
+            // Display search results
+            filtered.forEach(bp => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = `${bp.code} - ${bp.name}`;
+                option.onclick = function() {
+                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this business partner
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === bp.id) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!optionExists && selectElement.options.length > 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = bp.id;
+                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = bp.id;
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+            
+            // Show message if no results
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No Business Partner Found';
+                dropdown.appendChild(noResults);
+            }
+            
+            // Show dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering business partners:", error);
+        }
+    }
+    
+    // Handle all other searchable selects
     if (fieldId === 'requesterNameSelect' || 
-        fieldId === 'payToSelect' ||
         fieldId === 'preparedBySelect' || 
         fieldId === 'acknowledgeBySelect' || 
         fieldId === 'checkedBySelect' || 
@@ -600,18 +682,35 @@ function filterUsers(fieldId) {
                     
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
+                        // Auto-fill payTo with the same user (find in business partners)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
                         
                         if (payToSearch && payToSelect) {
-                            // Find the matching user to get the ID
-                            payToSearch.value = user.name;
+                            // Find matching business partner by name
+                            const matchingBP = businessPartners.find(bp => 
+                                bp.name.toLowerCase() === user.name.toLowerCase()
+                            );
                             
-                            // Set the ID as the value in the select element
-                            for (let i = 0; i < payToSelect.options.length; i++) {
-                                if (payToSelect.options[i].textContent === user.name) {
-                                    payToSelect.selectedIndex = i;
-                                    break;
+                            if (matchingBP) {
+                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                                
+                                // Set the business partner ID as the value in the select element
+                                let optionExists = false;
+                                for (let i = 0; i < payToSelect.options.length; i++) {
+                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                        payToSelect.selectedIndex = i;
+                                        optionExists = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!optionExists && payToSelect.options.length > 0) {
+                                    const newOption = document.createElement('option');
+                                    newOption.value = matchingBP.id;
+                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    payToSelect.appendChild(newOption);
+                                    payToSelect.value = matchingBP.id;
                                 }
                             }
                         }
@@ -678,7 +777,6 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
     // Store users data for searching in searchable fields
     const searchableFields = [
         "requesterNameSelect", 
-        "payToSelect",
         "preparedBySelect", 
         "acknowledgeBySelect", 
         "checkedBySelect", 
@@ -736,17 +834,34 @@ function populateFormData(data) {
     setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
     
-    // Update for searchable payTo
+    // Update for searchable payTo with business partners
     const payToSearch = document.getElementById('payToSearch');
     const payToSelect = document.getElementById('payToSelect');
     if (payToSearch && data.payTo) {
-        // Find the corresponding name for the payTo ID
-        if (payToSelect) {
-            for (let i = 0; i < payToSelect.options.length; i++) {
-                if (payToSelect.options[i].value === data.payTo.toString()) {
-                    payToSelect.selectedIndex = i;
-                    payToSearch.value = payToSelect.options[i].textContent;
-                    break;
+        // Find the corresponding business partner for the payTo ID
+        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
+        
+        if (matchingBP) {
+            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+            payToSearch.value = displayText;
+            
+            if (payToSelect) {
+                // Find or create option with this business partner
+                let optionExists = false;
+                for (let i = 0; i < payToSelect.options.length; i++) {
+                    if (payToSelect.options[i].value === data.payTo.toString()) {
+                        payToSelect.selectedIndex = i;
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = matchingBP.id;
+                    newOption.textContent = displayText;
+                    payToSelect.appendChild(newOption);
+                    payToSelect.value = matchingBP.id;
                 }
             }
         }
@@ -806,16 +921,31 @@ function populateReimbursementDetails(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
+                    <div class="relative">
+                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                        <select class="hidden category-select">
+                            <option value="" disabled selected>Choose Category</option>
+                        </select>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
+                    <div class="relative">
+                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                        <select class="hidden account-name-select">
+                            <option value="" disabled selected>Choose Account Name</option>
+                        </select>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="10" class="w-full bg-gray-200" disabled/>
+                    <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required />
+                    <input type="text" value="${detail.description || ''}" maxlength="10" class="w-full p-1 border rounded" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
@@ -824,6 +954,12 @@ function populateReimbursementDetails(details) {
                 </td>
             `;
             tableBody.appendChild(row);
+            
+            // Setup event listeners for this row
+            setupRowEventListeners(row);
+            
+            // Populate categories for this row if available
+            populateCategoriesForNewRow(row);
         });
     } else {
         addRow();
@@ -875,17 +1011,24 @@ async function submitReimbursementUpdate() {
     const reimbursementDetails = [];
     
     rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
+        // Get category from search input
+        const categoryInput = row.querySelector('.category-search');
+        const accountNameInput = row.querySelector('.account-name-search');
+        const glAccountInput = row.querySelector('.gl-account');
+        const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
         
-        reimbursementDetails.push({
-            id: detailId,
-            description: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
-        });
+        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+            reimbursementDetails.push({
+                id: detailId,
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: inputs[0].value || "", // Description input
+                amount: parseFloat(inputs[1].value) || 0 // Amount input
+            });
+        }
     });
     
     // Get requesterName from the search input (text value)
@@ -952,8 +1095,8 @@ function goToMenuReim() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Load users and departments first
-    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
+    // Load users, departments, business partners, and transaction types first
+    Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
     });
@@ -1017,7 +1160,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Handle table row dropdowns
+        const categoryDropdowns = document.querySelectorAll('.category-dropdown');
+        const accountNameDropdowns = document.querySelectorAll('.account-name-dropdown');
+        
+        categoryDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.category-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        accountNameDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.account-name-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
     });
+    
+    // Setup event listeners for department and transaction type changes
+    const departmentSelect = document.getElementById('department');
+    const transactionTypeSelect = document.getElementById('typeOfTransaction');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', handleDependencyChange);
+    }
 });
 
 // Display revision history based on API data
@@ -1080,6 +1253,407 @@ function displayRevisionHistory(data) {
                     remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
                 }
             }
+        }
+    }
+}
+
+// Store global data for categories and account names
+let allCategories = [];
+let allAccountNames = [];
+let transactionTypes = []; // Added to store transaction types
+let businessPartners = []; // Added to store business partners
+
+// Function to get department ID by name
+async function getDepartmentIdByName(departmentName) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const departments = result.data;
+        
+        const department = departments.find(dept => dept.name === departmentName);
+        return department ? department.id : null;
+    } catch (error) {
+        console.error("Error fetching department ID:", error);
+        return null;
+    }
+}
+
+// Function to fetch categories based on department and transaction type
+async function fetchCategories(departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const categories = await response.json();
+        allCategories = categories;
+        console.log('Fetched categories:', categories);
+        
+        // Update all category dropdowns in table rows
+        updateAllCategoryDropdowns();
+        
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        allCategories = [];
+        updateAllCategoryDropdowns();
+    }
+}
+
+// Function to fetch account names based on category, department and transaction type
+async function fetchAccountNames(category, departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const accountNames = await response.json();
+        allAccountNames = accountNames;
+        console.log('Fetched account names:', accountNames);
+        
+        return accountNames;
+        
+    } catch (error) {
+        console.error("Error fetching account names:", error);
+        return [];
+    }
+}
+
+// Function to fetch transaction types
+async function fetchTransactionTypes() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/transactiontypes/filter?category=Reimbursement`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch transaction types');
+        }
+        
+        transactionTypes = result.data;
+        console.log('Stored', transactionTypes.length, 'transaction types in global cache');
+        
+        // Populate transaction types dropdown
+        populateTransactionTypesDropdown(transactionTypes);
+        
+    } catch (error) {
+        console.error("Error fetching transaction types:", error);
+    }
+}
+
+// Function to populate transaction types dropdown
+function populateTransactionTypesDropdown(types) {
+    const typeSelect = document.getElementById("typeOfTransaction");
+    if (!typeSelect) return;
+    
+    // Clear existing options
+    typeSelect.innerHTML = '';
+    
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select Transaction Type";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    typeSelect.appendChild(defaultOption);
+    
+    // Add transaction types
+    types.forEach(type => {
+        const option = document.createElement("option");
+        option.value = type.name; // Send name as the value
+        option.textContent = type.name;
+        typeSelect.appendChild(option);
+    });
+}
+
+// Function to fetch business partners
+async function fetchBusinessPartners() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/business-partners`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+        
+        businessPartners = result.data;
+        console.log('Stored', businessPartners.length, 'business partners in global cache');
+        
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+    }
+}
+
+// Function to update all category dropdowns
+function updateAllCategoryDropdowns() {
+    const categorySearchInputs = document.querySelectorAll('.category-search');
+    
+    categorySearchInputs.forEach(input => {
+        // Store categories data for searching
+        input.dataset.categories = JSON.stringify(allCategories);
+        
+        // Clear current value if categories changed
+        const currentValue = input.value;
+        if (currentValue && !allCategories.includes(currentValue)) {
+            input.value = '';
+            const row = input.closest('tr');
+            const accountNameSearch = row.querySelector('.account-name-search');
+            const glAccount = row.querySelector('.gl-account');
+            if (accountNameSearch) accountNameSearch.value = '';
+            if (glAccount) glAccount.value = '';
+        }
+    });
+}
+
+// Function to setup event listeners for table rows
+function setupRowEventListeners(row) {
+    const categorySearch = row.querySelector('.category-search');
+    const categoryDropdown = row.querySelector('.category-dropdown');
+    const accountNameSearch = row.querySelector('.account-name-search');
+    const accountNameDropdown = row.querySelector('.account-name-dropdown');
+    
+    if (categorySearch) {
+        // Populate with existing categories if available
+        if (allCategories.length > 0) {
+            categorySearch.dataset.categories = JSON.stringify(allCategories);
+        }
+        
+        categorySearch.addEventListener('focus', function() {
+            filterCategories(this);
+        });
+        
+        categorySearch.addEventListener('input', function() {
+            filterCategories(this);
+        });
+    }
+    
+    if (accountNameSearch) {
+        accountNameSearch.addEventListener('focus', function() {
+            filterAccountNames(this);
+        });
+        
+        accountNameSearch.addEventListener('input', function() {
+            filterAccountNames(this);
+        });
+    }
+}
+
+// Function to filter and display categories
+function filterCategories(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.category-dropdown');
+    
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const categories = JSON.parse(input.dataset.categories || '[]');
+        const filtered = categories.filter(category => 
+            category.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(category => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = category;
+            option.onclick = function() {
+                input.value = category;
+                const selectElement = input.parentElement.querySelector('.category-select');
+                if (selectElement) {
+                    selectElement.value = category;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Clear account name and GL account when category changes
+                const row = input.closest('tr');
+                const accountNameSearch = row.querySelector('.account-name-search');
+                const glAccount = row.querySelector('.gl-account');
+                if (accountNameSearch) accountNameSearch.value = '';
+                if (glAccount) glAccount.value = '';
+                
+                // Trigger account names fetch
+                loadAccountNamesForRow(row);
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Categories Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering categories:", error);
+    }
+}
+
+// Function to filter and display account names
+function filterAccountNames(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.account-name-dropdown');
+    
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const accountNames = JSON.parse(input.dataset.accountNames || '[]');
+        const filtered = accountNames.filter(account => 
+            account.accountName.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(account => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = account.accountName;
+            option.onclick = function() {
+                input.value = account.accountName;
+                const selectElement = input.parentElement.querySelector('.account-name-select');
+                if (selectElement) {
+                    selectElement.value = account.accountName;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Auto-fill GL Account
+                const row = input.closest('tr');
+                const glAccount = row.querySelector('.gl-account');
+                if (glAccount) {
+                    glAccount.value = account.coa;
+                }
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Account Names Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering account names:", error);
+    }
+}
+
+// Function to load account names for a specific row
+async function loadAccountNamesForRow(row) {
+    const categoryInput = row.querySelector('.category-search');
+    const accountNameInput = row.querySelector('.account-name-search');
+    
+    if (!categoryInput || !accountNameInput) return;
+    
+    const category = categoryInput.value;
+    if (!category) return;
+    
+    // Get current department and transaction type
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not selected');
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        const accountNames = await fetchAccountNames(category, departmentId, transactionType);
+        
+        // Store account names data for this row
+        accountNameInput.dataset.accountNames = JSON.stringify(accountNames);
+        
+    } catch (error) {
+        console.error('Error loading account names for row:', error);
+    }
+}
+
+// Function to handle department or transaction type changes
+async function handleDependencyChange() {
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not fully selected');
+        allCategories = [];
+        updateAllCategoryDropdowns();
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        // Fetch new categories
+        await fetchCategories(departmentId, transactionType);
+        
+    } catch (error) {
+        console.error('Error handling dependency change:', error);
+    }
+}
+
+// Function to populate categories for a new row
+function populateCategoriesForNewRow(row) {
+    const categorySearch = row.querySelector('.category-search');
+    
+    if (categorySearch && allCategories.length > 0) {
+        // Store categories data for the new row
+        categorySearch.dataset.categories = JSON.stringify(allCategories);
+        console.log('Populated categories for new row:', allCategories.length, 'categories');
+    } else if (categorySearch) {
+        console.log('No categories available to populate for new row');
+        
+        // Check if department and transaction type are selected, if so trigger fetch
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            console.log('Department and transaction type are selected, triggering category fetch...');
+            handleDependencyChange().then(() => {
+                // After categories are fetched, populate this row
+                if (allCategories.length > 0) {
+                    categorySearch.dataset.categories = JSON.stringify(allCategories);
+                    console.log('Categories populated after fetch for new row');
+                }
+            });
         }
     }
 }

@@ -100,6 +100,7 @@ async function makeAuthenticatedRequest(endpoint, options = {}) {
   const token = getAccessToken();
   
   if (!token) {
+    logoutAuth();
     throw new Error('No access token found. Please login again.');
   }
   
