@@ -179,9 +179,9 @@ window.addEventListener("DOMContentLoaded", async function() {
     updateButtonVisibility();
     
     // Add event listener for status changes
-    const statusSelect = document.getElementById('status');
-    if (statusSelect) {
-        statusSelect.addEventListener('change', updateButtonVisibility);
+    const statusInput = document.getElementById('status');
+    if (statusInput) {
+        statusInput.addEventListener('input', updateButtonVisibility);
     }
 });
 
@@ -271,14 +271,9 @@ function populatePRDetails(data) {
     }
 
     // Set status and update button visibility
-    const statusSelect = document.getElementById('status');
-    if (statusSelect && data.status) {
-        for (let i = 0; i < statusSelect.options.length; i++) {
-            if (statusSelect.options[i].text === data.status) {
-                statusSelect.selectedIndex = i;
-                break;
-            }
-        }
+    const statusInput = document.getElementById('status');
+    if (statusInput && data.status) {
+        statusInput.value = data.status;
     }
     
     // Update button visibility based on status
@@ -1090,12 +1085,12 @@ let isProcessing = false;
 
 // Function to update button visibility based on status
 function updateButtonVisibility() {
-    const statusSelect = document.getElementById('status');
+    const statusInput = document.getElementById('status');
     const printButton = document.querySelector('button[onclick="printPR()"]');
     
-    if (statusSelect && printButton) {
+    if (statusInput && printButton) {
         // Tampilkan tombol print hanya jika status = "Approved"
-        if (statusSelect.value === "Open" && statusSelect.options[statusSelect.selectedIndex].text === "Approved") {
+        if (statusInput.value === "Approved") {
             printButton.style.display = "block";
         } else {
             printButton.style.display = "none";
