@@ -459,7 +459,7 @@ function revisionPR() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updatePRStatusWithRemarks('revision', revisionRemarks.trim());
+            updatePRStatusWithRemarks('revise', revisionRemarks.trim());
         }
     });
 }
