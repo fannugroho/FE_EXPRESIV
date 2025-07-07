@@ -100,7 +100,7 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
@@ -299,6 +299,9 @@ async function fetchReimbursementData() {
         const result = await response.json();
         
         if (result.status && result.code === 200) {
+            console.log('Reimbursement data received:', result.data);
+            console.log('Status:', result.data.status);
+            console.log('Rejection remarks:', result.data.rejectionRemarks);
             populateFormData(result.data);
             updateSubmitButtonState(result.data.preparedDate);
         } else {
@@ -885,9 +888,6 @@ function controlButtonVisibility() {
 }
 
 function populateFormData(data) {
-    // Tambahkan log untuk debugging
-    console.log("Data dari API:", data);
-    
     document.getElementById('voucherNo').value = data.voucherNo || '';
     
     // Update for searchable requesterName
@@ -966,30 +966,6 @@ function populateFormData(data) {
     document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     document.getElementById('remarks').value = data.remarks || '';
     
-    // Handle rejection remarks if status is Rejected
-    if (data.status === 'Rejected') {
-        // Cek berbagai kemungkinan nama field untuk rejection remarks
-        const rejectionRemarks = data.rejectedRemarks || data.rejectionRemarks || data.rejectRemarks || '';
-        console.log('Rejection remarks:', rejectionRemarks);
-        
-        if (rejectionRemarks) {
-            // Show the rejection remarks section
-            const rejectionSection = document.getElementById('rejectionRemarksSection');
-            const rejectionTextarea = document.getElementById('rejectionRemarks');
-            
-            if (rejectionSection && rejectionTextarea) {
-                rejectionSection.style.display = 'block';
-                rejectionTextarea.value = rejectionRemarks;
-            }
-        }
-    } else {
-        // Hide the rejection remarks section if status is not Rejected
-        const rejectionSection = document.getElementById('rejectionRemarksSection');
-        if (rejectionSection) {
-            rejectionSection.style.display = 'none';
-        }
-    }
-    
     // Set approval values in both select and search inputs
     setApprovalValue('preparedBy', data.preparedBy);
     setApprovalValue('acknowledgeBy', data.acknowledgedBy);
@@ -1008,6 +984,9 @@ function populateFormData(data) {
     
     // Display revision history
     displayRevisionHistory(data);
+    
+    // Display rejection remarks if available
+    displayRejectionRemarks(data);
 }
 
 // Helper function to set approval values in both select and search input
@@ -1368,6 +1347,29 @@ function displayRevisionHistory(data) {
                     remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
                 }
             }
+        }
+    }
+}
+
+// Function to display rejection remarks if available
+function displayRejectionRemarks(data) {
+    // Check if we have rejection data to display
+    if (!data || !data.rejectionRemarks || data.status !== 'Rejected') {
+        return; // No rejection remarks to display or document is not rejected
+    }
+    
+    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
+    const rejectionRemarks = document.getElementById('rejectionRemarks');
+    
+    if (rejectionRemarksSection && rejectionRemarks) {
+        // Show the rejection remarks section
+        rejectionRemarksSection.style.display = 'block';
+        rejectionRemarks.textContent = data.rejectionRemarks;
+        
+        // Add a visual indicator that the document was rejected
+        const statusElement = document.getElementById('status');
+        if (statusElement) {
+            statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
         }
     }
 }
