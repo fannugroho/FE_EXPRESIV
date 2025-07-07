@@ -885,6 +885,9 @@ function controlButtonVisibility() {
 }
 
 function populateFormData(data) {
+    // Tambahkan log untuk debugging
+    console.log("Data dari API:", data);
+    
     document.getElementById('voucherNo').value = data.voucherNo || '';
     
     // Update for searchable requesterName
@@ -962,6 +965,30 @@ function populateFormData(data) {
     document.getElementById('referenceDoc').value = data.referenceDoc || '';
     document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     document.getElementById('remarks').value = data.remarks || '';
+    
+    // Handle rejection remarks if status is Rejected
+    if (data.status === 'Rejected') {
+        // Cek berbagai kemungkinan nama field untuk rejection remarks
+        const rejectionRemarks = data.rejectedRemarks || data.rejectionRemarks || data.rejectRemarks || '';
+        console.log('Rejection remarks:', rejectionRemarks);
+        
+        if (rejectionRemarks) {
+            // Show the rejection remarks section
+            const rejectionSection = document.getElementById('rejectionRemarksSection');
+            const rejectionTextarea = document.getElementById('rejectionRemarks');
+            
+            if (rejectionSection && rejectionTextarea) {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = rejectionRemarks;
+            }
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
     
     // Set approval values in both select and search inputs
     setApprovalValue('preparedBy', data.preparedBy);

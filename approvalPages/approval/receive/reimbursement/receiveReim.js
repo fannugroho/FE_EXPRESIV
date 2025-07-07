@@ -186,6 +186,10 @@ function populateDropdown(dropdownId, users) {
 
 // Populate form fields with data
 function populateFormData(data) {
+    // Tambahkan log untuk debugging
+    console.log("Data dari API:", data);
+    console.log("typeOfTransaction value:", data.typeOfTransaction);
+    
     // Store users globally for search functionality (mock data if needed)
     window.allUsers = window.allUsers || [];
     
@@ -214,7 +218,6 @@ function populateFormData(data) {
     
     if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    //if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
     // Approvers information - safely check if elements exist
@@ -248,10 +251,22 @@ function populateFormData(data) {
         // Aktifkan sementara untuk mengatur nilai
         typeSelect.disabled = false;
         typeSelect.value = data.typeOfTransaction || '';
+        console.log('Setting typeOfTransaction to:', data.typeOfTransaction, 'Element value now:', typeSelect.value);
+        
+        // Jika nilai masih tidak terpilih, coba cari berdasarkan teks
+        if (typeSelect.value !== data.typeOfTransaction && data.typeOfTransaction) {
+            for (let i = 0; i < typeSelect.options.length; i++) {
+                if (typeSelect.options[i].textContent === data.typeOfTransaction) {
+                    typeSelect.selectedIndex = i;
+                    console.log('Found matching option by text, selected index:', i);
+                    break;
+                }
+            }
+        }
+        
         // Nonaktifkan kembali
         typeSelect.disabled = true;
         typeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
-        console.log('Set typeOfTransaction to:', data.typeOfTransaction);
     }
 }
 
