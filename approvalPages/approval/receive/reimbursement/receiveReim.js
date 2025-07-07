@@ -281,6 +281,9 @@ function populateReimbursementDetails(details) {
         // Add an empty row if no details
         addRow();
     }
+    
+    // Calculate and update total amount
+    updateTotalAmount();
 }
 
 // Display attachments
@@ -796,6 +799,29 @@ function displayRevisionHistory(data) {
                 }
             }
         }
+    }
+}
+
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        total += value;
+    });
+    
+    // Format the total with commas for thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update the total amount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
     }
 }
 

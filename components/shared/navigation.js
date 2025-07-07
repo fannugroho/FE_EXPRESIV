@@ -122,6 +122,11 @@ function goToMenuRevisionCash() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/cashAdvance/menuCashRevision.html`;
 }
 
+function goToMenuCloseCash() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardClose/cashAdvance/menuCloser.html`;
+}
+
 // Settlement Navigation
 function goToMenuSettle() {
     const basePath = getBasePath();

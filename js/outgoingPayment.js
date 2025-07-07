@@ -64,15 +64,39 @@ function displayDocuments(documents) {
     tableBody.innerHTML = "";
     
     paginatedDocuments.forEach((doc, index) => {
+        // Fungsi untuk menerapkan kelas scrollable jika teks melebihi 10 karakter
+        const applyScrollClass = (text) => {
+            if (text && text.length > 10) {
+                return `<div class="table-cell-scrollable">${text}</div>`;
+            }
+            return text || '-';
+        };
+        
+        // Memformat data dengan kelas scrollable jika perlu
+        const opNo = applyScrollClass(doc.outgoingPaymentNo);
+        const requester = applyScrollClass(doc.requesterName);
+        const department = applyScrollClass(doc.departmentName);
+        const bpName = applyScrollClass(doc.bpName || doc.paidToName);
+        
+        // Format nilai Total LC dan Total FC
+        const totalLCValue = doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-');
+        const totalFCValue = doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-');
+        
+        // Terapkan kelas scrollable untuk Total LC dan Total FC jika diperlukan
+        const totalLC = applyScrollClass(totalLCValue);
+        const totalFC = applyScrollClass(totalFCValue);
+        
         const row = `<tr class='border-b'>
-            <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
             <td class='p-2'>${startIndex + index + 1}</td>
-            <td class='p-2'>${doc.outgoingPaymentNo ? doc.outgoingPaymentNo : '-'}</td>
-            <td class='p-2'>${doc.requesterName}</td>
-            <td class='p-2'>${doc.departmentName}</td>
-            <td class='p-2'>${doc.purpose}</td>
-            <td class='p-2'>${new Date(doc.submissionDate).toLocaleDateString()}</td>
-            <td class='p-2'>${doc.status}</td>
+            <td class='p-2'>${opNo}</td>
+            <td class='p-2'>${requester}</td>
+            <td class='p-2'>${department}</td>
+            <td class='p-2'>${doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')}</td>
+            <td class='p-2'>${doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'}</td>
+            <td class='p-2'>${bpName}</td>
+            <td class='p-2'>${totalLC}</td>
+            <td class='p-2'>${totalFC}</td>
+            <td class='p-2'>${doc.status || '-'}</td>
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -143,16 +167,30 @@ function switchTab(tab) {
             if (searchType === 'cash' && doc.outgoingPaymentNo) {
                 return doc.outgoingPaymentNo.toLowerCase().includes(searchTerm);
             } else if (searchType === 'requester') {
-                return doc.requesterName.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'date' && doc.submissionDate) {
-                return new Date(doc.submissionDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'department') {
+                return doc.departmentName && doc.departmentName.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'postingDate' && doc.postingDate) {
+                return new Date(doc.postingDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+            } else if (searchType === 'dueDate' && doc.dueDate) {
+                return new Date(doc.dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+            } else if (searchType === 'bpName') {
+                const bpName = doc.bpName || doc.paidToName || '';
+                return bpName.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'totalLC') {
+                const totalLC = doc.totalLC ? doc.totalLC.toString() : (doc.docTotal ? doc.docTotal.toString() : '');
+                return totalLC.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'totalFC') {
+                const totalFC = doc.totalFC ? doc.totalFC.toString() : (doc.docTotalFC ? doc.docTotalFC.toString() : '');
+                return totalFC.toLowerCase().includes(searchTerm);
             } else if (searchType === 'status') {
                 return doc.status.toLowerCase().includes(searchTerm);
             } else {
                 // Default search across multiple fields
                 return (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
-                       doc.requesterName.toLowerCase().includes(searchTerm) ||
-                       doc.purpose.toLowerCase().includes(searchTerm);
+                       (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+                       (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
+                       (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm));
             }
         });
     }
@@ -267,88 +305,114 @@ function toggleSubMenu(menuId) {
 
 // Fungsi Download Excel
 function downloadExcel() {
-    fetch(`${BASE_URL}/api/outgoing-payment`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status && data.data) {
-                const documents = data.data;
-                
-                // Create worksheet data
-                const worksheetData = [
-                    ['ID', 'Outgoing Payment No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status']
-                ];
-                
-                documents.forEach(doc => {
-                    worksheetData.push([
-                        doc.id.substring(0, 10),
-                        doc.outgoingPaymentNo || '-',
-                        doc.requesterName,
-                        doc.departmentName,
-                        doc.purpose,
-                        new Date(doc.submissionDate).toLocaleDateString(),
-                        doc.status
-                    ]);
-                });
-                
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-                
-                // Create workbook
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Outgoing Payments');
-                
-                // Save file
-                XLSX.writeFile(wb, 'Outgoing_Payments.xlsx');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading Excel:', error);
-            alert('Failed to download Excel file. Please try again.');
-        });
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert("No data to export!");
+        return;
+    }
+    
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Convert data to worksheet format
+    const wsData = [
+        ["No", "Outgoing Payment No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"]
+    ];
+    
+    filteredDocuments.forEach((doc, index) => {
+        wsData.push([
+            index + 1,
+            doc.outgoingPaymentNo || '-',
+            doc.requesterName || '-',
+            doc.departmentName || '-',
+            doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'),
+            doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-',
+            doc.bpName || doc.paidToName || '-',
+            doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-'),
+            doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-'),
+            doc.status || '-'
+        ]);
+    });
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Outgoing Payments");
+    
+    // Generate Excel file and trigger download
+    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
 }
 
 // Fungsi Download PDF
 function downloadPDF() {
-    fetch(`${BASE_URL}/api/outgoing-payment`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status && data.data) {
-                const documents = data.data;
-                
-                // Create document data
-                const docData = [];
-                
-                documents.forEach(doc => {
-                    docData.push([
-                        doc.id.substring(0, 10),
-                        doc.outgoingPaymentNo || '-',
-                        doc.requesterName,
-                        doc.departmentName,
-                        doc.purpose,
-                        new Date(doc.submissionDate).toLocaleDateString(),
-                        doc.status
-                    ]);
-                });
-                
-                // Create PDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                doc.text('Outgoing Payments Report', 14, 16);
-                doc.autoTable({
-                    head: [['ID', 'Outgoing Payment No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status']],
-                    body: docData,
-                    startY: 20
-                });
-                
-                // Save file
-                doc.save('Outgoing_Payments.pdf');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading PDF:', error);
-            alert('Failed to download PDF file. Please try again.');
-        });
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert("No data to export!");
+        return;
+    }
+    
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Set document properties
+    doc.setProperties({
+        title: 'Outgoing Payments Report'
+    });
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Outgoing Payments Report', 14, 22);
+    
+    // Add date
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Prepare table data
+    const tableColumn = ["No", "OP No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"];
+    const tableRows = [];
+    
+    filteredDocuments.forEach((doc, index) => {
+        const rowData = [
+            index + 1,
+            doc.outgoingPaymentNo || '-',
+            doc.requesterName || '-',
+            doc.departmentName || '-',
+            doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'),
+            doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-',
+            doc.bpName || doc.paidToName || '-',
+            doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-'),
+            doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-'),
+            doc.status || '-'
+        ];
+        tableRows.push(rowData);
+    });
+    
+    // Generate table
+    doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 35,
+        theme: 'grid',
+        styles: {
+            fontSize: 8,
+            cellPadding: 1,
+            overflow: 'linebreak',
+            halign: 'left'
+        },
+        headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
+        }
+    });
+    
+    // Save PDF
+    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
 }
 
 function goToMenu() { window.location.href = "Menu.html"; }

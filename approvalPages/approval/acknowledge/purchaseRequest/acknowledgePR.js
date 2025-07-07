@@ -4,9 +4,10 @@ let prId; // Declare global variable
 let prType; // Declare global variable
 let currentTab; // Declare global variable for tab
 
-// Declare global variables for search
-let currentSearchTerm = '';
-let currentSearchType = 'description';
+// Function to navigate back to the PR Acknowledge menu
+function goToMenuAcknowPR() {
+    window.location.href = "../../../dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html";
+}
 
 // Function to fetch PR details when the page loads
 window.onload = function() {
@@ -34,37 +35,6 @@ window.onload = function() {
             }
         });
     });
-    
-    // Add event listener for search input with debouncing
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        let searchTimeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                handleSearch();
-            }, 500); // Debounce search by 500ms
-        });
-    }
-    
-    // Add event listener to the search type dropdown
-    const searchType = document.getElementById('searchType');
-    if (searchType) {
-        searchType.addEventListener('change', function() {
-            const searchInput = document.getElementById('searchInput');
-            
-            // Update placeholder based on search type
-            searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
-            
-            // Update current search type
-            currentSearchType = this.value;
-            
-            // Trigger search with current term
-            if (currentSearchTerm) {
-                handleSearch();
-            }
-        });
-    }
 };
 
 // Function to filter users for the search dropdown in approval section
@@ -301,11 +271,6 @@ function populateItemDetails(items) {
         items.forEach((item, index) => {
             addItemRow(item);
         });
-        
-        // Apply any active search filter after populating
-        if (currentSearchTerm) {
-            handleSearch();
-        }
     } else {
         // Add an empty row if no items
         addItemRow();
@@ -428,28 +393,8 @@ function populateUserSelects(users, prData = null) {
     });
 }
 
-// Function to reset search
-function resetSearch() {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = '';
-    }
-    
-    currentSearchTerm = '';
-    
-    // Reset display of all rows
-    const tableBody = document.getElementById('tableBody');
-    const rows = tableBody.getElementsByTagName('tr');
-    
-    for (let i = 0; i < rows.length; i++) {
-        rows[i].style.display = '';
-    }
-}
-
-// Update the approvePR, rejectPR, and revisionPR functions to reset search first
+// Update the approvePR, rejectPR, and revisionPR functions
 function approvePR() {
-    resetSearch(); // Reset search before proceeding
-    
     Swal.fire({
         title: 'Acknowledge Purchase Request',
         text: 'Are you sure you want to acknowledge this purchase request?',
@@ -459,14 +404,12 @@ function approvePR() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updatePRStatus('acknowledge');
+            updatePRStatus('approve');
         }
     });
 }
 
 function rejectPR() {
-    resetSearch(); // Reset search before proceeding
-    
     Swal.fire({
         title: 'Reject Purchase Request',
         text: 'Please provide a reason for rejection:',
@@ -489,8 +432,6 @@ function rejectPR() {
 }
 
 function revisionPR() {
-    resetSearch(); // Reset search before proceeding
-    
     // Get all revision fields
     const revisionFields = document.querySelectorAll('#revisionContainer textarea');
     if (!revisionFields.length) {
@@ -860,44 +801,3 @@ function displayAttachments(attachments) {
     }
 }
 
-// Function to handle search input
-function handleSearch() {
-    const searchInput = document.getElementById('searchInput');
-    currentSearchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    currentSearchType = document.getElementById('searchType').value;
-    
-    // Get all rows from the table body
-    const tableBody = document.getElementById('tableBody');
-    const rows = tableBody.getElementsByTagName('tr');
-    
-    // Loop through all rows and hide/show based on search term
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        let cellValue = '';
-        
-        // Get the appropriate cell based on search type
-        switch (currentSearchType) {
-            case 'description':
-                cellValue = row.cells[1].textContent.toLowerCase(); // Description is in the 2nd column (index 1)
-                break;
-            case 'detail':
-                cellValue = row.cells[2].textContent.toLowerCase(); // Detail is in the 3rd column (index 2)
-                break;
-            case 'purpose':
-                cellValue = row.cells[3].textContent.toLowerCase(); // Purpose is in the 4th column (index 3)
-                break;
-            case 'quantity':
-                cellValue = row.cells[4].textContent.toLowerCase(); // Quantity is in the 5th column (index 4)
-                break;
-            default:
-                cellValue = row.cells[1].textContent.toLowerCase(); // Default to description
-        }
-        
-        // Show/hide row based on search term
-        if (cellValue.includes(currentSearchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    }
-}

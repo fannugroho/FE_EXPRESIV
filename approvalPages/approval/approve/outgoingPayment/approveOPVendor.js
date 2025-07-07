@@ -6,6 +6,7 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
+let apiBaseUrl = 'https://api.example.com'; // Replace with actual API URL
 
 // Helper function to get logged-in user ID
 function getUserId() {

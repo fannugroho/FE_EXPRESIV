@@ -102,6 +102,7 @@
             <thead class="bg-gray-100">
                 <br>
                 <tr>
+                    <th class="p-2">Category</th>
                     <th class="p-2">Description</th>
                     <th class="p-2">G/L Account</th>
                     <th class="p-2">Account Name</th>
@@ -113,6 +114,16 @@
                 <!-- Rows will be added dynamically -->
             </tbody>
         </table>
+        
+        <!-- Total Amount Field -->
+        <div class="flex justify-end mt-4">
+            <div class="w-1/3">
+                <div class="flex items-center">
+                    <label class="font-semibold text-lg mr-4">Total Amount:</label>
+                    <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                </div>
+            </div>
+        </div>
         
         <!-- Tombol Tambah Baris Reim Table
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
@@ -242,9 +253,52 @@
     </div>
 
     <script>
+        // Document ready function
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the page
+            fetchReimbursementData();
+            fetchUsers();
+            fetchDepartments();
+            
+            // Initialize revision container and buttons
+            checkRevisionButton();
+            updateAddButtonState();
+            
+            // Use event delegation to handle input events on all textareas
+            const revisionContainer = document.getElementById('revisionContainer');
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    checkRevisionButton();
+                }
+            });
+        });
+        
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
         const MAX_REVISION_FIELDS = 4;
+
+        // Function to calculate and update the total amount
+        function updateTotalAmount() {
+            const amountCells = document.querySelectorAll('#reimbursementDetails td:nth-child(4)');
+            let total = 0;
+            
+            amountCells.forEach(cell => {
+                // Extract the numeric value from the cell
+                const amountText = cell.textContent.trim();
+                // Remove any non-numeric characters except decimal point
+                const numericValue = parseFloat(amountText.replace(/[^0-9.-]+/g, '')) || 0;
+                total += numericValue;
+            });
+            
+            // Format the total with commas for thousands separator
+            const formattedTotal = total.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            // Update the total amount field
+            document.getElementById('totalAmount').value = formattedTotal;
+        }
 
         // Toggle revision container visibility and add first field
         function toggleRevisionField() {
@@ -401,22 +455,6 @@
             }
         }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const revisionContainer = document.getElementById('revisionContainer');
-            
-            // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
-                if (event.target.tagName === 'TEXTAREA') {
-                    checkRevisionButton();
-                }
-            });
-            
-            // Initialize button states
-            checkRevisionButton();
-            updateAddButtonState();
-        });
-        
         // Function to get current user information
         function getUserInfo() {
             // Use functions from auth.js to get user information

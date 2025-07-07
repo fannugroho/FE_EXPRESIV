@@ -8,6 +8,79 @@ function getReimbursementIdFromUrl() {
     return urlParams.get('reim-id');
 }
 
+// Initialize page when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch reimbursement data
+    fetchReimbursementData();
+    
+    // Fetch users for dropdowns
+    fetchUsers();
+    
+    // Fetch departments
+    fetchDepartments();
+    
+    // Setup event listener for search dropdowns
+    setupSearchDropdowns();
+});
+
+// Setup search dropdowns
+function setupSearchDropdowns() {
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown',
+            'receiveBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch',
+            'receiveBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Add focus and input events for search fields
+    const searchFields = [
+        'preparedBySearch',
+        'acknowledgeBySearch',
+        'checkedBySearch',
+        'approvedBySearch',
+        'receiveBySearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+            
+            // Add input event for real-time filtering
+            searchInput.addEventListener('input', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
+            });
+        }
+    });
+}
+
 // Fetch reimbursement data from API
 async function fetchReimbursementData() {
     reimbursementId = getReimbursementIdFromUrl();
@@ -63,9 +136,10 @@ async function fetchUsers() {
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
+        populateDropdown("receiveBySelect", users);
         
         // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect"];
+        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receiveBySelect"];
         dropdownIds.forEach(id => {
             const dropdown = document.getElementById(id);
             if (dropdown) {
@@ -180,6 +254,19 @@ function populateDropdown(dropdownId, users) {
         console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
     
+    // Also store users data in the corresponding search input's dataset for search functionality
+    const searchInput = document.getElementById(dropdownId.replace('Select', 'Search'));
+    if (searchInput) {
+        // Store users data for searching
+        searchInput.dataset.users = JSON.stringify(users.map(user => {
+            const displayName = user.fullName || user.username || `User ${user.id}`;
+            return {
+                id: user.id,
+                name: displayName.trim()
+            };
+        }));
+    }
+    
     console.log(`Finished populating ${dropdownId}`);
 }
 
@@ -216,13 +303,12 @@ function populateFormData(data) {
     if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
-    // Approvers information - safely check if elements exist
-    if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
-    if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
-    if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
-    
-    // Set checkbox states based on if values exist - removed checks for elements that don't exist
+    // Approvers information - populate both select and search fields
+    populateApproverFields('preparedBy', data.preparedBy);
+    populateApproverFields('acknowledgeBy', data.acknowledgeBy);
+    populateApproverFields('checkedBy', data.checkedBy);
+    populateApproverFields('approvedBy', data.approvedBy);
+    populateApproverFields('receiveBy', data.receiveBy);
     
     // Handle reimbursement details (table rows)
     if (data.reimbursementDetails) {
@@ -235,6 +321,34 @@ function populateFormData(data) {
     // Display attachment information
     if (data.reimbursementAttachments) {
         displayAttachments(data.reimbursementAttachments);
+    }
+    
+    // Calculate and update total amount
+    updateTotalAmount();
+}
+
+// Helper function to populate approver fields (both select and search input)
+function populateApproverFields(fieldPrefix, userId) {
+    if (!userId) return;
+    
+    const selectElement = document.getElementById(`${fieldPrefix}Select`);
+    const searchInput = document.getElementById(`${fieldPrefix}Search`);
+    
+    if (selectElement) {
+        selectElement.value = userId;
+    }
+    
+    if (searchInput && window.allUsers) {
+        // Find user by ID in the global users array
+        const user = window.allUsers.find(u => u.id == userId);
+        if (user) {
+            // Use fullName or name property
+            const displayName = user.fullName || user.name || `User ${userId}`;
+            searchInput.value = displayName;
+        } else {
+            // If user not found in array, just show ID as fallback
+            searchInput.value = `User ID: ${userId}`;
+        }
     }
 }
 
@@ -276,6 +390,9 @@ function populateReimbursementDetails(details) {
         // Add an empty row if no details
         addRow();
     }
+    
+    // Calculate and update total amount
+    updateTotalAmount();
 }
 
 // Display attachments
@@ -571,19 +688,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
+    const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) return;
+    
     const searchText = searchInput.value.toLowerCase();
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) return;
     
     // Clear dropdown
     dropdown.innerHTML = '';
     
-    // Use stored users or mock data if not available
+    // Use stored users or empty array if not available
     const usersList = window.allUsers || [];
     
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.fullName || ''}`;
+        const userName = user.fullName || user.name || `User ${user.id}`;
         return userName.toLowerCase().includes(searchText);
     });
     
@@ -591,14 +711,18 @@ function filterUsers(fieldId) {
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.fullName}`;
+        const userName = user.fullName || user.name || `User ${user.id}`;
         option.innerText = userName;
         option.onclick = function() {
             searchInput.value = userName;
             
-            // Get the correct select element based on fieldId
-            let selectId = fieldId;
-            document.getElementById(selectId).value = user.id;
+            // Update the hidden select element
+            const selectElement = document.getElementById(fieldId);
+            if (selectElement) {
+                selectElement.value = user.id;
+            }
+            
+            // Hide dropdown
             dropdown.classList.add('hidden');
         };
         dropdown.appendChild(option);
@@ -646,8 +770,14 @@ function makeAllFieldsReadOnly() {
     searchInputs.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-50');
-        // Remove the onkeyup event to prevent search triggering
-        field.removeAttribute('onkeyup');
+        
+        // Remove event listeners by cloning and replacing the element
+        const newField = field.cloneNode(true);
+        field.parentNode.replaceChild(newField, field);
+        
+        // Add visual indication that it's read-only
+        newField.classList.add('cursor-not-allowed');
+        newField.title = 'This field is read-only in revision mode';
     });
     
     // Disable all select fields
@@ -655,6 +785,12 @@ function makeAllFieldsReadOnly() {
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    });
+    
+    // Hide all search dropdowns
+    const dropdowns = document.querySelectorAll('[id$="SelectDropdown"]');
+    dropdowns.forEach(dropdown => {
+        dropdown.classList.add('hidden');
     });
     
     // Hide add row button
@@ -761,5 +897,28 @@ function updateReimStatusWithRemarks(status, remarks) {
             text: `Error ${status === 'revise' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' Reimbursement'}: ` + error.message
         });
     });
+}
+
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        total += value;
+    });
+    
+    // Format the total with commas for thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update the total amount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
+    }
 }
     

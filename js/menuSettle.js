@@ -294,7 +294,7 @@
       // function goToAddDoc() { window.location.href = "AddDoc.html"; }
       // function goToAddReim() { window.location.href = "AddReim.html"; }
       // function goToAddCash() { window.location.href = "AddCash.html"; }
-      // function goToAddSettle() { window.location.href = "../addPages/AddSettle.html"; }
+       function goToAddSettle() { window.location.href = "../addPages/AddSettle.html"; }
       // function goToAddPO() { window.location.href = "AddPO.html"; }
       // function goToMenuPR() { window.location.href = "MenuPR.html"; }
       // function goToMenuReim() { window.location.href = "MenuReim.html"; }

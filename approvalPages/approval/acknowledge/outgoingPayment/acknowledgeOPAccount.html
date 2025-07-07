@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check Outgoing Payment</title>
+    <title>Acknowledge Outgoing Payment</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../js/auth.js"></script>
-    <script src="../js/detailOPAcct.js"></script>
+    <script src="acknowledgeOPAccount.js"></script>
     
     <style>
         /* Dropdown styling */
@@ -241,7 +241,7 @@
                 Reject
                 </button>
                 <button onclick="approveOP()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Checked
+                Acknowledge
                 </button>
             </div>
         </div>

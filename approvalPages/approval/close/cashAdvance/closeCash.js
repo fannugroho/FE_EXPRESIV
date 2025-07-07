@@ -13,14 +13,9 @@ window.onload = function() {
         fetchCADetails(caId);
     }
     
-    // Hide approve/reject buttons if viewing from approved or rejected tabs
-    if (currentTab === 'approved' || currentTab === 'rejected') {
-        hideApprovalButtons();
-    }
-    
-    // Hide revision button if viewing from approved or rejected tabs
-    if (currentTab === 'approved' || currentTab === 'rejected') {
-        hideRevisionButton();
+    // Hide close button if viewing from closed or rejected tabs
+    if (currentTab === 'closed' || currentTab === 'rejected') {
+        hideCloseButton();
     }
 };
 
@@ -41,6 +36,9 @@ function fetchCADetails(caId) {
                 
                 // Always fetch dropdown options
                 fetchDropdownOptions(response.data);
+                
+                // Update closedBy visibility based on transaction type
+                toggleClosedBy();
             }
         })
         .catch(error => {
@@ -119,7 +117,7 @@ function populateCADetails(data) {
         console.log('No attachments found in data');
     }
     
-    // Make all fields read-only since this is an approval page
+    // Make all fields read-only since this is a close page
     makeAllFieldsReadOnly();
 }
 
@@ -352,64 +350,38 @@ function populateUserSelects(users, caData = null) {
     });
 }
 
-// Function to approve CA
-function approveCash() {
+// Function to close CA (main action for this page)
+function closeCash() {
+    // First check if this is a Personal Loan transaction
+    const transactionType = document.getElementById('typeTransaction').value;
+    
+    if (transactionType !== 'Personal Loan') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Transaction Type',
+            text: 'Only Personal Loan transactions can be closed.'
+        });
+        return;
+    }
+    
     Swal.fire({
-        title: 'Confirm Approval',
-        text: 'Are you sure you want to approve this Cash Advance?',
+        title: 'Confirm Close',
+        text: 'Are you sure you want to close this Cash Advance?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Approve',
+        confirmButtonText: 'Yes, Close',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateCAStatus('approve');
+            updateCAStatus('close');
         }
     });
 }
 
-// Function to reject CA
-function rejectCash() {
-    Swal.fire({
-        title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Cash Advance?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Reject',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Ask for rejection remarks
-            Swal.fire({
-                title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
-            }).then((remarksResult) => {
-                if (remarksResult.isConfirmed) {
-                    updateCAStatusWithRemarks('reject', remarksResult.value);
-                }
-            });
-        }
-    });
-}
-
-// Function to approve or reject the CA
-function updateCAStatus(status) {
+// Function to update CA status for close action
+function updateCAStatus(action) {
     if (!caId) {
         Swal.fire({
             icon: 'error',
@@ -432,14 +404,14 @@ function updateCAStatus(status) {
     const requestData = {
         id: caId,
         UserId: userId,
-        StatusAt: "Approve",
-        Action: status,
+        StatusAt: "Close",
+        Action: action,
         Remarks: ''
     };
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Approving' : 'Processing'}...`,
+        title: 'Closing Cash Advance...',
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -459,16 +431,16 @@ function updateCAStatus(status) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
+                text: 'Cash Advance closed successfully',
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
-                // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html';
+                // Navigate back to the close dashboard
+                window.location.href = '../../../dashboard/dashboardClose/cashAdvance/menuCloser.html';
             });
         } else {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
+                throw new Error(errorData.message || `Failed to close CA. Status: ${response.status}`);
             });
         }
     })
@@ -477,93 +449,19 @@ function updateCAStatus(status) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message
-        });
-    });
-}
-
-// Function to approve or reject the CA with remarks
-function updateCAStatusWithRemarks(status, remarks) {
-    if (!caId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'CA ID not found'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    const requestData = {
-        id: caId,
-        UserId: userId,
-        StatusAt: "Approve",
-        Action: status,
-        Remarks: remarks || ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'approve' ? 'Approving' : 'Rejecting'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    fetch(`${BASE_URL}/api/cash-advance/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the dashboard
-                window.location.href = '../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html';
-            });
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: `Error ${status === 'approve' ? 'approving' : 'rejecting'} CA: ` + error.message
+            text: 'Error closing CA: ' + error.message
         });
     });
 }
 
 function goToMenuCash() {
-    window.location.href = "../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html";
+    window.location.href = "../../../dashboard/dashboardClose/cashAdvance/menuCloser.html";
 }
 
-// Function to make all fields read-only for approval view
+// Function to make all fields read-only for close view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only except revision textarea
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea:not(#revision)');
+    // Make all input fields read-only
+    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -605,42 +503,41 @@ function makeAllFieldsReadOnly() {
     }
 }
 
-// Function to hide approval buttons
-function hideApprovalButtons() {
-    const approveButton = document.querySelector('button[onclick="approveCash()"]');
-    const rejectButton = document.querySelector('button[onclick="rejectCash()"]');
+// Function to hide close button
+function hideCloseButton() {
+    const closeButton = document.querySelector('button[onclick="closeCash()"]');
     
-    if (approveButton) {
-        approveButton.style.display = 'none';
-    }
-    if (rejectButton) {
-        rejectButton.style.display = 'none';
+    if (closeButton) {
+        closeButton.style.display = 'none';
     }
     
     // Also hide any parent container if needed
-    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
-    if (buttonContainer && currentTab !== 'acknowledge') {
+    const buttonContainer = document.querySelector('.close-buttons, .button-container');
+    if (buttonContainer) {
         buttonContainer.style.display = 'none';
     }
 }
 
-// Function to hide revision button
-function hideRevisionButton() {
-    const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
-    const revisionBtn = document.getElementById('revisionBtn');
+// Function to toggle closedBy visibility based on transaction type
+function toggleClosedBy() {
+    const transactionType = document.getElementById('typeTransaction').value;
+    const closedBySection = document.getElementById('closedBySection');
     
-    if (revisionButton) {
-        revisionButton.style.display = 'none';
-    }
-    if (revisionBtn) {
-        revisionBtn.style.display = 'none';
+    if (transactionType === 'Personal Loan') {
+        if (closedBySection) {
+            closedBySection.style.display = 'block';
+        }
+    } else {
+        if (closedBySection) {
+            closedBySection.style.display = 'none';
+        }
     }
 }
 
 // Legacy functions kept for compatibility
 function saveDocument() {
-    // This function is kept for backward compatibility but shouldn't be used in approval flow
-    console.warn('saveDocument() called in approval flow - this should not happen');
+    // This function is kept for backward compatibility but shouldn't be used in close flow
+    console.warn('saveDocument() called in close flow - this should not happen');
 }
 
 function previewPDF(event) {
@@ -689,17 +586,6 @@ function addRow() {
 function deleteRow(button) {
     button.closest("tr").remove();
 }
-
-// document.getElementById("docType").addEventListener("change", function() {
-// const selectedValue = this.value;
-// const cashTable = document.getElementById("cashTable");
-
-// if (selectedValue === "Pilih") {
-// cashTable.style.display = "none";
-// } else {
-// cashTable.style.display = "table";
-// }
-// });
 
 function printCashAdvanceVoucher() {
     // Get cash advance ID from URL
@@ -799,6 +685,16 @@ function printCash() {
         (approvedBySelect.options[approvedBySelect.selectedIndex] ? 
             approvedBySelect.options[approvedBySelect.selectedIndex].text : '') : '';
     
+    const receivedBySelect = document.getElementById('receivedSelect');
+    const receivedBy = receivedBySelect ? 
+        (receivedBySelect.options[receivedBySelect.selectedIndex] ? 
+            receivedBySelect.options[receivedBySelect.selectedIndex].text : '') : '';
+    
+    const closedBySelect = document.getElementById('closedSelect');
+    const closedBy = closedBySelect ? 
+        (closedBySelect.options[closedBySelect.selectedIndex] ? 
+            closedBySelect.options[closedBySelect.selectedIndex].text : '') : '';
+    
     // Collect table items
     const tableItems = [];
     const rows = document.querySelectorAll('#tableBody tr');
@@ -838,6 +734,8 @@ function printCash() {
         + `&checkedBy=${encodeURIComponent(checkedBy)}`
         + `&acknowledgedBy=${encodeURIComponent(acknowledgedBy)}`
         + `&approvedBy=${encodeURIComponent(approvedBy)}`
+        + `&receivedBy=${encodeURIComponent(receivedBy)}`
+        + `&closedBy=${encodeURIComponent(closedBy)}`
         + `&items=${itemsParam}`;
     
     console.log("Opening print URL:", url); // Debug log
@@ -846,19 +744,27 @@ function printCash() {
     window.open(url, '_blank');
 }
 
-// Function to submit revision - DUMMY METHOD (to be updated when revision API is defined)
-function submitRevision() {
-    const revisionRemarks = document.getElementById('revision').value;
-    
-    if (!revisionRemarks || revisionRemarks.trim() === '') {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Missing Revision Remarks',
-            text: 'Please enter revision remarks before submitting.'
-        });
+// Function to approve CA - Legacy function (kept for compatibility)
+function approveCash() {
+    // This should not be called in close flow, redirect to close action
+    console.warn('approveCash() called in close flow - redirecting to close action');
+    closeCash();
+}
+
+// Function to reject CA - Legacy function (kept for compatibility)
+function rejectCash() {
+    // This should not be called in close flow
+    console.warn('rejectCash() called in close flow - this should not happen');
+}
+
+// Legacy functions for backward compatibility
+function updateCAStatus(status) {
+    if (status === 'approve') {
+        // In close flow, "approve" should mean "close"
+        updateCAStatus('close');
         return;
     }
-
+    
     if (!caId) {
         Swal.fire({
             icon: 'error',
@@ -878,101 +784,138 @@ function submitRevision() {
         return;
     }
 
-    // Show confirmation dialog
+    const requestData = {
+        id: caId,
+        UserId: userId,
+        StatusAt: "Close",
+        Action: status,
+        Remarks: ''
+    };
+
+    // Show loading
     Swal.fire({
-        title: 'Submit Revision',
-        text: 'Are you sure you want to submit this revision request?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#f59e0b',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Submit Revision',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Prepare revision data
-            const revisionData = {
-                id: caId,
-                UserId: userId,
-                Status: 'revise',
-                RevisionRemarks: revisionRemarks.trim()
-            };
-
-            // Show loading
-            Swal.fire({
-                title: 'Submitting Revision...',
-                text: 'Please wait while we process your revision request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // TODO: Replace with actual revision API endpoint when available
-            // For now, this is a dummy implementation
-            console.log('Revision data to be sent:', revisionData);
-            
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Replace this simulation with actual API call
-                /*
-                fetch(`${BASE_URL}/api/cash-advance/revision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(revisionData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
-                        });
-                    }
-                })
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted!',
-                        text: 'Your revision request has been submitted successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the dashboard
-                        window.location.href = '../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html';
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error submitting revision: ' + error.message
-                    });
-                });
-                */
-                
-                // Dummy success response
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Revision Submitted!',
-                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
-                    timer: 3000,
-                    showConfirmButton: true
-                }).then(() => {
-                    // Clear the revision field
-                    document.getElementById('revision').value = '';
-                    // Disable revision button again
-                    const revisionBtn = document.getElementById('revisionBtn');
-                    revisionBtn.disabled = true;
-                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    
-                    // Optionally navigate back to dashboard
-                    // window.location.href = '../../../dashboard/dashboardApprove/cashAdvance/menuCashApprove.html';
-                });
-            }, 1500); // Simulate API delay
+        title: 'Processing...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
         }
+    });
+
+    fetch(`${BASE_URL}/api/cash-advance/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Operation completed successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardClose/cashAdvance/menuCloser.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to process request. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error processing request: ' + error.message
+        });
+    });
+}
+
+function updateCAStatusWithRemarks(status, remarks) {
+    if (!caId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'CA ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: caId,
+        UserId: userId,
+        StatusAt: "Close",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/cash-advance/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Operation completed successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardClose/cashAdvance/menuCloser.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to process request. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error processing request: ' + error.message
+        });
+    });
+}
+
+// Function to submit revision - Not applicable for close flow
+function submitRevision() {
+    console.warn('submitRevision() called in close flow - this should not happen');
+    Swal.fire({
+        icon: 'info',
+        title: 'Not Applicable',
+        text: 'Revision is not applicable for closing cash advances.'
     });
 }

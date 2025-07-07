@@ -19,6 +19,9 @@ window.onload = function() {
     if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Initialize print button visibility
+    togglePrintButton();
 };
 
 function fetchPRDetails(prId, prType) {
@@ -97,6 +100,12 @@ function populatePRDetails(data) {
             option.textContent = data.status;
             option.selected = true;
             statusSelect.appendChild(option);
+            
+            // Call function to check status and set print button visibility
+            togglePrintButton();
+            
+            // Add change event listener to status select
+            addStatusChangeListener();
         }
     }
     
@@ -492,6 +501,35 @@ function updatePRStatus(status) {
     })
     .then(response => {
         if (response.ok) {
+            // Update status in UI if needed
+            if (status === 'approve') {
+                const statusSelect = document.getElementById('status');
+                if (statusSelect) {
+                    statusSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = 'Received';
+                    option.textContent = 'Received';
+                    option.selected = true;
+                    statusSelect.appendChild(option);
+                    
+                    // Update print button visibility
+                    togglePrintButton();
+                }
+            } else if (status === 'reject') {
+                const statusSelect = document.getElementById('status');
+                if (statusSelect) {
+                    statusSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = 'Rejected';
+                    option.textContent = 'Rejected';
+                    option.selected = true;
+                    statusSelect.appendChild(option);
+                    
+                    // Update print button visibility
+                    togglePrintButton();
+                }
+            }
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -570,6 +608,35 @@ function updatePRStatusWithRemarks(status, remarks) {
     })
     .then(response => {
         if (response.ok) {
+            // Update status in UI if needed
+            if (status === 'approve') {
+                const statusSelect = document.getElementById('status');
+                if (statusSelect) {
+                    statusSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = 'Received';
+                    option.textContent = 'Received';
+                    option.selected = true;
+                    statusSelect.appendChild(option);
+                    
+                    // Update print button visibility
+                    togglePrintButton();
+                }
+            } else if (status === 'reject') {
+                const statusSelect = document.getElementById('status');
+                if (statusSelect) {
+                    statusSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = 'Rejected';
+                    option.textContent = 'Rejected';
+                    option.selected = true;
+                    statusSelect.appendChild(option);
+                    
+                    // Update print button visibility
+                    togglePrintButton();
+                }
+            }
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -860,3 +927,27 @@ function goToMenuReceivePR() {
 
 // Add variable to prevent double-clicking
 let isProcessing = false;
+
+// Function to toggle print button visibility based on document status
+function togglePrintButton() {
+    const statusElement = document.getElementById('status');
+    const printButton = document.getElementById('printButton');
+    
+    if (printButton) {
+        // Check if document status is "Received"
+        if (statusElement && statusElement.value === "Received") {
+            printButton.style.display = 'block'; // Show print button
+        } else {
+            printButton.style.display = 'none'; // Hide print button
+        }
+    }
+}
+
+// Function to add status change listener
+function addStatusChangeListener() {
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        // Add change event listener to update print button visibility when status changes
+        statusSelect.addEventListener('change', togglePrintButton);
+    }
+}

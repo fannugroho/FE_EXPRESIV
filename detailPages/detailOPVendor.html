@@ -106,44 +106,76 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th id="thDescription" class="p-2">Description</th>
-                    <th id="thTotal" class="p-2">Total</th>
-                    <th id="thWTax" class="p-2">WTax Amount</th>
-                    <th id="thTotalPayment" class="p-2">Total Payment</th>
-                    <th id="thActions" class="p-2">Action</th>
+                    <tr>
+                        <th id="DocNum" class="p-2">Document No.</th>
+                        <th id="ObjType" class="p-2">Object Type</th>
+                        <th id="DocDate" class="p-2">Date</th>
+                        <th id="DocDueDate" class="p-2">Due Date</th>
+                        <th id="OverPayDays" class="p-2">Overdue Days</th>
+                        <th id="sumApplied" class="p-2">Total</th>
+                        <th id="WTaxSum" class="p-2">WTax Amount</th>
+                        <th id="OpenSum" class="p-2">Balance Due</th>
+                        <th id="TrsfrdAmnt" class="p-2">Cash Discount %</th>
+                        <th id="CardName" class="p-2">BP Name</th>
+                    </tr>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="description" maxlength="255" class="w-full" />
+                    <td id="tdDocNum" class="p-2 border">
+                        <input type="text" id="docNum" class="w-full" />
+                    </td>       
+                    <td id="tdObjType" class="p-2 border">
+                        <input type="text" id="objType" class="w-full" />
                     </td>
-                    <td id="tdTotal" class="p-2 border">
-                        <input type="text" id="total" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
+                    <td id="tdDocDate" class="p-2 border">
+                        <input type="text" id="date" class="w-full" />
                     </td>
-                    <td id="tdWTax" class="p-2 border">
-                        <input type="text" id="wTax" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
+                    <td id="tdDueDate" class="p-2 border">
+                        <input type="text" id="dueDate" class="w-full" />
                     </td>
-                    <td id="tdTotalPayment" class="p-2 border">
-                        <input type="text" id="totalPayment" class="w-full currency-input" readonly />
+                    <td id="tdOverPayDays" class="p-2 border">
+                        <input type="text" id="overPayDays" class="w-full" />
                     </td>
-                    <td id="tdAction" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
+                    <td id="tdSumApplied" class="p-2 border">
+                        <input type="text" id="sumApplied" class="w-full" />
+                    </td>
+                    <td id="tdWTaxSum" class="p-2 border">
+                        <input type="text" id="wTaxSum" class="w-full" />
+                    </td>
+                    <td id="tdOpenSum" class="p-2 border">
+                        <input type="text" id="openSum" class="w-full" />
+                    </td>
+                    <td id="tdTrsfrdAmnt" class="p-2 border">
+                        <input type="text" id="trsfrdAmnt" class="w-full" />
+                    </td>
+                    <td id="tdCardName" class="p-2 border">
+                        <input type="text" id="cardName" class="w-full" />
                     </td>
                 </tr>
             </tbody>
         </table>
-        <!--Total Amount Due-->
+        <!--Total Payment-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount Due :</label>
-            <input type="text" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+            <label>WTax Amount :</label>
+            <input type="text" id="wTaxTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
         </div>
-        <!-- Tombol Tambah Baris -->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount Due (FC):</label>
+            <input type="text" id="WTaxSumFrgn" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount Due (LC) :</label>
+            <input type="text" id="WTaxSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Open Balance :</label>
+            <input type="text" id="openTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+        <!-- Tombol Tambah Baris 
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
-        </button>
+        </button>-->
 
             <div class="mt-4">
               <label>Remarks</label>
@@ -231,204 +263,14 @@
                 Delete
             </button> <!-- ID : nanti get ID dari url parameter-->
 
-            <button onclick="updateCash(false)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <button onclick="updateVendorOP(false)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Update
             </button> <!-- ID : TBD-->
             
-            <button onclick="updateCash(true)" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <button onclick="updateVendorOP(true)" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Submit
             </button>
         </div>
     </div>
-
-    <script>
-        function confirmSubmit() {
-            Swal.fire({
-                title: 'Konfirmasi',
-                text: 'Apakah dokumen sudah benar?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire(
-                        'Berhasil!',
-                        'Dokumen berhasil di-submit.',
-                        'success'
-                    );
-                }
-            });
-        }
-
-        // Format currency with dot as decimal separator (format: 2,000,000.00)
-        function formatCurrency(input, decimalSeparator) {
-            // Get input value and remove all non-digits and non-decimal separator
-            let value = input.value.replace(/[^\d.]/g, '');
-            
-            // Ensure only one decimal separator
-            let parts = value.split(decimalSeparator);
-            if (parts.length > 1) {
-                value = parts[0] + decimalSeparator + parts.slice(1).join('');
-            }
-            
-            // Format the whole number part with thousand separators (comma)
-            if (parts.length > 0) {
-                let wholePart = parts[0];
-                let formattedWhole = '';
-                
-                for (let i = 0; i < wholePart.length; i++) {
-                    if (i > 0 && (wholePart.length - i) % 3 === 0) {
-                        formattedWhole += ',';
-                    }
-                    formattedWhole += wholePart[i];
-                }
-                
-                // Reconstruct the value with the decimal part if it exists
-                if (parts.length > 1) {
-                    input.value = formattedWhole + decimalSeparator + parts[1];
-                } else {
-                    input.value = formattedWhole;
-                }
-            }
-            
-            // Calculate total payment for the current row
-            calculateRowTotalPayment(input);
-        }
-
-        // Function to parse currency string back to number
-        function parseCurrencyValue(value) {
-            if (!value) return 0;
-            // Remove thousand separators and keep decimal separator as dot for calculation
-            return parseFloat(value.replace(/,/g, '')) || 0;
-        }
-
-        // Function to calculate total payment for a specific row
-        function calculateRowTotalPayment(input) {
-            const row = input.closest('tr');
-            if (row) {
-                const totalInput = row.querySelector('input[id^="total"]');
-                const wTaxInput = row.querySelector('input[id^="wTax"]');
-                const totalPaymentInput = row.querySelector('input[id^="totalPayment"]');
-                
-                if (totalInput && wTaxInput && totalPaymentInput) {
-                    const totalValue = parseCurrencyValue(totalInput.value) || 0;
-                    const wTaxValue = parseCurrencyValue(wTaxInput.value) || 0;
-                    const totalPaymentValue = totalValue - wTaxValue;
-                    
-                    // Format and set the total payment value
-                    totalPaymentInput.value = formatNumberToCurrency(totalPaymentValue);
-                }
-            }
-        }
-
-        // Function to update totals
-        function updateTotals() {
-            const totalPaymentInputs = document.querySelectorAll('#tableBody input[id^="totalPayment"]');
-            let total = 0;
-            
-            // Sum all total payment values
-            totalPaymentInputs.forEach(input => {
-                total += parseCurrencyValue(input.value);
-            });
-            
-            // Format and set the total amount due
-            document.getElementById('totalAmountDue').value = formatNumberToCurrency(total);
-        }
-
-        // Format number to currency format with comma as thousand separator and dot as decimal separator
-        function formatNumberToCurrency(number) {
-            // Convert to string with 2 decimal places
-            let numStr = number.toFixed(2);
-            
-            // Split into whole and decimal parts
-            let parts = numStr.split('.');
-            let wholePart = parts[0];
-            let decimalPart = parts.length > 1 ? parts[1] : '00';
-            
-            // Add thousand separators to whole part
-            let formattedWhole = '';
-            for (let i = 0; i < wholePart.length; i++) {
-                if (i > 0 && (wholePart.length - i) % 3 === 0) {
-                    formattedWhole += ',';
-                }
-                formattedWhole += wholePart[i];
-            }
-            
-            // Return formatted number with dot as decimal separator
-            return formattedWhole + '.' + decimalPart;
-        }
-
-        // Function to add a new row to the table
-        function addRow() {
-            const tableBody = document.getElementById('tableBody');
-            const newRow = document.createElement('tr');
-            
-            // Generate a unique ID suffix for the new row's inputs
-            const rowId = Date.now();
-            
-            newRow.innerHTML = `
-                <td class="p-2 border">
-                    <input type="text" id="description_${rowId}" maxlength="255" class="w-full" />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" id="total_${rowId}" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" id="wTax_${rowId}" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" id="totalPayment_${rowId}" class="w-full currency-input" readonly />
-                </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                        🗑
-                    </button>
-                </td>
-            `;
-            
-            tableBody.appendChild(newRow);
-        }
-
-        // Function to delete a row
-        function deleteRow(button) {
-            const row = button.closest('tr');
-            if (row) {
-                row.remove();
-                // Update the total amount due after removing a row
-                updateTotals();
-            }
-        }
-
-        function toggleClosedByVisibility() {
-            const transactionType = document.getElementById('transactionType').value;
-            const closedByContainer = document.getElementById('closed').parentElement;
-            
-            if (transactionType === 'LOAN') {
-                closedByContainer.style.display = 'block';
-            } else {
-                closedByContainer.style.display = 'none';
-            }
-        }
-        
-        // Initialize the page when the DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize all currency inputs
-            const currencyInputs = document.querySelectorAll('.currency-input');
-            currencyInputs.forEach(input => {
-                if (!input.readOnly) {
-                    input.addEventListener('input', function() {
-                        formatCurrency(this, '.');
-                    });
-                }
-            });
-            
-            toggleClosedByVisibility();
-            
-            // Initialize totals
-            updateTotals();
-        });
-    </script>
 </body>
 </html>

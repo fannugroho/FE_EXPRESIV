@@ -18,8 +18,14 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../../../../css/shared-menu.css">
     <link rel="stylesheet" href="menuCloser.css">
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Navigation Script -->
     <script src="../../../../js/auth.js"></script>
+    <!-- Sidebar Loader -->
+    <script src="../../../../components/shared/sidebar-loader.js"></script>
+    <!-- Navigation Functions -->
+    <script src="../../../../components/shared/navigation.js"></script>
     
     
 </head>
@@ -59,10 +65,10 @@
                     
                     <!-- Tab buttons for switching views -->
                     <div class="flex mb-4 border-b">
-                        <button id="receivedTabBtn" onclick="switchTab('received')" class="px-4 py-2 rounded-t-lg">
+                        <button id="receivedTabBtn" onclick="switchTab('received')" class="tab-button px-4 py-2 rounded-t-lg bg-blue-500 text-white">
                             <i class="fas fa-truck-loading mr-2"></i>Received
                         </button>
-                        <button id="closedTabBtn" onclick="switchTab('closed')" class="px-4 py-2 rounded-t-lg">
+                        <button id="closedTabBtn" onclick="switchTab('closed')" class="tab-button px-4 py-2 rounded-t-lg bg-gray-200 text-gray-700">
                             <i class="fas fa-times mr-2"></i>Closed
                         </button>
                     </div>
@@ -88,14 +94,14 @@
                     <!-- Pagination Controls -->
                     <div class="flex justify-between items-center mt-4">
                         <div class="text-sm text-gray-600">
-                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                            Showing <span id="pageInfo">0-0 of 0</span> items
                         </div>
                         <div class="flex space-x-2">
-                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                            <button id="prevBtn" onclick="changePage(-1)" class="pagination-btn disabled">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
-                            <span id="currentPage" class="px-3 py-1">1</span>
-                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                            <span id="currentPageDisplay" class="px-3 py-1">1</span>
+                            <button id="nextBtn" onclick="changePage(1)" class="pagination-btn">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>

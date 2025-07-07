@@ -207,6 +207,47 @@
             cursor: not-allowed;
         }
         
+        /* Scrollable cell styling for long text - with smaller scrollbar */
+        .scrollable-cell {
+            max-width: 120px;
+            overflow-x: auto;
+            white-space: nowrap;
+            position: relative;
+            padding: 8px;
+        }
+        
+        /* Custom scrollbar styling for better appearance */
+        .scrollable-cell::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Visual indicator removed as requested */
+        .scrollable-cell::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #6b7280;
+            opacity: 0.7;
+        }
+        
         /* Mobile responsive improvements */
         @media (max-width: 768px) {
             #sidebar {
@@ -223,6 +264,11 @@
             .flex-1 {
                 margin-left: 0 !important;
                 width: 100%;
+            }
+            
+            /* Adjust scrollable cells for mobile */
+            .scrollable-cell {
+                max-width: 80px;
             }
         }
     </style>
@@ -273,8 +319,8 @@
                     <h3 class="text-xl font-semibold mb-4">List Documents</h3>
                     
                     <!-- Tab buttons for switching views -->
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-                        <div class="flex mb-4 mt-2 md:mt-0 border-b w-full md:w-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-0">
+                        <div class="flex mb-0 mt-2 md:mt-0 border-b w-full md:w-auto">
                             <button id="revisionTabBtn" onclick="switchTab('revision')" class="px-4 py-2 tab-active rounded-t-lg">
                                 <i class="fas fa-file-alt mr-2"></i>Revision
                             </button>
@@ -429,6 +475,17 @@
                 setTimeout(ensureSidebarVisible, 10);
             };
         }
+        
+        // Add function to check text length and apply scrollable class
+        window.makeScrollableIfNeeded = function() {
+            const tableCells = document.querySelectorAll('td[data-content]');
+            tableCells.forEach(cell => {
+                const content = cell.getAttribute('data-content');
+                if (content && content.length > 8) {
+                    cell.classList.add('scrollable-cell');
+                }
+            });
+        };
     });
     </script>
 </body>
