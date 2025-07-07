@@ -1,6 +1,14 @@
 let uploadedFiles = [];
 let reimbursementId = '';
 
+// Add document ready event listener
+document.addEventListener("DOMContentLoaded", function() {
+    // Call function to control button visibility
+    controlButtonVisibility();
+    
+    // Other initialization code can go here
+});
+
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
     const docNumber = `REIM${Date.now()}`; // Gunakan timestamp agar unik
@@ -799,6 +807,83 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
     }
 }
 
+// Function to control visibility of buttons based on status
+function controlButtonVisibility() {
+    const status = document.getElementById("status").value;
+    const addRowButton = document.querySelector("button[onclick='addRow()']");
+    const deleteButton = document.querySelector("button[onclick='confirmDelete()']");
+    const updateButton = document.querySelector("button[onclick='updateReim()']");
+    const submitButton = document.querySelector("button[onclick='confirmSubmit()']");
+    
+    // Get all form fields that should be controlled
+    const inputFields = document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea');
+    const fileInput = document.getElementById('filePath');
+    const tableRows = document.querySelectorAll('#reimbursementDetails tr');
+    
+    // Jika status bukan Draft, sembunyikan tombol dan nonaktifkan field
+    if (status !== "Draft") {
+        // Hide buttons
+        addRowButton.style.display = "none";
+        deleteButton.style.display = "none";
+        updateButton.style.display = "none";
+        submitButton.style.display = "none";
+        
+        // Disable all input fields
+        inputFields.forEach(field => {
+            field.disabled = true;
+            field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Disable file input
+        if (fileInput) {
+            fileInput.disabled = true;
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Disable delete buttons in table rows
+        tableRows.forEach(row => {
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    } else {
+        // Show buttons
+        addRowButton.style.display = "block";
+        deleteButton.style.display = "block";
+        updateButton.style.display = "block";
+        submitButton.style.display = "block";
+        
+        // Enable input fields (except those that should remain disabled)
+        inputFields.forEach(field => {
+            // Skip fields that should remain disabled
+            if (field.id === 'voucherNo' || field.id === 'status' || 
+                field.classList.contains('gl-account')) {
+                return;
+            }
+            
+            field.disabled = false;
+            field.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Enable file input
+        if (fileInput) {
+            fileInput.disabled = false;
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Enable delete buttons in table rows
+        tableRows.forEach(row => {
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    }
+}
+
 function populateFormData(data) {
     document.getElementById('voucherNo').value = data.voucherNo || '';
     
@@ -887,6 +972,9 @@ function populateFormData(data) {
     
     // Update Submit button state based on preparedDate
     updateSubmitButtonState(data.preparedDate);
+    
+    // Control button visibility based on status
+    controlButtonVisibility();
     
     populateReimbursementDetails(data.reimbursementDetails);
     displayAttachments(data.reimbursementAttachments);
