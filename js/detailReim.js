@@ -23,6 +23,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Fetch business partners
     fetchBusinessPartners();
+    
+    // Tambahkan ini untuk memastikan tabel diatur dengan benar saat halaman dimuat
+    toggleReimTableEditability();
 });
 
 function saveDocument() {
@@ -320,6 +323,9 @@ async function fetchReimbursementData() {
             console.log('Rejection remarks:', result.data.rejectionRemarks);
             populateFormData(result.data);
             updateSubmitButtonState(result.data.preparedDate);
+            
+            // Tambahkan ini di akhir fungsi setelah data dimuat
+            toggleReimTableEditability();
         } else {
             console.error('Failed to fetch reimbursement data:', result.message);
         }
@@ -1007,6 +1013,9 @@ function populateFormData(data) {
     console.log('Calling displayRejectionRemarks with status:', data.status);
     console.log('Rejection remarks data:', data.rejectionRemarks);
     displayRejectionRemarks(data);
+    
+    // Panggil fungsi untuk mengontrol editabilitas tabel
+    toggleReimTableEditability();
 }
 
 // Helper function to set approval values in both select and search input
@@ -2004,5 +2013,49 @@ window.deleteRow = function(button) {
     // Update total amount after row deletion
     updateTotalAmount();
 };
+
+// Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
+function toggleReimTableEditability() {
+    // Ambil status dokumen saat ini
+    const status = document.getElementById('status').value;
+    
+    // Hanya izinkan pengeditan jika status adalah Draft
+    const isEditable = status === 'Draft';
+    
+    // Sembunyikan atau tampilkan tombol tambah baris
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = isEditable ? 'block' : 'none';
+    }
+    
+    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
+    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = isEditable ? 'inline-block' : 'none';
+    });
+    
+    // Nonaktifkan semua input di dalam tabel reimbursement
+    const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
+    tableInputs.forEach(input => {
+        input.disabled = !isEditable;
+        
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+    
+    // Nonaktifkan dropdown search
+    const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
+    searchInputs.forEach(input => {
+        input.disabled = !isEditable;
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+}
 
     
