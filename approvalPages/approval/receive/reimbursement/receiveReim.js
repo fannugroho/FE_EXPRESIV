@@ -282,6 +282,18 @@ function populateFormData(data) {
     }
 }
 
+// Function to format amount with decimal places
+function formatAmount(amount) {
+    // Ensure amount is a number
+    const numericValue = parseFloat(amount) || 0;
+    
+    // Format with thousands separator and 2 decimal places
+    return numericValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
 // Populate reimbursement details table
 function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
@@ -294,25 +306,30 @@ function populateReimbursementDetails(details) {
     
     if (details && details.length > 0) {
         details.forEach(detail => {
+            // Format amount with decimal places
+            const formattedAmount = formatAmount(detail.amount);
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                    <select class="w-full bg-gray-100" required disabled>
+                        <option value="${detail.category || ''}" selected>${detail.category || ''}</option>
+                    </select>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled style="display: none;">
                         🗑
                     </button>
                 </td>
@@ -362,24 +379,32 @@ function addRow() {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
+            <select class="w-full bg-gray-100" required disabled>
+                <option value="" selected></option>
+            </select>
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
+            <input type="text" maxlength="30" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required readonly />
+            <input type="text" maxlength="10" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right bg-gray-100" required readonly />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled style="display: none;">
                 🗑
             </button>
         </td>
     `;
     tableBody.appendChild(newRow);
+    
+    // Update total amount
+    updateTotalAmount();
 }
 
 // Delete a row from the reimbursement details table
@@ -407,16 +432,25 @@ async function submitReimbursementUpdate() {
     const reimbursementDetails = [];
     
     rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
+        const categoryCell = row.querySelector('td:nth-child(1) select');
+        const accountNameCell = row.querySelector('td:nth-child(2) input');
+        const glAccountCell = row.querySelector('td:nth-child(3) input');
+        const descriptionCell = row.querySelector('td:nth-child(4) input');
+        const amountCell = row.querySelector('td:nth-child(5) input');
         const deleteButton = row.querySelector('button');
-        const detailId = deleteButton.getAttribute('data-id') || null;
+        const detailId = deleteButton ? deleteButton.getAttribute('data-id') : null;
+        
+        if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+            return; // Skip if any cell is missing
+        }
         
         reimbursementDetails.push({
             id: detailId,
-            description: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
+            category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
+            accountName: accountNameCell.value,
+            glAccount: glAccountCell.value,
+            description: descriptionCell.value,
+            amount: parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0
         });
     });
     
@@ -603,6 +637,7 @@ function displayFileList() {
     console.log('Files uploaded:', uploadedFiles);
 }
 
+// Function to print reimbursement
 function printReimbursement() {
     // Get reimbursement ID from URL
     const reimId = getReimbursementIdFromUrl();
@@ -611,47 +646,66 @@ function printReimbursement() {
         return;
     }
     
-    // Collect all field values to pass to print page
-    const payTo = document.getElementById('payTo').value;
-    const voucherNo = document.getElementById('voucherNo').value;
-    const submissionDate = document.getElementById('submissionDate').value;
-    const department = document.getElementById('department').value;
-    const referenceDoc = document.getElementById('referenceDoc').value;
+    // Get values from form fields
+    const voucherNo = document.getElementById('voucherNo').value || '';
+    const payTo = document.getElementById('payTo').value || '';
+    const submissionDate = document.getElementById('submissionDate').value || '';
+    const department = document.getElementById('department').value || '';
+    const referenceDoc = document.getElementById('referenceDoc').value || '';
+    const typeOfTransaction = document.getElementById('typeOfTransaction').value || '';
+    const remarks = document.getElementById('remarks').value || '';
     
-    // Get Type of Transaction and Remarks
-    const typeOfTransaction = document.getElementById('typeOfTransaction').value;
-    const remarks = document.getElementById('remarks').value;
-    
-    // Get selected values from dropdowns
+    // Get approvers
     const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
     const checkedBy = document.getElementById('checkedBySelect').options[document.getElementById('checkedBySelect').selectedIndex]?.text || '';
     const acknowledgeBy = document.getElementById('acknowledgedBySelect').options[document.getElementById('acknowledgedBySelect').selectedIndex]?.text || '';
     const approvedBy = document.getElementById('approvedBySelect').options[document.getElementById('approvedBySelect').selectedIndex]?.text || '';
     const receivedBy = document.getElementById('receiveBySelect').options[document.getElementById('receiveBySelect').selectedIndex]?.text || '';
     
-    // Calculate total amount from reimbursement details
-    let totalAmount = 0;
-    const detailsRows = document.querySelectorAll('#reimbursementDetails tr');
+    // Get total amount - use raw value if available, otherwise use formatted value
+    const totalAmountElement = document.getElementById('totalAmount');
+    let totalAmount = '0';
+    
+    if (totalAmountElement) {
+        // Prefer raw value if available (more accurate for calculations)
+        if (totalAmountElement.dataset && totalAmountElement.dataset.rawValue) {
+            totalAmount = totalAmountElement.dataset.rawValue;
+        } else {
+            // Fall back to formatted value
+            totalAmount = totalAmountElement.value || '0';
+        }
+    }
+    
+    console.log('Sending total amount to print page:', totalAmount);
+    
+    // Get reimbursement details from table
+    const detailsTable = document.getElementById('reimbursementDetails');
     const details = [];
     
-    detailsRows.forEach(row => {
-        const descriptionCell = row.querySelector('td:nth-child(1) input');
-        const accountCell = row.querySelector('td:nth-child(2) input');
-        const accountNameCell = row.querySelector('td:nth-child(3) input');
-        const amountCell = row.querySelector('td:nth-child(4) input');
-        
-        if (descriptionCell && accountCell && accountNameCell && amountCell) {
-            const amount = parseFloat(amountCell.value) || 0;
-            totalAmount += amount;
+    if (detailsTable) {
+        const rows = detailsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const categoryCell = row.querySelector('td:nth-child(1) select');
+            const accountNameCell = row.querySelector('td:nth-child(2) input');
+            const glAccountCell = row.querySelector('td:nth-child(3) input');
+            const descriptionCell = row.querySelector('td:nth-child(4) input');
+            const amountCell = row.querySelector('td:nth-child(5) input');
+            
+            if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+                return; // Skip if any cell is missing
+            }
+            
+            const amount = parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0;
             
             details.push({
-                description: descriptionCell.value,
-                glAccount: accountCell.value,
+                category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
                 accountName: accountNameCell.value,
+                glAccount: glAccountCell.value,
+                description: descriptionCell.value,
                 amount: amount
             });
-        }
-    });
+        });
+    }
     
     // Encode the details as JSON and then as URI component
     const detailsParam = encodeURIComponent(JSON.stringify(details));
@@ -664,13 +718,7 @@ function printReimbursement() {
 }
 
 // Event listener for document type change
-document.addEventListener('DOMContentLoaded', function() {
-    // Load users and departments first
-    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
-        // Then load reimbursement data
-        fetchReimbursementData();
-    });
-});
+// Removed DOMContentLoaded event listener to avoid conflict with the one in HTML
 
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
@@ -846,24 +894,30 @@ function displayRevisionHistory(data) {
 
 // Function to calculate and update the total amount
 function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
+    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
     let total = 0;
     
     amountInputs.forEach(input => {
-        const value = parseFloat(input.value) || 0;
-        total += value;
+        // Get numeric value from data-raw-value attribute
+        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        total += numericValue;
     });
     
-    // Format the total with commas for thousands separator
+    // Format total with thousands separator
     const formattedTotal = total.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
     
-    // Update the total amount field
-    const totalAmountField = document.getElementById('totalAmount');
-    if (totalAmountField) {
-        totalAmountField.value = formattedTotal;
+    // Update total amount field
+    const totalAmountElement = document.getElementById('totalAmount');
+    if (totalAmountElement) {
+        totalAmountElement.value = formattedTotal;
+        // Store raw value as data attribute for accurate calculations
+        totalAmountElement.dataset.rawValue = total.toString();
+        console.log('Updated total amount:', formattedTotal, 'Raw value:', total);
+    } else {
+        console.error('totalAmount element not found');
     }
 }
 

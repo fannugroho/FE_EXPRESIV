@@ -151,7 +151,7 @@ function populatePrintData(apiData = null) {
         acknowledgeBy: urlParams.acknowledgeBy || (apiData ? apiData.acknowledgeBy : ''),
         approvedBy: urlParams.approvedBy || (apiData ? apiData.approvedBy : ''),
         receivedBy: urlParams.receivedBy || (apiData ? apiData.receivedBy : ''),
-        totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
+        totalAmount: urlParams.totalAmount || (apiData ? apiData.totalAmount || calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
         reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
         typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
         remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
@@ -161,6 +161,10 @@ function populatePrintData(apiData = null) {
         approvedByDate: urlParams.approvedByDate || (apiData ? apiData.approvedByDate : ''),
         receivedByDate: urlParams.receivedByDate || (apiData ? apiData.receivedByDate : '')
     };
+    
+    console.log('Data for print page:', data);
+    console.log('Total amount from parameters:', urlParams.totalAmount);
+    console.log('Total amount used:', data.totalAmount);
     
     // Populate header information
     document.getElementById('payToText').textContent = data.payTo || '';
@@ -201,7 +205,15 @@ function populatePrintData(apiData = null) {
     
     // Set department text and checkbox
     if (data.department) {
-        // Just display the department name, don't modify the label
+        // Display department name in departmentText element
+        if (document.getElementById('departmentText')) {
+            document.getElementById('departmentText').textContent = `Department : ${data.department}`;
+            console.log('Set departmentText to:', data.department);
+        } else {
+            console.warn('departmentText element not found');
+        }
+        
+        // Set checkbox based on department name
         const dept = data.department.toLowerCase();
         if (dept.includes('production')) {
             document.getElementById('productionCheckbox').classList.add('checked');
@@ -301,6 +313,11 @@ function calculateTotalFromDetails(details) {
 // Populate reimbursement details table
 function populateDetailsTable(details, totalAmount = null) {
     const tableBody = document.getElementById('reimbursementDetailsTable');
+    if (!tableBody) {
+        console.error('reimbursementDetailsTable not found');
+        return;
+    }
+    
     tableBody.innerHTML = ''; // Clear existing rows
     
     let calculatedTotal = 0;
@@ -313,26 +330,57 @@ function populateDetailsTable(details, totalAmount = null) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="border p-2">${detail.category || ''}</td>
-                <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.accountName || ''}</td>
+                <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.description || ''}</td>
                 <td class="border p-2">${formatCurrency(amount)}</td>
                 <td class="border p-2"></td>
             `;
             tableBody.appendChild(row);
         });
+    } else {
+        console.warn('No details found to populate table');
     }
     
-    // Use provided total amount or calculated total
-    const finalTotal = totalAmount !== null ? parseFloat(totalAmount) : calculatedTotal;
+    // Always prioritize totalAmount from parameters if available
+    let finalTotal = 0;
+    if (totalAmount !== null && totalAmount !== undefined && totalAmount !== '') {
+        // Handle comma-separated numbers (e.g. "1,234.56")
+        const cleanedTotal = String(totalAmount).replace(/,/g, '');
+        finalTotal = parseFloat(cleanedTotal) || 0;
+        console.log('Using provided totalAmount:', totalAmount, 'parsed as:', finalTotal);
+    } else {
+        finalTotal = calculatedTotal;
+        console.log('Using calculated total:', calculatedTotal);
+    }
     
     // Update totals
-    document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
-    document.getElementById('totalCreditText').textContent = formatCurrency(finalTotal);
+    if (document.getElementById('totalDebitText')) {
+        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
+        console.log('Set totalDebitText to:', formatCurrency(finalTotal));
+    } else {
+        console.warn('totalDebitText element not found');
+    }
+    
+    if (document.getElementById('totalCreditText')) {
+        document.getElementById('totalCreditText').textContent = '-';
+        console.log('Set totalCreditText to empty');
+    } else {
+        console.warn('totalCreditText element not found');
+    }
     
     // Update amount payment and amount in words
-    document.getElementById('amountText').textContent = formatCurrency(finalTotal);
-    document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+    if (document.getElementById('amountText')) {
+        document.getElementById('amountText').textContent = formatCurrency(finalTotal);
+    } else {
+        console.warn('amountText element not found');
+    }
+    
+    if (document.getElementById('amountInWordText')) {
+        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+    } else {
+        console.warn('amountInWordText element not found');
+    }
 }
 
 // Go back to previous page
