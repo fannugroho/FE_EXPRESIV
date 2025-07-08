@@ -94,6 +94,162 @@ function removeFile(index) {
     displayFileList();
 }
 
+// Function to format number with US format (comma as thousands separator, period as decimal separator)
+function formatCurrencyIDR(number) {
+    // Handle empty or invalid input
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    // Parse number, handle large values
+    let num;
+    try {
+        // Handle input string which might be very large
+        if (typeof number === 'string') {
+            // Remove all non-numeric characters except decimal point and comma
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            // Use parseFloat for small numbers, use string technique for large numbers
+            if (cleanedStr.length > 15) {
+                // For very large numbers, handle carefully
+                // Remove commas and parse
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number); // Use Number for better handling of large numbers
+        }
+        
+        // If parsing fails, return zero
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    // Limit to maximum 100 trillion
+    const maxAmount = 100000000000000; // 100 trillion
+    if (num > maxAmount) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Amount Exceeds Limit',
+            text: 'Total amount cannot exceed 100 trillion rupiah'
+        });
+        num = maxAmount;
+    }
+    
+    // Format with US format (comma as thousands separator, period as decimal separator)
+    // For very large numbers, use manual method
+    if (num >= 1e12) { // If number >= 1 trillion
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        // Add comma every 3 digits from right to left
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        // Add 2 decimals
+        return result + '.00';
+    } else {
+        // For smaller numbers, use toLocaleString
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+// Function to parse US format back to number
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        // Handle US format (thousands separator: ',', decimal separator: '.')
+        // Remove commas (thousands separator)
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+// Function to format input field value as currency while user is typing
+function formatCurrencyInputIDR(input) {
+    // Save cursor position
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    // Get value and remove all non-digit, period and comma characters
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    // Ensure there is only one decimal separator
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Parse value to number for calculation
+    const numValue = parseCurrencyIDR(value);
+    
+    // Format with US format
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    // Update input value
+    input.value = formattedValue;
+    
+    // Calculate and update total
+    updateTotalAmount();
+    
+    // Adjust cursor position
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
+// Function to calculate total amount from all rows
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
+    let total = 0;
+    
+    amountInputs.forEach(input => {
+        // Extract numeric value from input
+        const amountText = input.value.trim();
+        // Convert from US format to standard format for calculation
+        const numericValue = parseCurrencyIDR(amountText);
+        total += numericValue;
+    });
+    
+    // Check if total exceeds 100 trillion
+    const maxAmount = 100000000000000; // 100 trillion
+    if (total > maxAmount) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Amount Exceeds Limit',
+            text: 'Total amount cannot exceed 100 trillion rupiah'
+        });
+        total = maxAmount;
+    }
+    
+    // Format total with US format and display
+    const formattedTotal = formatCurrencyIDR(total);
+    
+    // Update total amount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
+    }
+}
+
 function addRow() {
     const tableBody = document.getElementById('reimbursementDetails');
     const newRow = document.createElement('tr');
@@ -123,7 +279,7 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="20" class="w-full p-1 border rounded" required />
+            <input type="text" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -142,6 +298,8 @@ function addRow() {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+    // Update total amount after row deletion
+    updateTotalAmount();
 }
 
 function confirmSubmit() {
@@ -809,10 +967,10 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
@@ -831,6 +989,9 @@ function populateReimbursementDetails(details) {
     } else {
         addRow();
     }
+    
+    // Calculate total amount after populating details
+    updateTotalAmount();
 }
 
 function displayAttachments(attachments) {
@@ -882,18 +1043,19 @@ async function submitReimbursementUpdate() {
         const categoryInput = row.querySelector('.category-search');
         const accountNameInput = row.querySelector('.account-name-search');
         const glAccountInput = row.querySelector('.gl-account');
-        const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
+        const descInput = row.querySelector('td:nth-child(4) input');
+        const amountInput = row.querySelector('.currency-input-idr');
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
         
-        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+        if (categoryInput && accountNameInput && glAccountInput && descInput && amountInput) {
             reimbursementDetails.push({
                 id: detailId,
                 category: categoryInput.value || "",
                 accountName: accountNameInput.value || "",
                 glAccount: glAccountInput.value || "",
-                description: inputs[0].value || "", // Description input
-                amount: parseFloat(inputs[1].value) || 0 // Amount input
+                description: descInput.value || "", 
+                amount: parseCurrencyIDR(amountInput.value) || 0 // Convert formatted value back to number
             });
         }
     });
@@ -1400,6 +1562,23 @@ document.addEventListener('DOMContentLoaded', function() {
     existingRows.forEach(row => {
         setupRowEventListeners(row);
         populateCategoriesForNewRow(row);
+    });
+    
+    // Initialize total amount calculation
+    updateTotalAmount();
+    
+    // Convert any existing amount inputs to use currency formatting
+    const existingAmountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
+    existingAmountInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        
+        // Format initial values
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        }
     });
 });
 
