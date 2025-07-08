@@ -3,10 +3,26 @@ let reimbursementId = '';
 
 // Add document ready event listener
 document.addEventListener("DOMContentLoaded", function() {
+    console.log('DOMContentLoaded event fired');
+    console.log('BASE_URL:', BASE_URL);
+    
     // Call function to control button visibility
     controlButtonVisibility();
     
-    // Other initialization code can go here
+    // Fetch reimbursement data
+    fetchReimbursementData();
+    
+    // Fetch departments for dropdown
+    fetchDepartments();
+    
+    // Fetch users for dropdowns
+    fetchUsers();
+    
+    // Fetch transaction types
+    fetchTransactionTypes();
+    
+    // Fetch business partners
+    fetchBusinessPartners();
 });
 
 function saveDocument() {
@@ -888,6 +904,8 @@ function controlButtonVisibility() {
 }
 
 function populateFormData(data) {
+    console.log('Populating form data with:', data);
+    
     document.getElementById('voucherNo').value = data.voucherNo || '';
     
     // Update for searchable requesterName
@@ -986,6 +1004,8 @@ function populateFormData(data) {
     displayRevisionHistory(data);
     
     // Display rejection remarks if available
+    console.log('Calling displayRejectionRemarks with status:', data.status);
+    console.log('Rejection remarks data:', data.rejectionRemarks);
     displayRejectionRemarks(data);
 }
 
@@ -1353,8 +1373,14 @@ function displayRevisionHistory(data) {
 
 // Function to display rejection remarks if available
 function displayRejectionRemarks(data) {
+    console.log('displayRejectionRemarks called with data:', data);
+    console.log('Status:', data.status);
+    console.log('Rejection remarks:', data.rejectionRemarks);
+    
     // Check if we have rejection data to display
     if (!data || !data.rejectionRemarks || data.status !== 'Rejected') {
+        document.getElementById('rejectionRemarksSection').style.display = 'none';
+        console.log('No rejection remarks to display or document is not rejected');
         return; // No rejection remarks to display or document is not rejected
     }
     
@@ -1364,13 +1390,16 @@ function displayRejectionRemarks(data) {
     if (rejectionRemarksSection && rejectionRemarks) {
         // Show the rejection remarks section
         rejectionRemarksSection.style.display = 'block';
-        rejectionRemarks.textContent = data.rejectionRemarks;
+        rejectionRemarks.value = data.rejectionRemarks;
+        console.log('Rejection remarks displayed:', data.rejectionRemarks);
         
         // Add a visual indicator that the document was rejected
         const statusElement = document.getElementById('status');
         if (statusElement) {
             statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
         }
+    } else {
+        console.error('Rejection remarks elements not found in the DOM');
     }
 }
 
