@@ -123,7 +123,7 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="20" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -360,7 +360,9 @@ function setDepartmentValue(departmentName) {
     // Trigger dependency change to update categories if transaction type is also selected
     const transactionType = document.getElementById('typeOfTransaction').value;
     if (transactionType) {
-        handleDependencyChange();
+        setTimeout(() => {
+            handleDependencyChange();
+        }, 100); // Small delay to ensure DOM is updated
     }
 }
 
@@ -748,6 +750,16 @@ function populateFormData(data) {
     
     // Display revision history
     displayRevisionHistory(data);
+    
+    // Trigger category loading if department and transaction type are populated
+    setTimeout(() => {
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            handleDependencyChange();
+        }
+    }, 500); // Small delay to ensure form is fully populated
 }
 
 // Helper function to set approval values in both select and search input
@@ -809,6 +821,12 @@ function populateReimbursementDetails(details) {
                 </td>
             `;
             tableBody.appendChild(row);
+            
+            // Setup event listeners for the new row
+            setupRowEventListeners(row);
+            
+            // Populate categories for the new row if data is available
+            populateCategoriesForNewRow(row);
         });
     } else {
         addRow();
@@ -1376,6 +1394,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (transactionTypeSelect) {
         transactionTypeSelect.addEventListener('change', handleDependencyChange);
     }
+    
+    // Setup event listeners for existing table rows
+    const existingRows = document.querySelectorAll('#reimbursementDetails tr');
+    existingRows.forEach(row => {
+        setupRowEventListeners(row);
+        populateCategoriesForNewRow(row);
+    });
 });
 
 // Function to get department ID by name
