@@ -839,8 +839,8 @@ function controlButtonVisibility() {
     const fileInput = document.getElementById('filePath');
     const tableRows = document.querySelectorAll('#reimbursementDetails tr');
     
-    // Jika status bukan Draft, sembunyikan tombol dan nonaktifkan field
-    if (status !== "Draft") {
+    // Jika status bukan Draft dan Revised, sembunyikan tombol dan nonaktifkan field
+    if (status !== "Draft" && status !== "Revised") {
         // Hide buttons
         addRowButton.style.display = "none";
         deleteButton.style.display = "none";

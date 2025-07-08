@@ -1,87 +1,260 @@
-// Using BASE_URL from auth.js instead of hardcoded baseUrl
-let reimbursementId = '';
 let uploadedFiles = [];
+let reimbursementId = '';
 
-// Get reimbursement ID from URL
+// Add document ready event listener
+document.addEventListener("DOMContentLoaded", function() {
+    // Call function to control button visibility
+    controlButtonVisibility();
+    
+    // Other initialization code can go here
+});
+
+function saveDocument() {
+    let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
+    const docNumber = `REIM${Date.now()}`; // Gunakan timestamp agar unik
+
+    const documentData = {
+        docNumber,
+        outno: document.getElementById("outgoingNo").value,
+                requester: document.getElementById("requester").value,
+                department: document.getElementById("department").value,
+                toOrderOf : document.getElementById("toOrderOf").value,
+                payTo : document.getElementById("PayTo").value,
+                docCurrency : document.getElementById("docCurrency").value,
+                Reference : document.getElementById("reference").value,
+                ReferenceDoc : document.getElementById("referenceDoc").value,
+                postingDate: document.getElementById("postingDate").value,
+                classification: document.getElementById("classification").value,
+                type: document.getElementById("type").value,
+                docStatus: document.getElementById("docStatus").value,
+                approvals: {
+                    prepared: document.getElementById("prepared").checked,
+                    checked: document.getElementById("checked").checked,
+                    approved: document.getElementById("approved").checked,
+                    knowledge: document.getElementById("knowledge").checked,
+                }
+    };
+
+    documents.push(documentData);
+    localStorage.setItem("documentsReim", JSON.stringify(documents));
+    alert("Dokumen berhasil disimpan!");
+}
+
+function updateApprovalStatus(docNumber, statusKey) {
+    let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
+    let docIndex = documents.findIndex(doc => doc.docNumber === docNumber);
+    if (docIndex !== -1) {
+        documents[docIndex].approvals[statusKey] = true;
+        localStorage.setItem("documentsReim", JSON.stringify(documents));
+        alert(`Document ${statusKey} updated!`);
+    }
+}
+
+
+document.getElementById("docType")?.addEventListener("change", function () {
+    const prTable = document.getElementById("prTable");
+    prTable.style.display = this.value === "Pilih" ? "none" : "table";
+});
+
+function previewPDF(event) {
+    const files = event.target.files;
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
+        return;
+    }
+
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            alert('Please upload a valid PDF file');
+        }
+    });
+
+    displayFileList();
+}
+
+function displayFileList() {
+    const attachmentsList = document.getElementById('attachmentsList');
+    attachmentsList.innerHTML = '';
+    
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+        fileItem.innerHTML = `
+            <span>${file.name}</span>
+            <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">Remove</button>
+        `;
+        attachmentsList.appendChild(fileItem);
+    });
+}
+
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
+}
+
+function addRow() {
+    const tableBody = document.getElementById('reimbursementDetails');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <div class="relative">
+                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                <select class="hidden category-select">
+                    <option value="" disabled selected>Choose Category</option>
+                </select>
+            </div>
+        </td>
+        <td class="p-2 border">
+            <div class="relative">
+                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                <select class="hidden account-name-select">
+                    <option value="" disabled selected>Choose Account Name</option>
+                </select>
+            </div>
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="20" class="w-full p-1 border rounded" required />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                🗑
+            </button>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
+    
+    // Setup event listeners for the new row
+    setupRowEventListeners(newRow);
+    
+    // Populate categories for the new row if data is available
+    populateCategoriesForNewRow(newRow);
+}
+
+function deleteRow(button) {
+    button.closest("tr").remove();
+}
+
+function confirmSubmit() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitDocument();
+        }
+    });
+}
+
+async function submitDocument() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    try {
+        // Call the API to prepare the document
+        const response = await fetch(`${BASE_URL}/api/reimbursements/prepared/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Submitted!',
+                result.message || 'Reimbursement prepared successfully.',
+                'success'
+            ).then(() => {
+                // After successful submission, preparedDate will no longer be null
+                // Update the button state directly and refresh data
+                updateSubmitButtonState(new Date().toISOString());
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to prepare reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error preparing reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while preparing the reimbursement',
+            'error'
+        );
+    }
+}
+
 function getReimbursementIdFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('reim-id');
 }
 
-// Initialize page when document is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Fetch reimbursement data
-    fetchReimbursementData();
-    
-    // Fetch users for dropdowns
-    fetchUsers();
-    
-    // Fetch departments
-    fetchDepartments();
-    
-    // Setup event listener for search dropdowns
-    setupSearchDropdowns();
-});
-
-// Setup search dropdowns
-function setupSearchDropdowns() {
-    // Setup event listener to hide dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-        const dropdowns = [
-            'preparedBySelectDropdown', 
-            'acknowledgeBySelectDropdown', 
-            'checkedBySelectDropdown', 
-            'approvedBySelectDropdown',
-            'receiveBySelectDropdown'
-        ];
+// Function to get current logged-in user using auth.js
+function getCurrentLoggedInUser() {
+    try {
+        const currentUser = getCurrentUser(); // Use function from auth.js
+        if (!currentUser) return null;
         
-        const searchInputs = [
-            'preparedBySearch', 
-            'acknowledgeBySearch', 
-            'checkedBySearch', 
-            'approvedBySearch',
-            'receiveBySearch'
-        ];
-        
-        dropdowns.forEach((dropdownId, index) => {
-            const dropdown = document.getElementById(dropdownId);
-            const input = document.getElementById(searchInputs[index]);
-            
-            if (dropdown && input) {
-                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            }
-        });
-    });
-    
-    // Add focus and input events for search fields
-    const searchFields = [
-        'preparedBySearch',
-        'acknowledgeBySearch',
-        'checkedBySearch',
-        'approvedBySearch',
-        'receiveBySearch'
-    ];
-    
-    searchFields.forEach(fieldId => {
-        const searchInput = document.getElementById(fieldId);
-        if (searchInput) {
-            searchInput.addEventListener('focus', function() {
-                const actualFieldId = fieldId.replace('Search', 'Select');
-                filterUsers(actualFieldId);
-            });
-            
-            // Add input event for real-time filtering
-            searchInput.addEventListener('input', function() {
-                const actualFieldId = fieldId.replace('Search', 'Select');
-                filterUsers(actualFieldId);
-            });
-        }
-    });
+        return {
+            id: currentUser.userId,
+            name: currentUser.username || ''
+        };
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
 }
 
-// Fetch reimbursement data from API
+// Function to auto-fill preparedBy with current logged-in user
+function autofillPreparedByWithCurrentUser(users) {
+    const currentUser = getCurrentLoggedInUser();
+    if (!currentUser) return;
+    
+    // Find the current user in the users list to get their full name
+    const matchingUser = users.find(user => user.id.toString() === currentUser.id.toString());
+    
+    if (matchingUser) {
+        // Combine names with spaces, handling empty middle/last names
+        let displayName = matchingUser.fullName;
+        
+        // Set the preparedBy select and search input
+        const preparedBySelect = document.getElementById('preparedBySelect');
+        const preparedBySearch = document.getElementById('preparedBySearch');
+        
+        if (preparedBySelect) {
+            preparedBySelect.value = matchingUser.id;
+        }
+        
+        if (preparedBySearch) {
+            preparedBySearch.value = displayName;
+            // Disable the preparedBy field since it's auto-filled with current user
+            preparedBySearch.disabled = true;
+            preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+        }
+    }
+}
+
 async function fetchReimbursementData() {
     reimbursementId = getReimbursementIdFromUrl();
     if (!reimbursementId) {
@@ -95,6 +268,7 @@ async function fetchReimbursementData() {
         
         if (result.status && result.code === 200) {
             populateFormData(result.data);
+            updateSubmitButtonState(result.data.preparedDate);
         } else {
             console.error('Failed to fetch reimbursement data:', result.message);
         }
@@ -103,55 +277,21 @@ async function fetchReimbursementData() {
     }
 }
 
-// Fetch users from API and populate dropdown selects
-async function fetchUsers() {
-    try {
-        console.log('Fetching users from API...');
-        const response = await fetch(`${BASE_URL}/api/users`);
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+// Function to update Submit button state based on preparedDate
+function updateSubmitButtonState(preparedDate) {
+    const submitButton = document.querySelector('button[onclick="confirmSubmit()"]');
+    if (submitButton) {
+        if (preparedDate === null) {
+            // Enable the button if preparedDate is null
+            submitButton.disabled = false;
+            submitButton.classList.remove('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
+            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            // Disable the button if preparedDate is not null
+            submitButton.disabled = true;
+            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitButton.classList.add('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
         }
-        
-        const result = await response.json();
-        console.log('Users API response:', result);
-        
-        if (!result.status || result.code !== 200) {
-            throw new Error(result.message || 'Failed to fetch users');
-        }
-        
-        const users = result.data;
-        console.log('Users data:', users);
-        
-        if (!users || users.length === 0) {
-            console.warn('No users found in API response');
-            return;
-        }
-        
-        // Store users globally for later use
-        window.allUsers = users;
-        
-        // Populate dropdowns
-        populateDropdown("preparedBySelect", users);
-        populateDropdown("acknowledgeBySelect", users);
-        populateDropdown("checkedBySelect", users);
-        populateDropdown("approvedBySelect", users);
-        populateDropdown("receiveBySelect", users);
-        
-        // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receiveBySelect"];
-        dropdownIds.forEach(id => {
-            const dropdown = document.getElementById(id);
-            if (dropdown) {
-                dropdown.disabled = true;
-                dropdown.classList.add('bg-gray-200', 'cursor-not-allowed');
-            }
-        });
-        
-        console.log('Successfully populated all user dropdowns');
-        
-    } catch (error) {
-        console.error("Error fetching users:", error);
     }
 }
 
@@ -186,6 +326,10 @@ function populateDepartmentSelect(departments) {
         option.textContent = department.name;
         departmentSelect.appendChild(option);
     });
+    
+    // Disable department selection since it will be auto-filled based on requester
+    departmentSelect.disabled = true;
+    departmentSelect.classList.add('bg-gray-200', 'cursor-not-allowed');
 }
 
 // Helper function to set department value, creating option if it doesn't exist
@@ -211,19 +355,175 @@ function setDepartmentValue(departmentName) {
         newOption.textContent = departmentName;
         newOption.selected = true;
         departmentSelect.appendChild(newOption);
-        console.log('Added new department option:', departmentName);
+    }
+    
+    // Trigger dependency change to update categories if transaction type is also selected
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    if (transactionType) {
+        setTimeout(() => {
+            handleDependencyChange();
+        }, 100); // Small delay to ensure DOM is updated
+    }
+}
+
+// Helper function to auto-fill department based on selected requester
+function autoFillDepartmentFromRequester(requesterName, users) {
+    console.log('Auto-filling department for requester:', requesterName);
+    console.log('Available users:', users);
+    
+    // Find the user by name from the users data passed from API
+    const selectedUser = users.find(user => {
+        // In revision, the users are stored with simplified structure {id, name}
+        return user.name === requesterName;
+    });
+    
+    console.log('Selected user:', selectedUser);
+    
+    if (!selectedUser) {
+        console.log('User not found in users list');
+        return;
+    }
+    
+    // Use the improved department fetching function
+    autoFillDepartmentFromRequesterById(selectedUser.id);
+}
+
+// Helper function to auto-fill department based on selected requester ID (improved version)
+async function autoFillDepartmentFromRequesterById(userId) {
+    console.log('Auto-filling department for user ID:', userId);
+    
+    try {
+        // First try to use cached users data from window.allUsers
+        if (window.allUsers && window.allUsers.length > 0) {
+            const user = window.allUsers.find(u => u.id === userId);
+            if (user && user.department) {
+                console.log('Found user in cached data:', user);
+                console.log('Department from cache:', user.department);
+                setDepartmentValue(user.department);
+                return;
+            } else {
+                console.log('User not found in cache or no department in cached data');
+            }
+        }
+        
+        // Fallback: Fetch full user details from API to get department
+        console.log('Fetching user details from API...');
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch user details');
+        }
+        
+        const user = result.data;
+        console.log('User details from API:', user);
+        
+        // Try different department field names that might exist
+        const userDepartment = user.department || 
+                              user.departmentName || 
+                              user.dept ||
+                              user.departement;
+        
+        console.log('User department from API:', userDepartment);
+        
+        if (!userDepartment) {
+            console.log('No department found for user, checking if user has employeeId for additional lookup');
+            
+            // Try to fetch department via employee endpoint if available
+            if (user.employeeId) {
+                try {
+                    const employeeResponse = await fetch(`${BASE_URL}/api/employees/${user.employeeId}`);
+                    if (employeeResponse.ok) {
+                        const employeeResult = await employeeResponse.json();
+                        if (employeeResult.status && employeeResult.data) {
+                            const employeeDepartment = employeeResult.data.department || 
+                                                     employeeResult.data.departmentName ||
+                                                     employeeResult.data.dept;
+                            if (employeeDepartment) {
+                                console.log('Found department via employee lookup:', employeeDepartment);
+                                setDepartmentValue(employeeDepartment);
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Employee lookup failed:', error);
+                }
+            }
+            
+            console.log('No department found for user, enabling manual selection');
+            // Enable manual department selection as fallback
+            const departmentSelect = document.getElementById("department");
+            if (departmentSelect) {
+                departmentSelect.disabled = false;
+                departmentSelect.classList.remove('bg-gray-200', 'cursor-not-allowed');
+                departmentSelect.classList.add('bg-white');
+                
+                // Update the default option to indicate manual selection is needed
+                const defaultOption = departmentSelect.querySelector('option[value=""]');
+                if (defaultOption) {
+                    defaultOption.textContent = 'Please select department manually';
+                    defaultOption.style.color = '#f59e0b'; // amber color for attention
+                }
+            }
+            return;
+        }
+        
+        // Set department value (will create option if it doesn't exist)
+        setDepartmentValue(userDepartment);
+        
+    } catch (error) {
+        console.error('Error fetching user department:', error);
+    }
+}
+
+// Fetch users from API and populate dropdown selects
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users');
+        }
+        
+        const users = result.data;
+        
+        // Store users globally for later use
+        window.allUsers = users;
+        console.log('Stored', users.length, 'users in global cache');
+        
+        // Populate dropdowns
+        populateDropdown("requesterNameSelect", users, true); // Use name as value
+        populateDropdown("preparedBySelect", users, false);
+        populateDropdown("acknowledgeBySelect", users, false);
+        populateDropdown("checkedBySelect", users, false);
+        populateDropdown("approvedBySelect", users, false);
+        populateDropdown("receivedBySelect", users, false);
+        
+        // Auto-fill preparedBy with current logged-in user
+        autofillPreparedByWithCurrentUser(users);
+        
+    } catch (error) {
+        console.error("Error fetching users:", error);
     }
 }
 
 // Helper function to populate a dropdown with user data
-function populateDropdown(dropdownId, users) {
+// useDisplayNameAsValue: if true, use the display name as the value (for requesterNameSelect)
+function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
     const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) {
-        console.log(`Dropdown ${dropdownId} not found`);
-        return;
-    }
-    
-    console.log(`Populating ${dropdownId} with ${users.length} users`);
+    if (!dropdown) return;
     
     // Clear existing options
     dropdown.innerHTML = "";
@@ -239,96 +539,231 @@ function populateDropdown(dropdownId, users) {
     // Add users as options
     users.forEach(user => {
         const option = document.createElement("option");
-        option.value = user.id;
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.fullName || '';
+        let displayName = user.fullName;
         
-        // Fallback to username if no name fields
-        if (!displayName.trim()) {
-            displayName = user.username || `User ${user.id}`;
+        // For requesterNameSelect, use the display name as the value instead of ID
+        if (useDisplayNameAsValue) {
+            option.value = displayName;
+        } else {
+            option.value = user.id;
         }
         
-        option.textContent = displayName.trim();
+        option.textContent = displayName;
         dropdown.appendChild(option);
-        console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
     
-    // Also store users data in the corresponding search input's dataset for search functionality
-    const searchInput = document.getElementById(dropdownId.replace('Select', 'Search'));
-    if (searchInput) {
-        // Store users data for searching
-        searchInput.dataset.users = JSON.stringify(users.map(user => {
-            const displayName = user.fullName || user.username || `User ${user.id}`;
-            return {
-                id: user.id,
-                name: displayName.trim()
-            };
-        }));
-    }
+    // Store users data for searching in searchable fields
+    const searchableFields = [
+        "requesterNameSelect", 
+        "preparedBySelect", 
+        "acknowledgeBySelect", 
+        "checkedBySelect", 
+        "approvedBySelect",
+        "receivedBySelect"
+    ];
     
-    console.log(`Finished populating ${dropdownId}`);
+    if (searchableFields.includes(dropdownId)) {
+        const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
+        if (searchInput) {
+            // Store users data for searching
+            searchInput.dataset.users = JSON.stringify(users.map(user => {
+                let displayName = user.fullName;
+                return {
+                    id: user.id,
+                    name: displayName
+                };
+            }));
+        }
+    }
 }
 
-// Populate form fields with data
+// Function to control visibility of buttons based on status
+function controlButtonVisibility() {
+    const status = document.getElementById("status").value;
+    const addRowButton = document.querySelector("button[onclick='addRow()']");
+    const updateButton = document.querySelector("button[onclick='updateReim()']");
+    const submitButton = document.querySelector("button[onclick='confirmSubmit()']");
+    
+    // Get all form fields that should be controlled
+    const inputFields = document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea');
+    const fileInput = document.getElementById('filePath');
+    const tableRows = document.querySelectorAll('#reimbursementDetails tr');
+    
+    // Jika status bukan Draft dan Revised, sembunyikan tombol dan nonaktifkan field
+    if (status !== "Draft" && status !== "Revised") {
+        // Hide buttons
+        addRowButton.style.display = "none";
+        updateButton.style.display = "none";
+        submitButton.style.display = "none";
+        
+        // Disable all input fields
+        inputFields.forEach(field => {
+            field.disabled = true;
+            field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Disable file input
+        if (fileInput) {
+            fileInput.disabled = true;
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Disable delete buttons in table rows
+        tableRows.forEach(row => {
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    } else {
+        // Show buttons
+        addRowButton.style.display = "block";
+        updateButton.style.display = "block";
+        submitButton.style.display = "block";
+        
+        // Enable input fields (except those that should remain disabled)
+        inputFields.forEach(field => {
+            // Skip fields that should remain disabled
+            if (field.id === 'voucherNo' || field.id === 'status' || 
+                field.classList.contains('gl-account')) {
+                return;
+            }
+            
+            field.disabled = false;
+            field.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Enable file input
+        if (fileInput) {
+            fileInput.disabled = false;
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Enable delete buttons in table rows
+        tableRows.forEach(row => {
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    }
+}
+
 function populateFormData(data) {
-    // Store users globally for search functionality (mock data if needed)
-    window.allUsers = window.allUsers || [];
+    document.getElementById('voucherNo').value = data.voucherNo || '';
     
-    // Main form fields
-    if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
-    if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
-    
-    // Set department and ensure it exists in dropdown
-    if (data.department) {
-        setDepartmentValue(data.department);
+    // Update for searchable requesterName
+    const requesterNameSearch = document.getElementById('requesterNameSearch');
+    const requesterNameSelect = document.getElementById('requesterNameSelect');
+    if (requesterNameSearch) {
+        requesterNameSearch.value = data.requesterName || '';
+        
+        // Also set the select value to match
+        if (requesterNameSelect) {
+            // For requesterNameSelect, find or create option with the display name as value
+            let optionExists = false;
+            for (let i = 0; i < requesterNameSelect.options.length; i++) {
+                if (requesterNameSelect.options[i].textContent === data.requesterName) {
+                    requesterNameSelect.selectedIndex = i;
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            if (!optionExists && data.requesterName) {
+                const newOption = document.createElement('option');
+                newOption.value = data.requesterName; // Value is the same as text for requesterName
+                newOption.textContent = data.requesterName;
+                requesterNameSelect.appendChild(newOption);
+                requesterNameSelect.value = data.requesterName;
+            }
+        }
     }
     
-    if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
+    // Set department value, creating option if it doesn't exist
+    setDepartmentValue(data.department);
+    document.getElementById('currency').value = data.currency || '';
     
-    // Set payTo to show requester name instead of ID
-    if (document.getElementById('payTo')) {
-        document.getElementById('payTo').value = data.requesterName || '';
+    // Update for searchable payTo with business partners
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+    if (payToSearch && data.payTo) {
+        // Find the corresponding business partner for the payTo ID
+        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
+        
+        if (matchingBP) {
+            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+            payToSearch.value = displayText;
+            
+            if (payToSelect) {
+                // Find or create option with this business partner
+                let optionExists = false;
+                for (let i = 0; i < payToSelect.options.length; i++) {
+                    if (payToSelect.options[i].value === data.payTo.toString()) {
+                        payToSelect.selectedIndex = i;
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = matchingBP.id;
+                    newOption.textContent = displayText;
+                    payToSelect.appendChild(newOption);
+                    payToSelect.value = matchingBP.id;
+                }
+            }
+        }
     }
     
-    // Format date for the date input (YYYY-MM-DD)
-    if (data.submissionDate && document.getElementById('submissionDate')) {
+    if (data.submissionDate) {
         const date = new Date(data.submissionDate);
         const formattedDate = date.toISOString().split('T')[0];
         document.getElementById('submissionDate').value = formattedDate;
     }
     
-    if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
-    if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
-    if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
+    document.getElementById('status').value = data.status || '';
+    document.getElementById('referenceDoc').value = data.referenceDoc || '';
+    document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    document.getElementById('remarks').value = data.remarks || '';
     
-    // Approvers information - populate both select and search fields
-    populateApproverFields('preparedBy', data.preparedBy);
-    populateApproverFields('acknowledgeBy', data.acknowledgeBy);
-    populateApproverFields('checkedBy', data.checkedBy);
-    populateApproverFields('approvedBy', data.approvedBy);
-    populateApproverFields('receiveBy', data.receiveBy);
+    // Set approval values in both select and search inputs
+    setApprovalValue('preparedBy', data.preparedBy);
+    setApprovalValue('acknowledgeBy', data.acknowledgedBy);
+    setApprovalValue('checkedBy', data.checkedBy);
+    setApprovalValue('approvedBy', data.approvedBy);
+    setApprovalValue('receivedBy', data.receivedBy);
     
-    // Handle reimbursement details (table rows)
-    if (data.reimbursementDetails) {
-        console.log('Populating reimbursement details:', data.reimbursementDetails);
-        populateReimbursementDetails(data.reimbursementDetails);
-    } else {
-        console.log('No reimbursement details found in data');
-    }
+    // Update Submit button state based on preparedDate
+    updateSubmitButtonState(data.preparedDate);
     
-    // Display attachment information
-    if (data.reimbursementAttachments) {
-        displayAttachments(data.reimbursementAttachments);
-    }
+    // Control button visibility based on status
+    controlButtonVisibility();
     
-    // Calculate and update total amount
-    updateTotalAmount();
+    populateReimbursementDetails(data.reimbursementDetails);
+    displayAttachments(data.reimbursementAttachments);
+    
+    // Display revision history
+    displayRevisionHistory(data);
+    
+    // Trigger category loading if department and transaction type are populated
+    setTimeout(() => {
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            handleDependencyChange();
+        }
+    }, 500); // Small delay to ensure form is fully populated
 }
 
-// Helper function to populate approver fields (both select and search input)
-function populateApproverFields(fieldPrefix, userId) {
+// Helper function to set approval values in both select and search input
+function setApprovalValue(fieldPrefix, userId) {
     if (!userId) return;
     
     const selectElement = document.getElementById(`${fieldPrefix}Select`);
@@ -336,74 +771,71 @@ function populateApproverFields(fieldPrefix, userId) {
     
     if (selectElement) {
         selectElement.value = userId;
-    }
-    
-    if (searchInput && window.allUsers) {
-        // Find user by ID in the global users array
-        const user = window.allUsers.find(u => u.id == userId);
-        if (user) {
-            // Use fullName or name property
-            const displayName = user.fullName || user.name || `User ${userId}`;
-            searchInput.value = displayName;
-        } else {
-            // If user not found in array, just show ID as fallback
-            searchInput.value = `User ID: ${userId}`;
+        
+        // Also set the search input value
+        if (searchInput && selectElement.selectedOptions[0]) {
+            searchInput.value = selectElement.selectedOptions[0].textContent;
         }
     }
 }
 
-// Populate reimbursement details table
 function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    tableBody.innerHTML = ''; // Clear existing rows
+    tableBody.innerHTML = '';
     
     if (details && details.length > 0) {
         details.forEach(detail => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <div class="relative">
+                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                        <select class="hidden category-select">
+                            <option value="" disabled selected>Choose Category</option>
+                        </select>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
+                    <div class="relative">
+                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                        <select class="hidden account-name-select">
+                            <option value="" disabled selected>Choose Account Name</option>
+                        </select>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                    <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="10" class="w-full p-1 border rounded" required />
+                </td>
+                <td class="p-2 border">
+                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
                         🗑
                     </button>
                 </td>
             `;
             tableBody.appendChild(row);
+            
+            // Setup event listeners for the new row
+            setupRowEventListeners(row);
+            
+            // Populate categories for the new row if data is available
+            populateCategoriesForNewRow(row);
         });
     } else {
-        // Add an empty row if no details
         addRow();
     }
-    
-    // Calculate and update total amount
-    updateTotalAmount();
 }
 
-// Display attachments
 function displayAttachments(attachments) {
     const attachmentsList = document.getElementById('attachmentsList');
-    if (!attachmentsList) {
-        console.error('attachmentsList element not found');
-        return;
-    }
-    
-    attachmentsList.innerHTML = ''; // Clear existing attachments
+    attachmentsList.innerHTML = '';
     
     if (attachments && attachments.length > 0) {
         attachments.forEach(attachment => {
@@ -418,275 +850,188 @@ function displayAttachments(attachments) {
     }
 }
 
-// Add a new empty row to the reimbursement details table
-function addRow() {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required readonly />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
-                🗑
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(newRow);
+function updateReim() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to update this reimbursement",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, update it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitReimbursementUpdate();
+        }
+    });
 }
 
-// Delete a row from the reimbursement details table
-function deleteRow(button) {
-    const row = button.closest('tr');
-    row.remove();
-}
-
-// Submit reimbursement update to API
 async function submitReimbursementUpdate() {
-    // Get reimbursement ID from URL
     const id = getReimbursementIdFromUrl();
     if (!id) {
         Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
     
-    // Collect reimbursement details from table
     const detailsTable = document.getElementById('reimbursementDetails');
     const rows = detailsTable.querySelectorAll('tr');
     const reimbursementDetails = [];
     
     rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
+        // Get category from search input
+        const categoryInput = row.querySelector('.category-search');
+        const accountNameInput = row.querySelector('.account-name-search');
+        const glAccountInput = row.querySelector('.gl-account');
+        const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
         
-        reimbursementDetails.push({
-            id: detailId,
-            description: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
-        });
+        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+            reimbursementDetails.push({
+                id: detailId,
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: inputs[0].value || "", // Description input
+                amount: parseFloat(inputs[1].value) || 0 // Amount input
+            });
+        }
     });
     
-    // Build request data
+    // Get requesterName from the search input (text value)
+    const requesterName = document.getElementById('requesterNameSearch').value;
+    
+    // Get payTo ID from the hidden select element
+    const payToSelect = document.getElementById('payToSelect');
+    const payTo = payToSelect ? payToSelect.value : null;
+    
     const requestData = {
-        requesterName: document.getElementById('requesterName').value,
+        requesterName: requesterName,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
-        payTo: document.getElementById('requesterName').value, // Use requesterName for payTo
+        payTo: payTo,
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
+        preparedBy: document.getElementById('preparedBySelect').value || null,
+        acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
+        checkedBy: document.getElementById('checkedBySelect').value || null,
+        approvedBy: document.getElementById('approvedBySelect').value || null,
+        receivedBy: document.getElementById('receivedBySelect').value || null,
         reimbursementDetails: reimbursementDetails
     };
     
-    // API call removed
-    Swal.fire(
-        'Updated!',
-        'Reimbursement has been updated successfully.',
-        'success'
-    ).then(() => {
-        // Reload the data to show the latest changes
-        fetchReimbursementData();
-    });
-}
-
-// Function to go back to menu
-function goToMenuReim() {
-    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
-}
-
-function onReject() {
-    Swal.fire({
-        title: 'Reject Document',
-        input: 'textarea',
-        inputLabel: 'Remarks',
-        inputPlaceholder: 'Enter your remarks here...',
-        showCancelButton: true,
-        confirmButtonText: 'Send Reject',
-        cancelButtonText: 'Cancel',
-        showLoaderOnConfirm: true,
-        preConfirm: (remarks) => {
-            if (!remarks) {
-                Swal.showValidationMessage('Please enter remarks for rejection');
-                return false;
-            }
-            
-            // Get reimbursement ID from URL
-            const id = getReimbursementIdFromUrl();
-            if (!id) {
-                Swal.showValidationMessage('No reimbursement ID found');
-                return false;
-            }
-            
-            // Make API call to reject the reimbursement
-            return fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAccessToken()}`
-                },
-                body: JSON.stringify({
-                    remarks: remarks
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (!result.status) {
-                    throw new Error(result.message || 'Failed to reject document');
-                }
-                return result;
-            })
-            .catch(error => {
-                console.error('Error rejecting reimbursement:', error);
-                Swal.showValidationMessage(`Rejection failed: ${error.message}`);
-                return false;
-            });
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        if (result.isConfirmed && result.value.status) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
             Swal.fire(
-                'Rejected!',
-                'The document has been rejected.',
+                'Updated!',
+                'Reimbursement has been updated successfully.',
                 'success'
             ).then(() => {
-                // Return to menu
-                goToMenuReim();
+                fetchReimbursementData();
             });
-        }
-    });
-}
-
-function onApprove() {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "Are you sure you want to approve this document?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, Approve it!',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Get reimbursement ID from URL
-            const id = getReimbursementIdFromUrl();
-            if (!id) {
-                Swal.fire('Error', 'No reimbursement ID found', 'error');
-                return;
-            }
-            
-            // Make API call to approve the reimbursement
-            fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAccessToken()}`
-                }
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Approved!',
-                        'The document has been approved.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
-                    Swal.fire(
-                        'Error',
-                        result.message || 'Failed to approve document',
-                        'error'
-                    );
-                }
-            })
-            .catch(error => {
-                console.error('Error approving reimbursement:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while approving the document',
-                    'error'
-                );
-            });
-        }
-    });
-}
-
-function updateApprovalStatus(docNumber, statusKey) {
-    let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
-    let docIndex = documents.findIndex(doc => doc.docNumber === docNumber);
-    if (docIndex !== -1) {
-        documents[docIndex].approvals[statusKey] = true;
-        localStorage.setItem("documentsReim", JSON.stringify(documents));
-        alert(`Document ${statusKey} updated!`);
-    }
-}
-
-function previewPDF(event) {
-    const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        return;
-    }
-
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
         } else {
-            alert('Please upload a valid PDF file');
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to update reimbursement',
+                'error'
+            );
         }
-    });
-
-    displayFileList();
+    } catch (error) {
+        console.error('Error updating reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while updating the reimbursement',
+            'error'
+        );
+    }
 }
 
-function displayFileList() {
-    // Implementation for displaying file list
-    // This function was referenced but not defined in the original code
-    console.log('Files uploaded:', uploadedFiles);
+function goToMenuReim() {
+    window.location.href = '../../../../pages/menuReim.html';
 }
 
-function printReimbursement() {
-    // Get reimbursement ID from URL
-    const reimId = getReimbursementIdFromUrl();
-    if (!reimId) {
-        Swal.fire('Error', 'No reimbursement ID found', 'error');
-        return;
+// Display revision history based on API data
+function displayRevisionHistory(data) {
+    // Check if we have any revision data to display
+    if (!data || (!data.firstRevisionDate && !data.secondRevisionDate && !data.thirdRevisionDate && !data.fourthRevisionDate)) {
+        return; // No revision history to display
     }
     
-    // Open the print page in a new window/tab
-    window.open(`printReim.html?reim-id=${reimId}`, '_blank');
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
+    
+    if (revisedRemarksSection && revisedCount) {
+        // Count the number of revisions based on date fields
+        let revisionCount = 0;
+        if (data.firstRevisionDate) revisionCount++;
+        if (data.secondRevisionDate) revisionCount++;
+        if (data.thirdRevisionDate) revisionCount++;
+        if (data.fourthRevisionDate) revisionCount++;
+        
+        // Only show revision history section if at least one revision exists
+        if (data.firstRevisionDate) {
+            // Show the revision history section
+            revisedRemarksSection.style.display = 'block';
+            revisedCount.textContent = revisionCount;
+            
+            // Display each revision container that has data
+            if (data.firstRevisionDate) {
+                const container = document.getElementById('firstRevisionContainer');
+                const remarks = document.getElementById('firstRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.firstRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.secondRevisionDate) {
+                const container = document.getElementById('secondRevisionContainer');
+                const remarks = document.getElementById('secondRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.secondRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.thirdRevisionDate) {
+                const container = document.getElementById('thirdRevisionContainer');
+                const remarks = document.getElementById('thirdRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.thirdRevisionRemarks || 'No remarks provided';
+                }
+            }
+            
+            if (data.fourthRevisionDate) {
+                const container = document.getElementById('fourthRevisionContainer');
+                const remarks = document.getElementById('fourthRevisionRemarks');
+                if (container && remarks) {
+                    container.style.display = 'block';
+                    remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
+                }
+            }
+        }
+    }
 }
 
-// Event listener for document type change
-document.addEventListener('DOMContentLoaded', function() {
-    // Load users and departments first
-    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
-        // Then load reimbursement data
-        fetchReimbursementData();
-    });
-});
+// Store global data for categories and account names
+let allCategories = [];
+let allAccountNames = [];
+let transactionTypes = [];
+let businessPartners = [];
 
-// Function to filter users for the search dropdown in approval section
+// Function to filter and display user dropdown
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
     if (!searchInput) return;
@@ -698,41 +1043,179 @@ function filterUsers(fieldId) {
     // Clear dropdown
     dropdown.innerHTML = '';
     
-    // Use stored users or empty array if not available
-    const usersList = window.allUsers || [];
+    let filteredUsers = [];
     
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.fullName || user.name || `User ${user.id}`;
-        return userName.toLowerCase().includes(searchText);
-    });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.fullName || user.name || `User ${user.id}`;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        try {
+            const filtered = businessPartners.filter(bp => 
+                bp.name.toLowerCase().includes(searchText) || 
+                bp.code.toLowerCase().includes(searchText)
+            );
             
-            // Update the hidden select element
-            const selectElement = document.getElementById(fieldId);
-            if (selectElement) {
-                selectElement.value = user.id;
+            // Display search results
+            filtered.forEach(bp => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = `${bp.code} - ${bp.name}`;
+                option.onclick = function() {
+                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this business partner
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === bp.id) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!optionExists && selectElement.options.length > 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = bp.id;
+                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = bp.id;
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+            
+            // Show message if no results
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No Business Partner Found';
+                dropdown.appendChild(noResults);
             }
             
-            // Hide dropdown
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
+            // Show dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering business partners:", error);
+        }
+    }
     
-    // Display message if no results
+    // Handle all other searchable selects
+    if (fieldId === 'requesterNameSelect' || 
+        fieldId === 'preparedBySelect' || 
+        fieldId === 'acknowledgeBySelect' || 
+        fieldId === 'checkedBySelect' || 
+        fieldId === 'approvedBySelect' ||
+        fieldId === 'receivedBySelect') {
+        try {
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            
+            // Show search results
+            filteredUsers.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.innerText = user.name;
+                option.onclick = function() {
+                    searchInput.value = user.name;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // For requesterName, store the name as the value 
+                        if (fieldId === 'requesterNameSelect') {
+                            // Find matching option or create a new one
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].textContent === user.name) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.name; // For requesterName, value is the name itself
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.name;
+                            }
+                        } else {
+                            // For other fields (payTo, approvals), store the ID as the value
+                            let optionExists = false;
+                            for (let i = 0; i < selectElement.options.length; i++) {
+                                if (selectElement.options[i].value === user.id.toString()) {
+                                    selectElement.selectedIndex = i;
+                                    optionExists = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!optionExists && selectElement.options.length > 0) {
+                                const newOption = document.createElement('option');
+                                newOption.value = user.id;
+                                newOption.textContent = user.name;
+                                selectElement.appendChild(newOption);
+                                selectElement.value = user.id;
+                            }
+                        }
+                    }
+                    
+                    dropdown.classList.add('hidden');
+                    
+                    // Auto-fill payToSelect and department when requesterName is selected
+                    if (fieldId === 'requesterNameSelect') {
+                        // Auto-fill payTo with the same user (find in business partners)
+                        const payToSearch = document.getElementById('payToSearch');
+                        const payToSelect = document.getElementById('payToSelect');
+                        
+                        if (payToSearch && payToSelect) {
+                            // Find matching business partner by name
+                            const matchingBP = businessPartners.find(bp => 
+                                bp.name.toLowerCase() === user.name.toLowerCase()
+                            );
+                            
+                            if (matchingBP) {
+                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                                
+                                // Set the business partner ID as the value in the select element
+                                let optionExists = false;
+                                for (let i = 0; i < payToSelect.options.length; i++) {
+                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                        payToSelect.selectedIndex = i;
+                                        optionExists = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!optionExists && payToSelect.options.length > 0) {
+                                    const newOption = document.createElement('option');
+                                    newOption.value = matchingBP.id;
+                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    payToSelect.appendChild(newOption);
+                                    payToSelect.value = matchingBP.id;
+                                }
+                            }
+                        }
+                        
+                        // Auto-fill department based on selected user
+                        const users = JSON.parse(searchInput.dataset.users || '[]');
+                        autoFillDepartmentFromRequester(user.name, users);
+                    }
+                };
+                dropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error parsing users data:", error);
+        }
+    }
+    
+    // Show message if no results
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
+        noResults.innerText = 'Name Not Found';
         dropdown.appendChild(noResults);
     }
     
@@ -740,185 +1223,503 @@ function filterUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
-// Helper function to update approver fields
-function updateApproverField(fieldId, value) {
-    if (!value) return;
-    
-    const select = document.getElementById(fieldId);
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    
-    if (select) {
-        select.value = value;
-    }
-    
-    if (searchInput) {
-        searchInput.value = value;
-    }
-}
-
-// Function to make all fields read-only
-function makeAllFieldsReadOnly() {
-    // Make all input fields read-only
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
-    inputFields.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Make search inputs read-only but with normal styling
-    const searchInputs = document.querySelectorAll('input[id$="Search"]');
-    searchInputs.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-50');
+// Function to fetch transaction types
+async function fetchTransactionTypes() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/transactiontypes/filter?category=Reimbursement`);
         
-        // Remove event listeners by cloning and replacing the element
-        const newField = field.cloneNode(true);
-        field.parentNode.replaceChild(newField, field);
-        
-        // Add visual indication that it's read-only
-        newField.classList.add('cursor-not-allowed');
-        newField.title = 'This field is read-only in revision mode';
-    });
-    
-    // Disable all select fields
-    const selectFields = document.querySelectorAll('select');
-    selectFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Hide all search dropdowns
-    const dropdowns = document.querySelectorAll('[id$="SelectDropdown"]');
-    dropdowns.forEach(dropdown => {
-        dropdown.classList.add('hidden');
-    });
-    
-    // Hide add row button
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    
-    // Disable file upload
-    const fileInput = document.getElementById('filePath');
-    if (fileInput) {
-        fileInput.disabled = true;
-        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-    }
-}
-
-// Function to handle reimbursement revision with remarks
-function updateReimStatusWithRemarks(status, remarks) {
-    if (!reimbursementId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Reimbursement ID not found'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    let statusAt, successMessage, redirectUrl;
-    
-    if (status === 'revise') {
-        statusAt = "Revise";
-        successMessage = 'Reimbursement revision submitted successfully';
-        redirectUrl = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
-    } else {
-        statusAt = "Receive";
-        successMessage = `Reimbursement ${status === 'approve' ? 'received' : 'rejected'} successfully`;
-        redirectUrl = '../../../dashboard/dashboardReceive/reimbursement/menuReimReceive.html';
-    }
-
-    const requestData = {
-        id: reimbursementId,
-        UserId: userId,
-        StatusAt: statusAt,
-        Action: status,
-        Remarks: remarks || ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: status === 'revise' ? 'Processing Revision...' : `${status === 'approve' ? 'Receiving' : 'Rejecting'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
         }
-    });
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch transaction types');
+        }
+        
+        transactionTypes = result.data;
+        console.log('Stored', transactionTypes.length, 'transaction types in global cache');
+        
+        // Populate transaction types dropdown
+        populateTransactionTypesDropdown(transactionTypes);
+        
+    } catch (error) {
+        console.error("Error fetching transaction types:", error);
+    }
+}
 
-    fetch(`${BASE_URL}/api/reimbursements/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: successMessage,
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Navigate back to the dashboard
-                window.location.href = redirectUrl;
+// Function to populate transaction types dropdown
+function populateTransactionTypesDropdown(types) {
+    const typeSelect = document.getElementById("typeOfTransaction");
+    if (!typeSelect) return;
+    
+    // Clear existing options
+    typeSelect.innerHTML = '';
+    
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select Transaction Type";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    typeSelect.appendChild(defaultOption);
+    
+    // Add transaction types
+    types.forEach(type => {
+        const option = document.createElement("option");
+        option.value = type.name; // Send name as the value
+        option.textContent = type.name;
+        typeSelect.appendChild(option);
+    });
+}
+
+// Function to fetch business partners
+async function fetchBusinessPartners() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+        
+        businessPartners = result.data;
+        console.log('Stored', businessPartners.length, 'business partners in global cache');
+        
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load users, departments, business partners, and transaction types first
+    Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
+        // Then load reimbursement data
+        fetchReimbursementData();
+    });
+    
+    // Setup event listeners for search dropdowns
+    const searchFields = [
+        'requesterNameSearch',
+        'payToSearch',
+        'preparedBySearch',
+        'acknowledgeBySearch',
+        'checkedBySearch',
+        'approvedBySearch',
+        'receivedBySearch'
+    ];
+    
+    searchFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId);
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
             });
-        } else {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to ${status === 'revise' ? 'submit revision' : status + ' Reimbursement'}. Status: ${response.status}`);
+            
+            // Add input event for real-time filtering
+            searchInput.addEventListener('input', function() {
+                const actualFieldId = fieldId.replace('Search', 'Select');
+                filterUsers(actualFieldId);
             });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: `Error ${status === 'revise' ? 'submitting revision' : (status === 'approve' ? 'receiving' : 'rejecting') + ' Reimbursement'}: ` + error.message
+    });
+    
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdowns = [
+            'requesterNameSelectDropdown',
+            'payToSelectDropdown',
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'requesterNameSearch',
+            'payToSearch',
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch',
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
         });
+        
+        // Handle table row dropdowns
+        const categoryDropdowns = document.querySelectorAll('.category-dropdown');
+        const accountNameDropdowns = document.querySelectorAll('.account-name-dropdown');
+        
+        categoryDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.category-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        accountNameDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.account-name-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+    
+    // Setup event listeners for department and transaction type changes
+    const departmentSelect = document.getElementById('department');
+    const transactionTypeSelect = document.getElementById('typeOfTransaction');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    // Setup event listeners for existing table rows
+    const existingRows = document.querySelectorAll('#reimbursementDetails tr');
+    existingRows.forEach(row => {
+        setupRowEventListeners(row);
+        populateCategoriesForNewRow(row);
+    });
+});
+
+// Function to get department ID by name
+async function getDepartmentIdByName(departmentName) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const departments = result.data;
+        
+        const department = departments.find(dept => dept.name === departmentName);
+        return department ? department.id : null;
+    } catch (error) {
+        console.error("Error fetching department ID:", error);
+        return null;
+    }
+}
+
+// Function to fetch categories based on department and transaction type
+async function fetchCategories(departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const categories = await response.json();
+        allCategories = categories;
+        console.log('Fetched categories:', categories);
+        
+        // Update all category dropdowns in table rows
+        updateAllCategoryDropdowns();
+        
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        allCategories = [];
+        updateAllCategoryDropdowns();
+    }
+}
+
+// Function to fetch account names based on category, department and transaction type
+async function fetchAccountNames(category, departmentId, transactionType) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const accountNames = await response.json();
+        allAccountNames = accountNames;
+        console.log('Fetched account names:', accountNames);
+        
+        return accountNames;
+        
+    } catch (error) {
+        console.error("Error fetching account names:", error);
+        return [];
+    }
+}
+
+// Function to update all category dropdowns
+function updateAllCategoryDropdowns() {
+    const categorySearchInputs = document.querySelectorAll('.category-search');
+    
+    categorySearchInputs.forEach(input => {
+        // Store categories data for searching
+        input.dataset.categories = JSON.stringify(allCategories);
+        
+        // Clear current value if categories changed
+        const currentValue = input.value;
+        if (currentValue && !allCategories.includes(currentValue)) {
+            input.value = '';
+            const row = input.closest('tr');
+            const accountNameSearch = row.querySelector('.account-name-search');
+            const glAccount = row.querySelector('.gl-account');
+            if (accountNameSearch) accountNameSearch.value = '';
+            if (glAccount) glAccount.value = '';
+        }
     });
 }
 
-// Function to calculate and update the total amount
-function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(4) input');
-    let total = 0;
+// Function to setup event listeners for table rows
+function setupRowEventListeners(row) {
+    const categorySearch = row.querySelector('.category-search');
+    const categoryDropdown = row.querySelector('.category-dropdown');
+    const accountNameSearch = row.querySelector('.account-name-search');
+    const accountNameDropdown = row.querySelector('.account-name-dropdown');
     
-    amountInputs.forEach(input => {
-        const value = parseFloat(input.value) || 0;
-        total += value;
-    });
+    if (categorySearch) {
+        // Populate with existing categories if available
+        if (allCategories.length > 0) {
+            categorySearch.dataset.categories = JSON.stringify(allCategories);
+        }
+        
+        categorySearch.addEventListener('focus', function() {
+            filterCategories(this);
+        });
+        
+        categorySearch.addEventListener('input', function() {
+            filterCategories(this);
+        });
+    }
     
-    // Format the total with commas for thousands separator
-    const formattedTotal = total.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    
-    // Update the total amount field
-    const totalAmountField = document.getElementById('totalAmount');
-    if (totalAmountField) {
-        totalAmountField.value = formattedTotal;
+    if (accountNameSearch) {
+        accountNameSearch.addEventListener('focus', function() {
+            filterAccountNames(this);
+        });
+        
+        accountNameSearch.addEventListener('input', function() {
+            filterAccountNames(this);
+        });
     }
 }
+
+// Function to filter and display categories
+function filterCategories(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.category-dropdown');
     
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const categories = JSON.parse(input.dataset.categories || '[]');
+        const filtered = categories.filter(category => 
+            category.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(category => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = category;
+            option.onclick = function() {
+                input.value = category;
+                const selectElement = input.parentElement.querySelector('.category-select');
+                if (selectElement) {
+                    selectElement.value = category;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Clear account name and GL account when category changes
+                const row = input.closest('tr');
+                const accountNameSearch = row.querySelector('.account-name-search');
+                const glAccount = row.querySelector('.gl-account');
+                if (accountNameSearch) accountNameSearch.value = '';
+                if (glAccount) glAccount.value = '';
+                
+                // Trigger account names fetch
+                loadAccountNamesForRow(row);
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Categories Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering categories:", error);
+    }
+}
+
+// Function to filter and display account names
+function filterAccountNames(input) {
+    const searchText = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.account-name-dropdown');
+    
+    if (!dropdown) return;
+    
+    // Clear dropdown
+    dropdown.innerHTML = '';
+    
+    try {
+        const accountNames = JSON.parse(input.dataset.accountNames || '[]');
+        const filtered = accountNames.filter(account => 
+            account.accountName.toLowerCase().includes(searchText)
+        );
+        
+        // Display search results
+        filtered.forEach(account => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = account.accountName;
+            option.onclick = function() {
+                input.value = account.accountName;
+                const selectElement = input.parentElement.querySelector('.account-name-select');
+                if (selectElement) {
+                    selectElement.value = account.accountName;
+                }
+                dropdown.classList.add('hidden');
+                
+                // Auto-fill GL Account
+                const row = input.closest('tr');
+                const glAccount = row.querySelector('.gl-account');
+                if (glAccount) {
+                    glAccount.value = account.coa;
+                }
+            };
+            dropdown.appendChild(option);
+        });
+        
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Account Names Found';
+            dropdown.appendChild(noResults);
+        }
+        
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error("Error filtering account names:", error);
+    }
+}
+
+// Function to load account names for a specific row
+async function loadAccountNamesForRow(row) {
+    const categoryInput = row.querySelector('.category-search');
+    const accountNameInput = row.querySelector('.account-name-search');
+    
+    if (!categoryInput || !accountNameInput) return;
+    
+    const category = categoryInput.value;
+    if (!category) return;
+    
+    // Get current department and transaction type
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not selected');
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        const accountNames = await fetchAccountNames(category, departmentId, transactionType);
+        
+        // Store account names data for this row
+        accountNameInput.dataset.accountNames = JSON.stringify(accountNames);
+        
+    } catch (error) {
+        console.error('Error loading account names for row:', error);
+    }
+}
+
+// Function to handle department or transaction type changes
+async function handleDependencyChange() {
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (!departmentName || !transactionType) {
+        console.log('Department or transaction type not fully selected');
+        allCategories = [];
+        updateAllCategoryDropdowns();
+        return;
+    }
+    
+    try {
+        const departmentId = await getDepartmentIdByName(departmentName);
+        if (!departmentId) {
+            console.error('Could not find department ID');
+            return;
+        }
+        
+        // Fetch new categories
+        await fetchCategories(departmentId, transactionType);
+        
+    } catch (error) {
+        console.error('Error handling dependency change:', error);
+    }
+}
+
+// Function to populate categories for a new row
+function populateCategoriesForNewRow(row) {
+    const categorySearch = row.querySelector('.category-search');
+    
+    if (categorySearch && allCategories.length > 0) {
+        // Store categories data for the new row
+        categorySearch.dataset.categories = JSON.stringify(allCategories);
+        console.log('Populated categories for new row:', allCategories.length, 'categories');
+    } else if (categorySearch) {
+        console.log('No categories available to populate for new row');
+        
+        // Check if department and transaction type are selected, if so trigger fetch
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            console.log('Department and transaction type are selected, triggering category fetch...');
+            handleDependencyChange().then(() => {
+                // After categories are fetched, populate this row
+                if (allCategories.length > 0) {
+                    categorySearch.dataset.categories = JSON.stringify(allCategories);
+                    console.log('Categories populated after fetch for new row');
+                }
+            });
+        }
+    }
+}
