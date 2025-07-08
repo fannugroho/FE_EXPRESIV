@@ -216,6 +216,40 @@ function populateFormData(data) {
     }
     
     if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
+    
+    // Hide Print button if status is "Acknowledged"
+    if (data.status === "Acknowledged" && document.getElementById('printButton')) {
+        document.getElementById('printButton').style.display = 'none';
+    }
+    
+    // Hide buttons if status is "Approved"
+    if (data.status === "Approved") {
+        // Hide Add Row button
+        if (document.getElementById('addRowButton')) {
+            document.getElementById('addRowButton').style.display = 'none';
+        }
+        
+        // Hide Reject button
+        if (document.getElementById('rejectButton')) {
+            document.getElementById('rejectButton').style.display = 'none';
+        }
+        
+        // Hide Approve button
+        if (document.getElementById('approveButton')) {
+            document.getElementById('approveButton').style.display = 'none';
+        }
+        
+        // Hide Add Revision button
+        if (document.getElementById('addRevisionBtn')) {
+            document.getElementById('addRevisionBtn').style.display = 'none';
+        }
+        
+        // Hide Revision button
+        if (document.getElementById('revisionButton')) {
+            document.getElementById('revisionButton').style.display = 'none';
+        }
+    }
+    
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
@@ -325,6 +359,10 @@ window.populateReimbursementDetails = function(details) {
     
     tableBody.innerHTML = ''; // Clear existing rows
     
+    // Check if status is "Approved"
+    const status = document.getElementById('status').value;
+    const isApproved = status === "Approved";
+    
     if (details && details.length > 0) {
         details.forEach(detail => {
             // Format amount with decimal places
@@ -333,22 +371,22 @@ window.populateReimbursementDetails = function(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required readonly />
+                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right bg-gray-100" required readonly />
                 </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
+                <td class="p-2 border text-center bg-gray-100">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" ${isApproved ? 'style="display: none;"' : ''} disabled>
                         🗑
                     </button>
                 </td>
@@ -372,25 +410,29 @@ window.addRow = function() {
         return;
     }
     
+    // Check if status is "Approved"
+    const status = document.getElementById('status').value;
+    const isApproved = status === "Approved";
+    
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required readonly />
+            <input type="text" maxlength="30" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required readonly />
+            <input type="text" maxlength="10" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required readonly />
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right bg-gray-100" required readonly />
         </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
+        <td class="p-2 border text-center bg-gray-100">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" ${isApproved ? 'style="display: none;"' : ''} disabled>
                 🗑
             </button>
         </td>
@@ -672,23 +714,32 @@ function printReimbursement() {
     const details = [];
     
     detailsRows.forEach(row => {
-        const descriptionCell = row.querySelector('td:nth-child(1) input');
+        const categoryCell = row.querySelector('td:nth-child(1) input');
         const accountCell = row.querySelector('td:nth-child(2) input');
-        const accountNameCell = row.querySelector('td:nth-child(3) input');
-        const amountCell = row.querySelector('td:nth-child(4) input');
+        const detailAccountCell = row.querySelector('td:nth-child(3) input');
+        const descriptionCell = row.querySelector('td:nth-child(4) input');
+        const amountCell = row.querySelector('td:nth-child(5) input');
         
-        if (descriptionCell && accountCell && accountNameCell && amountCell) {
+        if (categoryCell && accountCell && detailAccountCell && descriptionCell && amountCell) {
             const amount = parseFloat(amountCell.value) || 0;
             totalAmount += amount;
             
             details.push({
-                description: descriptionCell.value,
+                category: categoryCell.value,
                 glAccount: accountCell.value,
-                accountName: accountNameCell.value,
+                accountName: detailAccountCell.value,
+                description: descriptionCell.value,
                 amount: amount
             });
         }
     });
+    
+    // Get the total amount from the totalAmount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField && totalAmountField.value) {
+        // If the totalAmount field has a value, use it instead of the calculated total
+        totalAmount = parseFloat(totalAmountField.value.replace(/[^\d.-]/g, '')) || totalAmount;
+    }
     
     // Encode the details as JSON and then as URI component
     const detailsParam = encodeURIComponent(JSON.stringify(details));

@@ -190,7 +190,12 @@ function populatePrintData(apiData = null) {
     
     // Set department text and checkbox
     if (data.department) {
-        // Just display the department name, don't modify the label
+        // Display department name in the departmentText element if it exists
+        if (document.getElementById('departmentText')) {
+            document.getElementById('departmentText').textContent = `Department : ${data.department}`;
+        }
+        
+        // Check the appropriate department checkbox
         const dept = data.department.toLowerCase();
         if (dept.includes('production')) {
             document.getElementById('productionCheckbox').classList.add('checked');
@@ -280,6 +285,14 @@ function populateDetailsTable(details, totalAmount = null) {
     const tableBody = document.getElementById('reimbursementDetailsTable');
     tableBody.innerHTML = ''; // Clear existing rows
     
+    // Get the column headers to ensure we're using the right IDs
+    const categoryHeader = document.getElementById('category');
+    const accountHeader = document.getElementById('account');
+    const detailAccountHeader = document.getElementById('detailAccount');
+    const descriptionHeader = document.getElementById('description');
+    const debitHeader = document.getElementById('debit');
+    const creditHeader = document.getElementById('credit');
+    
     let calculatedTotal = 0;
     
     if (details && details.length > 0) {
@@ -305,7 +318,7 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update totals
     document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
-    //document.getElementById('totalCreditText').textContent = formatCurrency(finalTotal);
+    document.getElementById('totalCreditText').textContent = ''; // Removed the credit amount display
     
     // Update amount payment and amount in words
     document.getElementById('amountText').textContent = formatCurrency(finalTotal);
@@ -327,4 +340,4 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fall back to API if URL parameters are insufficient
         fetchReimbursementData();
     }
-}); 
+});
