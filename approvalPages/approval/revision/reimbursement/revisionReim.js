@@ -302,21 +302,6 @@ function deleteRow(button) {
     updateTotalAmount();
 }
 
-function confirmSubmit() {
-    Swal.fire({
-        title: 'Konfirmasi',
-        text: 'Apakah dokumen sudah benar?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya',
-        cancelButtonText: 'Batal',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitDocument();
-        }
-    });
-}
-
 async function submitDocument() {
     const id = getReimbursementIdFromUrl();
     if (!id) {
@@ -437,7 +422,7 @@ async function fetchReimbursementData() {
 
 // Function to update Submit button state based on preparedDate
 function updateSubmitButtonState(preparedDate) {
-    const submitButton = document.querySelector('button[onclick="confirmSubmit()"]');
+    const submitButton = document.querySelector('button[onclick="submitReim()"]');
     if (submitButton) {
         if (preparedDate === null) {
             // Enable the button if preparedDate is null
@@ -741,8 +726,7 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
 function controlButtonVisibility() {
     const status = document.getElementById("status").value;
     const addRowButton = document.querySelector("button[onclick='addRow()']");
-    const updateButton = document.querySelector("button[onclick='updateReim()']");
-    const submitButton = document.querySelector("button[onclick='confirmSubmit()']");
+    const submitButton = document.querySelector("button[onclick='submitReim()']");
     
     // Get all form fields that should be controlled
     const inputFields = document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea');
@@ -753,7 +737,6 @@ function controlButtonVisibility() {
     if (status !== "Draft" && status !== "Revised") {
         // Hide buttons
         addRowButton.style.display = "none";
-        updateButton.style.display = "none";
         submitButton.style.display = "none";
         
         // Disable all input fields
@@ -779,7 +762,6 @@ function controlButtonVisibility() {
     } else {
         // Show buttons
         addRowButton.style.display = "block";
-        updateButton.style.display = "block";
         submitButton.style.display = "block";
         
         // Enable input fields (except those that should remain disabled)
@@ -1020,6 +1002,25 @@ function updateReim() {
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, update it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitReimbursementUpdate().then(() => {
+                submitDocument();
+            });
+        }
+    });
+}
+
+// Renamed function to match the button's new name
+function submitReim() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to submit this reimbursement",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, submit it!'
     }).then((result) => {
         if (result.isConfirmed) {
             submitReimbursementUpdate().then(() => {
