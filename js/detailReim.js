@@ -1375,28 +1375,76 @@ function displayRevisionHistory(data) {
 function displayRejectionRemarks(data) {
     console.log('displayRejectionRemarks called with data:', data);
     console.log('Status:', data.status);
-    console.log('Rejection remarks:', data.rejectionRemarks);
     
-    // Check if we have rejection data to display
-    if (!data || !data.rejectionRemarks || data.status !== 'Rejected') {
+    // Periksa semua kemungkinan rejection remarks dan rejection dates
+    const hasRejectionByChecker = data.remarksRejectByChecker && data.rejectedDateByChecker;
+    const hasRejectionByAcknowledger = data.remarksRejectByAcknowledger && data.rejectedDateByAcknowledger;
+    const hasRejectionByApprover = data.remarksRejectByApprover && data.rejectedDateByApprover;
+    const hasRejectionByReceiver = data.remarksRejectByReceiver && data.rejectedDateByReceiver;
+    const hasGeneralRejection = data.rejectionRemarks;
+    
+    console.log('Rejection data check:', {
+        hasRejectionByChecker,
+        hasRejectionByAcknowledger,
+        hasRejectionByApprover,
+        hasRejectionByReceiver,
+        hasGeneralRejection
+    });
+    
+    // Jika tidak ada rejection remarks atau rejection date yang terisi, sembunyikan section
+    if (!hasRejectionByChecker && !hasRejectionByAcknowledger && !hasRejectionByApprover && 
+        !hasRejectionByReceiver && !hasGeneralRejection) {
         document.getElementById('rejectionRemarksSection').style.display = 'none';
-        console.log('No rejection remarks to display or document is not rejected');
-        return; // No rejection remarks to display or document is not rejected
+        console.log('No rejection remarks to display');
+        return;
     }
     
     const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
     const rejectionRemarks = document.getElementById('rejectionRemarks');
     
     if (rejectionRemarksSection && rejectionRemarks) {
-        // Show the rejection remarks section
-        rejectionRemarksSection.style.display = 'block';
-        rejectionRemarks.value = data.rejectionRemarks;
-        console.log('Rejection remarks displayed:', data.rejectionRemarks);
+        // Kumpulkan semua rejection remarks yang tersedia
+        let allRemarks = [];
         
-        // Add a visual indicator that the document was rejected
-        const statusElement = document.getElementById('status');
-        if (statusElement) {
-            statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
+        if (hasRejectionByChecker) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByChecker);
+        }
+        
+        if (hasRejectionByAcknowledger) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByAcknowledger);
+        }
+        
+        if (hasRejectionByApprover) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByApprover);
+        }
+        
+        if (hasRejectionByReceiver) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByReceiver);
+        }
+        
+        if (hasGeneralRejection && !allRemarks.length) {
+            // Gunakan general rejection remarks jika tidak ada yang spesifik
+            allRemarks.push(data.rejectionRemarks);
+        }
+        
+        // Tampilkan semua rejection remarks
+        if (allRemarks.length > 0) {
+            // Show the rejection remarks section
+            rejectionRemarksSection.style.display = 'block';
+            rejectionRemarks.value = allRemarks.join('\n\n');
+            console.log('Rejection remarks displayed:', allRemarks);
+            
+            // Add a visual indicator that the document was rejected
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
+            }
+        } else {
+            rejectionRemarksSection.style.display = 'none';
         }
     } else {
         console.error('Rejection remarks elements not found in the DOM');
