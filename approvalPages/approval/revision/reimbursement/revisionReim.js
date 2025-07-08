@@ -1022,7 +1022,9 @@ function updateReim() {
         confirmButtonText: 'Yes, update it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            submitReimbursementUpdate();
+            submitReimbursementUpdate().then(() => {
+                submitDocument();
+            });
         }
     });
 }
