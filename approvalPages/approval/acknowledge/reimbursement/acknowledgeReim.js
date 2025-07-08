@@ -20,6 +20,51 @@ function formatAmount(amount) {
     });
 }
 
+// Function to fetch transaction types from API
+async function fetchTransactionTypes() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/transaction-types`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        
+        const data = await response.json();
+        console.log("Transaction types data:", data);
+        populateTransactionTypesSelect(data.data);
+    } catch (error) {
+        console.error('Error fetching transaction types:', error);
+    }
+}
+
+// Helper function to populate transaction types dropdown
+function populateTransactionTypesSelect(transactionTypes) {
+    const typeSelect = document.getElementById("typeOfTransaction");
+    if (!typeSelect) return;
+    
+    // Clear existing options
+    typeSelect.innerHTML = '';
+    
+    // Add transaction types as options
+    if (transactionTypes && transactionTypes.length > 0) {
+        transactionTypes.forEach(type => {
+            const option = document.createElement("option");
+            option.value = type.name;
+            option.textContent = type.name;
+            typeSelect.appendChild(option);
+        });
+    } else {
+        // Fallback options if API doesn't return data
+        const defaultTypes = ["Medical", "Transportation", "Golf Competition", "Others"];
+        defaultTypes.forEach(type => {
+            const option = document.createElement("option");
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+        });
+    }
+}
+
 // Function to calculate and update the total amount
 function updateTotalAmount() {
     const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
@@ -234,9 +279,40 @@ function populateFormData(data) {
         document.getElementById('submissionDate').value = formattedDate;
     }
     
-    if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
+    if (document.getElementById('status')) {
+        document.getElementById('status').value = data.status || '';
+        // Call checkStatus after setting the status value to hide buttons if needed
+        if (typeof checkStatus === 'function') {
+            checkStatus();
+        }
+    }
+    
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
+    
+    // Set type of transaction and ensure it exists in dropdown
+    if (document.getElementById('typeOfTransaction') && data.typeOfTransaction) {
+        const typeSelect = document.getElementById('typeOfTransaction');
+        
+        // Check if the value exists in the dropdown
+        let typeExists = false;
+        for (let i = 0; i < typeSelect.options.length; i++) {
+            if (typeSelect.options[i].value === data.typeOfTransaction) {
+                typeSelect.selectedIndex = i;
+                typeExists = true;
+                break;
+            }
+        }
+        
+        // If type doesn't exist in dropdown, add it
+        if (!typeExists && data.typeOfTransaction) {
+            const newOption = document.createElement('option');
+            newOption.value = data.typeOfTransaction;
+            newOption.textContent = data.typeOfTransaction;
+            newOption.selected = true;
+            typeSelect.appendChild(newOption);
+        }
+    }
+    
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
     // Approvers information - safely check if elements exist
@@ -284,22 +360,22 @@ window.populateReimbursementDetails = function(details) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required readonly />
+                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required readonly />
+                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required readonly />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required readonly />
+                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right bg-gray-100" required readonly />
                 </td>
                 <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled>
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled style="display: none;">
                         🗑
                     </button>
                 </td>
@@ -326,22 +402,22 @@ window.addRow = function() {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required readonly />
+            <input type="text" maxlength="30" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required readonly />
+            <input type="text" maxlength="10" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required readonly />
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
         </td>
         <td class="p-2 border">
-            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required readonly />
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right bg-gray-100" required readonly />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled style="display: none;">
                 🗑
             </button>
         </td>
@@ -657,8 +733,8 @@ function displayRevisionHistory(data) {
 
 // Event listener for document type change
 document.addEventListener('DOMContentLoaded', function() {
-    // Load users and departments first
-    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
+    // Load users, departments, and transaction types first
+    Promise.all([fetchUsers(), fetchDepartments(), fetchTransactionTypes()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
     });
