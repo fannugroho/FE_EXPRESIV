@@ -80,6 +80,33 @@
         .cell-with-scroll::-webkit-scrollbar-thumb:hover {
             background: #555; /* Warna thumb saat hover */
         }
+        
+        /* New scrollable cell class similar to menuPR.html */
+        .scrollable-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar {
+            height: 4px; /* Reduced height from 6px to 4px */
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
     </style>
 </head>
 <body>
@@ -387,7 +414,7 @@
             };
         }
         
-        // Menambahkan class cell-with-scroll untuk kolom Doc Number dan Reimbursement Number
+        // Menambahkan class scrollable-cell untuk kolom Doc Number, Reimbursement Number, Requester, dan Department
         // yang memiliki teks lebih dari 15 karakter
         function addScrollToLongCells() {
             const table = document.querySelector('table');
@@ -398,20 +425,27 @@
                 const rows = document.querySelectorAll('#recentDocs tr');
                 
                 rows.forEach(row => {
-                    // Dapatkan sel Doc Number (indeks 0) dan Reimbursement Number (indeks 1)
+                    // Dapatkan sel Doc Number (indeks 0), Reimbursement Number (indeks 1), 
+                    // Requester (indeks 2), dan Department (indeks 3)
                     const docNumberCell = row.cells[0];
                     const reimNumberCell = row.cells[1];
+                    const requesterCell = row.cells[2];
+                    const departmentCell = row.cells[3];
                     
-                    if (docNumberCell) {
-                        if (docNumberCell.textContent.trim().length > 15) {
-                            docNumberCell.classList.add('cell-with-scroll');
-                        }
+                    if (docNumberCell && docNumberCell.textContent.trim().length > 15) {
+                        docNumberCell.classList.add('scrollable-cell');
                     }
                     
-                    if (reimNumberCell) {
-                        if (reimNumberCell.textContent.trim().length > 15) {
-                            reimNumberCell.classList.add('cell-with-scroll');
-                        }
+                    if (reimNumberCell && reimNumberCell.textContent.trim().length > 15) {
+                        reimNumberCell.classList.add('scrollable-cell');
+                    }
+                    
+                    if (requesterCell && requesterCell.textContent.trim().length > 15) {
+                        requesterCell.classList.add('scrollable-cell');
+                    }
+                    
+                    if (departmentCell && departmentCell.textContent.trim().length > 15) {
+                        departmentCell.classList.add('scrollable-cell');
                     }
                 });
             });
