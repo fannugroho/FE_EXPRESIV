@@ -15,18 +15,52 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="printReim.js"></script>
     <style>
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .no-print {
-                display: none;
-            }
-            @page {
-                size: A4;
-                margin: 10mm;
-            }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1cm;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+        
+        .logo-section {
+            width: 40%;
+        }
+        
+        .form-info {
+            width: 60%;
+            text-align: right;
+        }
+        
+        .logo {
+            width: 150px;
+            margin-bottom: 5px;
+        }
+        
+        .company-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 20px 0;
         }
         
         table {
@@ -36,6 +70,11 @@
         
         table, th, td {
             border: 1px solid black;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
         }
         
         .checkbox {
@@ -53,25 +92,21 @@
             left: 2px;
         }
         
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
         .signature-box {
-            border: 1px solid black;
-            height: 100px;
-            margin-top: 5px;
+            width: 19%;
+            text-align: center;
+            position: relative;
         }
         
-        /* Logo styling */
-        .logo {
-            width: 150px;
-            margin-bottom: 5px;
-        }
-        
-        .logo-section {
-            width: 40%;
-        }
-        
-        .company-name {
+        .signature-title {
             font-weight: bold;
-            font-size: 16px;
+            margin-bottom: 50px;
         }
         
         /* Approval stamp styling */
@@ -109,9 +144,44 @@
             margin-top: 5px;
             font-style: italic;
         }
+        
+        /* Jika ingin menyembunyikan kolom Credit sepenuhnya, aktifkan CSS berikut */
+        /*
+        .hide-credit-column {
+            display: none;
+        }
+        */
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print {
+                display: none;
+            }
+            
+            .container {
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+            }
+            
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
+            
+            /* Jika ingin menyembunyikan kolom Credit saat mencetak, aktifkan CSS berikut */
+            /*
+            .hide-credit-column {
+                display: none;
+            }
+            */
+        }
     </style>
 </head>
-<body class="p-8">
+<body>
     <div class="container mx-auto">
         <!-- Print controls - only visible on screen -->
         <div class="no-print mb-4 flex justify-between">
@@ -124,15 +194,15 @@
         </div>
         
         <!-- Header -->
-        <div class="flex justify-between mb-2">
+        <div class="header">
             <div class="logo-section">
                 <img src="../../../../image/Seiho.png" alt="Kansai Paint Logo" class="logo" onerror="this.src='data:image/png;base64,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'">
-                <!--<div class="company-name">PT. KANSAI PAINT INDONESIA</div>-->
+                <div class="company-name">PT. KANSAI PAINT INDONESIA</div>
                 <p class="text-sm">Blok DD-7 & DD-6 Kawasan Industri MM2100 Cibitung</p>
                 <p class="text-sm">Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
                 <p class="mt-4">Payment to : <span id="payToText"></span></p>
             </div>
-            <div class="text-right">
+            <div class="form-info">
                 <p class="text-sm">Batch No. : <span id="batchNoText"></span></p>
                 <p class="text-sm">Voucher No. : <span id="voucherNoText"></span></p>
                 <p class="text-sm mt-2">Submission Date : <span id="submissionDateText"></span></p>
@@ -140,7 +210,7 @@
         </div>
         
         <!-- Payment Voucher Title -->
-        <div class="text-center font-bold text-xl my-4">
+        <div class="title">
             PAYMENT VOUCHER
         </div>
         
@@ -153,12 +223,12 @@
         <table class="w-full border mb-4">
             <thead>
                 <tr>
-                    <th class="border p-2 w-1/5">Category</th>
-                    <th class="border p-2 w-1/5">Account</th>
-                    <th class="border p-2 w-1/5">Detail Account</th>
-                    <th class="border p-2 w-1/5">Description</th>
-                    <th class="border p-2 w-1/5">Debit</th>
-                    <th class="border p-2 w-1/5">Credit</th>
+                    <th class="border p-2" id="category">Category</th>
+                    <th class="border p-2" id="account">Account</th>
+                    <th class="border p-2" id="detailAccount">Detail Account</th>
+                    <th class="border p-2" id="description">Description</th>
+                    <th class="border p-2" id="debit">Debit</th>
+                    <th class="border p-2" id="credit">Credit</th>
                 </tr>
             </thead>
             <tbody id="reimbursementDetailsTable">
@@ -177,22 +247,6 @@
         <div class="flex items-center mb-4">
             <p id="departmentText" class="mr-4">Department :</p>
             <div class="flex space-x-8">
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="productionCheckbox"></div>
-                    <span>Production</span>
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="marketingCheckbox"></div>
-                    <span>Marketing</span>
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="technicalCheckbox"></div>
-                    <span>Technical</span>
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="administrationCheckbox"></div>
-                    <span>Administration</span>
-                </div>
             </div>
         </div>
         
@@ -223,10 +277,9 @@
         </div>
         
         <!-- Signature Section -->
-        <div class="grid grid-cols-5 gap-4 mt-6">
-            <div>
-                <p class="text-center">Prepared by :</p>
-                <br>
+        <div class="signature-section">
+            <div class="signature-box">
+                <p class="signature-title">Prepared by :</p>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
@@ -235,9 +288,8 @@
                 <p class="approval-date" id="preparedByDate"></p>
                 </div>
             </div>
-            <div>
-                <p class="text-center">Checked by :</p>
-                <br>
+            <div class="signature-box">
+                <p class="signature-title">Checked by :</p>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
@@ -246,9 +298,8 @@
                 <p class="approval-date" id="checkedByDate"></p>
                 </div>
             </div>
-            <div>
-                <p class="text-center">Acknowledge by :</p>
-                <br>
+            <div class="signature-box">
+                <p class="signature-title">Acknowledge by :</p>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
@@ -257,9 +308,8 @@
                 <p class="approval-date" id="acknowledgeByDate"></p>
                 </div>
             </div>
-            <div>
-                <p class="text-center">Approved by :</p>
-                <br>
+            <div class="signature-box">
+                <p class="signature-title">Approved by :</p>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
@@ -268,9 +318,8 @@
                 <p class="approval-date" id="approvedByDate"></p>
                 </div>
             </div>
-            <div>
-                <p class="text-center">Received by :</p>
-                <br>
+            <div class="signature-box">
+                <p class="signature-title">Received by :</p>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Received</span>
                 </div>
@@ -288,5 +337,33 @@
             <p class="mt-4 text-xs">The payment through cash is valid, at the time you sign on the column of "Cash is received by".</p>
         </div>
     </div>
+
+    <script>
+        // Jika ingin menyembunyikan kolom Credit sepenuhnya, aktifkan kode berikut
+        /*
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tambahkan kelas hide-credit-column ke semua kolom Credit
+            const creditHeader = document.getElementById('credit');
+            const creditTotal = document.getElementById('totalCreditText');
+            
+            if (creditHeader) {
+                creditHeader.classList.add('hide-credit-column');
+            }
+            
+            if (creditTotal) {
+                creditTotal.parentElement.classList.add('hide-credit-column');
+            }
+            
+            // Tambahkan kelas ke semua sel Credit di tbody
+            const rows = document.querySelectorAll('#reimbursementDetailsTable tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 6) {
+                    cells[5].classList.add('hide-credit-column');
+                }
+            });
+        });
+        */
+    </script>
 </body>
 </html> 
