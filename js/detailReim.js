@@ -203,9 +203,17 @@ function confirmSubmit() {
         showCancelButton: true,
         confirmButtonText: 'Ya',
         cancelButtonText: 'Batal',
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            submitDocument();
+            try {
+                // First call submitReimbursementUpdate
+                await submitReimbursementUpdate();
+                // Then call submitDocument after the update completes
+                submitDocument();
+            } catch (error) {
+                console.error('Error during update and submit:', error);
+                Swal.fire('Error', 'Terjadi kesalahan saat memproses dokumen', 'error');
+            }
         }
     });
 }
