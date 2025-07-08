@@ -3,10 +3,26 @@ let reimbursementId = '';
 
 // Add document ready event listener
 document.addEventListener("DOMContentLoaded", function() {
+    console.log('DOMContentLoaded event fired');
+    console.log('BASE_URL:', BASE_URL);
+    
     // Call function to control button visibility
     controlButtonVisibility();
     
-    // Other initialization code can go here
+    // Fetch reimbursement data
+    fetchReimbursementData();
+    
+    // Fetch departments for dropdown
+    fetchDepartments();
+    
+    // Fetch users for dropdowns
+    fetchUsers();
+    
+    // Fetch transaction types
+    fetchTransactionTypes();
+    
+    // Fetch business partners
+    fetchBusinessPartners();
 });
 
 function saveDocument() {
@@ -100,7 +116,7 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
             <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
@@ -299,6 +315,9 @@ async function fetchReimbursementData() {
         const result = await response.json();
         
         if (result.status && result.code === 200) {
+            console.log('Reimbursement data received:', result.data);
+            console.log('Status:', result.data.status);
+            console.log('Rejection remarks:', result.data.rejectionRemarks);
             populateFormData(result.data);
             updateSubmitButtonState(result.data.preparedDate);
         } else {
@@ -885,6 +904,8 @@ function controlButtonVisibility() {
 }
 
 function populateFormData(data) {
+    console.log('Populating form data with:', data);
+    
     document.getElementById('voucherNo').value = data.voucherNo || '';
     
     // Update for searchable requesterName
@@ -981,6 +1002,11 @@ function populateFormData(data) {
     
     // Display revision history
     displayRevisionHistory(data);
+    
+    // Display rejection remarks if available
+    console.log('Calling displayRejectionRemarks with status:', data.status);
+    console.log('Rejection remarks data:', data.rejectionRemarks);
+    displayRejectionRemarks(data);
 }
 
 // Helper function to set approval values in both select and search input
@@ -1342,6 +1368,86 @@ function displayRevisionHistory(data) {
                 }
             }
         }
+    }
+}
+
+// Function to display rejection remarks if available
+function displayRejectionRemarks(data) {
+    console.log('displayRejectionRemarks called with data:', data);
+    console.log('Status:', data.status);
+    
+    // Periksa semua kemungkinan rejection remarks dan rejection dates
+    const hasRejectionByChecker = data.remarksRejectByChecker && data.rejectedDateByChecker;
+    const hasRejectionByAcknowledger = data.remarksRejectByAcknowledger && data.rejectedDateByAcknowledger;
+    const hasRejectionByApprover = data.remarksRejectByApprover && data.rejectedDateByApprover;
+    const hasRejectionByReceiver = data.remarksRejectByReceiver && data.rejectedDateByReceiver;
+    const hasGeneralRejection = data.rejectionRemarks;
+    
+    console.log('Rejection data check:', {
+        hasRejectionByChecker,
+        hasRejectionByAcknowledger,
+        hasRejectionByApprover,
+        hasRejectionByReceiver,
+        hasGeneralRejection
+    });
+    
+    // Jika tidak ada rejection remarks atau rejection date yang terisi, sembunyikan section
+    if (!hasRejectionByChecker && !hasRejectionByAcknowledger && !hasRejectionByApprover && 
+        !hasRejectionByReceiver && !hasGeneralRejection) {
+        document.getElementById('rejectionRemarksSection').style.display = 'none';
+        console.log('No rejection remarks to display');
+        return;
+    }
+    
+    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
+    const rejectionRemarks = document.getElementById('rejectionRemarks');
+    
+    if (rejectionRemarksSection && rejectionRemarks) {
+        // Kumpulkan semua rejection remarks yang tersedia
+        let allRemarks = [];
+        
+        if (hasRejectionByChecker) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByChecker);
+        }
+        
+        if (hasRejectionByAcknowledger) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByAcknowledger);
+        }
+        
+        if (hasRejectionByApprover) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByApprover);
+        }
+        
+        if (hasRejectionByReceiver) {
+            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
+            allRemarks.push(data.remarksRejectByReceiver);
+        }
+        
+        if (hasGeneralRejection && !allRemarks.length) {
+            // Gunakan general rejection remarks jika tidak ada yang spesifik
+            allRemarks.push(data.rejectionRemarks);
+        }
+        
+        // Tampilkan semua rejection remarks
+        if (allRemarks.length > 0) {
+            // Show the rejection remarks section
+            rejectionRemarksSection.style.display = 'block';
+            rejectionRemarks.value = allRemarks.join('\n\n');
+            console.log('Rejection remarks displayed:', allRemarks);
+            
+            // Add a visual indicator that the document was rejected
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
+            }
+        } else {
+            rejectionRemarksSection.style.display = 'none';
+        }
+    } else {
+        console.error('Rejection remarks elements not found in the DOM');
     }
 }
 

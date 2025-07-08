@@ -17,10 +17,13 @@ async function fetchReimbursementData() {
     }
     
     try {
+        console.log('Fetching reimbursement data for ID:', reimbursementId);
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
         
         if (result.status && result.code === 200) {
+            console.log('Reimbursement data received:', result.data);
+            console.log('Type of Transaction:', result.data.typeOfTransaction);
             populateFormData(result.data);
         } else {
             console.error('Failed to fetch reimbursement data:', result.message);
@@ -243,14 +246,38 @@ function populateFormData(data) {
     displayRevisionHistory(data);
     
     // Fix untuk typeOfTransaction - pastikan nilai ditampilkan dengan benar
-    if (document.getElementById('typeOfTransaction')) {
+    if (document.getElementById('typeOfTransaction') && data.typeOfTransaction) {
         const typeSelect = document.getElementById('typeOfTransaction');
+        
+        // Cek apakah nilai ada dalam opsi
+        let optionExists = false;
+        for (let i = 0; i < typeSelect.options.length; i++) {
+            if (typeSelect.options[i].value === data.typeOfTransaction) {
+                optionExists = true;
+                break;
+            }
+        }
+        
         // Aktifkan sementara untuk mengatur nilai
         typeSelect.disabled = false;
-        typeSelect.value = data.typeOfTransaction || '';
+        
+        // Jika nilai tidak ada dalam opsi, tambahkan opsi baru
+        if (!optionExists && data.typeOfTransaction) {
+            const newOption = document.createElement('option');
+            newOption.value = data.typeOfTransaction;
+            newOption.textContent = data.typeOfTransaction;
+            typeSelect.appendChild(newOption);
+        }
+        
+        // Set nilai
+        typeSelect.value = data.typeOfTransaction;
+        
         // Nonaktifkan kembali
-        typeSelect.disabled = true;
-        typeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+        setTimeout(() => {
+            typeSelect.disabled = true;
+            typeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }, 100);
+        
         console.log('Set typeOfTransaction to:', data.typeOfTransaction);
     }
 }
