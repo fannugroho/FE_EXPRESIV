@@ -24,6 +24,71 @@ document.addEventListener("DOMContentLoaded", function() {
     // Fetch business partners
     fetchBusinessPartners();
     
+    // Setup event listeners for department and transaction type changes
+    const departmentSelect = document.getElementById('department');
+    const transactionTypeSelect = document.getElementById('typeOfTransaction');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        // Handle user search dropdowns
+        const dropdowns = [
+            'requesterNameSelectDropdown',
+            'payToSelectDropdown',
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'requesterNameSearch',
+            'payToSearch',
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch',
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+        
+        // Handle table row dropdowns
+        const categoryDropdowns = document.querySelectorAll('.category-dropdown');
+        const accountNameDropdowns = document.querySelectorAll('.account-name-dropdown');
+        
+        categoryDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.category-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        accountNameDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.account-name-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+    
     // Tambahkan ini untuk memastikan tabel diatur dengan benar saat halaman dimuat
     toggleReimTableEditability();
 });
@@ -157,10 +222,10 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" class="w-full p-1 border rounded currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -179,6 +244,8 @@ function addRow() {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+    // Update total amount after row deletion
+    updateTotalAmount();
 }
 
 function confirmDelete() {
@@ -396,6 +463,50 @@ function updateSubmitButtonState(preparedDate) {
             submitButton.classList.add('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
         }
     }
+}
+
+// Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
+function toggleReimTableEditability() {
+    // Ambil status dokumen saat ini
+    const status = document.getElementById('status').value;
+    
+    // Hanya izinkan pengeditan jika status adalah Draft
+    const isEditable = status === 'Draft' || status === 'Revised';
+    
+    // Sembunyikan atau tampilkan tombol tambah baris
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = isEditable ? 'block' : 'none';
+    }
+    
+    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
+    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = isEditable ? 'inline-block' : 'none';
+    });
+    
+    // Nonaktifkan semua input di dalam tabel reimbursement
+    const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
+    tableInputs.forEach(input => {
+        input.disabled = !isEditable;
+        
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+    
+    // Nonaktifkan dropdown search
+    const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
+    searchInputs.forEach(input => {
+        input.disabled = !isEditable;
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
 }
 
 // Function to fetch departments from API
@@ -1069,6 +1180,16 @@ function populateFormData(data) {
     console.log('Rejection remarks data:', data.rejectionRemarks);
     displayRejectionRemarks(data);
     
+    // Trigger category loading if department and transaction type are populated
+    setTimeout(() => {
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            handleDependencyChange();
+        }
+    }, 500); // Small delay to ensure form is fully populated
+    
     // Panggil fungsi untuk mengontrol editabilitas tabel
     toggleReimTableEditability();
 }
@@ -1120,10 +1241,10 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
@@ -1136,12 +1257,15 @@ function populateReimbursementDetails(details) {
             // Setup event listeners for this row
             setupRowEventListeners(row);
             
-            // Populate categories for this row if available
+            // Populate categories for this row if data is available
             populateCategoriesForNewRow(row);
         });
     } else {
         addRow();
     }
+    
+    // Calculate and update the total amount
+    updateTotalAmount();
 }
 
 // Modifikasi fungsi displayAttachments untuk menambahkan tombol hapus
@@ -1967,34 +2091,21 @@ function populateCategoriesForNewRow(row) {
     }
 }
 
-// Function to format amount with decimal places
-function formatAmount(amount) {
-    // Ensure amount is a number
-    const numericValue = parseFloat(amount) || 0;
-    
-    // Format with thousands separator and 2 decimal places
-    return numericValue.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// Function to calculate and update the total amount
+// Function to calculate total amount from all rows
 function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
     let total = 0;
     
     amountInputs.forEach(input => {
-        // Get numeric value from data-raw-value attribute
-        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        // Extract numeric value from input
+        const amountText = input.value.trim();
+        // Convert from US format to standard format for calculation
+        const numericValue = parseCurrencyIDR(amountText);
         total += numericValue;
     });
     
-    // Format total with thousands separator
-    const formattedTotal = total.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    // Format total with US format and display
+    const formattedTotal = formatCurrencyIDR(total);
     
     // Update total amount field
     document.getElementById('totalAmount').value = formattedTotal;
