@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/detailReim.js"></script>
     <script src="../js/auth.js"></script>
+    <!-- Tambahkan script perbaikan -->
+    <script src="../js/detailReim-fix.js" defer></script>
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -86,8 +88,10 @@
                     <option value="Revised">Revision</option>
                 </select>
 
+                <!-- Input untuk upload attachment - hanya bisa menambah/hapus jika status Draft -->
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" /> <!-- ini dari reimbursementAttachments-->
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <!-- Container untuk menampilkan daftar attachment dengan tombol View dan Delete (jika Draft) -->
                 <div id="attachmentsList" class="mt-2"></div>
                 
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>

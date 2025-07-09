@@ -227,11 +227,7 @@ function updateTable(documents = []) {
     const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
     const paginatedDocs = documents.slice(startIndex, endIndex);
     
-    // Show/hide remarks column based on tab
-    const remarksHeader = document.getElementById('remarksHeader');
-    if (remarksHeader) {
-        remarksHeader.style.display = currentTab === 'revision' ? 'table-cell' : 'none';
-    }
+    // Remarks column has been removed
     
     paginatedDocs.forEach(doc => {
         const row = document.createElement('tr');
@@ -258,8 +254,6 @@ function updateTable(documents = []) {
         // Get status styling
         const statusClass = getStatusClass(doc.status);
         const statusText = doc.status || 'Unknown';
-        const remarks = doc.remarks || '-';
-        const remarksClass = remarks.toString().length > 8 ? 'scrollable-cell' : '';
         
         // Build row HTML with data attributes for content length checking
         row.innerHTML = `
@@ -275,7 +269,6 @@ function updateTable(documents = []) {
                     ${statusText}
                 </span>
             </td>
-            ${currentTab === 'revision' ? `<td class="p-2 ${remarksClass}" data-content="${remarks}">${remarks}</td>` : ''}
             <td class="p-2">
                 <button onclick="detailDoc('${doc.id}', '${doc.type}')" class="text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-600 rounded-md text-xs">
                     Detail
@@ -444,8 +437,7 @@ function downloadExcel() {
         'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
         'Required Date': doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
         'PO Number': doc.poNumber || '',
-        'Status': doc.status || '',
-        'Remarks': doc.remarks || ''
+        'Status': doc.status || ''
     }));
     
     // Create worksheet
@@ -490,18 +482,13 @@ function downloadPDF() {
             doc.status || ''
         ];
         
-        if (currentTab === 'revision') {
-            row.push(doc.remarks || '');
-        }
+
         
         return row;
     });
     
     // Define table headers based on current tab
     let headers = ['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status'];
-    if (currentTab === 'revision') {
-        headers.push('Remarks');
-    }
     
     // Add table to PDF
     doc.autoTable({

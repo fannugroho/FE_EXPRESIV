@@ -142,20 +142,22 @@ document.getElementById("docType")?.addEventListener("change", function () {
 
 // Modifikasi fungsi previewPDF untuk mengupload file langsung ke server
 function previewPDF(event) {
+    // Mendapatkan file yang dipilih oleh user
     const files = event.target.files;
     if (files.length === 0) return;
     
-    // Maksimum 5 file
+    // Validasi: Maksimum 5 file yang diperbolehkan
     if (files.length > 5) {
         alert('Maksimum 5 file yang diperbolehkan');
         return;
     }
 
-    // Upload file ke server
+    // Panggil fungsi untuk upload file ke server
     uploadAttachments(files);
 }
 
-// Fungsi baru untuk mengupload attachment ke server
+// Fungsi untuk mengupload attachment ke server
+// Menggunakan endpoint: ${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload
 async function uploadAttachments(files) {
     // Dapatkan ID reimbursement dari URL
     const reimbursementId = getReimbursementIdFromUrl();
@@ -165,16 +167,17 @@ async function uploadAttachments(files) {
     }
     
     try {
-        // Tidak perlu menampilkan pesan loading
-        
+        // Persiapkan FormData untuk upload file
         const formData = new FormData();
         
         // Tambahkan semua file ke formData
         Array.from(files).forEach(file => {
             formData.append('files', file);
+            console.log('Menambahkan file untuk upload:', file.name);
         });
         
         // Kirim ke server menggunakan API endpoint upload attachment
+        console.log(`Uploading attachments to: ${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`);
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
             method: 'POST',
             body: formData
@@ -183,12 +186,13 @@ async function uploadAttachments(files) {
         const result = await response.json();
         
         if (result.status && result.code === 200) {
-            // Tidak perlu menampilkan pesan sukses
+            console.log('Upload attachment berhasil:', result);
             
             // Refresh data untuk menampilkan attachment baru
             fetchReimbursementData();
         } else {
             alert('Gagal mengupload file: ' + (result.message || 'Terjadi kesalahan'));
+            console.error('Upload attachment gagal:', result);
         }
     } catch (error) {
         console.error('Error uploading attachments:', error);
@@ -434,11 +438,41 @@ async function fetchReimbursementData() {
             console.log('Reimbursement data received:', result.data);
             console.log('Status:', result.data.status);
             console.log('Rejection remarks:', result.data.rejectionRemarks);
+            
+            // Debugging untuk memeriksa properti data
+            console.log('Checking reimbursement data structure:');
+            console.log('- reimbursementDetails:', result.data.reimbursementDetails ? result.data.reimbursementDetails.length : 'not found');
+            console.log('- reimbursementAttachments:', result.data.reimbursementAttachments ? result.data.reimbursementAttachments.length : 'not found');
+            console.log('- attachments:', result.data.attachments ? result.data.attachments.length : 'not found');
+            
+            // Menyalin data ke properti yang diharapkan jika tidak ada
+            if (!result.data.reimbursementDetails && result.data.details) {
+                console.log('Copying details to reimbursementDetails');
+                result.data.reimbursementDetails = result.data.details;
+            }
+            
+            if (!result.data.reimbursementAttachments && result.data.attachments) {
+                console.log('Copying attachments to reimbursementAttachments');
+                result.data.reimbursementAttachments = result.data.attachments;
+            }
+            
             populateFormData(result.data);
             updateSubmitButtonState(result.data.preparedDate);
             
             // Tambahkan ini di akhir fungsi setelah data dimuat
             toggleReimTableEditability();
+            
+            // Bagian yang memproses data attachment - perbaikan untuk mendukung kedua nama properti
+            if (result.data.reimbursementAttachments && result.data.reimbursementAttachments.length > 0) {
+                console.log('Mendapatkan data attachment (dari reimbursementAttachments):', result.data.reimbursementAttachments.length, 'file');
+                displayAttachments(result.data.reimbursementAttachments);
+            } else if (result.data.attachments && result.data.attachments.length > 0) {
+                console.log('Mendapatkan data attachment (dari attachments):', result.data.attachments.length, 'file');
+                displayAttachments(result.data.attachments);
+            } else {
+                console.log('Tidak ada attachment untuk reimbursement ini');
+                document.getElementById('attachmentsList').innerHTML = '';
+            }
         } else {
             console.error('Failed to fetch reimbursement data:', result.message);
         }
@@ -1169,8 +1203,35 @@ function populateFormData(data) {
     // Control button visibility based on status
     controlButtonVisibility();
     
-    populateReimbursementDetails(data.reimbursementDetails);
-    displayAttachments(data.reimbursementAttachments);
+    // Debugging untuk reimbursementDetails
+    console.log('About to populate reimbursement details:', data.reimbursementDetails);
+    
+    // Coba populateReimbursementDetails dengan data.reimbursementDetails atau data.details
+    if (data.reimbursementDetails && data.reimbursementDetails.length > 0) {
+        console.log('Populating with reimbursementDetails property');
+        populateReimbursementDetails(data.reimbursementDetails);
+    } else if (data.details && data.details.length > 0) {
+        console.log('Populating with details property');
+        populateReimbursementDetails(data.details);
+    } else {
+        console.warn('No reimbursement details found to populate');
+        // Tambahkan baris kosong jika tidak ada data
+        const tableBody = document.getElementById('reimbursementDetails');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            addRow();
+        }
+    }
+    
+    // Debugging untuk attachments
+    console.log('About to display attachments:', data.reimbursementAttachments || data.attachments);
+    
+    // Coba displayAttachments dengan data.reimbursementAttachments atau data.attachments
+    if (data.reimbursementAttachments && data.reimbursementAttachments.length > 0) {
+        displayAttachments(data.reimbursementAttachments);
+    } else if (data.attachments && data.attachments.length > 0) {
+        displayAttachments(data.attachments);
+    }
     
     // Display revision history
     displayRevisionHistory(data);
@@ -1185,8 +1246,15 @@ function populateFormData(data) {
         const departmentName = document.getElementById('department').value;
         const transactionType = document.getElementById('typeOfTransaction').value;
         
+        console.log('Checking dependencies for category loading:');
+        console.log('- Department:', departmentName);
+        console.log('- Transaction Type:', transactionType);
+        
         if (departmentName && transactionType) {
+            console.log('Triggering handleDependencyChange() to load categories');
             handleDependencyChange();
+        } else {
+            console.warn('Cannot load categories: missing department or transaction type');
         }
     }, 500); // Small delay to ensure form is fully populated
     
@@ -1212,11 +1280,22 @@ function setApprovalValue(fieldPrefix, userId) {
 }
 
 function populateReimbursementDetails(details) {
+    console.log('populateReimbursementDetails called with:', details);
+    
     const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('Table body #reimbursementDetails not found!');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     if (details && details.length > 0) {
-        details.forEach(detail => {
+        console.log(`Populating ${details.length} reimbursement detail rows`);
+        
+        details.forEach((detail, index) => {
+            console.log(`Processing detail row ${index + 1}:`, detail);
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
@@ -1261,11 +1340,41 @@ function populateReimbursementDetails(details) {
             populateCategoriesForNewRow(row);
         });
     } else {
+        console.log('No details found, adding an empty row');
         addRow();
     }
     
     // Calculate and update the total amount
     updateTotalAmount();
+}
+
+// Function to calculate total amount from all rows
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
+    console.log(`updateTotalAmount: Found ${amountInputs.length} amount inputs`);
+    
+    let total = 0;
+    
+    amountInputs.forEach((input, index) => {
+        // Extract numeric value from input
+        const amountText = input.value.trim();
+        // Convert from formatted to standard format for calculation
+        const numericValue = parseCurrencyIDR(amountText);
+        console.log(`Row ${index + 1} amount: ${amountText} -> ${numericValue}`);
+        total += numericValue;
+    });
+    
+    // Format total with proper format and display
+    const formattedTotal = formatCurrencyIDR(total);
+    console.log(`Total amount: ${total} -> ${formattedTotal}`);
+    
+    // Update total amount field
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
+    } else {
+        console.error('totalAmount field not found!');
+    }
 }
 
 // Modifikasi fungsi displayAttachments untuk menambahkan tombol hapus
@@ -1275,14 +1384,18 @@ function displayAttachments(attachments) {
     
     // Dapatkan status dokumen untuk menentukan apakah tombol hapus ditampilkan
     const status = document.getElementById('status').value;
+    console.log('Status dokumen:', status);
     
     if (attachments && attachments.length > 0) {
+        console.log('Jumlah attachment:', attachments.length);
+        
         attachments.forEach(attachment => {
             const attachmentItem = document.createElement('div');
             attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
             
             // Tambahkan tombol hapus hanya jika status dokumen adalah Draft
             if (status === 'Draft') {
+                console.log('Menampilkan tombol hapus untuk attachment:', attachment.fileName);
                 attachmentItem.innerHTML = `
                     <span>${attachment.fileName}</span>
                     <div>
@@ -1292,18 +1405,22 @@ function displayAttachments(attachments) {
                 `;
             } else {
                 // Jika bukan Draft, hanya tampilkan tombol View
-            attachmentItem.innerHTML = `
-                <span>${attachment.fileName}</span>
-                <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
-            `;
+                console.log('Status bukan Draft, hanya menampilkan tombol View untuk:', attachment.fileName);
+                attachmentItem.innerHTML = `
+                    <span>${attachment.fileName}</span>
+                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                `;
             }
             
             attachmentsList.appendChild(attachmentItem);
         });
+    } else {
+        console.log('Tidak ada attachment untuk ditampilkan');
     }
 }
 
-// Fungsi baru untuk menghapus attachment
+// Fungsi untuk menghapus attachment
+// Menggunakan endpoint: ${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/${attachmentId}
 async function deleteAttachment(attachmentId) {
     // Dapatkan ID reimbursement dari URL
     const reimbursementId = getReimbursementIdFromUrl();
@@ -1313,7 +1430,7 @@ async function deleteAttachment(attachmentId) {
     }
 
     try {
-        // Tidak perlu konfirmasi penghapusan, langsung hapus
+        console.log(`Menghapus attachment ID: ${attachmentId} dari reimbursement ID: ${reimbursementId}`);
         
         // Panggil API untuk menghapus attachment
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/${attachmentId}`, {
@@ -1323,15 +1440,16 @@ async function deleteAttachment(attachmentId) {
         const data = await response.json();
 
         if (data.status && data.code === 200) {
-            // Tidak perlu menampilkan pesan sukses
+            console.log('Attachment berhasil dihapus:', data);
             
             // Refresh data reimbursement untuk memperbarui daftar attachment
             fetchReimbursementData();
         } else {
             alert('Gagal menghapus attachment: ' + (data.message || 'Terjadi kesalahan'));
+            console.error('Gagal menghapus attachment:', data);
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error saat menghapus attachment:', error);
         alert('Terjadi kesalahan saat menghapus attachment');
     }
 }
@@ -1717,44 +1835,51 @@ async function getDepartmentIdByName(departmentName) {
 
 // Function to fetch categories based on department and transaction type
 async function fetchCategories(departmentId, transactionType) {
+    console.log(`fetchCategories called with departmentId: ${departmentId}, transactionType: ${transactionType}`);
+    
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
         
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            throw new Error('Network response was not ok: ' + response.statusText);
         }
         
         const categories = await response.json();
+        console.log('Category API response:', categories);
+        
+        // Store categories globally
         allCategories = categories;
-        console.log('Fetched categories:', categories);
+        console.log(`Fetched ${allCategories.length} categories`);
         
-        // Update all category dropdowns in table rows
+        // Update all category dropdowns in the table
         updateAllCategoryDropdowns();
-        
+        return categories;
     } catch (error) {
-        console.error("Error fetching categories:", error);
+        console.error('Error fetching categories:', error);
         allCategories = [];
         updateAllCategoryDropdowns();
+        return [];
     }
 }
 
 // Function to fetch account names based on category, department and transaction type
 async function fetchAccountNames(category, departmentId, transactionType) {
+    console.log(`fetchAccountNames called with category: ${category}, departmentId: ${departmentId}, transactionType: ${transactionType}`);
+    
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
         
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            throw new Error('Network response was not ok: ' + response.statusText);
         }
         
         const accountNames = await response.json();
-        allAccountNames = accountNames;
-        console.log('Fetched account names:', accountNames);
+        console.log('Account names API response:', accountNames);
         
+        console.log(`Fetched ${accountNames.length} account names for category ${category}`);
         return accountNames;
-        
     } catch (error) {
-        console.error("Error fetching account names:", error);
+        console.error('Error fetching account names:', error);
         return [];
     }
 }
@@ -2041,6 +2166,10 @@ async function handleDependencyChange() {
     const departmentName = document.getElementById('department').value;
     const transactionType = document.getElementById('typeOfTransaction').value;
     
+    console.log('handleDependencyChange called with:');
+    console.log('- Department:', departmentName);
+    console.log('- Transaction Type:', transactionType);
+    
     if (!departmentName || !transactionType) {
         console.log('Department or transaction type not fully selected');
         allCategories = [];
@@ -2050,13 +2179,17 @@ async function handleDependencyChange() {
     
     try {
         const departmentId = await getDepartmentIdByName(departmentName);
+        console.log('Department ID resolved:', departmentId);
+        
         if (!departmentId) {
             console.error('Could not find department ID');
             return;
         }
         
         // Fetch new categories
-        await fetchCategories(departmentId, transactionType);
+        console.log('Fetching categories for departmentId:', departmentId, 'and transactionType:', transactionType);
+        const categories = await fetchCategories(departmentId, transactionType);
+        console.log('Categories fetched:', categories ? categories.length : 'none');
         
     } catch (error) {
         console.error('Error handling dependency change:', error);
@@ -2067,16 +2200,28 @@ async function handleDependencyChange() {
 function populateCategoriesForNewRow(row) {
     const categorySearch = row.querySelector('.category-search');
     
+    console.log('populateCategoriesForNewRow called');
+    console.log('- Available categories:', allCategories ? allCategories.length : 'none');
+    
     if (categorySearch && allCategories.length > 0) {
         // Store categories data for the new row
         categorySearch.dataset.categories = JSON.stringify(allCategories);
         console.log('Populated categories for new row:', allCategories.length, 'categories');
+        
+        // Debugging: log some category examples
+        if (allCategories.length > 0) {
+            console.log('Category examples:', allCategories.slice(0, 3));
+        }
     } else if (categorySearch) {
         console.log('No categories available to populate for new row');
         
         // Check if department and transaction type are selected, if so trigger fetch
         const departmentName = document.getElementById('department').value;
         const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        console.log('Checking dependencies:');
+        console.log('- Department:', departmentName);
+        console.log('- Transaction Type:', transactionType);
         
         if (departmentName && transactionType) {
             console.log('Department and transaction type are selected, triggering category fetch...');
@@ -2085,151 +2230,17 @@ function populateCategoriesForNewRow(row) {
                 if (allCategories.length > 0) {
                     categorySearch.dataset.categories = JSON.stringify(allCategories);
                     console.log('Categories populated after fetch for new row');
+                } else {
+                    console.warn('No categories available even after fetch');
                 }
             });
+        } else {
+            console.warn('Cannot fetch categories: missing department or transaction type');
         }
-    }
-}
-
-// Function to calculate total amount from all rows
-function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
-    let total = 0;
-    
-    amountInputs.forEach(input => {
-        // Extract numeric value from input
-        const amountText = input.value.trim();
-        // Convert from US format to standard format for calculation
-        const numericValue = parseCurrencyIDR(amountText);
-        total += numericValue;
-    });
-    
-    // Format total with US format and display
-    const formattedTotal = formatCurrencyIDR(total);
-    
-    // Update total amount field
-    document.getElementById('totalAmount').value = formattedTotal;
-}
-
-// Override populateReimbursementDetails to use proper amount formatting
-const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
-window.populateReimbursementDetails = function(details) {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    tableBody.innerHTML = ''; // Clear existing rows
-    
-    if (details && details.length > 0) {
-        details.forEach(detail => {
-            // Format amount with decimal places
-            const formattedAmount = formatAmount(detail.amount);
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required oninput="formatInputAmount(this)" />
-                </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
-                        🗑
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
     } else {
-        // Add an empty row if no details
-        addRow();
+        console.error('Category search input not found in row');
     }
-    
-    // Calculate and update the total amount
-    updateTotalAmount();
-};
-
-// Format input amount as user types
-function formatInputAmount(input) {
-    // Get the raw input value without formatting
-    const rawValue = input.value.replace(/[^\d.-]/g, '');
-    const numericValue = parseFloat(rawValue) || 0;
-    
-    // Store the raw numeric value as an attribute
-    input.setAttribute('data-raw-value', numericValue);
-    
-    // Format the display value
-    input.value = formatAmount(numericValue);
-    
-    // Update the total amount
-    updateTotalAmount();
 }
-
-// Override addRow to use the same amount formatting
-window.addRow = function() {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required oninput="formatInputAmount(this)" />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(newRow);
-    
-    // Update total amount
-    updateTotalAmount();
-};
-
-// Override deleteRow to update total amount after deletion
-const originalDeleteRow = window.deleteRow;
-window.deleteRow = function(button) {
-    if (typeof originalDeleteRow === 'function') {
-        originalDeleteRow(button);
-    } else {
-        // Default implementation if original function doesn't exist
-        const row = button.closest('tr');
-        if (row) {
-            row.remove();
-        }
-    }
-    
-    // Update total amount after row deletion
-    updateTotalAmount();
-};
 
 // Modifikasi fungsi toggleReimTableEditability untuk mengontrol input file
 function toggleReimTableEditability() {
