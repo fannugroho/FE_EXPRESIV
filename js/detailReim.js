@@ -24,6 +24,71 @@ document.addEventListener("DOMContentLoaded", function() {
     // Fetch business partners
     fetchBusinessPartners();
     
+    // Setup event listeners for department and transaction type changes
+    const departmentSelect = document.getElementById('department');
+    const transactionTypeSelect = document.getElementById('typeOfTransaction');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    if (transactionTypeSelect) {
+        transactionTypeSelect.addEventListener('change', handleDependencyChange);
+    }
+    
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        // Handle user search dropdowns
+        const dropdowns = [
+            'requesterNameSelectDropdown',
+            'payToSelectDropdown',
+            'preparedBySelectDropdown', 
+            'acknowledgeBySelectDropdown', 
+            'checkedBySelectDropdown', 
+            'approvedBySelectDropdown',
+            'receivedBySelectDropdown'
+        ];
+        
+        const searchInputs = [
+            'requesterNameSearch',
+            'payToSearch',
+            'preparedBySearch', 
+            'acknowledgeBySearch', 
+            'checkedBySearch', 
+            'approvedBySearch',
+            'receivedBySearch'
+        ];
+        
+        dropdowns.forEach((dropdownId, index) => {
+            const dropdown = document.getElementById(dropdownId);
+            const input = document.getElementById(searchInputs[index]);
+            
+            if (dropdown && input) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+        
+        // Handle table row dropdowns
+        const categoryDropdowns = document.querySelectorAll('.category-dropdown');
+        const accountNameDropdowns = document.querySelectorAll('.account-name-dropdown');
+        
+        categoryDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.category-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        accountNameDropdowns.forEach(dropdown => {
+            const input = dropdown.parentElement.querySelector('.account-name-search');
+            if (input && !input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+    
     // Tambahkan ini untuk memastikan tabel diatur dengan benar saat halaman dimuat
     toggleReimTableEditability();
 });
@@ -93,6 +158,97 @@ function previewPDF(event) {
     displayFileList();
 }
 
+// Function to format number with US format (comma as thousands separator, period as decimal separator)
+function formatCurrencyIDR(number) {
+    // Handle empty or invalid input
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    // Parse number, handle large values
+    let num;
+    try {
+        // Handle input string which might be very large
+        if (typeof number === 'string') {
+            // Remove all non-numeric characters except decimal point and comma
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            // Use parseFloat for small numbers, use string technique for large numbers
+            if (cleanedStr.length > 15) {
+                // For very large numbers, handle carefully
+                // Remove commas and parse
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number); // Use Number for better handling of large numbers
+        }
+        
+        // If parsing fails, return zero
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    // Format with US format (comma as thousands separator, period as decimal separator)
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// Function to parse US format back to number
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        // Handle US format (thousands separator: ',', decimal separator: '.')
+        // Remove commas (thousands separator)
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+// Function to format input field value as currency while user is typing
+function formatCurrencyInputIDR(input) {
+    // Save cursor position
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    // Get value and remove all non-digit, period and comma characters
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    // Ensure there is only one decimal separator
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Parse value to number for calculation
+    const numValue = parseCurrencyIDR(value);
+    
+    // Format with US format
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    // Update input value
+    input.value = formattedValue;
+    
+    // Calculate and update total
+    updateTotalAmount();
+    
+    // Adjust cursor position
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
 function addRow() {
     const tableBody = document.getElementById('reimbursementDetails');
     const newRow = document.createElement('tr');
@@ -119,10 +275,10 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full p-1 border rounded" required />
+            <input type="text" class="w-full p-1 border rounded currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -141,6 +297,8 @@ function addRow() {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+    // Update total amount after row deletion
+    updateTotalAmount();
 }
 
 function confirmDelete() {
@@ -358,6 +516,50 @@ function updateSubmitButtonState(preparedDate) {
             submitButton.classList.add('bg-gray-400', 'hover:bg-gray-400', 'cursor-not-allowed');
         }
     }
+}
+
+// Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
+function toggleReimTableEditability() {
+    // Ambil status dokumen saat ini
+    const status = document.getElementById('status').value;
+    
+    // Hanya izinkan pengeditan jika status adalah Draft
+    const isEditable = status === 'Draft' || status === 'Revised';
+    
+    // Sembunyikan atau tampilkan tombol tambah baris
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = isEditable ? 'block' : 'none';
+    }
+    
+    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
+    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = isEditable ? 'inline-block' : 'none';
+    });
+    
+    // Nonaktifkan semua input di dalam tabel reimbursement
+    const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
+    tableInputs.forEach(input => {
+        input.disabled = !isEditable;
+        
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
+    
+    // Nonaktifkan dropdown search
+    const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
+    searchInputs.forEach(input => {
+        input.disabled = !isEditable;
+        if (!isEditable) {
+            input.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    });
 }
 
 // Function to fetch departments from API
@@ -1022,6 +1224,16 @@ function populateFormData(data) {
     console.log('Rejection remarks data:', data.rejectionRemarks);
     displayRejectionRemarks(data);
     
+    // Trigger category loading if department and transaction type are populated
+    setTimeout(() => {
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            handleDependencyChange();
+        }
+    }, 500); // Small delay to ensure form is fully populated
+    
     // Panggil fungsi untuk mengontrol editabilitas tabel
     toggleReimTableEditability();
 }
@@ -1073,10 +1285,10 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border">
-                    <input type="number" value="${detail.amount || 0}" maxlength="10" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
@@ -1089,12 +1301,15 @@ function populateReimbursementDetails(details) {
             // Setup event listeners for this row
             setupRowEventListeners(row);
             
-            // Populate categories for this row if available
+            // Populate categories for this row if data is available
             populateCategoriesForNewRow(row);
         });
     } else {
         addRow();
     }
+    
+    // Calculate and update the total amount
+    updateTotalAmount();
 }
 
 function displayAttachments(attachments) {
@@ -1869,201 +2084,27 @@ function populateCategoriesForNewRow(row) {
     }
 }
 
-// Function to format amount with decimal places
-function formatAmount(amount) {
-    // Ensure amount is a number
-    const numericValue = parseFloat(amount) || 0;
-    
-    // Format with thousands separator and 2 decimal places
-    return numericValue.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// Function to calculate and update the total amount
+// Function to calculate total amount from all rows
 function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
+    const amountInputs = document.querySelectorAll('#reimbursementDetails tr td:nth-child(5) input');
     let total = 0;
     
     amountInputs.forEach(input => {
-        // Get numeric value from data-raw-value attribute
-        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        // Extract numeric value from input
+        const amountText = input.value.trim();
+        // Convert from US format to standard format for calculation
+        const numericValue = parseCurrencyIDR(amountText);
         total += numericValue;
     });
     
-    // Format total with thousands separator
-    const formattedTotal = total.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    // Format total with US format and display
+    const formattedTotal = formatCurrencyIDR(total);
     
     // Update total amount field
-    document.getElementById('totalAmount').value = formattedTotal;
-}
-
-// Override populateReimbursementDetails to use proper amount formatting
-const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
-window.populateReimbursementDetails = function(details) {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
+    const totalAmountField = document.getElementById('totalAmount');
+    if (totalAmountField) {
+        totalAmountField.value = formattedTotal;
     }
-    
-    tableBody.innerHTML = ''; // Clear existing rows
-    
-    if (details && details.length > 0) {
-        details.forEach(detail => {
-            // Format amount with decimal places
-            const formattedAmount = formatAmount(detail.amount);
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" maxlength="10" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full" required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right" required oninput="formatInputAmount(this)" />
-                </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
-                        🗑
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-    } else {
-        // Add an empty row if no details
-        addRow();
-    }
-    
-    // Calculate and update the total amount
-    updateTotalAmount();
-};
-
-// Format input amount as user types
-function formatInputAmount(input) {
-    // Get the raw input value without formatting
-    const rawValue = input.value.replace(/[^\d.-]/g, '');
-    const numericValue = parseFloat(rawValue) || 0;
-    
-    // Store the raw numeric value as an attribute
-    input.setAttribute('data-raw-value', numericValue);
-    
-    // Format the display value
-    input.value = formatAmount(numericValue);
-    
-    // Update the total amount
-    updateTotalAmount();
-}
-
-// Override addRow to use the same amount formatting
-window.addRow = function() {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full" required />
-        </td>
-        <td class="p-2 border">
-            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right" required oninput="formatInputAmount(this)" />
-        </td>
-        <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                🗑
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(newRow);
-    
-    // Update total amount
-    updateTotalAmount();
-};
-
-// Override deleteRow to update total amount after deletion
-const originalDeleteRow = window.deleteRow;
-window.deleteRow = function(button) {
-    if (typeof originalDeleteRow === 'function') {
-        originalDeleteRow(button);
-    } else {
-        // Default implementation if original function doesn't exist
-        const row = button.closest('tr');
-        if (row) {
-            row.remove();
-        }
-    }
-    
-    // Update total amount after row deletion
-    updateTotalAmount();
-};
-
-// Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
-function toggleReimTableEditability() {
-    // Ambil status dokumen saat ini
-    const status = document.getElementById('status').value;
-    
-    // Hanya izinkan pengeditan jika status adalah Draft
-    const isEditable = status === 'Draft';
-    
-    // Sembunyikan atau tampilkan tombol tambah baris
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = isEditable ? 'block' : 'none';
-    }
-    
-    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
-    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = isEditable ? 'inline-block' : 'none';
-    });
-    
-    // Nonaktifkan semua input di dalam tabel reimbursement
-    const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
-    tableInputs.forEach(input => {
-        input.disabled = !isEditable;
-        
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
-        }
-    });
-    
-    // Nonaktifkan dropdown search
-    const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
-    searchInputs.forEach(input => {
-        input.disabled = !isEditable;
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
-        }
-    });
 }
 
     
