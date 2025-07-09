@@ -97,7 +97,7 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status
-        const revisionResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=revision`, {
+        const revisionResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=revision&userId=${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=prepared&userId=${userId}`, {
