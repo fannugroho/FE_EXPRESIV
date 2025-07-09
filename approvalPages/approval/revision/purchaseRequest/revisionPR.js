@@ -606,7 +606,14 @@ function toggleEditableFields(isEditable) {
     
     approvalSearchFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
-        if (field) {
+        // Block editing for preparedBySearch always
+        if (fieldId === 'preparedBySearch') {
+            if (field) {
+                field.readOnly = true;
+                field.classList.add('bg-gray-100', 'cursor-not-allowed');
+                field.removeAttribute('onkeyup');
+            }
+        } else if (field) {
             field.readOnly = !isEditable;
             if (!isEditable) {
                 field.classList.add('bg-gray-50');
@@ -620,6 +627,13 @@ function toggleEditableFields(isEditable) {
             }
         }
     });
+
+    // Block editing for preparedBy select always
+    const preparedBySelect = document.getElementById('preparedBy');
+    if (preparedBySelect) {
+        preparedBySelect.disabled = true;
+        preparedBySelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
 }
 
 // Function to handle file upload (similar to detailPR.js)

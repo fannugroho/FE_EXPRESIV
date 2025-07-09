@@ -133,6 +133,7 @@ async function filterAndDisplayDocuments(userId) {
         // Build URL based on current tab
         if (currentTab === 'revision') {
             params.append('filterType', 'revision');
+            params.append('userId', userId); // Always filter by userId for revision tab
         } else if (currentTab === 'prepared') {
             params.append('filterType', 'prepared');
             params.append('userId', userId);
