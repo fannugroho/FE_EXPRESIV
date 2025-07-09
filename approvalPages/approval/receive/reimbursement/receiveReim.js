@@ -479,7 +479,7 @@ async function submitReimbursementUpdate() {
 
 // Function to navigate back to the menu
 function goToMenuReceiveReim() {
-    window.location.href = "../dashboardReceive/reimbursement/menuReimReceive.html";
+    window.location.href = "../../../dashboard/dashboardReceive/reimbursement/menuReimReceive.html";
 }
 
 // Function to reject the document

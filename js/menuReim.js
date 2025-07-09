@@ -256,6 +256,7 @@ function updateStatusCounts(data) {
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
     document.getElementById("approvedCount").textContent = data.approvedCount || 0;
+    document.getElementById("receivedCount").textContent = data.receivedCount || 0;
     document.getElementById("paidCount").textContent = data.paidCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }

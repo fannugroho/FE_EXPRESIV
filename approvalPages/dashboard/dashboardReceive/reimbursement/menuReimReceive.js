@@ -131,6 +131,7 @@ function useSampleData() {
 
 // Update counts using sample data
 function updateSampleCounts() {
+    document.getElementById("totalCount").textContent = "0";
     document.getElementById("receivedCount").textContent = "0";
     document.getElementById("approvedCount").textContent = "0";
     document.getElementById("rejectedCount").textContent = "0";
