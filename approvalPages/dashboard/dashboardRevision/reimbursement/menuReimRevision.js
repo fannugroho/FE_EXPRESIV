@@ -194,6 +194,7 @@ function displayReimbursements(reimbursements) {
                     ${reim.status === 'Revised' ? 'Revision' : reim.status}
                 </span>
             </td>
+            <td class='p-2'>${reim.remarks}</td>
             <td class='p-2'>
                 <button onclick="detailReim('${reim.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -259,7 +260,8 @@ function downloadExcel() {
         'Requester': reim.requesterName,
         'Department': reim.department,
         'Submission Date': reim.submissionDate,
-        'Status': reim.status
+        'Status': reim.status,
+        'Remarks': reim.remarks
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(wsData);
@@ -285,7 +287,8 @@ function downloadPDF() {
         reim.requesterName,
         reim.department,
         reim.submissionDate,
-        reim.status
+        reim.status,
+        reim.remarks
     ]);
     
     // Add table
