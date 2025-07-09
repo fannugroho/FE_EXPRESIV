@@ -1418,6 +1418,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 function updateCash(isSubmit = false) {
     const actionText = isSubmit ? 'Submit' : 'Update';
     const actionConfirmText = isSubmit ? 'submit' : 'update';
+    const actioningText = isSubmit ? 'Submitting' : 'Updating';
     
     Swal.fire({
         title: `${actionText} Cash Advance`,
@@ -1453,7 +1454,7 @@ function updateCash(isSubmit = false) {
 
             // Show loading
             Swal.fire({
-                title: `${actionText.slice(0, -1)}ing...`,
+                title: `${actioningText}...`,
                 text: `Please wait while we ${actionConfirmText} the Cash Advance.`,
                 icon: 'info',
                 allowOutsideClick: false,
