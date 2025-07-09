@@ -197,7 +197,6 @@
                                     <th class="p-2 text-left">Department</th>
                                     <th class="p-2 text-left">Submission Date</th>
                                     <th class="p-2 text-left">Status</th>
-                                    <th class="p-2 text-left">Remarks</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
@@ -312,12 +311,11 @@
                 
                 rows.forEach(row => {
                     // Dapatkan sel Doc Number (indeks 0), Reimbursement Number (indeks 1), 
-                    // Requester (indeks 2), Department (indeks 3), dan Remarks (indeks 6)
+                    // Requester (indeks 2), Department (indeks 3)
                     const docNumberCell = row.cells[0];
                     const reimNumberCell = row.cells[1];
                     const requesterCell = row.cells[2];
                     const departmentCell = row.cells[3];
-                    const remarksCell = row.cells[6];
                     
                     if (docNumberCell && docNumberCell.textContent.trim().length > 15) {
                         docNumberCell.classList.add('scrollable-cell');
@@ -333,10 +331,6 @@
                     
                     if (departmentCell && departmentCell.textContent.trim().length > 15) {
                         departmentCell.classList.add('scrollable-cell');
-                    }
-                    
-                    if (remarksCell && remarksCell.textContent.trim().length > 15) {
-                        remarksCell.classList.add('scrollable-cell');
                     }
                 });
             });
