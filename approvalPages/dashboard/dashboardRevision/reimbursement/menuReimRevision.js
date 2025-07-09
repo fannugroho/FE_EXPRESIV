@@ -1,5 +1,26 @@
 // TODO Reimbursement Revision 
 
+// Helper function to format date with local timezone
+function formatDateWithLocalTimezone(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    // Format for display
+    return date.toLocaleDateString();
+}
+
+// Helper function to format date in YYYY-MM-DD format with local timezone
+function formatDateYYYYMMDD(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
 // Global variables for pagination
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -10,20 +31,56 @@ let currentTab = 'revised'; // Default tab
 // Function to handle search
 function handleSearch(event) {
     const searchTerm = event.target.value.toLowerCase();
-    filterReimbursements(searchTerm, currentTab);
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, currentTab, searchType);
 }
 
-// Function to filter reimbursements based on search term and tab
-function filterReimbursements(searchTerm = '', tab = 'revised') {
+// Function to filter reimbursements based on search term, tab, and search type
+function filterReimbursements(searchTerm = '', tab = 'revised', searchType = 'pr') {
     if (tab === 'revised') {
-        filteredReimbursements = allReimbursements.filter(reim => 
-            reim.status.toLowerCase() === 'revised' && reim.voucherNo.toLowerCase().includes(searchTerm)
-        );
+        filteredReimbursements = allReimbursements.filter(reim => {
+            // Filter berdasarkan status
+            const statusMatch = reim.status.toLowerCase() === 'revised';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = reim.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = reim.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(reim.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
     } else if (tab === 'prepared') {
-        filteredReimbursements = allReimbursements.filter(reim => 
-            reim.status.toLowerCase() === 'prepared' && reim.voucherNo.toLowerCase().includes(searchTerm)
-        );
+        filteredReimbursements = allReimbursements.filter(reim => {
+            // Filter berdasarkan status
+            const statusMatch = reim.status.toLowerCase() === 'prepared';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = reim.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = reim.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(reim.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
     }
+    
     currentPage = 1;
     displayReimbursements(filteredReimbursements);
 }
@@ -45,7 +102,8 @@ function switchTab(tabName) {
     
     // Filter reimbursements based on current tab and search term
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    filterReimbursements(searchTerm, tabName);
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, tabName, searchType);
 }
 
 // Function to fetch status counts from API
@@ -122,10 +180,7 @@ function displayReimbursements(reimbursements) {
     paginatedReimbursements.forEach(reim => {
         let formattedDate = reim.submissionDate;
         if (reim.submissionDate) {
-            const date = new Date(reim.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
+            formattedDate = formatDateWithLocalTimezone(reim.submissionDate);
         }
         
         const row = `<tr class='border-b'>
@@ -136,7 +191,7 @@ function displayReimbursements(reimbursements) {
             <td class='p-2'>${formattedDate}</td>
             <td class='p-2'>
                 <span class="px-2 py-1 rounded-full text-xs ${reim.status === 'Revised' ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}">
-                    ${reim.status}
+                    ${reim.status === 'Revised' ? 'Revision' : reim.status}
                 </span>
             </td>
             <td class='p-2'>
@@ -260,6 +315,7 @@ function detailReim(reimId) {
     window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
 }
 
+// Function to load dashboard
 function loadDashboard() {
     // Fetch status counts from API
     fetchStatusCounts();
@@ -269,6 +325,13 @@ function loadDashboard() {
 
     // Add event listener for search input
     document.getElementById('searchInput').addEventListener('input', handleSearch);
+    
+    // Add event listener for search type dropdown
+    document.getElementById('searchType').addEventListener('change', function() {
+        // Trigger search again when dropdown changes
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        handleSearch({target: {value: searchTerm}});
+    });
 }
 
 window.onload = loadDashboard; 

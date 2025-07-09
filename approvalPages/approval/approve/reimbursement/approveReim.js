@@ -208,10 +208,19 @@ function populateFormData(data) {
         document.getElementById('payTo').value = data.requesterName || '';
     }
     
-    // Format date for the date input (YYYY-MM-DD)
+    // Format date for the date input (YYYY-MM-DD) with local timezone
     if (data.submissionDate && document.getElementById('submissionDate')) {
+        // Buat objek Date dari string tanggal
         const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        
+        // Gunakan metode yang mempertahankan zona waktu lokal
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        // Format tanggal dalam format YYYY-MM-DD untuk input date
+        const formattedDate = `${year}-${month}-${day}`;
+        
         document.getElementById('submissionDate').value = formattedDate;
     }
     
@@ -721,8 +730,19 @@ function printReimbursement() {
         const amountCell = row.querySelector('td:nth-child(5) input');
         
         if (categoryCell && accountCell && detailAccountCell && descriptionCell && amountCell) {
-            const amount = parseFloat(amountCell.value) || 0;
+            // Parse amount value, removing any currency formatting
+            const amountValue = amountCell.value.replace(/[^\d.-]/g, '');
+            const amount = parseFloat(amountValue) || 0;
             totalAmount += amount;
+            
+            // Log untuk debugging
+            console.log('Row data:', {
+                category: categoryCell.value,
+                glAccount: accountCell.value,
+                accountName: detailAccountCell.value,
+                description: descriptionCell.value,
+                amount: amount
+            });
             
             details.push({
                 category: categoryCell.value,
@@ -740,6 +760,10 @@ function printReimbursement() {
         // If the totalAmount field has a value, use it instead of the calculated total
         totalAmount = parseFloat(totalAmountField.value.replace(/[^\d.-]/g, '')) || totalAmount;
     }
+    
+    // Log untuk debugging
+    console.log('Total details to send:', details.length);
+    console.log('Total amount to send:', totalAmount);
     
     // Encode the details as JSON and then as URI component
     const detailsParam = encodeURIComponent(JSON.stringify(details));

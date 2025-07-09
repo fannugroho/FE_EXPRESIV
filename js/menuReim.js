@@ -140,7 +140,7 @@ function displayReimbursements(reimbursements) {
             <td class='p-2'>${formattedDate}</td>
             <td class='p-2'>
                 <span class="px-2 py-1 rounded-full text-xs ${reim.status === 'Draft' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
-                    ${reim.status}
+                    ${reim.status === 'Revised' ? 'Revision' : reim.status}
                 </span>
             </td>
             <td class='p-2'>
@@ -208,7 +208,7 @@ function downloadExcel() {
         'Requester': reim.requesterName,
         'Department': reim.department,
         'Submission Date': reim.submissionDate,
-        'Status': reim.status
+        'Status': reim.status === 'Revised' ? 'Revision' : reim.status
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(wsData);
@@ -234,7 +234,7 @@ function downloadPDF() {
         reim.requesterName,
         reim.department,
         reim.submissionDate,
-        reim.status
+        reim.status === 'Revised' ? 'Revision' : reim.status
     ]);
     
     // Add table
@@ -256,6 +256,7 @@ function updateStatusCounts(data) {
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("acknowledgedCount").textContent = data.acknowledgedCount || 0;
     document.getElementById("approvedCount").textContent = data.approvedCount || 0;
+    document.getElementById("receivedCount").textContent = data.receivedCount || 0;
     document.getElementById("paidCount").textContent = data.paidCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
 }

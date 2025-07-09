@@ -20,11 +20,28 @@ function getUrlParameters() {
     // Special handling for details JSON
     if (params.details) {
         try {
+            console.log('Raw details parameter:', params.details);
             params.details = JSON.parse(decodeURIComponent(params.details));
+            console.log('Parsed details:', params.details);
+            
+            // Validasi data details
+            if (Array.isArray(params.details)) {
+                console.log('Details is an array with', params.details.length, 'items');
+                
+                // Log setiap item details
+                params.details.forEach((item, index) => {
+                    console.log(`Detail item ${index}:`, item);
+                    console.log(`Amount for item ${index}:`, item.amount);
+                });
+            } else {
+                console.error('Details is not an array:', typeof params.details);
+            }
         } catch (error) {
             console.error('Error parsing details JSON:', error);
             params.details = [];
         }
+    } else {
+        console.log('No details parameter found in URL');
     }
     
     return params;
@@ -188,29 +205,14 @@ function populatePrintData(apiData = null) {
         }
     }
     
-    // Set department text and checkbox
-    if (data.department) {
-        // Display department name in the departmentText element if it exists
-        if (document.getElementById('departmentText')) {
-            document.getElementById('departmentText').textContent = `Department : ${data.department}`;
-        }
-        
-        // Check the appropriate department checkbox
-        const dept = data.department.toLowerCase();
-        if (dept.includes('production')) {
-            document.getElementById('productionCheckbox').classList.add('checked');
-        } else if (dept.includes('marketing') || dept.includes('sales')) {
-            document.getElementById('marketingCheckbox').classList.add('checked');
-        } else if (dept.includes('technical')) {
-            document.getElementById('technicalCheckbox').classList.add('checked');
-        } else if (dept.includes('admin')) {
-            document.getElementById('administrationCheckbox').classList.add('checked');
-        }
-    }
-    
     // Set reference document
     if (document.getElementById('refdoc')) {
         document.getElementById('refdoc').textContent = `Reference Doc: ${data.referenceDoc || ''}`;
+    }
+    
+    // Set department value
+    if (document.getElementById('departmentValue')) {
+        document.getElementById('departmentValue').textContent = data.department || '';
     }
     
     // Set approver names in signature section
@@ -285,14 +287,6 @@ function populateDetailsTable(details, totalAmount = null) {
     const tableBody = document.getElementById('reimbursementDetailsTable');
     tableBody.innerHTML = ''; // Clear existing rows
     
-    // Get the column headers to ensure we're using the right IDs
-    const categoryHeader = document.getElementById('category');
-    const accountHeader = document.getElementById('account');
-    const detailAccountHeader = document.getElementById('detailAccount');
-    const descriptionHeader = document.getElementById('description');
-    const debitHeader = document.getElementById('debit');
-    const creditHeader = document.getElementById('credit');
-    
     let calculatedTotal = 0;
     
     if (details && details.length > 0) {
@@ -300,7 +294,13 @@ function populateDetailsTable(details, totalAmount = null) {
             const amount = parseFloat(detail.amount) || 0;
             calculatedTotal += amount;
             
+            // Log untuk debugging
+            console.log('Detail item:', detail);
+            console.log('Amount value:', amount);
+            console.log('Formatted amount:', formatCurrency(amount));
+            
             const row = document.createElement('tr');
+            // Urutan kolom: Category, Account, Detail Account, Description, Debit, Credit
             row.innerHTML = `
                 <td class="border p-2">${detail.category || ''}</td>
                 <td class="border p-2">${detail.glAccount || ''}</td>
@@ -311,18 +311,38 @@ function populateDetailsTable(details, totalAmount = null) {
             `;
             tableBody.appendChild(row);
         });
+    } else {
+        console.log('No details found or empty array');
     }
     
     // Use provided total amount or calculated total
     const finalTotal = totalAmount !== null ? parseFloat(totalAmount) : calculatedTotal;
     
+    // Log untuk debugging
+    console.log('Final total amount:', finalTotal);
+    console.log('Formatted total:', formatCurrency(finalTotal));
+    
     // Update totals
-    document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
-    document.getElementById('totalCreditText').textContent = ''; // Removed the credit amount display
+    if (document.getElementById('totalDebitText')) {
+        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
+    } else {
+        console.error('Element with ID totalDebitText not found');
+    }
+    
+    if (document.getElementById('totalCreditText')) {
+        document.getElementById('totalCreditText').textContent = ''; // Removed the credit amount display
+    } else {
+        console.error('Element with ID totalCreditText not found');
+    }
     
     // Update amount payment and amount in words
-    document.getElementById('amountText').textContent = formatCurrency(finalTotal);
-    document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+    if (document.getElementById('amountText')) {
+        document.getElementById('amountText').textContent = formatCurrency(finalTotal);
+    }
+    
+    if (document.getElementById('amountInWordText')) {
+        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+    }
 }
 
 // Go back to previous page

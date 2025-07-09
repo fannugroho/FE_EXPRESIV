@@ -7,6 +7,16 @@ function loadDashboard() {
     
     // Fetch reimbursements from API
     fetchReimbursements();
+    
+    // Add event listener for search input
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+    
+    // Add event listener for search type dropdown
+    document.getElementById('searchType').addEventListener('change', function() {
+        // Trigger search again when dropdown changes
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        handleSearch({target: {value: searchTerm}});
+    });
 }
 
 // Variables for pagination and filtering
@@ -15,6 +25,106 @@ const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
 let currentTab = 'prepared'; // Default tab
+
+// Function to handle search
+function handleSearch(event) {
+    const searchTerm = event.target.value.toLowerCase();
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, currentTab, searchType);
+}
+
+// Function to filter reimbursements based on search term, tab, and search type
+function filterReimbursements(searchTerm = '', tab = 'prepared', searchType = 'pr') {
+    if (tab === 'prepared') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Prepared';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    } else if (tab === 'checked') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Checked';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    } else if (tab === 'rejected') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Rejected';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    }
+    
+    // Update table and pagination
+    updateTable();
+    updatePagination();
+}
+
+// Helper function to format date with local timezone
+function formatDateWithLocalTimezone(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    // Format for display
+    return date.toLocaleDateString();
+}
+
+// Helper function to format date in YYYY-MM-DD format with local timezone
+function formatDateYYYYMMDD(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
@@ -148,7 +258,7 @@ function generateSampleData() {
             voucherNo: `REIM-${2000 + i}`,
             requesterName: `User ${i}`,
             department: `Department ${(i % 5) + 1}`,
-            submissionDate: new Date(2023, 0, i).toISOString(),
+            submissionDate: formatDateYYYYMMDD(new Date(2023, 0, i)),
             status: status
         });
     }
@@ -198,17 +308,10 @@ function switchTab(tabName) {
     
     // Filter the data with a slight delay to allow animation
     setTimeout(() => {
-        if (tabName === 'prepared') {
-            filteredData = allReimbursements.filter(item => item.status === 'Prepared');
-        } else if (tabName === 'checked') {
-            filteredData = allReimbursements.filter(item => item.status === 'Checked');
-        } else if (tabName === 'rejected') {
-            filteredData = allReimbursements.filter(item => item.status === 'Rejected');
-        }
-        
-        // Update table and pagination
-        updateTable();
-        updatePagination();
+        // Get search term and type for filtering
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchType = document.getElementById('searchType').value;
+        filterReimbursements(searchTerm, tabName, searchType);
         
         // Add fade-in effect
         setTimeout(() => {
@@ -232,10 +335,7 @@ function updateTable() {
         // Format the submission date if needed
         let formattedDate = item.submissionDate;
         if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
+            formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
         
         // Remove Draft to Prepared conversion as it's no longer needed
@@ -327,7 +427,7 @@ function downloadExcel() {
             'Reimbursement Number': item.voucherNo || '',
             'Requester': item.requesterName || '',
             'Department': item.department || '',
-            'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+            'Submission Date': item.submissionDate ? formatDateWithLocalTimezone(item.submissionDate) : '',
             'Status': item.status
         };
     });

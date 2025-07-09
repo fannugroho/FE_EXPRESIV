@@ -155,16 +155,21 @@ function populatePrintData(apiData = null) {
         reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
         typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
         remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
-        preparedByDate: urlParams.preparedByDate || (apiData ? apiData.preparedByDate : ''),
-        checkedByDate: urlParams.checkedByDate || (apiData ? apiData.checkedByDate : ''),
-        acknowledgeByDate: urlParams.acknowledgeByDate || (apiData ? apiData.acknowledgeByDate : ''),
-        approvedByDate: urlParams.approvedByDate || (apiData ? apiData.approvedByDate : ''),
-        receivedByDate: urlParams.receivedByDate || (apiData ? apiData.receivedByDate : '')
+        preparedByDate: urlParams.preparedByDate || (apiData && apiData.preparedByDate ? apiData.preparedByDate : new Date().toISOString().split('T')[0]),
+        checkedByDate: urlParams.checkedByDate || (apiData && apiData.checkedByDate ? apiData.checkedByDate : new Date().toISOString().split('T')[0]),
+        acknowledgeByDate: urlParams.acknowledgeByDate || (apiData && apiData.acknowledgeByDate ? apiData.acknowledgeByDate : new Date().toISOString().split('T')[0]),
+        approvedByDate: urlParams.approvedByDate || (apiData && apiData.approvedByDate ? apiData.approvedByDate : new Date().toISOString().split('T')[0]),
+        receivedByDate: urlParams.receivedByDate || (apiData && apiData.receivedByDate ? apiData.receivedByDate : new Date().toISOString().split('T')[0])
     };
     
     console.log('Data for print page:', data);
-    console.log('Total amount from parameters:', urlParams.totalAmount);
-    console.log('Total amount used:', data.totalAmount);
+    console.log('Approval dates:', {
+        preparedByDate: data.preparedByDate,
+        checkedByDate: data.checkedByDate,
+        acknowledgeByDate: data.acknowledgeByDate,
+        approvedByDate: data.approvedByDate,
+        receivedByDate: data.receivedByDate
+    });
     
     // Populate header information
     document.getElementById('payToText').textContent = data.payTo || '';
@@ -195,6 +200,14 @@ function populatePrintData(apiData = null) {
         console.warn('typeOfTransactionText element not found in the document');
     }
     
+    // Set department
+    if (document.getElementById('departmentText')) {
+        document.getElementById('departmentText').textContent = `Department : ${data.department || ''}`;
+        console.log('Department set to:', data.department);
+    } else {
+        console.warn('departmentText element not found in the document');
+    }
+    
     // Set remarks
     if (document.getElementById('remarksText')) {
         document.getElementById('remarksText').textContent = data.remarks || '';
@@ -202,29 +215,7 @@ function populatePrintData(apiData = null) {
     } else {
         console.warn('remarksText element not found in the document');
     }
-    
-    // Set department text and checkbox
-    if (data.department) {
-        // Display department name in departmentText element
-        if (document.getElementById('departmentText')) {
-            document.getElementById('departmentText').textContent = `Department : ${data.department}`;
-            console.log('Set departmentText to:', data.department);
-        } else {
-            console.warn('departmentText element not found');
-        }
-        
-        // Set checkbox based on department name
-        const dept = data.department.toLowerCase();
-        if (dept.includes('production')) {
-            document.getElementById('productionCheckbox').classList.add('checked');
-        } else if (dept.includes('marketing') || dept.includes('sales')) {
-            document.getElementById('marketingCheckbox').classList.add('checked');
-        } else if (dept.includes('technical')) {
-            document.getElementById('technicalCheckbox').classList.add('checked');
-        } else if (dept.includes('admin')) {
-            document.getElementById('administrationCheckbox').classList.add('checked');
-        }
-    }
+
     
     // Set reference document
     if (document.getElementById('refdoc')) {
@@ -258,22 +249,27 @@ function populatePrintData(apiData = null) {
     
     // Set approval dates
     if (document.getElementById('preparedByDate')) {
+        console.log('Setting preparedByDate:', data.preparedByDate);
         document.getElementById('preparedByDate').textContent = formatDateIfExists(data.preparedByDate);
     }
     
     if (document.getElementById('checkedByDate')) {
+        console.log('Setting checkedByDate:', data.checkedByDate);
         document.getElementById('checkedByDate').textContent = formatDateIfExists(data.checkedByDate);
     }
     
     if (document.getElementById('acknowledgeByDate')) {
+        console.log('Setting acknowledgeByDate:', data.acknowledgeByDate);
         document.getElementById('acknowledgeByDate').textContent = formatDateIfExists(data.acknowledgeByDate);
     }
     
     if (document.getElementById('approvedByDate')) {
+        console.log('Setting approvedByDate:', data.approvedByDate);
         document.getElementById('approvedByDate').textContent = formatDateIfExists(data.approvedByDate);
     }
     
     if (document.getElementById('receivedByDate')) {
+        console.log('Setting receivedByDate:', data.receivedByDate);
         document.getElementById('receivedByDate').textContent = formatDateIfExists(data.receivedByDate);
     }
     
@@ -283,18 +279,26 @@ function populatePrintData(apiData = null) {
 
 // Format date if it exists
 function formatDateIfExists(dateString) {
-    if (!dateString) return '';
+    if (!dateString) {
+        console.log('Date string is empty or null');
+        return '';
+    }
     
     try {
+        console.log('Formatting date:', dateString, 'Type:', typeof dateString);
         if (typeof dateString === 'string' && dateString.includes('-')) {
             const dateParts = dateString.split('-');
             if (dateParts.length === 3) {
                 // Convert from YYYY-MM-DD to DD/MM/YYYY
-                return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                console.log('Formatted date (YYYY-MM-DD):', formatted);
+                return formatted;
             }
         }
         // If it's a date object or other format
-        return new Date(dateString).toLocaleDateString('en-GB');
+        const formatted = new Date(dateString).toLocaleDateString('en-GB');
+        console.log('Formatted date (other):', formatted);
+        return formatted;
     } catch (error) {
         console.error('Error formatting date:', error);
         return dateString; // Return as is if there's an error

@@ -75,22 +75,60 @@ document.getElementById("docType")?.addEventListener("change", function () {
     prTable.style.display = this.value === "Pilih" ? "none" : "table";
 });
 
+// Modifikasi fungsi previewPDF untuk mengupload file langsung ke server
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
+    if (files.length === 0) return;
+    
+    // Maksimum 5 file
+    if (files.length > 5) {
+        alert('Maksimum 5 file yang diperbolehkan');
         return;
     }
 
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
-        }
-    });
+    // Upload file ke server
+    uploadAttachments(files);
+}
 
-    displayFileList();
+// Fungsi baru untuk mengupload attachment ke server
+async function uploadAttachments(files) {
+    // Dapatkan ID reimbursement dari URL
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        alert('ID reimbursement tidak ditemukan');
+        return;
+    }
+    
+    try {
+        // Tidak perlu menampilkan pesan loading
+        
+        const formData = new FormData();
+        
+        // Tambahkan semua file ke formData
+        Array.from(files).forEach(file => {
+            formData.append('files', file);
+        });
+        
+        // Kirim ke server menggunakan API endpoint upload attachment
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            // Tidak perlu menampilkan pesan sukses
+            
+            // Refresh data untuk menampilkan attachment baru
+            fetchReimbursementData();
+        } else {
+            alert('Gagal mengupload file: ' + (result.message || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        console.error('Error uploading attachments:', error);
+        alert('Terjadi kesalahan saat mengupload file');
+    }
 }
 
 function addRow() {
@@ -853,8 +891,8 @@ function controlButtonVisibility() {
     const fileInput = document.getElementById('filePath');
     const tableRows = document.querySelectorAll('#reimbursementDetails tr');
     
-    // Jika status bukan Draft dan Revised, sembunyikan tombol dan nonaktifkan field
-    if (status !== "Draft" && status !== "Revised") {
+    // Jika status bukan Draft, sembunyikan tombol dan nonaktifkan field
+    if (status !== "Draft") {
         // Hide buttons
         addRowButton.style.display = "none";
         deleteButton.style.display = "none";
@@ -882,7 +920,7 @@ function controlButtonVisibility() {
             }
         });
     } else {
-        // Show buttons
+        // Show buttons only if status is Draft
         addRowButton.style.display = "block";
         deleteButton.style.display = "block";
         updateButton.style.display = "block";
@@ -988,8 +1026,17 @@ function populateFormData(data) {
     }
     
     if (data.submissionDate) {
+        // Buat objek Date dari string tanggal
         const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        
+        // Gunakan metode yang mempertahankan zona waktu lokal
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        // Format tanggal dalam format YYYY-MM-DD untuk input date
+        const formattedDate = `${year}-${month}-${day}`;
+        
         document.getElementById('submissionDate').value = formattedDate;
     }
     
@@ -1097,20 +1144,71 @@ function populateReimbursementDetails(details) {
     }
 }
 
+// Modifikasi fungsi displayAttachments untuk menambahkan tombol hapus
 function displayAttachments(attachments) {
     const attachmentsList = document.getElementById('attachmentsList');
     attachmentsList.innerHTML = '';
+    
+    // Dapatkan status dokumen untuk menentukan apakah tombol hapus ditampilkan
+    const status = document.getElementById('status').value;
     
     if (attachments && attachments.length > 0) {
         attachments.forEach(attachment => {
             const attachmentItem = document.createElement('div');
             attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+            
+            // Tambahkan tombol hapus hanya jika status dokumen adalah Draft
+            if (status === 'Draft') {
+                attachmentItem.innerHTML = `
+                    <span>${attachment.fileName}</span>
+                    <div>
+                        <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700 mr-3">View</a>
+                        <button type="button" onclick="deleteAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700">X</button>
+                    </div>
+                `;
+            } else {
+                // Jika bukan Draft, hanya tampilkan tombol View
             attachmentItem.innerHTML = `
                 <span>${attachment.fileName}</span>
                 <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
             `;
+            }
+            
             attachmentsList.appendChild(attachmentItem);
         });
+    }
+}
+
+// Fungsi baru untuk menghapus attachment
+async function deleteAttachment(attachmentId) {
+    // Dapatkan ID reimbursement dari URL
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId || !attachmentId) {
+        alert('ID tidak ditemukan');
+        return;
+    }
+
+    try {
+        // Tidak perlu konfirmasi penghapusan, langsung hapus
+        
+        // Panggil API untuk menghapus attachment
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/${attachmentId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.status && data.code === 200) {
+            // Tidak perlu menampilkan pesan sukses
+            
+            // Refresh data reimbursement untuk memperbarui daftar attachment
+            fetchReimbursementData();
+        } else {
+            alert('Gagal menghapus attachment: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menghapus attachment');
     }
 }
 
@@ -2022,48 +2120,85 @@ window.deleteRow = function(button) {
     updateTotalAmount();
 };
 
-// Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
+// Modifikasi fungsi toggleReimTableEditability untuk mengontrol input file
 function toggleReimTableEditability() {
-    // Ambil status dokumen saat ini
     const status = document.getElementById('status').value;
+    const tableRows = document.querySelectorAll('#reimbursementDetails tr');
+    const inputs = document.querySelectorAll('#reimbursementDetails input, #requesterNameSearch, #payToSearch, #currency, #referenceDoc, #typeOfTransaction, #remarks');
+    const fileInput = document.getElementById('filePath');
     
-    // Hanya izinkan pengeditan jika status adalah Draft
-    const isEditable = status === 'Draft';
-    
-    // Sembunyikan atau tampilkan tombol tambah baris
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = isEditable ? 'block' : 'none';
-    }
-    
-    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
-    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = isEditable ? 'inline-block' : 'none';
-    });
-    
-    // Nonaktifkan semua input di dalam tabel reimbursement
-    const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
-    tableInputs.forEach(input => {
-        input.disabled = !isEditable;
+    // Jika status bukan Draft, nonaktifkan semua input termasuk file input
+    if (status !== 'Draft') {
+        // Nonaktifkan input di tabel
+        tableRows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.classList.add('bg-gray-100', 'cursor-not-allowed');
+            });
+            
+            // Nonaktifkan tombol hapus di tabel
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
         
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        // Nonaktifkan input lainnya
+        inputs.forEach(field => {
+            field.disabled = true;
+            field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Nonaktifkan tombol tambah baris
+        const addRowBtn = document.querySelector('button[onclick="addRow()"]');
+        if (addRowBtn) {
+            addRowBtn.disabled = true;
+            addRowBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
-    });
-    
-    // Nonaktifkan dropdown search
-    const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
-    searchInputs.forEach(input => {
-        input.disabled = !isEditable;
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        
+        // Nonaktifkan file input
+        if (fileInput) {
+            fileInput.disabled = true;
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
         }
-    });
+        } else {
+        // Aktifkan input di tabel
+        tableRows.forEach(row => {
+            const inputs = row.querySelectorAll('input:not(.gl-account)');
+            inputs.forEach(input => {
+                input.disabled = false;
+            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            });
+            
+            // Aktifkan tombol hapus di tabel
+            const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+        
+        // Aktifkan input lainnya
+        inputs.forEach(field => {
+            field.disabled = false;
+            field.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        });
+        
+        // Aktifkan tombol tambah baris
+        const addRowBtn = document.querySelector('button[onclick="addRow()"]');
+        if (addRowBtn) {
+            addRowBtn.disabled = false;
+            addRowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        
+        // Aktifkan file input
+        if (fileInput) {
+            fileInput.disabled = false;
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    }
 }
 
     

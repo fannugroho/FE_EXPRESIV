@@ -310,8 +310,8 @@ document.addEventListener('DOMContentLoaded', function() {
 async function saveDocument() {
     try {
         Swal.fire({
-            title: 'Konfirmasi',
-            text: 'Apakah dokumen sudah benar?',
+            title: 'Confirmation',
+            text: 'Is the document correct?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Ya',
@@ -320,8 +320,8 @@ async function saveDocument() {
             if (result.isConfirmed) {
                 await processDocument(false);
                 Swal.fire({
-                    title: 'Berhasil',
-                    text: 'Dokumen berhasil disimpan.',
+                    title: 'Success',
+                    text: 'Document saved successfully.',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
@@ -353,16 +353,12 @@ function updateApprovalStatus(docNumber, statusKey) {
 
 document.getElementById("docType")?.addEventListener("change", function () {
     const reimTable = document.getElementById("reimTable");
-    reimTable.style.display = this.value === "Pilih" ? "none" : "table";
+    reimTable.style.display = this.value === "Choose" ? "none" : "table";
 });
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 files are allowed.');
-        return;
-    }
-
+    
     Array.from(files).forEach(file => {
         // Check if file with same name already exists
         const fileExists = uploadedFiles.some(existingFile => 

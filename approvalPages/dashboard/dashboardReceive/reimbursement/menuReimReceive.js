@@ -1,8 +1,40 @@
+// Helper function to format date with local timezone
+function formatDateWithLocalTimezone(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    // Format for display
+    return date.toLocaleDateString();
+}
+
+// Helper function to format date in YYYY-MM-DD format with local timezone
+function formatDateYYYYMMDD(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+// Load dashboard data when page loads
 function loadDashboard() {
     // Fetch status counts from API
     fetchStatusCounts();
     // Fetch reimbursements from API
     fetchReimbursements();
+    
+    // Add event listener for search input
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+    
+    // Add event listener for search type dropdown
+    document.getElementById('searchType').addEventListener('change', function() {
+        // Trigger search again when dropdown changes
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        handleSearch({target: {value: searchTerm}});
+    });
 }
 
 // Variables for pagination and filtering
@@ -13,6 +45,85 @@ let allReimbursements = [];
 let currentTab = 'approved'; // Default tab
 let searchQuery = '';
 let dateFilter = '';
+
+// Function to handle search
+function handleSearch(event) {
+    const searchTerm = event.target.value.toLowerCase();
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, currentTab, searchType);
+}
+
+// Function to filter reimbursements based on search term, tab, and search type
+function filterReimbursements(searchTerm = '', tab = 'approved', searchType = 'pr') {
+    if (tab === 'approved') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Approved';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    } else if (tab === 'received') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Received';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    } else if (tab === 'rejected') {
+        filteredData = allReimbursements.filter(item => {
+            // Filter berdasarkan status
+            const statusMatch = item.status === 'Rejected';
+            
+            // Filter berdasarkan tipe pencarian yang dipilih
+            let searchMatch = true;
+            if (searchTerm) {
+                if (searchType === 'pr') {
+                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requester') {
+                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'date') {
+                    // Format tanggal untuk pencarian
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
+                    searchMatch = formattedDate.includes(searchTerm);
+                }
+            }
+            
+            return statusMatch && searchMatch;
+        });
+    }
+    
+    // Update table and pagination
+    updateTable();
+    updatePagination();
+}
 
 // Function to fetch status counts from API
 function fetchStatusCounts() {
@@ -167,7 +278,15 @@ function filterData(data) {
         // Check if item matches date filter
         let matchesDate = true;
         if (dateFilter) {
-            const itemDate = item.submissionDate ? new Date(item.submissionDate).toISOString().split('T')[0] : '';
+            // Format date with local timezone
+            let itemDate = '';
+            if (item.submissionDate) {
+                const date = new Date(item.submissionDate);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                itemDate = `${year}-${month}-${day}`;
+            }
             matchesDate = itemDate === dateFilter;
         }
         
@@ -203,21 +322,10 @@ function switchTab(tabName) {
     
     // Filter the data with a slight delay to allow animation
     setTimeout(() => {
-        let statusFilteredData;
-        if (tabName === 'received') {
-            statusFilteredData = allReimbursements.filter(item => item.status === 'Received');
-        } else if (tabName === 'approved') {
-            statusFilteredData = allReimbursements.filter(item => item.status === 'Approved');
-        } else if (tabName === 'rejected') {
-            statusFilteredData = allReimbursements.filter(item => item.status === 'Rejected');
-        }
-        
-        // Apply search and date filters
-        filteredData = filterData(statusFilteredData);
-        
-        // Update table and pagination
-        updateTable();
-        updatePagination();
+        // Get search term and type for filtering
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchType = document.getElementById('searchType').value;
+        filterReimbursements(searchTerm, tabName, searchType);
         
         // Add fade-in effect
         setTimeout(() => {
@@ -241,10 +349,7 @@ function updateTable() {
         // Format the submission date if needed
         let formattedDate = item.submissionDate;
         if (item.submissionDate) {
-            const date = new Date(item.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
+            formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
         
         const displayStatus = item.status;
@@ -335,7 +440,7 @@ function downloadExcel() {
             'Reimbursement Number': item.voucherNo || '',
             'Requester': item.requesterName || '',
             'Department': item.department || '',
-            'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+            'Submission Date': item.submissionDate ? formatDateWithLocalTimezone(item.submissionDate) : '',
             'Status': item.status
         };
     });

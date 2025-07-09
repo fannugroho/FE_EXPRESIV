@@ -861,9 +861,19 @@ function populateFormData(data) {
         }
     }
     
+    // Format date for the date input (YYYY-MM-DD) with local timezone
     if (data.submissionDate) {
+        // Buat objek Date dari string tanggal
         const date = new Date(data.submissionDate);
-        const formattedDate = date.toISOString().split('T')[0];
+        
+        // Gunakan metode yang mempertahankan zona waktu lokal
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        // Format tanggal dalam format YYYY-MM-DD untuk input date
+        const formattedDate = `${year}-${month}-${day}`;
+        
         document.getElementById('submissionDate').value = formattedDate;
     }
     
