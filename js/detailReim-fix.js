@@ -141,5 +141,113 @@ if (submitButton) {
     });
 }
 
+// Override fungsi submitReimbursementUpdate untuk memperbaiki masalah amount
+const originalSubmitReimbursementUpdate = window.submitReimbursementUpdate;
+window.submitReimbursementUpdate = async function() {
+    console.log('Overriding submitReimbursementUpdate to fix amount issue');
+    
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+    
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const rows = detailsTable.querySelectorAll('tr');
+    const reimbursementDetails = [];
+    
+    console.log(`Processing ${rows.length} reimbursement detail rows`);
+    
+    rows.forEach((row, index) => {
+        // Get category from search input
+        const categoryInput = row.querySelector('.category-search');
+        const accountNameInput = row.querySelector('.account-name-search');
+        const glAccountInput = row.querySelector('.gl-account');
+        const descriptionInput = row.querySelector('td:nth-child(4) input');
+        const amountInput = row.querySelector('td:nth-child(5) input');
+        const deleteButton = row.querySelector('button');
+        const detailId = deleteButton.getAttribute('data-id') || null;
+        
+        if (categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
+            // Parse amount correctly using parseCurrencyIDR
+            const amountText = amountInput.value.trim();
+            const numericAmount = parseCurrencyIDR(amountText);
+            
+            console.log(`Row ${index + 1} amount: ${amountText} -> ${numericAmount}`);
+            
+            reimbursementDetails.push({
+                id: detailId,
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: descriptionInput.value || "",
+                amount: numericAmount // Use correctly parsed amount
+            });
+        } else {
+            console.error(`Missing required inputs in row ${index + 1}`);
+        }
+    });
+    
+    // Get requesterName from the search input (text value)
+    const requesterName = document.getElementById('requesterNameSearch').value;
+    
+    // Get payTo ID from the hidden select element
+    const payToSelect = document.getElementById('payToSelect');
+    const payTo = payToSelect ? payToSelect.value : null;
+    
+    const requestData = {
+        requesterName: requesterName,
+        department: document.getElementById('department').value,
+        currency: document.getElementById('currency').value,
+        payTo: payTo,
+        referenceDoc: document.getElementById('referenceDoc').value,
+        typeOfTransaction: document.getElementById('typeOfTransaction').value,
+        remarks: document.getElementById('remarks').value,
+        preparedBy: document.getElementById('preparedBySelect').value || null,
+        acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
+        checkedBy: document.getElementById('checkedBySelect').value || null,
+        approvedBy: document.getElementById('approvedBySelect').value || null,
+        receivedBy: document.getElementById('receivedBySelect').value || null,
+        reimbursementDetails: reimbursementDetails
+    };
+    
+    console.log('Sending update request with data:', requestData);
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            Swal.fire(
+                'Updated!',
+                'Reimbursement has been updated successfully.',
+                'success'
+            ).then(() => {
+                fetchReimbursementData();
+            });
+        } else {
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to update reimbursement',
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Error updating reimbursement:', error);
+        Swal.fire(
+            'Error',
+            'An error occurred while updating the reimbursement',
+            'error'
+        );
+    }
+};
+
 // Log untuk memastikan file ini dimuat
 console.log('detailReim-fix.js has been loaded and executed'); 
