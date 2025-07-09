@@ -1463,11 +1463,97 @@ function updateReim() {
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, update it!'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            submitReimbursementUpdate();
+            try {
+                // Proses update reimbursement yang sudah ada
+                await submitReimbursementUpdate();
+                
+                // Proses tambahan baris baru dengan API baru
+                await submitNewReimbursementDetails();
+                
+                Swal.fire(
+                    'Updated!',
+                    'Reimbursement has been updated successfully.',
+                    'success'
+                ).then(() => {
+                    fetchReimbursementData();
+                });
+            } catch (error) {
+                console.error('Error updating reimbursement:', error);
+                Swal.fire(
+                    'Error',
+                    'An error occurred while updating the reimbursement',
+                    'error'
+                );
+            }
         }
     });
+}
+
+// Fungsi baru untuk mengirim detail reimbursement baru ke API
+async function submitNewReimbursementDetails() {
+    const id = getReimbursementIdFromUrl();
+    if (!id) {
+        throw new Error('No reimbursement ID found');
+    }
+    
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const rows = detailsTable.querySelectorAll('tr');
+    const newReimbursementDetails = [];
+    
+    // Filter hanya baris yang tidak memiliki data-id (baris baru dari addRow)
+    rows.forEach(row => {
+        const deleteButton = row.querySelector('button');
+        const detailId = deleteButton.getAttribute('data-id');
+        
+        // Hanya proses baris yang tidak memiliki data-id (baris baru)
+        if (!detailId) {
+            const categoryInput = row.querySelector('.category-search');
+            const accountNameInput = row.querySelector('.account-name-search');
+            const glAccountInput = row.querySelector('.gl-account');
+            const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
+            
+            if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+                // Ambil nilai amount dari input dan konversi ke angka
+                const amountText = inputs[1].value;
+                const amount = parseCurrencyIDR(amountText);
+                
+                newReimbursementDetails.push({
+                    description: inputs[0].value || "", // Description input
+                    amount: amount, // Amount input sebagai angka
+                    category: categoryInput.value || "",
+                    glAccount: glAccountInput.value || "",
+                    accountName: accountNameInput.value || ""
+                });
+            }
+        }
+    });
+    
+    // Jika tidak ada baris baru, tidak perlu memanggil API
+    if (newReimbursementDetails.length === 0) {
+        console.log('No new reimbursement details to add');
+        return;
+    }
+    
+    console.log('Sending new reimbursement details:', newReimbursementDetails);
+    
+    // Panggil API untuk menambahkan detail baru
+    const response = await fetch(`${BASE_URL}/api/reimbursements/detail/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newReimbursementDetails)
+    });
+    
+    const result = await response.json();
+    
+    if (!result.status || result.code !== 200) {
+        throw new Error(result.message || 'Failed to add new reimbursement details');
+    }
+    
+    return result;
 }
 
 async function submitReimbursementUpdate() {
@@ -1490,14 +1576,19 @@ async function submitReimbursementUpdate() {
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
         
-        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+        // Hanya proses baris yang memiliki data-id (baris yang sudah ada)
+        if (detailId && categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
+            // Ambil nilai amount dari input dan konversi ke angka
+            const amountText = inputs[1].value;
+            const amount = parseCurrencyIDR(amountText);
+            
             reimbursementDetails.push({
                 id: detailId,
                 category: categoryInput.value || "",
                 accountName: accountNameInput.value || "",
                 glAccount: glAccountInput.value || "",
                 description: inputs[0].value || "", // Description input
-                amount: parseFloat(inputs[1].value) || 0 // Amount input
+                amount: amount // Amount input sebagai angka
             });
         }
     });
@@ -1536,28 +1627,14 @@ async function submitReimbursementUpdate() {
         
         const result = await response.json();
         
-        if (result.status && result.code === 200) {
-            Swal.fire(
-                'Updated!',
-                'Reimbursement has been updated successfully.',
-                'success'
-            ).then(() => {
-                fetchReimbursementData();
-            });
-        } else {
-            Swal.fire(
-                'Error',
-                result.message || 'Failed to update reimbursement',
-                'error'
-            );
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to update reimbursement');
         }
+        
+        return result;
     } catch (error) {
         console.error('Error updating reimbursement:', error);
-        Swal.fire(
-            'Error',
-            'An error occurred while updating the reimbursement',
-            'error'
-        );
+        throw error;
     }
 }
 
