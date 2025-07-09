@@ -97,7 +97,7 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status
-        const revisionResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=revision`, {
+        const revisionResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=revision&userId=${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         const preparedResponse = await fetch(`${BASE_URL}/api/pr/dashboard/revision?filterType=prepared&userId=${userId}`, {
@@ -229,7 +229,7 @@ function updateTable(documents = []) {
     
     // Remarks column has been removed
     
-    paginatedDocs.forEach(doc => {
+    paginatedDocs.forEach((doc, i) => {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
@@ -238,14 +238,12 @@ function updateTable(documents = []) {
         const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '-';
         
         // Get values for each cell and check if they need scrolling
-        const docId = doc.id || '-';
         const prNumber = doc.purchaseRequestNo || '-';
         const requesterName = doc.requesterName || '-';
         const departmentName = doc.departmentName || '-';
         const poNumber = doc.poNumber || '-';
         
         // Create cell classes based on content length
-        const docIdClass = docId.toString().length > 8 ? 'scrollable-cell' : '';
         const prNumberClass = prNumber.toString().length > 8 ? 'scrollable-cell' : '';
         const requesterClass = requesterName.toString().length > 8 ? 'scrollable-cell' : '';
         const departmentClass = departmentName.toString().length > 8 ? 'scrollable-cell' : '';
@@ -255,9 +253,12 @@ function updateTable(documents = []) {
         const statusClass = getStatusClass(doc.status);
         const statusText = doc.status || 'Unknown';
         
+        // Incremental doc number
+        const docNumber = startIndex + i + 1;
+        
         // Build row HTML with data attributes for content length checking
         row.innerHTML = `
-            <td class="p-2 ${docIdClass}" data-content="${docId}">${docId}</td>
+            <td class="p-2">${docNumber}</td>
             <td class="p-2 ${prNumberClass}" data-content="${prNumber}">${prNumber}</td>
             <td class="p-2 ${requesterClass}" data-content="${requesterName}">${requesterName}</td>
             <td class="p-2 ${departmentClass}" data-content="${departmentName}">${departmentName}</td>
@@ -429,8 +430,8 @@ function downloadExcel() {
     const workbook = XLSX.utils.book_new();
     
     // Prepare data for worksheet
-    const wsData = dataToExport.map(doc => ({
-        'Doc Number': doc.id,
+    const wsData = dataToExport.map((doc, index) => ({
+        'Doc Number': index + 1,
         'PR Number': doc.purchaseRequestNo || '',
         'Requester': doc.requesterName || '',
         'Department': doc.departmentName || '',
@@ -470,9 +471,9 @@ function downloadPDF() {
     doc.text(`Purchase Request ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)} Report`, 14, 15);
     
     // Prepare table data
-    const tableData = dataToExport.map(doc => {
+    const tableData = dataToExport.map((doc, index) => {
         let row = [
-            doc.id ? doc.id.toString().substring(0, 10) : '',
+            (index + 1).toString(),
             doc.purchaseRequestNo || '',
             doc.requesterName || '',
             doc.departmentName || '',
@@ -481,9 +482,6 @@ function downloadPDF() {
             doc.poNumber || '',
             doc.status || ''
         ];
-        
-
-        
         return row;
     });
     

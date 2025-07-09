@@ -1545,6 +1545,7 @@ async function confirmDelete() {
 function updateSettle(isSubmit = false) {
     const actionText = isSubmit ? 'Submit' : 'Update';
     const actionConfirmText = isSubmit ? 'submit' : 'update';
+    const actioningText = isSubmit ? 'Submitting' : 'Updating';
     
     Swal.fire({
         title: `${actionText} Settlement`,
@@ -1622,7 +1623,7 @@ function updateSettle(isSubmit = false) {
 
             // Show loading
             Swal.fire({
-                title: `${actionText.slice(0, -1)}ing...`,
+                title: `${actioningText}...`,
                 text: `Please wait while we ${actionConfirmText} the settlement.`,
                 icon: 'info',
                 allowOutsideClick: false,
