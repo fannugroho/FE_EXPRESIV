@@ -307,37 +307,70 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-async function saveDocument() {
-    try {
-        Swal.fire({
-            title: 'Confirmation',
-            text: 'Is the document correct?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Ya',
-            cancelButtonText: 'Batal'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
+function saveDocument() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
                 await processDocument(false);
                 Swal.fire({
-                    title: 'Success',
-                    text: 'Document saved successfully.',
+                    title: 'Berhasil',
+                    text: 'Dokumen berhasil disimpan.',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
                     goToMenuReim(); // Navigate to menu page after clicking OK
                 });
+            } catch (error) {
+                console.error("Error saving reimbursement:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Error: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
-        });
-    } catch (error) {
-        console.error("Error saving reimbursement:", error);
-        Swal.fire({
-            title: 'Error',
-            text: `Error: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-    }
+        }
+    });
+}
+
+function submitDocument() {
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah dokumen sudah benar?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya',
+        cancelButtonText: 'Batal'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await processDocument(true);
+                Swal.fire({
+                    title: 'Berhasil',
+                    text: 'Dokumen berhasil di-submit.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim(); // Navigate to menu page after clicking OK
+                });
+            } catch (error) {
+                console.error("Error submitting reimbursement:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Error: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    });
 }
 
 function updateApprovalStatus(docNumber, statusKey) {

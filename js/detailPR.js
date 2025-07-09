@@ -1156,9 +1156,9 @@ async function updatePR(isSubmit = false) {
         }
         
         // Show loading state
-        const actionText = isSubmit ? 'Submit' : 'Update';
+        const actionText = isSubmit ? 'Submitting' : 'Updating';
         Swal.fire({
-            title: `${actionText.slice(0, -1)}ing...`,
+            title: `${actionText}...`,
             text: `Please wait while we ${isSubmit ? 'submit' : 'update'} the PR.`,
             icon: 'info',
             allowOutsideClick: false,
