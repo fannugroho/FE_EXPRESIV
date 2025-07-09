@@ -257,7 +257,7 @@ function toggleSidebar() {
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+    window.location.href = `/approvalPages/approval/revision/reimbursement/revisionReim.html?reim-id=${reimId}`;
 }
 
 function loadDashboard() {
