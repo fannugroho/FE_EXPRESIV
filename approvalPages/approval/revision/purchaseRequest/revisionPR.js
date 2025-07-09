@@ -52,7 +52,9 @@ function setupDateFields() {
         };
         
         // Add event listener to automatically update required date when submission date changes
-        submissionDateInput.addEventListener('change', updateRequiredDateMin);
+        if (submissionDateInput) {
+            submissionDateInput.addEventListener('change', updateRequiredDateMin);
+        }
         
         // Store the update function globally so it can be called after data is populated
         window.updateRequiredDateMin = updateRequiredDateMin;
@@ -182,6 +184,7 @@ function populatePRDetails(data) {
             if (requesterIdInput) {
                 requesterIdInput.value = data.requesterId;
             }
+            console.log("RequesterId:", requesterIdInput.value);
         } else {
             console.log("No requesterId found in data. Available fields:", Object.keys(data));
         }
@@ -407,10 +410,11 @@ async function updatePR(isSubmit = false) {
             formData.append('SubmissionDate', submissionDate);
         }
         
-        // Use the classification from stored values
-        if (window.currentValues?.classification) {
-            formData.append('Classification', window.currentValues.classification);
-        }
+        // Use the classification from the select (always current value)
+        const classificationSelect = document.getElementById('classification');
+        const selectedClassification = classificationSelect ? classificationSelect.value : '';
+        formData.append('Classification', selectedClassification);
+        console.log("Classification:", selectedClassification);
         
         formData.append('Remarks', document.getElementById('remarks').value);
         
@@ -1079,7 +1083,13 @@ function populateUserSelects(users, prData = null) {
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
         console.log("Before populating users, RequesterId value:", requesterSelect.value);
-        const currentValue = requesterSelect.value; // Store current value
+        
+        // Store the current value or use the value from PR data
+        let currentValue = requesterSelect.value;
+        if (!currentValue && prData && prData.requesterId) {
+            currentValue = prData.requesterId;
+            console.log("Using requesterId from PR data:", currentValue);
+        }
         
         // Clear existing options except the currently selected one
         requesterSelect.innerHTML = '<option value="" disabled>Select Requester</option>';
@@ -1088,12 +1098,14 @@ function populateUserSelects(users, prData = null) {
             const option = document.createElement('option');
             option.value = user.id;
             option.textContent = user.fullName;
-            // Pre-select if this matches the current value
-            if (currentValue && user.id === currentValue) {
-                option.selected = true;
-            }
             requesterSelect.appendChild(option);
         });
+        
+        // Restore the value that was set from PR data
+        if (currentValue) {
+            requesterSelect.value = currentValue;
+            console.log("Restored RequesterId value to:", currentValue);
+        }
         
         console.log("After populating users, RequesterId value:", requesterSelect.value);
     }
@@ -1166,7 +1178,7 @@ function populateUserSelects(users, prData = null) {
 
         // Hide dropdown when clicking outside
         document.addEventListener('click', function(event) {
-            if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+            if (requesterSearchInput && requesterDropdown && !requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
                 requesterDropdown.classList.add('hidden');
             }
         });
@@ -1216,7 +1228,7 @@ function populateUserSelects(users, prData = null) {
         const dropdowns = document.querySelectorAll('.search-dropdown');
         dropdowns.forEach(dropdown => {
             const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+            if (searchInput && dropdown && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
                 dropdown.classList.add('hidden');
             }
         });
@@ -1395,7 +1407,7 @@ function setupItemDropdown(row, existingItemCode = null) {
     
     // Hide dropdown when clicking outside
     document.addEventListener('click', function(event) {
-        if (!itemInput.contains(event.target) && !itemDropdown.contains(event.target)) {
+        if (itemInput && itemDropdown && !itemInput.contains(event.target) && !itemDropdown.contains(event.target)) {
             itemDropdown.classList.add('hidden');
         }
     });
