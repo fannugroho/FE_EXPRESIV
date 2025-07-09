@@ -154,7 +154,8 @@ async function loadDashboard() {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
-        const reimResponse = await fetch(`${BASE_URL}/api/reimbursement/dashboard?requesterId=${userId}`, {
+        // Updated endpoint for reimbursements
+        const reimResponse = await fetch(`${BASE_URL}/api/reimbursements/status-counts/user/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
@@ -168,13 +169,14 @@ async function loadDashboard() {
 
         // Parse responses
         const prData = prResponse.ok ? await prResponse.json() : { data: [] };
-        const reimData = reimResponse.ok ? await reimResponse.json() : { data: [] };
+        const reimData = reimResponse.ok ? await reimResponse.json() : { data: { totalCount: 0 } };
         const cashData = cashResponse.ok ? await cashResponse.json() : { data: [] };
         const settleData = settleResponse.ok ? await settleResponse.json() : { data: [] };
 
         // Hitung jumlah dokumen untuk setiap jenis
         const prCount = prData.data ? prData.data.length : 0;
-        const reimCount = reimData.data ? reimData.data.length : 0;
+        // Use totalCount from the new API response
+        const reimCount = reimData.data ? reimData.data.totalCount : 0;
         const cashCount = cashData.data ? cashData.data.length : 0;
         const settleCount = settleData.data ? settleData.data.length : 0;
         

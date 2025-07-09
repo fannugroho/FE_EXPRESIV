@@ -334,4 +334,21 @@ function loadDashboard() {
     });
 }
 
+// Load dashboard when page is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
+    
+    // Set user avatar and name if available
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    if (userInfo.name) {
+        document.getElementById('userNameDisplay').textContent = userInfo.name;
+    }
+    if (userInfo.avatar) {
+        document.getElementById('dashboardUserIcon').src = userInfo.avatar;
+    } else {
+        // Default avatar if none is set
+        document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+    }
+});
+
 window.onload = loadDashboard; 

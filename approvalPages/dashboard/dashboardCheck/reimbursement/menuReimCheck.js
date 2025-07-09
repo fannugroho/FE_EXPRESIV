@@ -505,24 +505,6 @@ function downloadPDF() {
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     
-    // Notification dropdown toggle
-    const notificationBtn = document.getElementById('notificationBtn');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    
-    if (notificationBtn && notificationDropdown) {
-        notificationBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            notificationDropdown.classList.toggle('hidden');
-        });
-        
-        // Close when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-    }
-    
     // Set user avatar and name if available
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     if (userInfo.name) {
