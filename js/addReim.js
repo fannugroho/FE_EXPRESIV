@@ -894,39 +894,6 @@ function populateDropdown(dropdownId, users) {
     }
 }
 
-function submitDocument() {
-    Swal.fire({
-        title: 'Konfirmasi',
-        text: 'Apakah dokumen sudah benar?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya',
-        cancelButtonText: 'Batal'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                await processDocument(true);
-                Swal.fire({
-                    title: 'Berhasil',
-                    text: 'Dokumen berhasil di-submit.',
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    goToMenuReim(); // Navigate to menu page after clicking OK
-                });
-            } catch (error) {
-                console.error("Error submitting reimbursement:", error);
-                Swal.fire({
-                    title: 'Error',
-                    text: `Error: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            }
-        }
-    });
-}
-
 // Common function to process document with isSubmit parameter
 async function processDocument(isSubmit) {
     // Step 1: Collect reimbursement details from the form
