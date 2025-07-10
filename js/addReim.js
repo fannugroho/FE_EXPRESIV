@@ -3,6 +3,26 @@ let uploadedFiles = [];
 let businessPartners = []; // Added to store business partners
 let transactionTypes = []; // Added to store transaction types
 
+// Fungsi untuk memformat tanggal ke format ISO (YYYY-MM-DD) dengan menghindari masalah zona waktu
+function formatDateToISO(dateString) {
+    if (!dateString) return '';
+    
+    // Parse tanggal dari string YYYY-MM-DD
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return dateString;
+    
+    // Buat objek Date dengan tanggal yang diinput (gunakan waktu lokal)
+    // Set jam ke 12:00 untuk menghindari masalah zona waktu
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
+    const day = parseInt(parts[2]);
+    
+    const date = new Date(year, month, day, 12, 0, 0);
+    
+    // Format ke ISO string dan ambil hanya bagian tanggal (YYYY-MM-DD)
+    return date.toISOString().split('T')[0];
+}
+
 // Data pengguna contoh (mockup)
 // const mockUsers = [
 //     { id: 1, name: "Ahmad Baihaki", department: "Finance" },
@@ -309,19 +329,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function saveDocument() {
     Swal.fire({
-        title: 'Konfirmasi',
-        text: 'Apakah dokumen sudah benar?',
+        title: 'Confirmation',
+        text: 'Is the document correct?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Ya',
-        cancelButtonText: 'Batal'
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel'
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
                 await processDocument(false);
                 Swal.fire({
-                    title: 'Berhasil',
-                    text: 'Dokumen berhasil disimpan.',
+                    title: 'Success',
+                    text: 'Document saved successfully.',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
@@ -342,19 +362,19 @@ function saveDocument() {
 
 function submitDocument() {
     Swal.fire({
-        title: 'Konfirmasi',
-        text: 'Apakah dokumen sudah benar?',
+        title: 'Confirmation',
+        text: 'Is the document correct?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Ya',
-        cancelButtonText: 'Batal'
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel'
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
                 await processDocument(true);
                 Swal.fire({
-                    title: 'Berhasil',
-                    text: 'Dokumen berhasil di-submit.',
+                    title: 'Success',
+                    text: 'Document submitted successfully.',
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
@@ -938,7 +958,7 @@ async function processDocument(isSubmit) {
         department: getElementValue("department"),
         payTo: getApprovalValue("payTo"), // Use select element value which contains the ID
         currency: getElementValue("currency"),
-        submissionDate: getElementValue("postingDate"),
+        submissionDate: formatDateToISO(getElementValue("postingDate")), // Gunakan fungsi formatDateToISO
         status: getElementValue("status"),
         referenceDoc: getElementValue("referenceDoc"),
         typeOfTransaction: getElementValue("typeOfTransaction"),

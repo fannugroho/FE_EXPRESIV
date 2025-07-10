@@ -68,6 +68,116 @@ if (typeof formatCurrencyInputIDR !== 'function') {
     };
 }
 
+// Pastikan fungsi displayAttachments berjalan dengan benar
+if (typeof window.originalDisplayAttachments !== 'function') {
+    console.log('Saving original displayAttachments function');
+    window.originalDisplayAttachments = window.displayAttachments;
+    
+    // Override displayAttachments function
+    window.displayAttachments = function(attachments) {
+        console.log('Enhanced displayAttachments called with attachments:', attachments);
+        
+        const attachmentsList = document.getElementById('attachmentsList');
+        if (!attachmentsList) {
+            console.error('attachmentsList element not found!');
+            return;
+        }
+        
+        attachmentsList.innerHTML = '';
+        
+        // Dapatkan status dokumen untuk menentukan apakah tombol hapus ditampilkan
+        const status = document.getElementById('status').value;
+        console.log('Status dokumen:', status);
+        
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            console.log('Jumlah attachment:', attachments.length);
+            
+            attachments.forEach(attachment => {
+                if (!attachment) {
+                    console.error('Null attachment object found');
+                    return;
+                }
+                
+                console.log('Processing attachment:', attachment);
+                
+                const attachmentItem = document.createElement('div');
+                attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+                
+                // Pastikan attachment memiliki properti yang diperlukan
+                const fileName = attachment.fileName || attachment.name || 'Unknown file';
+                const filePath = attachment.filePath || attachment.path || '';
+                const attachmentId = attachment.id || '';
+                
+                // Tambahkan tombol hapus hanya jika status dokumen adalah Draft
+                if (status === 'Draft') {
+                    console.log('Menampilkan tombol hapus untuk attachment:', fileName);
+                    attachmentItem.innerHTML = `
+                        <span>${fileName}</span>
+                        <div>
+                            <a href="${BASE_URL}/${filePath}" target="_blank" class="text-blue-500 hover:text-blue-700 mr-3">View</a>
+                            <button type="button" onclick="deleteAttachment('${attachmentId}')" class="text-red-500 hover:text-red-700">X</button>
+                        </div>
+                    `;
+                } else {
+                    // Jika bukan Draft, hanya tampilkan tombol View
+                    console.log('Status bukan Draft, hanya menampilkan tombol View untuk:', fileName);
+                    attachmentItem.innerHTML = `
+                        <span>${fileName}</span>
+                        <a href="${BASE_URL}/${filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                    `;
+                }
+                
+                attachmentsList.appendChild(attachmentItem);
+            });
+        } else {
+            console.log('Tidak ada attachment untuk ditampilkan atau format data tidak valid');
+        }
+    };
+}
+
+// Tambahkan fungsi untuk memastikan attachment ditampilkan
+function ensureAttachmentsDisplayed() {
+    console.log('Ensuring attachments are displayed');
+    
+    // Cek apakah kita sudah memiliki ID reimbursement
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        console.error('No reimbursement ID found in URL');
+        return;
+    }
+    
+    // Panggil API untuk mendapatkan attachment
+    fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.status && result.code === 200) {
+                console.log('Reimbursement data received for attachments:', result.data);
+                
+                // Cek apakah ada attachment
+                let attachments = null;
+                if (result.data.reimbursementAttachments && result.data.reimbursementAttachments.length > 0) {
+                    attachments = result.data.reimbursementAttachments;
+                    console.log('Found attachments in reimbursementAttachments:', attachments.length);
+                } else if (result.data.attachments && result.data.attachments.length > 0) {
+                    attachments = result.data.attachments;
+                    console.log('Found attachments in attachments property:', attachments.length);
+                } else {
+                    console.log('No attachments found in API response');
+                }
+                
+                // Tampilkan attachment jika ada
+                if (attachments) {
+                    displayAttachments(attachments);
+                }
+            } else {
+                console.error('Failed to fetch reimbursement data for attachments:', result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching reimbursement data for attachments:', error);
+        });
+}
+
 // Pastikan fungsi updateTotalAmount berjalan dengan benar
 document.addEventListener('DOMContentLoaded', function() {
     console.log('detailReim-fix.js loaded');
@@ -91,6 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         console.log('Delayed updateTotalAmount call');
         updateTotalAmount();
+        
+        // Pastikan attachment ditampilkan
+        ensureAttachmentsDisplayed();
     }, 2000);
 });
 
@@ -116,6 +229,9 @@ function ensureDataLoaded() {
         console.log('Department and transaction type are set but categories not loaded, triggering handleDependencyChange');
         handleDependencyChange();
     }
+    
+    // Pastikan attachment ditampilkan
+    ensureAttachmentsDisplayed();
 }
 
 // Panggil ensureDataLoaded setelah halaman dimuat
