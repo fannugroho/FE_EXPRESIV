@@ -196,6 +196,9 @@ function populateItemDetails(items) {
     
 }
 
+// Global counter for item numbers
+let itemCounter = 1;
+
 function addItemRow(item = null) {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) {
@@ -941,6 +944,8 @@ function printPR() {
         
         rows.forEach(row => {
             // Extract data from each row
+            const itemNo = row.querySelector('.item-no') ? row.querySelector('.item-no').value || '' : '';
+            const itemCode = row.querySelector('.item-no option') ? row.querySelector('.item-no option').textContent || '' : '';
             const description = row.querySelector('.item-description') ? row.querySelector('.item-description').value || '' : '';
             const detail = row.querySelector('.item-detail') ? row.querySelector('.item-detail').value || '' : '';
             const purpose = row.querySelector('.item-purpose') ? row.querySelector('.item-purpose').value || '' : '';
@@ -948,6 +953,8 @@ function printPR() {
             const uom = row.querySelector('.item-uom') ? row.querySelector('.item-uom').value || 'Pcs' : 'Pcs';
             
             items.push({
+                itemNo: itemNo,
+                itemCode: itemCode,
                 description: description,
                 detail: detail,
                 purpose: purpose,
@@ -964,6 +971,10 @@ function printPR() {
         params.append('dateIssued', prData.submissionDate);
         params.append('classification', prData.classification);
         
+        // Add remarks from the form
+        const remarks = document.getElementById('remarks').value || '';
+        params.append('remarks', remarks);
+        
         // Add approval information
         params.append('requestedBy', prData.requesterName);
         params.append('checkedBy', prData.checkedBy);
@@ -976,7 +987,7 @@ function printPR() {
         params.append('checkedDateFormatted', checkedDateFormatted || currentDate);
         params.append('acknowledgedDateFormatted', acknowledgedDateFormatted || currentDate);
         params.append('approvedDateFormatted', approvedDateFormatted || currentDate);
-        params.append('receivedDate', receivedDateFormatted || currentDate);
+        params.append('receivedDateFormatted', receivedDateFormatted || currentDate);
         
         // Add approval status flags
         params.append('receivedApproved', 'true');
@@ -1013,18 +1024,38 @@ function goToMenuReceivePR() {
 // Add variable to prevent double-clicking
 let isProcessing = false;
 
-// Function to toggle print button visibility based on document status
+// Function to toggle print button visibility and revision buttons based on document status
 function togglePrintButton() {
     const statusElement = document.getElementById('status');
     const printButton = document.getElementById('printButton');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
     
-    if (printButton) {
-        // Check if document status is "Received"
-        if (statusElement && statusElement.value === "Received") {
+    if (statusElement && statusElement.value === "Received") {
+        // Show print button
+        if (printButton) {
             printButton.style.display = 'block'; // Show print button
-        } else {
+        }
+        
+        // Hide revision buttons when status is "Received"
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'none';
+        }
+        if (revisionButton) {
+            revisionButton.style.display = 'none';
+        }
+    } else {
+        // Hide print button
+        if (printButton) {
             printButton.style.display = 'none'; // Hide print button
         }
+        
+        // Show revision buttons for non-Received status
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'block';
+        }
+        // Don't automatically show the revision button as it depends on other conditions
+        // The revisionButton visibility is controlled by checkRevisionButton() function
     }
 }
 

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     
     // Set nilai dari parameter URL
-    document.getElementById('dateIssued').textContent = urlParams.get('dateIssued') || '';
+    document.getElementById('dateIssued').textContent = urlParams.get('formattedDate') || '';
     document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
     document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
     document.getElementById('classification').textContent = urlParams.get('classification') || '';
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set nilai untuk form dan nomor halaman
     document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
     document.getElementById('rev').textContent = '01';
-    document.getElementById('effectiveDate').textContent = '01/01/2023';
+    document.getElementById('effectiveDate').textContent = '26 Maret 2025';
     document.getElementById('page').textContent = '1 of 1';
     
     // Set nilai approval names
@@ -26,13 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('acknowledgedBy').textContent = urlParams.get('acknowledgedBy') || '';
     document.getElementById('approvedBy').textContent = urlParams.get('approvedBy') || '';
     document.getElementById('receivedBy').textContent = urlParams.get('receivedBy') || '';
-    
+    document.getElementById('requestedEta').textContent = urlParams.get('preparedDateFormatted') || '';
     // Set nilai approval dates
-    document.getElementById('receivedDate').textContent = 'Date: ' + (urlParams.get('receivedDate') || '');
-    document.getElementById('requestedDate').textContent = 'Date: ' + (urlParams.get('requestedDate') || '');
-    document.getElementById('checkedDate').textContent = 'Date: ' + (urlParams.get('checkedDate') || '');
-    document.getElementById('acknowledgedDate').textContent = 'Date: ' + (urlParams.get('acknowledgedDate') || '');
-    document.getElementById('approvedDate').textContent = 'Date: ' + (urlParams.get('approvedDate') || '');
+    document.getElementById('preparedDate').textContent = urlParams.get('preparedDateFormatted') || '';
+    document.getElementById('checkedDate').textContent = urlParams.get('checkedDateFormatted') || '';
+    document.getElementById('acknowledgedDate').textContent = urlParams.get('acknowledgedDateFormatted') || '';
+    document.getElementById('approvedDate').textContent = urlParams.get('approvedDateFormatted') || '';
+    document.getElementById('receivedDate').textContent = urlParams.get('receivedDateFormatted') || urlParams.get('formattedDate') || '';
     
     // Get approval status from URL parameters
     const receivedApproved = urlParams.get('receivedApproved') === 'true';
@@ -72,12 +72,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Map the data according to the requested mapping
                     row.innerHTML = `
                         <td>${index + 1}</td>
+                        <td>${item.itemCode || item.itemNo || ''}</td>
                         <td>${item.description || ''}</td>
                         <td>${item.purpose || ''}</td>
                         <td>${item.quantity || ''}</td>
                         <td>${item.uom || 'Pcs'}</td>
-                        <td></td>
-                        <td>${currentDate}</td>
+                        <td>${urlParams.get('receivedDateFormatted') || currentDate}</td>
                     `;
                     itemsTableBody.appendChild(row);
                 });

@@ -114,7 +114,7 @@
         
         .signature-title {
             font-weight: bold;
-            margin-bottom: 50px;
+            margin-bottom: 10px;
             font-size: 12px;
         }
         
@@ -152,8 +152,7 @@
         .approval-stamp-text {
             color: #0056b3;
             font-weight: bold;
-            font-size: 16px;
-            transform: rotate(-15deg);
+            font-size: 12px;
             border: 2px solid #0056b3;
             border-radius: 5px;
             padding: 3px 10px;
@@ -163,7 +162,7 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
+            transform: translate(-50%, -50%);
         }
         
         @media print {
@@ -218,10 +217,6 @@
                     <div class="form-label">Effective Date:</div>
                     <div class="form-field" id="effectiveDate"></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-label">Page:</div>
-                    <div class="form-field" id="page"></div>
-                </div>
             </div>
         </div>
         
@@ -270,6 +265,7 @@
         
         <div style="margin-top: 20px; font-size: 10px;">
             <p>*Attached pictures which relevant for purchase of fixed asset or equipments is a must</p>
+            <p>*The Unit of Measurement (UoM) in this document is displayed according to the application settings and may differ from the UoM recorded in the SAP Business One system.</p>
         </div>
         
         <!-- Approval Stamp Received by Purchasing Dept-->
@@ -287,7 +283,7 @@
             <!-- Approval Stamp Received by Purchasing Dept-->
             
             <div class="signature-box">
-                <div class="signature-title">Prepared By:</div>
+                <div class="signature-title">Requested By:</div>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
@@ -334,7 +330,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             
             // Set values from URL parameters
-            document.getElementById('dateIssued').textContent = urlParams.get('dateIssued') || '';
+            document.getElementById('dateIssued').textContent = urlParams.get('approvedDateFormatted') || '';
             document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
             document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
             document.getElementById('classification').textContent = urlParams.get('classification') || '';
@@ -342,13 +338,14 @@
             // Set form metadata
             document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
             document.getElementById('rev').textContent = '01';
-            document.getElementById('effectiveDate').textContent = urlParams.get('approvedDateFormatted') || '';
+            document.getElementById('effectiveDate').textContent = '26 Maret 2025';
             
             // Set approval information
             document.getElementById('requestedBy').textContent = urlParams.get('requesterName') || '';
             document.getElementById('checkedBy').textContent = urlParams.get('checkedBy') || '';
             document.getElementById('acknowledgedBy').textContent = urlParams.get('acknowledgedBy') || '';
             document.getElementById('approvedBy').textContent = urlParams.get('approvedBy') || '';
+            document.getElementById('receivedBy').textContent = urlParams.get('receivedBy') || '';
             document.getElementById('receivedDate').textContent = urlParams.get('formattedDate') || '';
             
             // Set approval dates from URL parameters

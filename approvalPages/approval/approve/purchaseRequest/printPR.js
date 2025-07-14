@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     
     // Set nilai dari parameter URL
-    document.getElementById('dateIssued').textContent = urlParams.get('dateIssued') || '';
+    document.getElementById('dateIssued').textContent = urlParams.get('approvedDateFormatted') || '';
     document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
     document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
     document.getElementById('classification').textContent = urlParams.get('classification') || '';
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set nilai untuk form dan nomor halaman
     document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
     document.getElementById('rev').textContent = '01';
-    document.getElementById('effectiveDate').textContent = '01/01/2023';
+    document.getElementById('effectiveDate').textContent = '26 Maret 2025';
     document.getElementById('page').textContent = '1 of 1';
     
     // Set nilai approval names

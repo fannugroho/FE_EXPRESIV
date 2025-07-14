@@ -263,7 +263,27 @@
                                     placeholder="Search..."
                                     class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                                <!-- Date range fields (hidden by default) -->
+                                <div id="dateRangeFields" class="hidden flex">
+                                    <input
+                                        type="date"
+                                        id="dateFrom"
+                                        placeholder="From Date"
+                                        class="w-full md:w-32 px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <input
+                                        type="date"
+                                        id="dateTo"
+                                        placeholder="To Date"
+                                        class="w-full md:w-32 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <button 
+                                    id="searchButton" 
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r-lg"
+                                    onclick="handleSearchClick()">
+                                    <i class="fas fa-search"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
