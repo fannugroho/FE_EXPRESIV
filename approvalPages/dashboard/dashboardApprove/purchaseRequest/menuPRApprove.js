@@ -393,33 +393,57 @@ async function downloadExcel() {
             ...(rejectedData.data || [])
         ];
     
-        // Membuat workbook baru
+        // Create a new workbook
         const workbook = XLSX.utils.book_new();
         
-        // Mengonversi data ke format worksheet
+        // Get current tab name for the file name
+        const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+        
+        // Convert data to worksheet format
         const wsData = allDocuments.map(doc => {
+            // Format dates
+            const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '';
+            const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '';
+            const grDate = doc.grDate ? new Date(doc.grDate).toLocaleDateString() : '';
+            
             return {
-                'Document Number': doc.id,
-                'PR Number': doc.purchaseRequestNo,
-                'Requester': doc.requesterName,
-                'Department': doc.departmentName,
-                'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-                'Required Date': doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
+                'Document Number': doc.id || '',
+                'PR Number': doc.purchaseRequestNo || '',
+                'Requester': doc.requesterName || '',
+                'Department': doc.departmentName || '',
+                'Submission Date': submissionDate,
+                'Required Date': requiredDate,
                 'PO Number': doc.poNumber || '',
-                'Status': doc.status,
-                'GR Date': doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
+                'Status': doc.status || '',
+                'GR Date': grDate
             };
         });
         
-        // Membuat worksheet dan menambahkannya ke workbook
+        // Create worksheet
         const worksheet = XLSX.utils.json_to_sheet(wsData);
+        
+        // Set column widths for better readability
+        const columnWidths = [
+            { wch: 15 }, // Document Number
+            { wch: 20 }, // PR Number
+            { wch: 20 }, // Requester
+            { wch: 15 }, // Department
+            { wch: 15 }, // Submission Date
+            { wch: 15 }, // Required Date
+            { wch: 15 }, // PO Number
+            { wch: 12 }, // Status
+            { wch: 15 }  // GR Date
+        ];
+        worksheet['!cols'] = columnWidths;
+        
+        // Add the worksheet to the workbook
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Requests');
         
-        // Menghasilkan file Excel
-        XLSX.writeFile(workbook, 'purchase_request_approve_list.xlsx');
+        // Generate the Excel file with current filter in the filename
+        XLSX.writeFile(workbook, `purchase_request_approve_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch (error) {
-        console.error('Error downloading Excel:', error);
-        alert('Failed to download Excel file. Please try again.');
+        console.error('Error exporting Excel:', error);
+        alert('Error exporting data to Excel. Please try again.');
     }
 }
 
@@ -454,40 +478,79 @@ async function downloadPDF() {
             ...(rejectedData.data || [])
         ];
 
+        // Use the jsPDF library
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Menambahkan judul
-        doc.setFontSize(16);
-        doc.text('Purchase Request Approve Report', 14, 15);
+        // Get current tab name for the title
+        const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
         
-        // Membuat data tabel dari documents
+        // Add title with current filter information
+        doc.setFontSize(16);
+        doc.text(`Purchase Request Approve Report - ${statusText}`, 14, 15);
+        
+        // Add timestamp
+        const now = new Date();
+        const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        doc.setFontSize(10);
+        doc.text(timestamp, 14, 22);
+        
+        // Prepare table data
         const tableData = allDocuments.map(doc => {
             return [
-                doc.id,
-                doc.purchaseRequestNo,
-                doc.requesterName,
-                doc.departmentName,
+                doc.id || '',
+                doc.purchaseRequestNo || '',
+                doc.requesterName || '',
+                doc.departmentName || '',
                 doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
                 doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
                 doc.poNumber || '',
-                doc.status,
+                doc.status || '',
                 doc.grDate ? new Date(doc.grDate).toLocaleDateString() : ''
             ];
         });
         
-        // Menambahkan tabel
+        // Add table with styling
         doc.autoTable({
             head: [['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status', 'GR Date']],
             body: tableData,
-            startY: 25
+            startY: 30,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            columnStyles: {
+                0: { cellWidth: 20 },      // Doc Number
+                1: { cellWidth: 25 },      // PR Number
+                2: { cellWidth: 25 },      // Requester
+                3: { cellWidth: 20 },      // Department
+                4: { cellWidth: 18 },      // Submission Date
+                5: { cellWidth: 18 },      // Required Date
+                6: { cellWidth: 15 },      // PO Number
+                7: { cellWidth: 15 },      // Status
+                8: { cellWidth: 15 }       // GR Date
+            },
+            headStyles: {
+                fillColor: [66, 133, 244],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [240, 240, 240]
+            }
         });
         
-        // Menyimpan PDF
-        doc.save('purchase_request_approve_list.pdf');
+        // Add total count at the bottom
+        const finalY = doc.lastAutoTable.finalY || 30;
+        doc.setFontSize(10);
+        doc.text(`Total Records: ${allDocuments.length}`, 14, finalY + 10);
+        
+        // Save the PDF with current filter in the filename
+        doc.save(`purchase_request_approve_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
-        console.error('Error downloading PDF:', error);
-        alert('Failed to download PDF file. Please try again.');
+        console.error('Error exporting PDF:', error);
+        alert('Error exporting data to PDF. Please try again.');
     }
 }
 

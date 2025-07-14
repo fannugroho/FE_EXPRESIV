@@ -651,29 +651,51 @@ function downloadExcel() {
         return;
     }
     
-    // Create workbook
+    // Create a new workbook
     const workbook = XLSX.utils.book_new();
     
-    // Prepare data for worksheet
-    const wsData = dataToExport.map((doc, index) => ({
-        'Doc Number': index + 1,
-        'PR Number': doc.purchaseRequestNo || '',
-        'Requester': doc.requesterName || '',
-        'Department': doc.departmentName || '',
-        'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
-        'Required Date': doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '',
-        'PO Number': doc.poNumber || '',
-        'Status': doc.status || ''
-    }));
+    // Get current tab name for the file name
+    const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+    
+    // Convert data to worksheet format
+    const wsData = dataToExport.map((doc, index) => {
+        // Format dates
+        const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '';
+        const requiredDate = doc.requiredDate ? new Date(doc.requiredDate).toLocaleDateString() : '';
+        
+        return {
+            'Doc Number': (index + 1).toString(),
+            'PR Number': doc.purchaseRequestNo || '',
+            'Requester': doc.requesterName || '',
+            'Department': doc.departmentName || '',
+            'Submission Date': submissionDate,
+            'Required Date': requiredDate,
+            'PO Number': doc.poNumber || '',
+            'Status': doc.status || ''
+        };
+    });
     
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(wsData);
     
-    // Add worksheet to workbook
+    // Set column widths for better readability
+    const columnWidths = [
+        { wch: 15 }, // Document Number
+        { wch: 20 }, // PR Number
+        { wch: 20 }, // Requester
+        { wch: 15 }, // Department
+        { wch: 15 }, // Submission Date
+        { wch: 15 }, // Required Date
+        { wch: 15 }, // PO Number
+        { wch: 12 }  // Status
+    ];
+    worksheet['!cols'] = columnWidths;
+    
+    // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Request Revision');
     
-    // Generate Excel file
-    const fileName = `purchase_request_${currentTab}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    // Generate the Excel file with current filter in the filename
+    const fileName = `purchase_request_revision_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 }
 
@@ -687,17 +709,26 @@ function downloadPDF() {
         return;
     }
     
-    // Initialize jsPDF
+    // Use the jsPDF library
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add title
+    // Get current tab name for the title
+    const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+    
+    // Add title with current filter information
     doc.setFontSize(16);
-    doc.text(`Purchase Request ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)} Report`, 14, 15);
+    doc.text(`Purchase Request Revision Report - ${statusText}`, 14, 15);
+    
+    // Add timestamp
+    const now = new Date();
+    const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    doc.setFontSize(10);
+    doc.text(timestamp, 14, 22);
     
     // Prepare table data
     const tableData = dataToExport.map((doc, index) => {
-        let row = [
+        return [
             (index + 1).toString(),
             doc.purchaseRequestNo || '',
             doc.requesterName || '',
@@ -707,30 +738,48 @@ function downloadPDF() {
             doc.poNumber || '',
             doc.status || ''
         ];
-        return row;
     });
     
-    // Define table headers based on current tab
+    // Define table headers
     let headers = ['Doc Number', 'PR Number', 'Requester', 'Department', 'Submission Date', 'Required Date', 'PO Number', 'Status'];
     
-    // Add table to PDF
+    // Add table with styling
     doc.autoTable({
         head: [headers],
         body: tableData,
-        startY: 25,
-        theme: 'grid',
+        startY: 30,
         styles: {
             fontSize: 8,
-            cellPadding: 2
+            cellPadding: 2,
+            overflow: 'linebreak'
+        },
+        columnStyles: {
+            0: { cellWidth: 20 },      // Doc Number
+            1: { cellWidth: 25 },      // PR Number
+            2: { cellWidth: 25 },      // Requester
+            3: { cellWidth: 20 },      // Department
+            4: { cellWidth: 18 },      // Submission Date
+            5: { cellWidth: 18 },      // Required Date
+            6: { cellWidth: 15 },      // PO Number
+            7: { cellWidth: 15 }       // Status
         },
         headStyles: {
             fillColor: [66, 133, 244],
-            textColor: 255
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
         }
     });
     
+    // Add total count at the bottom
+    const finalY = doc.lastAutoTable.finalY || 30;
+    doc.setFontSize(10);
+    doc.text(`Total Records: ${dataToExport.length}`, 14, finalY + 10);
+    
     // Generate PDF file
-    const fileName = `purchase_request_${currentTab}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const fileName = `purchase_request_revision_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
 }
 

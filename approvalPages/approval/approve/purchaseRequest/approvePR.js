@@ -1162,13 +1162,27 @@ let isProcessing = false;
 function updateButtonVisibility() {
     const statusInput = document.getElementById('status');
     const printButton = document.querySelector('button[onclick="printPR()"]');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
     
-    if (statusInput && printButton) {
+    if (statusInput) {
+        const currentStatus = statusInput.value;
+        
         // Tampilkan tombol print hanya jika status = "Approved"
-        if (statusInput.value === "Approved") {
-            printButton.style.display = "block";
-        } else {
-            printButton.style.display = "none";
+        if (printButton) {
+            if (currentStatus === "Approved") {
+                printButton.style.display = "block";
+            } else {
+                printButton.style.display = "none";
+            }
+        }
+        
+        // Sembunyikan tombol addRevision jika status = "Approved" atau "Received"
+        if (addRevisionBtn) {
+            if (currentStatus === "Approved" || currentStatus === "Received") {
+                addRevisionBtn.style.display = "none";
+            } else {
+                addRevisionBtn.style.display = "block";
+            }
         }
     }
 }
