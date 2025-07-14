@@ -1,0 +1,8 @@
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.csproj.AssemblyReference.cache
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.GeneratedMSBuildEditorConfig.editorconfig
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.AssemblyInfoInputs.cache
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.AssemblyInfo.cs
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.csproj.CoreCompileInputs.cache
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.MvcApplicationPartsAssemblyInfo.cs
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.MvcApplicationPartsAssemblyInfo.cache
+C:\KANSAI PAINT - EXPRESSIV SYSTEM\backend\obj\Debug\net6.0\ExpressivSystem.sourcelink.json

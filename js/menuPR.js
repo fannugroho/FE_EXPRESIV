@@ -179,8 +179,24 @@ function populatePurchaseRequests(data) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
+    // Buat salinan data untuk diurutkan agar tidak mengubah data asli
+    const sortedData = [...data].sort((a, b) => {
+        // Pertama, urutkan berdasarkan tanggal submission terbaru
+        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
+        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA; // Tanggal terbaru di atas
+        }
+        
+        // Jika tanggal submission sama, urutkan berdasarkan PR Number terbesar
+        const prNumberA = a.purchaseRequestNo ? parseInt(a.purchaseRequestNo.replace(/\D/g, '')) : 0;
+        const prNumberB = b.purchaseRequestNo ? parseInt(b.purchaseRequestNo.replace(/\D/g, '')) : 0;
+        return prNumberB - prNumberA; // PR Number terbesar di atas
+    });
+    
     // Data is already paginated from the server, so display all items
-    data.forEach((doc, index) => {
+    sortedData.forEach((doc, index) => {
         // Format dates for display
         const submissionDate = doc.submissionDate ? doc.submissionDate.split('T')[0] : '';
         const requiredDate = doc.requiredDate ? doc.requiredDate.split('T')[0] : '';

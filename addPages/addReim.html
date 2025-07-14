@@ -75,7 +75,7 @@
                     <option value="Paid">Paid</option> -->
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="wa-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <input type="file" id="filePath" accept="application/pdf" class="wa-full p-2 border rounded" multiple onchange="previewPDF(event)" required />
                 <div id="fileList" class="mt-2"></div>
                 
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
@@ -128,7 +128,7 @@
                         <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
                     </td>
                     <td class="p-2 border">
-                    <input type="text" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" maxlength="20" required />
+                    <input type="text" value="0.00" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" maxlength="20" required />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -412,6 +412,7 @@
                 amountInput.type = 'text';
                 amountInput.classList.add('currency-input-idr');
                 amountInput.removeAttribute('maxlength'); // Hapus batasan maxlength jika ada
+                amountInput.value = '0.00'; // Set nilai default
                 amountInput.addEventListener('input', function() {
                     formatCurrencyInputIDR(this);
                 });
@@ -432,6 +433,8 @@
                 // Format nilai awal jika ada
                 if (amountInput.value) {
                     formatCurrencyInputIDR(amountInput);
+                } else {
+                    amountInput.value = '0.00'; // Set nilai default jika kosong
                 }
             }
         });
@@ -446,9 +449,16 @@
         const existingInputs = document.querySelectorAll('.currency-input-idr');
         existingInputs.forEach(input => {
             input.removeAttribute('maxlength');
+            // Pastikan input memiliki nilai default
+            if (!input.value) {
+                input.value = '0.00';
+            }
         });
         
         setTimeout(modifyAddRowForIDR, 500); // Delay sedikit untuk memastikan JS lain sudah dimuat
+        
+        // Inisialisasi total amount segera setelah halaman dimuat
+        setTimeout(updateTotalAmount, 600);
         
         // Log untuk debugging
         console.log('Currency formatter initialized');

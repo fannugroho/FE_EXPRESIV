@@ -28,11 +28,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('receivedBy').textContent = urlParams.get('receivedBy') || '';
     
     // Set nilai approval dates
-    document.getElementById('receivedDate').textContent = 'Date: ' + (urlParams.get('receivedDate') || '');
-    document.getElementById('requestedDate').textContent = 'Date: ' + (urlParams.get('requestedDate') || '');
-    document.getElementById('checkedDate').textContent = 'Date: ' + (urlParams.get('checkedDate') || '');
-    document.getElementById('acknowledgedDate').textContent = 'Date: ' + (urlParams.get('acknowledgedDate') || '');
-    document.getElementById('approvedDate').textContent = 'Date: ' + (urlParams.get('approvedDate') || '');
+    document.getElementById('receivedDate').textContent = 'Date: ' + (urlParams.get('formattedDate') || '');
+    document.getElementById('requestedDate').textContent = 'Date: ' + (urlParams.get('preparedDateFormatted') || '');
+    document.getElementById('checkedDate').textContent = 'Date: ' + (urlParams.get('checkedDateFormatted') || '');
+    document.getElementById('acknowledgedDate').textContent = 'Date: ' + (urlParams.get('acknowledgedDateFormatted') || '');
+    document.getElementById('approvedDate').textContent = 'Date: ' + (urlParams.get('approvedDateFormatted') || '');
     
     // Get approval status from URL parameters
     const requestedApproved = urlParams.get('requestedApproved') === 'true';
@@ -68,7 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${item.purpose || ''}</td>
                         <td>${item.quantity || ''}</td>
                         <td>${item.uom || 'Pcs'}</td>
-                        <td></td>
                         <td>${currentDate}</td>
                     `;
                     itemsTableBody.appendChild(row);

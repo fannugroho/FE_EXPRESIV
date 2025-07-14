@@ -296,6 +296,20 @@ function populatePRDetails(data) {
         console.log('No attachments found in data');
     }
     
+    // Set approval dates dari API (hidden fields untuk print)
+    if (data.preparedDateFormatted) {
+        document.getElementById('preparedDateFormatted').value = data.preparedDateFormatted;
+    }
+    if (data.checkedDateFormatted) {
+        document.getElementById('checkedDateFormatted').value = data.checkedDateFormatted;
+    }
+    if (data.acknowledgedDateFormatted) {
+        document.getElementById('acknowledgedDateFormatted').value = data.acknowledgedDateFormatted;
+    }
+    if (data.approvedDateFormatted) {
+        document.getElementById('approvedDateFormatted').value = data.approvedDateFormatted;
+    }
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
 }
@@ -870,7 +884,12 @@ function printPR() {
         const acknowledgedBy = document.getElementById('acknowledgeBySearch').value;
         const approvedBy = document.getElementById('approvedBySearch').value;
         const receivedBy = document.getElementById('receivedBySearch').value;
-        const receivedDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini
+        
+        // Ambil approval dates dari hidden fields (dari API)
+        const preparedDateFormatted = document.getElementById('preparedDateFormatted').value;
+        const checkedDateFormatted = document.getElementById('checkedDateFormatted').value;
+        const acknowledgedDateFormatted = document.getElementById('acknowledgedDateFormatted').value;
+        const approvedDateFormatted = document.getElementById('approvedDateFormatted').value;
         
         // Get PR type from select element
         const prTypeSelect = document.getElementById('prType');
@@ -890,6 +909,7 @@ function printPR() {
             let purpose = '';
             let quantity = '';
             let uom = '';
+            let itemCode = '';
             
             // Extract data based on the current structure of the table
             description = row.querySelector('.item-description')?.value || 
@@ -898,6 +918,15 @@ function printPR() {
             purpose = row.querySelector('.item-purpose')?.value || '';
             quantity = row.querySelector('.item-quantity')?.value || '';
             uom = row.querySelector('.item-uom')?.value || 'Pcs'; // Default to 'Pcs' if not found
+            
+            // Extract Item Code from the select element
+            const itemNoSelect = row.querySelector('.item-no');
+            if (itemNoSelect) {
+                const selectedOption = itemNoSelect.querySelector('option[selected]');
+                if (selectedOption) {
+                    itemCode = selectedOption.textContent || selectedOption.value || '';
+                }
+            }
             
             // Try to get price from detail field or set to 0
             price = parseFloat(row.querySelector('.item-detail')?.value || '0');
@@ -913,6 +942,7 @@ function printPR() {
             
             const item = {
                 itemNo: index + 1,
+                itemCode: itemCode || 'N/A',
                 description: description || 'N/A',
                 purpose: purpose || 'N/A',
                 quantity: quantity || '0',
@@ -930,7 +960,7 @@ function printPR() {
         // Buat URL dengan parameter
         const url = new URL('printPR.html', window.location.href);
         
-        // Get current date for approval dates
+        // Get current date for approval dates (fallback jika tidak ada dari API)
         const currentDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini dalam format YYYY-MM-DD
         const formattedDate = new Date().toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
         
@@ -945,12 +975,12 @@ function printPR() {
         url.searchParams.set('approvedBy', approvedBy);
         url.searchParams.set('receivedBy', receivedBy);
         
-        // Set approval dates
+        // Set approval dates dari API atau gunakan current date sebagai fallback
+        url.searchParams.set('preparedDateFormatted', preparedDateFormatted || formattedDate);
+        url.searchParams.set('checkedDateFormatted', checkedDateFormatted || formattedDate);
+        url.searchParams.set('acknowledgedDateFormatted', acknowledgedDateFormatted || formattedDate);
+        url.searchParams.set('approvedDateFormatted', approvedDateFormatted || formattedDate);
         url.searchParams.set('receivedDate', formattedDate);
-        url.searchParams.set('requestedDate', formattedDate);
-        url.searchParams.set('checkedDate', formattedDate);
-        url.searchParams.set('acknowledgedDate', formattedDate);
-        url.searchParams.set('approvedDate', formattedDate);
         
         // Add approval status parameters
         url.searchParams.set('requestedApproved', 'true'); // Requester is always approved

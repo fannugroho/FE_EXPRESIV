@@ -136,6 +136,14 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
+            <!-- Hidden Approval Date Fields untuk Print PR -->
+            <div style="display: none;">
+                <input type="hidden" id="preparedDateFormatted" value="">
+                <input type="hidden" id="checkedDateFormatted" value="">
+                <input type="hidden" id="acknowledgedDateFormatted" value="">
+                <input type="hidden" id="approvedDateFormatted" value="">
+            </div>
+
         <!-- Revised Remarks Display Section (Read-only) -->
         <div class="mt-4" id="revisedRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>

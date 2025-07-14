@@ -46,23 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Notification dropdown toggle
-    const notificationBtn = document.getElementById('notificationBtn');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    
-    if (notificationBtn && notificationDropdown) {
-        notificationBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            notificationDropdown.classList.toggle('hidden');
-        });
-        
-        // Close when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!notificationDropdown.contains(e.target) && e.target !== notificationBtn) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-    }
+
 });
 
 async function loadDashboard() {
@@ -136,14 +120,17 @@ async function loadDashboard() {
         if (result.status && result.data) {
             const documents = result.data;
             
+            // Sort documents by PR Number (running number) - newest first
+            const sortedDocuments = sortDocumentsByPRNumber(documents);
+            
             // Update counters by fetching all statuses
             await updateCounters(userId);
             
             // Update the table with filtered documents
-            updateTable(documents);
+            updateTable(sortedDocuments);
             
             // Update pagination info
-            updatePaginationInfo(documents.length);
+            updatePaginationInfo(sortedDocuments.length);
         } else {
             console.error('API response error:', result.message);
             // Fallback to empty state
@@ -198,6 +185,33 @@ async function updateCounters(userId) {
         document.getElementById("acknowledgedCount").textContent = '0';
         document.getElementById("rejectedCount").textContent = '0';
     }
+}
+
+// Function to sort documents by PR Number (running number) - newest first
+function sortDocumentsByPRNumber(documents) {
+    return documents.sort((a, b) => {
+        // Extract running number from PR Number
+        const getRunningNumber = (prNumber) => {
+            if (!prNumber) return 0;
+            
+            // Try to extract numeric part from PR Number
+            // Assuming PR Number format like "PR-2024-001", "PR2024001", etc.
+            const numericMatch = prNumber.toString().match(/\d+/g);
+            if (numericMatch && numericMatch.length > 0) {
+                // Join all numeric parts and convert to number
+                return parseInt(numericMatch.join(''));
+            }
+            
+            // If no numeric part found, use the entire string as fallback
+            return prNumber.toString().localeCompare(b.purchaseRequestNo || '');
+        };
+        
+        const runningNumberA = getRunningNumber(a.purchaseRequestNo);
+        const runningNumberB = getRunningNumber(b.purchaseRequestNo);
+        
+        // Sort in descending order (newest/highest number first)
+        return runningNumberB - runningNumberA;
+    });
 }
 
 // Function to update the table with documents
@@ -484,3 +498,251 @@ async function downloadPDF() {
 function goToProfile() {
     window.location.href = "../../../../pages/profil.html";
 }
+
+// ================= NOTIFICATION FUNCTIONS =================
+// Notifikasi dokumen yang perlu di-acknowledge (checked)
+let notifiedPRs = new Set();
+let notificationContainer = null;
+let isNotificationVisible = false;
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+    const count = notifiedPRs.size;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.textContent = '0';
+        badge.classList.add('hidden');
+    }
+}
+
+function toggleNotificationPanel() {
+    if (!notificationContainer) {
+        createNotificationPanel();
+    }
+    
+    if (isNotificationVisible) {
+        hideNotificationPanel();
+    } else {
+        showNotificationPanel();
+    }
+}
+
+function createNotificationPanel() {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'notification-container';
+    notificationContainer.style.position = 'fixed';
+    notificationContainer.style.top = '70px';
+    notificationContainer.style.right = '20px';
+    notificationContainer.style.zIndex = '9999';
+    notificationContainer.style.maxWidth = '350px';
+    notificationContainer.style.maxHeight = '400px';
+    notificationContainer.style.overflowY = 'auto';
+    notificationContainer.style.backgroundColor = 'white';
+    notificationContainer.style.borderRadius = '8px';
+    notificationContainer.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    notificationContainer.style.border = '1px solid #e5e7eb';
+    notificationContainer.style.display = 'none';
+    document.body.appendChild(notificationContainer);
+}
+
+function showNotificationPanel() {
+    if (!notificationContainer) return;
+    
+    updateNotificationContent();
+    notificationContainer.style.display = 'block';
+    isNotificationVisible = true;
+}
+
+function hideNotificationPanel() {
+    if (!notificationContainer) return;
+    notificationContainer.style.display = 'none';
+    isNotificationVisible = false;
+}
+
+function updateNotificationContent() {
+    if (!notificationContainer) return;
+    
+    if (notifiedPRs.size === 0) {
+        notificationContainer.innerHTML = `
+            <div class="p-4 text-center text-gray-500">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No notifications</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let content = `
+        <div class="p-3 border-b border-gray-200 bg-gray-50">
+            <h3 class="font-semibold text-gray-800">Notifications (${notifiedPRs.size})</h3>
+        </div>
+        <div class="max-h-80 overflow-y-auto">
+    `;
+    
+    const notificationData = JSON.parse(localStorage.getItem('notificationData') || '{}');
+    
+    notifiedPRs.forEach(prNumber => {
+        const data = notificationData[prNumber] || {};
+        const submissionDate = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString() : '-';
+        
+        content += `
+            <div class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900">${data.purchaseRequestNo || prNumber}</div>
+                        <div class="text-xs text-gray-600 mt-1">${data.requesterName || 'Unknown'} - ${data.departmentName || 'Unknown'}</div>
+                        <div class="text-xs text-gray-500 mt-1">Submitted: ${submissionDate}</div>
+                        <div class="inline-block mt-1">
+                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">${data.status || 'Checked'}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeNotification('${prNumber}')" class="ml-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    content += '</div>';
+    notificationContainer.innerHTML = content;
+}
+
+function showNotification(message, prNumber) {
+    const notificationData = JSON.parse(localStorage.getItem('notificationData') || '{}');
+    const data = {
+        purchaseRequestNo: prNumber,
+        requesterName: message.split('-')[1] || 'Unknown',
+        departmentName: message.split('-')[2] || 'Unknown',
+        submissionDate: message.split('-')[3] || '-',
+        status: message.split('-')[4] || 'Checked'
+    };
+    notificationData[prNumber] = data;
+    localStorage.setItem('notificationData', JSON.stringify(notificationData));
+    
+    notifiedPRs.add(prNumber);
+    updateNotificationBadge();
+    
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+function removeNotification(prNumber) {
+    const notificationData = JSON.parse(localStorage.getItem('notificationData') || '{}');
+    delete notificationData[prNumber];
+    localStorage.setItem('notificationData', JSON.stringify(notificationData));
+    
+    notifiedPRs.delete(prNumber);
+    updateNotificationBadge();
+    
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+// Polling untuk dokumen yang sudah checked (perlu di-acknowledge)
+async function pollCheckedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=false`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const data = await response.json();
+        const docs = data.data || [];
+        let newPRFound = false;
+        docs.forEach(doc => {
+            if (!notifiedPRs.has(doc.purchaseRequestNo)) {
+                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                const message = `${doc.purchaseRequestNo}-${doc.requesterName}-${doc.departmentName}-${submissionDate}-${doc.status}`;
+                showNotification(message, doc.purchaseRequestNo);
+                newPRFound = true;
+            }
+        });
+        // Play sound jika ada dokumen baru
+        if (newPRFound) {
+            try {
+                const audio = new Audio('../../../../components/shared/tones.mp3');
+                audio.play();
+            } catch (e) {
+                console.warn('Gagal memutar nada dering notifikasi:', e);
+            }
+        }
+    } catch (e) {
+        console.warn('Error polling checked docs:', e);
+    }
+}
+
+// Polling untuk dokumen yang sudah acknowledged
+async function pollAcknowledgedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard/approval?ApproverId=${userId}&ApproverRole=acknowledged&isApproved=true`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const data = await response.json();
+        const acknowledgedPRs = new Set((data.data || []).map(doc => doc.purchaseRequestNo));
+        // Hapus notifikasi untuk PR yang sudah acknowledged
+        notifiedPRs.forEach(prNumber => {
+            if (acknowledgedPRs.has(prNumber)) {
+                removeNotification(prNumber);
+            }
+        });
+    } catch (e) {
+        console.warn('Error polling acknowledged docs:', e);
+    }
+}
+
+// Polling untuk dokumen yang rejected
+async function pollRejectedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        const response = await fetch(`${BASE_URL}/api/pr/dashboard/rejected?ApproverId=${userId}&ApproverRole=acknowledged`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        const data = await response.json();
+        const rejectedPRs = new Set((data.data || []).map(doc => doc.purchaseRequestNo));
+        // Hapus notifikasi untuk PR yang sudah rejected
+        notifiedPRs.forEach(prNumber => {
+            if (rejectedPRs.has(prNumber)) {
+                removeNotification(prNumber);
+            }
+        });
+    } catch (e) {
+        console.warn('Error polling rejected docs:', e);
+    }
+}
+
+// Polling interval (setiap 10 detik)
+setInterval(() => {
+    pollCheckedDocs();
+    pollAcknowledgedDocs();
+    pollRejectedDocs();
+}, 10000);
+
+// Jalankan polling pertama kali saat halaman dimuat
+pollCheckedDocs();
+pollAcknowledgedDocs();
+pollRejectedDocs();
+updateNotificationBadge();
+
+// Event click pada bell untuk toggle notifikasi panel
+const bell = document.getElementById('notificationBell');
+if (bell) {
+    bell.addEventListener('click', function() {
+        toggleNotificationPanel();
+    });
+}
+
+// Tutup panel jika klik di luar
+document.addEventListener('click', function(event) {
+    if (notificationContainer && !notificationContainer.contains(event.target) && !bell.contains(event.target)) {
+        hideNotificationPanel();
+    }
+});

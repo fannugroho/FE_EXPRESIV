@@ -64,57 +64,14 @@
 
         <!-- User Avatar -->
         <div class="absolute top-4 right-4 flex items-center space-x-4">
-            <!-- Notification Bell with Badge -->
-            <div class="relative">
-                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+            <!-- Notification Bell -->
+            <div id="notificationBellWrapper" class="relative">
+                <button id="notificationBell" class="focus:outline-none">
+                    <i class="fas fa-bell text-white text-2xl"></i>
+                    <span id="notificationBadge" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
                 </button>
-                <!-- Notification Dropdown -->
-                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
-                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
-                        <i class="fas fa-bell text-blue-500 mr-2"></i>
-                        <span>Notifikasi</span>
-                    </div>
-                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
-                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 pt-1">
-                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
-                                    </span>
-                                </div>
-                                <div class="ml-3">
-                                    <div class="font-semibold">Purchase Request document</div>
-                                    <div class="text-xs text-gray-500">Requires approval</div>
-                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 pt-1">
-                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
-                                    </span>
-                                </div>
-                                <div class="ml-3">
-                                    <div class="font-semibold">Reimbursement document</div>
-                                    <div class="text-xs text-gray-500">Requires approval</div>
-                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
-                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
-                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
-                            <span>See All Notifications</span>
-                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
-                        </a>
-                    </div>
-                </div>
             </div>
-        
+            
             <!-- User Avatar + Name -->
             <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
@@ -196,7 +153,7 @@
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <th class="p-2 text-left">Doc Number</th>
+                                    <th class="p-2 text-left">No.</th>
                                     <th class="p-2 text-left">PR Number</th>
                                     <th class="p-2 text-left">Requester</th>
                                     <th class="p-2 text-left">Department</th>

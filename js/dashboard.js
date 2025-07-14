@@ -1,8 +1,8 @@
 window.onload = function () {
     loadUserGreeting();
-    // loadDashboardAvatar();
     loadDashboard();
     initNotifications();
+    initializeWebSocket();
 };
 
 function loadUserGreeting() {
@@ -46,31 +46,281 @@ function loadUserGreeting() {
     }
 }
 
+// Real-time notification system
+let notificationWebSocket = null;
+
+function initializeWebSocket() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            console.log("User ID not found, skipping WebSocket initialization");
+            return;
+        }
+
+        // Initialize SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${BASE_URL}/notificationHub`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("NewNotification", (notification) => {
+            const receiveTime = new Date();
+            console.log(`Received real-time notification at ${receiveTime.toISOString()}:`, notification);
+            
+            // Performance monitoring
+            const startTime = performance.now();
+            
+            showToastNotification(notification);
+            addNotificationToList(notification);
+            updateNotificationBadge();
+            
+            const endTime = performance.now();
+            console.log(`Frontend notification processing time: ${(endTime - startTime).toFixed(2)}ms`);
+        });
+
+        connection.start()
+            .then(() => {
+                console.log("SignalR connected successfully");
+                notificationWebSocket = connection;
+            })
+            .catch(err => {
+                console.error("SignalR connection failed:", err);
+            });
+
+    } catch (error) {
+        console.error("Error initializing WebSocket:", error);
+    }
+}
+
+// Show toast notification for new notifications
+function showToastNotification(notification) {
+    const startTime = performance.now();
+    
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300 max-w-sm';
+    toast.innerHTML = `
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <i class="fas fa-bell text-white"></i>
+            </div>
+            <div class="ml-3 flex-1">
+                <div class="font-semibold text-sm">${notification.docNumber}</div>
+                <div class="text-xs opacity-90 mt-1">${notification.requesterName} - ${notification.department}</div>
+                <div class="text-xs opacity-75 mt-1">${notification.approvalLevel} approval required</div>
+            </div>
+            <button class="ml-2 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+        const endTime = performance.now();
+        console.log(`Toast notification display time: ${(endTime - startTime).toFixed(2)}ms`);
+    }, 100);
+    
+    // Auto remove after 8 seconds
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 300);
+    }, 8000);
+}
+
+// Add notification to list
+function addNotificationToList(notification) {
+    const notificationList = document.getElementById("notification-list");
+    if (!notificationList) return;
+
+    // Create new notification item
+    const li = document.createElement('li');
+    li.className = 'notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0 bg-blue-50';
+    li.setAttribute('data-notification-id', notification.id);
+    
+    // Determine icon and colors
+    let iconClass, bgColorClass, statusBadgeClass;
+    
+    switch(notification.docType) {
+        case 'Purchase Request':
+            iconClass = 'fas fa-file-invoice-dollar text-blue-500';
+            bgColorClass = 'bg-blue-100';
+            statusBadgeClass = 'bg-blue-200 text-blue-800';
+            break;
+        case 'Reimbursement':
+            iconClass = 'fas fa-hand-holding-usd text-green-500';
+            bgColorClass = 'bg-green-100';
+            statusBadgeClass = 'bg-green-200 text-green-800';
+            break;
+        case 'Cash Advance':
+            iconClass = 'fas fa-wallet text-purple-500';
+            bgColorClass = 'bg-purple-100';
+            statusBadgeClass = 'bg-purple-200 text-purple-800';
+            break;
+        case 'Settlement':
+            iconClass = 'fas fa-balance-scale text-orange-500';
+            bgColorClass = 'bg-orange-100';
+            statusBadgeClass = 'bg-orange-200 text-orange-800';
+            break;
+        default:
+            iconClass = 'fas fa-file text-gray-500';
+            bgColorClass = 'bg-gray-100';
+            statusBadgeClass = 'bg-gray-200 text-gray-800';
+    }
+    
+    li.innerHTML = `
+        <div class="flex items-start">
+            <div class="flex-shrink-0 pt-1">
+                <span class="h-8 w-8 rounded-full ${bgColorClass} flex items-center justify-center">
+                    <i class="${iconClass}"></i>
+                </span>
+            </div>
+            <div class="ml-3 flex-1">
+                <div class="flex items-center justify-between">
+                    <div class="font-semibold">${notification.docNumber}</div>
+                    <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass}">${notification.approvalLevel}</span>
+                </div>
+                <div class="text-xs text-gray-700">
+                    <strong>${notification.requesterName}</strong> - ${notification.department}
+                </div>
+                <div class="text-xs text-gray-400 mt-1">${formatDate(new Date(notification.submissionDate))}</div>
+                <div class="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
+            </div>
+        </div>
+    `;
+    
+    // Add click event
+    li.addEventListener('click', () => {
+        markNotificationAsRead(notification.id);
+        redirectToApprovalPage(notification);
+    });
+    
+    // Add to top of list
+    notificationList.insertBefore(li, notificationList.firstChild);
+    
+    // Remove oldest if more than 5
+    const items = notificationList.querySelectorAll('li');
+    if (items.length > 5) {
+        items[items.length - 1].remove();
+    }
+}
+
 // Notification System
 function initNotifications() {
-    // Coba ambil data dari API
-    fetchNotifications()
+    fetchApprovalNotifications()
         .then(notificationData => {
-            // Simpan data secara global untuk filtering
             window.allNotifications = notificationData;
-            
-            // Render notifikasi
             renderNotifications(notificationData);
-            
-            // Update badge notifikasi
-            updateNotificationCount(notificationData.length);
+            updateNotificationCount(notificationData.filter(n => !n.isRead).length);
         })
         .catch(error => {
             console.error("Error mengambil data notifikasi:", error);
-            // Fallback ke data dummy jika terjadi error
-            const dummyData = generateDummyNotifications(15);
+            const dummyData = generateDummyNotifications(5);
             window.allNotifications = dummyData;
             renderNotifications(dummyData);
             updateNotificationCount(dummyData.length);
         });
     
-    // Setup event listeners
     setupNotificationEvents();
+}
+
+// Fetch approval notifications from API
+async function fetchApprovalNotifications() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            throw new Error("User ID tidak ditemukan");
+        }
+        
+        const response = await fetch(`${BASE_URL}/api/notification/approval/${userId}`, {
+            headers: { 
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Data notifikasi approval berhasil diambil:", data);
+        
+        return data.data || [];
+        
+    } catch (error) {
+        console.error("Error saat mengambil notifikasi approval:", error);
+        throw error;
+    }
+}
+
+// Mark notification as read
+async function markNotificationAsRead(notificationId) {
+    try {
+        await fetch(`${BASE_URL}/api/notification/${notificationId}/read`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // Update UI
+        const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+        if (notificationItem) {
+            notificationItem.classList.remove('bg-blue-50');
+            notificationItem.classList.add('opacity-75');
+            const unreadDot = notificationItem.querySelector('.w-2.h-2.bg-blue-500');
+            if (unreadDot) {
+                unreadDot.remove();
+            }
+        }
+        
+    } catch (error) {
+        console.error("Error marking notification as read:", error);
+    }
+}
+
+// Redirect to approval page
+function redirectToApprovalPage(notification) {
+    const baseUrl = window.location.origin;
+    let approvalUrl = '';
+    
+    switch(notification.docType) {
+        case 'Purchase Request':
+            approvalUrl = `${baseUrl}/approvalPages/dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html`;
+            break;
+        case 'Reimbursement':
+            approvalUrl = `${baseUrl}/approvalPages/dashboard/dashboardCheck/reimbursement/menuReimCheck.html`;
+            break;
+        case 'Cash Advance':
+            approvalUrl = `${baseUrl}/approvalPages/dashboard/dashboardCheck/cashAdvance/menuCashCheck.html`;
+            break;
+        case 'Settlement':
+            approvalUrl = `${baseUrl}/approvalPages/dashboard/dashboardCheck/settlement/menuSettleCheck.html`;
+            break;
+        default:
+            approvalUrl = `${baseUrl}/pages/dashboard.html`;
+    }
+    
+    window.location.href = approvalUrl;
+}
+
+// Update notification badge
+function updateNotificationBadge() {
+    const unreadCount = document.querySelectorAll('.notification-item.bg-blue-50').length;
+    const badge = document.querySelector("#notificationBtn .notification-badge");
+    
+    if (badge) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+    }
 }
 
 // Fungsi untuk mengambil data notifikasi dari API
@@ -280,7 +530,7 @@ function setupNotificationEvents() {
     // Toggle dropdown when notification button is clicked
     document.getElementById("notificationBtn").addEventListener("click", function(e) {
         e.stopPropagation();
-    const dropdown = document.getElementById("notificationDropdown");
+        const dropdown = document.getElementById("notificationDropdown");
         
         if (dropdown.classList.contains("hidden")) {
             // Show dropdown with animation
@@ -301,15 +551,15 @@ function setupNotificationEvents() {
     
     // Close dropdown when clicking outside
     window.addEventListener("click", function(e) {
-    const dropdown = document.getElementById("notificationDropdown");
-    const btn = document.getElementById("notificationBtn");
+        const dropdown = document.getElementById("notificationDropdown");
+        const btn = document.getElementById("notificationBtn");
         
         if (!dropdown.classList.contains("hidden") && !btn.contains(e.target) && !dropdown.contains(e.target)) {
             // Hide with animation
             dropdown.classList.remove("scale-100", "opacity-100");
             dropdown.classList.add("scale-95", "opacity-0");
             setTimeout(() => {
-        dropdown.classList.add("hidden");
+                dropdown.classList.add("hidden");
             }, 300);
         }
     });
@@ -318,20 +568,55 @@ function setupNotificationEvents() {
     document.getElementById("apply-filters").addEventListener("click", function() {
         applyFilters();
     });
+
+    // Mark all as read
+    document.getElementById("mark-all-read").addEventListener("click", function() {
+        markAllNotificationsAsRead();
+    });
+}
+
+// Mark all notifications as read
+async function markAllNotificationsAsRead() {
+    try {
+        const unreadNotifications = window.allNotifications.filter(n => !n.isRead);
+        
+        // Mark all unread notifications as read
+        for (const notification of unreadNotifications) {
+            await markNotificationAsRead(notification.id);
+        }
+        
+        // Update UI
+        const notificationItems = document.querySelectorAll('.notification-item.bg-blue-50');
+        notificationItems.forEach(item => {
+            item.classList.remove('bg-blue-50');
+            item.classList.add('opacity-75');
+            const unreadDot = item.querySelector('.w-2.h-2.bg-blue-500');
+            if (unreadDot) {
+                unreadDot.remove();
+            }
+        });
+        
+        // Update badge
+        updateNotificationBadge();
+        
+        console.log("All notifications marked as read");
+        
+    } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+    }
 }
 
 function renderNotifications(notifications) {
     const notificationList = document.getElementById("notification-list");
     notificationList.innerHTML = '';
     
-    // Hanya tampilkan 5 item pertama (atau semua jika kurang dari 5)
     const displayNotifications = notifications.slice(0, 5);
     
     if (displayNotifications.length === 0) {
         notificationList.innerHTML = `
             <li class="px-4 py-6 text-center text-gray-500">
                 <i class="fas fa-inbox text-gray-300 text-3xl mb-2"></i>
-                <p>Tidak ada notifikasi yang sesuai dengan filter</p>
+                <p>Tidak ada dokumen yang memerlukan approval</p>
             </li>
         `;
         return;
@@ -339,79 +624,37 @@ function renderNotifications(notifications) {
     
     displayNotifications.forEach(notification => {
         const li = document.createElement('li');
-        li.className = 'notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0';
+        li.className = `notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0 ${notification.isRead ? 'opacity-75' : 'bg-blue-50'}`;
+        li.setAttribute('data-notification-id', notification.id);
         
-        // Tentukan ikon dan warna berdasarkan jenis dokumen
-        let iconClass, bgColorClass;
+        // Determine icon and colors
+        let iconClass, bgColorClass, statusBadgeClass;
+        
         switch(notification.docType) {
             case 'Purchase Request':
                 iconClass = 'fas fa-file-invoice-dollar text-blue-500';
                 bgColorClass = 'bg-blue-100';
+                statusBadgeClass = 'bg-blue-200 text-blue-800';
                 break;
             case 'Reimbursement':
                 iconClass = 'fas fa-hand-holding-usd text-green-500';
                 bgColorClass = 'bg-green-100';
+                statusBadgeClass = 'bg-green-200 text-green-800';
                 break;
             case 'Cash Advance':
                 iconClass = 'fas fa-wallet text-purple-500';
                 bgColorClass = 'bg-purple-100';
+                statusBadgeClass = 'bg-purple-200 text-purple-800';
                 break;
             case 'Settlement':
                 iconClass = 'fas fa-balance-scale text-orange-500';
                 bgColorClass = 'bg-orange-100';
+                statusBadgeClass = 'bg-orange-200 text-orange-800';
                 break;
             default:
                 iconClass = 'fas fa-file text-gray-500';
                 bgColorClass = 'bg-gray-100';
-        }
-        
-        // Badge status
-        let statusBadgeClass;
-        let statusText = notification.status;
-        
-        // Terjemahkan status ke Bahasa Indonesia jika perlu
-        switch(notification.status) {
-            case 'Open':
                 statusBadgeClass = 'bg-gray-200 text-gray-800';
-                statusText = 'Open';
-                break;
-            case 'Checked':
-                statusBadgeClass = 'bg-blue-200 text-blue-800';
-                statusText = 'Checked';
-                break;
-            case 'Acknowledge':
-                statusBadgeClass = 'bg-purple-200 text-purple-800';
-                statusText = 'Acknowledge';
-                break;
-            case 'Approved':
-                statusBadgeClass = 'bg-green-200 text-green-800';
-                statusText = 'Approved';
-                break;
-            case 'Received':
-                statusBadgeClass = 'bg-orange-200 text-orange-800';
-                statusText = 'Received';
-                break;
-            default:
-                statusBadgeClass = 'bg-gray-200 text-gray-800';
-        }
-        
-        // Terjemahkan jenis dokumen ke Bahasa Indonesia
-        let docTypeText;
-        switch(notification.docType) {
-            case 'Purchase Request':
-                docTypeText = 'Purchase Request';
-                break;
-            case 'Reimbursement':
-                docTypeText = 'Reimbursement';
-                break;
-            case 'Cash Advance':
-                docTypeText = 'Cash Advance';
-                break;
-            case 'Settlement':
-                docTypeText = 'Settlement';
-                break;
-            default:
-                docTypeText = notification.docType;
         }
         
         li.innerHTML = `
@@ -423,20 +666,30 @@ function renderNotifications(notifications) {
                 </div>
                 <div class="ml-3 flex-1">
                     <div class="flex items-center justify-between">
-                        <div class="font-semibold">${docTypeText}</div>
-                        <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass}">${statusText}</span>
+                        <div class="font-semibold">${notification.docNumber}</div>
+                        <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass}">${notification.approvalLevel}</span>
                     </div>
-                    <div class="text-xs text-gray-700">${notification.docNumber}</div>
-                    <div class="text-xs text-gray-400 mt-1">${notification.dateFormatted}</div>
+                    <div class="text-xs text-gray-700">
+                        <strong>${notification.requesterName}</strong> - ${notification.department}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">${formatDate(new Date(notification.submissionDate))}</div>
+                    ${!notification.isRead ? '<div class="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>' : ''}
                 </div>
             </div>
         `;
         
+        // Add click event
+        li.addEventListener('click', () => {
+            markNotificationAsRead(notification.id);
+            redirectToApprovalPage(notification);
+        });
+        
         notificationList.appendChild(li);
     });
     
-    // Update jumlah di header
-    updateNotificationCount(notifications.length);
+    // Update badge count
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+    updateNotificationCount(unreadCount);
 }
 
 function applyFilters() {

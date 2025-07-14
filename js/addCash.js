@@ -119,6 +119,29 @@ function removeTransactionTypeEmphasis() {
     }
 }
 
+// Function to calculate total amount from all rows
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
+    
+    totalInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        sum += value;
+    });
+    
+    // Format the sum with 2 decimal places and thousands separator
+    const formattedSum = sum.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Update the total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
+}
+
 // Function to update field states based on prerequisites
 function updateFieldsBasedOnPrerequisites(row) {
     const categoryInput = row.querySelector('.category-input');
@@ -559,19 +582,25 @@ function validateFormFields(isSubmit) {
     // Check requester selection
     const requesterSearch = document.getElementById("requesterSearch").value;
     if (!requesterSearch) {
+        emphasizeRequesterSelection(); // Tampilkan helper text saat validasi
         return {
             isValid: false,
             message: 'Please select a requester first.'
         };
+    } else {
+        removeRequesterEmphasis(); // Hapus helper text jika sudah terisi
     }
 
     // Check transaction type
     const transactionType = document.getElementById("TransactionType").value;
     if (!transactionType) {
+        emphasizeTransactionTypeSelection(); // Tampilkan helper text saat validasi
         return {
             isValid: false,
             message: 'Please select a transaction type.'
         };
+    } else {
+        removeTransactionTypeEmphasis(); // Hapus helper text jika sudah terisi
     }
 
     // Check department (via requester)
@@ -791,7 +820,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="number" class="total w-full" maxlength="10" required step="0.01"/>
+            <input type="number" class="total w-full" maxlength="10" required step="0.01" onchange="calculateTotalAmount()"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -808,6 +837,7 @@ async function addRow() {
 
 function deleteRow(button) {
     button.closest("tr").remove(); // Hapus baris tempat tombol diklik
+    calculateTotalAmount(); // Recalculate total after removing a row
 }
 
 function fetchDepartments() {
@@ -1273,8 +1303,7 @@ function populateTransactionTypeSelect(transactionTypes) {
         closedBySection.style.display = 'none';
         closedByLabel.style.display = 'none';
         
-        // Add initial emphasis to transaction type since no value is selected by default
-        emphasizeTransactionTypeSelection();
+        // Helper text akan ditampilkan hanya saat validasi, bukan saat inisialisasi
     }
 }
 
@@ -1289,6 +1318,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     fetchTransactionType();
     fetchBusinessPartners();
     
+    // Initialize total amount calculation
+    calculateTotalAmount();
+    
     // Setup initial row after a small delay to ensure DOM is ready
     setTimeout(async () => {
         const firstRow = document.querySelector('#tableBody tr');
@@ -1296,9 +1328,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             await setupCategoryDropdown(firstRow);
         }
         
-        // Add initial emphasis to both requester and transaction type
-        emphasizeRequesterSelection();
-        emphasizeTransactionTypeSelection();
+        // Helper text tidak ditampilkan saat halaman pertama kali dimuat
+        // Akan ditampilkan hanya saat validasi
     }, 500);
     
     // Add event listener for department change
