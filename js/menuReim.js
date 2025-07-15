@@ -118,11 +118,27 @@ function displayReimbursements(reimbursements) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
     
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, reimbursements.length);
-    const paginatedReimbursements = reimbursements.slice(startIndex, endIndex);
+    // Buat salinan data untuk diurutkan agar tidak mengubah data asli
+    const sortedData = [...reimbursements].sort((a, b) => {
+        // Pertama, urutkan berdasarkan tanggal submission terbaru
+        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
+        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA; // Tanggal terbaru di atas
+        }
+        
+        // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
+        const voucherNoA = a.voucherNo ? parseInt(a.voucherNo.replace(/\D/g, '')) : 0;
+        const voucherNoB = b.voucherNo ? parseInt(b.voucherNo.replace(/\D/g, '')) : 0;
+        return voucherNoB - voucherNoA; // Voucher Number terbesar di atas
+    });
     
-    paginatedReimbursements.forEach(reim => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, sortedData.length);
+    const paginatedReimbursements = sortedData.slice(startIndex, endIndex);
+    
+    paginatedReimbursements.forEach((reim, index) => {
         let formattedDate = reim.submissionDate;
         if (reim.submissionDate) {
             const date = new Date(reim.submissionDate);
@@ -131,12 +147,26 @@ function displayReimbursements(reimbursements) {
             }
         }
         
+        // Menggunakan nomor urut (index + 1) + startIndex untuk menampilkan nomor urut sesuai halaman
+        const rowNumber = index + 1 + startIndex;
+        
+        // Check if fields are longer than 10 characters and apply scrollable class
+        const voucherNoClass = reim.voucherNo && reim.voucherNo.length > 10 ? 'scrollable-cell' : '';
+        const requesterNameClass = reim.requesterName && reim.requesterName.length > 10 ? 'scrollable-cell' : '';
+        const departmentClass = reim.department && reim.department.length > 10 ? 'scrollable-cell' : '';
+        
         // <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
         const row = `<tr class='border-b'>
-            <td class='p-2'>${reim.id}</td>
-            <td class='p-2'>${reim.voucherNo}</td>
-            <td class='p-2'>${reim.requesterName}</td>
-            <td class='p-2'>${reim.department}</td>
+            <td class='p-2'>${rowNumber}</td>
+            <td class='p-2'>
+                <div class="${voucherNoClass}">${reim.voucherNo}</div>
+            </td>
+            <td class='p-2'>
+                <div class="${requesterNameClass}">${reim.requesterName}</div>
+            </td>
+            <td class='p-2'>
+                <div class="${departmentClass}">${reim.department}</div>
+            </td>
             <td class='p-2'>${formattedDate}</td>
             <td class='p-2'>
                 <span class="px-2 py-1 rounded-full text-xs ${reim.status === 'Draft' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
@@ -151,12 +181,12 @@ function displayReimbursements(reimbursements) {
     });
 
     // Update item count display
-    document.getElementById('startItem').textContent = reimbursements.length > 0 ? startIndex + 1 : 0;
+    document.getElementById('startItem').textContent = sortedData.length > 0 ? startIndex + 1 : 0;
     document.getElementById('endItem').textContent = endIndex;
-    document.getElementById('totalItems').textContent = reimbursements.length;
+    document.getElementById('totalItems').textContent = sortedData.length;
     
     // Update pagination buttons
-    updatePaginationButtons(reimbursements.length);
+    updatePaginationButtons(sortedData.length);
 }
 
 // Function to get current user ID
@@ -201,9 +231,25 @@ function changePage(direction) {
 function downloadExcel() {
     const workbook = XLSX.utils.book_new();
     
+    // Buat salinan data untuk diurutkan agar tidak mengubah data asli
+    const sortedData = [...filteredReimbursements].sort((a, b) => {
+        // Pertama, urutkan berdasarkan tanggal submission terbaru
+        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
+        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA; // Tanggal terbaru di atas
+        }
+        
+        // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
+        const voucherNoA = a.voucherNo ? parseInt(a.voucherNo.replace(/\D/g, '')) : 0;
+        const voucherNoB = b.voucherNo ? parseInt(b.voucherNo.replace(/\D/g, '')) : 0;
+        return voucherNoB - voucherNoA; // Voucher Number terbesar di atas
+    });
+    
     // Convert the data to worksheet format
-    const wsData = filteredReimbursements.map(reim => ({
-        'Document Number': reim.id,
+    const wsData = sortedData.map((reim, index) => ({
+        'No.': index + 1,
         'Reimbursement Number': reim.voucherNo,
         'Requester': reim.requesterName,
         'Department': reim.department,
@@ -227,9 +273,25 @@ function downloadPDF() {
     doc.setFontSize(16);
     doc.text('Reimbursements Report', 14, 15);
     
+    // Buat salinan data untuk diurutkan agar tidak mengubah data asli
+    const sortedData = [...filteredReimbursements].sort((a, b) => {
+        // Pertama, urutkan berdasarkan tanggal submission terbaru
+        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
+        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA; // Tanggal terbaru di atas
+        }
+        
+        // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
+        const voucherNoA = a.voucherNo ? parseInt(a.voucherNo.replace(/\D/g, '')) : 0;
+        const voucherNoB = b.voucherNo ? parseInt(b.voucherNo.replace(/\D/g, '')) : 0;
+        return voucherNoB - voucherNoA; // Voucher Number terbesar di atas
+    });
+    
     // Create table data
-    const tableData = filteredReimbursements.map(reim => [
-        reim.id,
+    const tableData = sortedData.map((reim, index) => [
+        index + 1,
         reim.voucherNo,
         reim.requesterName,
         reim.department,
@@ -239,7 +301,7 @@ function downloadPDF() {
     
     // Add table
     doc.autoTable({
-        head: [['Doc Number', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status']],
+        head: [['No.', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status']],
         body: tableData,
         startY: 25
     });

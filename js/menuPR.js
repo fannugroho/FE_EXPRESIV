@@ -549,10 +549,10 @@ window.onload = function() {
             // Update input type and placeholder based on search type
             if (this.value === 'date') {
                 searchInput.type = 'date';
-                searchInput.placeholder = 'Select date...';
+                searchInput.placeholder = 'Select date';
             } else {
                 searchInput.type = 'text';
-                searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
+                searchInput.placeholder = `Search ${this.options[this.selectedIndex].text}`;
             }
             
             // Clear current search and trigger new search

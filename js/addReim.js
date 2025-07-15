@@ -513,7 +513,7 @@ function addRow() {
     newRow.innerHTML = `
         <td class="p-2 border">
             <div class="relative">
-                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" required />
                 <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
                 <select class="hidden category-select">
                     <option value="" disabled selected>Choose Category</option>
@@ -522,7 +522,7 @@ function addRow() {
         </td>
         <td class="p-2 border">
             <div class="relative">
-                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" required />
                 <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
                 <select class="hidden account-name-select">
                     <option value="" disabled selected>Choose Account Name</option>
@@ -536,7 +536,7 @@ function addRow() {
             <input type="text" maxlength="250" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="100" class="w-full p-1 border rounded" required />
+            <input type="text" value="0.00" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">

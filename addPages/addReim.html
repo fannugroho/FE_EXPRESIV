@@ -26,6 +26,28 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+
+        /* Styling untuk validasi tanggal */
+        .border-red-500 {
+            border-color: #ef4444 !important;
+        }
+        
+        #dateError {
+            transition: all 0.3s ease;
+        }
+        
+        #dateError:not(.hidden) {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .text-green-500 {
+            color: #10b981;
+        }
     </style>
 </head>
 
@@ -39,9 +61,9 @@
                 <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
                 <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100 text-gray-500" disabled>
                 
-                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <h3 class="text-lg font-semibold mb-2">Requester Name <span class="text-red-500">*</span></h3>
                 <div class="relative">
-                    <input type="text" id="requesterNameSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                    <input type="text" id="requesterNameSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" required>
                     <div id="requesterNameSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="requesterNameSelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
@@ -52,12 +74,12 @@
                 <select id="department" class="w-full p-2 border rounded">
                     <option value="" disabled selected>Select Department</option>
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Currency <span class="text-red-500">*</span></h3>
+                <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded" required>
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
+                <h3 class="text-lg font-semibold mb-2">Pay To <span class="text-red-500">*</span></h3>
                 <div class="relative">
-                    <input type="text" id="payToSearch" placeholder="Search business partner..." class="w-full p-2 border rounded search-input">
+                    <input type="text" id="payToSearch" placeholder="Search business partner..." class="w-full p-2 border rounded search-input" required>
                     <div id="payToSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="payToSelect" class="hidden">
                         <option value="" disabled selected>Choose Business Partner</option>
@@ -66,23 +88,24 @@
             </div>
             
             <div>
-                <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
-                <input type="date" id="postingDate" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Submission Date <span class="text-red-500">*</span></h3>
+                <input type="date" id="postingDate" class="w-full p-2 border rounded" onchange="validateSubmissionDate(this)" required>
+                <div id="dateError" class="text-red-500 text-sm mt-1 hidden"></div>
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded">
                     <option value="Draft">Draft</option>
                     <!-- <option value="Closed">Approved</option>
                     <option value="Paid">Paid</option> -->
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
+                <h3 class="text-lg font-semibold mb-2">Attach Doc <span class="text-red-500">*</span></h3>
                 <input type="file" id="filePath" accept="application/pdf" class="wa-full p-2 border rounded" multiple onchange="previewPDF(event)" required />
                 <div id="fileList" class="mt-2"></div>
                 
-                <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
-                <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Reference Doc <span class="text-red-500">*</span></h3>
+                <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded" required>
                 
-                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeOfTransaction" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction <span class="text-red-500">*</span></h3>
+                <select id="typeOfTransaction" class="w-full p-2 border rounded" required>
                     <option value="" disabled selected>Select Transaction Type</option>
                     <!-- Options will be populated from API -->
                 </select>
@@ -93,11 +116,11 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th class="p-2">Category</th>
-                    <th class="p-2">Account Name</th>
+                    <th class="p-2">Category <span class="text-red-500">*</span></th>
+                    <th class="p-2">Account Name <span class="text-red-500">*</span></th>
                     <th class="p-2">G/L Account</th>
-                    <th class="p-2">Description</th>
-                    <th class="p-2">Amount</th>
+                    <th class="p-2">Description <span class="text-red-500">*</span></th>
+                    <th class="p-2">Amount <span class="text-red-500">*</span></th>
                     <th class="p-2">Action</th>
                 </tr>
             </thead>
@@ -105,7 +128,7 @@
                 <tr>
                     <td class="p-2 border">
                         <div class="relative">
-                            <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                            <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" required />
                             <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
                             <select class="hidden category-select">
                                 <option value="" disabled selected>Choose Category</option>
@@ -114,7 +137,7 @@
                     </td>
                     <td class="p-2 border">
                         <div class="relative">
-                            <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                            <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" required />
                             <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
                             <select class="hidden account-name-select">
                                 <option value="" disabled selected>Choose Account Name</option>
@@ -128,7 +151,7 @@
                         <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
                     </td>
                     <td class="p-2 border">
-                    <input type="text" value="0.00" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" maxlength="20" required />
+                    <input type="text" value="0.00" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -214,7 +237,64 @@
     </div>
     <script src="../js/addReim.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/dateValidation.js"></script>
+    <script src="../js/formValidation.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+    // Modifikasi fungsi saveDocument dan submitDocument untuk menambahkan validasi tanggal dan form
+    const originalSaveDocument = window.saveDocument;
+    window.saveDocument = function() {
+        // Reset field highlights terlebih dahulu
+        resetFieldHighlights();
+        
+        // Validasi tanggal submission
+        const postingDateInput = document.getElementById("postingDate");
+        if (!validateSubmissionDate(postingDateInput)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tanggal Submission Tidak Valid',
+                text: 'Silakan pilih tanggal hari ini saja. Tanggal di masa lalu atau masa depan tidak diperbolehkan.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Validasi form reimbursement
+        if (!validateReimbursementForm()) {
+            return;
+        }
+        
+        // Jika semua validasi lolos, panggil fungsi save asli
+        originalSaveDocument();
+    };
+
+    const originalSubmitDocument = window.submitDocument;
+    window.submitDocument = function() {
+        // Reset field highlights terlebih dahulu
+        resetFieldHighlights();
+        
+        // Validasi tanggal submission
+        const postingDateInput = document.getElementById("postingDate");
+        if (!validateSubmissionDate(postingDateInput)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tanggal Submission Tidak Valid',
+                text: 'Silakan pilih tanggal hari ini saja. Tanggal di masa lalu atau masa depan tidak diperbolehkan.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Validasi form reimbursement
+        if (!validateReimbursementForm()) {
+            return;
+        }
+        
+        // Jika semua validasi lolos, panggil fungsi submit asli
+        originalSubmitDocument();
+    };
+    </script>
     
     <script>
     // Fungsi untuk memformat angka dengan format Indonesia (titik sebagai pemisah ribuan, koma sebagai pemisah desimal)
