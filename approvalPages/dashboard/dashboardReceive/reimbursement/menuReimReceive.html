@@ -66,6 +66,13 @@
 
         <!-- User Avatar -->
         <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Icon -->
+            <div id="notificationBellWrapper" class="relative">
+                <button id="notificationBell" class="focus:outline-none">
+                    <i class="fas fa-bell text-white text-2xl"></i>
+                    <span id="notificationBadge" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
+                </button>
+            </div>
             <!-- User Avatar + Name -->
             <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
@@ -146,7 +153,7 @@
                       <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                         <thead class="bg-gray-200">
                           <tr>
-                            <th class="p-2 text-left">Doc Number</th>
+                            <th class="p-2 text-left">No.</th>
                             <th class="p-2 text-left">Reimbursement Number</th>
                             <th class="p-2 text-left">Requester</th>
                             <th class="p-2 text-left">Department</th>

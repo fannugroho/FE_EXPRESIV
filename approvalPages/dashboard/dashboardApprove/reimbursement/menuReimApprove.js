@@ -29,14 +29,11 @@ function handleSearch(event) {
     filterReimbursements(searchTerm, currentTab, searchType);
 }
 
-// Function to filter reimbursements based on search term, tab, and search type
+// Function to filter reimbursements based on search term and search type
 function filterReimbursements(searchTerm = '', tab = 'acknowledged', searchType = 'pr') {
-    if (tab === 'acknowledged') {
+    // Since we're now fetching data by status from the API,
+    // we only need to filter by search criteria
         filteredData = allReimbursements.filter(item => {
-            // Filter berdasarkan status
-            const statusMatch = item.status === 'Acknowledged';
-            
-            // Filter berdasarkan tipe pencarian yang dipilih
             let searchMatch = true;
             if (searchTerm) {
                 if (searchType === 'pr') {
@@ -50,51 +47,8 @@ function filterReimbursements(searchTerm = '', tab = 'acknowledged', searchType 
                 }
             }
             
-            return statusMatch && searchMatch;
-        });
-    } else if (tab === 'approved') {
-        filteredData = allReimbursements.filter(item => {
-            // Filter berdasarkan status
-            const statusMatch = item.status === 'Approved';
-            
-            // Filter berdasarkan tipe pencarian yang dipilih
-            let searchMatch = true;
-            if (searchTerm) {
-                if (searchType === 'pr') {
-                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'requester') {
-                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'date') {
-                    // Format tanggal untuk pencarian
-                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
-                    searchMatch = formattedDate.includes(searchTerm);
-                }
-            }
-            
-            return statusMatch && searchMatch;
-        });
-    } else if (tab === 'rejected') {
-        filteredData = allReimbursements.filter(item => {
-            // Filter berdasarkan status
-            const statusMatch = item.status === 'Rejected';
-            
-            // Filter berdasarkan tipe pencarian yang dipilih
-            let searchMatch = true;
-            if (searchTerm) {
-                if (searchType === 'pr') {
-                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'requester') {
-                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'date') {
-                    // Format tanggal untuk pencarian
-                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
-                    searchMatch = formattedDate.includes(searchTerm);
-                }
-            }
-            
-            return statusMatch && searchMatch;
-        });
-    }
+        return searchMatch;
+    });
     
     // Update table and pagination
     updateTable();
@@ -150,8 +104,26 @@ function fetchStatusCounts() {
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
+    // This function will now just call fetchReimbursementsByStatus with the current tab
+    fetchReimbursementsByStatus(currentTab);
+}
+
+// New function to fetch reimbursements by status using specific endpoints
+function fetchReimbursementsByStatus(status) {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/approver/${userId}`;
+    let endpoint;
+    
+    // Select the appropriate endpoint based on the status
+    if (status === 'acknowledged') {
+        endpoint = `/api/reimbursements/approver/${userId}/acknowledged`;
+    } else if (status === 'approved') {
+        endpoint = `/api/reimbursements/approver/${userId}/approved`;
+    } else if (status === 'rejected') {
+        endpoint = `/api/reimbursements/approver/${userId}/rejected`;
+    } else {
+        // Fallback to the general endpoint
+        endpoint = `/api/reimbursements/approver/${userId}`;
+    }
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -162,20 +134,32 @@ function fetchReimbursements() {
         })
         .then(data => {
             if (data.status && data.code === 200) {
+                // Update the filtered data directly with the API response
                 allReimbursements = data.data;
-                switchTab(currentTab); // Apply filtering based on current tab
+                
+                // Apply search filtering if there's a search term
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const searchType = document.getElementById('searchType').value;
+                if (searchTerm) {
+                    filterReimbursements(searchTerm, status, searchType);
+                } else {
+                    // If no search term, use all data from the response
+                    filteredData = allReimbursements;
+                    updateTable();
+                    updatePagination();
+                }
             } else {
                 console.error('API returned an error:', data.message);
                 // Use sample data if API fails
                 useSampleData();
-                switchTab(currentTab);
+                filterReimbursements('', status);
             }
         })
         .catch(error => {
-            console.error('Error fetching reimbursements:', error);
+            console.error(`Error fetching ${status} reimbursements:`, error);
             // Use sample data if API fails
             useSampleData();
-            switchTab(currentTab);
+            filterReimbursements('', status);
         });
 }
 
@@ -246,7 +230,7 @@ function updateSampleCounts() {
     document.getElementById("rejectedCount").textContent = "0";
 }
 
-// Switch between Acknowledged and Approved tabs
+// Switch between tabs (Acknowledged, Approved, Rejected)
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
@@ -272,12 +256,10 @@ function switchTab(tabName) {
     tableBody.style.transform = 'translateY(10px)';
     tableBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     
-    // Filter the data with a slight delay to allow animation
+    // Fetch data from the appropriate API endpoint with a slight delay to allow animation
     setTimeout(() => {
-        // Get search term and type for filtering
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const searchType = document.getElementById('searchType').value;
-        filterReimbursements(searchTerm, tabName, searchType);
+        // Fetch data for the selected tab
+        fetchReimbursementsByStatus(tabName);
         
         // Add fade-in effect
         setTimeout(() => {
@@ -304,20 +286,21 @@ function updateTable() {
             formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
         
-        const displayStatus = item.status;
+        // Get status color class based on status
+        const statusColorClass = getStatusColorClass(item.status);
         
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
         row.innerHTML = `
-            <td class="p-2">${item.id || ''}</td>
+            <td class="p-2">${i + 1}</td>
             <td class="p-2">${item.voucherNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
             <td class="p-2">${item.department || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs ${displayStatus === 'Acknowledged' ? 'bg-yellow-200 text-yellow-800' : displayStatus === 'Approved' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                    ${displayStatus}
+                <span class="px-2 py-1 rounded-full text-xs ${statusColorClass}">
+                    ${item.status}
                 </span>
             </td>
             <td class="p-2">
@@ -334,6 +317,26 @@ function updateTable() {
     document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
     document.getElementById('endItem').textContent = endIndex;
     document.getElementById('totalItems').textContent = filteredData.length;
+}
+
+// Helper function to get status color class
+function getStatusColorClass(status) {
+    switch (status) {
+        case 'Acknowledged':
+            return 'bg-yellow-200 text-yellow-800';
+        case 'Approved':
+            return 'bg-green-200 text-green-800';
+        case 'Rejected':
+            return 'bg-red-200 text-red-800';
+        case 'Received':
+            return 'bg-blue-200 text-blue-800';
+        case 'Prepared':
+            return 'bg-purple-200 text-purple-800';
+        case 'Checked':
+            return 'bg-indigo-200 text-indigo-800';
+        default:
+            return 'bg-gray-200 text-gray-800';
+    }
 }
 
 // Update pagination controls
@@ -385,10 +388,10 @@ function downloadExcel() {
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     // Prepare data for export - no changes needed here as it already doesn't include checkbox data
-    const data = filteredData.map(item => {
+    const data = filteredData.map((item, index) => {
         // Remove Draft to Prepared conversion as it's no longer needed
         return {
-            'Doc Number': item.id || '',
+            'No.': index + 1,
             'Reimbursement Number': item.voucherNo || '',
             'Requester': item.requesterName || '',
             'Department': item.department || '',
@@ -427,13 +430,13 @@ function downloadPDF() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Prepare table data - column headers are already correct without checkbox column
-    const tableColumn = ['Doc Number', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
+    const tableColumn = ['No.', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
     const tableRows = [];
     
-    filteredData.forEach(item => {
+    filteredData.forEach((item, index) => {
         // Remove Draft to Prepared conversion as it's no longer needed
         const dataRow = [
-            item.id || '',
+            index + 1,
             item.voucherNo || '',
             item.requesterName || '',
             item.department || '',
@@ -489,3 +492,265 @@ function goToProfile() {
 }
 
 window.onload = loadDashboard;
+
+// ================= NOTIFICATION POLLING =================
+// Notifikasi dokumen yang perlu diperiksa (acknowledged)
+let notifiedReims = new Set();
+let notificationContainer = null;
+let isNotificationVisible = false;
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+    const count = notifiedReims.size;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.textContent = '0';
+        badge.classList.add('hidden');
+    }
+}
+
+function toggleNotificationPanel() {
+    if (!notificationContainer) {
+        createNotificationPanel();
+    }
+    
+    if (isNotificationVisible) {
+        hideNotificationPanel();
+    } else {
+        showNotificationPanel();
+    }
+}
+
+function createNotificationPanel() {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'notification-container';
+    notificationContainer.style.position = 'fixed';
+    notificationContainer.style.top = '70px';
+    notificationContainer.style.right = '20px';
+    notificationContainer.style.zIndex = '9999';
+    notificationContainer.style.maxWidth = '350px';
+    notificationContainer.style.maxHeight = '400px';
+    notificationContainer.style.overflowY = 'auto';
+    notificationContainer.style.backgroundColor = 'white';
+    notificationContainer.style.borderRadius = '8px';
+    notificationContainer.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    notificationContainer.style.border = '1px solid #e5e7eb';
+    notificationContainer.style.display = 'none';
+    document.body.appendChild(notificationContainer);
+}
+
+function showNotificationPanel() {
+    if (!notificationContainer) return;
+    
+    // Update konten notifikasi
+    updateNotificationContent();
+    
+    notificationContainer.style.display = 'block';
+    isNotificationVisible = true;
+}
+
+function hideNotificationPanel() {
+    if (!notificationContainer) return;
+    notificationContainer.style.display = 'none';
+    isNotificationVisible = false;
+}
+
+function updateNotificationContent() {
+    if (!notificationContainer) return;
+    
+    if (notifiedReims.size === 0) {
+        notificationContainer.innerHTML = `
+            <div class="p-4 text-center text-gray-500">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No notifications</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let content = `
+        <div class="p-3 border-b border-gray-200 bg-gray-50">
+            <h3 class="font-semibold text-gray-800">Notifications (${notifiedReims.size})</h3>
+        </div>
+        <div class="max-h-80 overflow-y-auto">
+    `;
+    
+    // Ambil data notifikasi dari localStorage atau dari polling terakhir
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimApprove') || '{}');
+    
+    notifiedReims.forEach(reimNumber => {
+        const data = notificationData[reimNumber] || {};
+        const submissionDate = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString() : '-';
+        
+        content += `
+            <div class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900">${data.voucherNo || reimNumber}</div>
+                        <div class="text-xs text-gray-600 mt-1">${data.requesterName || 'Unknown'} - ${data.department || 'Unknown'}</div>
+                        <div class="text-xs text-gray-500 mt-1">Submitted: ${submissionDate}</div>
+                        <div class="inline-block mt-1">
+                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">${data.status || 'Acknowledged'}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeNotification('${reimNumber}')" class="ml-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    content += '</div>';
+    notificationContainer.innerHTML = content;
+}
+
+function showNotification(message, reimNumber) {
+    // Simpan data notifikasi ke localStorage
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimApprove') || '{}');
+    const data = {
+        voucherNo: reimNumber,
+        requesterName: message.split('-')[1] || 'Unknown',
+        department: message.split('-')[2] || 'Unknown',
+        submissionDate: message.split('-')[3] || '-',
+        status: message.split('-')[4] || 'Acknowledged'
+    };
+    notificationData[reimNumber] = data;
+    localStorage.setItem('notificationDataReimApprove', JSON.stringify(notificationData));
+    
+    notifiedReims.add(reimNumber);
+    updateNotificationBadge();
+    
+    // Update panel jika sedang terbuka
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+function removeNotification(reimNumber) {
+    // Hapus dari localStorage
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimApprove') || '{}');
+    delete notificationData[reimNumber];
+    localStorage.setItem('notificationDataReimApprove', JSON.stringify(notificationData));
+    
+    notifiedReims.delete(reimNumber);
+    updateNotificationBadge();
+    
+    // Update panel jika sedang terbuka
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+async function pollAcknowledgedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        // Menggunakan endpoint untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/approver/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const data = await response.json();
+        if (!data.status || data.code !== 200) return;
+        
+        const docs = data.data || [];
+        let newReimFound = false;
+        
+        docs.forEach(doc => {
+            // Hanya notifikasi untuk dokumen dengan status Acknowledged
+            if (doc.status === 'Acknowledged' && !notifiedReims.has(doc.voucherNo)) {
+                // Format pesan notifikasi
+                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
+                showNotification(message, doc.voucherNo);
+                newReimFound = true;
+            }
+        });
+        
+        // Play sound jika ada dokumen baru
+        if (newReimFound) {
+            try {
+                const audio = new Audio('../../../../components/shared/tones.mp3');
+                audio.play();
+            } catch (e) {
+                console.warn('Gagal memutar nada dering notifikasi:', e);
+            }
+        }
+    } catch (e) {
+        // Silent error
+        console.error('Error polling reimbursements:', e);
+    }
+}
+
+async function pollApprovedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        // Menggunakan endpoint untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/approver/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const data = await response.json();
+        if (!data.status || data.code !== 200) return;
+        
+        const docs = data.data || [];
+        
+        // Buat set dari reimbursement yang sudah Approved
+        const approvedReims = new Set(
+            docs.filter(doc => doc.status === 'Approved')
+                .map(doc => doc.voucherNo)
+        );
+        
+        // Hapus notifikasi untuk reimbursement yang sudah approved
+        notifiedReims.forEach(reimNumber => {
+            if (approvedReims.has(reimNumber)) {
+                removeNotification(reimNumber);
+            }
+        });
+    } catch (e) {
+        // Silent error
+        console.error('Error polling approved reimbursements:', e);
+    }
+}
+
+// Polling interval (setiap 10 detik)
+setInterval(() => {
+    pollAcknowledgedDocs();
+    pollApprovedDocs();
+}, 10000);
+
+// Jalankan polling pertama kali dan setup event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing DOMContentLoaded code will run first
+    
+    // Tambahkan polling notifikasi
+    setTimeout(() => {
+        pollAcknowledgedDocs();
+        pollApprovedDocs();
+        updateNotificationBadge();
+        
+        // Event click pada bell untuk toggle notifikasi panel
+        const bell = document.getElementById('notificationBell');
+        if (bell) {
+            bell.addEventListener('click', function() {
+                toggleNotificationPanel();
+            });
+        }
+        
+        // Tutup panel jika klik di luar
+        document.addEventListener('click', function(event) {
+            if (notificationContainer && 
+                !notificationContainer.contains(event.target) && 
+                bell && !bell.contains(event.target)) {
+                hideNotificationPanel();
+            }
+        });
+    }, 1000); // Delay untuk memastikan DOM sudah siap
+});

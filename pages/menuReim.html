@@ -107,6 +107,38 @@
         .scrollable-cell::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Pagination button styles */
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f3f4f6;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background-color: #e5e7eb;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Items per page dropdown styles */
+        #itemsPerPageSelect {
+            border-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        #itemsPerPageSelect:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -246,7 +278,7 @@
                     <!-- Table Button -->
                     <div class="flex justify-between items-center mt-4">
                         <div class="text-sm text-gray-600">
-                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                            Showing <span id="startItem">1</span>-<span id="endItem">20</span> of <span id="totalItems">0</span> items
                         </div>
                         <div class="flex space-x-2">
                             <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">

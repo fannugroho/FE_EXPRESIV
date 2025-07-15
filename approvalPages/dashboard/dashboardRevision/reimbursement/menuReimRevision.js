@@ -352,3 +352,265 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 window.onload = loadDashboard; 
+
+// ================= NOTIFICATION POLLING =================
+// Notifikasi dokumen yang perlu direvisi (revision)
+let notifiedReims = new Set();
+let notificationContainer = null;
+let isNotificationVisible = false;
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+    const count = notifiedReims.size;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.textContent = '0';
+        badge.classList.add('hidden');
+    }
+}
+
+function toggleNotificationPanel() {
+    if (!notificationContainer) {
+        createNotificationPanel();
+    }
+    
+    if (isNotificationVisible) {
+        hideNotificationPanel();
+    } else {
+        showNotificationPanel();
+    }
+}
+
+function createNotificationPanel() {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'notification-container';
+    notificationContainer.style.position = 'fixed';
+    notificationContainer.style.top = '70px';
+    notificationContainer.style.right = '20px';
+    notificationContainer.style.zIndex = '9999';
+    notificationContainer.style.maxWidth = '350px';
+    notificationContainer.style.maxHeight = '400px';
+    notificationContainer.style.overflowY = 'auto';
+    notificationContainer.style.backgroundColor = 'white';
+    notificationContainer.style.borderRadius = '8px';
+    notificationContainer.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    notificationContainer.style.border = '1px solid #e5e7eb';
+    notificationContainer.style.display = 'none';
+    document.body.appendChild(notificationContainer);
+}
+
+function showNotificationPanel() {
+    if (!notificationContainer) return;
+    
+    // Update konten notifikasi
+    updateNotificationContent();
+    
+    notificationContainer.style.display = 'block';
+    isNotificationVisible = true;
+}
+
+function hideNotificationPanel() {
+    if (!notificationContainer) return;
+    notificationContainer.style.display = 'none';
+    isNotificationVisible = false;
+}
+
+function updateNotificationContent() {
+    if (!notificationContainer) return;
+    
+    if (notifiedReims.size === 0) {
+        notificationContainer.innerHTML = `
+            <div class="p-4 text-center text-gray-500">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No notifications</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let content = `
+        <div class="p-3 border-b border-gray-200 bg-gray-50">
+            <h3 class="font-semibold text-gray-800">Notifications (${notifiedReims.size})</h3>
+        </div>
+        <div class="max-h-80 overflow-y-auto">
+    `;
+    
+    // Ambil data notifikasi dari localStorage atau dari polling terakhir
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimRevision') || '{}');
+    
+    notifiedReims.forEach(reimNumber => {
+        const data = notificationData[reimNumber] || {};
+        const submissionDate = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString() : '-';
+        
+        content += `
+            <div class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900">${data.voucherNo || reimNumber}</div>
+                        <div class="text-xs text-gray-600 mt-1">${data.requesterName || 'Unknown'} - ${data.department || 'Unknown'}</div>
+                        <div class="text-xs text-gray-500 mt-1">Submitted: ${submissionDate}</div>
+                        <div class="inline-block mt-1">
+                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">${data.status || 'Revision'}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeNotification('${reimNumber}')" class="ml-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    content += '</div>';
+    notificationContainer.innerHTML = content;
+}
+
+function showNotification(message, reimNumber) {
+    // Simpan data notifikasi ke localStorage
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimRevision') || '{}');
+    const data = {
+        voucherNo: reimNumber,
+        requesterName: message.split('-')[1] || 'Unknown',
+        department: message.split('-')[2] || 'Unknown',
+        submissionDate: message.split('-')[3] || '-',
+        status: message.split('-')[4] || 'Revision'
+    };
+    notificationData[reimNumber] = data;
+    localStorage.setItem('notificationDataReimRevision', JSON.stringify(notificationData));
+    
+    notifiedReims.add(reimNumber);
+    updateNotificationBadge();
+    
+    // Update panel jika sedang terbuka
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+function removeNotification(reimNumber) {
+    // Hapus dari localStorage
+    const notificationData = JSON.parse(localStorage.getItem('notificationDataReimRevision') || '{}');
+    delete notificationData[reimNumber];
+    localStorage.setItem('notificationDataReimRevision', JSON.stringify(notificationData));
+    
+    notifiedReims.delete(reimNumber);
+    updateNotificationBadge();
+    
+    // Update panel jika sedang terbuka
+    if (isNotificationVisible && notificationContainer) {
+        updateNotificationContent();
+    }
+}
+
+async function pollRevisionDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        // Menggunakan endpoint untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/revision/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const data = await response.json();
+        if (!data.status || data.code !== 200) return;
+        
+        const docs = data.data || [];
+        let newReimFound = false;
+        
+        docs.forEach(doc => {
+            // Hanya notifikasi untuk dokumen dengan status Revision
+            if (doc.status === 'Revision' && !notifiedReims.has(doc.voucherNo)) {
+                // Format pesan notifikasi
+                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
+                showNotification(message, doc.voucherNo);
+                newReimFound = true;
+            }
+        });
+        
+        // Play sound jika ada dokumen baru
+        if (newReimFound) {
+            try {
+                const audio = new Audio('../../../../components/shared/tones.mp3');
+                audio.play();
+            } catch (e) {
+                console.warn('Gagal memutar nada dering notifikasi:', e);
+            }
+        }
+    } catch (e) {
+        // Silent error
+        console.error('Error polling reimbursements:', e);
+    }
+}
+
+async function pollPreparedDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) return;
+        
+        // Menggunakan endpoint untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/revision/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        const data = await response.json();
+        if (!data.status || data.code !== 200) return;
+        
+        const docs = data.data || [];
+        
+        // Buat set dari reimbursement yang sudah Prepared (setelah direvisi)
+        const preparedReims = new Set(
+            docs.filter(doc => doc.status === 'Prepared')
+                .map(doc => doc.voucherNo)
+        );
+        
+        // Hapus notifikasi untuk reimbursement yang sudah prepared
+        notifiedReims.forEach(reimNumber => {
+            if (preparedReims.has(reimNumber)) {
+                removeNotification(reimNumber);
+            }
+        });
+    } catch (e) {
+        // Silent error
+        console.error('Error polling prepared reimbursements:', e);
+    }
+}
+
+// Polling interval (setiap 10 detik)
+setInterval(() => {
+    pollRevisionDocs();
+    pollPreparedDocs();
+}, 10000);
+
+// Jalankan polling pertama kali dan setup event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing DOMContentLoaded code will run first
+    
+    // Tambahkan polling notifikasi
+    setTimeout(() => {
+        pollRevisionDocs();
+        pollPreparedDocs();
+        updateNotificationBadge();
+        
+        // Event click pada bell untuk toggle notifikasi panel
+        const bell = document.getElementById('notificationBell');
+        if (bell) {
+            bell.addEventListener('click', function() {
+                toggleNotificationPanel();
+            });
+        }
+        
+        // Tutup panel jika klik di luar
+        document.addEventListener('click', function(event) {
+            if (notificationContainer && 
+                !notificationContainer.contains(event.target) && 
+                bell && !bell.contains(event.target)) {
+                hideNotificationPanel();
+            }
+        });
+    }, 1000); // Delay untuk memastikan DOM sudah siap
+}); 

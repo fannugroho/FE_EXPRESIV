@@ -1,6 +1,6 @@
 // Global variables for pagination
 let currentPage = 1;
-const itemsPerPage = 10;
+window.itemsPerPage = 20; // Menggunakan window.itemsPerPage agar bisa diakses di seluruh aplikasi
 let allReimbursements = [];
 let filteredReimbursements = [];
 let currentTab = 'all'; // Default tab
@@ -134,8 +134,8 @@ function displayReimbursements(reimbursements) {
         return voucherNoB - voucherNoA; // Voucher Number terbesar di atas
     });
     
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, sortedData.length);
+    const startIndex = (currentPage - 1) * window.itemsPerPage;
+    const endIndex = Math.min(startIndex + window.itemsPerPage, sortedData.length);
     const paginatedReimbursements = sortedData.slice(startIndex, endIndex);
     
     paginatedReimbursements.forEach((reim, index) => {
@@ -205,7 +205,7 @@ function getUserId() {
 
 // Function to update pagination buttons
 function updatePaginationButtons(totalItems) {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.ceil(totalItems / window.itemsPerPage);
     document.getElementById('currentPage').textContent = currentPage;
     
     // Update prev/next button states
@@ -218,7 +218,7 @@ function updatePaginationButtons(totalItems) {
 
 // Function to change page
 function changePage(direction) {
-    const totalPages = Math.ceil(filteredReimbursements.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredReimbursements.length / window.itemsPerPage);
     const newPage = currentPage + direction;
     
     if (newPage >= 1 && newPage <= totalPages) {
@@ -369,6 +369,11 @@ function detailReim(reimId) {
 }
 
 function loadDashboard() {
+    // Set default items per page
+    if (!window.itemsPerPage) {
+        window.itemsPerPage = 20;
+    }
+    
     // Fetch status counts from API
     fetchStatusCounts();
     

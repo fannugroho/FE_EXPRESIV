@@ -253,8 +253,8 @@
         if (!validateSubmissionDate(postingDateInput)) {
             Swal.fire({
                 icon: 'error',
-                title: 'Tanggal Submission Tidak Valid',
-                text: 'Silakan pilih tanggal hari ini saja. Tanggal di masa lalu atau masa depan tidak diperbolehkan.',
+                title: 'Submission Date not valid',
+                text: 'Please select today\'s date only. Past or future dates are not allowed.',
                 confirmButtonText: 'OK'
             });
             return;
@@ -279,8 +279,8 @@
         if (!validateSubmissionDate(postingDateInput)) {
             Swal.fire({
                 icon: 'error',
-                title: 'Tanggal Submission Tidak Valid',
-                text: 'Silakan pilih tanggal hari ini saja. Tanggal di masa lalu atau masa depan tidak diperbolehkan.',
+                title: 'Submission Date not valid',
+                text: 'Please select today\'s date only. Past or future dates are not allowed.',
                 confirmButtonText: 'OK'
             });
             return;
@@ -337,8 +337,8 @@
         if (num > maxAmount) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Jumlah Melebihi Batas',
-                text: 'Total amount tidak boleh melebihi 100 triliun rupiah'
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
             });
             num = maxAmount;
         }
@@ -440,8 +440,8 @@
         if (total > maxAmount) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Jumlah Melebihi Batas',
-                text: 'Total amount tidak boleh melebihi 100 triliun rupiah'
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
             });
             total = maxAmount;
         }
