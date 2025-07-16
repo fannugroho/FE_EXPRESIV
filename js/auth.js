@@ -1,8 +1,8 @@
 // Authentication utilities for handling JWT tokens and API calls
 
 // API Configuration
-const BASE_URL = "https://expressiv.idsdev.site";
-// const BASE_URL = "http://localhost:5246"
+// const BASE_URL = "https://expressiv.idsdev.site";
+const BASE_URL = "http://localhost:5246"
 
 // Helper function to get access token from localStorage
 function getAccessToken() {
@@ -18,11 +18,11 @@ function getRefreshToken() {
 function isAuthenticated() {
   const token = getAccessToken();
   if (!token) return false;
-  
+
   // Check if token is expired
   const userInfo = decodeJWT(token);
   if (!userInfo || !userInfo.exp) return false;
-  
+
   return Date.now() < userInfo.exp * 1000;
 }
 
@@ -30,7 +30,7 @@ function isAuthenticated() {
 function isFirstLogin() {
   const userStr = localStorage.getItem('loggedInUser');
   if (!userStr) return false;
-  
+
   try {
     const user = JSON.parse(userStr);
     return user.isFirstLogin === true;
@@ -40,26 +40,26 @@ function isFirstLogin() {
   }
 }
 
-  // Enhanced logout function that clears permissions
-  function logoutAuth() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("loggedInUserCode");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRoles");
-    localStorage.removeItem("userPermissions");
-    userPermissions = [];
-    
-    // Redirect to login page with correct relative path
-    window.location.href = getLoginPagePath();
-  }
+// Enhanced logout function that clears permissions
+function logoutAuth() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("loggedInUser");
+  localStorage.removeItem("loggedInUserCode");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userRoles");
+  localStorage.removeItem("userPermissions");
+  userPermissions = [];
+
+  // Redirect to login page with correct relative path
+  window.location.href = getLoginPagePath();
+}
 // Helper function to decode JWT token (same as in login.js)
 function decodeJWT(token) {
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
     return JSON.parse(jsonPayload);
@@ -73,14 +73,41 @@ function decodeJWT(token) {
 function getCurrentUser() {
   const token = getAccessToken();
   if (!token) return null;
-  
+
   const userInfo = decodeJWT(token);
   if (!userInfo) return null;
-  
+
+  // Get employee data from localStorage
+  let employeeData = null;
+  try {
+    const employeeDataStr = localStorage.getItem("employeeData");
+    if (employeeDataStr) {
+      employeeData = JSON.parse(employeeDataStr);
+    }
+  } catch (error) {
+    console.error('Error parsing employee data:', error);
+  }
+
+  // If no employee data in localStorage, try to construct from individual fields
+  if (!employeeData) {
+    const kansaiEmployeeId = localStorage.getItem("kansaiEmployeeId");
+    const employeeCode = localStorage.getItem("employeeCode");
+    const departmentName = localStorage.getItem("departmentName");
+
+    if (kansaiEmployeeId || employeeCode || departmentName) {
+      employeeData = {
+        kansaiEmployeeId: kansaiEmployeeId,
+        code: employeeCode,
+        department: departmentName ? { name: departmentName } : null
+      };
+    }
+  }
+
   return {
     username: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
     userId: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
-    roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || []
+    roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || [],
+    employee: employeeData
   };
 }
 
@@ -88,73 +115,73 @@ function getCurrentUser() {
 function getUserId() {
   const token = getAccessToken();
   if (!token) return null;
-  
+
   const userInfo = decodeJWT(token);
   if (!userInfo) return null;
-  
+
   return userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
 }
 
 // Function to make authenticated API requests
 async function makeAuthenticatedRequest(endpoint, options = {}) {
   const token = getAccessToken();
-  
+
   if (!token) {
     logoutAuth();
     throw new Error('No access token found. Please login again.');
   }
-  
+
   // Check if token is expired
   if (!isAuthenticated()) {
     // Try to refresh token or redirect to login
     logoutAuth();
     throw new Error('Session expired. Please login again.');
   }
-  
+
   // Set default headers
   const defaultHeaders = {
     'Accept': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  
+
   // Only set Content-Type to application/json if body is not FormData
   if (!(options.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
-  
+
   // Merge with provided headers
   const headers = {
     ...defaultHeaders,
     ...(options.headers || {})
   };
-  
+
   // Make the request
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers
   });
-  
+
   // Handle authentication errors
   if (response.status === 401) {
     logoutAuth();
     throw new Error('Authentication failed. Please login again.');
   }
-  
+
   return response;
 }
 
 // Function to get the correct path to login page based on current location
 function getLoginPagePath() {
   const currentPath = window.location.pathname;
-  
+
   // Count the directory depth to determine how many "../" we need
   const pathSegments = currentPath.split('/').filter(segment => segment !== '');
-  
+
   // Remove the filename if it exists (ends with .html)
   if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].includes('.html')) {
     pathSegments.pop();
   }
-  
+
   // Calculate the relative path
   let relativePath = '';
   if (pathSegments.length === 0) {
@@ -168,7 +195,7 @@ function getLoginPagePath() {
     const goBack = '../'.repeat(pathSegments.length);
     relativePath = goBack + 'pages/login.html';
   }
-  
+
   return relativePath;
 }
 // Function to check if current page is login page
@@ -190,22 +217,22 @@ function checkAuthOnPageLoad() {
     console.log('Login page detected, skipping auth check');
     return;
   }
-  
+
   console.log('Checking authentication for:', window.location.href);
-  
+
   if (!isAuthenticated()) {
     console.log('User not authenticated, redirecting to login');
     logoutAuth();
     return false;
   }
-  
+
   // Check if first login and redirect to change password page if needed
   if (isFirstLogin() && !isChangePasswordPage()) {
     console.log('First login detected, redirecting to change password page');
     redirectToChangePassword();
     return false;
   }
-  
+
   return true;
 }
 
@@ -213,12 +240,12 @@ function checkAuthOnPageLoad() {
 function redirectToChangePassword() {
   const currentPath = window.location.pathname;
   const pathSegments = currentPath.split('/').filter(segment => segment !== '');
-  
+
   // Remove the filename if it exists
   if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].includes('.html')) {
     pathSegments.pop();
   }
-  
+
   // Calculate the relative path
   let relativePath = '';
   if (pathSegments.length === 0) {
@@ -229,7 +256,7 @@ function redirectToChangePassword() {
     const goBack = '../'.repeat(pathSegments.length);
     relativePath = goBack + 'pages/changepass.html';
   }
-  
+
   window.location.href = relativePath;
 }
 
@@ -267,7 +294,7 @@ function hasPermission(permissionName) {
   if (userPermissions.length > 0) {
     return userPermissions.includes(permissionName);
   }
-  
+
   // Try to get from localStorage
   const storedPermissions = localStorage.getItem('userPermissions');
   if (storedPermissions) {
@@ -278,7 +305,7 @@ function hasPermission(permissionName) {
       console.error('Error parsing stored permissions:', error);
     }
   }
-  
+
   return false;
 }
 
@@ -303,11 +330,11 @@ function redirectToAccessDenied() {
 function getRelativePath(targetPath) {
   const currentPath = window.location.pathname;
   const pathSegments = currentPath.split('/').filter(segment => segment !== '');
-  
+
   if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].includes('.html')) {
     pathSegments.pop();
   }
-  
+
   if (pathSegments.length === 0) {
     return targetPath;
   } else {
@@ -322,13 +349,13 @@ function requirePermission(permissionName) {
     logoutAuth();
     return false;
   }
-  
+
   if (!hasPermission(permissionName)) {
     console.log(`Access denied: Missing permission '${permissionName}'`);
     redirectToAccessDenied();
     return false;
   }
-  
+
   return true;
 }
 
@@ -338,13 +365,13 @@ function requireAllPermissions(permissionNames) {
     logoutAuth();
     return false;
   }
-  
+
   if (!hasAllPermissions(permissionNames)) {
     console.log(`Access denied: Missing one or more permissions:`, permissionNames);
     redirectToAccessDenied();
     return false;
   }
-  
+
   return true;
 }
 
@@ -354,13 +381,13 @@ function requireAnyPermission(permissionNames) {
     logoutAuth();
     return false;
   }
-  
+
   if (!hasAnyPermission(permissionNames)) {
     console.log(`Access denied: Missing all required permissions:`, permissionNames);
     redirectToAccessDenied();
     return false;
   }
-  
+
   return true;
 }
 
@@ -394,7 +421,7 @@ const PAGE_PERMISSIONS = {
   // Purchase Request pages
   // 'addPR.html': ['PREPARE_PR'],
   // 'detailPR.html': ['PREPARE_PR'],
-  
+
   // You can add more page mappings here
   // 'addCash.html': ['PREPARE_CASH_ADVANCE'],
   // 'detailCash.html': ['PREPARE_CASH_ADVANCE'],
@@ -548,7 +575,7 @@ async function immediatePermissionCheck() {
   try {
     // Load permissions
     await loadUserPermissions();
-    
+
     // Check page permissions
     if (checkPagePermissions()) {
       hideLoadingScreen();
