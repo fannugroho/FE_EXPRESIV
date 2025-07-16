@@ -139,6 +139,17 @@
                         <p id="rejectedDocs" class="text-3xl font-bold text-red-600 mt-2">0</p>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 mt-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
+                        <p id="paidDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Settled</h3>
+                        <p id="settledDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
             </div>
             
             <!-- Recent Documents -->
@@ -146,16 +157,6 @@
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold">Recent Documents</h3>
-                    </div>
-                    
-                    <!-- Main Tabs -->
-                    <div class="flex border-b w-full mb-4">
-                        <button id="vendorTabBtn" data-tab="vendor" onclick="switchMainTab('vendor')" class="px-6 py-3 main-tab-active rounded-t-lg font-medium">
-                            <i class="fas fa-building mr-2"></i>Vendor
-                        </button>
-                        <button id="accountTabBtn" data-tab="account" onclick="switchMainTab('account')" class="px-6 py-3 rounded-t-lg font-medium">
-                            <i class="fas fa-user-circle mr-2"></i>Account
-                        </button>
                     </div>
                     
                     <div class="flex flex-col md:flex-row justify-between items-center mb-0">
@@ -242,9 +243,9 @@
                 </div>
                 
                 <div class="flex justify-between mt-4">
-                    <!--
-                    <button onclick="goToMenuReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
-                    -->
+                    <button onclick="showReimbursementModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                        <i class="fas fa-plus mr-2"></i>Copy From and Add New
+                    </button>
                     <div class="flex justify-end space-x-2">
                         <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
                             <i class="fas fa-file-excel mr-2"></i>Excel
@@ -283,14 +284,77 @@
             <i class="fas fa-ban text-xl"></i>
             <span>Reject</span>
         </button>
+        <button onclick="goToPaidDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-money-bill-wave text-xl"></i>
+            <span>Paid</span>
+        </button>
+        <button onclick="goToSettledDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check-double text-xl"></i>
+            <span>Settled</span>
+        </button>
     </nav>
+
+    <!-- Modal untuk menampilkan daftar dokumen reimbursement -->
+    <div id="reimbursementModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-4/5 lg:w-3/4 max-h-[80vh] overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-semibold">List of Documents</h3>
+                <button onclick="closeReimbursementModal()" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="reimSearchInput"
+                        placeholder="Search document..."
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onkeyup="filterReimbursementDocs()"
+                    />
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <div class="max-h-[50vh] overflow-y-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200 sticky top-0 z-10">
+                                <tr>
+                                    <th class="p-2 text-left">Voucher No.</th>
+                                    <th class="p-2 text-left">Requester Name</th>
+                                    <th class="p-2 text-left">Department</th>
+                                    <th class="p-2 text-left">Posting Date</th>
+                                    <th class="p-2 text-left">Due Date</th>
+                                    <th class="p-2 text-left">Pay To</th>
+                                    <th class="p-2 text-left">Total</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reimbursementDocs">
+                                <tr>
+                                    <td colspan="8" class="p-4 text-center">Memuat data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <button onclick="closeReimbursementModal()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 mr-2">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- External JS -->
     <script src="../js/auth.js"></script>
     <!-- Shared Components -->
     <script src="../components/shared/sidebar-loader.js"></script>
     <script src="../components/shared/navigation.js"></script>
-    <script src="../js/outgoingPayment.js"></script>
+    <script src="../js/menuOPReim.js"></script>
 
     <style>
         /* Style untuk sel tabel dengan scrollbar horizontal */

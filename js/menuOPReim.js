@@ -1,3 +1,152 @@
+// Variabel untuk menyimpan dokumen reimbursement
+let reimbursementDocs = [];
+
+// Fungsi untuk menampilkan modal reimbursement
+function showReimbursementModal() {
+    // Ambil data reimbursement
+    fetchReimbursementDocs();
+    
+    // Tampilkan modal
+    document.getElementById('reimbursementModal').classList.remove('hidden');
+}
+
+// Fungsi untuk menutup modal reimbursement
+function closeReimbursementModal() {
+    document.getElementById('reimbursementModal').classList.add('hidden');
+}
+
+// Fungsi untuk mengambil data dokumen
+function fetchReimbursementDocs() {
+    const tableBody = document.getElementById("reimbursementDocs");
+    tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">Loading data...</td></tr>';
+    
+    fetch(`${BASE_URL}/api/staging-outgoing-payments/headers`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'accept': '*/*'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status && data.data) {
+            // Tampilkan semua dokumen tanpa filter status
+            reimbursementDocs = data.data;
+            displayReimbursementDocs(reimbursementDocs);
+            
+            if (reimbursementDocs.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+            }
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-red-500">No data available</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching document data:', error);
+        tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>';
+    });
+}
+
+// Fungsi untuk menampilkan dokumen
+function displayReimbursementDocs(docs) {
+    const tableBody = document.getElementById("reimbursementDocs");
+    tableBody.innerHTML = "";
+    
+    if (docs.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+        return;
+    }
+    
+    docs.forEach((doc, index) => {
+        // Fungsi untuk menerapkan kelas scrollable jika teks melebihi 10 karakter
+        const applyScrollClass = (text) => {
+            if (text && text.length > 10) {
+                return `<div class="table-cell-scrollable">${text}</div>`;
+            }
+            return text || '-';
+        };
+        
+        // Format data berdasarkan struktur API
+        const voucherNo = applyScrollClass(doc.expressivNo || doc.docNum);
+        const requesterName = applyScrollClass(doc.cardName || '-');
+        const department = applyScrollClass('-'); // Tidak ada field department dalam struktur API
+        
+        // Format nilai Total
+        const totalValue = doc.trsfrSum ? doc.trsfrSum.toLocaleString() : '-';
+        const total = applyScrollClass(totalValue);
+        
+        // Format tanggal
+        const postingDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-';
+        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '-';
+        
+        // BP Name
+        const bpName = applyScrollClass(doc.cardName || '-');
+        
+        // Tentukan status dan warna latar belakang
+        const status = doc.approval ? doc.approval.approvalStatus : '-';
+        let statusClass = "bg-gray-100 text-gray-800"; // Default
+        
+        if (status === 'Approved') {
+            statusClass = "bg-green-100 text-green-800";
+        } else if (status === 'Rejected') {
+            statusClass = "bg-red-100 text-red-800";
+        } else if (status === 'Pending' || status === 'Draft') {
+            statusClass = "bg-yellow-100 text-yellow-800";
+        }
+        
+        const row = `<tr class='border-b hover:bg-gray-100'>
+            <td class='p-2'>${voucherNo}</td>
+            <td class='p-2'>${requesterName}</td>
+            <td class='p-2'>${department}</td>
+            <td class='p-2'>${postingDate}</td>
+            <td class='p-2'>${dueDate}</td>
+            <td class='p-2'>${bpName}</td>
+            <td class='p-2'>${total}</td>
+            <td class='p-2'><span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span></td>
+            <td class='p-2'>
+                <button onclick="selectReimbursement('${doc.stagingID}', '${doc.expressivNo || doc.docNum}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
+            </td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+}
+
+// Fungsi untuk memfilter dokumen reimbursement berdasarkan pencarian
+function filterReimbursementDocs() {
+    const searchTerm = document.getElementById('reimSearchInput').value.toLowerCase();
+    
+    if (!searchTerm) {
+        displayReimbursementDocs(reimbursementDocs);
+        return;
+    }
+    
+    const filteredDocs = reimbursementDocs.filter(doc => {
+        return (
+            (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
+            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
+            (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
+            (doc.comments && doc.comments.toLowerCase().includes(searchTerm))
+        );
+    });
+    
+    displayReimbursementDocs(filteredDocs);
+}
+
+// Fungsi untuk memilih dokumen dan membuat outgoing payment
+function selectReimbursement(stagingID, docNumber) {
+    // Simpan ID dokumen yang dipilih ke localStorage atau variabel global
+    localStorage.setItem('selectedStagingID', stagingID);
+    localStorage.setItem('selectedDocNumber', docNumber);
+    
+    // Redirect ke halaman pembuatan outgoing payment
+    window.location.href = "../addPages/addOPReim.html";
+}
+
 function loadDashboard() {
     const userId = getUserId();
     if (!userId) {
@@ -5,6 +154,44 @@ function loadDashboard() {
         return;
     }
 
+    // Fetch dashboard summary data
+    fetch(`${BASE_URL}/api/staging-outgoing-payments/dashboard/summary`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status && data.data) {
+                const summary = data.data;
+                console.log("Dashboard Summary:", summary);
+                
+                // Update dashboard counts
+                document.getElementById("totalDocs").textContent = summary.total || 0;
+                document.getElementById("draftDocs").textContent = summary.draft || 0;
+                document.getElementById("preparedDocs").textContent = summary.prepared || 0;
+                document.getElementById("checkedDocs").textContent = summary.checked || 0;
+                document.getElementById("acknowledgedDocs").textContent = summary.acknowledged || 0;
+                document.getElementById("approvedDocs").textContent = summary.approved || 0;
+                document.getElementById("rejectedDocs").textContent = summary.rejected || 0;
+                
+                // Handle additional fields if they exist
+                if (document.getElementById("paidDocs")) {
+                    document.getElementById("paidDocs").textContent = summary.paid || 0;
+                }
+                if (document.getElementById("settledDocs")) {
+                    document.getElementById("settledDocs").textContent = summary.settled || 0;
+                }
+            } else {
+                console.error("API summary response does not contain expected data");
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching summary data:', error);
+        });
+
+    // Fetch document list
     fetch(`${BASE_URL}/api/outgoing-payment/dashboard`)
         .then(response => {
             if (!response.ok) {
@@ -23,17 +210,6 @@ function loadDashboard() {
                 const userDocuments = documents; // Changed: show all documents
                 console.log("Filtered documents:", userDocuments.length);
                 
-                // Update dashboard counts
-                document.getElementById("totalDocs").textContent = userDocuments.length;
-                document.getElementById("draftDocs").textContent = userDocuments.filter(doc => doc.status === "Draft").length;
-                document.getElementById("preparedDocs").textContent = userDocuments.filter(doc => doc.status === "Prepared").length;
-                document.getElementById("checkedDocs").textContent = userDocuments.filter(doc => doc.status === "Checked").length;
-                document.getElementById("acknowledgedDocs").textContent = userDocuments.filter(doc => doc.status === "Acknowledged").length;
-                document.getElementById("approvedDocs").textContent = userDocuments.filter(doc => doc.status === "Approved").length;
-                document.getElementById("paidDocs").textContent = userDocuments.filter(doc => doc.status === "Paid").length;
-                document.getElementById("rejectedDocs").textContent = userDocuments.filter(doc => doc.status === "Rejected").length;
-                document.getElementById("settledDocs").textContent = userDocuments.filter(doc => doc.status === "Settled").length;
-                
                 // Simpan dokumen untuk penggunaan di tab
                 window.allDocuments = userDocuments;
                 window.filteredDocuments = userDocuments;
@@ -48,9 +224,9 @@ function loadDashboard() {
             }
         })
         .catch(error => {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching document data:', error);
             document.getElementById("recentDocs").innerHTML = 
-                `<tr><td colspan="9" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>`;
+                `<tr><td colspan="11" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>`;
         });
 }
 
@@ -137,6 +313,42 @@ function changePage(direction) {
     }
 }
 
+// Fungsi navigasi ke halaman status tertentu
+function goToCheckedDocs() {
+    currentTab = 'checked';
+    currentPage = 1;
+    filteredDocuments = allDocuments.filter(doc => doc.status === 'Checked');
+    displayDocuments(filteredDocuments);
+}
+
+function goToApprovedDocs() {
+    currentTab = 'approved';
+    currentPage = 1;
+    filteredDocuments = allDocuments.filter(doc => doc.status === 'Approved');
+    displayDocuments(filteredDocuments);
+}
+
+function goToRejectDocs() {
+    currentTab = 'rejected';
+    currentPage = 1;
+    filteredDocuments = allDocuments.filter(doc => doc.status === 'Rejected');
+    displayDocuments(filteredDocuments);
+}
+
+function goToPaidDocs() {
+    currentTab = 'paid';
+    currentPage = 1;
+    filteredDocuments = allDocuments.filter(doc => doc.status === 'Paid');
+    displayDocuments(filteredDocuments);
+}
+
+function goToSettledDocs() {
+    currentTab = 'settled';
+    currentPage = 1;
+    filteredDocuments = allDocuments.filter(doc => doc.status === 'Settled');
+    displayDocuments(filteredDocuments);
+}
+
 // Function untuk switch tab
 function switchTab(tab) {
     currentTab = tab;
@@ -198,72 +410,19 @@ function switchTab(tab) {
     displayDocuments(filteredDocuments);
 }
 
-// Programmatic tab switching functions
-function switchToVendorTab() {
-    switchMainTab('vendor');
-}
-
-function switchToAccountTab() {
-    switchMainTab('account');
-}
-
-// Function to switch between main tabs
-function switchMainTab(tab) {
-    // Update main tab button styling
-    document.getElementById('vendorTabBtn').classList.remove('main-tab-active');
-    document.getElementById('accountTabBtn').classList.remove('main-tab-active');
-    
-    if (tab === 'vendor') {
-        document.getElementById('vendorTabBtn').classList.add('main-tab-active');
-        // Additional logic for vendor tab content
-        console.log('Switched to Vendor tab');
-        // Reset to "all" sub-tab when switching main tabs
-        switchTab('all');
-    } else if (tab === 'account') {
-        document.getElementById('accountTabBtn').classList.add('main-tab-active');
-        // Additional logic for account tab content
-        console.log('Switched to Account tab');
-        // Reset to "all" sub-tab when switching main tabs
-        switchTab('all');
-    }
-    
-    // You can add logic here to show/hide different content based on the selected tab
-}
-
-// Programmatic sub-tab switching functions
-function switchToAllDocumentsTab() {
-    switchTab('all');
-}
-
-function switchToDraftTab() {
-    switchTab('draft');
-}
-
-function switchToPreparedTab() {
-    switchTab('prepared');
-}
-
 // Add keyboard shortcuts for tab navigation
 document.addEventListener('keydown', function(event) {
-    // Alt + 1: Switch to Vendor tab
-    if (event.altKey && event.key === '1') {
-        switchToVendorTab();
-    }
-    // Alt + 2: Switch to Account tab
-    else if (event.altKey && event.key === '2') {
-        switchToAccountTab();
-    }
     // Alt + A: Switch to All Documents sub-tab
-    else if (event.altKey && event.key === 'a') {
-        switchToAllDocumentsTab();
+    if (event.altKey && event.key === 'a') {
+        switchTab('all');
     }
     // Alt + D: Switch to Draft sub-tab
     else if (event.altKey && event.key === 'd') {
-        switchToDraftTab();
+        switchTab('draft');
     }
     // Alt + P: Switch to Prepared sub-tab
     else if (event.altKey && event.key === 'p') {
-        switchToPreparedTab();
+        switchTab('prepared');
     }
 });
 
