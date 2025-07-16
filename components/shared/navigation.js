@@ -91,6 +91,32 @@ function goToMenuRevisionReim() {
     window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html`;
 }
 
+// Outgoing Payment Reimbursement Navigation
+function goToMenuOPReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}pages/menuOPReim.html`;
+}
+
+function goToMenuCheckOPReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html`;
+}
+
+function goToMenuAcknowOPReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknow.html`;
+}
+
+function goToMenuApprovOPReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html`;
+}
+
+function goToMenuReceiveOPReim() {
+    const basePath = getBasePath();
+    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html`;
+}
+
 // Cash Advance Navigation
 function goToMenuCash() {
     const basePath = getBasePath();

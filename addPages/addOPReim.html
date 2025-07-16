@@ -7,6 +7,10 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        // Define the base URL for API calls
+        const baseUrlDevAmiru = "https://api-dev.expressiv.id"; // Adjust this URL as needed
+    </script>
     <script src="../js/auth.js"></script>
     <script src="../js/addOPReim.js"></script>
     
@@ -42,27 +46,27 @@
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
-                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded">
+                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
-                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded">
+                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded">
+                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded">
+                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
-                <input type="date" id="DocDate" class="w-full p-2 border rounded">
+                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
-                <input type="date" id="DocDueDate" class="w-full p-2 border rounded">
+                <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                <input type="date" id="TaxDate" class="w-full p-2 border rounded">
+                <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <input type="hidden" id="Doctype" value="A">
+                <input type="hidden" id="Doctype" value="A" autocomplete="off">
             </div>
             
             <div>
@@ -70,10 +74,10 @@
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Comments</h3>
-                <input type="text" id="Comments" placeholder="Comments" class="w-full p-2 border rounded">
+                <input type="text" id="Comments" placeholder="Comments" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
-                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded">
+                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
@@ -82,10 +86,10 @@
                 <input type="text" id="DiffCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
-                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded">
+                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
-                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded">
+                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded" autocomplete="off">
             </div>
         </div>
         
@@ -104,19 +108,19 @@
             <tbody id="tableBody">
                 <tr>
                     <td id="tdAcctCode" class="p-2 border">
-                        <input type="number" id="AcctCode" maxlength="255" class="w-full" />
+                        <input type="number" id="AcctCode" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdAcctName" class="p-2 border">
-                        <input type="text" id="AcctName" class="w-full currency-input" />
+                        <input type="text" id="AcctName" class="w-full currency-input" autocomplete="off" />
                     </td>
                     <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="description" maxlength="255" class="w-full" />
+                        <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdDivision" class="p-2 border">
-                        <input type="text" id="division" maxlength="255" class="w-full" />
+                        <input type="text" id="division" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
-                        <input type="number" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
+                        <input type="number" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" autocomplete="off" />
                     </td>
                     <td id="tdAction" class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -129,24 +133,24 @@
         <!--Net Total-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Net Total :</label>
-            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
 
         <!--WTax Total-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Tax:</label>
-            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
          <!--Total Amount Due-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Amount Due :</label>
-            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
         
         <!--Total Transfer-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Transfer :</label>
-            <input type="number" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input">
+            <input type="number" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" autocomplete="off">
         </div>
         
         <!-- Tombol Tambah Baris -->
@@ -156,17 +160,17 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea class="w-full p-2 border rounded-md"></textarea>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
             </div>
             <div class="mt-4">
-                <label>Journal Remarks  </label>
-                <textarea class="w-full p-2 border rounded-md"></textarea>
+                <label>Journal Remarks</label>
+                <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
             </div>
 
             <!-- Rejection Remarks section - only visible when status is Rejected -->
             <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
                 <label class="font-semibold text-red-600">Rejection Reason</label>
-                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly autocomplete="off"></textarea>
             </div>
 
         <!-- Approval section -->
@@ -175,7 +179,7 @@
                 <label><strong>Proposed by:</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="window.filterUsers('Approval.PreparedById')" autocomplete="off" disabled>
-                    <select id="Approval.PreparedById" class="hidden">
+                    <select id="Approval.PreparedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -185,7 +189,7 @@
                 <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.CheckedById')" autocomplete="off">
-                    <select id="Approval.CheckedById" class="hidden">
+                    <select id="Approval.CheckedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -195,7 +199,7 @@
                 <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.AcknowledgedById')" autocomplete="off">
-                    <select id="Approval.AcknowledgedById" class="hidden">
+                    <select id="Approval.AcknowledgedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -205,7 +209,7 @@
                 <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ApprovedById')" autocomplete="off">
-                    <select id="Approval.ApprovedById" class="hidden">
+                    <select id="Approval.ApprovedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -215,7 +219,7 @@
                 <label id="received" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ReceivedById')" autocomplete="off">
-                    <select id="Approval.ReceivedById" class="hidden">
+                    <select id="Approval.ReceivedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -226,7 +230,7 @@
                 <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
                 <div class="relative">
                     <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ClosedById')" autocomplete="off">
-                    <select id="Approval.ClosedById" class="hidden">
+                    <select id="Approval.ClosedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -235,39 +239,18 @@
         </div>
         <br>
 
-        <div class="flex justify-between space-x-4 mt-6">
-            <div class="flex space-x-4">
-                <button onclick="rejectOP()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Reject
-                </button>
-                <button onclick="approveOP()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Checked
-                </button>
-            </div>
+        <!-- Ganti button Reject dan Checked dengan button Save dan Submit -->
+        <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="submitDocument(false)" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Save
+            </button>
+            <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Submit
+            </button>
         </div>
     </div>
 
     <script>
-        function confirmSubmit() {
-            Swal.fire({
-                title: 'Konfirmasi',
-                text: 'Apakah dokumen sudah benar?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire(
-                        'Berhasil!',
-                        'Dokumen berhasil di-submit.',
-                        'success'
-                    );
-                }
-            });
-        }
-
         // Format currency with dot as decimal separator (format: 2,000,000.00)
         function formatCurrency(input, decimalSeparator) {
             // Get input value and remove all non-digits and non-decimal separator
@@ -413,13 +396,193 @@
         });
 
         function toggleClosedByVisibility() {
-            const transactionType = document.getElementById('transactionType').value;
-            const closedByContainer = document.getElementById('closed').parentElement;
+            const transactionType = document.getElementById('transactionType')?.value;
+            const closedByContainer = document.getElementById('closed')?.parentElement;
             
-            if (transactionType === 'LOAN') {
-                closedByContainer.style.display = 'block';
-            } else {
-                closedByContainer.style.display = 'none';
+            if (closedByContainer) {
+                if (transactionType === 'LOAN') {
+                    closedByContainer.style.display = 'block';
+                } else {
+                    closedByContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // Function to submit document (similar to addPR.js)
+        async function submitDocument(isSubmit = false) {
+            // Show confirmation dialog only for submit
+            if (isSubmit) {
+                const result = await Swal.fire({
+                    title: 'Confirmation',      
+                    text: 'Is the document correct?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+            }
+
+            // Show loading indicator
+            const loadingTitle = isSubmit ? 'Sending...' : 'Saving...';
+            const loadingText = isSubmit ? 'Sending document, please wait...' : 'Saving document, please wait...';
+            
+            Swal.fire({
+                title: loadingTitle,
+                text: loadingText,
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                // Get user ID from JWT token using auth.js function
+                const userId = getUserId();
+                if (!userId) {
+                    alert("Unable to get user ID from token. Please login again.");
+                    return;
+                }
+                
+                // Create the Outgoing Payment data
+                const lines = [];
+                const tableRows = document.querySelectorAll('#tableBody tr');
+                
+                tableRows.forEach((row, index) => {
+                    lines.push({
+                        lineID: index,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        stagingID: "string",
+                        docNum: 0,
+                        lineNum: index,
+                        acctCode: row.querySelector('[id^="AcctCode"]').value,
+                        acctName: row.querySelector('[id^="AcctName"]').value,
+                        descrip: row.querySelector('[id^="description"]').value,
+                        sumApplied: parseCurrencyValue(row.querySelector('[id^="DocTotal"]').value),
+                        ocrCode3: row.querySelector('[id^="division"]').value,
+                        category: "string",
+                        header: "string"
+                    });
+                });
+                
+                const requestData = {
+                    stagingID: "string",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    docEntry: 0,
+                    address: document.getElementById("Address").value,
+                    cardName: document.getElementById("CardName").value,
+                    docDate: document.getElementById("DocDate").value ? new Date(document.getElementById("DocDate").value).toISOString() : null,
+                    docDueDate: document.getElementById("DocDueDate").value ? new Date(document.getElementById("DocDueDate").value).toISOString() : null,
+                    taxDate: document.getElementById("TaxDate").value ? new Date(document.getElementById("TaxDate").value).toISOString() : null,
+                    counterRef: document.getElementById("CounterRef").value,
+                    docNum: document.getElementById("DocNum").value ? parseInt(document.getElementById("DocNum").value) : 0,
+                    comments: document.getElementById("Comments").value,
+                    jrnlMemo: document.getElementById("JrnlMemo").value,
+                    doctype: document.getElementById("Doctype").value,
+                    docCurr: document.getElementById("DocCurr").value,
+                    diffCurr: document.getElementById("DiffCurr").value,
+                    trsfrDate: document.getElementById("TrsfrDate").value ? new Date(document.getElementById("TrsfrDate").value).toISOString() : null,
+                    trsfrAcct: document.getElementById("TrsfrAcct").value,
+                    trsfrSum: parseCurrencyValue(document.getElementById("TrsfrSum").value),
+                    isTransferred: true,
+                    type: "string",
+                    expressivNo: "string",
+                    lines: lines,
+                    approval: {
+                        stagingID: "string",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        approvalStatus: isSubmit ? "Submitted" : "Draft",
+                        preparedBy: document.getElementById("Approval.PreparedById").value,
+                        checkedBy: document.getElementById("Approval.CheckedById").value,
+                        acknowledgedBy: document.getElementById("Approval.AcknowledgedById").value,
+                        approvedBy: document.getElementById("Approval.ApprovedById").value,
+                        receivedBy: document.getElementById("Approval.ReceivedById").value,
+                        preparedDate: new Date().toISOString(),
+                        checkedDate: null,
+                        acknowledgedDate: null,
+                        approvedDate: null,
+                        receivedDate: null,
+                        rejectedDate: null,
+                        rejectionRemarks: "",
+                        revisionNumber: 0,
+                        revisionDate: null,
+                        revisionRemarks: "",
+                        header: "string"
+                    },
+                    attachments: []
+                };
+                
+                // Submit the form data
+                const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/headers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) {
+                    // Parse the error response to get the actual error message
+                    let errorMessage = `API error: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.Message) {
+                            errorMessage = errorData.Message;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (parseError) {
+                        console.log("Could not parse error response:", parseError);
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                // Parse the successful response
+                const result = await response.json();
+                console.log("Submit result:", result);
+                
+                // Show appropriate success message
+                if (isSubmit) {
+                    // Show success message with SweetAlert for submit
+                    await Swal.fire({
+                        title: 'Success',
+                        text: 'Document has been submitted successfully',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    // Show success message with SweetAlert for save
+                    await Swal.fire({
+                        title: 'Success!',
+                        text: 'Document has been saved as draft',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                }
+                
+                // Redirect back to menu page
+                goToMenuOP();
+                
+            } catch (error) {
+                console.error("Error processing document:", error);
+                
+                // Show error message with SweetAlert for both submit and save
+                await Swal.fire({
+                    title: 'Error',
+                    text: `Failed to ${isSubmit ? 'submit' : 'save'} document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         }
     </script>

@@ -57,42 +57,42 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Purchase Request No</h3>
-                <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <input type="text" id="purchaseRequestNo" placeholder="PR Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
                 <div class="relative">
                     <input type="text" id="requesterSearch" placeholder="Search requester" class="w-full p-2 border rounded" onkeyup="filterRequesters()" autocomplete="off">
-                    <select id="RequesterId" class="hidden">
+                    <select id="RequesterId" class="hidden" autocomplete="off">
                         <option value="">Select a requester</option>
                     </select>
                     <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto"></div>
                 </div>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                     <option value="" disabled selected>Select Department</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Classification</h3>
-                <select id="classification" class="w-full p-2 border rounded bg-white">
+                <select id="classification" class="w-full p-2 border rounded bg-white" autocomplete="off">
                     <option value="" disabled selected>Select Classification</option>
                 </select>
             </div>
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Issuance Date</h3>
-                <input type="date" id="submissionDate" class="w-full p-2 border rounded">
+                <input type="date" id="submissionDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Required Date</h3>
-                <input type="date" id="requiredDate" class="w-full p-2 border rounded">
+                <input type="date" id="requiredDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                     <option value="Draft" selected>Draft</option>
                 </select>  
                 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" autocomplete="off" />
             </div>
         </div>
         
@@ -113,23 +113,23 @@
             <tbody id="tableBody">
                 <tr>
                     <td class="p-2 border relative">
-                        <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." />
+                        <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." autocomplete="off" />
                         <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
                     </td>
                     <td class="p-2 border bg-gray-100">
-                        <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
+                        <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12">
-                        <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
+                        <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12">
-                        <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
+                        <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12">
-                        <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+                        <input type="number" class="w-full h-full item-quantity text-center" min="1" required autocomplete="off" />
                     </td>
                     <td class="p-2 border bg-gray-100">
-                        <input type="text" class="w-full item-uom bg-gray-100" disabled />
+                        <input type="text" class="w-full item-uom bg-gray-100" disabled autocomplete="off" />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -146,7 +146,7 @@
         <!-- Remarks section -->
         <div class="mt-4">
             <label class="font-semibold">Remarks</label>
-            <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
+            <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
         </div>
 
         <!-- Approval -->
@@ -155,7 +155,7 @@
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
                 <div class="relative">
                     <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
-                    <select id="preparedBy" class="hidden">
+                    <select id="preparedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -165,7 +165,7 @@
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
                 <div class="relative">
                     <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off">
-                    <select id="acknowledgeBy" class="hidden">
+                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -175,7 +175,7 @@
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
                 <div class="relative">
                     <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
-                    <select id="checkedBy" class="hidden">
+                    <select id="checkedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -185,7 +185,7 @@
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
                 <div class="relative">
                     <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
-                    <select id="approvedBy" class="hidden">
+                    <select id="approvedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
@@ -195,7 +195,7 @@
                 <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
                 <div class="relative">
                     <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off">
-                    <select id="receivedBy" class="hidden">
+                    <select id="receivedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
                     <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>

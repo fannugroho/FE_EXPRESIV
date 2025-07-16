@@ -84,7 +84,7 @@
         </div>            
     </div>
 
-    <div class="menu-category" style="display: none;">Approval Report</div>
+    <div class="menu-category">Approval Report</div>
 
     <div class="mb-1" style="display: none;">
         <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
@@ -118,19 +118,20 @@
         </div>
     </div>
 
-    <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('OutgoingPayment')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
-                <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="menu-icon"><i class="fas fa-money-bill-wave"></i></span>
                 <span class="ml-3">Outgoing Payment</span>
             </div>
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
-        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
-            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
-            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
-            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+        <div id="OutgoingPayment" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add OP Reimbursement</button>
+            <button onclick="goToMenuCheckOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked OP Reimbursement</button>
+            <button onclick="goToMenuAcknowOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge OP Reimbursement</button>
+            <button onclick="goToMenuApprovOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval OP Reimbursement</button>
+            <button onclick="goToMenuReceiveOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive OP Reimbursement</button>
         </div>
     </div>
 

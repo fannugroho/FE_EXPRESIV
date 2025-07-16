@@ -8,12 +8,153 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
-let apiBaseUrl = 'https://api.example.com'; // Replace with actual API URL
+let apiBaseUrl = baseUrlDevAmiru || 'https://api-dev.expressiv.id'; // Use baseUrlDevAmiru if defined
+
+// Function to initialize the page
+function initializePage() {
+    // Check if we're editing an existing document or creating a new one from reimbursement
+    const urlParams = new URLSearchParams(window.location.search);
+    const opId = urlParams.get('op-id');
+    
+    if (opId) {
+        // Load existing outgoing payment
+        loadOutgoingPaymentDetails(opId);
+    } else {
+        // Check if we're creating from reimbursement data
+        loadReimbursementData();
+    }
+    
+    // Initialize input validations
+    initializeInputValidations();
+}
+
+// Call initialization when the page loads
+window.onload = initializePage;
 
 // Helper function to get logged-in user ID
 function getUserId() {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
     return user ? user.id : null;
+}
+
+// Function to load data from reimbursement document
+function loadReimbursementData() {
+    // Check if we have reimbursement data in localStorage
+    const reimbursementDataStr = localStorage.getItem('selectedReimbursementData');
+    if (!reimbursementDataStr) {
+        console.log('No reimbursement data found in localStorage');
+        return;
+    }
+
+    try {
+        // Parse the reimbursement data
+        const reimbursementData = JSON.parse(reimbursementDataStr);
+        console.log('Loaded reimbursement data:', reimbursementData);
+
+        // Populate form fields with reimbursement data
+        document.getElementById('CounterRef').value = reimbursementData.expressivNo || reimbursementData.docNum || '';
+        document.getElementById('CardName').value = reimbursementData.cardName || '';
+        document.getElementById('Address').value = reimbursementData.address || '';
+        
+        // Format dates properly
+        if (reimbursementData.docDate) {
+            const docDate = new Date(reimbursementData.docDate);
+            document.getElementById('DocDate').value = docDate.toISOString().split('T')[0];
+        }
+        
+        if (reimbursementData.docDueDate) {
+            const dueDate = new Date(reimbursementData.docDueDate);
+            document.getElementById('DocDueDate').value = dueDate.toISOString().split('T')[0];
+        }
+        
+        if (reimbursementData.taxDate) {
+            const taxDate = new Date(reimbursementData.taxDate);
+            document.getElementById('TaxDate').value = taxDate.toISOString().split('T')[0];
+        }
+        
+        if (reimbursementData.trsfrDate) {
+            const transferDate = new Date(reimbursementData.trsfrDate);
+            document.getElementById('TrsfrDate').value = transferDate.toISOString().split('T')[0];
+        }
+        
+        // Set other fields
+        document.getElementById('DocNum').value = reimbursementData.docNum || '';
+        document.getElementById('Comments').value = reimbursementData.comments || '';
+        document.getElementById('JrnlMemo').value = reimbursementData.jrnlMemo || '';
+        document.getElementById('TrsfrAcct').value = reimbursementData.trsfrAcct || '';
+        
+        // Set transfer sum
+        if (reimbursementData.trsfrSum) {
+            document.getElementById('TrsfrSum').value = formatCurrency(reimbursementData.trsfrSum);
+        }
+        
+        // Clear existing rows except the first one
+        const tableBody = document.getElementById('tableBody');
+        while (tableBody.rows.length > 1) {
+            tableBody.deleteRow(tableBody.rows.length - 1);
+        }
+        
+        // Populate the first row
+        if (reimbursementData.lines && reimbursementData.lines.length > 0) {
+            // Remove the first row if it exists
+            if (tableBody.rows.length > 0) {
+                tableBody.deleteRow(0);
+            }
+            
+            // Add rows for each line item
+            reimbursementData.lines.forEach((line, index) => {
+                addRowWithData(line);
+            });
+            
+            // Update totals
+            updateTotalAmountDue();
+        }
+        
+        // Clear localStorage to prevent duplicate data
+        localStorage.removeItem('selectedReimbursementData');
+        
+    } catch (error) {
+        console.error('Error loading reimbursement data:', error);
+    }
+}
+
+// Function to add a row with predefined data
+function addRowWithData(lineData) {
+    const tableBody = document.getElementById('tableBody');
+    const newRow = tableBody.insertRow();
+    
+    // Create cells with input fields
+    const acctCodeCell = newRow.insertCell();
+    acctCodeCell.className = 'p-2 border';
+    acctCodeCell.innerHTML = `<input type="text" class="w-full" value="${lineData.acctCode || ''}" autocomplete="off" />`;
+    
+    const acctNameCell = newRow.insertCell();
+    acctNameCell.className = 'p-2 border';
+    acctNameCell.innerHTML = `<input type="text" class="w-full" value="${lineData.acctName || ''}" autocomplete="off" />`;
+    
+    const descriptionCell = newRow.insertCell();
+    descriptionCell.className = 'p-2 border';
+    descriptionCell.innerHTML = `<input type="text" class="w-full" value="${lineData.descrip || ''}" maxlength="255" autocomplete="off" />`;
+    
+    const divisionCell = newRow.insertCell();
+    divisionCell.className = 'p-2 border';
+    divisionCell.innerHTML = `<input type="text" class="w-full" value="${lineData.ocrCode3 || ''}" maxlength="255" autocomplete="off" />`;
+    
+    const amountCell = newRow.insertCell();
+    amountCell.className = 'p-2 border';
+    amountCell.innerHTML = `<input type="text" class="w-full currency-input" value="${formatCurrency(lineData.sumApplied || 0)}" oninput="updateTotalAmountDue();" autocomplete="off" />`;
+    
+    const actionCell = newRow.insertCell();
+    actionCell.className = 'p-2 border text-center';
+    actionCell.innerHTML = `<button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>`;
+    
+    // Setup currency formatting for the new row's amount input
+    setupCurrencyInput(amountCell.querySelector('input'));
+    
+    // Update totals
+    updateTotalAmountDue();
+    
+    rowCounter++;
 }
 
 // Helper function to format number as currency with support for very large numbers (trillions)
@@ -132,8 +273,10 @@ function initializeInputValidations() {
 }
 
 // Function to setup currency input with formatting for very large numbers
-function setupCurrencyInput(inputId) {
-    const inputElement = document.getElementById(inputId);
+function setupCurrencyInput(input) {
+    // Handle both element ID strings and direct element references
+    const inputElement = typeof input === 'string' ? document.getElementById(input) : input;
+    
     if (inputElement) {
         // Store the actual numeric value
         inputElement.numericValue = 0;
@@ -199,22 +342,9 @@ function setupCurrencyInput(inputId) {
                     this.value = formatCurrency(this.numericValue);
                 } catch (e) {
                     console.error('Error formatting on blur:', e);
-                    // If formatting fails, keep the current value
                 }
             }
         });
-        
-        // Initialize with formatted value if it has a value
-        if (inputElement.value && inputElement.value.trim() !== '') {
-            try {
-                const numericValue = parseFloat(inputElement.value) || 0;
-                inputElement.numericValue = numericValue;
-                inputElement.value = formatCurrency(numericValue);
-            } catch (e) {
-                console.error('Error initializing currency input:', e);
-                // If formatting fails, keep the original value
-            }
-        }
     }
 }
 
@@ -380,20 +510,6 @@ function updateCash(isSubmit = false) {
     });
 }
 
-// Initialize when the document is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Load outgoing payment details from API
-    loadOutgoingPaymentDetails();
-    
-    initializeInputValidations();
-    
-    // Setup initial row
-    const firstRowDocTotal = document.getElementById('DocTotal');
-    if (firstRowDocTotal) {
-        firstRowDocTotal.addEventListener('input', updateTotalAmountDue);
-    }
-});
-
 // Function to filter business partners
 window.filterBusinessPartners = function() {
     // Implementation for filtering business partners
@@ -442,10 +558,7 @@ function goToMenuOP() {
 }
 
 // Function to load outgoing payment details from API
-function loadOutgoingPaymentDetails() {
-    // Get the outgoing payment ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const outgoingPaymentId = urlParams.get('id');
+function loadOutgoingPaymentDetails(outgoingPaymentId) {
     
     if (!outgoingPaymentId) {
         Swal.fire({

@@ -20,7 +20,7 @@ function fetchReimbursementDocs() {
     const tableBody = document.getElementById("reimbursementDocs");
     tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">Loading data...</td></tr>';
     
-    fetch(`${BASE_URL}/api/staging-outgoing-payments/headers`, {
+    fetch(`${baseUrlDevAmiru}/api/staging-outgoing-payments/headers`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -34,8 +34,17 @@ function fetchReimbursementDocs() {
         return response.json();
     })
     .then(data => {
-        if (data.status && data.data) {
+        // Berdasarkan struktur API yang baru, data langsung tersedia tanpa property status
+        if (Array.isArray(data)) {
             // Tampilkan semua dokumen tanpa filter status
+            reimbursementDocs = data;
+            displayReimbursementDocs(reimbursementDocs);
+            
+            if (reimbursementDocs.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+            }
+        } else if (data.status && data.data) {
+            // Fallback untuk format lama jika masih digunakan
             reimbursementDocs = data.data;
             displayReimbursementDocs(reimbursementDocs);
             
@@ -88,7 +97,7 @@ function displayReimbursementDocs(docs) {
         const bpName = applyScrollClass(doc.cardName || '-');
         
         // Tentukan status dan warna latar belakang
-        const status = doc.approval ? doc.approval.approvalStatus : '-';
+        const status = doc.approval ? doc.approval.approvalStatus : (doc.type || 'Draft');
         let statusClass = "bg-gray-100 text-gray-800"; // Default
         
         if (status === 'Approved') {
@@ -109,7 +118,7 @@ function displayReimbursementDocs(docs) {
             <td class='p-2'>${total}</td>
             <td class='p-2'><span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span></td>
             <td class='p-2'>
-                <button onclick="selectReimbursement('${doc.stagingID}', '${doc.expressivNo || doc.docNum}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
+                <button onclick="selectReimbursement('${doc.docEntry || ''}', '${doc.expressivNo || doc.docNum}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
             </td>
         </tr>`;
         tableBody.innerHTML += row;
@@ -130,7 +139,8 @@ function filterReimbursementDocs() {
             (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
             (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
             (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
-            (doc.comments && doc.comments.toLowerCase().includes(searchTerm))
+            (doc.comments && doc.comments.toLowerCase().includes(searchTerm)) ||
+            (doc.type && doc.type.toLowerCase().includes(searchTerm))
         );
     });
     
@@ -138,10 +148,22 @@ function filterReimbursementDocs() {
 }
 
 // Fungsi untuk memilih dokumen dan membuat outgoing payment
-function selectReimbursement(stagingID, docNumber) {
+function selectReimbursement(docEntry, docNumber) {
     // Simpan ID dokumen yang dipilih ke localStorage atau variabel global
-    localStorage.setItem('selectedStagingID', stagingID);
+    localStorage.setItem('selectedDocEntry', docEntry);
     localStorage.setItem('selectedDocNumber', docNumber);
+    
+    // Cari data dokumen yang dipilih
+    const selectedDoc = reimbursementDocs.find(doc => 
+        (doc.docEntry && doc.docEntry.toString() === docEntry.toString()) || 
+        (doc.expressivNo === docNumber) || 
+        (doc.docNum && doc.docNum.toString() === docNumber.toString())
+    );
+    
+    if (selectedDoc) {
+        // Simpan seluruh data dokumen untuk digunakan di halaman addOPReim.html
+        localStorage.setItem('selectedReimbursementData', JSON.stringify(selectedDoc));
+    }
     
     // Redirect ke halaman pembuatan outgoing payment
     window.location.href = "../addPages/addOPReim.html";

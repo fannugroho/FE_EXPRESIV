@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receive Outgoing Payment Reimbursement</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="../../../../js/auth.js"></script>
+    <script src="receiveOPReim.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Custom scrollbar styling */
+        textarea::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuReceiveOPReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Receive Outgoing Payment Reimbursement</h2>
+        <br>
+        <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
+                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
+                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
+                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
+                <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
+                <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <input type="hidden" id="Doctype" value="A">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
+                <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Comments</h3>
+                <input type="text" id="Comments" placeholder="Comments" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
+                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DiffCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
+                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100">
+                
+                <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
+                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded bg-gray-100" readonly>
+            </div>
+        </div>
+        
+        <table id="VPM2" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="AcctCode" class="p-2">G/L Account</th>
+                    <th id="AcctName" class="p-2">Account Name</th>
+                    <th id="Descrip" class="p-2">Description</th>
+                    <th id="Division" class="p-2">Division</th>
+                    <th id="DocTotal" class="p-2">Net Amount</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Table rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+        
+        <!--Net Total-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Net Total :</label>
+            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+
+        <!--WTax Total-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Tax:</label>
+            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+        
+        <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount Due :</label>
+            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+        
+        <!--Total Transfer-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Transfer :</label>
+            <input type="number" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+
+        <div class="mt-4">
+            <label>Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
+        </div>
+        
+        <div class="mt-4">
+            <label>Journal Remarks</label>
+            <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
+        </div>
+
+        <!-- Attachments Display Section -->
+        <div class="mt-4" id="attachmentsSection">
+            <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+            <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                <!-- Attachments will be displayed here -->
+            </div>
+        </div>
+
+        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <label class="font-semibold text-red-600">Rejection Reason</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+        </div>
+
+        <!-- Revised Remarks Display Section (Read-only) -->
+        <div class="mt-4" id="revisedRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                </div>
+                <!-- Dynamic revision content will be inserted here by JavaScript -->
+            </div>
+        </div>
+            
+        <!-- Revision Remarks Section -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center">
+                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+            </div>
+            <div id="revisionContainer" class="hidden">
+                <!-- Revision fields will be added here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Approval section -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="preparedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="checkedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="acknowledgedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="approvedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="receivedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+            <div id="closedByContainer">
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="closedBy" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <br>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="rejectOPReim()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Reject
+                </button>
+                <button onclick="receiveOPReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Receive
+                </button>
+            </div>
+            <button onclick="revisionOPReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to track revision fields
+        let revisionFieldsByUser = new Map(); // Track which users have added fields
+        const MAX_REVISION_FIELDS = 1; // Limit to 1 revision per document
+
+        // Toggle revision container visibility and add first field
+        function toggleRevisionField() {
+            // Ensure DOM is ready
+            if (document.readyState !== 'complete') {
+                setTimeout(toggleRevisionField, 100);
+                return;
+            }
+            
+            const container = document.getElementById('revisionContainer');
+            const addBtn = document.getElementById('addRevisionBtn');
+            
+            // Check if container exists
+            if (!container) {
+                console.error('revisionContainer element not found');
+                return;
+            }
+            
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if user can add a field
+            if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Maximum Limit',
+                    text: 'Only one revision is allowed per document'
+                });
+                return;
+            }
+            
+            if (revisionFieldsByUser.has(currentUser.name)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Already exists',
+                    text: 'You already added a revision field. Each user can only add one field.'
+                });
+                return;
+            }
+            
+            if (container.classList.contains('hidden')) {
+                // Show container and add first field
+                container.classList.remove('hidden');
+                addRevisionField();
+            } else {
+                // Add another field
+                addRevisionField();
+            }
+        }
+
+        // Add revision field functionality
+        function addRevisionField() {
+            // Ensure DOM is ready
+            if (document.readyState !== 'complete') {
+                setTimeout(addRevisionField, 100);
+                return;
+            }
+            
+            const container = document.getElementById('revisionContainer');
+            
+            // Check if container exists
+            if (!container) {
+                console.error('revisionContainer element not found');
+                return;
+            }
+            
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if maximum fields reached
+            if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Maximum Limit',
+                    text: 'Only one revision is allowed per document'
+                });
+                return;
+            }
+            
+            // Check if current user already has a field
+            if (revisionFieldsByUser.has(currentUser.name)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Already exists',
+                    text: 'You already added a revision field. Each user can only add one field.'
+                });
+                return;
+            }
+            
+            // Create wrapper div for the textarea and delete button
+            const fieldWrapper = document.createElement('div');
+            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+            fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
+            
+            // Create textarea
+            const newField = document.createElement('textarea');
+            newField.className = 'w-full p-2 border rounded-md';
+            newField.placeholder = 'Enter additional revision details';
+            
+            // Add event listener for input to handle protected prefix
+            newField.addEventListener('input', handleRevisionInput);
+            
+            // Initialize with user prefix
+            initializeWithUserPrefix(newField);
+            
+            // Create delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '&times;'; // × symbol
+            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+            deleteButton.title = 'Delete this revision field';
+            deleteButton.onclick = function() {
+                // Remove user from tracking when field is deleted
+                const userName = fieldWrapper.dataset.userName;
+                revisionFieldsByUser.delete(userName);
+                
+                fieldWrapper.remove();
+                checkRevisionButton(); // Update button state after removing a field
+                checkRevisionContainer(); // Check if container should be hidden
+                updateAddButtonState(); // Update add button state
+            };
+            
+            // Add textarea and delete button to wrapper
+            fieldWrapper.appendChild(newField);
+            fieldWrapper.appendChild(deleteButton);
+            
+            // Add wrapper to container
+            container.appendChild(fieldWrapper);
+            
+            // Track that this user has added a field
+            revisionFieldsByUser.set(currentUser.name, true);
+            
+            // Update the revision button state and add button state
+            checkRevisionButton();
+            updateAddButtonState();
+        }
+        
+        // Check if revision container should be hidden when all fields are removed
+        function checkRevisionContainer() {
+            const container = document.getElementById('revisionContainer');
+            const addBtn = document.getElementById('addRevisionBtn');
+            
+            // Check if container exists
+            if (!container) {
+                console.error('revisionContainer element not found');
+                return;
+            }
+            
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            if (revisionFields.length === 0) {
+                container.classList.add('hidden');
+                addBtn.textContent = '+ Add revision';
+                // Clear the tracking map when container is hidden
+                revisionFieldsByUser.clear();
+            }
+        }
+
+        // Update add button state based on current conditions
+        function updateAddButtonState() {
+            const addBtn = document.getElementById('addRevisionBtn');
+            const container = document.getElementById('revisionContainer');
+            
+            // Check if container exists
+            if (!container) {
+                console.error('revisionContainer element not found');
+                return;
+            }
+            
+            const currentUser = getUserInfo();
+            const currentFieldCount = container.querySelectorAll('textarea').length;
+            
+            // Check if user can add more fields
+            const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
+            
+            if (canAddMore) {
+                addBtn.style.opacity = '1';
+                addBtn.style.cursor = 'pointer';
+                addBtn.style.pointerEvents = 'auto';
+                if (currentFieldCount === 0) {
+                    addBtn.textContent = '+ Add revision';
+                } else {
+                    addBtn.textContent = '+ Add more revision';
+                }
+            } else {
+                addBtn.style.opacity = '0.5';
+                addBtn.style.cursor = 'not-allowed';
+                addBtn.style.pointerEvents = 'none';
+                
+                if (currentFieldCount >= MAX_REVISION_FIELDS) {
+                    addBtn.textContent = 'Revision already added';
+                } else if (revisionFieldsByUser.has(currentUser.name)) {
+                    addBtn.textContent = ' ';
+                }
+            }
+        }
+
+        // Function to get current user information
+        function getUserInfo() {
+            // Use functions from auth.js to get user information
+            let userName = 'Unknown User';
+            let userRole = 'Receiver'; // Default role for this page since we're on the receiver page
+            
+            try {
+                // Get user info from getCurrentUser function in auth.js
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.username) {
+                    userName = currentUser.username;
+                }
+                
+                // Get user role based on the current page
+                // Since we're on the receiver page, the role is Receiver
+            } catch (e) {
+                console.error('Error getting user info:', e);
+            }
+            
+            return { name: userName, role: userRole };
+        }
+        
+        // Function to initialize textarea with user prefix
+        function initializeWithUserPrefix(textarea) {
+            const userInfo = getUserInfo();
+            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            textarea.value = prefix;
+            
+            // Store the prefix length as a data attribute
+            textarea.dataset.prefixLength = prefix.length;
+            
+            // Set selection range after the prefix
+            textarea.setSelectionRange(prefix.length, prefix.length);
+            textarea.focus();
+        }
+        
+        // Function to handle input and protect the prefix
+        function handleRevisionInput(event) {
+            const textarea = event.target;
+            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+            
+            // If user tries to modify content before the prefix length
+            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+                // Restore the prefix
+                const userInfo = getUserInfo();
+                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                
+                // Only restore if the prefix is damaged
+                if (!textarea.value.startsWith(prefix)) {
+                    const userText = textarea.value.substring(prefixLength);
+                    textarea.value = prefix + userText;
+                    
+                    // Reset cursor position after the prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                } else {
+                    // Just move cursor after prefix
+                    textarea.setSelectionRange(prefixLength, prefixLength);
+                }
+            }
+        }
+        
+        // Check if revision remarks are filled to enable/disable revision button
+        function checkRevisionButton() {
+            const revisionButton = document.getElementById('revisionButton');
+            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+            
+            let hasContent = false;
+            
+            // Check if there are any revision fields and if they have content
+            if (revisionFields.length > 0) {
+                revisionFields.forEach(field => {
+                    const prefixLength = parseInt(field.dataset.prefixLength || '0');
+                    // Check if there's content beyond the prefix
+                    if (field.value.trim().length > prefixLength) {
+                        hasContent = true;
+                    }
+                });
+            }
+            
+            if (hasContent) {
+                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = false;
+            } else {
+                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+                revisionButton.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html> 
