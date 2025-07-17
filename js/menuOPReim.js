@@ -20,7 +20,7 @@ function fetchReimbursementDocs() {
     const tableBody = document.getElementById("reimbursementDocs");
     tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">Loading data...</td></tr>';
     
-    fetch(`${baseUrlDevAmiru}/api/staging-outgoing-payments/headers`, {
+    fetch(`https://expressiv.idsdev.site/api/reimbursements?Status=received`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -34,18 +34,17 @@ function fetchReimbursementDocs() {
         return response.json();
     })
     .then(data => {
-        // Berdasarkan struktur API yang baru, data langsung tersedia tanpa property status
-        if (Array.isArray(data)) {
-            // Tampilkan semua dokumen tanpa filter status
-            reimbursementDocs = data;
+        if (data.status && data.data) {
+            // Format baru dengan property status dan data
+            reimbursementDocs = data.data;
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
             }
-        } else if (data.status && data.data) {
+        } else if (Array.isArray(data)) {
             // Fallback untuk format lama jika masih digunakan
-            reimbursementDocs = data.data;
+            reimbursementDocs = data;
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
@@ -80,27 +79,27 @@ function displayReimbursementDocs(docs) {
             return text || '-';
         };
         
-        // Format data berdasarkan struktur API
-        const voucherNo = applyScrollClass(doc.expressivNo || doc.docNum);
-        const requesterName = applyScrollClass(doc.cardName || '-');
-        const department = applyScrollClass('-'); // Tidak ada field department dalam struktur API
+        // Format data berdasarkan struktur API baru
+        const voucherNo = applyScrollClass(doc.voucherNo || '-');
+        const requesterName = applyScrollClass(doc.requesterName || '-');
+        const department = applyScrollClass(doc.department || '-');
         
         // Format nilai Total
-        const totalValue = doc.trsfrSum ? doc.trsfrSum.toLocaleString() : '-';
+        const totalValue = doc.totalAmount ? doc.totalAmount.toLocaleString() : '-';
         const total = applyScrollClass(totalValue);
         
         // Format tanggal
-        const postingDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-';
-        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '-';
+        const postingDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+        const dueDate = doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-';
         
-        // BP Name
-        const bpName = applyScrollClass(doc.cardName || '-');
+        // Pay To
+        const payTo = applyScrollClass(doc.payToName || '-');
         
-        // Tentukan status dan warna latar belakang
-        const status = doc.approval ? doc.approval.approvalStatus : (doc.type || 'Draft');
+        // Status
+        const status = doc.status || 'Draft';
         let statusClass = "bg-gray-100 text-gray-800"; // Default
         
-        if (status === 'Approved') {
+        if (status === 'Approved' || status === 'Received') {
             statusClass = "bg-green-100 text-green-800";
         } else if (status === 'Rejected') {
             statusClass = "bg-red-100 text-red-800";
@@ -114,11 +113,11 @@ function displayReimbursementDocs(docs) {
             <td class='p-2'>${department}</td>
             <td class='p-2'>${postingDate}</td>
             <td class='p-2'>${dueDate}</td>
-            <td class='p-2'>${bpName}</td>
+            <td class='p-2'>${payTo}</td>
             <td class='p-2'>${total}</td>
             <td class='p-2'><span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span></td>
             <td class='p-2'>
-                <button onclick="selectReimbursement('${doc.docEntry || ''}', '${doc.expressivNo || doc.docNum}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
+                <button onclick="selectReimbursement('${doc.id || ''}', '${doc.voucherNo || ''}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
             </td>
         </tr>`;
         tableBody.innerHTML += row;
@@ -136,11 +135,11 @@ function filterReimbursementDocs() {
     
     const filteredDocs = reimbursementDocs.filter(doc => {
         return (
-            (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
-            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
-            (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
-            (doc.comments && doc.comments.toLowerCase().includes(searchTerm)) ||
-            (doc.type && doc.type.toLowerCase().includes(searchTerm))
+            (doc.voucherNo && doc.voucherNo.toLowerCase().includes(searchTerm)) ||
+            (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+            (doc.department && doc.department.toLowerCase().includes(searchTerm)) ||
+            (doc.payToName && doc.payToName.toLowerCase().includes(searchTerm)) ||
+            (doc.status && doc.status.toLowerCase().includes(searchTerm))
         );
     });
     
@@ -148,16 +147,15 @@ function filterReimbursementDocs() {
 }
 
 // Fungsi untuk memilih dokumen dan membuat outgoing payment
-function selectReimbursement(docEntry, docNumber) {
+function selectReimbursement(docId, voucherNo) {
     // Simpan ID dokumen yang dipilih ke localStorage atau variabel global
-    localStorage.setItem('selectedDocEntry', docEntry);
-    localStorage.setItem('selectedDocNumber', docNumber);
+    localStorage.setItem('selectedDocId', docId);
+    localStorage.setItem('selectedVoucherNo', voucherNo);
     
     // Cari data dokumen yang dipilih
     const selectedDoc = reimbursementDocs.find(doc => 
-        (doc.docEntry && doc.docEntry.toString() === docEntry.toString()) || 
-        (doc.expressivNo === docNumber) || 
-        (doc.docNum && doc.docNum.toString() === docNumber.toString())
+        (doc.id && doc.id === docId) || 
+        (doc.voucherNo === voucherNo)
     );
     
     if (selectedDoc) {
@@ -177,7 +175,7 @@ function loadDashboard() {
     }
 
     // Fetch dashboard summary data
-    fetch(`${BASE_URL}/api/staging-outgoing-payments/dashboard/summary`)
+    fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/dashboard/summary`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -185,36 +183,61 @@ function loadDashboard() {
             return response.json();
         })
         .then(data => {
+            // Handle different response structures
+            let summary;
             if (data.status && data.data) {
-                const summary = data.data;
-                console.log("Dashboard Summary:", summary);
-                
-                // Update dashboard counts
-                document.getElementById("totalDocs").textContent = summary.total || 0;
-                document.getElementById("draftDocs").textContent = summary.draft || 0;
-                document.getElementById("preparedDocs").textContent = summary.prepared || 0;
-                document.getElementById("checkedDocs").textContent = summary.checked || 0;
-                document.getElementById("acknowledgedDocs").textContent = summary.acknowledged || 0;
-                document.getElementById("approvedDocs").textContent = summary.approved || 0;
-                document.getElementById("rejectedDocs").textContent = summary.rejected || 0;
-                
-                // Handle additional fields if they exist
-                if (document.getElementById("paidDocs")) {
-                    document.getElementById("paidDocs").textContent = summary.paid || 0;
-                }
-                if (document.getElementById("settledDocs")) {
-                    document.getElementById("settledDocs").textContent = summary.settled || 0;
-                }
+                // Response with status wrapper
+                summary = data.data;
+            } else if (data.data) {
+                // Response with data property
+                summary = data.data;
             } else {
-                console.error("API summary response does not contain expected data");
+                // Direct response or fallback
+                summary = data;
             }
+            
+            console.log("Dashboard Summary:", summary);
+            
+            // Create a default summary object with zeros if properties are missing
+            const defaultSummary = {
+                total: 0,
+                draft: 0,
+                prepared: 0,
+                checked: 0,
+                acknowledged: 0,
+                approved: 0,
+                rejected: 0,
+                paid: 0,
+                settled: 0
+            };
+            
+            // Merge with actual data
+            summary = { ...defaultSummary, ...summary };
+            
+            // Update dashboard counts safely
+            const updateElement = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            };
+            
+            updateElement("totalDocs", summary.total);
+            updateElement("draftDocs", summary.draft);
+            updateElement("preparedDocs", summary.prepared);
+            updateElement("checkedDocs", summary.checked);
+            updateElement("acknowledgedDocs", summary.acknowledged);
+            updateElement("approvedDocs", summary.approved);
+            updateElement("rejectedDocs", summary.rejected);
+            updateElement("paidDocs", summary.paid);
+            updateElement("settledDocs", summary.settled);
         })
         .catch(error => {
             console.error('Error fetching summary data:', error);
         });
 
     // Fetch document list
-    fetch(`${BASE_URL}/api/outgoing-payment/dashboard`)
+    fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?includeDetails=false`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -222,28 +245,35 @@ function loadDashboard() {
             return response.json();
         })
         .then(data => {
-            if (data.status && data.data) {
-                const documents = data.data;
-                console.log("Documents:", documents);
-                console.log("User ID:", userId);
-                console.log("Total documents from API:", documents.length);
-                
-                // Show all documents instead of filtering by user (for now)
-                const userDocuments = documents; // Changed: show all documents
-                console.log("Filtered documents:", userDocuments.length);
-                
-                // Simpan dokumen untuk penggunaan di tab
-                window.allDocuments = userDocuments;
-                window.filteredDocuments = userDocuments;
-                window.currentTab = 'all';
-                window.currentPage = 1;
-                window.itemsPerPage = 10;
-                
-                // Display documents in table
-                displayDocuments(userDocuments);
+            // Handle the new API response structure
+            let documents;
+            if (Array.isArray(data)) {
+                // Direct array response
+                documents = data;
+            } else if (data.status && data.data) {
+                // Response with status wrapper
+                documents = data.data;
+            } else if (data.data) {
+                // Response with data property
+                documents = data.data;
             } else {
-                console.error("API response does not contain expected data");
+                // Fallback to data itself
+                documents = data;
             }
+            console.log("Documents:", documents);
+            console.log("User ID:", userId);
+            console.log("Total documents from API:", documents.length);
+            // Show all documents instead of filtering by user (for now)
+            const userDocuments = documents; // Changed: show all documents
+            console.log("Filtered documents:", userDocuments.length);
+            // Simpan dokumen untuk penggunaan di tab
+            window.allDocuments = userDocuments;
+            window.filteredDocuments = userDocuments;
+            window.currentTab = 'all';
+            window.currentPage = 1;
+            window.itemsPerPage = 10;
+            // Display documents in table
+            displayDocuments(userDocuments);
         })
         .catch(error => {
             console.error('Error fetching document data:', error);
@@ -270,33 +300,48 @@ function displayDocuments(documents) {
             return text || '-';
         };
         
+        // Get document status from approval object if available
+        const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || 'Draft');
+        
         // Memformat data dengan kelas scrollable jika perlu
-        const opNo = applyScrollClass(doc.outgoingPaymentNo);
-        const requester = applyScrollClass(doc.requesterName);
-        const department = applyScrollClass(doc.departmentName);
-        const bpName = applyScrollClass(doc.bpName || doc.paidToName);
+        const opNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum);
+        const requester = applyScrollClass(doc.requesterName || '-');
+        const department = applyScrollClass(doc.departmentName || '-');
+        const bpName = applyScrollClass(doc.cardName || doc.bpName || doc.paidToName || '-');
         
         // Format nilai Total LC dan Total FC
-        const totalLCValue = doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-');
-        const totalFCValue = doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-');
+        const totalLCValue = doc.trsfrSum ? doc.trsfrSum.toLocaleString() : 
+                            (doc.totalLC ? doc.totalLC.toLocaleString() : 
+                            (doc.docTotal ? doc.docTotal.toLocaleString() : '-'));
+        
+        const totalFCValue = doc.totalFC ? doc.totalFC.toLocaleString() : 
+                            (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-');
         
         // Terapkan kelas scrollable untuk Total LC dan Total FC jika diperlukan
         const totalLC = applyScrollClass(totalLCValue);
         const totalFC = applyScrollClass(totalFCValue);
+        
+        // Format tanggal
+        const postingDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : 
+                           (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : 
+                           (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'));
+        
+        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : 
+                       (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-');
         
         const row = `<tr class='border-b'>
             <td class='p-2'>${startIndex + index + 1}</td>
             <td class='p-2'>${opNo}</td>
             <td class='p-2'>${requester}</td>
             <td class='p-2'>${department}</td>
-            <td class='p-2'>${doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')}</td>
-            <td class='p-2'>${doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'}</td>
+            <td class='p-2'>${postingDate}</td>
+            <td class='p-2'>${dueDate}</td>
             <td class='p-2'>${bpName}</td>
             <td class='p-2'>${totalLC}</td>
             <td class='p-2'>${totalFC}</td>
-            <td class='p-2'>${doc.status || '-'}</td>
+            <td class='p-2'>${status}</td>
             <td class='p-2'>
-                <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
         </tr>`;
         tableBody.innerHTML += row;
@@ -339,35 +384,50 @@ function changePage(direction) {
 function goToCheckedDocs() {
     currentTab = 'checked';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => doc.status === 'Checked');
+    filteredDocuments = allDocuments.filter(doc => 
+        (doc.approval && doc.approval.approvalStatus === 'Checked') || 
+        doc.status === 'Checked'
+    );
     displayDocuments(filteredDocuments);
 }
 
 function goToApprovedDocs() {
     currentTab = 'approved';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => doc.status === 'Approved');
+    filteredDocuments = allDocuments.filter(doc => 
+        (doc.approval && doc.approval.approvalStatus === 'Approved') || 
+        doc.status === 'Approved'
+    );
     displayDocuments(filteredDocuments);
 }
 
 function goToRejectDocs() {
     currentTab = 'rejected';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => doc.status === 'Rejected');
+    filteredDocuments = allDocuments.filter(doc => 
+        (doc.approval && doc.approval.approvalStatus === 'Rejected') || 
+        doc.status === 'Rejected'
+    );
     displayDocuments(filteredDocuments);
 }
 
 function goToPaidDocs() {
     currentTab = 'paid';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => doc.status === 'Paid');
+    filteredDocuments = allDocuments.filter(doc => 
+        (doc.approval && doc.approval.approvalStatus === 'Paid') || 
+        doc.status === 'Paid'
+    );
     displayDocuments(filteredDocuments);
 }
 
 function goToSettledDocs() {
     currentTab = 'settled';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => doc.status === 'Settled');
+    filteredDocuments = allDocuments.filter(doc => 
+        (doc.approval && doc.approval.approvalStatus === 'Settled') || 
+        doc.status === 'Settled'
+    );
     displayDocuments(filteredDocuments);
 }
 
@@ -386,45 +446,63 @@ function switchTab(tab) {
         filteredDocuments = allDocuments;
     } else if (tab === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments.filter(doc => doc.status === 'Draft');
+        filteredDocuments = allDocuments.filter(doc => 
+            (doc.approval && doc.approval.approvalStatus === 'Draft') || 
+            doc.status === 'Draft' || 
+            (!doc.status && !doc.approval)
+        );
     } else if (tab === 'prepared') {
         document.getElementById('preparedTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments.filter(doc => doc.status === 'Prepared');
+        filteredDocuments = allDocuments.filter(doc => 
+            (doc.approval && doc.approval.approvalStatus === 'Prepared') || 
+            doc.status === 'Prepared'
+        );
     }
     
     // Filter berdasarkan pencarian jika ada
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const searchType = document.getElementById('searchType').value;
+    const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+    const searchType = document.getElementById('searchType')?.value || 'all';
     
     if (searchTerm) {
         filteredDocuments = filteredDocuments.filter(doc => {
-            if (searchType === 'cash' && doc.outgoingPaymentNo) {
-                return doc.outgoingPaymentNo.toLowerCase().includes(searchTerm);
+            if (searchType === 'cash' || searchType === 'op') {
+                return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) || 
+                       (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                       (doc.docNum && doc.docNum.toString().includes(searchTerm));
             } else if (searchType === 'requester') {
                 return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
             } else if (searchType === 'department') {
                 return doc.departmentName && doc.departmentName.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'postingDate' && doc.postingDate) {
-                return new Date(doc.postingDate).toLocaleDateString().toLowerCase().includes(searchTerm);
-            } else if (searchType === 'dueDate' && doc.dueDate) {
-                return new Date(doc.dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+            } else if (searchType === 'postingDate') {
+                const postingDate = doc.docDate || doc.postingDate || doc.submissionDate;
+                return postingDate && new Date(postingDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+            } else if (searchType === 'dueDate') {
+                const dueDate = doc.docDueDate || doc.dueDate;
+                return dueDate && new Date(dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
             } else if (searchType === 'bpName') {
-                const bpName = doc.bpName || doc.paidToName || '';
+                const bpName = doc.cardName || doc.bpName || doc.paidToName || '';
                 return bpName.toLowerCase().includes(searchTerm);
             } else if (searchType === 'totalLC') {
-                const totalLC = doc.totalLC ? doc.totalLC.toString() : (doc.docTotal ? doc.docTotal.toString() : '');
+                const totalLC = doc.trsfrSum ? doc.trsfrSum.toString() : 
+                               (doc.totalLC ? doc.totalLC.toString() : 
+                               (doc.docTotal ? doc.docTotal.toString() : ''));
                 return totalLC.toLowerCase().includes(searchTerm);
             } else if (searchType === 'totalFC') {
                 const totalFC = doc.totalFC ? doc.totalFC.toString() : (doc.docTotalFC ? doc.docTotalFC.toString() : '');
                 return totalFC.toLowerCase().includes(searchTerm);
             } else if (searchType === 'status') {
-                return doc.status.toLowerCase().includes(searchTerm);
+                const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || '');
+                return status.toLowerCase().includes(searchTerm);
             } else {
                 // Default search across multiple fields
-                return (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
+                       (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                       (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                        (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+                       (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
                        (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
-                       (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm));
+                       (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm)) ||
+                       (doc.comments && doc.comments.toLowerCase().includes(searchTerm));
             }
         });
     }
@@ -462,18 +540,25 @@ function getUserId() {
     }
 }
 
-document.getElementById("selectAll").addEventListener("change", function () {
-    let checkboxes = document.querySelectorAll(".rowCheckbox");
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = this.checked;
+// Add event listener to selectAll checkbox if it exists
+const selectAllCheckbox = document.getElementById("selectAll");
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", function () {
+        let checkboxes = document.querySelectorAll(".rowCheckbox");
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
     });
-});
+}
 
 // Event listener untuk search input
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    switchTab(currentTab); // Ini akan menerapkan filter pencarian dengan tab saat ini
-});
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        switchTab(currentTab); // Ini akan menerapkan filter pencarian dengan tab saat ini
+    });
+}
 
 function toggleSidebar() {
     // No-op function - sidebar toggle is disabled to keep it permanently open

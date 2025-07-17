@@ -316,7 +316,7 @@
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <div class="max-h-[50vh] overflow-y-auto">
+                    <div class="modal-table-container max-h-[300px] overflow-y-auto">
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200 sticky top-0 z-10">
                                 <tr>
@@ -333,7 +333,7 @@
                             </thead>
                             <tbody id="reimbursementDocs">
                                 <tr>
-                                    <td colspan="8" class="p-4 text-center">Memuat data...</td>
+                                    <td colspan="9" class="p-4 text-center">Memuat data...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -393,6 +393,46 @@
         .table-cell-long::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 5px;
+        }
+        
+        /* Style untuk modal table container dengan scrollbar */
+        .modal-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+        }
+        
+        /* Custom scrollbar untuk modal table */
+        .modal-table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Firefox scrollbar */
+        .modal-table-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+        
+        /* Responsive height untuk mobile */
+        @media (max-width: 768px) {
+            .modal-table-container {
+                max-height: 250px;
+            }
         }
     </style>
 </body>

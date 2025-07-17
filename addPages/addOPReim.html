@@ -8,6 +8,66 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        /**
+         * MAPPING KOLOM FORM DENGAN RESPONSE BODY API
+         * ============================================
+         * 
+         * API Endpoint: /api/staging-outgoing-payments/headers
+         * Method: POST (Submit), GET (Load)
+         * 
+         * FORM FIELDS → API RESPONSE BODY MAPPING:
+         * 
+         * HEADER FIELDS:
+         * - CounterRef (Reimburse No) → counterRef
+         * - RequesterName (Requester Reimbursement) → requesterName
+         * - CardName (Pay To) → cardName
+         * - Address (Pay To Address) → address
+         * - DocDate (Document Date) → docDate OR submissionDate
+         * - DocDueDate (Due Date) → docDueDate
+         * - TaxDate (Tax Date) → taxDate
+         * - DocNum (DocNum) → docNum
+         * - Comments (Comments) → comments
+         * - JrnlMemo (Journal Memo) → jrnlMemo
+         * - DocCurr (Document Currency) → docCurr
+         * - TypeOfTransaction (Type of Transaction) → type
+         * - TrsfrDate (Transfer Date) → trsfrDate
+         * - TrsfrAcct (Account Bank Transfer) → trsfrAcct
+         * - TrsfrSum (Total Transfer) → trsfrSum
+         * 
+         * ATTACHMENT FIELDS:
+         * - attachment (File Upload) → attachments[]
+         * 
+         * TOTAL FIELDS:
+         * - netTotal (Net Total) → netTotal
+         * - totalTax (Total Tax) → totalTax
+         * - totalAmountDue (Total Amount Due) → totalAmountDue
+         * 
+         * REMARKS FIELDS:
+         * - remarks (Remarks) → remarks
+         * - journalRemarks (Journal Remarks) → journalRemarks
+         * - rejectionRemarks (Rejection Reason) → approval.rejectionRemarks
+         * 
+         * TABLE LINES:
+         * - AcctCode (G/L Account) → lines[].acctCode
+         * - AcctName (Account Name) → lines[].acctName
+         * - description (Description) → lines[].descrip
+         * - division (Division) → lines[].ocrCode3
+         * - DocTotal (Net Amount) → lines[].sumApplied
+         * 
+         * APPROVAL FIELDS:
+         * - Approval.PreparedById (Proposed by) → approval.preparedBy
+         * - Approval.CheckedById (Checked by) → approval.checkedBy
+         * - Approval.AcknowledgedById (Acknowledged by) → approval.acknowledgedBy
+         * - Approval.ApprovedById (Approved by) → approval.approvedBy
+         * - Approval.ReceivedById (Received by) → approval.receivedBy
+         * - Approval.ClosedById (Closed by) → approval.closedBy
+         * 
+         * FUNCTIONS:
+         * - submitDocument() → POST /api/staging-outgoing-payments/headers
+         * - loadDocumentData() → GET /api/staging-outgoing-payments/headers/{id}
+         * - mapResponseToForm() → Maps API response back to form fields
+         */
+        
         // Define the base URL for API calls
         const baseUrlDevAmiru = "https://api-dev.expressiv.id"; // Adjust this URL as needed
     </script>
@@ -66,6 +126,14 @@
                 <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
                 <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
                 
+                <h3 class="text-lg font-semibold mb-2">Attachment</h3>
+                <input type="file" id="attachment" class="w-full p-2 border rounded" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" autocomplete="off">
+                
+                <!-- Area untuk menampilkan attachment yang sudah ada -->
+                <div id="existingAttachments" class="mt-2">
+                    <!-- Attachment yang sudah ada akan ditampilkan di sini -->
+                </div>
+                
                 <input type="hidden" id="Doctype" value="A" autocomplete="off">
             </div>
             
@@ -82,8 +150,14 @@
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
-                <input type="text" id="DiffCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
+                <select id="TypeOfTransaction" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="" disabled>Select Type of Transaction</option>
+                    <option value="REIMBURSEMENT" selected>Reimbursement</option>
+                    <option value="ADVANCE">Advance</option>
+                    <option value="SETTLEMENT">Settlement</option>
+                    <option value="LOAN">Loan</option>
+                </select>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -283,6 +357,80 @@
             }
         }
 
+        // Function to format number to currency string (for JS file compatibility)
+        function formatNumberToCurrencyString(number) {
+            // Handle empty or invalid input
+            if (number === null || number === undefined || number === '') {
+                return '';
+            }
+            
+            // Parse the number
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d.-]/g, '');
+                    num = parseFloat(cleanedStr);
+                } else {
+                    num = parseFloat(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '';
+            }
+            
+            // Get the string representation to check if it has decimal places
+            const numStr = num.toString();
+            const hasDecimal = numStr.includes('.');
+            
+            try {
+                // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+                if (hasDecimal) {
+                    const decimalPlaces = numStr.split('.')[1].length;
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: decimalPlaces,
+                        maximumFractionDigits: decimalPlaces
+                    });
+                } else {
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                }
+            } catch (e) {
+                // Fallback for very large numbers
+                console.error('Error formatting number:', e);
+                
+                let strNum = num.toString();
+                let sign = '';
+                
+                if (strNum.startsWith('-')) {
+                    sign = '-';
+                    strNum = strNum.substring(1);
+                }
+                
+                const parts = strNum.split('.');
+                const integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+                
+                let formattedInteger = '';
+                for (let i = 0; i < integerPart.length; i++) {
+                    if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                        formattedInteger += '.';
+                    }
+                    formattedInteger += integerPart.charAt(i);
+                }
+                
+                return sign + formattedInteger + decimalPart;
+            }
+        }
+
+        // Make function available globally for JS file
+        window.formatNumberToCurrencyString = formatNumberToCurrencyString;
+
         // Function to parse currency string back to number
         function parseCurrencyValue(value) {
             if (!value) return 0;
@@ -302,35 +450,12 @@
             });
             
             // Format the total with comma as thousand separator and dot as decimal separator
-            const formattedTotal = formatNumberToCurrency(total);
+            const formattedTotal = formatNumberToCurrencyString(total);
             
             // Update Net Total and Total Amount Due fields
             document.getElementById('netTotal').value = formattedTotal;
             document.getElementById('totalTax').value = formattedTotal;
             document.getElementById('totalAmountDue').value = formattedTotal;
-        }
-
-        // Format number to currency format with comma as thousand separator and dot as decimal separator
-        function formatNumberToCurrency(number) {
-            // Convert to string with 2 decimal places
-            let numStr = number.toFixed(2);
-            
-            // Split into whole and decimal parts
-            let parts = numStr.split('.');
-            let wholePart = parts[0];
-            let decimalPart = parts.length > 1 ? parts[1] : '00';
-            
-            // Add thousand separators to whole part
-            let formattedWhole = '';
-            for (let i = 0; i < wholePart.length; i++) {
-                if (i > 0 && (wholePart.length - i) % 3 === 0) {
-                    formattedWhole += ',';
-                }
-                formattedWhole += wholePart[i];
-            }
-            
-            // Return formatted number with dot as decimal separator
-            return formattedWhole + '.' + decimalPart;
         }
 
         // Function to add a new row to the table
@@ -383,6 +508,14 @@
                 }
             });
             
+            // Add event listener for Type of Transaction
+            const typeOfTransactionSelect = document.getElementById('TypeOfTransaction');
+            if (typeOfTransactionSelect) {
+                typeOfTransactionSelect.addEventListener('change', function() {
+                    toggleClosedByVisibility();
+                });
+            }
+            
             toggleClosedByVisibility();
             
             // Fix ID for Net Total field (was using tdDocTotal which is confusing)
@@ -393,10 +526,74 @@
             
             // Initialize totals
             updateTotals();
+            
+            // Load data from API if document ID is provided in URL
+            loadDocumentData();
         });
 
+        // Function to load document data from API
+        async function loadDocumentData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (docId) {
+                try {
+                    // Show loading indicator
+                    Swal.fire({
+                        title: 'Loading...',
+                        text: 'Loading document data, please wait...',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        allowEnterKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Fetch document data from API
+                    const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to load document: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.data) {
+                        // Map response data to form
+                        mapResponseToForm(result.data);
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: 'Success',
+                            text: 'Document data loaded successfully',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error("Error loading document:", error);
+                    
+                    Swal.fire({
+                        title: 'Error',
+                        text: `Failed to load document: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        }
+
         function toggleClosedByVisibility() {
-            const transactionType = document.getElementById('transactionType')?.value;
+            const transactionType = document.getElementById('TypeOfTransaction')?.value;
             const closedByContainer = document.getElementById('closed')?.parentElement;
             
             if (closedByContainer) {
@@ -451,6 +648,18 @@
                     return;
                 }
                 
+                // Validate required fields
+                const typeOfTransaction = document.getElementById("TypeOfTransaction").value;
+                if (!typeOfTransaction) {
+                    Swal.fire({
+                        title: 'Validation Error',
+                        text: 'Please select Type of Transaction',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
                 // Create the Outgoing Payment data
                 const lines = [];
                 const tableRows = document.querySelectorAll('#tableBody tr');
@@ -473,53 +682,78 @@
                     });
                 });
                 
+                // Handle attachments
+                const attachments = [];
+                const attachmentInput = document.getElementById('attachment');
+                if (attachmentInput && attachmentInput.files && attachmentInput.files.length > 0) {
+                    for (let i = 0; i < attachmentInput.files.length; i++) {
+                        const file = attachmentInput.files[i];
+                        attachments.push({
+                            fileName: file.name,
+                            fileSize: file.size,
+                            contentType: file.type,
+                            fileData: await fileToBase64(file)
+                        });
+                    }
+                }
+                
                 const requestData = {
                     stagingID: "string",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     docEntry: 0,
-                    address: document.getElementById("Address").value,
-                    cardName: document.getElementById("CardName").value,
+                    // Header fields mapping
+                    address: document.getElementById("Address").value,                    // Pay To Address
+                    cardName: document.getElementById("CardName").value,                // Pay To
+                    requesterName: document.getElementById("RequesterName").value,      // Requester Reimbursement
                     docDate: document.getElementById("DocDate").value ? new Date(document.getElementById("DocDate").value).toISOString() : null,
                     docDueDate: document.getElementById("DocDueDate").value ? new Date(document.getElementById("DocDueDate").value).toISOString() : null,
                     taxDate: document.getElementById("TaxDate").value ? new Date(document.getElementById("TaxDate").value).toISOString() : null,
-                    counterRef: document.getElementById("CounterRef").value,
+                    counterRef: document.getElementById("CounterRef").value,            // Reimburse No
                     docNum: document.getElementById("DocNum").value ? parseInt(document.getElementById("DocNum").value) : 0,
-                    comments: document.getElementById("Comments").value,
-                    jrnlMemo: document.getElementById("JrnlMemo").value,
+                    comments: document.getElementById("Comments").value,                // Comments
+                    jrnlMemo: document.getElementById("JrnlMemo").value,               // Journal Memo
                     doctype: document.getElementById("Doctype").value,
-                    docCurr: document.getElementById("DocCurr").value,
-                    diffCurr: document.getElementById("DiffCurr").value,
+                    docCurr: document.getElementById("DocCurr").value,                 // Document Currency
+                    type: document.getElementById("TypeOfTransaction").value,          // Type of Transaction
                     trsfrDate: document.getElementById("TrsfrDate").value ? new Date(document.getElementById("TrsfrDate").value).toISOString() : null,
-                    trsfrAcct: document.getElementById("TrsfrAcct").value,
-                    trsfrSum: parseCurrencyValue(document.getElementById("TrsfrSum").value),
+                    trsfrAcct: document.getElementById("TrsfrAcct").value,            // Account Bank Transfer
+                    trsfrSum: parseCurrencyValue(document.getElementById("TrsfrSum").value), // Total Transfer
                     isTransferred: true,
-                    type: "string",
+                    type: document.getElementById("TypeOfTransaction").value,                // Type of Transaction
                     expressivNo: "string",
+                    // Total fields mapping
+                    netTotal: parseCurrencyValue(document.getElementById("netTotal").value),
+                    totalTax: parseCurrencyValue(document.getElementById("totalTax").value),
+                    totalAmountDue: parseCurrencyValue(document.getElementById("totalAmountDue").value),
+                    // Remarks fields mapping
+                    remarks: document.getElementById("remarks").value,                  // Remarks
+                    journalRemarks: document.getElementById("journalRemarks").value,   // Journal Remarks
                     lines: lines,
                     approval: {
                         stagingID: "string",
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         approvalStatus: isSubmit ? "Submitted" : "Draft",
-                        preparedBy: document.getElementById("Approval.PreparedById").value,
-                        checkedBy: document.getElementById("Approval.CheckedById").value,
-                        acknowledgedBy: document.getElementById("Approval.AcknowledgedById").value,
-                        approvedBy: document.getElementById("Approval.ApprovedById").value,
-                        receivedBy: document.getElementById("Approval.ReceivedById").value,
+                        preparedBy: document.getElementById("Approval.PreparedById").value,      // Proposed by
+                        checkedBy: document.getElementById("Approval.CheckedById").value,        // Checked by
+                        acknowledgedBy: document.getElementById("Approval.AcknowledgedById").value, // Acknowledged by
+                        approvedBy: document.getElementById("Approval.ApprovedById").value,      // Approved by
+                        receivedBy: document.getElementById("Approval.ReceivedById").value,      // Received by
+                        closedBy: document.getElementById("Approval.ClosedById").value,          // Closed by
                         preparedDate: new Date().toISOString(),
                         checkedDate: null,
                         acknowledgedDate: null,
                         approvedDate: null,
                         receivedDate: null,
                         rejectedDate: null,
-                        rejectionRemarks: "",
+                        rejectionRemarks: document.getElementById("rejectionRemarks") ? document.getElementById("rejectionRemarks").value : "",
                         revisionNumber: 0,
                         revisionDate: null,
                         revisionRemarks: "",
                         header: "string"
                     },
-                    attachments: []
+                    attachments: attachments
                 };
                 
                 // Submit the form data
@@ -550,6 +784,11 @@
                 // Parse the successful response
                 const result = await response.json();
                 console.log("Submit result:", result);
+                
+                // Map response data back to form if needed (for edit mode)
+                if (result.data) {
+                    mapResponseToForm(result.data);
+                }
                 
                 // Show appropriate success message
                 if (isSubmit) {
@@ -584,6 +823,321 @@
                     confirmButtonText: 'OK'
                 });
             }
+        }
+
+        // Function to map response data back to form fields
+        function mapResponseToForm(responseData) {
+            // Map header fields
+            if (responseData.address) document.getElementById("Address").value = responseData.address;
+            if (responseData.cardName) document.getElementById("CardName").value = responseData.cardName;
+            if (responseData.requesterName) document.getElementById("RequesterName").value = responseData.requesterName;
+            if (responseData.counterRef) document.getElementById("CounterRef").value = responseData.counterRef;
+            if (responseData.docNum) document.getElementById("DocNum").value = responseData.docNum;
+            if (responseData.comments) document.getElementById("Comments").value = responseData.comments;
+            if (responseData.jrnlMemo) document.getElementById("JrnlMemo").value = responseData.jrnlMemo;
+            if (responseData.docCurr) document.getElementById("DocCurr").value = responseData.docCurr;
+            if (responseData.type) document.getElementById("TypeOfTransaction").value = responseData.type;
+            if (responseData.trsfrAcct) document.getElementById("TrsfrAcct").value = responseData.trsfrAcct;
+            if (responseData.trsfrSum) document.getElementById("TrsfrSum").value = formatNumberToCurrencyString(responseData.trsfrSum);
+            
+            // Map date fields
+            if (responseData.docDate) document.getElementById("DocDate").value = responseData.docDate.split('T')[0];
+            if (responseData.submissionDate) document.getElementById("DocDate").value = responseData.submissionDate.split('T')[0];
+            if (responseData.docDueDate) document.getElementById("DocDueDate").value = responseData.docDueDate.split('T')[0];
+            if (responseData.taxDate) document.getElementById("TaxDate").value = responseData.taxDate.split('T')[0];
+            if (responseData.trsfrDate) document.getElementById("TrsfrDate").value = responseData.trsfrDate.split('T')[0];
+            
+            // Map total fields
+            if (responseData.netTotal) document.getElementById("netTotal").value = formatNumberToCurrencyString(responseData.netTotal);
+            if (responseData.totalTax) document.getElementById("totalTax").value = formatNumberToCurrencyString(responseData.totalTax);
+            if (responseData.totalAmountDue) document.getElementById("totalAmountDue").value = formatNumberToCurrencyString(responseData.totalAmountDue);
+            
+            // Map remarks fields
+            if (responseData.remarks) document.getElementById("remarks").value = responseData.remarks;
+            if (responseData.journalRemarks) document.getElementById("journalRemarks").value = responseData.journalRemarks;
+            
+            // Map attachments
+            if (responseData.attachments && responseData.attachments.length > 0) {
+                displayExistingAttachments(responseData.attachments);
+            } else if (responseData.reimbursementAttachments && responseData.reimbursementAttachments.length > 0) {
+                displayExistingAttachments(responseData.reimbursementAttachments);
+            }
+            
+            // Map approval fields
+            if (responseData.approval) {
+                const approval = responseData.approval;
+                if (approval.preparedBy) document.getElementById("Approval.PreparedById").value = approval.preparedBy;
+                if (approval.checkedBy) document.getElementById("Approval.CheckedById").value = approval.checkedBy;
+                if (approval.acknowledgedBy) document.getElementById("Approval.AcknowledgedById").value = approval.acknowledgedBy;
+                if (approval.approvedBy) document.getElementById("Approval.ApprovedById").value = approval.approvedBy;
+                if (approval.receivedBy) document.getElementById("Approval.ReceivedById").value = approval.receivedBy;
+                if (approval.closedBy) document.getElementById("Approval.ClosedById").value = approval.closedBy;
+                if (approval.rejectionRemarks) {
+                    document.getElementById("rejectionRemarks").value = approval.rejectionRemarks;
+                    document.getElementById("rejectionRemarksSection").style.display = "block";
+                }
+            }
+            
+            // Map lines data
+            if (responseData.lines && responseData.lines.length > 0) {
+                // Clear existing table rows except the first one
+                const tableBody = document.getElementById('tableBody');
+                const firstRow = tableBody.querySelector('tr');
+                tableBody.innerHTML = '';
+                if (firstRow) tableBody.appendChild(firstRow);
+                
+                // Add lines from response
+                responseData.lines.forEach((line, index) => {
+                    if (index === 0) {
+                        // Update first row
+                        const firstRow = tableBody.querySelector('tr');
+                        if (firstRow) {
+                            firstRow.querySelector('[id^="AcctCode"]').value = line.acctCode || '';
+                            firstRow.querySelector('[id^="AcctName"]').value = line.acctName || '';
+                            firstRow.querySelector('[id^="description"]').value = line.descrip || '';
+                            firstRow.querySelector('[id^="division"]').value = line.ocrCode3 || '';
+                            firstRow.querySelector('[id^="DocTotal"]').value = formatNumberToCurrencyString(line.sumApplied || 0);
+                        }
+                    } else {
+                        // Add new rows
+                        addRow();
+                        const newRow = tableBody.lastElementChild;
+                        newRow.querySelector('[id^="AcctCode"]').value = line.acctCode || '';
+                        newRow.querySelector('[id^="AcctName"]').value = line.acctName || '';
+                        newRow.querySelector('[id^="description"]').value = line.descrip || '';
+                        newRow.querySelector('[id^="division"]').value = line.ocrCode3 || '';
+                        newRow.querySelector('[id^="DocTotal"]').value = formatNumberToCurrencyString(line.sumApplied || 0);
+                    }
+                });
+                
+                // Update totals after mapping lines
+                updateTotals();
+            }
+        }
+
+        // Function to display existing attachments
+        function displayExistingAttachments(attachments) {
+            const container = document.getElementById('existingAttachments');
+            if (!container) return;
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            if (!attachments || attachments.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                return;
+            }
+            
+            // Create attachment list
+            const attachmentList = document.createElement('div');
+            attachmentList.className = 'space-y-2';
+            
+            attachments.forEach((attachment, index) => {
+                const attachmentItem = document.createElement('div');
+                attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border';
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'flex items-center space-x-2';
+                
+                // File icon based on type
+                const fileIcon = getFileIcon(attachment.fileName || attachment.name);
+                
+                fileInfo.innerHTML = `
+                    <span class="text-lg">${fileIcon}</span>
+                    <div>
+                        <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
+                        <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
+                        <div class="text-xs text-gray-400">Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
+                    </div>
+                `;
+                
+                const actions = document.createElement('div');
+                actions.className = 'flex space-x-2';
+                
+                // Download button
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+                downloadBtn.innerHTML = '📥 Download';
+                downloadBtn.onclick = () => downloadAttachment(attachment);
+                
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-300 hover:bg-red-50';
+                deleteBtn.innerHTML = '🗑️ Delete';
+                deleteBtn.onclick = () => deleteAttachment(attachment.id || index);
+                
+                actions.appendChild(downloadBtn);
+                actions.appendChild(deleteBtn);
+                
+                attachmentItem.appendChild(fileInfo);
+                attachmentItem.appendChild(actions);
+                attachmentList.appendChild(attachmentItem);
+            });
+            
+            container.appendChild(attachmentList);
+        }
+
+        // Function to get file icon based on file type
+        function getFileIcon(fileName) {
+            if (!fileName) return '📄';
+            
+            const extension = fileName.split('.').pop()?.toLowerCase();
+            
+            switch (extension) {
+                case 'pdf': return '📄';
+                case 'doc':
+                case 'docx': return '📝';
+                case 'xls':
+                case 'xlsx': return '📊';
+                case 'jpg':
+                case 'jpeg':
+                case 'png': return '🖼️';
+                default: return '📄';
+            }
+        }
+
+        // Function to format file size
+        function formatFileSize(bytes) {
+            if (!bytes) return 'Unknown size';
+            
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 Bytes';
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Function to download attachment
+        function downloadAttachment(attachment) {
+            try {
+                // If attachment has filePath, construct download URL
+                if (attachment.filePath) {
+                    const baseUrl = window.location.origin; // Get current domain
+                    const downloadUrl = `${baseUrl}/api/files/${encodeURIComponent(attachment.filePath)}`;
+                    
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = attachment.fileName || attachment.name || 'download';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else if (attachment.fileUrl || attachment.url) {
+                    // Download from URL
+                    const link = document.createElement('a');
+                    link.href = attachment.fileUrl || attachment.url;
+                    link.download = attachment.fileName || attachment.name || 'download';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else if (attachment.fileData || attachment.data) {
+                    // Download from base64 data
+                    const link = document.createElement('a');
+                    link.href = `data:${attachment.fileType || attachment.contentType || 'application/octet-stream'};base64,${attachment.fileData || attachment.data}`;
+                    link.download = attachment.fileName || attachment.name || 'download';
+                    link.click();
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Unable to download attachment. File data not available.',
+                        icon: 'error'
+                    });
+                }
+            } catch (error) {
+                console.error('Error downloading attachment:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to download attachment. Please try again.',
+                    icon: 'error'
+                });
+            }
+        }
+
+        // Function to delete attachment
+        function deleteAttachment(attachmentId) {
+            Swal.fire({
+                title: 'Confirm Delete',
+                text: 'Are you sure you want to delete this attachment?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        // Show loading
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait while we delete the attachment',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Call API to delete attachment
+                        const response = await makeAuthenticatedRequest(`/api/attachments/${attachmentId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`Failed to delete attachment: ${response.status}`);
+                        }
+                        
+                        // Remove attachment from the list
+                        const container = document.getElementById('existingAttachments');
+                        if (container) {
+                            const attachmentItems = container.querySelectorAll('.flex.items-center.justify-between');
+                            attachmentItems.forEach(item => {
+                                const deleteBtn = item.querySelector('button[onclick*="deleteAttachment"]');
+                                if (deleteBtn && deleteBtn.onclick.toString().includes(attachmentId)) {
+                                    item.remove();
+                                }
+                            });
+                        }
+                        
+                        Swal.fire({
+                            title: 'Deleted',
+                            text: 'Attachment has been deleted successfully.',
+                            icon: 'success'
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error deleting attachment:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: `Failed to delete attachment: ${error.message}`,
+                            icon: 'error'
+                        });
+                    }
+                }
+            });
+        }
+
+        // Function to convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    // Remove data URL prefix to get only base64 data
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Function to format date (YYYY-MM-DD to DD MMM YYYY)
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
         }
     </script>
 </body>
