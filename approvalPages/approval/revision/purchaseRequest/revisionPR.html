@@ -143,16 +143,6 @@
           <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
         </div>
         
-        <!-- Revision Remarks Section -->
-        <div class="mt-4">
-            <div class="flex justify-between items-center">
-                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
-            </div>
-            <div id="revisionContainer" class="hidden">
-                <!-- Revision fields will be added here by JavaScript -->
-            </div>
-        </div>
-        
         <!-- Revised Remarks Display Section (Read-only) -->
         <div class="mt-4" id="revisedRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
@@ -223,6 +213,8 @@
             </div>
         </div>
         <br>
+
+
         <!-- Action Buttons -->
         <div id="submitButtonContainer" class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
@@ -230,9 +222,6 @@
                     Submit
                 </button>
             </div>
-            <button onclick="revisionPR()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
-                Revision
-            </button>
         </div>
     </div>
     
@@ -248,6 +237,12 @@
         function toggleRevisionField() {
             const container = document.getElementById('revisionContainer');
             const addBtn = document.getElementById('addRevisionBtn');
+            
+            if (!container || !addBtn) {
+                console.warn('revisionContainer or addRevisionBtn not found');
+                return;
+            }
+            
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
             
@@ -287,6 +282,12 @@
         // Add revision field functionality
         function addRevisionField() {
             const container = document.getElementById('revisionContainer');
+            
+            if (!container) {
+                console.warn('revisionContainer not found');
+                return;
+            }
+            
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
             
@@ -356,6 +357,12 @@
         function checkRevisionContainer() {
             const container = document.getElementById('revisionContainer');
             const addBtn = document.getElementById('addRevisionBtn');
+            
+            if (!container || !addBtn) {
+                console.warn('revisionContainer or addRevisionBtn not found');
+                return;
+            }
+            
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
             if (revisionFields.length === 0) {
@@ -370,6 +377,12 @@
         function updateAddButtonState() {
             const addBtn = document.getElementById('addRevisionBtn');
             const container = document.getElementById('revisionContainer');
+            
+            if (!addBtn || !container) {
+                console.warn('addRevisionBtn or revisionContainer not found');
+                return;
+            }
+            
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
             
@@ -480,7 +493,9 @@
         // Hide the add revision button after adding a field
         function hideAddRevisionButton() {
             const addBtn = document.getElementById('addRevisionBtn');
-            addBtn.style.display = 'none';
+            if (addBtn) {
+                addBtn.style.display = 'none';
+            }
         }
         
         // Check if revision remarks are filled to enable/disable revision button
@@ -488,7 +503,7 @@
             const revisionButton = document.getElementById('revisionButton');
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
-            // Check if revision button exists
+            // If revisionButton doesn't exist, return early to prevent error
             if (!revisionButton) {
                 console.warn('revisionButton element not found');
                 return;
@@ -630,16 +645,10 @@
         // Revision function for Purchase Request (keeping this for compatibility)
         function revisionPR() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            const revisionButton = document.getElementById('revisionButton');
-            
-            // Check if revision button exists
-            if (!revisionButton) {
-                console.warn('revisionButton element not found');
-                return;
-            }
             
             // Check if revision button is disabled
-            if (revisionButton.disabled) {
+            const revisionButton = document.getElementById('revisionButton');
+            if (revisionButton && revisionButton.disabled) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -669,82 +678,6 @@
             
             // Call the existing function with the collected remarks
             updatePRStatusWithRemarks('revise', allRemarks);
-        }
-        
-        // Function to update PR status with remarks
-        function updatePRStatusWithRemarks(status, remarks) {
-            if (!prId) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'PR ID not found'
-                });
-                return;
-            }
-
-            const userId = getUserId();
-            if (!userId) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Authentication Error',
-                    text: 'Unable to get user ID from token. Please login again.'
-                });
-                return;
-            }
-
-            const requestData = {
-                id: prId,
-                UserId: userId,
-                StatusAt: "Revision",
-                Action: status,
-                Remarks: remarks || ''
-            };
-
-            // Show loading
-            Swal.fire({
-                title: `${status === 'revise' ? 'Revising' : 'Processing'}...`,
-                text: 'Please wait while we process your request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            const endpoint = prType.toLowerCase() === 'service' ? 'service' : 'item';
-            
-            fetch(`${BASE_URL}/api/pr/${endpoint}/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => {
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: `PR ${status === 'revise' ? 'revised' : 'processed'} successfully`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the revision dashboard
-                        window.location.href = '../../../dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html';
-                    });
-                } else {
-                    return response.json().then(errorData => {
-                        throw new Error(errorData.message || `Failed to ${status} PR. Status: ${response.status}`);
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: `Error ${status === 'revise' ? 'revising' : 'processing'} PR: ` + error.message
-                });
-            });
         }
     </script>
 </body>
