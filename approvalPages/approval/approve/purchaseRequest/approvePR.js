@@ -878,6 +878,10 @@ function printPR() {
         const classification = document.getElementById('classification').value;
         const requesterName = document.getElementById('requesterName').value;
         const requiredDate = document.getElementById('requiredDate').value;
+        const remarks = document.getElementById('remarks').value;
+        
+        // Debug: Log remarks value
+        console.log('Remarks value being passed to print:', remarks);
         
         // Ambil data approved/checked by dari input search
         const checkedBy = document.getElementById('checkedBySearch').value;
@@ -969,6 +973,17 @@ function printPR() {
         url.searchParams.set('department', department);
         url.searchParams.set('purchaseRequestNo', purchaseRequestNo);
         url.searchParams.set('classification', classification);
+        url.searchParams.set('remarks', remarks);
+        
+        // Debug: Log URL parameters being set
+        console.log('URL parameters being set:', {
+            remarks: remarks,
+            requesterName: requesterName,
+            purchaseRequestNo: purchaseRequestNo,
+            department: department,
+            classification: classification
+        });
+        
         url.searchParams.set('requesterName', requesterName);
         url.searchParams.set('checkedBy', checkedBy);
         url.searchParams.set('acknowledgedBy', acknowledgedBy);

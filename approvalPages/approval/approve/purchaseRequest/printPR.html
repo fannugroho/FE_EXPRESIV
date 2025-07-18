@@ -241,6 +241,10 @@
                 <div class="form-label">Classification :</div>
                 <div class="form-field" id="classification"></div>
             </div>
+            <div class="form-row">
+                <div class="form-label">Remarks :</div>
+                <div class="form-field" id="remarks"></div>
+            </div>
         </div>
         
         <table>
@@ -335,6 +339,11 @@
             document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
             document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
             document.getElementById('classification').textContent = urlParams.get('classification') || '';
+            document.getElementById('remarks').textContent = urlParams.get('remarks') || '';
+            
+            // Debug: Log remarks received from URL
+            console.log('Remarks received from URL:', urlParams.get('remarks'));
+            console.log('Remarks element value:', document.getElementById('remarks').textContent);
             
             // Set form metadata
             document.getElementById('prForm').textContent = 'KPI-F-PROC-01';

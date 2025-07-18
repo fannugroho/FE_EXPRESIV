@@ -13,12 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
     document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
     document.getElementById('classification').textContent = urlParams.get('classification') || '';
+    document.getElementById('remarks').textContent = urlParams.get('remarks') || '';
     
     // Set nilai untuk form dan nomor halaman
     document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
     document.getElementById('rev').textContent = '01';
     document.getElementById('effectiveDate').textContent = '26 Maret 2025';
-    document.getElementById('page').textContent = '1 of 1';
     
     // Set nilai approval names
     document.getElementById('requestedBy').textContent = urlParams.get('requesterName') || '';
@@ -28,11 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('receivedBy').textContent = urlParams.get('receivedBy') || '';
     
     // Set nilai approval dates
-    document.getElementById('receivedDate').textContent = 'Date: ' + (urlParams.get('formattedDate') || '');
-    document.getElementById('requestedDate').textContent = 'Date: ' + (urlParams.get('preparedDateFormatted') || '');
-    document.getElementById('checkedDate').textContent = 'Date: ' + (urlParams.get('checkedDateFormatted') || '');
-    document.getElementById('acknowledgedDate').textContent = 'Date: ' + (urlParams.get('acknowledgedDateFormatted') || '');
-    document.getElementById('approvedDate').textContent = 'Date: ' + (urlParams.get('approvedDateFormatted') || '');
+    document.getElementById('preparedDate').textContent = urlParams.get('preparedDateFormatted') || '';
+    document.getElementById('checkedDate').textContent = urlParams.get('checkedDateFormatted') || '';
+    document.getElementById('acknowledgedDate').textContent = urlParams.get('acknowledgedDateFormatted') || '';
+    document.getElementById('approvedDate').textContent = urlParams.get('approvedDateFormatted') || '';
     
     // Get approval status from URL parameters
     const requestedApproved = urlParams.get('requestedApproved') === 'true';
@@ -41,8 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const finalApproved = urlParams.get('finalApproved') === 'true';
     
     // Show or hide approval stamps based on status
-    // By default, we'll show all stamps since this is the print view of an approved document
-    // But this can be customized if needed
+    const approvalStamps = document.querySelectorAll('.approval-stamp');
+    if (approvalStamps.length >= 4) {
+        // Only show stamps for approved signatures
+        approvalStamps[0].style.visibility = requestedApproved ? 'visible' : 'hidden';
+        approvalStamps[1].style.visibility = checkedApproved ? 'visible' : 'hidden';
+        approvalStamps[2].style.visibility = acknowledgedApproved ? 'visible' : 'hidden';
+        approvalStamps[3].style.visibility = finalApproved ? 'visible' : 'hidden';
+    }
     
     // Current date for printing
     const currentDate = new Date().toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
@@ -64,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Map the data according to the requested mapping
                     row.innerHTML = `
                         <td>${index + 1}</td>
+                        <td>${item.itemCode || ''}</td>
                         <td>${item.description || ''}</td>
                         <td>${item.purpose || ''}</td>
                         <td>${item.quantity || ''}</td>
