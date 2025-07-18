@@ -114,51 +114,19 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
             </div>
 
-            <!-- Revised Remarks Display Section (Read-only) -->
-            <div class="mt-4" id="revisedRemarksSection" style="display: none;">
-                <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
-                <div class="bg-gray-50 p-4 rounded-lg border">
-                    <div class="mb-2">
-                        <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
-                        <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
-                    </div>
-                    
-                    <!-- First Revision Remarks -->
-                    <div id="firstRevisionContainer" class="mb-3" style="display: none;">
-                        <label class="text-sm font-medium text-gray-700">First Revision:</label>
-                        <div id="firstRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
-                    </div>
-                    
-                    <!-- Second Revision Remarks -->
-                    <div id="secondRevisionContainer" class="mb-3" style="display: none;">
-                        <label class="text-sm font-medium text-gray-700">Second Revision:</label>
-                        <div id="secondRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
-                    </div>
-                    
-                    <!-- Third Revision Remarks -->
-                    <div id="thirdRevisionContainer" class="mb-3" style="display: none;">
-                        <label class="text-sm font-medium text-gray-700">Third Revision:</label>
-                        <div id="thirdRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
-                    </div>
-                    
-                    <!-- Fourth Revision Remarks -->
-                    <div id="fourthRevisionContainer" class="mb-3" style="display: none;">
-                        <label class="text-sm font-medium text-gray-700">Fourth Revision:</label>
-                        <div id="fourthRevisionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"></div>
-                    </div>
-                </div>
+        <!-- Revision Remarks Section -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center">
+                <!--<label class="text-red-600">Need Revision</label>-->
+                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
             </div>
+            <div id="revisionContainer" class="hidden">
+                <!-- Revision fields will be added here by JavaScript -->
+            </div>
+        </div>
 
-            <!-- Revision Remarks Section -->
-            <div class="mt-4">
-                <div class="flex justify-between items-center">
-                    <!--<label class="text-red-600">Need Revision</label>-->
-                    <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
-                </div>
-                <div id="revisionContainer" class="hidden">
-                    <!-- Revision fields will be added here by JavaScript -->
-                </div>
-            </div>
+        <!-- Revised Remarks Display Section (Read-only) -->
+        <div class="mt-4" id="revisedRemarksSection"></div>
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
@@ -575,15 +543,22 @@
                         return;
                     }
                     
-                    // Make API call to submit revision using the new endpoint
+                    // Get user ID from auth.js
+                    const userId = getUserId();
+                    if (!userId) {
+                        Swal.fire('Error', 'User ID not found', 'error');
+                        return;
+                    }
                     fetch(`${BASE_URL}/api/reimbursements/revision/${id}`, {
-                        method: 'PATCH',
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${getAccessToken()}`
                         },
                         body: JSON.stringify({
-                            remarks: allRemarks
+                            userId: userId,
+                            remarks: allRemarks,
+                            stage: "Acknowledged"
                         })
                     })
                     .then(response => response.json())

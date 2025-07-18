@@ -284,8 +284,11 @@ function populateFormData(data) {
         displayAttachments(data.reimbursementAttachments);
     }
     
-    // Display revision history from API data
-    displayRevisionHistory(data);
+    if (data.revisions) {
+        renderRevisionHistory(data.revisions);
+    } else {
+        renderRevisionHistory([]);
+    }
     
     // Fix untuk typeOfTransaction - pastikan nilai ditampilkan dengan benar
     if (document.getElementById('typeOfTransaction') && data.typeOfTransaction) {
@@ -900,68 +903,42 @@ function makeAllFieldsReadOnly() {
     }
 }
 
-// Display revision history based on API data
-function displayRevisionHistory(data) {
-    // Check if we have any revision data to display
-    if (!data || (!data.firstRevisionDate && !data.secondRevisionDate && !data.thirdRevisionDate && !data.fourthRevisionDate)) {
-        return; // No revision history to display
+function formatDateToDDMMYYYY(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function renderRevisionHistory(revisions) {
+    const section = document.getElementById('revisedRemarksSection');
+    if (!section) return;
+
+    if (!Array.isArray(revisions) || revisions.length === 0) {
+        section.style.display = 'none';
+        return;
     }
-    
-    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCount = document.getElementById('revisedCount');
-    
-    if (revisedRemarksSection && revisedCount) {
-        // Count the number of revisions based on date fields
-        let revisionCount = 0;
-        if (data.firstRevisionDate) revisionCount++;
-        if (data.secondRevisionDate) revisionCount++;
-        if (data.thirdRevisionDate) revisionCount++;
-        if (data.fourthRevisionDate) revisionCount++;
-        
-        // Only show revision history section if at least one revision exists
-        if (data.firstRevisionDate) {
-            // Show the revision history section
-            revisedRemarksSection.style.display = 'block';
-            revisedCount.textContent = revisionCount;
-            
-            // Display each revision container that has data
-            if (data.firstRevisionDate) {
-                const container = document.getElementById('firstRevisionContainer');
-                const remarks = document.getElementById('firstRevisionRemarks');
-                if (container && remarks) {
-                    container.style.display = 'block';
-                    remarks.textContent = data.firstRevisionRemarks || 'No remarks provided';
-                }
-            }
-            
-            if (data.secondRevisionDate) {
-                const container = document.getElementById('secondRevisionContainer');
-                const remarks = document.getElementById('secondRevisionRemarks');
-                if (container && remarks) {
-                    container.style.display = 'block';
-                    remarks.textContent = data.secondRevisionRemarks || 'No remarks provided';
-                }
-            }
-            
-            if (data.thirdRevisionDate) {
-                const container = document.getElementById('thirdRevisionContainer');
-                const remarks = document.getElementById('thirdRevisionRemarks');
-                if (container && remarks) {
-                    container.style.display = 'block';
-                    remarks.textContent = data.thirdRevisionRemarks || 'No remarks provided';
-                }
-            }
-            
-            if (data.fourthRevisionDate) {
-                const container = document.getElementById('fourthRevisionContainer');
-                const remarks = document.getElementById('fourthRevisionRemarks');
-                if (container && remarks) {
-                    container.style.display = 'block';
-                    remarks.textContent = data.fourthRevisionRemarks || 'No remarks provided';
-                }
-            }
-        }
-    }
+
+    section.style.display = 'block';
+    // Group revisions by stage
+    const grouped = {};
+    revisions.forEach(rev => {
+        if (!grouped[rev.stage]) grouped[rev.stage] = [];
+        grouped[rev.stage].push(rev);
+    });
+    // Build HTML
+    let html = '';
+    html += `<h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>`;
+    html += `<div class="bg-gray-50 p-4 rounded-lg border"><div class="mb-2"><span class="text-sm font-medium text-gray-600">Total Revisions: </span><span id="revisedCount" class="text-sm font-bold text-blue-600">${revisions.length}</span></div></div>`;
+    Object.entries(grouped).forEach(([stage, items]) => {
+        html += `<div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded"><h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${items.length})</h4></div>`;
+        items.forEach((rev, idx) => {
+            html += `<div class="mb-3 ml-4"><div class="flex items-start justify-between"><div class="flex-1"><label class="text-sm font-medium text-gray-700">Revision ${idx + 1}:</label><div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${rev.remarks || ''}</div><div class="text-xs text-gray-500 mt-1">Date: ${formatDateToDDMMYYYY(rev.createdAt)} | By: ${rev.revisedByName || ''}</div></div></div></div>`;
+        });
+    });
+    section.innerHTML = html;
 }
 
     
