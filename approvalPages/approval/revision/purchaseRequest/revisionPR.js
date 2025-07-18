@@ -935,6 +935,13 @@ async function fetchUsers(prData = null) {
             throw new Error('Network response was not ok: ' + response.statusText);
         }
         const data = await response.json();
+        
+        // Ensure data.data exists and is an array
+        if (!data.data || !Array.isArray(data.data)) {
+            console.error('Invalid users data received:', data);
+            return;
+        }
+        
         populateUserSelects(data.data, prData);
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -1003,6 +1010,12 @@ function filterRequesters() {
     
     if (!requesterSearchInput || !requesterDropdown) return;
     
+    // Check if window.requesters is available
+    if (!window.requesters || !Array.isArray(window.requesters)) {
+        console.warn('window.requesters is not available for filtering');
+        return;
+    }
+    
     const searchText = requesterSearchInput.value.toLowerCase();
     
     // Clear dropdown
@@ -1010,7 +1023,7 @@ function filterRequesters() {
     
     // Filter requesters based on search text
     const filteredRequesters = window.requesters ? 
-        window.requesters.filter(r => r.fullName.toLowerCase().includes(searchText)) : 
+        window.requesters.filter(r => r.fullName && r.fullName.toLowerCase().includes(searchText)) : 
         [];
     
     // Show filtered results
@@ -1076,10 +1089,16 @@ function filterUsers(fieldId) {
     // Use stored users or mock data if not available
     const usersList = window.allUsers || [];
     
+    // Check if usersList is valid
+    if (!Array.isArray(usersList)) {
+        console.warn('window.allUsers is not an array');
+        return;
+    }
+    
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
         const userName = user.fullName;
-        return userName.toLowerCase().includes(searchText);
+        return userName && userName.toLowerCase().includes(searchText);
     });
     
     // Display search results
@@ -1122,22 +1141,28 @@ function filterUsers(fieldId) {
 
 // Modified populateUserSelects to store users globally and update search inputs
 function populateUserSelects(users, prData = null) {
+    // Ensure users is an array
+    if (!users || !Array.isArray(users)) {
+        console.error('Invalid users data provided to populateUserSelects:', users);
+        return;
+    }
+    
     // Store users globally for search functionality
     window.allUsers = users;
     
     // Store requesters globally for search functionality
     window.requesters = users.map(user => ({
-        id: user.id,
-        fullName: user.fullName,
-        department: user.department
+        id: user.id || '',
+        fullName: user.fullName || '',
+        department: user.department || ''
     }));
 
     // Store employees globally for reference
     window.employees = users.map(user => ({
-        id: user.id,
-        kansaiEmployeeId: user.kansaiEmployeeId,
-        fullName: user.fullName,
-        department: user.department
+        id: user.id || '',
+        kansaiEmployeeId: user.kansaiEmployeeId || '',
+        fullName: user.fullName || '',
+        department: user.department || ''
     }));
 
     // Populate RequesterId dropdown with search functionality
@@ -1187,8 +1212,14 @@ function populateUserSelects(users, prData = null) {
         function populateRequesterDropdown(filter = '') {
             requesterDropdown.innerHTML = '';
             
+            // Check if window.requesters exists and is an array
+            if (!window.requesters || !Array.isArray(window.requesters)) {
+                console.warn('window.requesters is not available or not an array');
+                return;
+            }
+            
             const filteredRequesters = window.requesters.filter(r => 
-                r.fullName.toLowerCase().includes(filter)
+                r.fullName && r.fullName.toLowerCase().includes(filter)
             );
             
             filteredRequesters.forEach(requester => {
@@ -1244,8 +1275,10 @@ function populateUserSelects(users, prData = null) {
             }
         });
 
-        // Initial population
-        populateRequesterDropdown();
+        // Initial population - only if requesters are available
+        if (window.requesters && window.requesters.length > 0) {
+            populateRequesterDropdown();
+        }
     }
     
     const selects = [
