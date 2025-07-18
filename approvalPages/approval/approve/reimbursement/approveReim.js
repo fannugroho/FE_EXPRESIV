@@ -714,6 +714,7 @@ function printReimbursement() {
     const referenceDoc = document.getElementById('referenceDoc').value;
     const typeOfTransaction = document.getElementById('typeOfTransaction').value;
     const remarks = document.getElementById('remarks').value;
+    const currency = document.getElementById('currency').value;
     
     // Get selected values from dropdowns
     const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
@@ -776,7 +777,7 @@ function printReimbursement() {
     const detailsParam = encodeURIComponent(JSON.stringify(details));
     
     // Build URL with all parameters
-    const printUrl = `printReim.html?reim-id=${reimId}&payTo=${encodeURIComponent(payTo)}&voucherNo=${encodeURIComponent(voucherNo)}&submissionDate=${encodeURIComponent(submissionDate)}&department=${encodeURIComponent(department)}&referenceDoc=${encodeURIComponent(referenceDoc)}&preparedBy=${encodeURIComponent(preparedBy)}&checkedBy=${encodeURIComponent(checkedBy)}&acknowledgeBy=${encodeURIComponent(acknowledgeBy)}&approvedBy=${encodeURIComponent(approvedBy)}&receivedBy=${encodeURIComponent(receivedBy)}&totalAmount=${encodeURIComponent(totalAmount)}&details=${detailsParam}&typeOfTransaction=${encodeURIComponent(typeOfTransaction)}&remarks=${encodeURIComponent(remarks)}`;
+    const printUrl = `printReim.html?reim-id=${reimId}&payTo=${encodeURIComponent(payTo)}&voucherNo=${encodeURIComponent(voucherNo)}&submissionDate=${encodeURIComponent(submissionDate)}&department=${encodeURIComponent(department)}&referenceDoc=${encodeURIComponent(referenceDoc)}&preparedBy=${encodeURIComponent(preparedBy)}&checkedBy=${encodeURIComponent(checkedBy)}&acknowledgeBy=${encodeURIComponent(acknowledgeBy)}&approvedBy=${encodeURIComponent(approvedBy)}&receivedBy=${encodeURIComponent(receivedBy)}&totalAmount=${encodeURIComponent(totalAmount)}&details=${detailsParam}&typeOfTransaction=${encodeURIComponent(typeOfTransaction)}&remarks=${encodeURIComponent(remarks)}&currency=${encodeURIComponent(currency)}`;
     
     // Open the print page in a new window/tab
     window.open(printUrl, '_blank');

@@ -104,12 +104,12 @@ function numberToWords(num) {
 }
 
 // Format number to currency
-function formatCurrency(amount) {
+function formatCurrency(amount, currency = 'IDR') {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
-        currency: 'IDR',
+        currency: currency,
         minimumFractionDigits: 0
-    }).format(amount).replace('Rp', 'IDR');
+    }).format(amount).replace('Rp', currency);
 }
 
 // Fetch reimbursement data from API
@@ -155,6 +155,7 @@ function populatePrintData(apiData = null) {
         reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
         typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
         remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
+        currency: urlParams.currency || (apiData ? apiData.currency : 'IDR'),
         preparedByDate: urlParams.preparedByDate || (apiData && apiData.preparedByDate ? apiData.preparedByDate : new Date().toISOString().split('T')[0]),
         checkedByDate: urlParams.checkedByDate || (apiData && apiData.checkedByDate ? apiData.checkedByDate : new Date().toISOString().split('T')[0]),
         acknowledgeByDate: urlParams.acknowledgeByDate || (apiData && apiData.acknowledgeByDate ? apiData.acknowledgeByDate : new Date().toISOString().split('T')[0]),
@@ -274,7 +275,7 @@ function populatePrintData(apiData = null) {
     }
     
     // Populate reimbursement details table
-    populateDetailsTable(data.reimbursementDetails, data.totalAmount);
+    populateDetailsTable(data.reimbursementDetails, data.totalAmount, data.currency);
 }
 
 // Format date if it exists
@@ -315,7 +316,7 @@ function calculateTotalFromDetails(details) {
 }
 
 // Populate reimbursement details table
-function populateDetailsTable(details, totalAmount = null) {
+function populateDetailsTable(details, totalAmount = null, currency = 'IDR') {
     const tableBody = document.getElementById('reimbursementDetailsTable');
     if (!tableBody) {
         console.error('reimbursementDetailsTable not found');
@@ -337,7 +338,7 @@ function populateDetailsTable(details, totalAmount = null) {
                 <td class="border p-2">${detail.accountName || ''}</td>
                 <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.description || ''}</td>
-                <td class="border p-2">${formatCurrency(amount)}</td>
+                <td class="border p-2">${formatCurrency(amount, currency)}</td>
                 <td class="border p-2"></td>
             `;
             tableBody.appendChild(row);
@@ -360,8 +361,8 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update totals
     if (document.getElementById('totalDebitText')) {
-        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
-        console.log('Set totalDebitText to:', formatCurrency(finalTotal));
+        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal, currency);
+        console.log('Set totalDebitText to:', formatCurrency(finalTotal, currency));
     } else {
         console.warn('totalDebitText element not found');
     }
@@ -375,13 +376,13 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update amount payment and amount in words
     if (document.getElementById('amountText')) {
-        document.getElementById('amountText').textContent = formatCurrency(finalTotal);
+        document.getElementById('amountText').textContent = formatCurrency(finalTotal, currency);
     } else {
         console.warn('amountText element not found');
     }
     
     if (document.getElementById('amountInWordText')) {
-        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)}`;
     } else {
         console.warn('amountInWordText element not found');
     }

@@ -121,12 +121,12 @@ function numberToWords(num) {
 }
 
 // Format number to currency
-function formatCurrency(amount) {
+function formatCurrency(amount, currency = 'IDR') {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
-        currency: 'IDR',
+        currency: currency,
         minimumFractionDigits: 0
-    }).format(amount).replace('Rp', 'IDR');
+    }).format(amount).replace('Rp', currency);
 }
 
 // Fetch reimbursement data from API
@@ -171,7 +171,8 @@ function populatePrintData(apiData = null) {
         totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
         reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
         typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
-        remarks: urlParams.remarks || (apiData ? apiData.remarks : '')
+        remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
+        currency: urlParams.currency || (apiData ? apiData.currency : 'IDR')
     };
     
     // Populate header information
@@ -270,7 +271,7 @@ function populatePrintData(apiData = null) {
     }
     
     // Populate reimbursement details table
-    populateDetailsTable(data.reimbursementDetails, data.totalAmount);
+    populateDetailsTable(data.reimbursementDetails, data.totalAmount, data.currency);
 }
 
 // Helper function to calculate total from details
@@ -283,7 +284,7 @@ function calculateTotalFromDetails(details) {
 }
 
 // Populate reimbursement details table
-function populateDetailsTable(details, totalAmount = null) {
+function populateDetailsTable(details, totalAmount = null, currency = 'IDR') {
     const tableBody = document.getElementById('reimbursementDetailsTable');
     tableBody.innerHTML = ''; // Clear existing rows
     
@@ -306,7 +307,7 @@ function populateDetailsTable(details, totalAmount = null) {
                 <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.accountName || ''}</td>
                 <td class="border p-2">${detail.description || ''}</td>
-                <td class="border p-2">${formatCurrency(amount)}</td>
+                <td class="border p-2">${formatCurrency(amount, currency)}</td>
                 <td class="border p-2"></td>
             `;
             tableBody.appendChild(row);
@@ -324,7 +325,7 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update totals
     if (document.getElementById('totalDebitText')) {
-        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal);
+        document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal, currency);
     } else {
         console.error('Element with ID totalDebitText not found');
     }
@@ -337,11 +338,11 @@ function populateDetailsTable(details, totalAmount = null) {
     
     // Update amount payment and amount in words
     if (document.getElementById('amountText')) {
-        document.getElementById('amountText').textContent = formatCurrency(finalTotal);
+        document.getElementById('amountText').textContent = formatCurrency(finalTotal, currency);
     }
     
     if (document.getElementById('amountInWordText')) {
-        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)} rupiah`;
+        document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)}`;
     }
 }
 
