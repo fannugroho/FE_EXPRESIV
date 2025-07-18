@@ -322,6 +322,13 @@ function populateFormData(data) {
         
         console.log('Set typeOfTransaction to:', data.typeOfTransaction);
     }
+    
+    // Check status and hide buttons after all data is loaded
+    setTimeout(() => {
+        if (typeof checkStatusAndHideButtons === 'function') {
+            checkStatusAndHideButtons();
+        }
+    }, 100);
 }
 
 // Function to format amount with decimal places

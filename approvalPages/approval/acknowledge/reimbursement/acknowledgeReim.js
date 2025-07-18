@@ -348,6 +348,13 @@ function populateFormData(data) {
     
     // Display revision history from API data
     displayRevisionHistory(data);
+    
+    // Check status and hide buttons after all data is loaded
+    setTimeout(() => {
+        if (typeof checkStatus === 'function') {
+            checkStatus();
+        }
+    }, 100);
 }
 
 // Override populateReimbursementDetails to use proper amount formatting

@@ -573,7 +573,57 @@
             // Initialize button states
             checkRevisionButton();
             updateAddButtonState();
+            
+            // Check status and hide buttons if needed
+            checkStatusAndHideButtons();
         });
+        
+        // Function to check status and hide buttons based on status
+        function checkStatusAndHideButtons() {
+            const statusSelect = document.getElementById('status');
+            if (!statusSelect) return;
+            
+            const currentStatus = statusSelect.value;
+            const isAcknowledged = currentStatus === "Acknowledged";
+            const isRejected = currentStatus === "Rejected";
+            
+            // Get all buttons that need to be controlled
+            const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
+            const addRowButton = document.getElementById('addRowButton');
+            const addRevisionBtn = document.getElementById('addRevisionBtn');
+            const rejectButton = document.getElementById('rejectButton');
+            const approveButton = document.getElementById('approveButton');
+            const printButton = document.getElementById('printButton');
+            const revisionButton = document.getElementById('revisionButton');
+            
+            // Hide buttons if status is not "acknowledged" or if status is "rejected"
+            if (!isAcknowledged || isRejected) {
+                // Hide delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+                
+                // Hide other buttons
+                if (addRowButton) addRowButton.style.display = 'none';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+                if (rejectButton) rejectButton.style.display = 'none';
+                if (approveButton) approveButton.style.display = 'none';
+                if (printButton) printButton.style.display = 'none';
+                if (revisionButton) revisionButton.style.display = 'none';
+            } else {
+                // Show buttons if status is "acknowledged" and not "rejected"
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'inline-block';
+                });
+                
+                if (addRowButton) addRowButton.style.display = 'inline-block';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
+                if (rejectButton) rejectButton.style.display = 'inline-block';
+                if (approveButton) approveButton.style.display = 'inline-block';
+                if (printButton) printButton.style.display = 'inline-block';
+                if (revisionButton) revisionButton.style.display = 'inline-block';
+            }
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test OP Reim Submit</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Test Outgoing Payment Reimbursement Submit</h1>
+    
+    <div class="test-section">
+        <h3>Test Data Collection</h3>
+        <p>This test will simulate the form data collection and show what would be sent to the API.</p>
+        <button onclick="testCollectFormData()">Test Form Data Collection</button>
+        <div id="formDataResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test API Submit</h3>
+        <p>This test will attempt to submit data to the actual API endpoint.</p>
+        <button onclick="testAPISubmit()">Test API Submit</button>
+        <div id="apiResult" class="result"></div>
+    </div>
+
+    <script>
+        // Mock form data for testing
+        const mockFormData = {
+            CounterRef: "REIM-2024-001",
+            RequesterName: "John Doe",
+            CardName: "ABC Company",
+            Address: "123 Main Street",
+            DocDate: "2024-01-15",
+            DocDueDate: "2024-01-30",
+            TaxDate: "2024-01-15",
+            DocNum: "",
+            Comments: "Test reimbursement",
+            JrnlMemo: "Test journal memo",
+            DocCurr: "IDR",
+            TypeOfTransaction: "REIMBURSEMENT",
+            TrsfrDate: "2024-01-15",
+            TrsfrAcct: "1234567890",
+            TrsfrSum: "1,000,000.00",
+            remarks: "Test remarks",
+            journalRemarks: "Test journal remarks",
+            lines: [
+                {
+                    acctCode: "1000",
+                    acctName: "Cash Account",
+                    description: "Test expense",
+                    division: "IT",
+                    DocTotal: "500,000.00"
+                },
+                {
+                    acctCode: "2000",
+                    acctName: "Expense Account",
+                    description: "Test expense 2",
+                    division: "HR",
+                    DocTotal: "500,000.00"
+                }
+            ]
+        };
+
+        // Mock user ID
+        const mockUserId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+
+        function testCollectFormData() {
+            try {
+                // Simulate the collectFormData function
+                const stagingID = `OP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                const lines = mockFormData.lines.map((line, index) => ({
+                    lineID: index,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    stagingID: stagingID,
+                    docNum: 0,
+                    lineNum: index,
+                    acctCode: line.acctCode,
+                    acctName: line.acctName,
+                    descrip: line.description,
+                    sumApplied: parseFloat(line.DocTotal.replace(/,/g, '')),
+                    ocrCode3: line.division,
+                    category: "REIMBURSEMENT",
+                    header: {
+                        stagingID: stagingID
+                    }
+                }));
+
+                const requestData = {
+                    stagingID: stagingID,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    docEntry: 0,
+                    address: mockFormData.Address,
+                    cardName: mockFormData.CardName,
+                    docDate: new Date(mockFormData.DocDate).toISOString(),
+                    docDueDate: new Date(mockFormData.DocDueDate).toISOString(),
+                    taxDate: new Date(mockFormData.TaxDate).toISOString(),
+                    counterRef: mockFormData.CounterRef,
+                    docNum: 0,
+                    comments: mockFormData.Comments,
+                    jrnlMemo: mockFormData.JrnlMemo,
+                    doctype: "A",
+                    docCurr: mockFormData.DocCurr,
+                    diffCurr: mockFormData.DocCurr,
+                    trsfrDate: new Date(mockFormData.TrsfrDate).toISOString(),
+                    trsfrAcct: mockFormData.TrsfrAcct,
+                    trsfrSum: parseFloat(mockFormData.TrsfrSum.replace(/,/g, '')),
+                    isInterfaced: false,
+                    type: mockFormData.TypeOfTransaction,
+                    expressivNo: mockFormData.CounterRef,
+                    requesterId: mockUserId,
+                    lines: lines,
+                    approval: {
+                        stagingID: stagingID,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        approvalStatus: "Prepared",
+                        preparedBy: mockUserId,
+                        checkedBy: "",
+                        acknowledgedBy: "",
+                        approvedBy: "",
+                        receivedBy: "",
+                        preparedDate: new Date().toISOString(),
+                        checkedDate: null,
+                        acknowledgedDate: null,
+                        approvedDate: null,
+                        receivedDate: null,
+                        rejectedDate: null,
+                        rejectionRemarks: "",
+                        revisionNumber: 0,
+                        revisionDate: null,
+                        revisionRemarks: "",
+                        header: {
+                            stagingID: stagingID
+                        }
+                    },
+                    attachments: []
+                };
+
+                document.getElementById('formDataResult').innerHTML = 
+                    '<h4>Generated Request Data:</h4>' +
+                    '<pre>' + JSON.stringify(requestData, null, 2) + '</pre>';
+                
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Form data collection test completed successfully',
+                    icon: 'success'
+                });
+
+            } catch (error) {
+                console.error('Error in test:', error);
+                document.getElementById('formDataResult').innerHTML = 
+                    '<h4>Error:</h4><pre>' + error.message + '</pre>';
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Test failed: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        }
+
+        async function testAPISubmit() {
+            try {
+                // Show loading
+                Swal.fire({
+                    title: 'Testing API Submit...',
+                    text: 'Please wait while we test the API submission',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Generate test data
+                const stagingID = `OP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                const testData = {
+                    stagingID: stagingID,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    docEntry: 0,
+                    address: "Test Address",
+                    cardName: "Test Company",
+                    docDate: new Date().toISOString(),
+                    docDueDate: new Date().toISOString(),
+                    taxDate: new Date().toISOString(),
+                    counterRef: "TEST-001",
+                    docNum: 0,
+                    comments: "Test submission",
+                    jrnlMemo: "Test memo",
+                    doctype: "A",
+                    docCurr: "IDR",
+                    diffCurr: "IDR",
+                    trsfrDate: new Date().toISOString(),
+                    trsfrAcct: "1234567890",
+                    trsfrSum: 1000000,
+                    isInterfaced: false,
+                    type: "REIMBURSEMENT",
+                    expressivNo: "TEST-001",
+                    requesterId: mockUserId,
+                    lines: [
+                        {
+                            lineID: 0,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            stagingID: stagingID,
+                            docNum: 0,
+                            lineNum: 0,
+                            acctCode: "1000",
+                            acctName: "Test Account",
+                            descrip: "Test description",
+                            sumApplied: 1000000,
+                            ocrCode3: "IT",
+                            category: "REIMBURSEMENT",
+                            header: {
+                                stagingID: stagingID
+                            }
+                        }
+                    ],
+                    approval: {
+                        stagingID: stagingID,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        approvalStatus: "Prepared",
+                        preparedBy: mockUserId,
+                        checkedBy: "",
+                        acknowledgedBy: "",
+                        approvedBy: "",
+                        receivedBy: "",
+                        preparedDate: new Date().toISOString(),
+                        checkedDate: null,
+                        acknowledgedDate: null,
+                        approvedDate: null,
+                        receivedDate: null,
+                        rejectedDate: null,
+                        rejectionRemarks: "",
+                        revisionNumber: 0,
+                        revisionDate: null,
+                        revisionRemarks: "",
+                        header: {
+                            stagingID: stagingID
+                        }
+                    },
+                    attachments: []
+                };
+
+                // Submit to API
+                const response = await fetch('https://expressiv.idsdev.site/api/staging-outgoing-payments/headers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json-patch+json',
+                        'accept': '/'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                
+                Swal.close();
+
+                document.getElementById('apiResult').innerHTML = 
+                    '<h4>API Response:</h4>' +
+                    '<p><strong>Status:</strong> ' + response.status + '</p>' +
+                    '<p><strong>Status Text:</strong> ' + response.statusText + '</p>' +
+                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+
+                if (response.ok) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'API test completed successfully!',
+                        icon: 'success'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'API Error',
+                        text: 'API returned error: ' + response.status,
+                        icon: 'error'
+                    });
+                }
+
+            } catch (error) {
+                console.error('API test error:', error);
+                Swal.close();
+                
+                document.getElementById('apiResult').innerHTML = 
+                    '<h4>Error:</h4><pre>' + error.message + '</pre>';
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: 'API test failed: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

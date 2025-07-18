@@ -5,37 +5,11 @@ let transactionTypes = []; // Added to store transaction types
 
 // Fungsi untuk memformat tanggal ke format ISO (YYYY-MM-DD) dengan menghindari masalah zona waktu
 function formatDateToISO(dateString) {
-    if (!dateString) return '';
-    
-    // Parse tanggal dari string YYYY-MM-DD
-    const parts = dateString.split('-');
-    if (parts.length !== 3) return dateString;
-    
-    // Buat objek Date dengan tanggal yang diinput (gunakan waktu lokal)
-    // Set jam ke 12:00 untuk menghindari masalah zona waktu
-    const year = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
-    const day = parseInt(parts[2]);
-    
-    const date = new Date(year, month, day, 12, 0, 0);
-    
-    // Format ke ISO string dan ambil hanya bagian tanggal (YYYY-MM-DD)
-    return date.toISOString().split('T')[0];
+    // Use the utility function for consistent date handling
+    return formatDateToYYYYMMDD(dateString);
 }
 
-// Data pengguna contoh (mockup)
-// const mockUsers = [
-//     { id: 1, name: "Ahmad Baihaki", department: "Finance" },
-//     { id: 2, name: "Budi Santoso", department: "Purchasing" },
-//     { id: 3, name: "Cahya Wijaya", department: "IT" },
-//     { id: 4, name: "Dewi Sartika", department: "HR" },
-//     { id: 5, name: "Eko Purnomo", department: "Logistics" },
-//     { id: 6, name: "Fajar Nugraha", department: "Production" },
-//     { id: 7, name: "Gita Nirmala", department: "Finance" },
-//     { id: 8, name: "Hadi Gunawan", department: "Marketing" },
-//     { id: 9, name: "Indah Permata", department: "Sales" },
-//     { id: 10, name: "Joko Widodo", department: "Management" }
-// ];
+// Data pengguna akan diambil dari API
 
 // Fungsi untuk memfilter dan menampilkan dropdown pengguna
 function filterUsers(fieldId) {
@@ -55,12 +29,14 @@ function filterUsers(fieldId) {
     if (fieldId === 'payToSelect') {
         try {
             const filtered = businessPartners.filter(bp => 
-                bp.name.toLowerCase().includes(searchText) || 
-                bp.code.toLowerCase().includes(searchText)
+                bp && bp.name && bp.code && 
+                (bp.name.toLowerCase().includes(searchText) || 
+                bp.code.toLowerCase().includes(searchText))
             );
             
             // Tampilkan hasil pencarian
             filtered.forEach(bp => {
+                if (!bp || !bp.name || !bp.code) return; // Skip business partners without names or codes
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
                 option.innerText = `${bp.code} - ${bp.name}`;
@@ -117,10 +93,11 @@ function filterUsers(fieldId) {
         fieldId === 'receivedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
-            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            filteredUsers = users.filter(user => user && user.name && user.name.toLowerCase().includes(searchText));
             
             // Tampilkan hasil pencarian
             filteredUsers.forEach(user => {
+                if (!user || !user.name) return; // Skip users without names
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
                 option.innerText = user.name;
@@ -184,22 +161,6 @@ function filterUsers(fieldId) {
         } catch (error) {
             console.error("Error parsing users data:", error);
         }
-    } else {
-        // Original implementation for other fields
-        filteredUsers = mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
-        
-        // Tampilkan hasil pencarian
-        filteredUsers.forEach(user => {
-            const option = document.createElement('div');
-            option.className = 'dropdown-item';
-            option.innerText = user.name;
-            option.onclick = function() {
-                searchInput.value = user.name;
-                document.getElementById(fieldId).value = user.id;
-                dropdown.classList.add('hidden');
-            };
-            dropdown.appendChild(option);
-        });
     }
     
     // Tampilkan pesan jika tidak ada hasil
@@ -226,6 +187,21 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDepartments();
     fetchBusinessPartners(); // Added to fetch business partners
     fetchTransactionTypes(); // Added to fetch transaction types
+    
+    // Set min dan max pada input postingDate agar hanya bisa memilih hari ini
+    const postingDateInput = document.getElementById('postingDate');
+    if (postingDateInput) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+        
+        postingDateInput.min = todayString;
+        postingDateInput.max = todayString;
+        // Selalu set value ke hari ini setiap kali halaman dibuka
+        postingDateInput.value = todayString;
+    }
     
     // Setup event listener untuk hide dropdown saat klik di luar
     document.addEventListener('click', function(event) {
@@ -868,6 +844,7 @@ function populateDropdown(dropdownId, users) {
     
     // Add users as options
     users.forEach(user => {
+        if (!user || !user.fullName) return; // Skip users without names
         const option = document.createElement("option");
         
         // Combine names with spaces, handling empty middle/last names
@@ -903,13 +880,15 @@ function populateDropdown(dropdownId, users) {
         const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
         if (searchInput) {
             // Store users data for searching
-            searchInput.dataset.users = JSON.stringify(users.map(user => {
-                let displayName = user.fullName;
-                return {
-                    id: user.id,
-                    name: displayName
-                };
-            }));
+            searchInput.dataset.users = JSON.stringify(users
+                .filter(user => user && user.fullName) // Filter out users without names
+                .map(user => {
+                    let displayName = user.fullName;
+                    return {
+                        id: user.id,
+                        name: displayName
+                    };
+                }));
         }
     }
 }
@@ -958,7 +937,7 @@ async function processDocument(isSubmit) {
         department: getElementValue("department"),
         payTo: getApprovalValue("payTo"), // Use select element value which contains the ID
         currency: getElementValue("currency"),
-        submissionDate: formatDateToISO(getElementValue("postingDate")), // Gunakan fungsi formatDateToISO
+        submissionDate: getElementValue("postingDate"), // Kirim tanggal langsung tanpa konversi
         status: getElementValue("status"),
         referenceDoc: getElementValue("referenceDoc"),
         typeOfTransaction: getElementValue("typeOfTransaction"),

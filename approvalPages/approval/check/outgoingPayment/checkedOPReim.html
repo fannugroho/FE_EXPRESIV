@@ -257,14 +257,14 @@
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="rejectOPReim()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="rejectOPReim()" id="rejectButton" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
                     Reject
                 </button>
-                <button onclick="approveOPReim()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="approveOPReim()" id="approveButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
                     Checked
                 </button>
             </div>
-            <button onclick="revisionOPReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+            <button onclick="revisionOPReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
                 Revision
             </button>
         </div>

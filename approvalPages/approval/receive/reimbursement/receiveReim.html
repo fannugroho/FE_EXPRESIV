@@ -21,14 +21,28 @@
             const receiveBtn = document.getElementById('receiveBtn');
             const revisionButton = document.getElementById('revisionButton');
             const addRevisionBtn = document.getElementById('addRevisionBtn');
+            const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
             
+            // Hide buttons if status is "rejected"
+            if (currentStatus === 'Rejected') {
+                if (addRowBtn) addRowBtn.style.display = 'none';
+                if (rejectBtn) rejectBtn.style.display = 'none';
+                if (receiveBtn) receiveBtn.style.display = 'none';
+                if (revisionButton) revisionButton.style.display = 'none';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+                if (printBtn) printBtn.style.display = 'none';
+                
+                // Hide delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
             // 1. Hide Print button if status is "Approved"
-            if (currentStatus === 'Approved' && printBtn) {
+            else if (currentStatus === 'Approved' && printBtn) {
                 printBtn.style.display = 'none';
             }
-            
             // 3. Hide buttons if status is "Received"
-            if (currentStatus === 'Received') {
+            else if (currentStatus === 'Received') {
                 if (addRowBtn) addRowBtn.style.display = 'none';
                 if (rejectBtn) rejectBtn.style.display = 'none';
                 if (receiveBtn) receiveBtn.style.display = 'none';

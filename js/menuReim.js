@@ -5,6 +5,12 @@ let allReimbursements = [];
 let filteredReimbursements = [];
 let currentTab = 'all'; // Default tab
 
+// Helper function to format date without timezone issues
+function formatDateWithoutTimezone(dateString) {
+    // Use the utility function for consistent date handling
+    return formatDateToYYYYMMDD(dateString);
+}
+
 // Function to handle search
 function handleSearch(event) {
     const searchTerm = event.target.value.toLowerCase();
@@ -121,11 +127,11 @@ function displayReimbursements(reimbursements) {
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
     const sortedData = [...reimbursements].sort((a, b) => {
         // Pertama, urutkan berdasarkan tanggal submission terbaru
-        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
-        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        const dateA = a.submissionDate ? formatDateToYYYYMMDD(a.submissionDate) : '';
+        const dateB = b.submissionDate ? formatDateToYYYYMMDD(b.submissionDate) : '';
         
-        if (dateA.getTime() !== dateB.getTime()) {
-            return dateB - dateA; // Tanggal terbaru di atas
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA); // Tanggal terbaru di atas
         }
         
         // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
@@ -139,12 +145,10 @@ function displayReimbursements(reimbursements) {
     const paginatedReimbursements = sortedData.slice(startIndex, endIndex);
     
     paginatedReimbursements.forEach((reim, index) => {
-        let formattedDate = reim.submissionDate;
+        let formattedDate = '';
         if (reim.submissionDate) {
-            const date = new Date(reim.submissionDate);
-            if (!isNaN(date)) {
-                formattedDate = date.toLocaleDateString();
-            }
+            // Use the utility function for consistent date display
+            formattedDate = formatDateForDisplay(reim.submissionDate);
         }
         
         // Menggunakan nomor urut (index + 1) + startIndex untuk menampilkan nomor urut sesuai halaman
@@ -234,11 +238,11 @@ function downloadExcel() {
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
     const sortedData = [...filteredReimbursements].sort((a, b) => {
         // Pertama, urutkan berdasarkan tanggal submission terbaru
-        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
-        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        const dateA = a.submissionDate ? formatDateToYYYYMMDD(a.submissionDate) : '';
+        const dateB = b.submissionDate ? formatDateToYYYYMMDD(b.submissionDate) : '';
         
-        if (dateA.getTime() !== dateB.getTime()) {
-            return dateB - dateA; // Tanggal terbaru di atas
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA); // Tanggal terbaru di atas
         }
         
         // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
@@ -253,7 +257,7 @@ function downloadExcel() {
         'Reimbursement Number': reim.voucherNo,
         'Requester': reim.requesterName,
         'Department': reim.department,
-        'Submission Date': reim.submissionDate,
+        'Submission Date': formatDateWithoutTimezone(reim.submissionDate),
         'Status': reim.status === 'Revised' ? 'Revision' : reim.status
     }));
     
@@ -276,11 +280,11 @@ function downloadPDF() {
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
     const sortedData = [...filteredReimbursements].sort((a, b) => {
         // Pertama, urutkan berdasarkan tanggal submission terbaru
-        const dateA = a.submissionDate ? new Date(a.submissionDate) : new Date(0);
-        const dateB = b.submissionDate ? new Date(b.submissionDate) : new Date(0);
+        const dateA = a.submissionDate ? formatDateToYYYYMMDD(a.submissionDate) : '';
+        const dateB = b.submissionDate ? formatDateToYYYYMMDD(b.submissionDate) : '';
         
-        if (dateA.getTime() !== dateB.getTime()) {
-            return dateB - dateA; // Tanggal terbaru di atas
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA); // Tanggal terbaru di atas
         }
         
         // Jika tanggal submission sama, urutkan berdasarkan Voucher Number terbesar
@@ -295,7 +299,7 @@ function downloadPDF() {
         reim.voucherNo,
         reim.requesterName,
         reim.department,
-        reim.submissionDate,
+        formatDateWithoutTimezone(reim.submissionDate),
         reim.status === 'Revised' ? 'Revision' : reim.status
     ]);
     

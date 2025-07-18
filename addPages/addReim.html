@@ -75,7 +75,18 @@
                     <option value="" disabled selected>Select Department</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Currency <span class="text-red-500">*</span></h3>
-                <input type="text" id="currency" placeholder="currency" class="w-full p-2 border rounded" required autocomplete="off">
+                <select id="currency" class="w-full p-2 border rounded" required autocomplete="off">
+                    <option value="" disabled selected>Select Currency</option>
+                    <option value="IDR">IDR</option>
+                    <option value="USD">USD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="JPY">JPY</option>
+                    <option value="GBP">GBP</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                </select>
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To <span class="text-red-500">*</span></h3>
                 <div class="relative">
@@ -89,7 +100,7 @@
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date <span class="text-red-500">*</span></h3>
-                <input type="date" id="postingDate" class="w-full p-2 border rounded" onchange="validateSubmissionDate(this)" required autocomplete="off">
+                <input type="date" id="postingDate" class="w-full p-2 border rounded" onchange="validateSubmissionDate(this)" required autocomplete="off" min="" max="" />
                 <div id="dateError" class="text-red-500 text-sm mt-1 hidden"></div>
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded" autocomplete="off">
@@ -235,6 +246,7 @@
     </button>
 </div>
     </div>
+    <script src="../js/dateUtils.js"></script>
     <script src="../js/addReim.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/dateValidation.js"></script>

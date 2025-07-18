@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Reimbursement ID</title>
+</head>
+<body>
+    <h1>Test Reimbursement ID Implementation</h1>
+    <button onclick="testReimbursementId()">Test Reimbursement ID</button>
+    <button onclick="testApprovalFields()">Test Approval Fields</button>
+    <div id="result"></div>
+    
+    <script>
+        function testReimbursementId() {
+            const testReimbursementId = "84819e0d-1181-4598-bed0-65c830f82b0c";
+            
+            // Simulate URL parameters
+            const urlParams = new URLSearchParams(`?reimbursement-id=${testReimbursementId}`);
+            const reimbursementId = urlParams.get('reimbursement-id');
+            
+            // Generate unique staging ID
+            const stagingID = `OP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Simulate form data collection
+            const requestData = {
+                stagingID: stagingID,
+                expressivNo: reimbursementId || "fallback-value",
+                counterRef: reimbursementId || "fallback-value"
+            };
+            
+            document.getElementById('result').innerHTML = 
+                '<h3>Test Results:</h3>' +
+                '<p><strong>Reimbursement ID:</strong> ' + reimbursementId + '</p>' +
+                '<p><strong>Staging ID:</strong> ' + stagingID + '</p>' +
+                '<p><strong>ExpressivNo:</strong> ' + requestData.expressivNo + '</p>' +
+                '<p><strong>CounterRef:</strong> ' + requestData.counterRef + '</p>' +
+                '<p><strong>ExpressivNo Set Correctly:</strong> ' + (requestData.expressivNo === reimbursementId ? 'Yes' : 'No') + '</p>';
+        }
+        
+        function testApprovalFields() {
+            // Mock reimbursement data with approval fields
+            const mockReimbursementData = {
+                preparedBy: "f17f5373-61af-4d48-9686-2d3f64ade525",
+                preparedByName: "John Doe",
+                checkedBy: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                checkedByName: "Jane Smith",
+                acknowledgedBy: "b2c3d4e5-f6g7-8901-bcde-f23456789012",
+                acknowledgedByName: "Bob Johnson",
+                approvedBy: "c3d4e5f6-g7h8-9012-cdef-345678901234",
+                approvedByName: "Alice Brown",
+                receivedBy: "d4e5f6g7-h8i9-0123-defg-456789012345",
+                receivedByName: "Charlie Wilson"
+            };
+            
+            // Simulate setting employee fields
+            const setEmployeeField = (fieldId, employeeId, employeeName) => {
+                console.log(`Setting ${fieldId}:`, { employeeId, employeeName });
+                return { fieldId, employeeId, employeeName };
+            };
+            
+            // Simulate collecting approval data
+            const approvalData = {
+                preparedBy: setEmployeeField('Approval.PreparedById', mockReimbursementData.preparedBy, mockReimbursementData.preparedByName),
+                checkedBy: setEmployeeField('Approval.CheckedById', mockReimbursementData.checkedBy, mockReimbursementData.checkedByName),
+                acknowledgedBy: setEmployeeField('Approval.AcknowledgedById', mockReimbursementData.acknowledgedBy, mockReimbursementData.acknowledgedByName),
+                approvedBy: setEmployeeField('Approval.ApprovedById', mockReimbursementData.approvedBy, mockReimbursementData.approvedByName),
+                receivedBy: setEmployeeField('Approval.ReceivedById', mockReimbursementData.receivedBy, mockReimbursementData.receivedByName)
+            };
+            
+            // Simulate the final request data
+            const requestData = {
+                approval: {
+                    preparedBy: approvalData.preparedBy.employeeId,
+                    checkedBy: approvalData.checkedBy.employeeId,
+                    acknowledgedBy: approvalData.acknowledgedBy.employeeId,
+                    approvedBy: approvalData.approvedBy.employeeId,
+                    receivedBy: approvalData.receivedBy.employeeId
+                }
+            };
+            
+            document.getElementById('result').innerHTML = 
+                '<h3>Approval Fields Test Results:</h3>' +
+                '<p><strong>Prepared By:</strong> ' + requestData.approval.preparedBy + ' (' + mockReimbursementData.preparedByName + ')</p>' +
+                '<p><strong>Checked By:</strong> ' + requestData.approval.checkedBy + ' (' + mockReimbursementData.checkedByName + ')</p>' +
+                '<p><strong>Acknowledged By:</strong> ' + requestData.approval.acknowledgedBy + ' (' + mockReimbursementData.acknowledgedByName + ')</p>' +
+                '<p><strong>Approved By:</strong> ' + requestData.approval.approvedBy + ' (' + mockReimbursementData.approvedByName + ')</p>' +
+                '<p><strong>Received By:</strong> ' + requestData.approval.receivedBy + ' (' + mockReimbursementData.receivedByName + ')</p>' +
+                '<h4>Final Request Data:</h4>' +
+                '<pre>' + JSON.stringify(requestData, null, 2) + '</pre>';
+        }
+    </script>
+</body>
+</html> 

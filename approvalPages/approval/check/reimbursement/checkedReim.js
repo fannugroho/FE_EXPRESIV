@@ -679,37 +679,42 @@ function toggleButtonsBasedOnStatus() {
     const rejectButton = document.querySelector('button[onclick="onReject()"]');
     const approveButton = document.querySelector('button[onclick="onApprove()"]');
     const revisionButton = document.getElementById('revisionButton');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
     
     if (statusSelect) {
-        const isChecked = statusSelect.value === 'Checked';
+        const currentStatus = statusSelect.value;
+        const isPrepared = currentStatus === 'Prepared';
+        const isRejected = currentStatus === 'Rejected';
         
-        // Handle buttons visibility
-        if (rejectButton) rejectButton.style.display = isChecked ? 'none' : 'block';
-        if (approveButton) approveButton.style.display = isChecked ? 'none' : 'block';
-        if (revisionButton) revisionButton.style.display = isChecked ? 'none' : 'block';
-        
-        // Make all input fields read-only when status is Checked
-        if (isChecked) {
-            // Disable all input fields
-            const allInputs = document.querySelectorAll('input, textarea, select');
-            allInputs.forEach(input => {
-                input.readOnly = true;
-                if (input.tagName === 'SELECT') {
-                    input.disabled = true;
-                }
+        // Hide buttons if status is not "prepared" or if status is "rejected"
+        if (!isPrepared || isRejected) {
+            // Hide delete buttons in action column
+            deleteButtons.forEach(btn => {
+                btn.style.display = 'none';
             });
             
-            // Disable add revision button
-            const addRevisionBtn = document.getElementById('addRevisionBtn');
-            if (addRevisionBtn) {
-                addRevisionBtn.style.display = 'none';
-            }
+            // Hide other buttons
+            if (rejectButton) rejectButton.style.display = 'none';
+            if (approveButton) approveButton.style.display = 'none';
+            if (revisionButton) revisionButton.style.display = 'none';
+            if (addRevisionBtn) addRevisionBtn.style.display = 'none';
             
             // Hide revision container
             const revisionContainer = document.getElementById('revisionContainer');
             if (revisionContainer) {
                 revisionContainer.classList.add('hidden');
             }
+        } else {
+            // Show buttons if status is "prepared" and not "rejected"
+            deleteButtons.forEach(btn => {
+                btn.style.display = 'inline-block';
+            });
+            
+            if (rejectButton) rejectButton.style.display = 'inline-block';
+            if (approveButton) approveButton.style.display = 'inline-block';
+            if (revisionButton) revisionButton.style.display = 'inline-block';
+            if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
         }
     }
 }

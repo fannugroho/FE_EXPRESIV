@@ -18,7 +18,7 @@ function closeReimbursementModal() {
 // Fungsi untuk mengambil data dokumen
 function fetchReimbursementDocs() {
     const tableBody = document.getElementById("reimbursementDocs");
-    tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">Loading data...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">Loading data...</td></tr>';
     
     fetch(`https://expressiv.idsdev.site/api/reimbursements?Status=received`, {
         method: 'GET',
@@ -40,7 +40,7 @@ function fetchReimbursementDocs() {
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents available</td></tr>';
             }
         } else if (Array.isArray(data)) {
             // Fallback untuk format lama jika masih digunakan
@@ -48,15 +48,15 @@ function fetchReimbursementDocs() {
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents available</td></tr>';
             }
         } else {
-            tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-red-500">No data available</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">No data available</td></tr>';
         }
     })
     .catch(error => {
         console.error('Error fetching document data:', error);
-        tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>';
     });
 }
 
@@ -66,7 +66,7 @@ function displayReimbursementDocs(docs) {
     tableBody.innerHTML = "";
     
     if (docs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="p-4 text-center">No documents available</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents available</td></tr>';
         return;
     }
     
@@ -107,6 +107,8 @@ function displayReimbursementDocs(docs) {
             statusClass = "bg-yellow-100 text-yellow-800";
         }
         
+
+        
         const row = `<tr class='border-b hover:bg-gray-100'>
             <td class='p-2'>${voucherNo}</td>
             <td class='p-2'>${requesterName}</td>
@@ -117,7 +119,9 @@ function displayReimbursementDocs(docs) {
             <td class='p-2'>${total}</td>
             <td class='p-2'><span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span></td>
             <td class='p-2'>
-                <button onclick="selectReimbursement('${doc.id || ''}', '${doc.voucherNo || ''}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Select</button>
+                <div class="flex space-x-1">
+                    <button onclick="selectReimbursement('${doc.id || ''}', '${doc.voucherNo || ''}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">Select</button>
+                </div>
             </td>
         </tr>`;
         tableBody.innerHTML += row;
@@ -148,138 +152,118 @@ function filterReimbursementDocs() {
 
 // Fungsi untuk memilih dokumen dan membuat outgoing payment
 function selectReimbursement(docId, voucherNo) {
-    // Simpan ID dokumen yang dipilih ke localStorage atau variabel global
-    localStorage.setItem('selectedDocId', docId);
-    localStorage.setItem('selectedVoucherNo', voucherNo);
-    
-    // Cari data dokumen yang dipilih
-    const selectedDoc = reimbursementDocs.find(doc => 
-        (doc.id && doc.id === docId) || 
-        (doc.voucherNo === voucherNo)
-    );
-    
-    if (selectedDoc) {
-        // Simpan seluruh data dokumen untuk digunakan di halaman addOPReim.html
-        localStorage.setItem('selectedReimbursementData', JSON.stringify(selectedDoc));
-    }
-    
-    // Redirect ke halaman pembuatan outgoing payment
-    window.location.href = "../addPages/addOPReim.html";
+    // Tampilkan dialog konfirmasi
+    Swal.fire({
+        title: 'Create Outgoing Payment',
+        text: `Do you want to create a new outgoing payment based on reimbursement "${voucherNo}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Create',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect ke halaman pembuatan outgoing payment dengan parameter reimbursement ID
+            window.location.href = `../addPages/addOPReim.html?reimbursement-id=${docId}`;
+        }
+    });
 }
 
-function loadDashboard() {
+
+
+async function loadDashboard() {
     const userId = getUserId();
-    if (!userId) {
-        console.error('User ID not found. Please login again.');
-        return;
+    console.log('Loading dashboard with userId:', userId);
+
+    try {
+        // Fetch dashboard summary data
+        const summaryResponse = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/dashboard/summary`);
+        const summaryData = await summaryResponse.json();
+        
+        // Handle different response structures
+        let summary;
+        if (summaryData.status && summaryData.data) {
+            summary = summaryData.data;
+        } else if (summaryData.data) {
+            summary = summaryData.data;
+        } else {
+            summary = summaryData;
+        }
+        
+        console.log("Dashboard Summary:", summary);
+        
+        // Create a default summary object with zeros if properties are missing
+        const defaultSummary = {
+            total: 0,
+            draft: 0,
+            prepared: 0,
+            checked: 0,
+            acknowledged: 0,
+            approved: 0,
+            rejected: 0,
+            paid: 0,
+            settled: 0
+        };
+        
+        // Merge with actual data
+        summary = { ...defaultSummary, ...summary };
+        
+        // Update dashboard counts safely
+        const updateElement = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        };
+        
+        updateElement("totalDocs", summary.total);
+        updateElement("draftDocs", summary.draft);
+        updateElement("preparedDocs", summary.prepared);
+        updateElement("checkedDocs", summary.checked);
+        updateElement("acknowledgedDocs", summary.acknowledged);
+        updateElement("approvedDocs", summary.approved);
+        updateElement("rejectedDocs", summary.rejected);
+        updateElement("paidDocs", summary.paid);
+        updateElement("settledDocs", summary.settled);
+
+        // Fetch document list
+        const documentsResponse = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?includeDetails=false`);
+        const documentsData = await documentsResponse.json();
+        
+        // Handle the new API response structure
+        let documents;
+        if (Array.isArray(documentsData)) {
+            documents = documentsData;
+        } else if (documentsData.status && documentsData.data) {
+            documents = documentsData.data;
+        } else if (documentsData.data) {
+            documents = documentsData.data;
+        } else {
+            documents = documentsData;
+        }
+        
+        console.log("Documents:", documents);
+        console.log("User ID:", userId);
+        console.log("Total documents from API:", documents.length);
+        
+        // Show all documents instead of filtering by user (for now)
+        const userDocuments = documents;
+        console.log("Filtered documents:", userDocuments.length);
+        
+        // Simpan dokumen untuk penggunaan di tab
+        window.allDocuments = userDocuments;
+        window.filteredDocuments = userDocuments;
+        window.currentTab = 'all';
+        window.currentPage = 1;
+        window.itemsPerPage = 10;
+        
+        // Display documents in table
+        displayDocuments(userDocuments);
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById("recentDocs").innerHTML = 
+            `<tr><td colspan="11" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>`;
     }
-
-    // Fetch dashboard summary data
-    fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/dashboard/summary`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Handle different response structures
-            let summary;
-            if (data.status && data.data) {
-                // Response with status wrapper
-                summary = data.data;
-            } else if (data.data) {
-                // Response with data property
-                summary = data.data;
-            } else {
-                // Direct response or fallback
-                summary = data;
-            }
-            
-            console.log("Dashboard Summary:", summary);
-            
-            // Create a default summary object with zeros if properties are missing
-            const defaultSummary = {
-                total: 0,
-                draft: 0,
-                prepared: 0,
-                checked: 0,
-                acknowledged: 0,
-                approved: 0,
-                rejected: 0,
-                paid: 0,
-                settled: 0
-            };
-            
-            // Merge with actual data
-            summary = { ...defaultSummary, ...summary };
-            
-            // Update dashboard counts safely
-            const updateElement = (id, value) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.textContent = value;
-                }
-            };
-            
-            updateElement("totalDocs", summary.total);
-            updateElement("draftDocs", summary.draft);
-            updateElement("preparedDocs", summary.prepared);
-            updateElement("checkedDocs", summary.checked);
-            updateElement("acknowledgedDocs", summary.acknowledged);
-            updateElement("approvedDocs", summary.approved);
-            updateElement("rejectedDocs", summary.rejected);
-            updateElement("paidDocs", summary.paid);
-            updateElement("settledDocs", summary.settled);
-        })
-        .catch(error => {
-            console.error('Error fetching summary data:', error);
-        });
-
-    // Fetch document list
-    fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?includeDetails=false`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Handle the new API response structure
-            let documents;
-            if (Array.isArray(data)) {
-                // Direct array response
-                documents = data;
-            } else if (data.status && data.data) {
-                // Response with status wrapper
-                documents = data.data;
-            } else if (data.data) {
-                // Response with data property
-                documents = data.data;
-            } else {
-                // Fallback to data itself
-                documents = data;
-            }
-            console.log("Documents:", documents);
-            console.log("User ID:", userId);
-            console.log("Total documents from API:", documents.length);
-            // Show all documents instead of filtering by user (for now)
-            const userDocuments = documents; // Changed: show all documents
-            console.log("Filtered documents:", userDocuments.length);
-            // Simpan dokumen untuk penggunaan di tab
-            window.allDocuments = userDocuments;
-            window.filteredDocuments = userDocuments;
-            window.currentTab = 'all';
-            window.currentPage = 1;
-            window.itemsPerPage = 10;
-            // Display documents in table
-            displayDocuments(userDocuments);
-        })
-        .catch(error => {
-            console.error('Error fetching document data:', error);
-            document.getElementById("recentDocs").innerHTML = 
-                `<tr><td colspan="11" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>`;
-        });
 }
 
 // Function untuk menampilkan dokumen dengan pagination
@@ -526,8 +510,31 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// Fungsi untuk mendapatkan ID pengguna yang login
+// Fungsi untuk mendapatkan ID pengguna yang login - using auth.js approach
 function getUserId() {
+    // Use the getUserId function from auth.js if available
+    if (typeof window.getUserId === 'function' && window.getUserId !== getUserId) {
+        return window.getUserId();
+    }
+    
+    // Fallback to our implementation
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const userInfo = JSON.parse(jsonPayload);
+            const userId = userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+            if (userId) return userId;
+        } catch (e) {
+            console.error('Error parsing JWT token:', e);
+        }
+    }
+    
+    // Fallback to localStorage method
     const userStr = localStorage.getItem('loggedInUser');
     if (!userStr) return null;
     
@@ -697,9 +704,54 @@ function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
 function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
 function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; } 
 
-function detailDoc(opId) {
-    // Navigate to outgoing payment detail page
-    window.location.href = `/detailPages/detailOPVendor.html?op-id=${opId}`;
+// Function to handle search input
+function handleSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+    switchTab(currentTab); // This will apply the search filter
 }
 
-window.onload = loadDashboard;
+function detailDoc(opId) {
+    // Navigate to outgoing payment reimbursement detail page
+    window.location.href = `../detailPages/detailOPReim.html?id=${opId}`;
+}
+
+// Load dashboard using the same approach as Purchase Request
+window.onload = function() {
+    // Load initial data and dashboard counts
+    loadDashboard();
+    
+    // Add event listener for search input with debouncing
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleSearch();
+            }, 500); // Debounce search by 500ms
+        });
+    }
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'postingDate' || this.value === 'dueDate') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search ${this.options[this.selectedIndex].text}`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            const searchTerm = searchInput.value.trim();
+            switchTab(currentTab); // This will apply the search filter
+        });
+    }
+};

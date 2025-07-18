@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Reimbursement</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // Define the base URL for API calls
+        const baseUrlDevAmiru = "https://expressiv.idsdev.site";
+    </script>
+    <script src="../js/auth.js"></script>
+    
+    <style>
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-received { background-color: #dcfce7; color: #166534; }
+        .status-approved { background-color: #dbeafe; color: #1e40af; }
+        .status-rejected { background-color: #fee2e2; color: #dc2626; }
+        .status-draft { background-color: #fef3c7; color: #d97706; }
+        .status-prepared { background-color: #fef3c7; color: #d97706; }
+        .status-checked { background-color: #d1fae5; color: #065f46; }
+        .status-acknowledged { background-color: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl max-h-screen overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="goBack()" type="button" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                ← Back
+            </button>
+            <div class="flex space-x-2">
+                <button onclick="downloadPDF()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    📄 PDF
+                </button>
+                <button onclick="downloadExcel()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    📊 Excel
+                </button>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">Detail Reimbursement</h2>
+        
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading reimbursement details...</p>
+        </div>
+
+        <!-- Main content -->
+        <div id="mainContent" class="hidden">
+            <!-- Header Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Document Information</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Voucher No:</span>
+                            <span id="voucherNo" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Status:</span>
+                            <span id="status" class="status-badge"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Type of Transaction:</span>
+                            <span id="typeOfTransaction" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Currency:</span>
+                            <span id="currency" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Reference Doc:</span>
+                            <span id="referenceDoc" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Requester Information</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Requester Name:</span>
+                            <span id="requesterName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Department:</span>
+                            <span id="department" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Pay To:</span>
+                            <span id="payToName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Pay To NIK:</span>
+                            <span id="payToNIK" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dates Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Important Dates</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Submission Date:</span>
+                            <span id="submissionDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Created Date:</span>
+                            <span id="createdAt" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Last Updated:</span>
+                            <span id="updatedAt" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Interfaced Date:</span>
+                            <span id="interfacedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Approval Information</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Prepared By:</span>
+                            <span id="preparedByName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Checked By:</span>
+                            <span id="checkedByName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Acknowledged By:</span>
+                            <span id="acknowledgedByName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Approved By:</span>
+                            <span id="approvedByName" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Received By:</span>
+                            <span id="receivedByName" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approval Dates -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">Approval Dates</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Prepared Date:</span>
+                            <span id="preparedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Checked Date:</span>
+                            <span id="checkedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Acknowledged Date:</span>
+                            <span id="acknowledgedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Approved Date:</span>
+                            <span id="approvedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Received Date:</span>
+                            <span id="receivedDate" class="font-semibold text-gray-800"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-600">Total Amount:</span>
+                            <span id="totalAmount" class="font-semibold text-gray-800"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Remarks -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">Remarks</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="font-medium text-gray-600">Remarks:</span>
+                        <p id="remarks" class="mt-1 text-gray-800"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reimbursement Details -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">Reimbursement Details</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Category</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">GL Account</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Account Name</th>
+                                <th class="border border-gray-300 px-4 py-2 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reimbursementDetailsBody">
+                            <!-- Details will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">Attachments</h3>
+                <div id="attachmentsContainer" class="space-y-3">
+                    <!-- Attachments will be populated here -->
+                </div>
+            </div>
+
+            <!-- Rejection Information (if any) -->
+            <div id="rejectionSection" class="bg-red-50 p-4 rounded-lg mb-6 hidden">
+                <h3 class="text-lg font-semibold mb-4 text-red-800">Rejection Information</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="font-medium text-red-600">Rejection Remarks:</span>
+                        <p id="rejectionRemarks" class="mt-1 text-red-800"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revision Information (if any) -->
+            <div id="revisionSection" class="bg-yellow-50 p-4 rounded-lg mb-6 hidden">
+                <h3 class="text-lg font-semibold mb-4 text-yellow-800">Revision Information</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="font-medium text-yellow-600">Revision Remarks:</span>
+                        <p id="revisionRemarks" class="mt-1 text-yellow-800"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reimbursementData = null;
+
+        // Function to format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Function to format currency
+        function formatCurrency(amount) {
+            if (!amount) return '-';
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            }).format(amount);
+        }
+
+        // Function to get status class
+        function getStatusClass(status) {
+            const statusLower = status.toLowerCase();
+            switch (statusLower) {
+                case 'received': return 'status-received';
+                case 'approved': return 'status-approved';
+                case 'rejected': return 'status-rejected';
+                case 'draft': return 'status-draft';
+                case 'prepared': return 'status-prepared';
+                case 'checked': return 'status-checked';
+                case 'acknowledged': return 'status-acknowledged';
+                default: return 'status-draft';
+            }
+        }
+
+        // Function to load reimbursement data
+        async function loadReimbursementData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (!docId) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Document ID not found',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goBack();
+                });
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrlDevAmiru}/api/reimbursements/${docId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'accept': 'text/plain'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.status && result.data) {
+                    reimbursementData = result.data;
+                    displayReimbursementData(reimbursementData);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+
+            } catch (error) {
+                console.error('Error loading reimbursement data:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to load reimbursement data: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goBack();
+                });
+            }
+        }
+
+        // Function to display reimbursement data
+        function displayReimbursementData(data) {
+            // Hide loading indicator and show main content
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+
+            // Document Information
+            document.getElementById('voucherNo').textContent = data.voucherNo || '-';
+            document.getElementById('status').textContent = data.status || '-';
+            document.getElementById('status').className = `status-badge ${getStatusClass(data.status)}`;
+            document.getElementById('typeOfTransaction').textContent = data.typeOfTransaction || '-';
+            document.getElementById('currency').textContent = data.currency || '-';
+            document.getElementById('referenceDoc').textContent = data.referenceDoc || '-';
+
+            // Requester Information
+            document.getElementById('requesterName').textContent = data.requesterName || '-';
+            document.getElementById('department').textContent = data.department || '-';
+            document.getElementById('payToName').textContent = data.payToName || '-';
+            document.getElementById('payToNIK').textContent = data.payToNIK || '-';
+
+            // Dates
+            document.getElementById('submissionDate').textContent = formatDate(data.submissionDate);
+            document.getElementById('createdAt').textContent = formatDate(data.createdAt);
+            document.getElementById('updatedAt').textContent = formatDate(data.updatedAt);
+            document.getElementById('interfacedDate').textContent = data.isInterfaced ? formatDate(data.interfacedDate) : '-';
+
+            // Approval Information
+            document.getElementById('preparedByName').textContent = data.preparedByName || '-';
+            document.getElementById('checkedByName').textContent = data.checkedByName || '-';
+            document.getElementById('acknowledgedByName').textContent = data.acknowledgedByName || '-';
+            document.getElementById('approvedByName').textContent = data.approvedByName || '-';
+            document.getElementById('receivedByName').textContent = data.receivedByName || '-';
+
+            // Approval Dates
+            document.getElementById('preparedDate').textContent = formatDate(data.preparedDate);
+            document.getElementById('checkedDate').textContent = formatDate(data.checkedDate);
+            document.getElementById('acknowledgedDate').textContent = formatDate(data.acknowledgedDate);
+            document.getElementById('approvedDate').textContent = formatDate(data.approvedDate);
+            document.getElementById('receivedDate').textContent = formatDate(data.receivedDate);
+            document.getElementById('totalAmount').textContent = formatCurrency(data.totalAmount);
+
+            // Remarks
+            document.getElementById('remarks').textContent = data.remarks || '-';
+
+            // Reimbursement Details
+            displayReimbursementDetails(data.reimbursementDetails || []);
+
+            // Attachments
+            displayAttachments(data.reimbursementAttachments || []);
+
+            // Rejection Information
+            if (data.remarksRejectByChecker || data.remarksRejectByAcknowledger || data.remarksRejectByApprover || data.remarksRejectByReceiver) {
+                document.getElementById('rejectionSection').classList.remove('hidden');
+                const rejectionRemarks = [
+                    data.remarksRejectByChecker,
+                    data.remarksRejectByAcknowledger,
+                    data.remarksRejectByApprover,
+                    data.remarksRejectByReceiver
+                ].filter(remark => remark).join('; ');
+                document.getElementById('rejectionRemarks').textContent = rejectionRemarks || '-';
+            }
+
+            // Revision Information
+            if (data.firstRevisionRemarks || data.secondRevisionRemarks || data.thirdRevisionRemarks || data.fourthRevisionRemarks) {
+                document.getElementById('revisionSection').classList.remove('hidden');
+                const revisionRemarks = [
+                    data.firstRevisionRemarks,
+                    data.secondRevisionRemarks,
+                    data.thirdRevisionRemarks,
+                    data.fourthRevisionRemarks
+                ].filter(remark => remark).join('; ');
+                document.getElementById('revisionRemarks').textContent = revisionRemarks || '-';
+            }
+        }
+
+        // Function to display reimbursement details
+        function displayReimbursementDetails(details) {
+            const tbody = document.getElementById('reimbursementDetailsBody');
+            tbody.innerHTML = '';
+
+            if (details.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="border border-gray-300 px-4 py-2 text-center text-gray-500">No details available</td></tr>';
+                return;
+            }
+
+            details.forEach(detail => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="border border-gray-300 px-4 py-2">${detail.description || '-'}</td>
+                    <td class="border border-gray-300 px-4 py-2">${detail.category || '-'}</td>
+                    <td class="border border-gray-300 px-4 py-2">${detail.glAccount || '-'}</td>
+                    <td class="border border-gray-300 px-4 py-2">${detail.accountName || '-'}</td>
+                    <td class="border border-gray-300 px-4 py-2 text-right">${formatCurrency(detail.amount)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Function to display attachments
+        function displayAttachments(attachments) {
+            const container = document.getElementById('attachmentsContainer');
+            container.innerHTML = '';
+
+            if (attachments.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No attachments available</p>';
+                return;
+            }
+
+            attachments.forEach(attachment => {
+                const attachmentDiv = document.createElement('div');
+                attachmentDiv.className = 'flex items-center justify-between p-3 bg-white rounded border';
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'flex items-center space-x-3';
+                
+                // File icon based on type
+                const fileIcon = getFileIcon(attachment.fileName);
+                
+                fileInfo.innerHTML = `
+                    <span class="text-2xl">${fileIcon}</span>
+                    <div>
+                        <div class="font-medium">${attachment.fileName}</div>
+                        <div class="text-sm text-gray-500">${formatFileSize(attachment.fileSize)} • ${attachment.fileType}</div>
+                        <div class="text-xs text-gray-400">Uploaded: ${formatDate(attachment.uploadDate)}</div>
+                    </div>
+                `;
+                
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm';
+                viewBtn.textContent = 'View';
+                viewBtn.onclick = () => viewAttachment(attachment);
+                
+                attachmentDiv.appendChild(fileInfo);
+                attachmentDiv.appendChild(viewBtn);
+                container.appendChild(attachmentDiv);
+            });
+        }
+
+        // Function to get file icon
+        function getFileIcon(fileName) {
+            if (!fileName) return '📄';
+            
+            const extension = fileName.split('.').pop()?.toLowerCase();
+            
+            switch (extension) {
+                case 'pdf': return '📄';
+                case 'doc':
+                case 'docx': return '📝';
+                case 'xls':
+                case 'xlsx': return '📊';
+                case 'jpg':
+                case 'jpeg':
+                case 'png': return '🖼️';
+                default: return '📄';
+            }
+        }
+
+        // Function to format file size
+        function formatFileSize(bytes) {
+            if (!bytes) return 'Unknown size';
+            
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 Bytes';
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Function to view attachment
+        function viewAttachment(attachment) {
+            if (attachment.filePath) {
+                const fileUrl = `${baseUrlDevAmiru}/api/files/${encodeURIComponent(attachment.filePath)}`;
+                window.open(fileUrl, '_blank');
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'File path not available',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Function to go back
+        function goBack() {
+            window.history.back();
+        }
+
+        // Function to download PDF
+        function downloadPDF() {
+            if (!reimbursementData) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No data available to download',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            const element = document.getElementById('mainContent');
+            const opt = {
+                margin: 1,
+                filename: `reimbursement_${reimbursementData.voucherNo}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // Function to download Excel
+        function downloadExcel() {
+            if (!reimbursementData) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No data available to download',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create worksheet data
+            const wsData = [
+                ['Reimbursement Details'],
+                [''],
+                ['Voucher No:', reimbursementData.voucherNo || ''],
+                ['Status:', reimbursementData.status || ''],
+                ['Requester Name:', reimbursementData.requesterName || ''],
+                ['Department:', reimbursementData.department || ''],
+                ['Pay To:', reimbursementData.payToName || ''],
+                ['Total Amount:', reimbursementData.totalAmount ? formatCurrency(reimbursementData.totalAmount) : ''],
+                [''],
+                ['Reimbursement Details'],
+                ['Description', 'Category', 'GL Account', 'Account Name', 'Amount']
+            ];
+
+            // Add details
+            if (reimbursementData.reimbursementDetails) {
+                reimbursementData.reimbursementDetails.forEach(detail => {
+                    wsData.push([
+                        detail.description || '',
+                        detail.category || '',
+                        detail.glAccount || '',
+                        detail.accountName || '',
+                        detail.amount ? formatCurrency(detail.amount) : ''
+                    ]);
+                });
+            }
+
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, "Reimbursement");
+            
+            // Generate Excel file and trigger download
+            const fileName = `reimbursement_${reimbursementData.voucherNo}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReimbursementData();
+        });
+    </script>
+</body>
+</html> 

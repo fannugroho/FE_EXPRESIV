@@ -71,8 +71,14 @@ async function loadOPReimDetails(id) {
         const data = await response.json();
         outgoingPaymentReimData = data;
         
+        // Load users data to get names
+        await loadUsersData();
+        
         // Populate form with data
         populateFormFields(data);
+        
+        // Check user permissions and update UI accordingly
+        checkUserPermissions(data);
         
         // Close loading indicator
         Swal.close();
@@ -91,11 +97,183 @@ async function loadOPReimDetails(id) {
     }
 }
 
+// Load users data to get user names
+async function loadUsersData() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/users', {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load users: ${response.status}`);
+        }
+        
+        const usersData = await response.json();
+        window.usersList = usersData.data || [];
+        
+    } catch (error) {
+        console.error('Error loading users:', error);
+        window.usersList = [];
+    }
+}
+
+// Get user name by ID
+function getUserNameById(userId) {
+    if (!window.usersList || !userId) return 'Unknown User';
+    
+    const user = window.usersList.find(u => u.id === userId);
+    return user ? user.fullName : 'Unknown User';
+}
+
+// Check user permissions and update UI
+function checkUserPermissions(data) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        Swal.fire({
+            title: 'Error',
+            text: 'User not authenticated. Please login again.',
+            icon: 'error'
+        }).then(() => {
+            window.location.href = getLoginPagePath();
+        });
+        return;
+    }
+    
+    const approval = data.approval;
+    if (!approval) {
+        console.error('No approval data found');
+        return;
+    }
+    
+    // Determine current status based on dates
+    let currentStatus = 'Prepared';
+    if (approval.checkedDate) {
+        currentStatus = 'Checked';
+    }
+    if (approval.acknowledgedDate) {
+        currentStatus = 'Acknowledged';
+    }
+    if (approval.approvedDate) {
+        currentStatus = 'Approved';
+    }
+    if (approval.receivedDate) {
+        currentStatus = 'Received';
+    }
+    if (approval.rejectedDate) {
+        currentStatus = 'Rejected';
+    }
+    
+    console.log('Current status:', currentStatus);
+    console.log('Current user ID:', currentUser.userId);
+    console.log('Checked by ID:', approval.checkedBy);
+    console.log('Document ID:', documentId);
+    
+    // Check if current user is the assigned checker
+    const isAssignedChecker = approval.checkedBy === currentUser.userId;
+    const isAboveChecker = isUserAboveChecker(currentUser.userId, approval.checkedBy);
+    
+    console.log('Is assigned checker:', isAssignedChecker);
+    console.log('Is above checker:', isAboveChecker);
+    
+    // Update button states based on user permissions
+    const approveButton = document.getElementById('approveButton');
+    const rejectButton = document.getElementById('rejectButton');
+    const revisionButton = document.getElementById('revisionButton');
+    
+    if (currentStatus === 'Prepared' && isAssignedChecker) {
+        // User is the assigned checker and document is ready for checking
+        approveButton.disabled = false;
+        approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        rejectButton.disabled = false;
+        rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = false;
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        console.log('Buttons enabled for checking');
+        
+        // Show success message
+        Swal.fire({
+            title: 'Ready for Checking',
+            text: 'You can now check this document',
+            icon: 'info',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+    } else if (currentStatus === 'Prepared' && isAboveChecker) {
+        // User is above the checker, show waiting message
+        const checkerName = getUserNameById(approval.checkedBy);
+        
+        console.log('User is above checker, waiting for:', checkerName);
+        
+        Swal.fire({
+            title: 'Document Pending',
+            text: `Please wait for ${checkerName} to check this document first`,
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        
+        // Disable all action buttons
+        approveButton.disabled = true;
+        approveButton.classList.add('opacity-50', 'cursor-not-allowed');
+        rejectButton.disabled = true;
+        rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = true;
+        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+        
+    } else if (currentStatus !== 'Prepared') {
+        // Document has already been checked or is in a different status
+        const statusMessage = getStatusMessage(currentStatus);
+        
+        console.log('Document status is:', currentStatus);
+        
+        Swal.fire({
+            title: 'Document Status',
+            text: statusMessage,
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+        
+        // Disable all action buttons
+        approveButton.disabled = true;
+        approveButton.classList.add('opacity-50', 'cursor-not-allowed');
+        rejectButton.disabled = true;
+        rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = true;
+        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Check if user is above the checker in the hierarchy
+function isUserAboveChecker(currentUserId, checkerId) {
+    // This is a simplified check - in a real system, you'd have a proper user hierarchy
+    // For now, we'll assume that if the current user is not the checker, they might be above
+    return currentUserId !== checkerId;
+}
+
+// Get status message based on current status
+function getStatusMessage(status) {
+    switch (status) {
+        case 'Checked':
+            return 'This document has already been checked.';
+        case 'Acknowledged':
+            return 'This document has been acknowledged.';
+        case 'Approved':
+            return 'This document has been approved.';
+        case 'Received':
+            return 'This document has been received.';
+        case 'Rejected':
+            return 'This document has been rejected.';
+        default:
+            return 'This document is not ready for checking.';
+    }
+}
+
 // Populate form fields with data from API
 function populateFormFields(data) {
     // Populate header fields
     document.getElementById('CounterRef').value = data.counterRef || '';
-    document.getElementById('RequesterName').value = data.requesterName || '';
+    document.getElementById('RequesterName').value = getUserNameById(data.requesterId) || 'Unknown Requester';
     document.getElementById('CardName').value = data.cardName || '';
     document.getElementById('Address').value = data.address || '';
     document.getElementById('DocNum').value = data.docNum || '';
@@ -130,7 +308,7 @@ function populateFormFields(data) {
     // Populate line items in table
     populateTableRows(data.lines || []);
     
-    // Populate approval information
+    // Populate approval information with user names
     populateApprovalInfo(data.approval);
     
     // Handle revision history if any
@@ -149,7 +327,7 @@ function populateFormFields(data) {
     }
     
     // Toggle visibility of closed by field based on transaction type
-    toggleClosedByVisibility(data.transactionType);
+    toggleClosedByVisibility(data.type);
 }
 
 // Populate table rows with line items
@@ -202,32 +380,38 @@ function populateApprovalInfo(approval) {
     
     // Set prepared by
     if (approval.preparedBy) {
-        document.getElementById('preparedBySearch').value = approval.preparedByName || approval.preparedBy;
+        const preparedByName = getUserNameById(approval.preparedBy);
+        document.getElementById('preparedBySearch').value = preparedByName;
     }
     
     // Set checked by
     if (approval.checkedBy) {
-        document.getElementById('checkedBySearch').value = approval.checkedByName || approval.checkedBy;
+        const checkedByName = getUserNameById(approval.checkedBy);
+        document.getElementById('checkedBySearch').value = checkedByName;
     }
     
     // Set acknowledged by
     if (approval.acknowledgedBy) {
-        document.getElementById('acknowledgedBySearch').value = approval.acknowledgedByName || approval.acknowledgedBy;
+        const acknowledgedByName = getUserNameById(approval.acknowledgedBy);
+        document.getElementById('acknowledgedBySearch').value = acknowledgedByName;
     }
     
     // Set approved by
     if (approval.approvedBy) {
-        document.getElementById('approvedBySearch').value = approval.approvedByName || approval.approvedBy;
+        const approvedByName = getUserNameById(approval.approvedBy);
+        document.getElementById('approvedBySearch').value = approvedByName;
     }
     
     // Set received by
     if (approval.receivedBy) {
-        document.getElementById('receivedBySearch').value = approval.receivedByName || approval.receivedBy;
+        const receivedByName = getUserNameById(approval.receivedBy);
+        document.getElementById('receivedBySearch').value = receivedByName;
     }
     
     // Set closed by
     if (approval.closedBy) {
-        document.getElementById('closedBySearch').value = approval.closedByName || approval.closedBy;
+        const closedByName = getUserNameById(approval.closedBy);
+        document.getElementById('closedBySearch').value = closedByName;
     }
 }
 
@@ -382,6 +566,11 @@ function goToMenuCheckOPReim() {
 // Approve (check) the outgoing payment reimbursement
 async function approveOPReim() {
     try {
+        // Validate document status and user permissions
+        if (!validateDocumentStatus()) {
+            return;
+        }
+        
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -417,7 +606,7 @@ async function approveOPReim() {
         };
         
         // Make API request to update approval status
-        const response = await makeAuthenticatedRequest(`${baseUrlDevAmiru}/api/staging-outgoing-payments/approvals/`, {
+        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/approvals/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -457,6 +646,11 @@ async function approveOPReim() {
 // Reject the outgoing payment reimbursement
 async function rejectOPReim() {
     try {
+        // Validate document status and user permissions
+        if (!validateDocumentStatus()) {
+            return;
+        }
+        
         // Prompt for rejection reason
         const { value: rejectionReason } = await Swal.fire({
             title: 'Rejection Reason',
@@ -496,14 +690,13 @@ async function rejectOPReim() {
         
         // Prepare request data
         const requestData = {
-            documentId: documentId,
+            stagingID: documentId,
             userId: userId,
-            action: 'reject',
-            remarks: rejectionReason
+            rejectionRemarks: rejectionReason
         };
         
         // Make API request to reject document
-        const response = await makeAuthenticatedRequest('/api/approvals/reject-outgoing-payment', {
+        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/reject', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -548,6 +741,11 @@ async function rejectOPReim() {
 // Request revision for the outgoing payment reimbursement
 async function revisionOPReim() {
     try {
+        // Validate document status and user permissions
+        if (!validateDocumentStatus()) {
+            return;
+        }
+        
         // Check if revision button is disabled
         if (document.getElementById('revisionButton').disabled) {
             Swal.fire({
@@ -597,14 +795,13 @@ async function revisionOPReim() {
         
         // Prepare request data
         const requestData = {
-            documentId: documentId,
+            stagingID: documentId,
             userId: userId,
-            action: 'revise',
-            remarks: allRemarks
+            revisionRemarks: allRemarks
         };
         
         // Make API request to request revision
-        const response = await makeAuthenticatedRequest('/api/approvals/revise-outgoing-payment', {
+        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/revise', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -644,6 +841,55 @@ async function revisionOPReim() {
             icon: 'error'
         });
     }
+}
+
+// Validate document status before allowing actions
+function validateDocumentStatus() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        Swal.fire({
+            title: 'Authentication Error',
+            text: 'User not authenticated. Please login again.',
+            icon: 'error'
+        }).then(() => {
+            window.location.href = getLoginPagePath();
+        });
+        return false;
+    }
+    
+    if (!outgoingPaymentReimData || !outgoingPaymentReimData.approval) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Document data is incomplete. Please refresh the page.',
+            icon: 'error'
+        });
+        return false;
+    }
+    
+    const approval = outgoingPaymentReimData.approval;
+    
+    // Check if document is already checked
+    if (approval.checkedDate) {
+        Swal.fire({
+            title: 'Already Checked',
+            text: 'This document has already been checked.',
+            icon: 'info'
+        });
+        return false;
+    }
+    
+    // Check if current user is the assigned checker
+    if (approval.checkedBy !== currentUser.userId) {
+        const checkerName = getUserNameById(approval.checkedBy);
+        Swal.fire({
+            title: 'Not Authorized',
+            text: `Only ${checkerName} can check this document.`,
+            icon: 'warning'
+        });
+        return false;
+    }
+    
+    return true;
 }
 
 // Helper function to get logged-in user ID

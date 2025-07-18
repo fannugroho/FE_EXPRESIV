@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Outgoing Payment Reimbursement</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        /**
+         * MAPPING KOLOM FORM DENGAN RESPONSE BODY API
+         * ============================================
+         * 
+         * API Endpoint: https://expressiv.idsdev.site/api/staging-outgoing-payments/headers/{id}
+         * Method: GET (Load)
+         * 
+         * FORM FIELDS → API RESPONSE BODY MAPPING:
+         * 
+         * HEADER FIELDS:
+         * - CounterRef (Reimburse No) → counterRef
+         * - RequesterName (Requester Reimbursement) → requesterId (akan di-resolve ke nama)
+         * - CardName (Pay To) → cardName
+         * - Address (Pay To Address) → address
+         * - DocDate (Document Date) → docDate
+         * - DocDueDate (Due Date) → docDueDate
+         * - TaxDate (Tax Date) → taxDate
+         * - DocNum (DocNum) → docNum
+         * - Comments (Comments) → comments
+         * - JrnlMemo (Journal Memo) → jrnlMemo
+         * - DocCurr (Document Currency) → docCurr
+         * - TypeOfTransaction (Type of Transaction) → type
+         * - TrsfrDate (Transfer Date) → trsfrDate
+         * - TrsfrAcct (Account Bank Transfer) → trsfrAcct
+         * - TrsfrSum (Total Transfer) → trsfrSum
+         * 
+         * ATTACHMENT FIELDS:
+         * - attachment (File Upload) → attachments[]
+         * 
+         * TOTAL FIELDS:
+         * - netTotal (Net Total) → calculated from lines[].sumApplied
+         * - totalTax (Total Tax) → not available in response
+         * - totalAmountDue (Total Amount Due) → calculated from lines[].sumApplied
+         * 
+         * REMARKS FIELDS:
+         * - remarks (Remarks) → not available in response
+         * - journalRemarks (Journal Remarks) → not available in response
+         * - rejectionRemarks (Rejection Reason) → approval.rejectionRemarks
+         * 
+         * TABLE LINES:
+         * - AcctCode (G/L Account) → lines[].acctCode
+         * - AcctName (Account Name) → lines[].acctName
+         * - description (Description) → lines[].descrip
+         * - division (Division) → lines[].ocrCode3
+         * - DocTotal (Net Amount) → lines[].sumApplied
+         * 
+         * APPROVAL FIELDS:
+         * - Approval.PreparedById (Proposed by) → approval.preparedBy
+         * - Approval.CheckedById (Checked by) → approval.checkedBy
+         * - Approval.AcknowledgedById (Acknowledged by) → approval.acknowledgedBy
+         * - Approval.ApprovedById (Approved by) → approval.approvedBy
+         * - Approval.ReceivedById (Received by) → approval.receivedBy
+         * - Approval.ClosedById (Closed by) → not available in response
+         * 
+         * FUNCTIONS:
+         * - loadDocumentData() → GET https://expressiv.idsdev.site/api/staging-outgoing-payments/headers/{id}
+         * - mapResponseToForm() → Maps API response back to form fields
+         */
+        
+        // Base URL is now defined in auth.js as BASE_URL
+    </script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/detailOPReim.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment Reimbursement</h2>
+        <br>
+        <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
+                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
+                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
+                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
+                <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
+                <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Attachment</h3>
+                <div class="w-full p-2 border rounded bg-gray-50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Existing Attachments</span>
+                        <button onclick="refreshAttachments()" class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="existingAttachments">
+                        <!-- Attachment yang sudah ada akan ditampilkan di sini -->
+                    </div>
+                </div>
+                
+                <input type="hidden" id="Doctype" value="A">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
+                <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Comments</h3>
+                <input type="text" id="Comments" placeholder="Comments" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
+                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
+                <select id="TypeOfTransaction" class="w-full p-2 border rounded bg-gray-100" disabled>
+                    <option value="" disabled>Select Type of Transaction</option>
+                    <option value="REIMBURSEMENT">Reimbursement</option>
+                    <option value="ADVANCE">Advance</option>
+                    <option value="SETTLEMENT">Settlement</option>
+                    <option value="LOAN">Loan</option>
+                </select>
+                
+                <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
+                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
+                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded bg-gray-100" readonly>
+            </div>
+        </div>
+        
+        <table id="VPM2" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="AcctCode" class="p-2">G/L Account</th>
+                    <th id="AcctName" class="p-2">Account Name</th>
+                    <th id="Descrip" class="p-2">Description</th>
+                    <th id="Division" class="p-2">Division</th>
+                    <th id="DocTotal" class="p-2">Net Amount</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Table rows will be populated dynamically -->
+            </tbody>
+        </table>
+        
+        <!--Net Total-->
+        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
+            <label>Net Total :</label>
+            <input type="text" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+
+        <!--WTax Total-->
+        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
+            <label>Total Tax:</label>
+            <input type="text" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly value="0.00">
+        </div>
+         <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount Due :</label>
+            <input type="text" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+        
+        <!--Total Transfer-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Transfer :</label>
+            <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        </div>
+
+        <div class="mt-4">
+            <label>Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly placeholder="No remarks available"></textarea>
+        </div>
+        <div class="mt-4">
+            <label>Journal Remarks</label>
+            <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly placeholder="No journal remarks available"></textarea>
+        </div>
+
+        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <label class="font-semibold text-red-600">Rejection Reason</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+        </div>
+
+        <!-- Approval section -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.PreparedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.CheckedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.AcknowledgedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.ReceivedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <!--closed by-->
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <select id="Approval.ClosedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <br>
+    </div>
+
+    <script>
+        // Simplified and consistent currency formatting functions
+        function formatCurrencyIDR(number) {
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    if (cleanedStr.length > 15) {
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            const maxAmount = 100000000000000;
+            if (num > maxAmount) {
+                num = maxAmount;
+            }
+            
+            if (num >= 1e12) {
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                return result + '.00';
+            } else {
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        function toggleClosedByVisibility() {
+            const transactionType = document.getElementById('TypeOfTransaction')?.value;
+            const closedByContainer = document.getElementById('closed')?.parentElement;
+            
+            if (closedByContainer) {
+                if (transactionType === 'LOAN') {
+                    closedByContainer.style.display = 'block';
+                } else {
+                    closedByContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // Initialize currency inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listener for Type of Transaction
+            const typeOfTransactionSelect = document.getElementById('TypeOfTransaction');
+            if (typeOfTransactionSelect) {
+                typeOfTransactionSelect.addEventListener('change', function() {
+                    toggleClosedByVisibility();
+                });
+            }
+            
+            toggleClosedByVisibility();
+            
+            // Load data from API if document ID is provided in URL
+            loadDocumentData();
+        });
+
+        // Make functions available globally
+        window.formatCurrencyIDR = formatCurrencyIDR;
+        window.parseCurrencyIDR = parseCurrencyIDR;
+    </script>
+</body>
+</html> 

@@ -54,13 +54,13 @@
         
         .company-name {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
         }
         
         .title {
             text-align: center;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 14px;
             margin: 20px 0;
         }
         
@@ -71,6 +71,7 @@
         
         table, th, td {
             border: 1px solid black;
+            font-size: 11px;
         }
         
         th, td {
@@ -103,11 +104,14 @@
             width: 19%;
             text-align: center;
             position: relative;
+            font-weight: bold;
+            font-size: 12px;
         }
         
         .signature-title {
             font-weight: bold;
             margin-bottom: 50px;
+            font-size: 12px;
         }
         
         /* Approval stamp styling */
@@ -124,8 +128,7 @@
         .approval-stamp-text {
             color: #0056b3;
             font-weight: bold;
-            font-size: 16px;
-            transform: rotate(-15deg);
+            font-size: 12px;
             border: 2px solid #0056b3;
             border-radius: 5px;
             padding: 3px 10px;
@@ -135,7 +138,7 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
+            transform: translate(-50%, -50%);
         }
         
         /* Approval date styling */
@@ -198,7 +201,7 @@
         
         <!-- Payment Voucher Title -->
         <div class="title">
-            PAYMENT VOUCHER
+            REIMBURSEMENT REQUEST   
         </div>
         
         <!-- Type of Transaction -->
@@ -245,28 +248,14 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Payment Method Section -->
-        <div class="flex items-center mb-4">
-            <p class="mr-4">Payment through [x] :</p>
-            <div class="flex space-x-8">
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="cashCheckbox"></div>
-                    <span>Cash</span>
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox mr-2" id="bankRemittanceCheckbox"></div>
-                    <span>Bank Remittance</span>
-                </div>
-            </div>
-        </div>
+
         
         <!-- Signature Section -->
         <div class="signature-section">
             <div class="signature-box">
                 <p class="signature-title">Prepared by :</p>
                 <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
+                    <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div class="text-center">
                 <p class="text-center mt-2" id="preparedBy"></p>
@@ -276,7 +265,7 @@
             <div class="signature-box">
                 <p class="signature-title">Checked by :</p>
                 <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
+                    <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div class="text-center">
                 <p class="text-center mt-2" id="checkedBy"></p>
@@ -286,7 +275,7 @@
             <div class="signature-box">
                 <p class="signature-title">Acknowledge by :</p>
                 <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
+                    <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div class="text-center">
                 <p class="text-center mt-2" id="acknowledgeBy"></p>
@@ -321,8 +310,7 @@
         <div class="mt-6">
             <p>Amount Payment: <span class="font-bold" id="amountText">IDR</span></p>
             <p>Amount in Word: <span id="amountInWordText"></span></p>
-            <p class="mt-4 text-xs">The payment through cash is valid, at the time you sign on the column of "Cash is received by".</p>
-        </div>
+            </div>
     </div>
 </body>
 </html> 

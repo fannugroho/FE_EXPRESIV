@@ -221,12 +221,12 @@
         let revisionFieldsByUser = new Map(); // Track which users have added fields
         const MAX_REVISION_FIELDS = 4;
 
-        // Check status when page loads and hide buttons if status is "Acknowledged"
+        // Check status when page loads and hide buttons if status is not "checked"
         document.addEventListener('DOMContentLoaded', function() {
             checkStatus();
         });
 
-        // Function to check status and hide buttons if status is "Acknowledged"
+        // Function to check status and hide buttons if status is not "checked" or if status is "rejected"
         function checkStatus() {
             const statusSelect = document.getElementById('status');
             const addRowBtn = document.getElementById('addRowBtn');
@@ -234,21 +234,36 @@
             const acknowledgeBtn = document.getElementById('acknowledgeBtn');
             const revisionButton = document.getElementById('revisionButton');
             const addRevisionBtn = document.getElementById('addRevisionBtn');
+            const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
 
-            if (statusSelect.value === "Acknowledged") {
-                // Hide buttons
-                addRowBtn.style.display = 'none';
-                rejectBtn.style.display = 'none';
-                acknowledgeBtn.style.display = 'none';
-                revisionButton.style.display = 'none';
-                addRevisionBtn.style.display = 'none';
+            const currentStatus = statusSelect.value;
+            const isChecked = currentStatus === "Checked";
+            const isRejected = currentStatus === "Rejected";
+
+            if (!isChecked || isRejected) {
+                // Hide buttons if status is not "checked" or if status is "rejected"
+                if (addRowBtn) addRowBtn.style.display = 'none';
+                if (rejectBtn) rejectBtn.style.display = 'none';
+                if (acknowledgeBtn) acknowledgeBtn.style.display = 'none';
+                if (revisionButton) revisionButton.style.display = 'none';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+                
+                // Hide delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'none';
+                });
             } else {
-                // Show buttons
-                addRowBtn.style.display = 'inline-block';
-                rejectBtn.style.display = 'inline-block';
-                acknowledgeBtn.style.display = 'inline-block';
-                revisionButton.style.display = 'inline-block';
-                addRevisionBtn.style.display = 'inline-block';
+                // Show buttons if status is "checked" and not "rejected"
+                if (addRowBtn) addRowBtn.style.display = 'inline-block';
+                if (rejectBtn) rejectBtn.style.display = 'inline-block';
+                if (acknowledgeBtn) acknowledgeBtn.style.display = 'inline-block';
+                if (revisionButton) revisionButton.style.display = 'inline-block';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
+                
+                // Show delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'inline-block';
+                });
             }
         }
 

@@ -272,7 +272,14 @@
                     checkRevisionButton();
                 }
             });
+            
+            // Check status and hide buttons if needed
+            if (typeof toggleButtonsBasedOnStatus === 'function') {
+                toggleButtonsBasedOnStatus();
+            }
         });
+        
+
         
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
@@ -507,6 +514,13 @@
             
             // Pastikan updateTotalAmount dipanggil
             updateTotalAmount();
+            
+            // Check status and hide buttons after data is loaded
+            setTimeout(() => {
+                if (typeof toggleButtonsBasedOnStatus === 'function') {
+                    toggleButtonsBasedOnStatus();
+                }
+            }, 100);
         };
 
         // Toggle revision container visibility and add first field
