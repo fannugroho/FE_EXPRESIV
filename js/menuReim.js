@@ -4,6 +4,7 @@ window.itemsPerPage = 20; // Menggunakan window.itemsPerPage agar bisa diakses d
 let allReimbursements = [];
 let filteredReimbursements = [];
 let currentTab = 'all'; // Default tab
+let currentSearchType = 'pr'; // Default search type
 
 // Helper function to format date without timezone issues
 function formatDateWithoutTimezone(dateString) {
@@ -14,24 +15,58 @@ function formatDateWithoutTimezone(dateString) {
 // Function to handle search
 function handleSearch(event) {
     const searchTerm = event.target.value.toLowerCase();
-    filterReimbursements(searchTerm, currentTab);
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, currentTab, searchType);
 }
 
 // Function to filter reimbursements based on search term and tab
-function filterReimbursements(searchTerm = '', tab = 'all') {
-    if (tab === 'all') {
-        filteredReimbursements = allReimbursements.filter(reim => 
-            reim.voucherNo.toLowerCase().includes(searchTerm)
-        );
-    } else if (tab === 'draft') {
-        filteredReimbursements = allReimbursements.filter(reim => 
-            reim.status.toLowerCase() === 'draft' && reim.voucherNo.toLowerCase().includes(searchTerm)
-        );
+function filterReimbursements(searchTerm = '', tab = 'all', searchType = 'pr') {
+    let filtered = allReimbursements;
+    
+    // First filter by tab
+    if (tab === 'draft') {
+        filtered = filtered.filter(reim => reim.status.toLowerCase() === 'draft');
     } else if (tab === 'prepared') {
-        filteredReimbursements = allReimbursements.filter(reim => 
-            reim.status.toLowerCase() === 'prepared' && reim.voucherNo.toLowerCase().includes(searchTerm)
-        );
+        filtered = filtered.filter(reim => reim.status.toLowerCase() === 'prepared');
     }
+    
+    // Then filter by search term based on search type
+    if (searchTerm) {
+        switch (searchType) {
+            case 'pr':
+                filtered = filtered.filter(reim => 
+                    reim.voucherNo && reim.voucherNo.toLowerCase().includes(searchTerm)
+                );
+                break;
+            case 'requester':
+                filtered = filtered.filter(reim => 
+                    reim.requesterName && reim.requesterName.toLowerCase().includes(searchTerm)
+                );
+                break;
+            case 'date':
+                filtered = filtered.filter(reim => {
+                    if (!reim.submissionDate) return false;
+                    const submissionDate = formatDateToYYYYMMDD(reim.submissionDate);
+                    return submissionDate.includes(searchTerm);
+                });
+                break;
+            case 'status':
+                filtered = filtered.filter(reim => 
+                    reim.status && reim.status.toLowerCase().includes(searchTerm)
+                );
+                break;
+            default:
+                // Default search across all fields
+                filtered = filtered.filter(reim => 
+                    (reim.voucherNo && reim.voucherNo.toLowerCase().includes(searchTerm)) ||
+                    (reim.requesterName && reim.requesterName.toLowerCase().includes(searchTerm)) ||
+                    (reim.department && reim.department.toLowerCase().includes(searchTerm)) ||
+                    (reim.status && reim.status.toLowerCase().includes(searchTerm))
+                );
+        }
+    }
+    
+    filteredReimbursements = filtered;
     currentPage = 1;
     displayReimbursements(filteredReimbursements);
 }
@@ -56,7 +91,8 @@ function switchTab(tabName) {
     
     // Filter reimbursements based on current tab and search term
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    filterReimbursements(searchTerm, tabName);
+    const searchType = document.getElementById('searchType').value;
+    filterReimbursements(searchTerm, tabName, searchType);
 }
 
 // Function to fetch status counts from API
@@ -316,7 +352,9 @@ function downloadPDF() {
 
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
-    document.getElementById("totalCount").textContent = data.totalCount || 0;
+    // Calculate total count minus revised count
+    const totalCountMinusRevised = (data.totalCount || 0) - (data.revisedCount || 0);
+    document.getElementById("totalCount").textContent = totalCountMinusRevised;
     document.getElementById("draftCount").textContent = data.draftCount || 0;
     document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
@@ -386,6 +424,28 @@ function loadDashboard() {
 
     // Add event listener for search input
     document.getElementById('searchInput').addEventListener('input', handleSearch);
+    
+    // Add event listener to the search type dropdown
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.addEventListener('change', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            // Update input type and placeholder based on search type
+            if (this.value === 'date') {
+                searchInput.type = 'date';
+                searchInput.placeholder = 'Select date';
+            } else {
+                searchInput.type = 'text';
+                searchInput.placeholder = `Search ${this.options[this.selectedIndex].text}`;
+            }
+            
+            // Clear current search and trigger new search
+            searchInput.value = '';
+            const searchTerm = searchInput.value.trim();
+            filterReimbursements(searchTerm, currentTab, this.value);
+        });
+    }
     
     // Set up the "select all" checkbox
     // document.getElementById('selectAll').addEventListener("change", function() {

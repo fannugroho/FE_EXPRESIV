@@ -789,8 +789,8 @@ function filterUsers(fieldId) {
     if (fieldId === 'payToSelect') {
         try {
             const filtered = businessPartners.filter(bp => 
-                bp.name.toLowerCase().includes(searchText) || 
-                bp.code.toLowerCase().includes(searchText)
+                (bp.name && bp.name.toLowerCase().includes(searchText)) || 
+                (bp.code && bp.code.toLowerCase().includes(searchText))
             );
             
             // Display search results
@@ -851,7 +851,7 @@ function filterUsers(fieldId) {
         fieldId === 'receivedBySelect') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
-            filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchText));
+            filteredUsers = users.filter(user => user.name && user.name.toLowerCase().includes(searchText));
             
             // Show search results
             filteredUsers.forEach(user => {
@@ -913,7 +913,7 @@ function filterUsers(fieldId) {
                         if (payToSearch && payToSelect) {
                             // Find matching business partner by name
                             const matchingBP = businessPartners.find(bp => 
-                                bp.name.toLowerCase() === user.name.toLowerCase()
+                                bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
                             );
                             
                             if (matchingBP) {
@@ -985,7 +985,7 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         const option = document.createElement("option");
         
         // Combine names with spaces, handling empty middle/last names
-        let displayName = user.fullName;
+        let displayName = user.fullName || 'Unknown User';
         
         // For requesterNameSelect, use the display name as the value instead of ID
         if (useDisplayNameAsValue) {
@@ -1013,7 +1013,7 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         if (searchInput) {
             // Store users data for searching
             searchInput.dataset.users = JSON.stringify(users.map(user => {
-                let displayName = user.fullName;
+                let displayName = user.fullName || 'Unknown User';
                 return {
                     id: user.id,
                     name: displayName
@@ -2102,7 +2102,7 @@ function filterCategories(input) {
     try {
         const categories = JSON.parse(input.dataset.categories || '[]');
         const filtered = categories.filter(category => 
-            category.toLowerCase().includes(searchText)
+            category && category.toLowerCase().includes(searchText)
         );
         
         // Display search results
@@ -2160,7 +2160,7 @@ function filterAccountNames(input) {
     try {
         const accountNames = JSON.parse(input.dataset.accountNames || '[]');
         const filtered = accountNames.filter(account => 
-            account.accountName.toLowerCase().includes(searchText)
+            account.accountName && account.accountName.toLowerCase().includes(searchText)
         );
         
         // Display search results

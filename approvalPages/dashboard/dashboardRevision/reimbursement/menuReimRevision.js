@@ -177,14 +177,17 @@ function displayReimbursements(reimbursements) {
     const endIndex = Math.min(startIndex + itemsPerPage, reimbursements.length);
     const paginatedReimbursements = reimbursements.slice(startIndex, endIndex);
     
-    paginatedReimbursements.forEach(reim => {
+    paginatedReimbursements.forEach((reim, index) => {
         let formattedDate = reim.submissionDate;
         if (reim.submissionDate) {
             formattedDate = formatDateWithLocalTimezone(reim.submissionDate);
         }
         
+        // Calculate incremental Doc Number starting from 1
+        const docNumber = startIndex + index + 1;
+        
         const row = `<tr class='border-b'>
-            <td class='p-2'>${reim.id}</td>
+            <td class='p-2'>${docNumber}</td>
             <td class='p-2'>${reim.voucherNo}</td>
             <td class='p-2'>${reim.requesterName}</td>
             <td class='p-2'>${reim.department}</td>
@@ -252,9 +255,9 @@ function changePage(direction) {
 function downloadExcel() {
     const workbook = XLSX.utils.book_new();
     
-    // Convert the data to worksheet format
-    const wsData = filteredReimbursements.map(reim => ({
-        'Document Number': reim.id,
+    // Convert the data to worksheet format with incremental Doc Number
+    const wsData = filteredReimbursements.map((reim, index) => ({
+        'Document Number': index + 1,
         'Reimbursement Number': reim.voucherNo,
         'Requester': reim.requesterName,
         'Department': reim.department,
@@ -278,9 +281,9 @@ function downloadPDF() {
     doc.setFontSize(16);
     doc.text('Reimbursement Revised Report', 14, 15);
     
-    // Create table data
-    const tableData = filteredReimbursements.map(reim => [
-        reim.id,
+    // Create table data with incremental Doc Number
+    const tableData = filteredReimbursements.map((reim, index) => [
+        index + 1,
         reim.voucherNo,
         reim.requesterName,
         reim.department,
@@ -347,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dashboardUserIcon').src = userInfo.avatar;
     } else {
         // Default avatar if none is set
-        document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+        document.getElementById('dashboardUserIcon').src = "../../../../image/profil.png";
     }
 });
 
@@ -361,14 +364,22 @@ let isNotificationVisible = false;
 
 function updateNotificationBadge() {
     const badge = document.getElementById('notificationBadge');
-    if (!badge) return;
+    if (!badge) {
+        console.warn('Notification badge element not found');
+        return;
+    }
+    
     const count = notifiedReims.size;
+    console.log('Updating notification badge, count:', count);
+    
     if (count > 0) {
         badge.textContent = count;
         badge.classList.remove('hidden');
+        console.log('Badge should be visible with count:', count);
     } else {
         badge.textContent = '0';
         badge.classList.add('hidden');
+        console.log('Badge should be hidden');
     }
 }
 
@@ -469,6 +480,8 @@ function updateNotificationContent() {
 }
 
 function showNotification(message, reimNumber) {
+    console.log('Showing notification for:', reimNumber, 'Message:', message);
+    
     // Simpan data notifikasi ke localStorage
     const notificationData = JSON.parse(localStorage.getItem('notificationDataReimRevision') || '{}');
     const data = {
@@ -482,6 +495,8 @@ function showNotification(message, reimNumber) {
     localStorage.setItem('notificationDataReimRevision', JSON.stringify(notificationData));
     
     notifiedReims.add(reimNumber);
+    console.log('Current notified reimbursements:', Array.from(notifiedReims));
+    
     updateNotificationBadge();
     
     // Update panel jika sedang terbuka
@@ -508,22 +523,39 @@ function removeNotification(reimNumber) {
 async function pollRevisionDocs() {
     try {
         const userId = getUserId();
-        if (!userId) return;
+        if (!userId) {
+            console.log('No user ID found for polling');
+            return;
+        }
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/revision/${userId}`, {
+        console.log('Polling for revision documents...');
+        
+        // Menggunakan endpoint umum untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
+        if (!response.ok) {
+            console.warn('Failed to fetch reimbursements for polling:', response.status);
+            return;
+        }
+        
         const data = await response.json();
-        if (!data.status || data.code !== 200) return;
+        if (!data.status || data.code !== 200) {
+            console.warn('API returned error for polling:', data);
+            return;
+        }
         
         const docs = data.data || [];
+        console.log('Fetched documents for polling:', docs.length);
+        
         let newReimFound = false;
         
         docs.forEach(doc => {
+            console.log('Checking document:', doc.voucherNo, 'Status:', doc.status);
             // Hanya notifikasi untuk dokumen dengan status Revision
             if (doc.status === 'Revision' && !notifiedReims.has(doc.voucherNo)) {
+                console.log('Found new revision document:', doc.voucherNo);
                 // Format pesan notifikasi
                 const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
                 const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
@@ -534,6 +566,7 @@ async function pollRevisionDocs() {
         
         // Play sound jika ada dokumen baru
         if (newReimFound) {
+            console.log('New revision found, playing notification sound');
             try {
                 const audio = new Audio('../../../../components/shared/tones.mp3');
                 audio.play();
@@ -542,7 +575,6 @@ async function pollRevisionDocs() {
             }
         }
     } catch (e) {
-        // Silent error
         console.error('Error polling reimbursements:', e);
     }
 }
@@ -552,10 +584,15 @@ async function pollPreparedDocs() {
         const userId = getUserId();
         if (!userId) return;
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/revision/${userId}`, {
+        // Menggunakan endpoint umum untuk reimbursement
+        const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
+        
+        if (!response.ok) {
+            console.warn('Failed to fetch reimbursements for polling');
+            return;
+        }
         
         const data = await response.json();
         if (!data.status || data.code !== 200) return;
@@ -581,17 +618,22 @@ async function pollPreparedDocs() {
 }
 
 // Polling interval (setiap 10 detik)
+console.log('Setting up polling interval...');
 setInterval(() => {
+    console.log('Polling interval triggered');
     pollRevisionDocs();
     pollPreparedDocs();
 }, 10000);
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded triggered for notifications');
+    
     // Existing DOMContentLoaded code will run first
     
     // Tambahkan polling notifikasi
     setTimeout(() => {
+        console.log('Starting initial polling...');
         pollRevisionDocs();
         pollPreparedDocs();
         updateNotificationBadge();
@@ -599,9 +641,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Event click pada bell untuk toggle notifikasi panel
         const bell = document.getElementById('notificationBell');
         if (bell) {
+            console.log('Setting up bell click event');
             bell.addEventListener('click', function() {
+                console.log('Bell clicked');
                 toggleNotificationPanel();
             });
+        } else {
+            console.warn('Notification bell element not found');
         }
         
         // Tutup panel jika klik di luar
