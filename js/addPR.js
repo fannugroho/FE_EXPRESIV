@@ -153,26 +153,95 @@ function addRow() {
     tableBody.appendChild(newRow);
     
     // Setup searchable item dropdown for the new row
-    setupItemDropdown(newRow);
+    if (allItems && allItems.length > 0) {
+        setupItemDropdown(newRow);
+    }
 }
 
 function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Data pengguna contoh (mockup)
-const mockUsers = [
-    { id: 1, name: "Ahmad Baihaki", department: "Finance" },
-    { id: 2, name: "Budi Santoso", department: "Purchasing" },
-    { id: 3, name: "Cahya Wijaya", department: "IT" },
-    { id: 4, name: "Dewi Sartika", department: "HR" },
-    { id: 5, name: "Eko Purnomo", department: "Logistics" },
-    { id: 6, name: "Fajar Nugraha", department: "Production" },
-    { id: 7, name: "Gita Nirmala", department: "Finance" },
-    { id: 8, name: "Hadi Gunawan", department: "Marketing" },
-    { id: 9, name: "Indah Permata", department: "Sales" },
-    { id: 10, name: "Joko Widodo", department: "Management" }
-];
+
+
+// Global function to filter requesters
+window.filterRequesters = function() {
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    
+    if (!requesterSearchInput || !requesterDropdown) return;
+    
+    const searchText = requesterSearchInput.value.toLowerCase();
+    populateRequesterDropdown(searchText);
+    requesterDropdown.classList.remove('hidden');
+};
+
+// Global function to populate requester dropdown
+function populateRequesterDropdown(filter = '') {
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    if (!requesterDropdown) return;
+    
+    requesterDropdown.innerHTML = '';
+    
+    // Check if window.requesters exists and is an array
+    if (!window.requesters || !Array.isArray(window.requesters) || window.requesters.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No requesters available';
+        requesterDropdown.appendChild(noResults);
+        return;
+    }
+    
+    const filteredRequesters = window.requesters.filter(r => 
+        r.fullName && r.fullName.toLowerCase().includes(filter)
+    );
+    
+    filteredRequesters.forEach(requester => {
+        const option = document.createElement('div');
+        option.className = 'p-2 cursor-pointer hover:bg-gray-100';
+        option.innerText = requester.fullName;
+        option.onclick = function() {
+            const requesterSearchInput = document.getElementById('requesterSearch');
+            if (requesterSearchInput) {
+                requesterSearchInput.value = requester.fullName;
+            }
+            const requesterIdSelect = document.getElementById('RequesterId');
+            if (requesterIdSelect) {
+                requesterIdSelect.value = requester.id;
+            }
+            requesterDropdown.classList.add('hidden');
+            
+            // Update department
+            const departmentSelect = document.getElementById('department');
+            if (requester.department && departmentSelect) {
+                // Find the department option and select it
+                const departmentOptions = departmentSelect.options;
+                for (let i = 0; i < departmentOptions.length; i++) {
+                    if (departmentOptions[i].textContent === requester.department) {
+                        departmentSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+                // If no matching option found, create and select a new one
+                if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
+                    const newOption = document.createElement('option');
+                    newOption.value = requester.department;
+                    newOption.textContent = requester.department;
+                    newOption.selected = true;
+                    departmentSelect.appendChild(newOption);
+                }
+            }
+        };
+        requesterDropdown.appendChild(option);
+    });
+    
+    if (filteredRequesters.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching requesters';
+        requesterDropdown.appendChild(noResults);
+    }
+}
 
 // Fungsi untuk memfilter dan menampilkan dropdown pengguna
 function filterUsers(fieldId) {
@@ -184,9 +253,9 @@ function filterUsers(fieldId) {
     dropdown.innerHTML = '';
     
     // Filter pengguna berdasarkan teks pencarian
-    const filteredUsers = window.requesters ? 
-        window.requesters.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
-        mockUsers.filter(user => user.name.toLowerCase().includes(searchText));
+    const filteredUsers = window.requesters && window.requesters.length > 0 ? 
+        window.requesters.filter(user => user.fullName && user.fullName.toLowerCase().includes(searchText)) : 
+        [];
     
     // Tampilkan hasil pencarian
     filteredUsers.forEach(user => {
@@ -201,16 +270,16 @@ function filterUsers(fieldId) {
         dropdown.appendChild(option);
     });
     
-    // Tampilkan pesan jika tidak ada hasil
-    if (filteredUsers.length === 0) {
+    if (filteredUsers.length > 0) {
+        dropdown.classList.remove('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+        // Tampilkan pesan jika tidak ada hasil
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'Tidak ada pengguna yang cocok';
+        noResults.innerText = 'No matching users found';
         dropdown.appendChild(noResults);
     }
-    
-    // Tampilkan dropdown
-    dropdown.classList.remove('hidden');
 }
 
 // Helper function to format date as YYYY-MM-DD without timezone issues
@@ -322,6 +391,10 @@ async function fetchClassifications() {
         populateClassificationSelect(data.data);
     } catch (error) {
         console.error('Error fetching classifications:', error);
+        // Jika gagal fetch classifications, populate dengan array kosong
+        populateClassificationSelect([]);
+        // Tampilkan pesan error kepada pengguna
+        console.warn('Failed to load classifications from API. Please check your connection and try again.');
     }
 }
 
@@ -336,6 +409,10 @@ async function fetchDepartments() {
         populateDepartmentSelect(data.data);
     } catch (error) {
         console.error('Error fetching departments:', error);
+        // Jika gagal fetch departments, populate dengan array kosong
+        populateDepartmentSelect([]);
+        // Tampilkan pesan error kepada pengguna
+        console.warn('Failed to load departments from API. Please check your connection and try again.');
     }
 }
 
@@ -350,6 +427,10 @@ async function fetchUsers() {
         populateUserSelects(data.data);
     } catch (error) {
         console.error('Error fetching users:', error);
+        // Jika gagal fetch users, populate dengan array kosong
+        populateUserSelects([]);
+        // Tampilkan pesan error kepada pengguna
+        console.warn('Failed to load users from API. Please check your connection and try again.');
     }
 }
 
@@ -366,12 +447,18 @@ async function fetchItemOptions() {
         allItems = data.data; // Store items globally
         
         // Setup searchable dropdowns for all existing item inputs
-        document.querySelectorAll('.item-input').forEach(input => {
-            const row = input.closest('tr');
-            setupItemDropdown(row);
-        });
+        if (allItems && allItems.length > 0) {
+            document.querySelectorAll('.item-input').forEach(input => {
+                const row = input.closest('tr');
+                setupItemDropdown(row);
+            });
+        }
     } catch (error) {
         console.error('Error fetching items:', error);
+        // Jika gagal fetch items, set allItems ke array kosong
+        allItems = [];
+        // Tampilkan pesan error kepada pengguna
+        console.warn('Failed to load items from API. Please check your connection and try again.');
     }
 }
 
@@ -391,10 +478,10 @@ function setupItemDropdown(row) {
         itemDropdown.innerHTML = '';
         
         // Filter items based on search text (search in both itemCode and itemName)
-        const filteredItems = allItems.filter(item => 
-            item.itemCode.toLowerCase().includes(searchText) ||
-            item.itemName.toLowerCase().includes(searchText)
-        );
+        const filteredItems = allItems && allItems.length > 0 ? allItems.filter(item => 
+            item.itemCode && item.itemCode.toLowerCase().includes(searchText) ||
+            item.itemName && item.itemName.toLowerCase().includes(searchText)
+        ) : [];
         
         if (filteredItems.length > 0) {
             filteredItems.forEach(item => {
@@ -418,7 +505,7 @@ function setupItemDropdown(row) {
     });
     
     itemInput.addEventListener('focus', function() {
-        if (allItems.length > 0) {
+        if (allItems && allItems.length > 0) {
             // Show all items on focus
             itemDropdown.innerHTML = '';
             
@@ -453,6 +540,12 @@ function updateItemDescriptionFromData(row, item) {
     const descriptionInput = row.querySelector('.item-description');
     const uomInput = row.querySelector('.item-uom');
     
+    if (!item) {
+        descriptionInput.value = '';
+        uomInput.value = '';
+        return;
+    }
+    
     const itemDescription = item.description || item.name || item.itemName || '';
     const itemUom = item.uom || item.unitOfMeasure || '';
     
@@ -474,18 +567,20 @@ function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("department");
     departmentSelect.innerHTML = '<option value="" disabled selected>Select Department</option>';
 
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.name;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
+    if (departments && departments.length > 0) {
+        departments.forEach(department => {
+            const option = document.createElement("option");
+            option.value = department.name;
+            option.textContent = department.name;
+            departmentSelect.appendChild(option);
+        });
+    }
 }
 
 function populateUserSelects(users) {
-    // Jika tidak ada data users dari API, gunakan mockup
+    // Jika tidak ada data users dari API, gunakan array kosong
     if (!users || users.length === 0) {
-        users = mockUsers;
+        users = [];
     }
 
     // Store users globally for search functionality
@@ -498,6 +593,7 @@ function populateUserSelects(users) {
     // Populate RequesterId dropdown with search functionality
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
+        requesterSelect.innerHTML = '<option value="" disabled selected>Select a requester</option>';
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
@@ -511,62 +607,6 @@ function populateUserSelects(users) {
     const requesterDropdown = document.getElementById('requesterDropdown');
     
     if (requesterSearchInput && requesterDropdown) {
-        // Function to filter requesters
-        window.filterRequesters = function() {
-            const searchText = requesterSearchInput.value.toLowerCase();
-            populateRequesterDropdown(searchText);
-            requesterDropdown.classList.remove('hidden');
-        };
-
-        // Function to populate dropdown with filtered requesters
-        function populateRequesterDropdown(filter = '') {
-            requesterDropdown.innerHTML = '';
-            
-            const filteredRequesters = window.requesters.filter(r => 
-                r.fullName.toLowerCase().includes(filter)
-            );
-            
-            filteredRequesters.forEach(requester => {
-                const option = document.createElement('div');
-                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
-                option.innerText = requester.fullName;
-                option.onclick = function() {
-                    requesterSearchInput.value = requester.fullName;
-                    document.getElementById('RequesterId').value = requester.id;
-                    requesterDropdown.classList.add('hidden');
-                    //update department
-                    
-                    const departmentSelect = document.getElementById('department');
-                    if (requester.department) {
-                        // Find the department option and select it
-                        const departmentOptions = departmentSelect.options;
-                        for (let i = 0; i < departmentOptions.length; i++) {
-                            if (departmentOptions[i].textContent === requester.department) {
-                                departmentSelect.selectedIndex = i;
-                                break;
-                            }
-                        }
-                        // If no matching option found, create and select a new one
-                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
-                            const newOption = document.createElement('option');
-                            newOption.value = requester.department;
-                            newOption.textContent = requester.department;
-                            newOption.selected = true;
-                            departmentSelect.appendChild(newOption);
-                        }
-                    }
-                };
-                requesterDropdown.appendChild(option);
-            });
-            
-            if (filteredRequesters.length === 0) {
-                const noResults = document.createElement('div');
-                noResults.className = 'p-2 text-gray-500';
-                noResults.innerText = 'No matching requesters';
-                requesterDropdown.appendChild(noResults);
-            }
-        }
-
         // Hide dropdown when clicking outside
         document.addEventListener('click', function(event) {
             if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
@@ -575,7 +615,9 @@ function populateUserSelects(users) {
         });
 
         // Initial population
-        populateRequesterDropdown();
+        if (window.requesters && window.requesters.length > 0) {
+            populateRequesterDropdown();
+        }
     }
 
     const selects = [
@@ -587,23 +629,25 @@ function populateUserSelects(users) {
         if (select) {
             select.innerHTML = '<option value="" disabled selected>Select User</option>';
             
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName;
-                select.appendChild(option);
-                if(selectId == "preparedBy"){
-                    if(user.id == getUserId()){
-                        option.selected = true;
-                        // Perbarui kolom pencarian untuk preparedBy
-                        const preparedBySearch = document.getElementById('preparedBySearch');
-                        if (preparedBySearch) {
-                            preparedBySearch.value = user.fullName;
-                            preparedBySearch.disabled = true;
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const option = document.createElement("option");
+                    option.value = user.id;
+                    option.textContent = user.fullName;
+                    select.appendChild(option);
+                    if(selectId == "preparedBy"){
+                        if(user.id == getUserId()){
+                            option.selected = true;
+                            // Perbarui kolom pencarian untuk preparedBy
+                            const preparedBySearch = document.getElementById('preparedBySearch');
+                            if (preparedBySearch) {
+                                preparedBySearch.value = user.fullName;
+                                preparedBySearch.disabled = true;
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
         
         // Pre-populate dropdown lists for search fields
@@ -611,7 +655,9 @@ function populateUserSelects(users) {
         if (searchInput) {
             // Trigger initial dropdown on focus
             searchInput.addEventListener('focus', function() {
-                filterUsers(selectId);
+                if (window.requesters && window.requesters.length > 0) {
+                    filterUsers(selectId);
+                }
             });
         }
     });
@@ -627,12 +673,14 @@ function populateClassificationSelect(classifications) {
     const classificationSelect = document.getElementById("classification");
     classificationSelect.innerHTML = '<option value="" disabled selected>Select Classification</option>';
 
-    classifications.forEach(classification => {
-        const option = document.createElement("option");
-        option.value = classification.id;
-        option.textContent = classification.name;
-        classificationSelect.appendChild(option);
-    });
+    if (classifications && classifications.length > 0) {
+        classifications.forEach(classification => {
+            const option = document.createElement("option");
+            option.value = classification.id;
+            option.textContent = classification.name;
+            classificationSelect.appendChild(option);
+        });
+    }
 }
 
 // Validation function to check if dates are at least 2 weeks apart
