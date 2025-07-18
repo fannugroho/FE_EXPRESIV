@@ -37,11 +37,7 @@
                     btn.style.display = 'none';
                 });
             }
-            // 1. Hide Print button if status is "Approved"
-            else if (currentStatus === 'Approved' && printBtn) {
-                printBtn.style.display = 'none';
-            }
-            // 3. Hide buttons if status is "Received"
+            // Show print button if status is "Received"
             else if (currentStatus === 'Received') {
                 if (addRowBtn) addRowBtn.style.display = 'none';
                 if (rejectBtn) rejectBtn.style.display = 'none';
@@ -49,6 +45,13 @@
                 if (revisionButton) revisionButton.style.display = 'none';
                 // Hide Add revision button when status is "Received"
                 if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+                
+                // Show print button when status is "Received"
+                if (printBtn) printBtn.style.display = 'inline-block';
+            }
+            // Hide Print button if status is "Approved"
+            else if (currentStatus === 'Approved' && printBtn) {
+                printBtn.style.display = 'none';
             }
         }
 

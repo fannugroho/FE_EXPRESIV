@@ -586,6 +586,8 @@
             const currentStatus = statusSelect.value;
             const isAcknowledged = currentStatus === "Acknowledged";
             const isRejected = currentStatus === "Rejected";
+            const isApproved = currentStatus === "Approved";
+            const isReceived = currentStatus === "Received";
             
             // Get all buttons that need to be controlled
             const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
@@ -608,8 +610,16 @@
                 if (addRevisionBtn) addRevisionBtn.style.display = 'none';
                 if (rejectButton) rejectButton.style.display = 'none';
                 if (approveButton) approveButton.style.display = 'none';
-                if (printButton) printButton.style.display = 'none';
                 if (revisionButton) revisionButton.style.display = 'none';
+                
+                // Show print button only if status is "Approved" or "Received"
+                if (printButton) {
+                    if (isApproved || isReceived) {
+                        printButton.style.display = 'inline-block';
+                    } else {
+                        printButton.style.display = 'none';
+                    }
+                }
             } else {
                 // Show buttons if status is "acknowledged" and not "rejected"
                 deleteButtons.forEach(btn => {
@@ -620,8 +630,12 @@
                 if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
                 if (rejectButton) rejectButton.style.display = 'inline-block';
                 if (approveButton) approveButton.style.display = 'inline-block';
-                if (printButton) printButton.style.display = 'inline-block';
                 if (revisionButton) revisionButton.style.display = 'inline-block';
+                
+                // Hide print button for acknowledged status (not approved/received yet)
+                if (printButton) {
+                    printButton.style.display = 'none';
+                }
             }
         }
     </script>
