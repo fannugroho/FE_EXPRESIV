@@ -523,7 +523,9 @@
         // Function to view attachment
         function viewAttachment(attachment) {
             if (attachment.filePath) {
-                const fileUrl = `${baseUrlDevAmiru}/api/files/${encodeURIComponent(attachment.filePath)}`;
+                // Remove /api/files and decode %2F to /
+                const decodedPath = decodeURIComponent(attachment.filePath);
+                const fileUrl = `${baseUrlDevAmiru}/${decodedPath}`;
                 window.open(fileUrl, '_blank');
             } else {
                 Swal.fire({

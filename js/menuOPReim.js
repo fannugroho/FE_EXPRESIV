@@ -1,6 +1,13 @@
 // Variabel untuk menyimpan dokumen reimbursement
 let reimbursementDocs = [];
 
+// Global variables for document management
+let currentTab = 'all';
+let currentPage = 1;
+let itemsPerPage = 10;
+let filteredDocuments = [];
+let allDocuments = [];
+
 // Fungsi untuk menampilkan modal reimbursement
 function showReimbursementModal() {
     // Ambil data reimbursement
@@ -250,11 +257,11 @@ async function loadDashboard() {
         console.log("Filtered documents:", userDocuments.length);
         
         // Simpan dokumen untuk penggunaan di tab
-        window.allDocuments = userDocuments;
-        window.filteredDocuments = userDocuments;
-        window.currentTab = 'all';
-        window.currentPage = 1;
-        window.itemsPerPage = 10;
+        allDocuments = userDocuments;
+        filteredDocuments = userDocuments;
+        currentTab = 'all';
+        currentPage = 1;
+        itemsPerPage = 10;
         
         // Display documents in table
         displayDocuments(userDocuments);
@@ -355,12 +362,12 @@ function updatePaginationButtons(totalItems) {
 
 // Function untuk mengubah halaman
 function changePage(direction) {
-    const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+    const totalPages = Math.ceil((filteredDocuments || []).length / itemsPerPage);
     const newPage = currentPage + direction;
     
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
-        displayDocuments(filteredDocuments);
+        displayDocuments(filteredDocuments || []);
     }
 }
 
@@ -368,7 +375,7 @@ function changePage(direction) {
 function goToCheckedDocs() {
     currentTab = 'checked';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => 
+    filteredDocuments = (allDocuments || []).filter(doc => 
         (doc.approval && doc.approval.approvalStatus === 'Checked') || 
         doc.status === 'Checked'
     );
@@ -378,7 +385,7 @@ function goToCheckedDocs() {
 function goToApprovedDocs() {
     currentTab = 'approved';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => 
+    filteredDocuments = (allDocuments || []).filter(doc => 
         (doc.approval && doc.approval.approvalStatus === 'Approved') || 
         doc.status === 'Approved'
     );
@@ -388,7 +395,7 @@ function goToApprovedDocs() {
 function goToRejectDocs() {
     currentTab = 'rejected';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => 
+    filteredDocuments = (allDocuments || []).filter(doc => 
         (doc.approval && doc.approval.approvalStatus === 'Rejected') || 
         doc.status === 'Rejected'
     );
@@ -398,7 +405,7 @@ function goToRejectDocs() {
 function goToPaidDocs() {
     currentTab = 'paid';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => 
+    filteredDocuments = (allDocuments || []).filter(doc => 
         (doc.approval && doc.approval.approvalStatus === 'Paid') || 
         doc.status === 'Paid'
     );
@@ -408,7 +415,7 @@ function goToPaidDocs() {
 function goToSettledDocs() {
     currentTab = 'settled';
     currentPage = 1;
-    filteredDocuments = allDocuments.filter(doc => 
+    filteredDocuments = (allDocuments || []).filter(doc => 
         (doc.approval && doc.approval.approvalStatus === 'Settled') || 
         doc.status === 'Settled'
     );
@@ -427,17 +434,17 @@ function switchTab(tab) {
     
     if (tab === 'all') {
         document.getElementById('allTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments;
+        filteredDocuments = allDocuments || [];
     } else if (tab === 'draft') {
         document.getElementById('draftTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments.filter(doc => 
+        filteredDocuments = (allDocuments || []).filter(doc => 
             (doc.approval && doc.approval.approvalStatus === 'Draft') || 
             doc.status === 'Draft' || 
             (!doc.status && !doc.approval)
         );
     } else if (tab === 'prepared') {
         document.getElementById('preparedTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments.filter(doc => 
+        filteredDocuments = (allDocuments || []).filter(doc => 
             (doc.approval && doc.approval.approvalStatus === 'Prepared') || 
             doc.status === 'Prepared'
         );
@@ -578,7 +585,7 @@ function toggleSubMenu(menuId) {
 
 // Fungsi Download Excel
 function downloadExcel() {
-    if (!filteredDocuments || filteredDocuments.length === 0) {
+    if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
         alert("No data to export!");
         return;
     }
@@ -591,7 +598,7 @@ function downloadExcel() {
         ["No", "Outgoing Payment No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"]
     ];
     
-    filteredDocuments.forEach((doc, index) => {
+    window.filteredDocuments.forEach((doc, index) => {
         wsData.push([
             index + 1,
             doc.outgoingPaymentNo || '-',
@@ -619,7 +626,7 @@ function downloadExcel() {
 
 // Fungsi Download PDF
 function downloadPDF() {
-    if (!filteredDocuments || filteredDocuments.length === 0) {
+    if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
         alert("No data to export!");
         return;
     }
@@ -645,7 +652,7 @@ function downloadPDF() {
     const tableColumn = ["No", "OP No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"];
     const tableRows = [];
     
-    filteredDocuments.forEach((doc, index) => {
+    window.filteredDocuments.forEach((doc, index) => {
         const rowData = [
             index + 1,
             doc.outgoingPaymentNo || '-',

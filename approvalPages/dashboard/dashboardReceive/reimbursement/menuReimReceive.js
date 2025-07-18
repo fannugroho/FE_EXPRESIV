@@ -753,7 +753,7 @@ async function pollReceivedDocs() {
 setInterval(() => {
     pollApprovedDocs();
     pollReceivedDocs();
-}, 10000);
+}, 30000); // 30 detik
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {

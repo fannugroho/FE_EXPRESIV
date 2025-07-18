@@ -4,19 +4,74 @@
 let uploadedFiles = [];
 let existingAttachments = []; // Track existing attachments from API
 let attachmentsToKeep = []; // Track which existing attachments to keep
+let stagingOutgoingPaymentId = null; // Track the staging outgoing payment ID for attachment uploads
 
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
-let apiBaseUrl = baseUrlDevAmiru || 'https://api-dev.expressiv.id'; // Use baseUrlDevAmiru if defined
+let apiBaseUrl = baseUrlDevAmiru || 'https://expressiv.idsdev.site'; // Use baseUrlDevAmiru if defined
+
+// Function to check authentication
+function checkAuthentication() {
+    // Use auth.js functions if available
+    if (typeof isAuthenticated === 'function') {
+        if (!isAuthenticated()) {
+            logoutAuth();
+            return false;
+        }
+        return true;
+    }
+    
+    // Fallback implementation
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+        window.location.href = '../pages/login.html';
+        return false;
+    }
+    
+    // Check if token is expired (basic check)
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const userInfo = JSON.parse(jsonPayload);
+        
+        if (userInfo.exp && Date.now() >= userInfo.exp * 1000) {
+            // Token expired
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('loggedInUser');
+            window.location.href = '../pages/login.html';
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking token expiration:', error);
+        // If we can't decode the token, redirect to login
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('loggedInUser');
+        window.location.href = '../pages/login.html';
+        return false;
+    }
+    
+    return true;
+}
 
 // Function to initialize the page
 async function initializePage() {
     try {
+        // Check authentication first
+        if (!checkAuthentication()) {
+            return;
+        }
+        
         // Check if we're editing an existing document or creating a new one from reimbursement
         const urlParams = new URLSearchParams(window.location.search);
         const opId = urlParams.get('op-id');
         const reimbursementId = urlParams.get('reimbursement-id');
+        const docId = urlParams.get('id');
         
         // Set reimbursement ID in CounterRef field if available
         if (reimbursementId) {
@@ -46,6 +101,22 @@ async function initializePage() {
         // Load document data if editing existing document
         loadDocumentData();
         
+        // Load existing attachments if editing
+        if (docId) {
+            setTimeout(() => {
+                loadAttachmentsFromAPI(docId);
+            }, 1500); // Give time for document data to load first
+        }
+        
+        // Initialize file preview for new files
+        const fileInput = document.getElementById('attachment');
+        if (fileInput) {
+            fileInput.addEventListener('change', previewPDF);
+        }
+        
+        // Initialize file list display
+        displayFileList();
+        
         // Ensure approval field values are properly set after everything is loaded
         setTimeout(async () => {
             await ensureApprovalFieldValues();
@@ -54,6 +125,19 @@ async function initializePage() {
         }, 1000); // Give time for all data to load
     } catch (error) {
         console.error('Error in initializePage:', error);
+        
+        // If it's an authentication error, don't show additional error messages
+        if (error.message.includes('authentication') || error.message.includes('login')) {
+            return;
+        }
+        
+        // Show error message for other errors
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to initialize page: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -61,31 +145,53 @@ async function initializePage() {
 window.onload = async function() {
     await initializePage();
     
-    // Ensure there's at least one valid row with default data
-    setTimeout(() => {
-        const tableBody = document.getElementById('tableBody');
-        if (tableBody && tableBody.rows.length === 1) {
-            // If there's only one row and it's empty, add some default data
-            const firstRow = tableBody.rows[0];
-            const acctCodeInput = firstRow.querySelector('input[id="AcctCode"]');
-            const docTotalInput = firstRow.querySelector('input[id="DocTotal"]');
-            
-            if (acctCodeInput && docTotalInput && 
-                (!acctCodeInput.value.trim() || !docTotalInput.value.trim())) {
-                // Add default values to prevent validation error
-                acctCodeInput.value = '1000'; // Default account code
-                docTotalInput.value = '0'; // Default amount
-                console.log('Added default values to first row to prevent validation error');
+            // Ensure there's at least one valid row with default data
+        setTimeout(() => {
+            const tableBody = document.getElementById('tableBody');
+            if (tableBody && tableBody.rows.length === 1) {
+                // If there's only one row and it's empty, add some default data
+                const firstRow = tableBody.rows[0];
+                const acctCodeInput = firstRow.querySelector('input[id="AcctCode"]');
+                const docTotalInput = firstRow.querySelector('input[id="DocTotal"]');
+                
+                if (acctCodeInput && docTotalInput) {
+                    // Add default values if fields are empty
+                    if (!acctCodeInput.value.trim()) {
+                        acctCodeInput.value = '1000'; // Default account code
+                        console.log('Added default account code to first row');
+                    }
+                    
+                    if (!docTotalInput.value.trim() || docTotalInput.value === '0.00') {
+                        docTotalInput.value = '1000.00'; // Default amount
+                        console.log('Added default amount to first row');
+                    }
+                }
             }
-        }
-        
-        // Update totals after page initialization
-        updateTotalAmountDue();
-    }, 100);
+            
+            // Update totals after page initialization
+            updateTotalAmountDue();
+        }, 100);
 };
 
 // Helper function to get logged-in user ID
 function getUserId() {
+    // Try to get user ID from JWT token first
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const userInfo = JSON.parse(jsonPayload);
+            return userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+        } catch (error) {
+            console.error('Error decoding JWT token:', error);
+        }
+    }
+    
+    // Fallback to loggedInUser
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
     return user ? user.id : null;
 }
@@ -156,7 +262,7 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
 
     try {
         // Fetch detailed data from API
-        const response = await fetch(`https://expressiv.idsdev.site/api/reimbursements/${reimbursementId}`, {
+        const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -358,7 +464,12 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
         // Close loading indicator
         Swal.close();
         
-        // Show error message
+        // If it's an authentication error, don't show additional error messages
+        if (error.message.includes('authentication') || error.message.includes('login')) {
+            return;
+        }
+        
+        // Show error message for other errors
         Swal.fire({
             title: 'Error',
             text: `Failed to load reimbursement data: ${error.message}`,
@@ -1022,7 +1133,7 @@ async function initializeUserDropdowns() {
         });
 
         // Fetch users from API
-        const response = await fetch('https://expressiv.idsdev.site/api/users', {
+        const response = await makeAuthenticatedRequest('/api/users', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -1063,7 +1174,12 @@ async function initializeUserDropdowns() {
         // Close loading indicator
         Swal.close();
         
-        // Show error message
+        // If it's an authentication error, don't show additional error messages
+        if (error.message.includes('authentication') || error.message.includes('login')) {
+            return;
+        }
+        
+        // Show error message for other errors
         Swal.fire({
             title: 'Error',
             text: `Failed to load user data: ${error.message}`,
@@ -1576,67 +1692,7 @@ function rejectOP() {
     });
 }
 
-// Function to display existing attachments
-function displayExistingAttachments(attachments) {
-    const container = document.getElementById('existingAttachments');
-    if (!container) return;
-    
-    // Clear existing content
-    container.innerHTML = '';
-    
-    if (!attachments || attachments.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-        return;
-    }
-    
-    // Create attachment list
-    const attachmentList = document.createElement('div');
-    attachmentList.className = 'space-y-2';
-    
-    attachments.forEach((attachment, index) => {
-        const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border';
-        
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'flex items-center space-x-2';
-        
-        // File icon based on type
-        const fileIcon = getFileIcon(attachment.fileName || attachment.name);
-        
-        fileInfo.innerHTML = `
-            <span class="text-lg">${fileIcon}</span>
-            <div>
-                <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
-                <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
-                <div class="text-xs text-gray-400">Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
-            </div>
-        `;
-        
-        const actions = document.createElement('div');
-        actions.className = 'flex space-x-2';
-        
-        // View button
-        const viewBtn = document.createElement('button');
-        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
-        viewBtn.innerHTML = '👁️ View';
-        viewBtn.onclick = () => viewAttachment(attachment);
-        
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-300 hover:bg-red-50';
-        deleteBtn.innerHTML = '🗑️ Delete';
-        deleteBtn.onclick = () => deleteAttachment(attachment.id || index);
-        
-        actions.appendChild(viewBtn);
-        actions.appendChild(deleteBtn);
-        
-        attachmentItem.appendChild(fileInfo);
-        attachmentItem.appendChild(actions);
-        attachmentList.appendChild(attachmentItem);
-    });
-    
-    container.appendChild(attachmentList);
-}
+
 
 // Function to convert file to base64
 function fileToBase64(file) {
@@ -1732,7 +1788,9 @@ async function viewAttachment(attachment) {
             
             // Use the base URL from the API endpoint
             const baseUrl = 'https://expressiv.idsdev.site';
-            const fileUrl = `${baseUrl}/api/files/${encodeURIComponent(attachment.filePath)}`;
+            // Remove /api/files and decode %2F to /
+            const decodedPath = decodeURIComponent(attachment.filePath);
+            const fileUrl = `${baseUrl}/${decodedPath}`;
             
             // Open file in new tab
             window.open(fileUrl, '_blank');
@@ -1740,10 +1798,9 @@ async function viewAttachment(attachment) {
         }
 
         // Fetch attachment data from API - use reimbursement attachments endpoint
-        const response = await fetch(`${apiBaseUrl}/api/reimbursements/${docId}/attachments`, {
+        const response = await makeAuthenticatedRequest(`/api/reimbursements/${docId}/attachments`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -1776,7 +1833,9 @@ async function viewAttachment(attachment) {
         if (targetAttachment.filePath) {
             // Use the base URL from the API endpoint
             const baseUrl = 'https://expressiv.idsdev.site';
-            const fileUrl = `${baseUrl}/api/files/${encodeURIComponent(targetAttachment.filePath)}`;
+            // Remove /api/files and decode %2F to /
+            const decodedPath = decodeURIComponent(targetAttachment.filePath);
+            const fileUrl = `${baseUrl}/${decodedPath}`;
             
             // Open file in new tab
             window.open(fileUrl, '_blank');
@@ -1795,10 +1854,83 @@ async function viewAttachment(attachment) {
     }
 }
 
+// Function to upload attachment to staging outgoing payment
+async function uploadAttachmentToStaging(file, description = '', attachmentType = 'Document', stagingId = null) {
+    const targetStagingId = stagingId || stagingOutgoingPaymentId;
+    if (!targetStagingId) {
+        throw new Error('Staging outgoing payment ID not available. Please save the document first.');
+    }
+
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Uploading...',
+            text: 'Please wait while we upload your attachment',
+            icon: 'info',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Prepare form data according to API specification
+        const formData = new FormData();
+        formData.append('File', file);
+        formData.append('Description', description);
+        formData.append('AttachmentType', attachmentType);
+
+        // Upload to staging outgoing payment attachments endpoint
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${targetStagingId}`, {
+            method: 'POST',
+            headers: {
+                'accept': '/',
+                // Note: Don't set Content-Type for FormData, let browser set it with boundary
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Upload failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Close loading indicator
+        Swal.close();
+
+        // Show success message
+        Swal.fire({
+            title: 'Success',
+            text: 'Attachment uploaded successfully',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
+
+        // Refresh attachments list
+        await loadAttachmentsFromAPI(targetStagingId);
+
+        return result;
+
+    } catch (error) {
+        console.error('Error uploading attachment:', error);
+        Swal.close();
+        
+        Swal.fire({
+            title: 'Upload Failed',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        
+        throw error;
+    }
+}
+
+
+
 // Function to refresh attachments
-
-
-// Function to delete attachment
 function deleteAttachment(attachmentId) {
     Swal.fire({
         title: 'Confirm Delete',
@@ -1820,11 +1952,10 @@ function deleteAttachment(attachmentId) {
                     }
                 });
                 
-                // Call API to delete attachment - use reimbursement attachments endpoint
-                const response = await fetch(`${apiBaseUrl}/api/reimbursements/attachments/${attachmentId}`, {
+                // Call API to delete attachment - use staging outgoing payment attachments endpoint
+                const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${attachmentId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -1917,24 +2048,103 @@ async function submitDocument(isSubmit = false) {
             throw new Error("Tidak dapat mendapatkan ID pengguna dari token. Silakan login kembali.");
         }
         
+        console.log('User ID for submission:', userId);
+        
         // Ensure approval field values are properly set before submission
         await ensureApprovalFieldsBeforeSubmit();
+        
+        // Debug: Log approval field values
+        console.log('Approval field values after ensuring:');
+        console.log('PreparedById:', document.getElementById('Approval.PreparedById')?.value);
+        console.log('CheckedById:', document.getElementById('Approval.CheckedById')?.value);
+        console.log('AcknowledgedById:', document.getElementById('Approval.AcknowledgedById')?.value);
+        console.log('ApprovedById:', document.getElementById('Approval.ApprovedById')?.value);
+        console.log('ReceivedById:', document.getElementById('Approval.ReceivedById')?.value);
+        
+        // Debug: Log form state before collecting data
+        console.log('Form state before submission:');
+        console.log('CounterRef:', document.getElementById('CounterRef')?.value);
+        console.log('RequesterName:', document.getElementById('RequesterName')?.value);
+        console.log('CardName:', document.getElementById('CardName')?.value);
+        console.log('DocDate:', document.getElementById('DocDate')?.value);
+        console.log('TypeOfTransaction:', document.getElementById('TypeOfTransaction')?.value);
+        
+        // Log table state
+        const tableRows = document.querySelectorAll('#tableBody tr');
+        console.log('Table rows count:', tableRows.length);
+        tableRows.forEach((row, index) => {
+            const acctCodeInput = row.querySelector('input[id="AcctCode"]');
+            const docTotalInput = row.querySelector('input[id="DocTotal"]');
+            console.log(`Row ${index}:`, {
+                acctCode: acctCodeInput?.value,
+                docTotal: docTotalInput?.value
+            });
+        });
         
         // Collect form data
         const formData = collectFormData(userId, isSubmit);
         
+        // Validate form data before submission
+        if (!formData.stagingID) {
+            throw new Error('Staging ID is missing. Please try again.');
+        }
+        
+        // Check required fields
+        const requiredFields = [
+            { field: 'CounterRef', name: 'Reimburse No' },
+            { field: 'RequesterName', name: 'Requester Name' },
+            { field: 'CardName', name: 'Pay To' },
+            { field: 'DocDate', name: 'Document Date' },
+            { field: 'TypeOfTransaction', name: 'Type of Transaction' }
+        ];
+        
+        for (const reqField of requiredFields) {
+            const value = document.getElementById(reqField.field)?.value?.trim();
+            if (!value) {
+                throw new Error(`${reqField.name} is required. Please fill in all required fields.`);
+            }
+        }
+        
+        if (!formData.lines || formData.lines.length === 0) {
+            throw new Error('At least one line item is required. Please add account code and amount in the table.');
+        }
+        
+        // Ensure we have at least one valid line with account code and amount
+        const validLines = formData.lines.filter(line => 
+            line.acctCode && line.acctCode.trim() && 
+            line.sumApplied && line.sumApplied > 0
+        );
+        
+        if (validLines.length === 0) {
+            throw new Error('At least one line item with account code and amount greater than 0 is required.');
+        }
+        
         // Submit the form data to API
-        const response = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers`, {
+        console.log('Submitting form data to API:', formData);
+        console.log('Staging ID:', formData.stagingID);
+        console.log('Lines count:', formData.lines?.length);
+        console.log('Approval status:', formData.approval?.approvalStatus);
+        
+        const apiUrl = '/api/staging-outgoing-payments/headers';
+        console.log('API URL:', apiUrl);
+        console.log('Request headers:', {
+            'Content-Type': 'application/json',
+            'accept': 'application/json'
+        });
+        
+        const response = await makeAuthenticatedRequest(apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json-patch+json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'accept': '/'
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
             },
             body: JSON.stringify(formData)
         });
         
                     if (!response.ok) {
+                console.log("Response status:", response.status);
+                console.log("Response status text:", response.statusText);
+                
                 // Parse the error response to get the actual error message
                 let errorMessage = `Error API: ${response.status}`;
                 try {
@@ -1967,6 +2177,32 @@ async function submitDocument(isSubmit = false) {
         // Parse the successful response
         const result = await response.json();
         console.log("Submit result:", result);
+        console.log("Response data:", result.data);
+        
+        // Save the staging ID for future attachment uploads
+        let stagingId = null;
+        if (result.data && result.data.stagingID) {
+            stagingId = result.data.stagingID;
+            stagingOutgoingPaymentId = stagingId;
+            console.log('Staging outgoing payment ID saved:', stagingOutgoingPaymentId);
+        }
+        
+        // Upload attachments after successful document creation
+        if (stagingId && uploadedFiles.length > 0) {
+            console.log('Uploading attachments after document creation...');
+            try {
+                await uploadAttachmentsAfterDocumentCreation(stagingId);
+            } catch (uploadError) {
+                console.error('Error uploading attachments:', uploadError);
+                // Show warning but don't fail the entire submission
+                await Swal.fire({
+                    title: 'Warning',
+                    text: 'Document saved successfully, but some attachments failed to upload. You can upload them later.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
         
         // Show appropriate success message
         if (isSubmit) {
@@ -2075,11 +2311,6 @@ function collectFormData(userId, isSubmit) {
             }
             
             const lineData = {
-                lineID: index,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                stagingID: stagingID,
-                docNum: 0,
                 lineNum: index,
                 acctCode: acctCodeInput.value || "",
                 acctName: acctNameInput.value || "",
@@ -2087,9 +2318,7 @@ function collectFormData(userId, isSubmit) {
                 sumApplied: amount,
                 ocrCode3: divisionInput.value || "",
                 category: "REIMBURSEMENT",
-                header: {
-                    stagingID: stagingID
-                }
+                header: {}
             };
             
             console.log(`Adding line ${index}:`, lineData);
@@ -2171,9 +2400,6 @@ function collectFormData(userId, isSubmit) {
     // Prepare the main request data according to API specification
     const requestData = {
         stagingID: stagingID,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        docEntry: 0,
         address: document.getElementById("Address")?.value || "",
         cardName: document.getElementById("CardName")?.value || "",
         docDate: document.getElementById("DocDate")?.value ? new Date(document.getElementById("DocDate").value).toISOString() : null,
@@ -2185,19 +2411,15 @@ function collectFormData(userId, isSubmit) {
         jrnlMemo: document.getElementById("JrnlMemo")?.value || "",
         doctype: document.getElementById("Doctype")?.value || "A",
         docCurr: document.getElementById("DocCurr")?.value || "IDR",
-        diffCurr: document.getElementById("DocCurr")?.value || "IDR",
         trsfrDate: document.getElementById("TrsfrDate")?.value ? new Date(document.getElementById("TrsfrDate").value).toISOString() : null,
         trsfrAcct: document.getElementById("TrsfrAcct")?.value || "",
         trsfrSum: parseCurrency(document.getElementById("TrsfrSum")?.value) || 0,
-        isInterfaced: false,
         type: document.getElementById("TypeOfTransaction")?.value || "REIMBURSEMENT",
         expressivNo: reimbursementId || document.getElementById("CounterRef")?.value || "",
         requesterId: userId,
         lines: lines,
         approval: {
             stagingID: stagingID,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             approvalStatus: isSubmit ? "Prepared" : "Draft",
             preparedBy: preparedById,
             checkedBy: checkedById,
@@ -2205,25 +2427,42 @@ function collectFormData(userId, isSubmit) {
             approvedBy: approvedById,
             receivedBy: receivedById,
             preparedDate: new Date().toISOString(),
-            checkedDate: null,
-            acknowledgedDate: null,
-            approvedDate: null,
-            receivedDate: null,
-            rejectedDate: null,
             rejectionRemarks: document.getElementById("rejectionRemarks")?.value || "",
-            revisionNumber: 0,
-            revisionDate: null,
-            revisionRemarks: "",
-            header: {
-                stagingID: stagingID
-            }
+            header: {}
         },
-        attachments: attachments
+        header: {}
     };
     
-    console.log('Final request data to be sent to API:', requestData);
+    // Collect attachment IDs from existing attachments that were uploaded
+    const attachmentIds = [];
+    if (existingAttachments && existingAttachments.length > 0) {
+        existingAttachments.forEach(attachment => {
+            if (attachment.attachmentID) {
+                attachmentIds.push(attachment.attachmentID);
+            }
+        });
+    }
     
-    return requestData;
+    // Add attachment IDs to the request
+    const requestDataWithAttachments = {
+        ...requestData,
+        attachmentIds: attachmentIds
+    };
+    
+    console.log('Final request data to be sent to API:', requestDataWithAttachments);
+    console.log('Attachment IDs to be sent:', attachmentIds);
+    
+    // Validate that we have at least one line
+    if (!lines || lines.length === 0) {
+        throw new Error('At least one line item is required. Please add account code and amount in the table.');
+    }
+    
+    // Validate that stagingID is not empty
+    if (!stagingID) {
+        throw new Error('Staging ID is required.');
+    }
+    
+    return requestDataWithAttachments;
 }
 
 // Function to validate required fields
@@ -2339,10 +2578,9 @@ async function loadDocumentData() {
         }
         
         // Fetch document data from API - use reimbursement endpoint
-        const response = await fetch(`https://expressiv.idsdev.site/api/reimbursements/${docId}`, {
+        const response = await makeAuthenticatedRequest(`/api/reimbursements/${docId}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json',
                 'accept': 'text/plain'
             }
@@ -2511,11 +2749,10 @@ function mapResponseToForm(responseData) {
 // Function to load attachments from API
 async function loadAttachmentsFromAPI(docId) {
     try {
-        // Fetch attachments from API - use reimbursement attachments endpoint
-        const response = await fetch(`https://expressiv.idsdev.site/api/reimbursements/${docId}/attachments`, {
+        // Use staging outgoing payment attachments endpoint
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -2560,10 +2797,15 @@ function toggleClosedByVisibility() {
 
 // Function to make authenticated request (helper function)
 async function makeAuthenticatedRequest(url, options = {}) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) {
-        throw new Error('No authentication token found');
+        // Redirect to login if no token found
+        window.location.href = '../pages/login.html';
+        throw new Error('No authentication token found. Please login again.');
     }
+    
+    // Construct full URL if it's a relative path
+    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
     
     const defaultOptions = {
         headers: {
@@ -2575,7 +2817,19 @@ async function makeAuthenticatedRequest(url, options = {}) {
     
     const finalOptions = { ...defaultOptions, ...options };
     
-    return fetch(url, finalOptions);
+    const response = await fetch(fullUrl, finalOptions);
+    
+    // Handle authentication errors
+    if (response.status === 401) {
+        // Clear tokens and redirect to login
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('loggedInUser');
+        window.location.href = '../pages/login.html';
+        throw new Error('Authentication failed. Please login again.');
+    }
+    
+    return response;
 }
 
 // Make functions globally available for HTML onclick handlers
@@ -2947,7 +3201,7 @@ async function loadUsersIfNeeded() {
     console.log('Loading users from API...');
     
     try {
-        const response = await fetch('https://expressiv.idsdev.site/api/users', {
+        const response = await makeAuthenticatedRequest('/api/users', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -2973,9 +3227,352 @@ async function loadUsersIfNeeded() {
         
     } catch (error) {
         console.error('Error loading users:', error);
+        
+        // If it's an authentication error, don't show additional error messages
+        if (error.message.includes('authentication') || error.message.includes('login')) {
+            return;
+        }
+        
         // Don't throw error as this is not critical for form submission
     }
 }
 
-// Make loadUsersIfNeeded globally available
+// Make functions globally available
 window.loadUsersIfNeeded = loadUsersIfNeeded;
+window.refreshAttachments = refreshAttachments;
+window.previewPDF = previewPDF;
+window.uploadSelectedFiles = uploadSelectedFiles;
+window.loadAttachmentsFromAPI = loadAttachmentsFromAPI;
+window.displayFileList = displayFileList;
+window.removeFile = removeFile;
+window.clearAllFiles = clearAllFiles;
+
+
+
+
+
+// Enhanced attachment display function
+function displayExistingAttachments(attachments) {
+    const container = document.getElementById('existingAttachments');
+    if (!container) return;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    if (!attachments || attachments.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+        return;
+    }
+    
+    // Create attachment list
+    const attachmentList = document.createElement('div');
+    attachmentList.className = 'space-y-2';
+    
+    attachments.forEach((attachment, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border';
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-2';
+        
+        // File icon based on type
+        const fileIcon = getFileIcon(attachment.fileName || attachment.name);
+        
+        fileInfo.innerHTML = `
+            <span class="text-lg">${fileIcon}</span>
+            <div>
+                <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
+                <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
+                <div class="text-xs text-gray-400">Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
+            </div>
+        `;
+        
+        const actions = document.createElement('div');
+        actions.className = 'flex space-x-2';
+        
+        // View button
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+        viewBtn.innerHTML = '👁️ View';
+        viewBtn.onclick = () => viewAttachment(attachment);
+        
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-300 hover:bg-red-50';
+        deleteBtn.innerHTML = '🗑️ Delete';
+        deleteBtn.onclick = () => deleteAttachment(attachment.id || index);
+        
+        actions.appendChild(viewBtn);
+        actions.appendChild(deleteBtn);
+        
+        attachmentItem.appendChild(fileInfo);
+        attachmentItem.appendChild(actions);
+        attachmentList.appendChild(attachmentItem);
+    });
+    
+    container.appendChild(attachmentList);
+}
+
+// Function to preview selected files (similar to addReim.html)
+function previewPDF(event) {
+    const files = event.target.files;
+    
+    // Check if adding these files would exceed a reasonable limit (e.g., 20 files)
+    const MAX_FILES = 20;
+    if (uploadedFiles.length + files.length > MAX_FILES) {
+        Swal.fire({
+            title: 'Too Many Files',
+            text: `Maximum ${MAX_FILES} files allowed. You currently have ${uploadedFiles.length} files.`,
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        event.target.value = '';
+        return;
+    }
+    
+    // Add new files to uploadedFiles array
+    Array.from(files).forEach(file => {
+        // Check if file with same name already exists
+        const fileExists = uploadedFiles.some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size
+        );
+        
+        // Only add if it doesn't exist
+        if (!fileExists) {
+            uploadedFiles.push(file);
+        } else {
+            // Show warning for duplicate file
+            Swal.fire({
+                title: 'File Already Selected',
+                text: `File "${file.name}" is already in the list.`,
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+
+    displayFileList();
+    
+    // Clear the file input so user can select more files
+    event.target.value = '';
+}
+
+// Function to display file list
+function displayFileList() {
+    const fileList = document.getElementById('fileList');
+    
+    if (!fileList) return;
+    
+    // Clear existing content
+    fileList.innerHTML = '';
+    
+    if (uploadedFiles.length === 0) {
+        fileList.innerHTML = '<p class="text-gray-500 text-sm">No files selected</p>';
+        return;
+    }
+    
+    // Add header with file count
+    const header = document.createElement('div');
+    header.className = 'font-bold mt-2 mb-1 text-sm text-gray-700';
+    header.textContent = `Selected Files (${uploadedFiles.length}):`;
+    fileList.appendChild(header);
+    
+    // Create file list
+    const listContainer = document.createElement('div');
+    listContainer.className = 'space-y-2';
+    
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border';
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-2';
+        
+        // File icon based on type
+        const fileIcon = getFileIcon(file.name);
+        
+        fileInfo.innerHTML = `
+            <span class="text-lg">${fileIcon}</span>
+            <div>
+                <div class="font-medium text-sm">${file.name}</div>
+                <div class="text-xs text-gray-500">${formatFileSize(file.size)} • ${file.type || 'Unknown Type'}</div>
+            </div>
+        `;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-300 hover:bg-red-50';
+        removeBtn.innerHTML = '🗑️ Remove';
+        removeBtn.onclick = () => removeFile(index);
+        
+        fileItem.appendChild(fileInfo);
+        fileItem.appendChild(removeBtn);
+        listContainer.appendChild(fileItem);
+    });
+    
+    fileList.appendChild(listContainer);
+}
+
+// Function to remove file from the list
+function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
+}
+
+// Function to clear all selected files
+function clearAllFiles() {
+    if (uploadedFiles.length === 0) {
+        Swal.fire({
+            title: 'No Files',
+            text: 'No files to clear.',
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Clear All Files',
+        text: `Are you sure you want to remove all ${uploadedFiles.length} selected files?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Clear All',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            uploadedFiles = [];
+            displayFileList();
+            
+            Swal.fire({
+                title: 'Cleared',
+                text: 'All files have been removed.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+}
+
+// Function to upload selected files when form is submitted (legacy function - now handled after document creation)
+async function uploadSelectedFiles() {
+    console.log('uploadSelectedFiles called - this function is now deprecated. Attachments will be uploaded after document creation.');
+    return; // No longer used - attachments are uploaded after document creation
+}
+
+// Function to upload attachments after document creation
+async function uploadAttachmentsAfterDocumentCreation(stagingId) {
+    if (!stagingId) {
+        throw new Error('Staging ID is required for attachment upload.');
+    }
+    
+    if (uploadedFiles.length === 0) {
+        console.log('No files to upload');
+        return;
+    }
+    
+    console.log(`Uploading ${uploadedFiles.length} files to staging ID: ${stagingId}`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    for (let i = 0; i < uploadedFiles.length; i++) {
+        const file = uploadedFiles[i];
+        
+        try {
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                errors.push(`${file.name} is too large. Maximum size is 10MB.`);
+                errorCount++;
+                continue;
+            }
+
+            // Validate file type
+            const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedTypes.includes(fileExtension)) {
+                errors.push(`${file.name} is not a supported file type.`);
+                errorCount++;
+                continue;
+            }
+
+            // Upload the file using the staging ID
+            await uploadAttachmentToStaging(file, `Uploaded ${file.name}`, 'Document', stagingId);
+            successCount++;
+            
+        } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            errors.push(`${file.name}: ${error.message}`);
+            errorCount++;
+        }
+    }
+
+    // Clear the uploaded files array after successful upload
+    if (successCount > 0) {
+        uploadedFiles = [];
+        displayFileList();
+    }
+
+    if (errors.length > 0) {
+        console.error('Upload errors:', errors);
+        if (errorCount === uploadedFiles.length) {
+            throw new Error('All file uploads failed');
+        }
+    }
+    
+    console.log(`Upload completed: ${successCount} successful, ${errorCount} failed`);
+}
+
+// Enhanced refresh attachments function
+async function refreshAttachments() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const docId = urlParams.get('id');
+    
+    if (!docId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Document ID not found. Please ensure you are viewing an existing document.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Refreshing...',
+            text: 'Loading attachments, please wait...',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        await loadAttachmentsFromAPI(docId);
+
+        // Close loading indicator
+        Swal.close();
+
+        Swal.fire({
+            title: 'Success',
+            text: 'Attachments refreshed successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+
+    } catch (error) {
+        console.error("Error refreshing attachments:", error);
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to refresh attachments: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}

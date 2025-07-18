@@ -5,15 +5,8 @@ function loadDashboard() {
     // Fetch reimbursements from API
     fetchReimbursements();
     
-    // Add event listener for search input
-    document.getElementById('searchInput').addEventListener('input', handleSearch);
-    
-    // Add event listener for search type dropdown
-    document.getElementById('searchType').addEventListener('change', function() {
-        // Trigger search again when dropdown changes
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        handleSearch({target: {value: searchTerm}});
-    });
+    // Setup event listeners
+    setupEventListeners();
 }
 
 // Variables for pagination and filtering
@@ -127,9 +120,61 @@ function fetchStatusCounts() {
         });
 }
 
+// Tambahkan variabel cache dan optimasi
+let dataCache = {
+    reimbursements: null,
+    statusCounts: null,
+    lastFetch: null,
+    cacheExpiry: 5 * 60 * 1000 // 5 menit
+};
+
+let isLoading = false;
+let searchInputListener = null;
+
+// Fungsi debounce untuk search
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Setup event listeners dengan cleanup
+function setupEventListeners() {
+    // Remove existing listeners if any
+    if (searchInputListener) {
+        document.getElementById('searchInput').removeEventListener('input', searchInputListener);
+    }
+    
+    // Add new listeners
+    const debouncedSearch = debounce(handleSearch, 300);
+    searchInputListener = debouncedSearch;
+    document.getElementById('searchInput').addEventListener('input', searchInputListener);
+    
+    // Add event listener for search type dropdown
+    document.getElementById('searchType').addEventListener('change', function() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        handleSearch({target: {value: searchTerm}});
+    });
+}
+
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
     const userId = getUserId();
+    
+    // Cek cache terlebih dahulu
+    if (dataCache.reimbursements && 
+        dataCache.lastFetch && 
+        (Date.now() - dataCache.lastFetch) < dataCache.cacheExpiry) {
+        allReimbursements = dataCache.reimbursements;
+        fetchReimbursementsByStatus('checked');
+        return;
+    }
     
     // Initialize with checked tab data
     fetchReimbursementsByStatus('checked');
@@ -138,6 +183,9 @@ function fetchReimbursements() {
 // New function to fetch reimbursements by status using role-specific API endpoints
 // Uses role-specific endpoints: /api/reimbursements/acknowledger/{userId}/{status}
 function fetchReimbursementsByStatus(status) {
+    if (isLoading) return; // Prevent multiple simultaneous requests
+    
+    isLoading = true;
     const userId = getUserId();
     let endpoint;
     
@@ -152,6 +200,7 @@ function fetchReimbursementsByStatus(status) {
     endpoint = endpointMap[status];
     if (!endpoint) {
         console.error('Invalid status:', status);
+        isLoading = false;
         return;
     }
     
@@ -164,8 +213,11 @@ function fetchReimbursementsByStatus(status) {
         })
         .then(data => {
             if (data.status && data.code === 200) {
+                // Simpan ke cache
+                dataCache.reimbursements = data.data;
+                dataCache.lastFetch = Date.now();
+                
                 allReimbursements = data.data;
-                // Apply search filter if there's an active search
                 const searchTerm = document.getElementById('searchInput').value.toLowerCase();
                 const searchType = document.getElementById('searchType').value;
                 if (searchTerm) {
@@ -183,6 +235,9 @@ function fetchReimbursementsByStatus(status) {
         .catch(error => {
             console.error('Error fetching reimbursements by status:', error);
             displayErrorMessage('Failed to fetch reimbursements');
+        })
+        .finally(() => {
+            isLoading = false;
         });
 }
 
@@ -291,56 +346,51 @@ function switchTab(tabName) {
 // Update the table with current data
 function updateTable() {
     const tableBody = document.getElementById('recentDocs');
-    tableBody.innerHTML = '';
-    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
     
-    if (filteredData.length === 0) {
-        const row = document.createElement('tr');
-        row.classList.add('border-t');
-        row.innerHTML = `
-            <td colspan="7" class="p-4 text-center text-gray-500">No data available</td>
-        `;
-        tableBody.appendChild(row);
-    } else {
-        for (let i = startIndex; i < endIndex; i++) {
-            const item = filteredData[i];
-            
-                    // Format the submission date if needed
+    // Gunakan DocumentFragment untuk batch DOM updates
+    const fragment = document.createDocumentFragment();
+    
+    for (let i = startIndex; i < endIndex; i++) {
+        const item = filteredData[i];
+        
         let formattedDate = item.submissionDate;
         if (item.submissionDate) {
             formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
-            
-            const displayStatus = item.status;
-            
-            const row = document.createElement('tr');
-            row.classList.add('border-t', 'hover:bg-gray-100');
-            
-            row.innerHTML = `
-                <td class="p-2">${i + 1}</td>
-                <td class="p-2">${item.voucherNo || ''}</td>
-                <td class="p-2">${item.requesterName || ''}</td>
-                <td class="p-2">${item.department || ''}</td>
-                <td class="p-2">${formattedDate}</td>
-                <td class="p-2">
-                    <span class="px-2 py-1 rounded-full text-xs ${getStatusColorClass(displayStatus)}">
-                        ${displayStatus}
-                    </span>
-                </td>
-                <td class="p-2">
-                    <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
-                        Detail
-                    </button>
-                </td>
-            `;
-            
-            tableBody.appendChild(row);
-        }
+        
+        const displayStatus = item.status;
+        
+        const row = document.createElement('tr');
+        row.classList.add('border-t', 'hover:bg-gray-100');
+        
+        row.innerHTML = `
+            <td class="p-2">${i + 1}</td>
+            <td class="p-2">${item.voucherNo || ''}</td>
+            <td class="p-2">${item.requesterName || ''}</td>
+            <td class="p-2">${item.department || ''}</td>
+            <td class="p-2">${formattedDate}</td>
+            <td class="p-2">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusColorClass(displayStatus)}">
+                    ${displayStatus}
+                </span>
+            </td>
+            <td class="p-2">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
+                    Detail
+                </button>
+            </td>
+        `;
+        
+        fragment.appendChild(row);
     }
     
-    // Update the item count display
+    // Clear dan append sekaligus
+    tableBody.innerHTML = '';
+    tableBody.appendChild(fragment);
+    
+    // Update item count display
     document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
     document.getElementById('endItem').textContent = endIndex;
     document.getElementById('totalItems').textContent = filteredData.length;
@@ -368,16 +418,21 @@ function updatePagination() {
     }
 }
 
-// Change the current page
+// Optimasi fungsi changePage dengan requestAnimationFrame
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const newPage = currentPage + direction;
     
-    if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    }
+    
+    // Gunakan requestAnimationFrame untuk smooth rendering
+    requestAnimationFrame(() => {
         updateTable();
         updatePagination();
-    }
+    });
 }
 
 // Function to show all documents
@@ -657,6 +712,9 @@ async function pollCheckedDocs() {
         const userId = getUserId();
         if (!userId) return;
         
+        // Cek apakah ada perubahan data sebelum melakukan fetch
+        const lastPollData = localStorage.getItem('lastPollDataReimAcknow');
+        
         // Menggunakan endpoint untuk reimbursement
         const response = await fetch(`${BASE_URL}/api/reimbursements/acknowledger/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
@@ -666,30 +724,33 @@ async function pollCheckedDocs() {
         if (!data.status || data.code !== 200) return;
         
         const docs = data.data || [];
-        let newReimFound = false;
+        const currentDataHash = JSON.stringify(docs.map(d => ({id: d.id, status: d.status})));
         
-        docs.forEach(doc => {
-            // Hanya notifikasi untuk dokumen dengan status Checked
-            if (doc.status === 'Checked' && !notifiedReims.has(doc.voucherNo)) {
-                // Format pesan notifikasi
-                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
-                const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
-                showNotification(message, doc.voucherNo);
-                newReimFound = true;
-            }
-        });
-        
-        // Play sound jika ada dokumen baru
-        if (newReimFound) {
-            try {
-                const audio = new Audio('../../../../components/shared/tones.mp3');
-                audio.play();
-            } catch (e) {
-                console.warn('Gagal memutar nada dering notifikasi:', e);
+        // Hanya proses jika ada perubahan data
+        if (lastPollData !== currentDataHash) {
+            localStorage.setItem('lastPollDataReimAcknow', currentDataHash);
+            
+            let newReimFound = false;
+            
+            docs.forEach(doc => {
+                if (doc.status === 'Checked' && !notifiedReims.has(doc.voucherNo)) {
+                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                    const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
+                    showNotification(message, doc.voucherNo);
+                    newReimFound = true;
+                }
+            });
+            
+            if (newReimFound) {
+                try {
+                    const audio = new Audio('../../../../components/shared/tones.mp3');
+                    audio.play();
+                } catch (e) {
+                    console.warn('Gagal memutar nada dering notifikasi:', e);
+                }
             }
         }
     } catch (e) {
-        // Silent error
         console.error('Error polling reimbursements:', e);
     }
 }
@@ -727,11 +788,11 @@ async function pollAcknowledgedDocs() {
     }
 }
 
-// Polling interval (setiap 10 detik)
+// Ubah polling interval dari 10 detik ke 30 detik
 setInterval(() => {
     pollCheckedDocs();
     pollAcknowledgedDocs();
-}, 10000);
+}, 30000); // 30 detik
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {

@@ -185,7 +185,9 @@ async function downloadAttachment(filePath, fileName) {
     try {
         // Create download link using BASE_URL from auth.js
         const link = document.createElement('a');
-        link.href = `${BASE_URL}/api/files/${encodeURIComponent(filePath)}`;
+        // Remove /api/files and decode %2F to /
+        const decodedPath = decodeURIComponent(filePath);
+        link.href = `${BASE_URL}/${decodedPath}`;
         link.download = fileName || 'attachment';
         link.target = '_blank';
         document.body.appendChild(link);

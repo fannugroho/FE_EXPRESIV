@@ -528,9 +528,9 @@ async function pollRevisionDocs() {
             return;
         }
         
-        console.log('Polling for revision documents...');
+        // Cek apakah ada perubahan data sebelum melakukan fetch
+        const lastPollData = localStorage.getItem('lastPollDataReimRevision');
         
-        // Menggunakan endpoint umum untuk reimbursement
         const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
@@ -547,31 +547,30 @@ async function pollRevisionDocs() {
         }
         
         const docs = data.data || [];
-        console.log('Fetched documents for polling:', docs.length);
+        const currentDataHash = JSON.stringify(docs.map(d => ({id: d.id, status: d.status})));
         
-        let newReimFound = false;
-        
-        docs.forEach(doc => {
-            console.log('Checking document:', doc.voucherNo, 'Status:', doc.status);
-            // Hanya notifikasi untuk dokumen dengan status Revision
-            if (doc.status === 'Revision' && !notifiedReims.has(doc.voucherNo)) {
-                console.log('Found new revision document:', doc.voucherNo);
-                // Format pesan notifikasi
-                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
-                const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
-                showNotification(message, doc.voucherNo);
-                newReimFound = true;
-            }
-        });
-        
-        // Play sound jika ada dokumen baru
-        if (newReimFound) {
-            console.log('New revision found, playing notification sound');
-            try {
-                const audio = new Audio('../../../../components/shared/tones.mp3');
-                audio.play();
-            } catch (e) {
-                console.warn('Gagal memutar nada dering notifikasi:', e);
+        // Hanya proses jika ada perubahan data
+        if (lastPollData !== currentDataHash) {
+            localStorage.setItem('lastPollDataReimRevision', currentDataHash);
+            
+            let newReimFound = false;
+            
+            docs.forEach(doc => {
+                if (doc.status === 'Revision' && !notifiedReims.has(doc.voucherNo)) {
+                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                    const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
+                    showNotification(message, doc.voucherNo);
+                    newReimFound = true;
+                }
+            });
+            
+            if (newReimFound) {
+                try {
+                    const audio = new Audio('../../../../components/shared/tones.mp3');
+                    audio.play();
+                } catch (e) {
+                    console.warn('Gagal memutar nada dering notifikasi:', e);
+                }
             }
         }
     } catch (e) {
@@ -660,3 +659,283 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 1000); // Delay untuk memastikan DOM sudah siap
 }); 
+
+// Tambahkan variabel cache dan optimasi
+let dataCache = {
+    reimbursements: null,
+    statusCounts: null,
+    lastFetch: null,
+    cacheExpiry: 5 * 60 * 1000 // 5 menit
+};
+
+let isLoading = false;
+let searchInputListener = null;
+
+// Fungsi debounce untuk search
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Setup event listeners dengan cleanup
+function setupEventListeners() {
+    // Remove existing listeners if any
+    if (searchInputListener) {
+        document.getElementById('searchInput').removeEventListener('input', searchInputListener);
+    }
+    
+    // Add new listeners
+    const debouncedSearch = debounce(handleSearch, 300);
+    searchInputListener = debouncedSearch;
+    document.getElementById('searchInput').addEventListener('input', searchInputListener);
+    
+    // Add event listener for search type dropdown
+    document.getElementById('searchType').addEventListener('change', function() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        handleSearch({target: {value: searchTerm}});
+    });
+}
+
+function loadDashboard() {
+    // Fetch status counts from API
+    fetchStatusCounts();
+    
+    // Fetch reimbursements from API
+    fetchReimbursements();
+    
+    // Setup event listeners
+    setupEventListeners();
+}
+
+// Modifikasi fungsi fetchReimbursements dengan caching
+function fetchReimbursements() {
+    const userId = getUserId();
+    
+    // Cek cache terlebih dahulu
+    if (dataCache.reimbursements && 
+        dataCache.lastFetch && 
+        (Date.now() - dataCache.lastFetch) < dataCache.cacheExpiry) {
+        allReimbursements = dataCache.reimbursements;
+        fetchReimbursementsByStatus('revised');
+        return;
+    }
+    
+    // Initialize with revised tab data
+    fetchReimbursementsByStatus('revised');
+}
+
+// Modifikasi fungsi fetchReimbursementsByStatus dengan loading state
+function fetchReimbursementsByStatus(status) {
+    if (isLoading) return; // Prevent multiple simultaneous requests
+    
+    isLoading = true;
+    const userId = getUserId();
+    let endpoint;
+    
+    if (status === 'revised') {
+        endpoint = `/api/reimbursements/user/${userId}/revised`;
+    } else if (status === 'prepared') {
+        endpoint = `/api/reimbursements/user/${userId}/prepared`;
+    } else {
+        endpoint = `/api/reimbursements/user/${userId}`;
+    }
+    
+    fetch(`${BASE_URL}${endpoint}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status && data.code === 200) {
+                // Simpan ke cache
+                dataCache.reimbursements = data.data;
+                dataCache.lastFetch = Date.now();
+                
+                allReimbursements = data.data;
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const searchType = document.getElementById('searchType').value;
+                if (searchTerm) {
+                    filterReimbursements(searchTerm, status, searchType);
+                } else {
+                    filteredData = allReimbursements;
+                    updateTable();
+                    updatePagination();
+                }
+            } else {
+                console.error('API returned an error:', data.message);
+                useSampleData();
+                filterReimbursements('', status);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching reimbursements by status:', error);
+            useSampleData();
+            filterReimbursements('', status);
+        })
+        .finally(() => {
+            isLoading = false;
+        });
+}
+
+// Optimasi fungsi updateTable dengan DocumentFragment
+function updateTable() {
+    const tableBody = document.getElementById('recentDocs');
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+    
+    // Gunakan DocumentFragment untuk batch DOM updates
+    const fragment = document.createDocumentFragment();
+    
+    for (let i = startIndex; i < endIndex; i++) {
+        const item = filteredData[i];
+        
+        let formattedDate = item.submissionDate;
+        if (item.submissionDate) {
+            formattedDate = formatDateWithLocalTimezone(item.submissionDate);
+        }
+        
+        const displayStatus = item.status;
+        
+        const row = document.createElement('tr');
+        row.classList.add('border-t', 'hover:bg-gray-100');
+        
+        row.innerHTML = `
+            <td class="p-2">${i + 1}</td>
+            <td class="p-2">${item.voucherNo || ''}</td>
+            <td class="p-2">${item.requesterName || ''}</td>
+            <td class="p-2">${item.department || ''}</td>
+            <td class="p-2">${formattedDate}</td>
+            <td class="p-2">
+                <span class="px-2 py-1 rounded-full text-xs ${getStatusColorClass(displayStatus)}">
+                    ${displayStatus}
+                </span>
+            </td>
+            <td class="p-2">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" onclick="detailReim('${item.id}')">
+                    Detail
+                </button>
+            </td>
+        `;
+        
+        fragment.appendChild(row);
+    }
+    
+    // Clear dan append sekaligus
+    tableBody.innerHTML = '';
+    tableBody.appendChild(fragment);
+    
+    // Update item count display
+    document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
+    document.getElementById('endItem').textContent = endIndex;
+    document.getElementById('totalItems').textContent = filteredData.length;
+}
+
+// Optimasi fungsi changePage dengan requestAnimationFrame
+function changePage(direction) {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    }
+    
+    // Gunakan requestAnimationFrame untuk smooth rendering
+    requestAnimationFrame(() => {
+        updateTable();
+        updatePagination();
+    });
+}
+
+// Optimasi polling dengan pengecekan perubahan data
+async function pollRevisionDocs() {
+    try {
+        const userId = getUserId();
+        if (!userId) {
+            console.log('No user ID found for polling');
+            return;
+        }
+        
+        // Cek apakah ada perubahan data sebelum melakukan fetch
+        const lastPollData = localStorage.getItem('lastPollDataReimRevision');
+        
+        const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
+        });
+        
+        if (!response.ok) {
+            console.warn('Failed to fetch reimbursements for polling:', response.status);
+            return;
+        }
+        
+        const data = await response.json();
+        if (!data.status || data.code !== 200) {
+            console.warn('API returned error for polling:', data);
+            return;
+        }
+        
+        const docs = data.data || [];
+        const currentDataHash = JSON.stringify(docs.map(d => ({id: d.id, status: d.status})));
+        
+        // Hanya proses jika ada perubahan data
+        if (lastPollData !== currentDataHash) {
+            localStorage.setItem('lastPollDataReimRevision', currentDataHash);
+            
+            let newReimFound = false;
+            
+            docs.forEach(doc => {
+                if (doc.status === 'Revision' && !notifiedReims.has(doc.voucherNo)) {
+                    const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
+                    const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
+                    showNotification(message, doc.voucherNo);
+                    newReimFound = true;
+                }
+            });
+            
+            if (newReimFound) {
+                try {
+                    const audio = new Audio('../../../../components/shared/tones.mp3');
+                    audio.play();
+                } catch (e) {
+                    console.warn('Gagal memutar nada dering notifikasi:', e);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Error polling reimbursements:', e);
+    }
+}
+
+// ... existing code ...
+
+// Ubah polling interval dari 10 detik ke 30 detik
+setInterval(() => {
+    pollRevisionDocs();
+    pollPreparedDocs();
+}, 30000); // 30 detik
+
+// ... existing code ...
+```
+
+## **Ringkasan Optimasi yang Diterapkan:**
+
+### **1. Caching Data**
+- Menambahkan `dataCache` dengan expiry 5 menit
+- Mencegah fetch data berulang jika cache masih valid
+
+### **2. Loading State**
+- Menambahkan `isLoading` untuk mencegah multiple requests
+- Mencegah race condition pada API calls
+
+### **3. Debouncing Search**
+- Menambahkan debounce 300ms untuk search input
+- Mengurangi jumlah API calls saat user mengeti 

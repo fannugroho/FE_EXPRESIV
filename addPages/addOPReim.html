@@ -69,7 +69,7 @@
          */
         
         // Define the base URL for API calls
-        const baseUrlDevAmiru = "https://api-dev.expressiv.id"; // Adjust this URL as needed
+        const baseUrlDevAmiru = "https://expressiv.idsdev.site"; // Adjust this URL as needed
     </script>
     <script src="../js/auth.js"></script>
     <script src="../js/addOPReim.js"></script>
@@ -95,6 +95,8 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        
+
     </style>
 </head>
 
@@ -127,15 +129,25 @@
                 <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Attachment</h3>
-                <input type="file" id="attachment" class="w-full p-2 border rounded" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" autocomplete="off">
+                <div class="flex items-center space-x-2">
+                    <input type="file" id="attachment" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" class="flex-1 p-2 border rounded" onchange="previewPDF(event)" autocomplete="off" multiple>
+                    <button type="button" onclick="clearAllFiles()" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
+                        Clear All
+                    </button>
+                </div>
+                <div id="fileList" class="mt-2"></div>
                 
                 <!-- Area untuk menampilkan attachment yang sudah ada -->
-                <div class="mt-2">
-                    <div class="mb-2">
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-3">
                         <span class="text-sm font-medium text-gray-700">Existing Attachments</span>
+                        <button onclick="refreshAttachments()" class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
+                            🔄 Refresh
+                        </button>
                     </div>
-                    <div id="existingAttachments">
-                    <!-- Attachment yang sudah ada akan ditampilkan di sini -->
+                    <div id="existingAttachments" class="space-y-2">
+                        <!-- Attachment yang sudah ada akan ditampilkan di sini -->
+                        <div class="text-gray-500 text-sm text-center py-4">No attachments found</div>
                     </div>
                 </div>
                 
