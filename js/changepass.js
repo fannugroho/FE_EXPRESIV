@@ -139,7 +139,7 @@ async function handlePasswordChange(event) {
     
     const result = await response.json();
     
-    if (result.status && result.code === 200) {
+    if (result.Status && result.Code === 200) {
       // Password change successful
       alert(translations[lang].passwordChanged);
       
@@ -163,7 +163,7 @@ async function handlePasswordChange(event) {
       window.location.href = "dashboard.html";
     } else {
       // Password change failed
-      const errorMessage = result.message || translations[lang].error;
+      const errorMessage = result.Message || translations[lang].error;
       alert(errorMessage);
     }
   } catch (error) {
