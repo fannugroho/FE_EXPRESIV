@@ -26,7 +26,85 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let allReimbursements = [];
 let filteredReimbursements = [];
+let filteredData = [];
 let currentTab = 'revised'; // Default tab
+
+// Cache for data optimization
+let dataCache = {
+    reimbursements: null,
+    lastFetch: 0,
+    expiry: 5 * 60 * 1000 // 5 minutes
+};
+
+// Loading state
+let isLoading = false;
+
+// Notification tracking
+let notifiedReims = new Set();
+
+
+
+// Helper function to get access token
+function getAccessToken() {
+    return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+}
+
+// Helper function to get status color class
+function getStatusColorClass(status) {
+    switch (status.toLowerCase()) {
+        case 'revised':
+        case 'revision':
+            return 'bg-red-200 text-red-800';
+        case 'prepared':
+            return 'bg-green-200 text-green-800';
+        case 'approved':
+            return 'bg-blue-200 text-blue-800';
+        case 'rejected':
+            return 'bg-gray-200 text-gray-800';
+        default:
+            return 'bg-gray-200 text-gray-800';
+    }
+}
+
+// Helper function to use sample data when API fails
+function useSampleData() {
+    allReimbursements = [
+        {
+            id: '1',
+            voucherNo: 'REIM-001',
+            requesterName: 'John Doe',
+            department: 'IT',
+            submissionDate: '2024-01-15',
+            status: 'Revised'
+        },
+        {
+            id: '2',
+            voucherNo: 'REIM-002',
+            requesterName: 'Jane Smith',
+            department: 'HR',
+            submissionDate: '2024-01-16',
+            status: 'Prepared'
+        }
+    ];
+    filteredData = allReimbursements;
+    updateTable();
+    updatePagination();
+}
+
+// Function to update pagination
+function updatePagination() {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
+    
+    // Update pagination info
+    document.getElementById('startItem').textContent = filteredData.length > 0 ? startItem : 0;
+    document.getElementById('endItem').textContent = endItem;
+    document.getElementById('totalItems').textContent = filteredData.length;
+    
+    // Update pagination buttons
+    updatePaginationButtons(totalPages);
+}
 
 // Function to handle search
 function handleSearch(event) {
@@ -358,7 +436,6 @@ window.onload = loadDashboard;
 
 // ================= NOTIFICATION POLLING =================
 // Notifikasi dokumen yang perlu direvisi (revision)
-let notifiedReims = new Set();
 let notificationContainer = null;
 let isNotificationVisible = false;
 
@@ -584,9 +661,7 @@ async function pollPreparedDocs() {
         if (!userId) return;
         
         // Menggunakan endpoint umum untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
+        const response = await fetch(`${BASE_URL}/api/reimbursements/user/${userId}`);
         
         if (!response.ok) {
             console.warn('Failed to fetch reimbursements for polling');
@@ -661,14 +736,6 @@ document.addEventListener('DOMContentLoaded', function() {
 }); 
 
 // Tambahkan variabel cache dan optimasi
-let dataCache = {
-    reimbursements: null,
-    statusCounts: null,
-    lastFetch: null,
-    cacheExpiry: 5 * 60 * 1000 // 5 menit
-};
-
-let isLoading = false;
 let searchInputListener = null;
 
 // Fungsi debounce untuk search
@@ -739,13 +806,8 @@ function fetchReimbursementsByStatus(status) {
     const userId = getUserId();
     let endpoint;
     
-    if (status === 'revised') {
-        endpoint = `/api/reimbursements/user/${userId}/revised`;
-    } else if (status === 'prepared') {
-        endpoint = `/api/reimbursements/user/${userId}/prepared`;
-    } else {
-        endpoint = `/api/reimbursements/user/${userId}`;
-    }
+    // Use the general endpoint and filter on client side
+    endpoint = `/api/reimbursements/user/${userId}`;
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -761,12 +823,25 @@ function fetchReimbursementsByStatus(status) {
                 dataCache.lastFetch = Date.now();
                 
                 allReimbursements = data.data;
+                
+                // Filter data based on status on client side
+                let filteredByStatus = allReimbursements;
+                if (status === 'revised') {
+                    filteredByStatus = allReimbursements.filter(reim => 
+                        reim.status && reim.status.toLowerCase() === 'revised'
+                    );
+                } else if (status === 'prepared') {
+                    filteredByStatus = allReimbursements.filter(reim => 
+                        reim.status && reim.status.toLowerCase() === 'prepared'
+                    );
+                }
+                
                 const searchTerm = document.getElementById('searchInput').value.toLowerCase();
                 const searchType = document.getElementById('searchType').value;
                 if (searchTerm) {
                     filterReimbursements(searchTerm, status, searchType);
                 } else {
-                    filteredData = allReimbursements;
+                    filteredData = filteredByStatus;
                     updateTable();
                     updatePagination();
                 }
@@ -915,27 +990,8 @@ async function pollRevisionDocs() {
     }
 }
 
-// ... existing code ...
-
 // Ubah polling interval dari 10 detik ke 30 detik
 setInterval(() => {
     pollRevisionDocs();
     pollPreparedDocs();
-}, 30000); // 30 detik
-
-// ... existing code ...
-```
-
-## **Ringkasan Optimasi yang Diterapkan:**
-
-### **1. Caching Data**
-- Menambahkan `dataCache` dengan expiry 5 menit
-- Mencegah fetch data berulang jika cache masih valid
-
-### **2. Loading State**
-- Menambahkan `isLoading` untuk mencegah multiple requests
-- Mencegah race condition pada API calls
-
-### **3. Debouncing Search**
-- Menambahkan debounce 300ms untuk search input
-- Mengurangi jumlah API calls saat user mengeti 
+}, 30000); // 30 detik 

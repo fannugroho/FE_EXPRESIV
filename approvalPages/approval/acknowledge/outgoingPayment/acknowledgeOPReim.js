@@ -399,39 +399,66 @@ async function acknowledgeOPReim() {
             throw new Error('User ID not found. Please log in again.');
         }
         
-        // Prepare request data
+        // Get current user information
+        const currentUser = getCurrentUser();
+        const currentDate = new Date().toISOString();
+        
+        // Prepare request data based on the API structure
         const requestData = {
             stagingID: documentId,
-            approvalStatus: "Acknowledged", // Status for Acknowledged
+            createdAt: outgoingPaymentReimData.approval?.createdAt || currentDate,
+            updatedAt: currentDate,
+            approvalStatus: "Acknowledged",
             preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
             checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: userId, // Current user as acknowledger
+            acknowledgedBy: userId,
             approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
             receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
             preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
+            preparedByName: outgoingPaymentReimData.approval?.preparedByName || currentUser?.username || null,
+            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
+            acknowledgedByName: currentUser?.username || null,
+            approvedByName: outgoingPaymentReimData.approval?.approvedByName || null,
+            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
             checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: new Date().toISOString(), // Current date as acknowledged date
+            acknowledgedDate: currentDate,
             approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
             receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            header: outgoingPaymentReimData || {}
+            rejectedDate: outgoingPaymentReimData.approval?.rejectedDate || null,
+            rejectionRemarks: outgoingPaymentReimData.approval?.rejectionRemarks || "",
+            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
+            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
+            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            header: {}
         };
         
-        // Make API request to update approval status
-        const response = await makeAuthenticatedRequest(`${baseUrlDevAmiru}/api/staging-outgoing-payments/approvals/`, {
-            method: 'POST',
+        // Make API request to update approval status using PUT method
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+            method: 'PUT',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json-patch+json'
             },
             body: JSON.stringify(requestData)
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `API error: ${response.status}`);
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.Message || errorMessage;
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            throw new Error(errorMessage);
         }
         
-        // Parse response data
-        const responseData = await response.json();
+        // Try to parse response data if available
+        let responseData = null;
+        try {
+            responseData = await response.json();
+        } catch (e) {
+            console.log('Response does not contain JSON data');
+        }
         
         // Show success message
         Swal.fire({
@@ -650,7 +677,7 @@ async function revisionOPReim() {
 function getUserId() {
     try {
         const user = getCurrentUser();
-        return user ? user.id : null;
+        return user ? user.userId : null;
     } catch (error) {
         console.error('Error getting user ID:', error);
         return null;

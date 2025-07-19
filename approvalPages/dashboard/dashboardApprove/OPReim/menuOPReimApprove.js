@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'checked'; // Default tab
+let currentTab = 'acknowledged'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'reimNo';
 let currentPage = 1;
@@ -62,14 +62,25 @@ async function loadDashboard() {
         params.append('ApproverRole', 'approved');
         
         // Build URL based on current tab
-        if (currentTab === 'checked') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/approval`;
-            params.append('isApproved', 'false');
+        if (currentTab === 'acknowledged') {
+            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            params.append('includeDetails', 'false');
+            params.append('step', 'acknowledgedBy');
+            params.append('userId', userId);
+            params.append('onlyCurrentStep', 'false');
         } else if (currentTab === 'approved') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/approval`;
-            params.append('isApproved', 'true');
+            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            params.append('includeDetails', 'false');
+            params.append('step', 'approvedBy');
+            params.append('userId', userId);
+            params.append('onlyCurrentStep', 'true');
         } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/rejected`;
+            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            params.append('includeDetails', 'false');
+            params.append('step', 'approvedBy');
+            params.append('userId', userId);
+            params.append('onlyCurrentStep', 'true');
+            params.append('isRejected', 'true');
         }
         
         // Add search parameters if available
@@ -115,33 +126,55 @@ async function loadDashboard() {
             }
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('HTTP error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
-        const result = await response.json();
-        console.log('Dashboard API response:', result);
+        let result;
+        try {
+            result = await response.json();
+            console.log('Dashboard API response:', result);
+        } catch (jsonError) {
+            console.error('Error parsing JSON response:', jsonError);
+            const responseText = await response.text();
+            console.error('Raw response:', responseText);
+            throw new Error(`Invalid JSON response: ${jsonError.message}`);
+        }
 
-        if (result.status && result.data) {
-            const documents = result.data;
-            
-            // Sort documents by Reimburse No (newest first)
-            const sortedDocuments = sortDocumentsByReimNo(documents);
-            
-            // Update counters by fetching all statuses
-            await updateCounters(userId);
-            
-            // Update the table with filtered documents
-            updateTable(sortedDocuments);
-            
-            // Update pagination info
-            updatePaginationInfo(sortedDocuments.length);
+        // Check if result is an array (direct data) or has a data property
+        let documents = [];
+        if (Array.isArray(result)) {
+            documents = result;
+        } else if (result && result.data && Array.isArray(result.data)) {
+            documents = result.data;
+        } else if (result && result.data) {
+            // If data is not an array, try to convert it
+            documents = Array.isArray(result.data) ? result.data : [result.data];
         } else {
-            console.error('API response error:', result.message);
+            console.error('API response structure:', result);
+            console.error('Expected array or object with data property');
             // Fallback to empty state
             updateTable([]);
             updatePaginationInfo(0);
+            return;
         }
+        
+        // Sort documents by Reimburse No (newest first)
+        const sortedDocuments = sortDocumentsByReimNo(documents);
+        
+        // Update counters by fetching all statuses
+        await updateCounters(userId);
+        
+        // Update the table with filtered documents
+        updateTable(sortedDocuments);
+        
+        // Update pagination info
+        updatePaginationInfo(sortedDocuments.length);
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -157,28 +190,54 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status using new API endpoints
-        const checkedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=false`, {
+        const acknowledgedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=acknowledgedBy&userId=${userId}&onlyCurrentStep=false`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        const approvedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/approval?ApproverId=${userId}&ApproverRole=approved&isApproved=true`, {
+        const approvedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=approvedBy&userId=${userId}&onlyCurrentStep=true`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/rejected?ApproverId=${userId}&ApproverRole=approved`, {
+        const rejectedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=approvedBy&userId=${userId}&onlyCurrentStep=true&isRejected=true`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
 
-        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
-        const approvedData = approvedResponse.ok ? await approvedResponse.json() : { data: [] };
-        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
+        // Helper function to extract data from API response
+        const extractDataFromResponse = async (response) => {
+            if (!response.ok) {
+                console.error(`API error: ${response.status} ${response.statusText}`);
+                return [];
+            }
+            try {
+                const data = await response.json();
+                console.log('Counter API response:', data);
+                
+                if (Array.isArray(data)) {
+                    return data;
+                } else if (data && data.data && Array.isArray(data.data)) {
+                    return data.data;
+                } else if (data && data.data) {
+                    return Array.isArray(data.data) ? data.data : [data.data];
+                } else {
+                    console.error('Unexpected API response structure:', data);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error parsing API response:', error);
+                return [];
+            }
+        };
 
-        const checkedCount = checkedData.data ? checkedData.data.length : 0;
-        const approvedCount = approvedData.data ? approvedData.data.length : 0;
-        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
-        const totalCount = checkedCount + approvedCount + rejectedCount;
+        const acknowledgedData = await extractDataFromResponse(acknowledgedResponse);
+        const approvedData = await extractDataFromResponse(approvedResponse);
+        const rejectedData = await extractDataFromResponse(rejectedResponse);
+
+        const acknowledgedCount = acknowledgedData.length;
+        const approvedCount = approvedData.length;
+        const rejectedCount = rejectedData.length;
+        const totalCount = acknowledgedCount + approvedCount + rejectedCount;
 
         // Update counters
         document.getElementById("totalCount").textContent = totalCount;
-        document.getElementById("checkedCount").textContent = checkedCount;
+        document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
         document.getElementById("approvedCount").textContent = approvedCount;
         document.getElementById("rejectedCount").textContent = rejectedCount;
         
@@ -186,7 +245,7 @@ async function updateCounters(userId) {
         console.error('Error updating counters:', error);
         // Set counters to 0 on error
         document.getElementById("totalCount").textContent = '0';
-        document.getElementById("checkedCount").textContent = '0';
+        document.getElementById("acknowledgedCount").textContent = '0';
         document.getElementById("approvedCount").textContent = '0';
         document.getElementById("rejectedCount").textContent = '0';
     }
@@ -272,9 +331,9 @@ function updateTable(documents) {
                 <td class='p-2'>${docDate}</td>
                 <td class='p-2'>${docDueDate}</td>
                 <td class='p-2'>${formattedAmount}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.approval?.approvalStatus || 'Draft')}">${doc.approval?.approvalStatus || 'Draft'}</span></td>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(getStatusDisplay(doc))}">${getStatusDisplay(doc)}</span></td>
                 <td class='p-2'>
-                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                    <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </td>
             </tr>`;
             tableBody.innerHTML += row;
@@ -289,8 +348,8 @@ function switchTab(tabName) {
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
+    if (tabName === 'acknowledged') {
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
     } else if (tabName === 'approved') {
         document.getElementById('approvedTabBtn').classList.add('tab-active');
     } else if (tabName === 'rejected') {
@@ -326,6 +385,7 @@ function getStatusClass(status) {
         case 'Prepared': return 'bg-yellow-100 text-yellow-800';
         case 'Draft': return 'bg-yellow-100 text-yellow-800';
         case 'Checked': return 'bg-green-100 text-green-800';
+        case 'Acknowledged': return 'bg-blue-100 text-blue-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
         case 'Rejected': return 'bg-red-100 text-red-800';
@@ -333,6 +393,21 @@ function getStatusClass(status) {
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';
     }
+}
+
+// Helper function to determine status display for rejected documents
+function getStatusDisplay(doc) {
+    if (!doc.approval) {
+        return 'Draft';
+    }
+    
+    // Check if document is rejected
+    if (doc.approval.rejectedDate) {
+        return 'Rejected';
+    }
+    
+    // Return normal approval status
+    return doc.approval.approvalStatus || 'Draft';
 }
 
 // Update pagination information

@@ -902,14 +902,36 @@ function populatePRDetails(data) {
     document.getElementById('remarks').value = data.remarks || '';
     
     // Handle rejection remarks if status is Rejected
-    if (data.status === 'Rejected' && data.rejectedRemarks) {
+    if (data.status === 'Rejected') {
         // Show the rejection remarks section
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         const rejectionTextarea = document.getElementById('rejectionRemarks');
         
         if (rejectionSection && rejectionTextarea) {
-            rejectionSection.style.display = 'block';
-            rejectionTextarea.value = data.rejectedRemarks;
+            // Check for various possible rejection remarks fields
+            let rejectionRemarks = '';
+            
+            // Check for specific rejection remarks by role
+            if (data.remarksRejectByChecker) {
+                rejectionRemarks = data.remarksRejectByChecker;
+            } else if (data.remarksRejectByAcknowledger) {
+                rejectionRemarks = data.remarksRejectByAcknowledger;
+            } else if (data.remarksRejectByApprover) {
+                rejectionRemarks = data.remarksRejectByApprover;
+            } else if (data.remarksRejectByReceiver) {
+                rejectionRemarks = data.remarksRejectByReceiver;
+            } else if (data.rejectedRemarks) {
+                rejectionRemarks = data.rejectedRemarks;
+            } else if (data.rejectionRemarks) {
+                rejectionRemarks = data.rejectionRemarks;
+            }
+            
+            if (rejectionRemarks) {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = rejectionRemarks;
+            } else {
+                rejectionSection.style.display = 'none';
+            }
         }
     } else {
         // Hide the rejection remarks section if status is not Rejected

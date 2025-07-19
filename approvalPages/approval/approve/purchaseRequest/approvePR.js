@@ -287,6 +287,45 @@ function populatePRDetails(data) {
     // Display revised remarks if available
     displayRevisedRemarks(data);
     
+    // Display rejection remarks if status is Rejected
+    if (data.status === 'Rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            // Check for various possible rejection remarks fields
+            let rejectionRemarks = '';
+            
+            // Check for specific rejection remarks by role
+            if (data.remarksRejectByChecker) {
+                rejectionRemarks = data.remarksRejectByChecker;
+            } else if (data.remarksRejectByAcknowledger) {
+                rejectionRemarks = data.remarksRejectByAcknowledger;
+            } else if (data.remarksRejectByApprover) {
+                rejectionRemarks = data.remarksRejectByApprover;
+            } else if (data.remarksRejectByReceiver) {
+                rejectionRemarks = data.remarksRejectByReceiver;
+            } else if (data.rejectedRemarks) {
+                rejectionRemarks = data.rejectedRemarks;
+            } else if (data.rejectionRemarks) {
+                rejectionRemarks = data.rejectionRemarks;
+            }
+            
+            if (rejectionRemarks) {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = rejectionRemarks;
+            } else {
+                rejectionSection.style.display = 'none';
+            }
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -558,38 +597,51 @@ function approvePR() {
 
 // Function to reject PR
 function rejectPR() {
+    // Create custom dialog with single field
     Swal.fire({
-        title: 'Confirm Rejection',
-        text: 'Are you sure you want to reject this Purchase Request?',
-        icon: 'warning',
+        title: 'Reject Purchase Request',
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Reject',
-        cancelButtonText: 'Cancel'
+        width: '600px',
+        didOpen: () => {
+            // Initialize the field with user prefix
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
+            }
+            
+            // Add event listener for input protection
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            // Get the rejection remark
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            
+            if (remarks === '') {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            
+            return remarks;
+        }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Ask for rejection remarks
-            Swal.fire({
-                title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
-            }).then((remarksResult) => {
-                if (remarksResult.isConfirmed) {
-                    updatePRStatusWithRemarks('reject', remarksResult.value);
-                }
-            });
+            updatePRStatusWithRemarks('reject', result.value);
         }
     });
 }
@@ -1200,4 +1252,65 @@ function updateButtonVisibility() {
             }
         }
     }
+}
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        // Restore the prefix
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            
+            // Reset cursor position after the prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Approver'; // Default role for this page since we're on the approver page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the approver page, the role is Approver
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
 }

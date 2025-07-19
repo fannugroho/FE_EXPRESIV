@@ -12,8 +12,13 @@ let apiBaseUrl = 'https://api.example.com'; // Replace with actual API URL
 
 // Helper function to get logged-in user ID
 function getUserId() {
-    const user = JSON.parse(localStorage.getItem('loggedInUser'));
-    return user ? user.id : null;
+    try {
+        const user = getCurrentUser();
+        return user ? user.userId : null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
 }
 
 // Helper function to format number as currency with support for very large numbers (trillions)

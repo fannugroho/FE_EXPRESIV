@@ -8,7 +8,7 @@ function mapResponseToForm(data) {
     
     // Map header fields
     document.getElementById('CounterRef').value = data.counterRef || '';
-    document.getElementById('RequesterName').value = data.requesterId || ''; // TODO: Resolve requesterId to user name
+    document.getElementById('RequesterName').value = data.requesterName || ''; // Use requesterName directly from API
     document.getElementById('CardName').value = data.cardName || '';
     document.getElementById('Address').value = data.address || '';
     document.getElementById('DocNum').value = data.docNum || '';
@@ -39,11 +39,7 @@ function mapResponseToForm(data) {
         document.getElementById('TrsfrDate').value = trsfrDate.toISOString().split('T')[0];
     }
     
-    // Map transaction type
-    if (data.type) {
-        document.getElementById('TypeOfTransaction').value = data.type;
-        toggleClosedByVisibility();
-    }
+
     
     // Calculate totals from lines
     let netTotal = 0;
@@ -84,39 +80,37 @@ function mapResponseToForm(data) {
 
 // Function to map approval data
 function mapApprovalData(approval) {
-    // Map prepared by
-    if (approval.preparedBy) {
-        document.getElementById('Approval.PreparedByIdSearch').value = approval.preparedBy || '';
+    // Map prepared by - use preparedByName for display
+    if (approval.preparedByName) {
+        document.getElementById('Approval.PreparedByIdSearch').value = approval.preparedByName || '';
         document.getElementById('Approval.PreparedById').value = approval.preparedBy || '';
     }
     
-    // Map checked by
-    if (approval.checkedBy) {
-        document.getElementById('Approval.CheckedByIdSearch').value = approval.checkedBy || '';
+    // Map checked by - use checkedByName for display
+    if (approval.checkedByName) {
+        document.getElementById('Approval.CheckedByIdSearch').value = approval.checkedByName || '';
         document.getElementById('Approval.CheckedById').value = approval.checkedBy || '';
     }
     
-    // Map acknowledged by
-    if (approval.acknowledgedBy) {
-        document.getElementById('Approval.AcknowledgedByIdSearch').value = approval.acknowledgedBy || '';
+    // Map acknowledged by - use acknowledgedByName for display
+    if (approval.acknowledgedByName) {
+        document.getElementById('Approval.AcknowledgedByIdSearch').value = approval.acknowledgedByName || '';
         document.getElementById('Approval.AcknowledgedById').value = approval.acknowledgedBy || '';
     }
     
-    // Map approved by
-    if (approval.approvedBy) {
-        document.getElementById('Approval.ApprovedByIdSearch').value = approval.approvedBy || '';
+    // Map approved by - use approvedByName for display
+    if (approval.approvedByName) {
+        document.getElementById('Approval.ApprovedByIdSearch').value = approval.approvedByName || '';
         document.getElementById('Approval.ApprovedById').value = approval.approvedBy || '';
     }
     
-    // Map received by
-    if (approval.receivedBy) {
-        document.getElementById('Approval.ReceivedByIdSearch').value = approval.receivedBy || '';
+    // Map received by - use receivedByName for display
+    if (approval.receivedByName) {
+        document.getElementById('Approval.ReceivedByIdSearch').value = approval.receivedByName || '';
         document.getElementById('Approval.ReceivedById').value = approval.receivedBy || '';
     }
     
-    // Map closed by - not available in new response structure
-    document.getElementById('Approval.ClosedByIdSearch').value = '';
-    document.getElementById('Approval.ClosedById').value = '';
+
 }
 
 // Function to populate table lines
@@ -296,19 +290,7 @@ function formatNumberToCurrencyString(number) {
     }
 }
 
-// Function to toggle closed by visibility based on transaction type
-function toggleClosedByVisibility() {
-    const transactionType = document.getElementById('TypeOfTransaction')?.value;
-    const closedByContainer = document.getElementById('closed')?.parentElement;
-    
-    if (closedByContainer) {
-        if (transactionType === 'LOAN') {
-            closedByContainer.style.display = 'block';
-        } else {
-            closedByContainer.style.display = 'none';
-        }
-    }
-}
+
 
 // Function to load document data from API
 async function loadDocumentData() {

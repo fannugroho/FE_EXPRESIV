@@ -1,12 +1,17 @@
 // Global variables
-let apiBaseUrl = 'https://api.example.com'; // Replace with actual API URL
+let apiBaseUrl = 'https://expressiv.idsdev.site'; // API base URL
 let outgoingPaymentData = null;
 let docId = null;
 
 // Helper function to get logged-in user ID
 function getUserId() {
-    const user = JSON.parse(localStorage.getItem('loggedInUser'));
-    return user ? user.id : null;
+    try {
+        const user = getCurrentUser();
+        return user ? user.userId : null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
 }
 
 // Helper function to format number as currency with Indonesian format
@@ -81,7 +86,7 @@ function parseCurrencyIDR(formattedValue) {
 
 // Function to navigate back to the menu
 function goToMenuReceiveOPReim() {
-    window.location.href = '../../../approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html';
+    window.location.href = '../../../dashboard/dashboardReceive/OPReim/menuOPReimReceive.html';
 }
 
 // Function to load document details when page loads
@@ -124,8 +129,8 @@ async function loadOutgoingPaymentDetails() {
             }
         });
         
-        // Fetch document details from API
-        const response = await fetch(`${apiBaseUrl}/api/op-reim/${docId}`, {
+        // Fetch document details from API using the new staging endpoint
+        const response = await fetch(`${apiBaseUrl}/api/staging-outgoing-payments/headers/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -133,23 +138,36 @@ async function loadOutgoingPaymentDetails() {
             }
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('HTTP error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
         
-        const result = await response.json();
-        
-        if (result.status && result.data) {
-            outgoingPaymentData = result.data;
-            
-            // Populate form fields with document data
-            populateFormFields(outgoingPaymentData);
-            
-            // Close loading indicator
-            Swal.close();
-        } else {
-            throw new Error(result.message || 'Failed to load document details');
+        let result;
+        try {
+            result = await response.json();
+            console.log('API Response:', result);
+        } catch (jsonError) {
+            console.error('Error parsing JSON response:', jsonError);
+            const responseText = await response.text();
+            console.error('Raw response:', responseText);
+            throw new Error(`Invalid JSON response: ${jsonError.message}`);
         }
+        
+        // Handle API response - data is returned directly
+        let documentData = result;
+        
+        outgoingPaymentData = documentData;
+        
+        // Populate form fields with document data
+        populateFormFields(outgoingPaymentData);
+        
+        // Close loading indicator
+        Swal.close();
     } catch (error) {
         console.error('Error loading document details:', error);
         
@@ -165,7 +183,9 @@ async function loadOutgoingPaymentDetails() {
 
 // Function to populate form fields with document data
 function populateFormFields(data) {
-    // Populate header fields
+    console.log('Populating form with data:', data);
+    
+    // Populate header fields with new API structure
     document.getElementById('CounterRef').value = data.counterRef || '';
     document.getElementById('RequesterName').value = data.requesterName || '';
     document.getElementById('CardName').value = data.cardName || '';
@@ -244,30 +264,31 @@ function populateFormFields(data) {
         document.getElementById('attachmentsList').innerHTML = '<div class="text-sm text-gray-500 p-2">No attachments</div>';
     }
     
-    // Populate approval information
-    if (data.preparedBy) {
-        document.getElementById('preparedBySearch').value = data.preparedBy;
+    // Populate approval information with new API structure
+    if (data.approval && data.approval.preparedByName) {
+        document.getElementById('preparedBySearch').value = data.approval.preparedByName;
     }
-    if (data.checkedBy) {
-        document.getElementById('checkedBySearch').value = data.checkedBy;
+    
+    if (data.approval && data.approval.checkedByName) {
+        document.getElementById('checkedBySearch').value = data.approval.checkedByName;
     }
-    if (data.acknowledgedBy) {
-        document.getElementById('acknowledgedBySearch').value = data.acknowledgedBy;
+    
+    if (data.approval && data.approval.acknowledgedByName) {
+        document.getElementById('acknowledgedBySearch').value = data.approval.acknowledgedByName;
     }
-    if (data.approvedBy) {
-        document.getElementById('approvedBySearch').value = data.approvedBy;
+    
+    if (data.approval && data.approval.approvedByName) {
+        document.getElementById('approvedBySearch').value = data.approval.approvedByName;
     }
-    if (data.receivedBy) {
-        document.getElementById('receivedBySearch').value = data.receivedBy;
-    }
-    if (data.closedBy) {
-        document.getElementById('closedBySearch').value = data.closedBy;
+    
+    if (data.approval && data.approval.receivedByName) {
+        document.getElementById('receivedBySearch').value = data.approval.receivedByName;
     }
     
     // Show rejection remarks if document is rejected
-    if (data.status === 'Rejected' && data.rejectionRemarks) {
+    if (data.approval && data.approval.approvalStatus === 'Rejected' && data.approval.rejectionRemarks) {
         document.getElementById('rejectionRemarksSection').style.display = 'block';
-        document.getElementById('rejectionRemarks').value = data.rejectionRemarks;
+        document.getElementById('rejectionRemarks').value = data.approval.rejectionRemarks;
     } else {
         document.getElementById('rejectionRemarksSection').style.display = 'none';
     }
@@ -333,40 +354,67 @@ async function receiveOPReim() {
         // Update outgoing payment data with transfer date
         outgoingPaymentData.trsfrDate = transferDate;
         
-        // Prepare request data
+        // Get current user information
+        const currentUser = getCurrentUser();
+        const currentDate = new Date().toISOString();
+        
+        // Prepare request data based on the API structure
         const requestData = {
             stagingID: docId,
-            approvalStatus: "Received", // Status for Received
+            createdAt: outgoingPaymentData.createdAt || currentDate,
+            updatedAt: currentDate,
+            approvalStatus: "Received",
             preparedBy: outgoingPaymentData.preparedBy || null,
             checkedBy: outgoingPaymentData.checkedBy || null,
             acknowledgedBy: outgoingPaymentData.acknowledgedBy || null,
             approvedBy: outgoingPaymentData.approvedBy || null,
-            receivedBy: userId, // Current user as receiver
+            receivedBy: userId,
             preparedDate: outgoingPaymentData.preparedDate || null,
+            preparedByName: outgoingPaymentData.preparedByName || null,
+            checkedByName: outgoingPaymentData.checkedByName || null,
+            acknowledgedByName: outgoingPaymentData.acknowledgedByName || null,
+            approvedByName: outgoingPaymentData.approvedByName || null,
+            receivedByName: currentUser?.username || null,
             checkedDate: outgoingPaymentData.checkedDate || null,
             acknowledgedDate: outgoingPaymentData.acknowledgedDate || null,
             approvedDate: outgoingPaymentData.approvedDate || null,
-            receivedDate: new Date().toISOString(), // Current date as received date
-            header: outgoingPaymentData || {}
+            receivedDate: currentDate,
+            rejectedDate: outgoingPaymentData.rejectedDate || null,
+            rejectionRemarks: outgoingPaymentData.rejectionRemarks || "",
+            revisionNumber: outgoingPaymentData.revisionNumber || null,
+            revisionDate: outgoingPaymentData.revisionDate || null,
+            revisionRemarks: outgoingPaymentData.revisionRemarks || null,
+            header: {}
         };
         
-        // Make API request to update approval status
-        const response = await fetch(`${baseUrlDevAmiru}/api/staging-outgoing-payments/approvals/`, {
-            method: 'POST',
+        // Make API request to update approval status using PUT method
+        const response = await fetch(`${apiBaseUrl}/api/staging-outgoing-payments/approvals/${docId}`, {
+            method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json-patch+json',
                 'Authorization': `Bearer ${getAccessToken()}`
             },
             body: JSON.stringify(requestData)
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `API error: ${response.status}`);
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.Message || errorMessage;
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            throw new Error(errorMessage);
         }
         
-        // Parse response data
-        const responseData = await response.json();
+        // Try to parse response data if available
+        let responseData = null;
+        try {
+            responseData = await response.json();
+        } catch (e) {
+            console.log('Response does not contain JSON data');
+        }
         
         // Show success message
         Swal.fire({

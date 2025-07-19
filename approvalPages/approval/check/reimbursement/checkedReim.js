@@ -329,6 +329,45 @@ function populateFormData(data) {
     } else {
         renderRevisionHistory([]);
     }
+    
+    // Display rejection remarks if status is Rejected
+    if (data.status === 'Rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        
+        if (rejectionSection && rejectionTextarea) {
+            // Check for various possible rejection remarks fields
+            let rejectionRemarks = '';
+            
+            // Check for specific rejection remarks by role
+            if (data.remarksRejectByChecker) {
+                rejectionRemarks = data.remarksRejectByChecker;
+            } else if (data.remarksRejectByAcknowledger) {
+                rejectionRemarks = data.remarksRejectByAcknowledger;
+            } else if (data.remarksRejectByApprover) {
+                rejectionRemarks = data.remarksRejectByApprover;
+            } else if (data.remarksRejectByReceiver) {
+                rejectionRemarks = data.remarksRejectByReceiver;
+            } else if (data.rejectedRemarks) {
+                rejectionRemarks = data.rejectedRemarks;
+            } else if (data.remarks) {
+                rejectionRemarks = data.remarks;
+            }
+            
+            if (rejectionRemarks.trim() !== '') {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = rejectionRemarks;
+            } else {
+                rejectionSection.style.display = 'none';
+            }
+        }
+    } else {
+        // Hide the rejection remarks section if status is not Rejected
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+    }
 }
 
 // Helper function to set approval values in both select and search input
@@ -508,62 +547,88 @@ function goToMenuReim() {
 }
 
 function onReject() {
+    // Create custom dialog with single field
     Swal.fire({
-        title: 'Reject Document',
-        input: 'textarea',
-        inputLabel: 'Remarks',
-        inputPlaceholder: 'Enter your remarks here...',
+        title: 'Reject Reimbursement',
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonText: 'Send Reject',
+        confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        showLoaderOnConfirm: true,
-        preConfirm: (remarks) => {
-            if (!remarks) {
-                Swal.showValidationMessage('Please enter remarks for rejection');
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        width: '600px',
+        didOpen: () => {
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
+            }
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            if (remarks === '') {
+                Swal.showValidationMessage('Please enter a rejection reason');
                 return false;
             }
-            
+            return remarks;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
             // Get reimbursement ID from URL
             const id = getReimbursementIdFromUrl();
             if (!id) {
-                Swal.showValidationMessage('No reimbursement ID found');
-                return false;
+                Swal.fire('Error', 'No reimbursement ID found', 'error');
+                return;
             }
             
             // Make API call to reject the reimbursement
-            return fetch(`${BASE_URL}/api/reimbursements/checker/${id}/reject`, {
+            fetch(`${BASE_URL}/api/reimbursements/checker/${id}/reject`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({
-                    remarks: remarks
+                    remarks: result.value
                 })
             })
             .then(response => response.json())
             .then(result => {
-                if (!result.status) {
-                    throw new Error(result.message || 'Failed to reject document');
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Rejected!',
+                        'The document has been rejected.',
+                        'success'
+                    ).then(() => {
+                        // Return to menu
+                        goToMenuReim();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to reject document',
+                        'error'
+                    );
                 }
-                return result;
             })
             .catch(error => {
                 console.error('Error rejecting reimbursement:', error);
-                Swal.showValidationMessage(`Rejection failed: ${error.message}`);
-                return false;
-            });
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        if (result.isConfirmed && result.value.status) {
-            Swal.fire(
-                'Rejected!',
-                'The document has been rejected.',
-                'success'
-            ).then(() => {
-                // Return to menu
-                goToMenuReim();
+                Swal.fire(
+                    'Error',
+                    'An error occurred while rejecting the document',
+                    'error'
+                );
             });
         }
     });
@@ -772,5 +837,59 @@ document.addEventListener('DOMContentLoaded', function() {
     // Call toggleButtonsBasedOnStatus initially
     toggleButtonsBasedOnStatus();
 });
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Checker'; // Default role for this page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
 
     

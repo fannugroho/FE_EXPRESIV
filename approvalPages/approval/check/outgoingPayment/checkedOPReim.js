@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
     
+
+    
     if (documentId) {
         // Load document details
         loadOPReimDetails(documentId);
@@ -271,6 +273,9 @@ function getStatusMessage(status) {
 
 // Populate form fields with data from API
 function populateFormFields(data) {
+    console.log('Populating form fields with data:', data);
+    console.log('Attachments data:', data.attachments);
+    
     // Populate header fields
     document.getElementById('CounterRef').value = data.counterRef || '';
     document.getElementById('RequesterName').value = getUserNameById(data.requesterId) || 'Unknown Requester';
@@ -361,17 +366,15 @@ function populateTableRows(lines) {
 
 // Update totals based on line items
 function updateTotals(lines) {
-    let netTotal = 0;
+    let totalAmount = 0;
     
     // Calculate sum of all line amounts
     if (lines && lines.length > 0) {
-        netTotal = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
+        totalAmount = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
     }
     
-    // Update total fields
-    document.getElementById('netTotal').value = formatCurrency(netTotal);
-    document.getElementById('totalTax').value = formatCurrency(0); // Assuming no tax for now
-    document.getElementById('totalAmountDue').value = formatCurrency(netTotal);
+    // Update total amount due field
+    document.getElementById('totalAmountDue').value = formatCurrency(totalAmount);
 }
 
 // Populate approval information
@@ -456,6 +459,8 @@ function handleRevisionHistory(approval) {
 
 // Display attachments
 function displayAttachments(attachments) {
+    console.log('Displaying attachments:', attachments);
+    
     const attachmentsList = document.getElementById('attachmentsList');
     
     if (!attachmentsList) return;
@@ -473,20 +478,25 @@ function displayAttachments(attachments) {
     }
     
     // Create attachment items
-    attachments.forEach(attachment => {
+    attachments.forEach((attachment, index) => {
+        console.log(`Attachment ${index}:`, attachment);
+        
+        // Get attachment ID with fallbacks
+        const attachmentId = attachment.id || attachment.attachmentId || attachment.fileId || index;
+        
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex justify-between items-center p-2 border-b last:border-b-0';
-        attachmentItem.dataset.id = attachment.id;
+        attachmentItem.dataset.id = attachmentId;
         
         attachmentItem.innerHTML = `
             <div class="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
-                <span class="text-sm">${attachment.fileName || 'Attachment'}</span>
+                <span class="text-sm">${attachment.fileName || attachment.name || 'Attachment'}</span>
             </div>
             <div>
-                <button type="button" class="text-blue-500 hover:text-blue-700 text-sm" onclick="viewAttachment('${attachment.id}')">
+                <button type="button" class="text-blue-500 hover:text-blue-700 text-sm" onclick="viewAttachment('${attachmentId}')">
                     View
                 </button>
             </div>
@@ -498,19 +508,46 @@ function displayAttachments(attachments) {
 
 // View attachment
 function viewAttachment(attachmentId) {
-    const attachment = existingAttachments.find(a => a.id === attachmentId);
+    console.log('Viewing attachment with ID:', attachmentId);
+    console.log('Available attachments:', existingAttachments);
     
-    if (!attachment || !attachment.fileUrl) {
+    // Find attachment by different possible ID fields
+    const attachment = existingAttachments.find(a => 
+        a.id === attachmentId || 
+        a.attachmentId === attachmentId || 
+        a.fileId === attachmentId ||
+        a.id === parseInt(attachmentId) ||
+        a.attachmentId === parseInt(attachmentId) ||
+        a.fileId === parseInt(attachmentId)
+    );
+    
+    if (!attachment) {
+        console.error('Attachment not found for ID:', attachmentId);
         Swal.fire({
             title: 'Error',
-            text: 'Attachment not found or cannot be viewed',
+            text: 'Attachment not found',
+            icon: 'error'
+        });
+        return;
+    }
+    
+    console.log('Found attachment:', attachment);
+    
+    // Check for different possible URL field names
+    const fileUrl = attachment.fileUrl || attachment.url || attachment.downloadUrl || attachment.filePath;
+    
+    if (!fileUrl) {
+        console.error('No file URL found in attachment:', attachment);
+        Swal.fire({
+            title: 'Error',
+            text: 'Attachment file URL not available',
             icon: 'error'
         });
         return;
     }
     
     // Open attachment in new window/tab
-    window.open(attachment.fileUrl, '_blank');
+    window.open(fileUrl, '_blank');
 }
 
 // Toggle visibility of closed by field based on transaction type
@@ -588,28 +625,47 @@ async function approveOPReim() {
             throw new Error('User ID not found. Please log in again.');
         }
         
-        // Prepare request data
+        // Get current user info
+        const currentUser = getCurrentUser();
+        const currentUserName = currentUser ? currentUser.username : 'Unknown User';
+        
+        // Get current date
+        const currentDate = new Date().toISOString();
+        
+        // Prepare request data according to the API specification
         const requestData = {
             stagingID: documentId,
-            approvalStatus: "Checked", // Status for Checked
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: userId, // Current user as checker
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            checkedDate: new Date().toISOString(), // Current date as checked date
+            createdAt: outgoingPaymentReimData.approval?.createdAt || currentDate,
+            updatedAt: currentDate,
+            approvalStatus: "Checked",
+            preparedBy: outgoingPaymentReimData.approval?.preparedBy || userId,
+            checkedBy: userId,
+            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || userId,
+            approvedBy: outgoingPaymentReimData.approval?.approvedBy || userId,
+            receivedBy: outgoingPaymentReimData.approval?.receivedBy || userId,
+            preparedDate: outgoingPaymentReimData.approval?.preparedDate || currentDate,
+            preparedByName: outgoingPaymentReimData.approval?.preparedByName || currentUserName,
+            checkedByName: currentUserName,
+            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || currentUserName,
+            approvedByName: outgoingPaymentReimData.approval?.approvedByName || currentUserName,
+            receivedByName: outgoingPaymentReimData.approval?.receivedByName || currentUserName,
+            checkedDate: currentDate,
             acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
             approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
             receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            header: outgoingPaymentReimData || {}
+            rejectedDate: outgoingPaymentReimData.approval?.rejectedDate || null,
+            rejectionRemarks: outgoingPaymentReimData.approval?.rejectionRemarks || "",
+            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
+            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
+            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            header: {}
         };
         
-        // Make API request to update approval status
-        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/approvals/', {
-            method: 'POST',
+        // Make API request to update approval status using the correct endpoint
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+            method: 'PUT',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json-patch+json'
             },
             body: JSON.stringify(requestData)
         });
@@ -696,7 +752,7 @@ async function rejectOPReim() {
         };
         
         // Make API request to reject document
-        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/reject', {
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${documentId}/reject`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -801,7 +857,7 @@ async function revisionOPReim() {
         };
         
         // Make API request to request revision
-        const response = await makeAuthenticatedRequest('/api/staging-outgoing-payments/revise', {
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${documentId}/revise`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -896,7 +952,7 @@ function validateDocumentStatus() {
 function getUserId() {
     try {
         const user = getCurrentUser();
-        return user ? user.id : null;
+        return user ? user.userId : null;
     } catch (error) {
         console.error('Error getting user ID:', error);
         return null;

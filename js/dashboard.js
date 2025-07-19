@@ -221,10 +221,10 @@ function initNotifications() {
         })
         .catch(error => {
             console.error("Error mengambil data notifikasi:", error);
-            const dummyData = generateDummyNotifications(5);
-            window.allNotifications = dummyData;
-            renderNotifications(dummyData);
-            updateNotificationCount(dummyData.length);
+            // Don't use dummy data, just show empty state
+            window.allNotifications = [];
+            renderNotifications([]);
+            updateNotificationCount(0);
         });
     
     setupNotificationEvents();
@@ -480,33 +480,7 @@ function updateDashboardCounts(documents) {
     }
 }
 
-function generateDummyNotifications(count) {
-    const docTypes = ['Purchase Request', 'Reimbursement', 'Cash Advance', 'Settlement'];
-    const statuses = ['Open', 'Checked', 'Acknowledge', 'Approved', 'Received', 'Prepared'];
-    const notifications = [];
-    
-    for (let i = 1; i <= count; i++) {
-        const docType = docTypes[Math.floor(Math.random() * docTypes.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const docNumber = `DOC-${docType.substring(0, 2).toUpperCase()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}/${new Date().getFullYear()}`;
-        
-        // Random date within the last 30 days
-        const date = new Date();
-        date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-        
-        notifications.push({
-            id: i,
-            docType: docType,
-            docNumber: docNumber,
-            status: status,
-            date: date,
-            dateFormatted: formatDate(date)
-        });
-    }
-    
-    // Sort by date, newest first
-    return notifications.sort((a, b) => b.date - a.date);
-}
+
 
 function formatDate(date) {
     // Format tanggal dalam Bahasa Indonesia

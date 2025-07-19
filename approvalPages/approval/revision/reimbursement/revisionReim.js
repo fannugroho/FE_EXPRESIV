@@ -327,9 +327,9 @@ async function submitDocument() {
                 'success'
             ).then(() => {
                 // After successful submission, preparedDate will no longer be null
-                // Update the button state directly and refresh data
+                // Update the button state directly but don't refresh form data
                 updateSubmitButtonState(new Date().toISOString());
-                fetchReimbursementData();
+                // Don't call fetchReimbursementData() to preserve user changes
             });
         } else {
             Swal.fire(
@@ -1026,6 +1026,8 @@ function updateReim() {
 
 // Renamed function to match the button's new name
 function submitReim() {
+    console.log('=== DEBUG: submitReim() called ===');
+    
     Swal.fire({
         title: 'Are you sure?',
         text: "You are about to submit this reimbursement",
@@ -1035,59 +1037,37 @@ function submitReim() {
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, submit it!'
     }).then((result) => {
+        console.log('User choice:', result.isConfirmed);
         if (result.isConfirmed) {
+            console.log('User confirmed submission, calling submitReimbursementUpdate()');
             submitReimbursementUpdate().then(() => {
+                console.log('submitReimbursementUpdate completed, calling submitDocument()');
                 submitDocument();
+            }).catch((error) => {
+                console.error('Error in submitReimbursementUpdate:', error);
             });
         }
     });
 }
 
 async function submitReimbursementUpdate() {
+    console.log('=== DEBUG: Starting submitReimbursementUpdate ===');
+    console.log('BASE_URL available:', typeof BASE_URL !== 'undefined');
+    console.log('BASE_URL value:', BASE_URL);
+    
     const id = getReimbursementIdFromUrl();
     if (!id) {
         Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
     
-    const detailsTable = document.getElementById('reimbursementDetails');
-    const rows = detailsTable.querySelectorAll('tr');
-    const reimbursementDetails = [];
+    console.log('Reimbursement ID:', id);
     
-    rows.forEach(row => {
-        // Get category from search input
-        const categoryInput = row.querySelector('.category-search');
-        const accountNameInput = row.querySelector('.account-name-search');
-        const glAccountInput = row.querySelector('.gl-account');
-        const descInput = row.querySelector('td:nth-child(4) input');
-        const amountInput = row.querySelector('.currency-input-idr');
-        const deleteButton = row.querySelector('button');
-        const detailId = deleteButton.getAttribute('data-id') || null;
-        
-        if (categoryInput && accountNameInput && glAccountInput && descInput && amountInput) {
-            reimbursementDetails.push({
-                id: detailId,
-                category: categoryInput.value || "",
-                accountName: accountNameInput.value || "",
-                glAccount: glAccountInput.value || "",
-                description: descInput.value || "", 
-                amount: parseCurrencyIDR(amountInput.value) || 0 // Convert formatted value back to number
-            });
-        }
-    });
-    
-    // Get requesterName from the search input (text value)
-    const requesterName = document.getElementById('requesterNameSearch').value;
-    
-    // Get payTo ID from the hidden select element
-    const payToSelect = document.getElementById('payToSelect');
-    const payTo = payToSelect ? payToSelect.value : null;
-    
-    const requestData = {
-        requesterName: requesterName,
+    // Collect all form data first
+    const formData = {
+        requesterName: document.getElementById('requesterNameSearch').value,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
-        payTo: payTo,
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
@@ -1095,41 +1075,172 @@ async function submitReimbursementUpdate() {
         acknowledgedBy: document.getElementById('acknowledgeBySelect').value || null,
         checkedBy: document.getElementById('checkedBySelect').value || null,
         approvedBy: document.getElementById('approvedBySelect').value || null,
-        receivedBy: document.getElementById('receivedBySelect').value || null,
-        reimbursementDetails: reimbursementDetails
+        receivedBy: document.getElementById('receivedBySelect').value || null
     };
     
+    // Get payTo ID from the hidden select element
+    const payToSelect = document.getElementById('payToSelect');
+    formData.payTo = payToSelect ? payToSelect.value : null;
+    
+    console.log('Form data collected:', formData);
+    console.log('Form elements found:');
+    console.log('- requesterNameSearch:', document.getElementById('requesterNameSearch'));
+    console.log('- department:', document.getElementById('department'));
+    console.log('- currency:', document.getElementById('currency'));
+    console.log('- referenceDoc:', document.getElementById('referenceDoc'));
+    console.log('- typeOfTransaction:', document.getElementById('typeOfTransaction'));
+    console.log('- remarks:', document.getElementById('remarks'));
+    console.log('- preparedBySelect:', document.getElementById('preparedBySelect'));
+    console.log('- acknowledgeBySelect:', document.getElementById('acknowledgeBySelect'));
+    console.log('- checkedBySelect:', document.getElementById('checkedBySelect'));
+    console.log('- approvedBySelect:', document.getElementById('approvedBySelect'));
+    console.log('- receivedBySelect:', document.getElementById('receivedBySelect'));
+    console.log('- payToSelect:', payToSelect);
+    
+    // Validate required fields
+    if (!formData.requesterName) {
+        Swal.fire('Error', 'Requester name is required', 'error');
+        return;
+    }
+    
+    if (!formData.department) {
+        Swal.fire('Error', 'Department is required', 'error');
+        return;
+    }
+    
+    if (!formData.currency) {
+        Swal.fire('Error', 'Currency is required', 'error');
+        return;
+    }
+    
+    if (!formData.payTo) {
+        Swal.fire('Error', 'Pay To is required', 'error');
+        return;
+    }
+    
+    // Collect reimbursement details from table
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const rows = detailsTable.querySelectorAll('tr');
+    const existingDetails = [];
+    const newDetails = [];
+    
+    console.log('Total rows found:', rows.length);
+    
+    rows.forEach((row, index) => {
+        console.log(`--- Processing row ${index + 1} ---`);
+        
+        // Get all input elements in the row
+        const categoryInput = row.querySelector('.category-search');
+        const accountNameInput = row.querySelector('.account-name-search');
+        const glAccountInput = row.querySelector('.gl-account');
+        const descriptionInput = row.querySelector('input[type="text"]:not(.category-search):not(.account-name-search):not(.gl-account)');
+        const amountInput = row.querySelector('input[type="text"].currency-input-idr, input[type="number"]');
+        const deleteButton = row.querySelector('button');
+        const detailId = deleteButton ? deleteButton.getAttribute('data-id') : null;
+        
+        console.log('Row elements found:');
+        console.log('- categoryInput:', categoryInput);
+        console.log('- accountNameInput:', accountNameInput);
+        console.log('- glAccountInput:', glAccountInput);
+        console.log('- descriptionInput:', descriptionInput);
+        console.log('- amountInput:', amountInput);
+        console.log('- deleteButton:', deleteButton);
+        console.log('- detailId:', detailId);
+        
+        // Process row if it has the required inputs
+        if (categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
+            const amountText = amountInput.value;
+            const amount = parseCurrencyIDR(amountText);
+            
+            const detail = {
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: descriptionInput.value || "",
+                amount: amount
+            };
+            
+            // Separate existing and new details
+            if (detailId) {
+                detail.id = detailId;
+                existingDetails.push(detail);
+                console.log('Adding existing detail:', detail);
+            } else {
+                newDetails.push(detail);
+                console.log('Adding new detail:', detail);
+            }
+        } else {
+            console.log('Skipping row - missing required inputs');
+        }
+    });
+    
+    console.log('Existing details count:', existingDetails.length);
+    console.log('New details count:', newDetails.length);
+    
+    if (existingDetails.length === 0 && newDetails.length === 0) {
+        Swal.fire('Error', 'At least one reimbursement detail is required', 'error');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
+        // First, update existing reimbursement details
+        if (existingDetails.length > 0) {
+            console.log('Updating existing reimbursement details...');
+            const updateResponse = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    reimbursementDetails: existingDetails
+                })
+            });
+            
+            console.log('Update response status:', updateResponse.status);
+            const updateResult = await updateResponse.json();
+            console.log('Update response data:', updateResult);
+            
+            if (!updateResult.status || updateResult.code !== 200) {
+                throw new Error(updateResult.message || 'Failed to update existing reimbursement details');
+            }
+        }
+        
+        // Then, add new reimbursement details if any
+        if (newDetails.length > 0) {
+            console.log('Adding new reimbursement details...');
+            const addResponse = await fetch(`${BASE_URL}/api/reimbursements/detail/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newDetails)
+            });
+            
+            console.log('Add response status:', addResponse.status);
+            const addResult = await addResponse.json();
+            console.log('Add response data:', addResult);
+            
+            if (!addResult.status || addResult.code !== 200) {
+                throw new Error(addResult.message || 'Failed to add new reimbursement details');
+            }
+        }
+        
+        Swal.fire(
+            'Updated!',
+            'Reimbursement has been updated successfully.',
+            'success'
+        ).then(() => {
+            // Don't refresh the form data to preserve user changes
+            // Only update the submit button state if needed
+            updateSubmitButtonState(null);
         });
         
-        const result = await response.json();
-        
-        if (result.status && result.code === 200) {
-            Swal.fire(
-                'Updated!',
-                'Reimbursement has been updated successfully.',
-                'success'
-            ).then(() => {
-                fetchReimbursementData();
-            });
-        } else {
-            Swal.fire(
-                'Error',
-                result.message || 'Failed to update reimbursement',
-                'error'
-            );
-        }
     } catch (error) {
         console.error('Error updating reimbursement:', error);
         Swal.fire(
             'Error',
-            'An error occurred while updating the reimbursement',
+            error.message || 'An error occurred while updating the reimbursement',
             'error'
         );
     }

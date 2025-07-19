@@ -70,8 +70,10 @@
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -79,8 +81,18 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                    <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
                 
                 <input type="hidden" id="Doctype" value="A">
             </div>
@@ -125,18 +137,6 @@
             </tbody>
         </table>
         
-        <!--Net Total-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Net Total :</label>
-            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
-        </div>
-
-        <!--WTax Total-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax:</label>
-            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
-        </div>
-        
         <!--Total Amount Due-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Amount Due :</label>
@@ -157,14 +157,6 @@
         <div class="mt-4">
             <label>Journal Remarks</label>
             <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
-        </div>
-
-        <!-- Attachments Display Section -->
-        <div class="mt-4" id="attachmentsSection">
-            <h3 class="text-lg font-semibold mb-2">Attachments</h3>
-            <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
-                <!-- Attachments will be displayed here -->
-            </div>
         </div>
 
         <!-- Rejection Remarks section - only visible when status is Rejected -->

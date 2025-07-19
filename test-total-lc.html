@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Total LC Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Total LC Search Functionality</h1>
+    
+    <div class="test-section">
+        <h3>Test Data Structure</h3>
+        <p>This test helps verify the Total LC search functionality with different data structures.</p>
+        
+        <div>
+            <label>Search Type:</label>
+            <select id="searchType">
+                <option value="totalLC">Total LC</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Search Term:</label>
+            <input type="text" id="searchInput" placeholder="Enter amount to search...">
+        </div>
+        
+        <button onclick="testSearch()">Test Search</button>
+        
+        <div id="searchResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Sample Data</h3>
+        <div id="sampleData"></div>
+    </div>
+
+    <script>
+        // Sample data with different field names for Total LC
+        const sampleDocuments = [
+            {
+                id: 1,
+                outgoingPaymentNo: "OP001",
+                requesterName: "John Doe",
+                trsfrSum: 1500000,
+                totalLC: null,
+                docTotal: null,
+                totalAmount: null
+            },
+            {
+                id: 2,
+                outgoingPaymentNo: "OP002", 
+                requesterName: "Jane Smith",
+                trsfrSum: null,
+                totalLC: 2500000,
+                docTotal: null,
+                totalAmount: null
+            },
+            {
+                id: 3,
+                outgoingPaymentNo: "OP003",
+                requesterName: "Bob Wilson",
+                trsfrSum: null,
+                totalLC: null,
+                docTotal: 3500000,
+                totalAmount: null
+            },
+            {
+                id: 4,
+                outgoingPaymentNo: "OP004",
+                requesterName: "Alice Brown",
+                trsfrSum: null,
+                totalLC: null,
+                docTotal: null,
+                totalAmount: 4500000
+            },
+            {
+                id: 5,
+                outgoingPaymentNo: "OP005",
+                requesterName: "Charlie Davis",
+                trsfrSum: null,
+                totalLC: null,
+                docTotal: null,
+                totalAmount: null
+            }
+        ];
+
+        function testSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchType = document.getElementById('searchType').value;
+            
+            const filteredDocs = sampleDocuments.filter(doc => {
+                if (searchType === 'totalLC') {
+                    const totalLCValue = doc.trsfrSum || doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+                    const totalLCString = totalLCValue.toString().toLowerCase();
+                    
+                    console.log('Total LC Search:', {
+                        docId: doc.id,
+                        searchTerm: searchTerm,
+                        totalLCValue: totalLCValue,
+                        totalLCString: totalLCString,
+                        includes: totalLCString.includes(searchTerm)
+                    });
+                    
+                    return totalLCString.includes(searchTerm);
+                }
+                return false;
+            });
+            
+            const resultDiv = document.getElementById('searchResult');
+            resultDiv.innerHTML = `
+                <h4>Search Results:</h4>
+                <p>Search Term: "${searchTerm}"</p>
+                <p>Found ${filteredDocs.length} matching documents:</p>
+                <ul>
+                    ${filteredDocs.map(doc => `
+                        <li>${doc.outgoingPaymentNo} - ${doc.requesterName} - 
+                            Total LC: ${(doc.trsfrSum || doc.totalLC || doc.docTotal || doc.totalAmount || 0).toLocaleString()}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        // Display sample data
+        function displaySampleData() {
+            const dataDiv = document.getElementById('sampleData');
+            dataDiv.innerHTML = `
+                <h4>Available Documents:</h4>
+                <ul>
+                    ${sampleDocuments.map(doc => `
+                        <li>
+                            <strong>${doc.outgoingPaymentNo}</strong> - ${doc.requesterName}<br>
+                            trsfrSum: ${doc.trsfrSum || 'null'}<br>
+                            totalLC: ${doc.totalLC || 'null'}<br>
+                            docTotal: ${doc.docTotal || 'null'}<br>
+                            totalAmount: ${doc.totalAmount || 'null'}<br>
+                            <strong>Calculated Total LC: ${(doc.trsfrSum || doc.totalLC || doc.docTotal || doc.totalAmount || 0).toLocaleString()}</strong>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        // Initialize
+        displaySampleData();
+    </script>
+</body>
+</html> 

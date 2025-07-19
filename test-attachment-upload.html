@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attachment Upload Test - Outgoing Payments</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .test-section {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .test-success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .test-error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .test-info {
+            background-color: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-blue-900">
+            Attachment Upload Test - Outgoing Payments
+        </h1>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Test Overview</h2>
+            <p class="mb-4">This test page demonstrates the attachment upload functionality for the Outgoing Payments system.</p>
+            
+            <div class="test-info test-result">
+                <h3 class="font-semibold">Workflow Steps:</h3>
+                <ol class="list-decimal list-inside mt-2 space-y-1">
+                    <li><strong>Step 1:</strong> Create Outgoing Payment → Get stagingID</li>
+                    <li><strong>Step 2:</strong> Upload Attachments using stagingID</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">API Endpoints</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-semibold text-green-700">Step 1: Create Outgoing Payment</h3>
+                    <p class="text-sm text-gray-600 mt-2">
+                        <strong>Method:</strong> POST<br>
+                        <strong>Endpoint:</strong> /api/staging-outgoing-payments/headers<br>
+                        <strong>Response:</strong> Returns stagingID for attachment uploads
+                    </p>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-semibold text-blue-700">Step 2: Upload Attachments</h3>
+                    <p class="text-sm text-gray-600 mt-2">
+                        <strong>Method:</strong> POST<br>
+                        <strong>Endpoint:</strong> /api/staging-outgoing-payments/attachments/{stagingId}<br>
+                        <strong>Format:</strong> multipart/form-data
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Form Data Structure</h2>
+            
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-2">Attachment Upload Fields:</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><strong>File</strong> (Required): The file data itself</li>
+                    <li><strong>Description</strong> (Optional): Text description for the file</li>
+                    <li><strong>AttachmentType</strong> (Optional): Category for the file</li>
+                </ul>
+                
+                <h3 class="font-semibold mt-4 mb-2">Supported File Types:</h3>
+                <ul class="space-y-1 text-sm">
+                    <li>• PDF (.pdf)</li>
+                    <li>• Microsoft Word (.doc, .docx)</li>
+                    <li>• Microsoft Excel (.xls, .xlsx)</li>
+                    <li>• Images (.jpg, .jpeg, .png)</li>
+                </ul>
+                
+                <h3 class="font-semibold mt-4 mb-2">File Size Limit:</h3>
+                <p class="text-sm">Maximum 10MB per file</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Implementation Features</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="test-success test-result">
+                    <h3 class="font-semibold">✅ Implemented Features:</h3>
+                    <ul class="mt-2 space-y-1 text-sm">
+                        <li>• Two-step workflow (Create → Upload)</li>
+                        <li>• Multiple file upload support</li>
+                        <li>• File validation (type & size)</li>
+                        <li>• Progress indicators</li>
+                        <li>• Error handling & user feedback</li>
+                        <li>• Attachment management (view/delete)</li>
+                        <li>• Additional uploads after document creation</li>
+                    </ul>
+                </div>
+                
+                <div class="test-info test-result">
+                    <h3 class="font-semibold">🔧 Technical Details:</h3>
+                    <ul class="mt-2 space-y-1 text-sm">
+                        <li>• FormData for multipart uploads</li>
+                        <li>• Authenticated API requests</li>
+                        <li>• SweetAlert2 for user feedback</li>
+                        <li>• LocalStorage for staging ID persistence</li>
+                        <li>• File preview and management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Usage Instructions</h2>
+            
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-2">For Users:</h3>
+                <ol class="list-decimal list-inside space-y-2 text-sm">
+                    <li>Fill out the outgoing payment form</li>
+                    <li>Select files using the file input</li>
+                    <li>Click "Save" or "Submit" to create the document</li>
+                    <li>Files will be automatically uploaded after document creation</li>
+                    <li>Use "Upload More" button to add additional files later</li>
+                    <li>Use "Refresh" button to reload existing attachments</li>
+                </ol>
+                
+                <h3 class="font-semibold mt-4 mb-2">For Developers:</h3>
+                <ol class="list-decimal list-inside space-y-2 text-sm">
+                    <li>Ensure authentication is properly configured</li>
+                    <li>Verify API endpoints are accessible</li>
+                    <li>Test with various file types and sizes</li>
+                    <li>Monitor network requests in browser dev tools</li>
+                    <li>Check console logs for debugging information</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-4">Error Handling</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="test-error test-result">
+                    <h3 class="font-semibold">❌ Common Errors:</h3>
+                    <ul class="mt-2 space-y-1 text-sm">
+                        <li>• File too large (>10MB)</li>
+                        <li>• Unsupported file type</li>
+                        <li>• Network connection issues</li>
+                        <li>• Authentication failures</li>
+                        <li>• Missing staging ID</li>
+                    </ul>
+                </div>
+                
+                <div class="test-info test-result">
+                    <h3 class="font-semibold">🛠️ Error Recovery:</h3>
+                    <ul class="mt-2 space-y-1 text-sm">
+                        <li>• Automatic retry for network issues</li>
+                        <li>• User-friendly error messages</li>
+                        <li>• Partial upload success handling</li>
+                        <li>• Manual upload retry options</li>
+                        <li>• Detailed error logging</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8">
+            <a href="addPages/addOPReim.html" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-200">
+                Go to Outgoing Payments Form
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Simple test functions
+        function testFileValidation() {
+            const testFiles = [
+                { name: 'test.pdf', size: 1024 * 1024, type: 'application/pdf' },
+                { name: 'test.doc', size: 5 * 1024 * 1024, type: 'application/msword' },
+                { name: 'test.jpg', size: 2 * 1024 * 1024, type: 'image/jpeg' },
+                { name: 'test.exe', size: 1024 * 1024, type: 'application/x-msdownload' }
+            ];
+            
+            console.log('Testing file validation...');
+            testFiles.forEach(file => {
+                const isValidSize = file.size <= 10 * 1024 * 1024;
+                const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                const isValidType = allowedTypes.includes(fileExtension);
+                
+                console.log(`${file.name}: Size=${isValidSize ? 'OK' : 'TOO LARGE'}, Type=${isValidType ? 'OK' : 'NOT SUPPORTED'}`);
+            });
+        }
+        
+        // Run tests on page load
+        window.onload = function() {
+            console.log('Attachment Upload Test Page Loaded');
+            testFileValidation();
+        };
+    </script>
+</body>
+</html> 

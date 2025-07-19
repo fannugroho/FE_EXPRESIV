@@ -1,16 +1,196 @@
+// Global variables
 let uploadedFiles = [];
 let reimbursementId = '';
+let allCategories = [];
+let allAccountNames = [];
+let transactionTypes = []; // Added to store transaction types
+let businessPartners = []; // Added to store business partners
+
+// Currency formatting functions
+function formatCurrencyIDR(number) {
+    // Handle input kosong atau tidak valid
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    // Parse angka, pastikan dapat menangani nilai yang sangat besar
+    let num;
+    try {
+        // Handle input string yang mungkin sangat besar
+        if (typeof number === 'string') {
+            // Hapus semua karakter non-numerik kecuali titik desimal dan koma
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
+            if (cleanedStr.length > 15) {
+                // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
+                // Hapus koma dan parse
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
+        }
+        
+        // Jika parsing gagal, kembalikan string kosong
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    // Batasi maksimum 100 triliun
+    const maxAmount = 100000000000000; // 100 triliun
+    if (num > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        num = maxAmount;
+    }
+    
+    // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
+    // Untuk angka yang sangat besar, gunakan metode manual
+    if (num >= 1e12) { // Jika angka >= 1 triliun
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        // Tambahkan koma setiap 3 digit dari belakang
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        // Tambahkan 2 desimal
+        return result + '.00';
+    } else {
+        // Untuk angka yang lebih kecil, gunakan toLocaleString
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        // Tangani format US (pemisah ribuan: ',', pemisah desimal: '.')
+        // Hapus koma (pemisah ribuan)
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+function formatCurrencyInputIDR(input) {
+    // Simpan posisi kursor
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    // Ambil nilai dan hapus semua karakter non-digit, titik dan koma
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    // Pastikan hanya ada satu pemisah desimal
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Parse nilai ke angka untuk perhitungan
+    const numValue = parseCurrencyIDR(value);
+    
+    // Format dengan format US
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    // Perbarui nilai input
+    input.value = formattedValue;
+    
+    // Hitung dan perbarui total
+    updateTotalAmount();
+    
+    // Sesuaikan posisi kursor
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
 
 // Add document ready event listener
 document.addEventListener("DOMContentLoaded", function() {
     console.log('DOMContentLoaded event fired');
     console.log('BASE_URL:', BASE_URL);
+    console.log('Current URL:', window.location.href);
+    
+            // Check if BASE_URL is valid
+        if (!BASE_URL || BASE_URL.trim() === '') {
+            console.error('BASE_URL is not defined or empty');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Configuration Error',
+                    text: 'Application configuration is invalid. Please contact administrator.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Application configuration is invalid. Please contact administrator.');
+            }
+            return;
+        }
+    
+    // Check if we have a valid reimbursement ID first
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        console.error('No valid reimbursement ID found in URL');
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid URL',
+            text: 'No valid reimbursement ID found in URL. Please go back and try again.',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            goToMenuReim();
+        });
+        return;
+    }
     
     // Call function to control button visibility
     controlButtonVisibility();
     
     // Fetch reimbursement data
     fetchReimbursementData();
+    
+    // Check authentication before fetching other data
+    if (!isAuthenticated()) {
+        console.error('User not authenticated');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please login again to access this page.',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                logoutAuth();
+            });
+        } else {
+            alert('Please login again to access this page.');
+            logoutAuth();
+        }
+        return;
+    }
     
     // Fetch departments for dropdown
     fetchDepartments();
@@ -229,7 +409,7 @@ function addRow() {
             <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full p-1 border rounded currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this)" required />
+            <input type="text" class="w-full p-1 border rounded currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this)" required autocomplete="off" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -352,9 +532,9 @@ async function submitDocument() {
                 'success'
             ).then(() => {
                 // After successful submission, preparedDate will no longer be null
-                // Update the button state directly and refresh data
+                // Update the button state directly but don't refresh form data
                 updateSubmitButtonState(new Date().toISOString());
-                fetchReimbursementData();
+                // Don't call fetchReimbursementData() to preserve user changes
             });
         } else {
             Swal.fire(
@@ -374,8 +554,45 @@ async function submitDocument() {
 }
 
 function getReimbursementIdFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('reim-id');
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reimId = urlParams.get('reim-id');
+        
+        console.log('URL parameters:', window.location.search);
+        console.log('Extracted reim-id:', reimId);
+        
+        // Validate the ID
+        if (!reimId) {
+            console.error('No reim-id parameter found in URL');
+            return null;
+        }
+        
+        // Check if it's a valid ID (should be a number or alphanumeric)
+        if (typeof reimId === 'string' && reimId.trim() === '') {
+            console.error('reim-id parameter is empty');
+            return null;
+        }
+        
+        // Remove any whitespace
+        const cleanId = reimId.trim();
+        
+        // Additional validation for numeric IDs
+        if (!isNaN(cleanId)) {
+            const numId = parseInt(cleanId);
+            if (numId <= 0) {
+                console.error('Invalid reim-id: must be a positive number');
+                return null;
+            }
+            return numId.toString();
+        }
+        
+        // For non-numeric IDs, just return the cleaned string
+        return cleanId;
+        
+    } catch (error) {
+        console.error('Error parsing URL parameters:', error);
+        return null;
+    }
 }
 
 // Function to get current logged-in user using auth.js
@@ -425,16 +642,194 @@ function autofillPreparedByWithCurrentUser(users) {
 
 async function fetchReimbursementData() {
     reimbursementId = getReimbursementIdFromUrl();
-    if (!reimbursementId) {
-        console.error('No reimbursement ID found in URL');
-        return;
-    }
+            if (!reimbursementId) {
+            console.error('No reimbursement ID found in URL');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid URL',
+                    text: 'No reimbursement ID found in URL. Please go back and try again.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim();
+                });
+            } else {
+                alert('No reimbursement ID found in URL. Please go back and try again.');
+                goToMenuReim();
+            }
+            return;
+        }
     
     try {
-        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
-        const result = await response.json();
+        console.log('Fetching reimbursement data for ID:', reimbursementId);
+        console.log('API URL:', `${BASE_URL}/api/reimbursements/${reimbursementId}`);
         
-        if (result.status && result.code === 200) {
+        // Check authentication first
+        const token = getAccessToken();
+        if (!token) {
+            console.error('No access token found');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Required',
+                    text: 'Please login again to access this page.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    logoutAuth();
+                });
+            } else {
+                alert('Please login again to access this page.');
+                logoutAuth();
+            }
+            return;
+        }
+        
+        // Check if token is expired
+        if (!isAuthenticated()) {
+            console.error('Token is expired');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Session Expired',
+                    text: 'Your session has expired. Please login again.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    logoutAuth();
+                });
+            } else {
+                alert('Your session has expired. Please login again.');
+                logoutAuth();
+            }
+            return;
+        }
+        
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // Handle different HTTP status codes
+        if (response.status === 400) {
+            console.error('Bad Request (400): Invalid reimbursement ID or malformed request');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Request',
+                    text: 'The reimbursement ID is invalid or the request is malformed. Please check the URL and try again.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim();
+                });
+            } else {
+                alert('The reimbursement ID is invalid or the request is malformed. Please check the URL and try again.');
+                goToMenuReim();
+            }
+            return;
+        }
+        
+        if (response.status === 401) {
+            console.error('Unauthorized (401): Authentication required');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Required',
+                    text: 'Please login again to access this page.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    logoutAuth();
+                });
+            } else {
+                alert('Please login again to access this page.');
+                logoutAuth();
+            }
+            return;
+        }
+        
+        if (response.status === 404) {
+            console.error('Not Found (404): Reimbursement not found');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Reimbursement Not Found',
+                    text: 'The requested reimbursement document was not found. It may have been deleted or you may not have permission to view it.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    goToMenuReim();
+                });
+            } else {
+                alert('The requested reimbursement document was not found. It may have been deleted or you may not have permission to view it.');
+                goToMenuReim();
+            }
+            return;
+        }
+        
+        if (response.status === 500) {
+            console.error('Internal Server Error (500): Server error');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'An internal server error occurred. Please try again later.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('An internal server error occurred. Please try again later.');
+            }
+            return;
+        }
+        
+        if (!response.ok) {
+            console.error('HTTP Error:', response.status, response.statusText);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: `Failed to fetch reimbursement data. Status: ${response.status} ${response.statusText}`,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`Failed to fetch reimbursement data. Status: ${response.status} ${response.statusText}`);
+            }
+            return;
+        }
+        
+        let result;
+        try {
+            result = await response.json();
+        } catch (parseError) {
+            console.error('Error parsing JSON response:', parseError);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Response',
+                    text: 'The server returned an invalid response. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('The server returned an invalid response. Please try again.');
+            }
+            return;
+        }
+        
+        if (result && result.status && result.code === 200) {
+            if (!result.data) {
+                console.error('No data received from API');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Data',
+                        text: 'No reimbursement data was received from the server.',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    alert('No reimbursement data was received from the server.');
+                }
+                return;
+            }
+            
             console.log('Reimbursement data received:', result.data);
             console.log('Status:', result.data.status);
             console.log('Rejection remarks:', result.data.rejectionRemarks);
@@ -474,10 +869,66 @@ async function fetchReimbursementData() {
                 document.getElementById('attachmentsList').innerHTML = '';
             }
         } else {
-            console.error('Failed to fetch reimbursement data:', result.message);
+            console.error('Failed to fetch reimbursement data:', result);
+            
+            // Handle different response formats
+            let errorMessage = 'Failed to load reimbursement data. Please try again.';
+            
+            if (result && typeof result === 'object') {
+                errorMessage = result.message || result.error || result.errorMessage || errorMessage;
+            } else if (typeof result === 'string') {
+                errorMessage = result;
+            }
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to Load Data',
+                    text: errorMessage,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(errorMessage);
+            }
         }
     } catch (error) {
         console.error('Error fetching reimbursement data:', error);
+        
+        // Check if it's a network error
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Unable to connect to the server. Please check your internet connection and try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Unable to connect to the server. Please check your internet connection and try again.');
+            }
+        } else if (error.name === 'SyntaxError') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Response',
+                    text: 'The server returned an invalid response format. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('The server returned an invalid response format. Please try again.');
+            }
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: `An unexpected error occurred: ${error.message}`,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`An unexpected error occurred: ${error.message}`);
+            }
+        }
     }
 }
 
@@ -1140,7 +1591,7 @@ function populateFormData(data) {
     // Update for searchable payTo with business partners
     const payToSearch = document.getElementById('payToSearch');
     const payToSelect = document.getElementById('payToSelect');
-    if (payToSearch && data.payTo) {
+    if (payToSearch && data.payTo && businessPartners && businessPartners.length > 0) {
         // Find the corresponding business partner for the payTo ID
         const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
         
@@ -1167,6 +1618,12 @@ function populateFormData(data) {
                     payToSelect.value = matchingBP.id;
                 }
             }
+        }
+    } else if (payToSearch && data.payTo) {
+        // Fallback: just set the ID value if business partners not loaded yet
+        payToSearch.value = data.payTo;
+        if (payToSelect) {
+            payToSelect.value = data.payTo;
         }
     }
     
@@ -1323,7 +1780,7 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded" required />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required autocomplete="off" />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
@@ -1363,6 +1820,21 @@ function updateTotalAmount() {
         console.log(`Row ${index + 1} amount: ${amountText} -> ${numericValue}`);
         total += numericValue;
     });
+    
+    // Periksa jika total melebihi 100 triliun
+    const maxAmount = 100000000000000; // 100 triliun
+    if (total > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        total = maxAmount;
+    }
     
     // Format total with proper format and display
     const formattedTotal = formatCurrencyIDR(total);
@@ -1477,7 +1949,9 @@ function updateReim() {
                     'Reimbursement has been updated successfully.',
                     'success'
                 ).then(() => {
-                    fetchReimbursementData();
+                    // Don't refresh the form data to preserve user changes
+                    // Only update the submit button state if needed
+                    updateSubmitButtonState(result.data?.preparedDate || null);
                 });
             } catch (error) {
                 console.error('Error updating reimbursement:', error);
@@ -1639,7 +2113,14 @@ async function submitReimbursementUpdate() {
 }
 
 function goToMenuReim() {
-    window.location.href = '../pages/menuReim.html';
+    try {
+        // Try to navigate to menu page
+        window.location.href = '../pages/menuReim.html';
+    } catch (error) {
+        console.error('Error navigating to menu:', error);
+        // Fallback to home page
+        window.location.href = '../pages/approval-dashboard.html';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1785,94 +2266,49 @@ document.addEventListener('DOMContentLoaded', function() {
         section.innerHTML = html;
     }
 
-    // Display revision history if available
-    renderRevisionHistory(data.revisions);
-
 // Function to display rejection remarks if available
 function displayRejectionRemarks(data) {
-    console.log('displayRejectionRemarks called with data:', data);
-    console.log('Status:', data.status);
-    
-    // Periksa semua kemungkinan rejection remarks dan rejection dates
-    const hasRejectionByChecker = data.remarksRejectByChecker && data.rejectedDateByChecker;
-    const hasRejectionByAcknowledger = data.remarksRejectByAcknowledger && data.rejectedDateByAcknowledger;
-    const hasRejectionByApprover = data.remarksRejectByApprover && data.rejectedDateByApprover;
-    const hasRejectionByReceiver = data.remarksRejectByReceiver && data.rejectedDateByReceiver;
-    const hasGeneralRejection = data.rejectionRemarks;
-    
-    console.log('Rejection data check:', {
-        hasRejectionByChecker,
-        hasRejectionByAcknowledger,
-        hasRejectionByApprover,
-        hasRejectionByReceiver,
-        hasGeneralRejection
-    });
-    
-    // Jika tidak ada rejection remarks atau rejection date yang terisi, sembunyikan section
-    if (!hasRejectionByChecker && !hasRejectionByAcknowledger && !hasRejectionByApprover && 
-        !hasRejectionByReceiver && !hasGeneralRejection) {
-        document.getElementById('rejectionRemarksSection').style.display = 'none';
-        console.log('No rejection remarks to display');
+    // Check if status is Rejected
+    if (data.status !== 'Rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
         return;
     }
     
-    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
-    const rejectionRemarks = document.getElementById('rejectionRemarks');
+    const rejectionSection = document.getElementById('rejectionRemarksSection');
+    const rejectionTextarea = document.getElementById('rejectionRemarks');
     
-    if (rejectionRemarksSection && rejectionRemarks) {
-        // Kumpulkan semua rejection remarks yang tersedia
-        let allRemarks = [];
+    if (rejectionSection && rejectionTextarea) {
+        // Check for various possible rejection remarks fields
+        let rejectionRemarks = '';
         
-        if (hasRejectionByChecker) {
-            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
-            allRemarks.push(data.remarksRejectByChecker);
+        // Check for specific rejection remarks by role
+        if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
         }
         
-        if (hasRejectionByAcknowledger) {
-            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
-            allRemarks.push(data.remarksRejectByAcknowledger);
-        }
-        
-        if (hasRejectionByApprover) {
-            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
-            allRemarks.push(data.remarksRejectByApprover);
-        }
-        
-        if (hasRejectionByReceiver) {
-            // Hanya tampilkan catatan penolakan tanpa jabatan dan tanggal
-            allRemarks.push(data.remarksRejectByReceiver);
-        }
-        
-        if (hasGeneralRejection && !allRemarks.length) {
-            // Gunakan general rejection remarks jika tidak ada yang spesifik
-            allRemarks.push(data.rejectionRemarks);
-        }
-        
-        // Tampilkan semua rejection remarks
-        if (allRemarks.length > 0) {
-            // Show the rejection remarks section
-            rejectionRemarksSection.style.display = 'block';
-            rejectionRemarks.value = allRemarks.join('\n\n');
-            console.log('Rejection remarks displayed:', allRemarks);
-            
-            // Add a visual indicator that the document was rejected
-            const statusElement = document.getElementById('status');
-            if (statusElement) {
-                statusElement.classList.add('bg-red-100', 'text-red-800', 'font-semibold');
-            }
+        if (rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
         } else {
-            rejectionRemarksSection.style.display = 'none';
+            rejectionSection.style.display = 'none';
         }
-    } else {
-        console.error('Rejection remarks elements not found in the DOM');
     }
 }
 
 // Store global data for categories and account names
-let allCategories = [];
-let allAccountNames = [];
-let transactionTypes = []; // Added to store transaction types
-let businessPartners = []; // Added to store business partners
 
 // Function to get department ID by name
 async function getDepartmentIdByName(departmentName) {
@@ -2024,11 +2460,11 @@ function updateAllCategoryDropdowns() {
     
     categorySearchInputs.forEach(input => {
         // Store categories data for searching
-        input.dataset.categories = JSON.stringify(allCategories);
+        input.dataset.categories = JSON.stringify(allCategories || []);
         
         // Clear current value if categories changed
         const currentValue = input.value;
-        if (currentValue && !allCategories.includes(currentValue)) {
+        if (currentValue && allCategories && !allCategories.includes(currentValue)) {
             input.value = '';
             const row = input.closest('tr');
             const accountNameSearch = row.querySelector('.account-name-search');
@@ -2048,7 +2484,7 @@ function setupRowEventListeners(row) {
     
     if (categorySearch) {
         // Populate with existing categories if available
-        if (allCategories.length > 0) {
+        if (allCategories && allCategories.length > 0) {
             categorySearch.dataset.categories = JSON.stringify(allCategories);
         }
         
@@ -2263,15 +2699,12 @@ function populateCategoriesForNewRow(row) {
     console.log('populateCategoriesForNewRow called');
     console.log('- Available categories:', allCategories ? allCategories.length : 'none');
     
-    if (categorySearch && allCategories.length > 0) {
+    if (categorySearch && allCategories && allCategories.length > 0) {
         // Store categories data for the new row
         categorySearch.dataset.categories = JSON.stringify(allCategories);
         console.log('Populated categories for new row:', allCategories.length, 'categories');
         
-        // Debugging: log some category examples
-        if (allCategories.length > 0) {
-            console.log('Category examples:', allCategories.slice(0, 3));
-        }
+
     } else if (categorySearch) {
         console.log('No categories available to populate for new row');
         
@@ -2380,6 +2813,24 @@ function toggleReimTableEditability() {
             fileInput.disabled = false;
             fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
+    }
+}
+
+// Helper function to logout if logoutAuth is not available
+function safeLogout() {
+    try {
+        if (typeof logoutAuth === 'function') {
+            logoutAuth();
+        } else {
+            // Clear localStorage and redirect to login
+            localStorage.clear();
+            window.location.href = '../pages/login.html';
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+        // Force logout by clearing storage and redirecting
+        localStorage.clear();
+        window.location.href = '../pages/login.html';
     }
 }
 

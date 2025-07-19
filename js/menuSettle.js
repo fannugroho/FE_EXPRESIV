@@ -340,21 +340,7 @@
       
       window.onload = loadDashboard;
 
-      // Initialize test user data if none exists
-      function initializeTestUser() {
-        const loggedInUser = localStorage.getItem("loggedInUser");
-        if (!loggedInUser || loggedInUser === "Vaphat01") {
-          const testUser = {
-            name: "Test User",
-            email: "test@example.com",
-            profilePicture: null
-          };
-          localStorage.setItem("loggedInUser", JSON.stringify(testUser));
-        }
-      }
 
-      // Initialize test user on page load
-      initializeTestUser();
 
       // Fungsi untuk mendapatkan ID pengguna yang login
       function getUserId() {

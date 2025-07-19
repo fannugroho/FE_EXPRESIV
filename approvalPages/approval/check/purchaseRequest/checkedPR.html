@@ -139,6 +139,14 @@
               <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
             
+            <!-- Rejection Remarks Display Section -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                </div>
+            </div>
+            
                     <!-- Revised Remarks Display Section (Read-only) -->
         <div class="mt-4" id="revisedRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
@@ -238,7 +246,7 @@
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
         const MAX_REVISION_FIELDS = 1; // Limit to 1 revision per document
-
+        
         // Toggle revision container visibility and add first field
         function toggleRevisionField() {
             // Ensure DOM is ready

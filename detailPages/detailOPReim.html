@@ -112,8 +112,10 @@
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -121,8 +123,10 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                    <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Attachment</h3>
                 <div class="w-full p-2 border rounded bg-gray-50">
@@ -152,15 +156,6 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="TypeOfTransaction" class="w-full p-2 border rounded bg-gray-100" disabled>
-                    <option value="" disabled>Select Type of Transaction</option>
-                    <option value="REIMBURSEMENT">Reimbursement</option>
-                    <option value="ADVANCE">Advance</option>
-                    <option value="SETTLEMENT">Settlement</option>
-                    <option value="LOAN">Loan</option>
-                </select>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -276,17 +271,7 @@
                     <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
-            <div>
-                <!--closed by-->
-                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.ClosedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
-            </div>
+
         </div>
         <br>
     </div>
@@ -358,31 +343,10 @@
             }
         }
 
-        function toggleClosedByVisibility() {
-            const transactionType = document.getElementById('TypeOfTransaction')?.value;
-            const closedByContainer = document.getElementById('closed')?.parentElement;
-            
-            if (closedByContainer) {
-                if (transactionType === 'LOAN') {
-                    closedByContainer.style.display = 'block';
-                } else {
-                    closedByContainer.style.display = 'none';
-                }
-            }
-        }
+
 
         // Initialize currency inputs
         document.addEventListener('DOMContentLoaded', function() {
-            // Add event listener for Type of Transaction
-            const typeOfTransactionSelect = document.getElementById('TypeOfTransaction');
-            if (typeOfTransactionSelect) {
-                typeOfTransactionSelect.addEventListener('change', function() {
-                    toggleClosedByVisibility();
-                });
-            }
-            
-            toggleClosedByVisibility();
-            
             // Load data from API if document ID is provided in URL
             loadDocumentData();
         });

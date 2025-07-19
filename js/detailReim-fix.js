@@ -64,7 +64,145 @@ if (typeof formatCurrencyInputIDR !== 'function') {
         }
         
         // Update total amount
-        updateTotalAmount();
+        if (typeof updateTotalAmount === 'function') {
+            updateTotalAmount();
+        }
+    };
+}
+
+// Helper function to logout if logoutAuth is not available
+function safeLogout() {
+    try {
+        if (typeof logoutAuth === 'function') {
+            logoutAuth();
+        } else {
+            // Clear localStorage and redirect to login
+            localStorage.clear();
+            window.location.href = '../pages/login.html';
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+        // Force logout by clearing storage and redirecting
+        localStorage.clear();
+        window.location.href = '../pages/login.html';
+    }
+}
+
+// Helper function to navigate to menu with fallback
+function safeGoToMenu() {
+    try {
+        if (typeof goToMenuReim === 'function') {
+            goToMenuReim();
+        } else {
+            window.location.href = '../pages/menuReim.html';
+        }
+    } catch (error) {
+        console.error('Error navigating to menu:', error);
+        window.location.href = '../pages/approval-dashboard.html';
+    }
+}
+
+// Enhanced error handling for API calls
+function handleApiError(error, context = '') {
+    console.error(`API Error in ${context}:`, error);
+    
+    let errorMessage = 'An unexpected error occurred. Please try again.';
+    
+    if (error.status === 400) {
+        errorMessage = 'Invalid request. Please check the URL and try again.';
+    } else if (error.status === 401) {
+        errorMessage = 'Authentication required. Please login again.';
+        setTimeout(() => safeLogout(), 2000);
+    } else if (error.status === 404) {
+        errorMessage = 'The requested resource was not found.';
+    } else if (error.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+    }
+    
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+            confirmButtonText: 'OK'
+        });
+    } else {
+        alert(errorMessage);
+    }
+}
+
+// Enhanced fetchReimbursementData with better error handling
+if (typeof fetchReimbursementData !== 'undefined') {
+    const originalFetchReimbursementData = fetchReimbursementData;
+    
+    window.fetchReimbursementData = async function() {
+        const reimbursementId = getReimbursementIdFromUrl();
+        if (!reimbursementId) {
+            console.error('No reimbursement ID found in URL');
+            handleApiError({ status: 400, message: 'No reimbursement ID found in URL' }, 'fetchReimbursementData');
+            return;
+        }
+        
+        try {
+            console.log('Fetching reimbursement data for ID:', reimbursementId);
+            
+            // Check authentication first
+            const token = getAccessToken();
+            if (!token) {
+                handleApiError({ status: 401, message: 'No access token found' }, 'fetchReimbursementData');
+                return;
+            }
+            
+            // Check if token is expired
+            if (!isAuthenticated()) {
+                handleApiError({ status: 401, message: 'Token is expired' }, 'fetchReimbursementData');
+                return;
+            }
+            
+            const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                handleApiError({ status: response.status, message: response.statusText }, 'fetchReimbursementData');
+                return;
+            }
+            
+            const result = await response.json();
+            
+            if (result && result.status && result.code === 200) {
+                if (!result.data) {
+                    handleApiError({ status: 500, message: 'No data received from API' }, 'fetchReimbursementData');
+                    return;
+                }
+                
+                console.log('Reimbursement data received:', result.data);
+                
+                // Call original function to process the data
+                populateFormData(result.data);
+                updateSubmitButtonState(result.data.preparedDate);
+                toggleReimTableEditability();
+                
+                // Handle attachments
+                if (result.data.reimbursementAttachments && result.data.reimbursementAttachments.length > 0) {
+                    displayAttachments(result.data.reimbursementAttachments);
+                } else if (result.data.attachments && result.data.attachments.length > 0) {
+                    displayAttachments(result.data.attachments);
+                } else {
+                    document.getElementById('attachmentsList').innerHTML = '';
+                }
+            } else {
+                handleApiError({ status: 500, message: result.message || 'Failed to load data' }, 'fetchReimbursementData');
+            }
+        } catch (error) {
+            handleApiError(error, 'fetchReimbursementData');
+        }
     };
 }
 
@@ -187,7 +325,9 @@ document.addEventListener('DOMContentLoaded', function() {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' && mutation.target.id === 'reimbursementDetails') {
                 console.log('Reimbursement details table changed, updating total amount');
-                updateTotalAmount();
+                if (typeof updateTotalAmount === 'function') {
+                    updateTotalAmount();
+                }
             }
         });
     });
@@ -200,7 +340,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Pastikan total amount diupdate setelah halaman dimuat
     setTimeout(function() {
         console.log('Delayed updateTotalAmount call');
-        updateTotalAmount();
+        if (typeof updateTotalAmount === 'function') {
+            updateTotalAmount();
+        }
         
         // Pastikan attachment ditampilkan
         ensureAttachmentsDisplayed();
@@ -215,11 +357,15 @@ function ensureDataLoaded() {
     const reimbursementDetails = document.getElementById('reimbursementDetails');
     if (reimbursementDetails && reimbursementDetails.children.length === 0) {
         console.log('No reimbursement details found, adding empty row');
-        addRow();
+        if (typeof addRow === 'function') {
+            addRow();
+        }
     }
     
     // Cek apakah total amount sudah dihitung
-    updateTotalAmount();
+    if (typeof updateTotalAmount === 'function') {
+        updateTotalAmount();
+    }
     
     // Cek apakah kategori sudah dimuat
     const departmentName = document.getElementById('department').value;
@@ -227,7 +373,9 @@ function ensureDataLoaded() {
     
     if (departmentName && transactionType && (!allCategories || allCategories.length === 0)) {
         console.log('Department and transaction type are set but categories not loaded, triggering handleDependencyChange');
-        handleDependencyChange();
+        if (typeof handleDependencyChange === 'function') {
+            handleDependencyChange();
+        }
     }
     
     // Pastikan attachment ditampilkan

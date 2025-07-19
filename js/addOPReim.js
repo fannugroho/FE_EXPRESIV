@@ -9,7 +9,7 @@ let stagingOutgoingPaymentId = null; // Track the staging outgoing payment ID fo
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
-let apiBaseUrl = baseUrlDevAmiru || 'https://expressiv.idsdev.site'; // Use baseUrlDevAmiru if defined
+let apiBaseUrl = 'https://expressiv.idsdev.site'; // API base URL
 
 // Function to check authentication
 function checkAuthentication() {
@@ -120,6 +120,10 @@ async function initializePage() {
         // Ensure approval field values are properly set after everything is loaded
         setTimeout(async () => {
             await ensureApprovalFieldValues();
+            
+            // Auto-fill preparedBy with current logged-in user
+            autofillPreparedByWithCurrentUser();
+            
             // Update totals after all data is loaded
             updateTotalAmountDue();
         }, 1000); // Give time for all data to load
@@ -195,6 +199,109 @@ function getUserId() {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
     return user ? user.id : null;
 }
+
+// Function to get current logged-in user information
+function getCurrentLoggedInUser() {
+    try {
+        // Try to get user from JWT token first
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const userInfo = JSON.parse(jsonPayload);
+                
+                return {
+                    id: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
+                    name: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || userInfo.name || ''
+                };
+            } catch (error) {
+                console.error('Error decoding JWT token:', error);
+            }
+        }
+        
+        // Fallback to loggedInUser from localStorage
+        const user = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (user) {
+            return {
+                id: user.id,
+                name: user.name || user.username || ''
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error getting current logged-in user:', error);
+        return null;
+    }
+}
+
+// Function to auto-fill preparedBy with current logged-in user
+function autofillPreparedByWithCurrentUser() {
+    const currentUser = getCurrentLoggedInUser();
+    if (!currentUser) {
+        console.warn('Could not get current logged-in user information');
+        return;
+    }
+    
+    // Check if preparedBy field already has a value
+    const preparedByField = document.getElementById('Approval.PreparedById');
+    const preparedBySearch = document.getElementById('Approval.PreparedByIdSearch');
+    
+    if (preparedByField && preparedBySearch) {
+        // If field already has a value, don't overwrite it
+        if (preparedByField.value && preparedBySearch.value.trim()) {
+            console.log('PreparedBy field already has a value, not overwriting:', {
+                fieldValue: preparedByField.value,
+                searchValue: preparedBySearch.value
+            });
+            return;
+        }
+    }
+    
+    console.log('Auto-filling preparedBy with current user:', currentUser);
+    
+    // Set the preparedBy field with current user
+    setApprovalFieldValue('Approval.PreparedById', currentUser.id, currentUser.name);
+    
+    // Disable the preparedBy field since it's auto-filled with current user
+    if (preparedBySearch) {
+        preparedBySearch.disabled = true;
+        preparedBySearch.readOnly = true;
+        preparedBySearch.classList.add('bg-gray-100', 'cursor-not-allowed');
+        preparedBySearch.title = 'Auto-filled with current user';
+        preparedBySearch.placeholder = 'Auto-filled with current user';
+    }
+    
+    console.log('PreparedBy field auto-filled and disabled');
+}
+
+// Make autofillPreparedByWithCurrentUser globally available for debugging
+window.autofillPreparedByWithCurrentUser = autofillPreparedByWithCurrentUser;
+
+// Function to test auto-fill functionality (for debugging)
+function testAutoFillPreparedBy() {
+    console.log('Testing auto-fill preparedBy functionality...');
+    console.log('Current user info:', getCurrentLoggedInUser());
+    console.log('PreparedBy field before auto-fill:', {
+        fieldValue: document.getElementById('Approval.PreparedById')?.value,
+        searchValue: document.getElementById('Approval.PreparedByIdSearch')?.value
+    });
+    
+    autofillPreparedByWithCurrentUser();
+    
+    console.log('PreparedBy field after auto-fill:', {
+        fieldValue: document.getElementById('Approval.PreparedById')?.value,
+        searchValue: document.getElementById('Approval.PreparedByIdSearch')?.value,
+        disabled: document.getElementById('Approval.PreparedByIdSearch')?.disabled
+    });
+}
+
+// Make test function globally available
+window.testAutoFillPreparedBy = testAutoFillPreparedBy;
 
 // Function to load data from reimbursement document (fallback method using localStorage)
 async function loadReimbursementData() {
@@ -379,12 +486,40 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
         
         // Display attachments if available
         if (detailedData.reimbursementAttachments && Array.isArray(detailedData.reimbursementAttachments)) {
+            console.log('=== REIMBURSEMENT ATTACHMENTS DEBUG ===');
+            console.log('Raw reimbursementAttachments:', detailedData.reimbursementAttachments);
+            console.log('Number of attachments:', detailedData.reimbursementAttachments.length);
+            
+            // Log each attachment structure
+            detailedData.reimbursementAttachments.forEach((att, index) => {
+                console.log(`Attachment ${index}:`, att);
+                console.log(`  - id: ${att.id}`);
+                console.log(`  - attachmentID: ${att.attachmentID}`);
+                console.log(`  - attachmentId: ${att.attachmentId}`);
+                console.log(`  - fileName: ${att.fileName}`);
+                console.log(`  - filePath: ${att.filePath}`);
+            });
+            
             console.log('Displaying attachments:', detailedData.reimbursementAttachments);
             displayExistingAttachments(detailedData.reimbursementAttachments);
             
-            // Store attachments for later use
-            existingAttachments = [...detailedData.reimbursementAttachments];
-            attachmentsToKeep = [...detailedData.reimbursementAttachments.map(a => a.id)];
+            // Store attachments for later use - make it global
+            window.existingAttachments = [...detailedData.reimbursementAttachments];
+            existingAttachments = window.existingAttachments;
+            attachmentsToKeep = [...detailedData.reimbursementAttachments.map(a => a.id || a.attachmentID || a.attachmentId)];
+            
+            console.log('=== ATTACHMENT STORAGE DEBUG ===');
+            console.log('existingAttachments stored:', existingAttachments);
+            console.log('attachmentsToKeep stored:', attachmentsToKeep);
+            console.log('Global existingAttachments variable:', window.existingAttachments);
+            
+            console.log('Stored existingAttachments:', existingAttachments);
+            console.log('Stored attachmentsToKeep:', attachmentsToKeep);
+        } else {
+            console.log('No reimbursement attachments found in detailedData');
+            window.existingAttachments = [];
+            existingAttachments = window.existingAttachments;
+            attachmentsToKeep = [];
         }
         
         // Set approval information if available
@@ -1710,7 +1845,7 @@ function fileToBase64(file) {
 
 // Function to get file icon based on file type
 function getFileIcon(fileName) {
-    if (!fileName) return '📄';
+    if (!fileName || typeof fileName !== 'string') return '📄';
     
     const extension = fileName.split('.').pop()?.toLowerCase();
     
@@ -1777,6 +1912,11 @@ async function viewAttachment(attachment) {
             docId = window.currentDocumentId;
         }
         
+        // If still no docId, try to get it from localStorage
+        if (!docId) {
+            docId = localStorage.getItem('currentStagingOutgoingPaymentId');
+        }
+        
         if (!docId) {
             throw new Error('Document ID not found. Please ensure you are viewing an existing document.');
         }
@@ -1797,8 +1937,8 @@ async function viewAttachment(attachment) {
             return;
         }
 
-        // Fetch attachment data from API - use reimbursement attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/reimbursements/${docId}/attachments`, {
+        // Fetch attachment data from API - use staging outgoing payment attachments endpoint
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -1806,6 +1946,17 @@ async function viewAttachment(attachment) {
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                console.warn(`No attachments found for document ${docId}`);
+                Swal.close();
+                Swal.fire({
+                    title: 'No Attachments',
+                    text: 'No attachments found for this document.',
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
             throw new Error(`Failed to fetch attachment: ${response.status}`);
         }
 
@@ -1856,7 +2007,16 @@ async function viewAttachment(attachment) {
 
 // Function to upload attachment to staging outgoing payment
 async function uploadAttachmentToStaging(file, description = '', attachmentType = 'Document', stagingId = null) {
+    console.log('=== Starting uploadAttachmentToStaging ===');
+    console.log('File:', file);
+    console.log('Description:', description);
+    console.log('AttachmentType:', attachmentType);
+    console.log('StagingId parameter:', stagingId);
+    console.log('stagingOutgoingPaymentId global:', stagingOutgoingPaymentId);
+    
     const targetStagingId = stagingId || stagingOutgoingPaymentId;
+    console.log('Target staging ID:', targetStagingId);
+    
     if (!targetStagingId) {
         throw new Error('Staging outgoing payment ID not available. Please save the document first.');
     }
@@ -1874,27 +2034,56 @@ async function uploadAttachmentToStaging(file, description = '', attachmentType 
         });
 
         // Prepare form data according to API specification
+        // The API expects multipart/form-data with specific field names
         const formData = new FormData();
-        formData.append('File', file);
-        formData.append('Description', description);
-        formData.append('AttachmentType', attachmentType);
+        formData.append('File', file); // Required: The file data itself
+        formData.append('Description', description); // Optional: A text description for the file
+        formData.append('AttachmentType', attachmentType); // Optional: A category for the file
+
+        console.log(`Uploading file: ${file.name} to staging ID: ${targetStagingId}`);
+        console.log('Form data fields:', {
+            File: file.name,
+            Description: description,
+            AttachmentType: attachmentType
+        });
+        
+        // Debug FormData contents
+        console.log('FormData entries:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
 
         // Upload to staging outgoing payment attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${targetStagingId}`, {
+        // Endpoint: /api/staging-outgoing-payments/attachments/{stagingId}
+        const uploadUrl = `/api/staging-outgoing-payments/attachments/${targetStagingId}`;
+        console.log('Upload URL:', uploadUrl);
+        console.log('Request method: POST');
+        console.log('Request headers:', {
+            'accept': 'application/json'
+        });
+        
+        const response = await makeAuthenticatedRequest(uploadUrl, {
             method: 'POST',
             headers: {
-                'accept': '/',
+                'accept': 'application/json',
                 // Note: Don't set Content-Type for FormData, let browser set it with boundary
             },
             body: formData
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Upload failed: ${response.status}`);
+            console.error('Upload failed with status:', response.status);
+            console.error('Error response:', errorData);
+            console.error('Response headers:', response.headers);
+            throw new Error(errorData.message || errorData.Message || `Upload failed: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Upload successful, response:', result);
         
         // Close loading indicator
         Swal.close();
@@ -1908,8 +2097,12 @@ async function uploadAttachmentToStaging(file, description = '', attachmentType 
             showConfirmButton: false
         });
 
-        // Refresh attachments list
-        await loadAttachmentsFromAPI(targetStagingId);
+        // Refresh attachments list - only if we're viewing an existing document
+        const urlParams = new URLSearchParams(window.location.search);
+        const docId = urlParams.get('id');
+        if (docId) {
+            await loadAttachmentsFromAPI(targetStagingId);
+        }
 
         return result;
 
@@ -2119,7 +2312,8 @@ async function submitDocument(isSubmit = false) {
             throw new Error('At least one line item with account code and amount greater than 0 is required.');
         }
         
-        // Submit the form data to API
+        // STEP 1: Create the Outgoing Payment and Get the stagingID
+        console.log('Step 1: Creating outgoing payment to get stagingID...');
         console.log('Submitting form data to API:', formData);
         console.log('Staging ID:', formData.stagingID);
         console.log('Lines count:', formData.lines?.length);
@@ -2141,57 +2335,66 @@ async function submitDocument(isSubmit = false) {
             body: JSON.stringify(formData)
         });
         
-                    if (!response.ok) {
-                console.log("Response status:", response.status);
-                console.log("Response status text:", response.statusText);
+        if (!response.ok) {
+            console.log("Response status:", response.status);
+            console.log("Response status text:", response.statusText);
+            
+            // Parse the error response to get the actual error message
+            let errorMessage = `Error API: ${response.status}`;
+            try {
+                const responseText = await response.text();
+                console.log("Raw error response:", responseText);
                 
-                // Parse the error response to get the actual error message
-                let errorMessage = `Error API: ${response.status}`;
-                try {
-                    const responseText = await response.text();
-                    console.log("Raw error response:", responseText);
-                    
-                    const errorData = JSON.parse(responseText);
-                    console.log("Parsed error data:", errorData);
-                    
-                    // Handle ApiResponse error format
-                    if (errorData.Message) {
-                        errorMessage = errorData.Message;
-                    } else if (errorData.message) {
-                        errorMessage = errorData.message;
-                    }
-                    
-                    // Handle validation errors array in Data field
-                    if (errorData.Data && Array.isArray(errorData.Data)) {
-                        errorMessage = "Error validasi:\n" + errorData.Data.join("\n");
-                    } else if (errorData.errors && Array.isArray(errorData.errors)) {
-                        errorMessage = "Error validasi:\n" + errorData.errors.join("\n");
-                    }
-                    
-                } catch (parseError) {
-                    console.log("Could not parse error response:", parseError);
+                const errorData = JSON.parse(responseText);
+                console.log("Parsed error data:", errorData);
+                
+                // Handle ApiResponse error format
+                if (errorData.Message) {
+                    errorMessage = errorData.Message;
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
                 }
-                throw new Error(errorMessage);
+                
+                // Handle validation errors array in Data field
+                if (errorData.Data && Array.isArray(errorData.Data)) {
+                    errorMessage = "Error validasi:\n" + errorData.Data.join("\n");
+                } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                    errorMessage = "Error validasi:\n" + errorData.errors.join("\n");
+                }
+                
+            } catch (parseError) {
+                console.log("Could not parse error response:", parseError);
             }
+            throw new Error(errorMessage);
+        }
         
         // Parse the successful response
         const result = await response.json();
         console.log("Submit result:", result);
         console.log("Response data:", result.data);
         
-        // Save the staging ID for future attachment uploads
+        // Extract stagingID from the response
         let stagingId = null;
         if (result.data && result.data.stagingID) {
             stagingId = result.data.stagingID;
             stagingOutgoingPaymentId = stagingId;
-            console.log('Staging outgoing payment ID saved:', stagingOutgoingPaymentId);
+            console.log('Staging outgoing payment ID obtained:', stagingOutgoingPaymentId);
+        } else if (result.stagingID) {
+            stagingId = result.stagingID;
+            stagingOutgoingPaymentId = stagingId;
+            console.log('Staging outgoing payment ID obtained from root:', stagingOutgoingPaymentId);
+        } else {
+            throw new Error('Staging ID not found in API response. Please try again.');
         }
         
-        // Upload attachments after successful document creation
+        // STEP 2: Upload Attachments Using the stagingID
         if (stagingId && uploadedFiles.length > 0) {
-            console.log('Uploading attachments after document creation...');
+            console.log('Step 2: Uploading attachments using stagingID:', stagingId);
+            console.log(`Uploading ${uploadedFiles.length} files...`);
+            
             try {
                 await uploadAttachmentsAfterDocumentCreation(stagingId);
+                console.log('All attachments uploaded successfully');
             } catch (uploadError) {
                 console.error('Error uploading attachments:', uploadError);
                 // Show warning but don't fail the entire submission
@@ -2202,6 +2405,16 @@ async function submitDocument(isSubmit = false) {
                     confirmButtonText: 'OK'
                 });
             }
+        } else if (uploadedFiles.length === 0) {
+            console.log('No files to upload');
+        } else {
+            console.log('No staging ID available for attachment upload');
+        }
+        
+        // Store the staging ID for future attachment uploads
+        if (stagingId) {
+            localStorage.setItem('currentStagingOutgoingPaymentId', stagingId);
+            console.log('Staging ID stored for future attachment uploads:', stagingId);
         }
         
         // Show appropriate success message
@@ -2435,12 +2648,29 @@ function collectFormData(userId, isSubmit) {
     
     // Collect attachment IDs from existing attachments that were uploaded
     const attachmentIds = [];
-    if (existingAttachments && existingAttachments.length > 0) {
-        existingAttachments.forEach(attachment => {
-            if (attachment.attachmentID) {
-                attachmentIds.push(attachment.attachmentID);
+    console.log('=== SUBMIT ATTACHMENT DEBUG ===');
+    console.log('Checking existingAttachments:', existingAttachments);
+    console.log('Global existingAttachments:', window.existingAttachments);
+    console.log('Local existingAttachments variable:', typeof existingAttachments);
+    
+    // Try to get attachments from multiple sources
+    let attachmentsToProcess = existingAttachments || window.existingAttachments || [];
+    
+    if (attachmentsToProcess && attachmentsToProcess.length > 0) {
+        console.log('Processing attachments:', attachmentsToProcess);
+        attachmentsToProcess.forEach((attachment, index) => {
+            console.log(`Processing attachment ${index}:`, attachment);
+            // Check multiple possible field names for attachment ID
+            const attachmentId = attachment.attachmentID || attachment.id || attachment.attachmentId;
+            if (attachmentId) {
+                attachmentIds.push(attachmentId);
+                console.log('Added attachment ID:', attachmentId);
+            } else {
+                console.warn('No attachment ID found for attachment:', attachment);
             }
         });
+    } else {
+        console.warn('No attachments found to process');
     }
     
     // Add attachment IDs to the request
@@ -2451,6 +2681,17 @@ function collectFormData(userId, isSubmit) {
     
     console.log('Final request data to be sent to API:', requestDataWithAttachments);
     console.log('Attachment IDs to be sent:', attachmentIds);
+    console.log('Total attachment IDs:', attachmentIds.length);
+    console.log('Request data keys:', Object.keys(requestDataWithAttachments));
+    console.log('Request data attachmentIds field:', requestDataWithAttachments.attachmentIds);
+    console.log('Request data JSON:', JSON.stringify(requestDataWithAttachments, null, 2));
+    
+    // Additional debugging for attachment submission
+    if (requestDataWithAttachments.attachmentIds && requestDataWithAttachments.attachmentIds.length > 0) {
+        console.log('✅ Attachment IDs will be submitted with the request');
+    } else {
+        console.log('⚠️ No attachment IDs found to submit');
+    }
     
     // Validate that we have at least one line
     if (!lines || lines.length === 0) {
@@ -2608,6 +2849,14 @@ async function loadDocumentData() {
             // Ensure approval field values are properly set
             setTimeout(async () => {
                 await ensureApprovalFieldValues();
+                
+                // Auto-fill preparedBy with current logged-in user if not already set
+                const preparedByField = document.getElementById('Approval.PreparedById');
+                const preparedBySearch = document.getElementById('Approval.PreparedByIdSearch');
+                
+                if (preparedByField && (!preparedByField.value || !preparedBySearch.value.trim())) {
+                    autofillPreparedByWithCurrentUser();
+                }
             }, 500);
             
             // Load attachments from API
@@ -2675,6 +2924,9 @@ function mapResponseToForm(responseData) {
     // Map approval fields with proper employee name lookup
     if (responseData.preparedBy) {
         setApprovalFieldValue("Approval.PreparedById", responseData.preparedBy, responseData.preparedByName);
+    } else {
+        // If no preparedBy in response data, auto-fill with current logged-in user
+        autofillPreparedByWithCurrentUser();
     }
     if (responseData.checkedBy) {
         setApprovalFieldValue("Approval.CheckedById", responseData.checkedBy, responseData.checkedByName);
@@ -2758,6 +3010,15 @@ async function loadAttachmentsFromAPI(docId) {
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                console.warn(`No attachments found for document ${docId}`);
+                // Show no attachments message
+                const container = document.getElementById('existingAttachments');
+                if (container) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                }
+                return;
+            }
             console.warn(`Failed to load attachments: ${response.status}`);
             return;
         }
@@ -2997,27 +3258,32 @@ async function ensureApprovalFieldValues() {
         const searchInput = document.getElementById(`${fieldId}Search`);
         
         if (hiddenSelect && searchInput) {
-            // If hidden select has a value but search input is empty, try to set the name
-            if (hiddenSelect.value && !searchInput.value.trim()) {
-                const userId = hiddenSelect.value;
-                if (window.users && window.users.length > 0) {
-                    const user = window.users.find(user => user.id === userId);
-                    if (user) {
-                        searchInput.value = user.fullName;
+            try {
+                // If hidden select has a value but search input is empty, try to set the name
+                if (hiddenSelect.value && !searchInput.value.trim()) {
+                    const userId = hiddenSelect.value;
+                    if (window.users && window.users.length > 0) {
+                        const user = window.users.find(user => user && user.id === userId);
+                        if (user && user.fullName) {
+                            searchInput.value = user.fullName;
+                        } else {
+                            searchInput.value = `User ID: ${userId}`;
+                        }
                     } else {
                         searchInput.value = `User ID: ${userId}`;
                     }
-                } else {
-                    searchInput.value = `User ID: ${userId}`;
                 }
-            }
-            // If search input has value but hidden select is empty, try to find user ID
-            else if (searchInput.value.trim() && !hiddenSelect.value) {
-                const userId = await findUserIdByName(searchInput.value);
-                if (userId) {
-                    hiddenSelect.value = userId;
-                    console.log(`Set ${fieldId}: ${userId} for ${searchInput.value}`);
+                // If search input has value but hidden select is empty, try to find user ID
+                else if (searchInput.value && searchInput.value.trim() && !hiddenSelect.value) {
+                    const userId = await findUserIdByName(searchInput.value);
+                    if (userId) {
+                        hiddenSelect.value = userId;
+                        console.log(`Set ${fieldId}: ${userId} for ${searchInput.value}`);
+                    }
                 }
+            } catch (error) {
+                console.error(`Error processing approval field ${fieldId}:`, error);
+                // Continue with other fields even if one fails
             }
         }
     }
@@ -3113,28 +3379,33 @@ async function ensureApprovalFieldsBeforeSubmit() {
         const searchInput = document.getElementById(`${fieldId}Search`);
         
         if (hiddenSelect && searchInput) {
-            // If search input has value but hidden select is empty, try to find user
-            if (searchInput.value.trim() && !hiddenSelect.value) {
-                console.log(`Searching for user ID for ${fieldId}: ${searchInput.value}`);
-                const userId = await findUserIdByName(searchInput.value);
-                if (userId) {
-                    hiddenSelect.value = userId;
-                    console.log(`Found user for ${fieldId}: ${userId} - ${searchInput.value}`);
-                    
-                    // Create option if it doesn't exist
-                    if (!hiddenSelect.querySelector(`option[value="${userId}"]`)) {
-                        const newOption = document.createElement('option');
-                        newOption.value = userId;
-                        newOption.text = searchInput.value;
-                        newOption.selected = true;
-                        hiddenSelect.appendChild(newOption);
+            try {
+                // If search input has value but hidden select is empty, try to find user
+                if (searchInput.value && searchInput.value.trim() && !hiddenSelect.value) {
+                    console.log(`Searching for user ID for ${fieldId}: ${searchInput.value}`);
+                    const userId = await findUserIdByName(searchInput.value);
+                    if (userId) {
+                        hiddenSelect.value = userId;
+                        console.log(`Found user for ${fieldId}: ${userId} - ${searchInput.value}`);
+                        
+                        // Create option if it doesn't exist
+                        if (!hiddenSelect.querySelector(`option[value="${userId}"]`)) {
+                            const newOption = document.createElement('option');
+                            newOption.value = userId;
+                            newOption.text = searchInput.value;
+                            newOption.selected = true;
+                            hiddenSelect.appendChild(newOption);
+                        }
+                    } else {
+                        console.warn(`Could not find user ID for ${fieldId}: ${searchInput.value}`);
                     }
-                } else {
-                    console.warn(`Could not find user ID for ${fieldId}: ${searchInput.value}`);
                 }
+                
+                console.log(`${fieldId}: hiddenSelect.value=${hiddenSelect.value}, searchInput.value=${searchInput.value}`);
+            } catch (error) {
+                console.error(`Error processing approval field ${fieldId}:`, error);
+                // Continue with other fields even if one fails
             }
-            
-            console.log(`${fieldId}: hiddenSelect.value=${hiddenSelect.value}, searchInput.value=${searchInput.value}`);
         }
     }
 }
@@ -3145,18 +3416,24 @@ window.ensureApprovalFieldsBeforeSubmit = ensureApprovalFieldsBeforeSubmit;
 // Function to find user ID by name when users array is not available
 async function findUserIdByName(userName) {
     if (!userName || typeof userName !== 'string' || !userName.trim()) {
+        console.log('Invalid userName provided:', userName);
         return null;
     }
     
     // Try to find in global users array first
     if (window.users && window.users.length > 0) {
-        const user = window.users.find(user => 
-            typeof user.fullName === 'string' &&
-            (
-                user.fullName.toLowerCase().includes(userName.toLowerCase()) ||
-                user.fullName.toLowerCase() === userName.toLowerCase()
-            )
-        );
+        const user = window.users.find(user => {
+            // Check if user and fullName exist and are strings
+            if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
+                return false;
+            }
+            
+            const searchName = userName.toLowerCase().trim();
+            const fullName = user.fullName.toLowerCase().trim();
+            
+            return fullName.includes(searchName) || fullName === searchName;
+        });
+        
         if (user) {
             console.log(`Found user by name in global array: ${user.id} - ${user.fullName}`);
             return user.id;
@@ -3172,10 +3449,18 @@ async function findUserIdByName(userName) {
         
         // Try to find again after loading
         if (window.users && window.users.length > 0) {
-            const user = window.users.find(user => 
-                user.fullName.toLowerCase().includes(userName.toLowerCase()) ||
-                user.fullName.toLowerCase() === userName.toLowerCase()
-            );
+            const user = window.users.find(user => {
+                // Check if user and fullName exist and are strings
+                if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
+                    return false;
+                }
+                
+                const searchName = userName.toLowerCase().trim();
+                const fullName = user.fullName.toLowerCase().trim();
+                
+                return fullName.includes(searchName) || fullName === searchName;
+            });
+            
             if (user) {
                 console.log(`Found user by name after loading: ${user.id} - ${user.fullName}`);
                 return user.id;
@@ -3400,17 +3685,94 @@ function displayFileList() {
             </div>
         `;
         
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'flex space-x-2';
+        
+        // View button
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+        viewBtn.innerHTML = '👁️ View';
+        viewBtn.onclick = () => viewNewAttachment(file);
+        
+        // Remove button
         const removeBtn = document.createElement('button');
         removeBtn.className = 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-300 hover:bg-red-50';
         removeBtn.innerHTML = '🗑️ Remove';
         removeBtn.onclick = () => removeFile(index);
         
+        actionButtons.appendChild(viewBtn);
+        actionButtons.appendChild(removeBtn);
+        
         fileItem.appendChild(fileInfo);
-        fileItem.appendChild(removeBtn);
+        fileItem.appendChild(actionButtons);
         listContainer.appendChild(fileItem);
     });
     
     fileList.appendChild(listContainer);
+}
+
+// Function to view new attachment (file that hasn't been uploaded yet)
+function viewNewAttachment(file) {
+    try {
+        // Check if file is supported for preview
+        const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+        const fileType = file.type.toLowerCase();
+        
+        if (supportedTypes.includes(fileType)) {
+            // Create object URL for the file
+            const objectUrl = URL.createObjectURL(file);
+            
+            if (fileType.startsWith('image/')) {
+                // For images, show in modal
+                Swal.fire({
+                    title: file.name,
+                    imageUrl: objectUrl,
+                    imageWidth: 'auto',
+                    imageHeight: 'auto',
+                    imageAlt: file.name,
+                    confirmButtonText: 'Close',
+                    showCloseButton: true,
+                    width: '80%',
+                    heightAuto: true
+                }).then(() => {
+                    // Clean up object URL
+                    URL.revokeObjectURL(objectUrl);
+                });
+            } else if (fileType === 'application/pdf') {
+                // For PDFs, open in new tab
+                window.open(objectUrl, '_blank');
+                
+                // Clean up object URL after a delay
+                setTimeout(() => {
+                    URL.revokeObjectURL(objectUrl);
+                }, 1000);
+            }
+        } else {
+            // For unsupported file types, show file info
+            Swal.fire({
+                title: 'File Preview',
+                html: `
+                    <div class="text-left">
+                        <p><strong>File Name:</strong> ${file.name}</p>
+                        <p><strong>File Type:</strong> ${file.type || 'Unknown'}</p>
+                        <p><strong>File Size:</strong> ${formatFileSize(file.size)}</p>
+                        <p><strong>Last Modified:</strong> ${new Date(file.lastModified).toLocaleString()}</p>
+                        <p class="text-gray-600 mt-2">This file type cannot be previewed. You can view it after uploading.</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        }
+    } catch (error) {
+        console.error('Error viewing new attachment:', error);
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to view file: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
 }
 
 // Function to remove file from the list
@@ -3461,12 +3823,26 @@ async function uploadSelectedFiles() {
 
 // Function to upload attachments after document creation
 async function uploadAttachmentsAfterDocumentCreation(stagingId) {
+    console.log('=== Starting uploadAttachmentsAfterDocumentCreation ===');
+    console.log('Staging ID:', stagingId);
+    console.log('Uploaded files count:', uploadedFiles.length);
+    console.log('Uploaded files:', uploadedFiles);
+    
     if (!stagingId) {
         throw new Error('Staging ID is required for attachment upload.');
     }
     
     if (uploadedFiles.length === 0) {
-        console.log('No files to upload');
+        console.log('No new files to upload');
+        console.log('Checking if there are existing attachments from reimbursement...');
+        
+        // Check if there are existing attachments from reimbursement
+        if (window.existingAttachments && window.existingAttachments.length > 0) {
+            console.log('Found existing attachments from reimbursement:', window.existingAttachments.length);
+            return; // Don't throw error if we have existing attachments
+        }
+        
+        console.log('No files to upload and no existing attachments');
         return;
     }
     
@@ -3476,10 +3852,29 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
     let errorCount = 0;
     const errors = [];
     
+    // Show progress indicator for multiple files
+    if (uploadedFiles.length > 1) {
+        Swal.fire({
+            title: 'Uploading Attachments',
+            text: `Uploading ${uploadedFiles.length} files...`,
+            icon: 'info',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    }
+    
     for (let i = 0; i < uploadedFiles.length; i++) {
         const file = uploadedFiles[i];
         
         try {
+            // Update progress for multiple files
+            if (uploadedFiles.length > 1) {
+                Swal.getTitle().innerHTML = `Uploading Attachments (${i + 1}/${uploadedFiles.length})`;
+                Swal.getHtmlContainer().innerHTML = `Uploading: ${file.name}`;
+            }
+            
             // Validate file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 errors.push(`${file.name} is too large. Maximum size is 10MB.`);
@@ -3489,6 +3884,14 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
 
             // Validate file type
             const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'];
+            
+            // Check if file.name exists and is a string
+            if (!file.name || typeof file.name !== 'string') {
+                errors.push(`File has invalid name: ${file.name}`);
+                errorCount++;
+                continue;
+            }
+            
             const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
             
             if (!allowedTypes.includes(fileExtension)) {
@@ -3498,14 +3901,30 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
             }
 
             // Upload the file using the staging ID
+            // Each file requires a separate API call as per the specification
+            console.log(`Attempting to upload ${file.name} to staging ID: ${stagingId}`);
+            
             await uploadAttachmentToStaging(file, `Uploaded ${file.name}`, 'Document', stagingId);
             successCount++;
+            console.log(`Successfully uploaded ${file.name} (${i + 1}/${uploadedFiles.length})`);
             
         } catch (error) {
             console.error(`Error uploading ${file.name}:`, error);
+            console.error(`Upload error details for ${file.name}:`, {
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                stagingId: stagingId,
+                error: error.message
+            });
             errors.push(`${file.name}: ${error.message}`);
             errorCount++;
         }
+    }
+
+    // Close progress indicator if it was shown
+    if (uploadedFiles.length > 1) {
+        Swal.close();
     }
 
     // Clear the uploaded files array after successful upload
@@ -3514,11 +3933,22 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
         displayFileList();
     }
 
-    if (errors.length > 0) {
-        console.error('Upload errors:', errors);
-        if (errorCount === uploadedFiles.length) {
-            throw new Error('All file uploads failed');
-        }
+    // Show summary of upload results
+    if (successCount > 0 && errorCount > 0) {
+        await Swal.fire({
+            title: 'Upload Complete',
+            html: `
+                <div class="text-left">
+                    <p class="text-green-600">✓ ${successCount} files uploaded successfully</p>
+                    <p class="text-red-600">✗ ${errorCount} files failed to upload</p>
+                    ${errors.length > 0 ? `<div class="mt-2 text-sm text-gray-600">Errors:<br>${errors.join('<br>')}</div>` : ''}
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+    } else if (errorCount === uploadedFiles.length && uploadedFiles.length > 0) {
+        throw new Error('All file uploads failed');
     }
     
     console.log(`Upload completed: ${successCount} successful, ${errorCount} failed`);
@@ -3527,7 +3957,12 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
 // Enhanced refresh attachments function
 async function refreshAttachments() {
     const urlParams = new URLSearchParams(window.location.search);
-    const docId = urlParams.get('id');
+    let docId = urlParams.get('id');
+    
+    // If no docId in URL, try to get it from localStorage
+    if (!docId) {
+        docId = localStorage.getItem('currentStagingOutgoingPaymentId');
+    }
     
     if (!docId) {
         Swal.fire({
@@ -3571,6 +4006,61 @@ async function refreshAttachments() {
         Swal.fire({
             title: 'Error',
             text: `Failed to refresh attachments: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to upload additional attachments after document creation
+async function uploadAdditionalAttachments() {
+    // Get staging ID from localStorage or current document
+    let stagingId = localStorage.getItem('currentStagingOutgoingPaymentId');
+    
+    if (!stagingId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const docId = urlParams.get('id');
+        if (docId) {
+            stagingId = docId;
+        }
+    }
+    
+    if (!stagingId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'No document ID found. Please save the document first.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Check if there are files selected
+    if (uploadedFiles.length === 0) {
+        Swal.fire({
+            title: 'No Files Selected',
+            text: 'Please select files to upload first.',
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    try {
+        await uploadAttachmentsAfterDocumentCreation(stagingId);
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Additional attachments uploaded successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+        
+    } catch (error) {
+        console.error('Error uploading additional attachments:', error);
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to upload attachments: ${error.message}`,
             icon: 'error',
             confirmButtonText: 'OK'
         });

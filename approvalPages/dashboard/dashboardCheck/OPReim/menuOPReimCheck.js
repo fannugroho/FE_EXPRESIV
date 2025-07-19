@@ -1,3 +1,6 @@
+// Debug: Check if script is loading
+console.log('menuOPReimCheck.js loaded');
+
 // Current tab state
 let currentTab = 'prepared'; // Default tab
 let currentSearchTerm = '';
@@ -5,9 +8,124 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
+// Reusable function to fetch outgoing payment documents by approval step
+async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+    try {
+        const params = new URLSearchParams({
+            step: step,
+            userId: userId,
+            onlyCurrentStep: onlyCurrentStep.toString(),
+            includeDetails: 'false'
+        });
+        
+        // Add isRejected parameter if specified
+        if (isRejected) {
+            params.append('isRejected', 'true');
+        }
+        
+        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for step ${step} (onlyCurrentStep: ${onlyCurrentStep}):`, result);
+
+        // Handle different response structures
+        if (result.status && result.data) {
+            return result.data;
+        } else if (Array.isArray(result)) {
+            return result;
+        } else if (result.data) {
+            return result.data;
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error(`Error fetching documents for step ${step}:`, error);
+        return [];
+    }
+}
+
+// Function to fetch all documents for "All Documents" tab (checking stage onwards)
+async function fetchAllDocuments(userId) {
+    try {
+        const steps = ['CheckedBy', 'AcknowledgedBy', 'ApprovedBy', 'ReceivedBy'];
+        
+        // Make parallel API calls for all steps with onlyCurrentStep = false (historical view)
+        const promises = steps.map(step => fetchOutgoingPaymentDocuments(step, userId, false));
+        const results = await Promise.all(promises);
+        
+        // Combine all results into a single array
+        const allDocuments = results.flat();
+        
+        // Remove duplicates based on document ID (assuming there's an id field)
+        const uniqueDocuments = allDocuments.filter((doc, index, self) => 
+            index === self.findIndex(d => d.id === doc.id)
+        );
+        
+        return uniqueDocuments;
+    } catch (error) {
+        console.error('Error fetching all documents:', error);
+        return [];
+    }
+}
+
+// Function to fetch checked documents for "Checked" tab
+async function fetchCheckedDocuments(userId) {
+    // For "Checked" tab, we want only documents currently waiting for this user's check
+    return await fetchOutgoingPaymentDocuments('checkedBy', userId, true);
+}
+
+// Function to fetch prepared documents for "Prepared" tab
+async function fetchPreparedDocuments(userId) {
+    // For "Prepared" tab, we want documents with "Prepared" status
+    return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+}
+
 // Helper function to get access token
+// Fallback getUserId function if not available from auth.js
+if (typeof getUserId === 'undefined') {
+    function getUserId() {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const userInfo = JSON.parse(jsonPayload);
+                const userId = userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+                if (userId) return userId;
+            } catch (e) {
+                console.error('Error parsing JWT token:', e);
+            }
+        }
+        
+        const userStr = localStorage.getItem('loggedInUser');
+        if (!userStr) return null;
+        
+        try {
+            const user = JSON.parse(userStr);
+            return user.id || null;
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+            return null;
+        }
+    }
+}
+
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, calling loadDashboard');
     loadDashboard();
     
     // Add event listener for search input with debouncing
@@ -55,93 +173,11 @@ async function loadDashboard() {
             return;
         }
 
-        // Build base URL and params
-        let baseUrl;
-        const params = new URLSearchParams();
-        params.append('ApproverId', userId);
-        params.append('ApproverRole', 'checked');
+        // Load documents for the default tab (prepared - shows all documents)
+        await switchTab('prepared');
         
-        // Build URL based on current tab
-        if (currentTab === 'prepared') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/approval`;
-            params.append('isApproved', 'false');
-        } else if (currentTab === 'checked') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/approval`;
-            params.append('isApproved', 'true');
-        } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/op-reim/dashboard/rejected`;
-        }
-        
-        // Add search parameters if available
-        if (currentSearchTerm) {
-            switch (currentSearchType) {
-                case 'reimNo':
-                    params.append('counterRef', currentSearchTerm);
-                    break;
-                case 'requester':
-                    params.append('requesterName', currentSearchTerm);
-                    break;
-                case 'payTo':
-                    params.append('cardName', currentSearchTerm);
-                    break;
-                case 'totalAmount':
-                    params.append('totalAmount', currentSearchTerm);
-                    break;
-                case 'status':
-                    params.append('status', currentSearchTerm);
-                    break;
-                case 'docDate':
-                case 'dueDate':
-                    // For date search, try to parse and use date range
-                    const dateValue = new Date(currentSearchTerm);
-                    if (!isNaN(dateValue.getTime())) {
-                        const dateField = currentSearchType === 'docDate' ? 'docDate' : 'docDueDate';
-                        params.append(`${dateField}From`, dateValue.toISOString().split('T')[0]);
-                        params.append(`${dateField}To`, dateValue.toISOString().split('T')[0]);
-                    }
-                    break;
-            }
-        }
-        
-        const url = `${baseUrl}?${params.toString()}`;
-
-        console.log('Fetching dashboard data from:', url);
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('Dashboard API response:', result);
-
-        if (result.status && result.data) {
-            const documents = result.data;
-            
-            // Sort documents by Reimburse No (newest first)
-            const sortedDocuments = sortDocumentsByReimNo(documents);
-            
-            // Update counters by fetching all statuses
-            await updateCounters(userId);
-            
-            // Update the table with filtered documents
-            updateTable(sortedDocuments);
-            
-            // Update pagination info
-            updatePaginationInfo(sortedDocuments.length);
-        } else {
-            console.error('API response error:', result.message);
-            // Fallback to empty state
-            updateTable([]);
-            updatePaginationInfo(0);
-        }
+        // Update counters only once on initial load
+        await updateCounters(userId);
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -157,23 +193,13 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status using new API endpoints
-        const preparedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=false`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const checkedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/approval?ApproverId=${userId}&ApproverRole=checked&isApproved=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/op-reim/dashboard/rejected?ApproverId=${userId}&ApproverRole=checked`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
+        const preparedDocuments = await fetchPreparedDocuments(userId);
+        const checkedDocuments = await fetchCheckedDocuments(userId);
+        const rejectedDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, true, true);
 
-        const preparedData = preparedResponse.ok ? await preparedResponse.json() : { data: [] };
-        const checkedData = checkedResponse.ok ? await checkedResponse.json() : { data: [] };
-        const rejectedData = rejectedResponse.ok ? await rejectedResponse.json() : { data: [] };
-
-        const preparedCount = preparedData.data ? preparedData.data.length : 0;
-        const checkedCount = checkedData.data ? checkedData.data.length : 0;
-        const rejectedCount = rejectedData.data ? rejectedData.data.length : 0;
+        const preparedCount = preparedDocuments.length;
+        const checkedCount = checkedDocuments.length;
+        const rejectedCount = rejectedDocuments.length;
         const totalCount = preparedCount + checkedCount + rejectedCount;
 
         // Update counters
@@ -258,6 +284,8 @@ function updateTable(documents) {
             const requesterClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
             const payToClass = doc.cardName && doc.cardName.length > 10 ? 'scrollable-cell' : '';
             
+
+            
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'>${index + 1}</td>
                 <td class='p-2'>
@@ -272,9 +300,9 @@ function updateTable(documents) {
                 <td class='p-2'>${docDate}</td>
                 <td class='p-2'>${docDueDate}</td>
                 <td class='p-2'>${formattedAmount}</td>
-                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.approval?.approvalStatus || 'Draft')}">${doc.approval?.approvalStatus || 'Draft'}</span></td>
+                <td class='p-2'><span class="px-2 py-1 rounded-full text-xs ${getStatusClass(getStatusDisplay(doc))}">${getStatusDisplay(doc)}</span></td>
                 <td class='p-2'>
-                    <button onclick="detailDoc('${doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                    <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </td>
             </tr>`;
             tableBody.innerHTML += row;
@@ -283,18 +311,79 @@ function updateTable(documents) {
 }
 
 // Function to switch between tabs
-function switchTab(tabName) {
+async function switchTab(tabName) {
+    console.log('switchTab called with:', tabName);
     currentTab = tabName;
     
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'prepared') {
-        document.getElementById('preparedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'checked') {
-        document.getElementById('checkedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        let documents = [];
+        
+        if (tabName === 'prepared') {
+            document.getElementById('preparedTabBtn').classList.add('tab-active');
+            // Fetch documents with "Prepared" status
+            documents = await fetchPreparedDocuments(userId);
+        } else if (tabName === 'checked') {
+            document.getElementById('checkedTabBtn').classList.add('tab-active');
+            // Fetch only documents currently waiting for this user's check (to-do list)
+            documents = await fetchCheckedDocuments(userId);
+        } else if (tabName === 'rejected') {
+            document.getElementById('rejectedTabBtn').classList.add('tab-active');
+            // For rejected, use the specific API with isRejected=true parameter
+            documents = await fetchOutgoingPaymentDocuments('checkedBy', userId, true, true);
+        }
+        
+        // Apply search filter if there's a search term
+        let filteredDocuments = documents;
+        if (currentSearchTerm) {
+            filteredDocuments = documents.filter(doc => {
+                switch (currentSearchType) {
+                    case 'reimNo':
+                        return doc.counterRef && doc.counterRef.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'requester':
+                        return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'payTo':
+                        return doc.cardName && doc.cardName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'totalAmount':
+                        const totalAmount = doc.trsfrSum ? doc.trsfrSum.toString() : '';
+                        return totalAmount.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'status':
+                        const status = getStatusDisplay(doc);
+                        return status.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'docDate':
+                        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '';
+                        return docDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'dueDate':
+                        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '';
+                        return dueDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Sort documents by Reimburse No (newest first)
+        const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
+        
+        // Update the table with filtered documents
+        updateTable(sortedDocuments);
+        
+        // Update pagination info
+        updatePaginationInfo(sortedDocuments.length);
+        
+    } catch (error) {
+        console.error('Error switching tab:', error);
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
     }
     
     // Reset search when switching tabs
@@ -306,18 +395,17 @@ function switchTab(tabName) {
     
     // Reset pagination
     currentPage = 1;
-    
-    // Reload dashboard with the new filter
-    loadDashboard();
 }
 
 // Function to handle search input
-function handleSearch() {
+async function handleSearch() {
     const searchInput = document.getElementById('searchInput');
     currentSearchTerm = searchInput ? searchInput.value.trim() : '';
     currentSearchType = document.getElementById('searchType').value;
     currentPage = 1; // Reset to first page when searching
-    loadDashboard();
+    
+    // Reload the current tab with search filter
+    await switchTab(currentTab);
 }
 
 // Helper function to get status styling
@@ -328,11 +416,27 @@ function getStatusClass(status) {
         case 'Checked': return 'bg-green-100 text-green-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
+        case 'Received': return 'bg-purple-100 text-purple-800';
         case 'Rejected': return 'bg-red-100 text-red-800';
         case 'Reject': return 'bg-red-100 text-red-800';
         case 'Close': return 'bg-gray-100 text-gray-800';
         default: return 'bg-gray-100 text-gray-800';
     }
+}
+
+// Helper function to determine status display for rejected documents
+function getStatusDisplay(doc) {
+    if (!doc.approval) {
+        return 'Draft';
+    }
+    
+    // Check if document is rejected
+    if (doc.approval.rejectedDate) {
+        return 'Rejected';
+    }
+    
+    // Return normal approval status
+    return doc.approval.approvalStatus || 'Draft';
 }
 
 // Update pagination information
@@ -371,16 +475,16 @@ function updatePaginationInfo(totalItems) {
 }
 
 // Pagination handlers
-function changePage(direction) {
+async function changePage(direction) {
     const totalItems = parseInt(document.getElementById('totalItems').textContent);
     const maxPage = Math.ceil(totalItems / itemsPerPage);
     
     if (direction === -1 && currentPage > 1) {
         currentPage--;
-        loadDashboard();
+        await switchTab(currentTab);
     } else if (direction === 1 && currentPage < maxPage) {
         currentPage++;
-        loadDashboard();
+        await switchTab(currentTab);
     }
 }
 

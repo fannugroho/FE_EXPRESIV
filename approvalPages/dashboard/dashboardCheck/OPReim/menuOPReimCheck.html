@@ -18,10 +18,73 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../shared-menu.css">
     <link rel="stylesheet" href="menuOPReimCheck.css">
+    <link rel="stylesheet" href="../../../../css/menuReim.css">
     <!-- Navigation Script -->
     
     <style>
-        /* Scrollable cell styles */
+        /* Override sidebar style to make it permanent */
+        #sidebar {
+            width: 256px !important; /* Fixed width */
+            transform: none !important; /* Prevent transformation */
+            margin-left: 0 !important; /* Remove any margin */
+            position: sticky;
+            top: 0;
+            z-index: 100 !important; /* Ensure sidebar stays above other elements */
+            visibility: visible !important; /* Force visibility */
+            display: block !important; /* Force display */
+            opacity: 1 !important; /* Ensure full opacity */
+            transition: none !important; /* Disable any transitions */
+        }
+        
+        /* Adjust main content for permanent sidebar */
+        .flex-1 {
+            margin-left: 0 !important;
+        }
+        
+        /* Ensure main content doesn't overlap sidebar */
+        .min-h-screen {
+            position: relative;
+        }
+        
+        /* Prevent sidebar manipulation through any class changes */
+        .sidebar-collapsed #sidebar, 
+        .sidebar-hidden #sidebar, 
+        [data-sidebar-hidden="true"] #sidebar,
+        .tab-active ~ #sidebar {
+            width: 256px !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        /* Style untuk kolom dengan scrollbar */
+        .cell-with-scroll {
+            max-width: 150px; /* Lebar maksimal untuk sel */
+            overflow-x: auto; /* Tambahkan scrollbar horizontal */
+            white-space: nowrap; /* Mencegah text wrapping */
+        }
+        
+        /* Gaya untuk scrollbar */
+        .cell-with-scroll::-webkit-scrollbar {
+            height: 6px; /* Tinggi scrollbar */
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Warna track */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb {
+            background: #888; /* Warna thumb */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555; /* Warna thumb saat hover */
+        }
+        
+        /* New scrollable cell class similar to menuPR.html */
         .scrollable-cell {
             max-width: 150px;
             overflow-x: auto;
@@ -31,7 +94,7 @@
         }
         
         .scrollable-cell::-webkit-scrollbar {
-            height: 6px;
+            height: 4px; /* Reduced height from 6px to 4px */
         }
         
         .scrollable-cell::-webkit-scrollbar-track {
@@ -47,17 +110,44 @@
         .scrollable-cell::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Pagination button styles */
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f3f4f6;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background-color: #e5e7eb;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Items per page dropdown styles */
+        #itemsPerPageSelect {
+            border-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        #itemsPerPageSelect:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
     </style>
     
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
-        <!-- Mobile sidebar toggle button -->
-        <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
-            <i class="fas fa-bars text-white text-2xl"></i>
-        </button>
-
-        <!-- Sidebar - Updated to match menuReimCheck.html -->
+        <!-- Sidebar (Permanent) -->
         <aside id="sidebar" class="bg-white shadow-lg">
             <!-- Sidebar content will be loaded by sidebar-loader.js -->
         </aside>
@@ -236,5 +326,88 @@
     <script src="../../../../components/shared/sidebar-loader.js"></script>
     <script src="../../../../components/shared/navigation.js"></script>
     <script src="menuOPReimCheck.js"></script>
+    <script>
+    // Disable any sidebar toggle functionality that might be in the JS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override any toggleSidebar function if it exists
+        if (typeof toggleSidebar === 'function') {
+            window.toggleSidebar = function() {
+                // Do nothing - sidebar is now permanent
+                return false;
+            };
+        }
+        
+        // Make sure sidebar stays fixed when tabs are clicked
+        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('checkedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('rejectedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        // Function to ensure sidebar visibility
+        function ensureSidebarVisible() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.style.width = '256px';
+                sidebar.style.transform = 'none';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.display = 'block';
+            }
+        }
+        
+        // Run immediately and also set interval to keep checking
+        ensureSidebarVisible();
+        setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        
+        // Override switchTab function if it exists to maintain sidebar
+        const originalSwitchTab = window.switchTab;
+        if (typeof originalSwitchTab === 'function') {
+            window.switchTab = function(tab) {
+                // Call the original function
+                originalSwitchTab(tab);
+                // Ensure sidebar remains visible
+                setTimeout(ensureSidebarVisible, 10);
+            };
+        }
+        
+        // Menambahkan class scrollable-cell untuk kolom yang memiliki teks lebih dari 15 karakter
+        function addScrollToLongCells() {
+            const table = document.querySelector('table');
+            if (!table) return;
+            
+            // Observer untuk tabel
+            const observer = new MutationObserver(function(mutations) {
+                const rows = document.querySelectorAll('#recentDocs tr');
+                
+                rows.forEach(row => {
+                    // Dapatkan sel yang perlu di-scroll
+                    const cells = row.cells;
+                    
+                    cells.forEach(cell => {
+                        if (cell && cell.textContent.trim().length > 15) {
+                            cell.classList.add('scrollable-cell');
+                        }
+                    });
+                });
+            });
+            
+            // Konfigurasi observer
+            const config = { childList: true, subtree: true };
+            
+            // Mulai observe tabel
+            observer.observe(document.getElementById('recentDocs'), config);
+        }
+        
+        // Panggil fungsi setelah halaman dimuat
+        addScrollToLongCells();
+    });
+    </script>
 </body>
 </html> 

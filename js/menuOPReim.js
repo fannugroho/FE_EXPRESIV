@@ -8,18 +8,104 @@ let itemsPerPage = 10;
 let filteredDocuments = [];
 let allDocuments = [];
 
+// Reusable function to fetch outgoing payment documents by approval step
+async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false) {
+    try {
+        const params = new URLSearchParams({
+            step: step,
+            userId: userId,
+            onlyCurrentStep: onlyCurrentStep.toString(),
+            includeDetails: 'false'
+        });
+        
+        const response = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for step ${step} (onlyCurrentStep: ${onlyCurrentStep}):`, result);
+        
+        // Debug: Log first document structure if available
+        if (result.data && result.data.length > 0) {
+            console.log('First document structure:', result.data[0]);
+        }
+
+        // Handle different response structures
+        if (result.status && result.data) {
+            return result.data;
+        } else if (Array.isArray(result)) {
+            return result;
+        } else if (result.data) {
+            return result.data;
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error(`Error fetching documents for step ${step}:`, error);
+        return [];
+    }
+}
+
+// Function to fetch all documents for "All Documents" tab
+async function fetchAllDocuments(userId) {
+    try {
+        // For "All Documents" tab, we want only documents currently waiting at the prepared step (active work)
+        return await fetchOutgoingPaymentDocuments('preparedBy', userId, true);
+    } catch (error) {
+        console.error('Error fetching all documents:', error);
+        return [];
+    }
+}
+
+// Function to fetch prepared documents for "Prepared" tab
+async function fetchPreparedDocuments(userId) {
+    // For "Prepared" tab, we want all documents the user has prepared (historical view)
+    return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+}
+
 // Fungsi untuk menampilkan modal reimbursement
 function showReimbursementModal() {
     // Ambil data reimbursement
     fetchReimbursementDocs();
     
     // Tampilkan modal
-    document.getElementById('reimbursementModal').classList.remove('hidden');
+    const modal = document.getElementById('reimbursementModal');
+    modal.classList.remove('hidden');
+    
+    // Ensure modal appears above sidebar
+    modal.style.zIndex = '9999';
+    modal.style.position = 'fixed';
+    
+    // Ensure modal content is properly positioned
+    const modalContent = modal.querySelector('.bg-white');
+    if (modalContent) {
+        modalContent.style.zIndex = '10000';
+        modalContent.style.position = 'relative';
+    }
 }
 
 // Fungsi untuk menutup modal reimbursement
 function closeReimbursementModal() {
-    document.getElementById('reimbursementModal').classList.add('hidden');
+    const modal = document.getElementById('reimbursementModal');
+    modal.classList.add('hidden');
+    
+    // Reset modal styles
+    modal.style.zIndex = '';
+    modal.style.position = '';
+    
+    const modalContent = modal.querySelector('.bg-white');
+    if (modalContent) {
+        modalContent.style.zIndex = '';
+        modalContent.style.position = '';
+    }
 }
 
 // Fungsi untuk mengambil data dokumen
@@ -166,13 +252,29 @@ function selectReimbursement(docId, voucherNo) {
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Yes, Create',
-        cancelButtonText: 'Cancel'
+        cancelButtonText: 'Cancel',
+        customClass: {
+            container: 'swal2-container-custom',
+            popup: 'swal2-popup-custom'
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             // Redirect ke halaman pembuatan outgoing payment dengan parameter reimbursement ID
             window.location.href = `../addPages/addOPReim.html?reimbursement-id=${docId}`;
         }
     });
+    
+    // Ensure SweetAlert2 appears above modal
+    setTimeout(() => {
+        const swalContainer = document.querySelector('.swal2-container');
+        const swalPopup = document.querySelector('.swal2-popup');
+        if (swalContainer) {
+            swalContainer.style.zIndex = '100000';
+        }
+        if (swalPopup) {
+            swalPopup.style.zIndex = '100001';
+        }
+    }, 10);
 }
 
 
@@ -232,39 +334,8 @@ async function loadDashboard() {
         updateElement("paidDocs", summary.paid);
         updateElement("settledDocs", summary.settled);
 
-        // Fetch document list
-        const documentsResponse = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?includeDetails=false`);
-        const documentsData = await documentsResponse.json();
-        
-        // Handle the new API response structure
-        let documents;
-        if (Array.isArray(documentsData)) {
-            documents = documentsData;
-        } else if (documentsData.status && documentsData.data) {
-            documents = documentsData.data;
-        } else if (documentsData.data) {
-            documents = documentsData.data;
-        } else {
-            documents = documentsData;
-        }
-        
-        console.log("Documents:", documents);
-        console.log("User ID:", userId);
-        console.log("Total documents from API:", documents.length);
-        
-        // Show all documents instead of filtering by user (for now)
-        const userDocuments = documents;
-        console.log("Filtered documents:", userDocuments.length);
-        
-        // Simpan dokumen untuk penggunaan di tab
-        allDocuments = userDocuments;
-        filteredDocuments = userDocuments;
-        currentTab = 'all';
-        currentPage = 1;
-        itemsPerPage = 10;
-        
-        // Display documents in table
-        displayDocuments(userDocuments);
+        // Load documents for the default tab (All Documents)
+        await switchTab('all');
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -292,44 +363,51 @@ function displayDocuments(documents) {
         };
         
         // Get document status from approval object if available
-        const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || 'Draft');
+        const status = getStatusDisplay(doc);
         
         // Memformat data dengan kelas scrollable jika perlu
-        const opNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum);
+        const reimburseNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
         const requester = applyScrollClass(doc.requesterName || '-');
-        const department = applyScrollClass(doc.departmentName || '-');
-        const bpName = applyScrollClass(doc.cardName || doc.bpName || doc.paidToName || '-');
+        const payTo = applyScrollClass(doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-');
         
-        // Format nilai Total LC dan Total FC
-        const totalLCValue = doc.trsfrSum ? doc.trsfrSum.toLocaleString() : 
-                            (doc.totalLC ? doc.totalLC.toLocaleString() : 
-                            (doc.docTotal ? doc.docTotal.toLocaleString() : '-'));
+        // Calculate total amount from lines (like menuOPReimCheck.js)
+        let calculatedTotalAmount = 0;
+        if (doc.lines && doc.lines.length > 0) {
+            calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+        } else if (doc.trsfrSum) {
+            calculatedTotalAmount = doc.trsfrSum;
+        } else {
+            // Fallback to other fields
+            const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+            const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+            calculatedTotalAmount = totalLCValue + totalFCValue;
+        }
         
-        const totalFCValue = doc.totalFC ? doc.totalFC.toLocaleString() : 
-                            (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-');
-        
-        // Terapkan kelas scrollable untuk Total LC dan Total FC jika diperlukan
-        const totalLC = applyScrollClass(totalLCValue);
-        const totalFC = applyScrollClass(totalFCValue);
+        // Format total amount with proper currency formatting
+        const totalAmountValue = calculatedTotalAmount.toLocaleString('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        const totalAmount = applyScrollClass(totalAmountValue);
         
         // Format tanggal
-        const postingDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : 
-                           (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : 
-                           (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'));
+        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : 
+                       (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : 
+                       (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'));
         
         const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : 
                        (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-');
         
         const row = `<tr class='border-b'>
             <td class='p-2'>${startIndex + index + 1}</td>
-            <td class='p-2'>${opNo}</td>
+            <td class='p-2'>${reimburseNo}</td>
             <td class='p-2'>${requester}</td>
-            <td class='p-2'>${department}</td>
-            <td class='p-2'>${postingDate}</td>
+            <td class='p-2'>${payTo}</td>
+            <td class='p-2'>${docDate}</td>
             <td class='p-2'>${dueDate}</td>
-            <td class='p-2'>${bpName}</td>
-            <td class='p-2'>${totalLC}</td>
-            <td class='p-2'>${totalFC}</td>
+            <td class='p-2'>${totalAmount}</td>
             <td class='p-2'>${status}</td>
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
@@ -423,82 +501,101 @@ function goToSettledDocs() {
 }
 
 // Function untuk switch tab
-function switchTab(tab) {
+async function switchTab(tab) {
     currentTab = tab;
     currentPage = 1;
     
     // Update tab button styling
     document.getElementById('allTabBtn').classList.remove('tab-active');
-    document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
     
-    if (tab === 'all') {
-        document.getElementById('allTabBtn').classList.add('tab-active');
-        filteredDocuments = allDocuments || [];
-    } else if (tab === 'draft') {
-        document.getElementById('draftTabBtn').classList.add('tab-active');
-        filteredDocuments = (allDocuments || []).filter(doc => 
-            (doc.approval && doc.approval.approvalStatus === 'Draft') || 
-            doc.status === 'Draft' || 
-            (!doc.status && !doc.approval)
-        );
-    } else if (tab === 'prepared') {
-        document.getElementById('preparedTabBtn').classList.add('tab-active');
-        filteredDocuments = (allDocuments || []).filter(doc => 
-            (doc.approval && doc.approval.approvalStatus === 'Prepared') || 
-            doc.status === 'Prepared'
-        );
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
     }
     
-    // Filter berdasarkan pencarian jika ada
-    const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
-    const searchType = document.getElementById('searchType')?.value || 'all';
-    
-    if (searchTerm) {
-        filteredDocuments = filteredDocuments.filter(doc => {
-            if (searchType === 'cash' || searchType === 'op') {
-                return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) || 
-                       (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
-                       (doc.docNum && doc.docNum.toString().includes(searchTerm));
-            } else if (searchType === 'requester') {
-                return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'department') {
-                return doc.departmentName && doc.departmentName.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'postingDate') {
-                const postingDate = doc.docDate || doc.postingDate || doc.submissionDate;
-                return postingDate && new Date(postingDate).toLocaleDateString().toLowerCase().includes(searchTerm);
-            } else if (searchType === 'dueDate') {
-                const dueDate = doc.docDueDate || doc.dueDate;
-                return dueDate && new Date(dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
-            } else if (searchType === 'bpName') {
-                const bpName = doc.cardName || doc.bpName || doc.paidToName || '';
-                return bpName.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'totalLC') {
-                const totalLC = doc.trsfrSum ? doc.trsfrSum.toString() : 
-                               (doc.totalLC ? doc.totalLC.toString() : 
-                               (doc.docTotal ? doc.docTotal.toString() : ''));
-                return totalLC.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'totalFC') {
-                const totalFC = doc.totalFC ? doc.totalFC.toString() : (doc.docTotalFC ? doc.docTotalFC.toString() : '');
-                return totalFC.toLowerCase().includes(searchTerm);
-            } else if (searchType === 'status') {
-                const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || '');
-                return status.toLowerCase().includes(searchTerm);
-            } else {
-                // Default search across multiple fields
-                return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
-                       (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
-                       (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
-                       (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
-                       (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
-                       (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
-                       (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm)) ||
-                       (doc.comments && doc.comments.toLowerCase().includes(searchTerm));
-            }
-        });
+    try {
+        let documents = [];
+        
+        if (tab === 'all') {
+            document.getElementById('allTabBtn').classList.add('tab-active');
+            // Fetch only documents currently waiting at the prepared step (active work)
+            documents = await fetchAllDocuments(userId);
+        } else if (tab === 'prepared') {
+            document.getElementById('preparedTabBtn').classList.add('tab-active');
+            // Fetch all documents the user has prepared (historical view)
+            documents = await fetchPreparedDocuments(userId);
+        }
+        
+        // Update the filtered documents
+        filteredDocuments = documents;
+        allDocuments = documents;
+        
+        // Apply search filter if there's a search term
+        const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+        const searchType = document.getElementById('searchType')?.value || 'all';
+        
+        if (searchTerm) {
+            filteredDocuments = filteredDocuments.filter(doc => {
+                if (searchType === 'reimNo') {
+                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) || 
+                           (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                           (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
+                           (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm));
+                } else if (searchType === 'requester') {
+                    return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'payTo') {
+                    const payTo = doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '';
+                    return payTo.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'docDate') {
+                    const docDate = doc.docDate || doc.postingDate || doc.submissionDate;
+                    return docDate && new Date(docDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                } else if (searchType === 'dueDate') {
+                    const dueDate = doc.docDueDate || doc.dueDate;
+                    return dueDate && new Date(dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                } else if (searchType === 'totalAmount') {
+                    // Handle multiple possible field names for Total Amount
+                    let calculatedTotalAmount = 0;
+                    if (doc.lines && doc.lines.length > 0) {
+                        calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+                    } else if (doc.trsfrSum) {
+                        calculatedTotalAmount = doc.trsfrSum;
+                    } else {
+                        const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+                        const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+                        calculatedTotalAmount = totalLCValue + totalFCValue;
+                    }
+                    const totalAmountString = calculatedTotalAmount.toString().toLowerCase();
+                    
+                    return totalAmountString.includes(searchTerm.toLowerCase());
+                } else if (searchType === 'status') {
+                    const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || '');
+                    return status.toLowerCase().includes(searchTerm);
+                } else {
+                    // Default search across multiple fields
+                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
+                           (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                           (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
+                           (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm)) ||
+                           (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+                           (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
+                           (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
+                           (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm)) ||
+                           (doc.payToName && doc.payToName.toLowerCase().includes(searchTerm)) ||
+                           (doc.comments && doc.comments.toLowerCase().includes(searchTerm));
+                }
+            });
+        }
+        
+        displayDocuments(filteredDocuments);
+        
+    } catch (error) {
+        console.error('Error switching tab:', error);
+        // Fallback to empty state
+        filteredDocuments = [];
+        displayDocuments([]);
     }
-    
-    displayDocuments(filteredDocuments);
 }
 
 // Add keyboard shortcuts for tab navigation
@@ -507,15 +604,26 @@ document.addEventListener('keydown', function(event) {
     if (event.altKey && event.key === 'a') {
         switchTab('all');
     }
-    // Alt + D: Switch to Draft sub-tab
-    else if (event.altKey && event.key === 'd') {
-        switchTab('draft');
-    }
     // Alt + P: Switch to Prepared sub-tab
     else if (event.altKey && event.key === 'p') {
         switchTab('prepared');
     }
 });
+
+// Helper function to determine status display for rejected documents
+function getStatusDisplay(doc) {
+    if (!doc.approval) {
+        return doc.status || doc.type || 'Draft';
+    }
+    
+    // Check if document is rejected
+    if (doc.approval.rejectedDate) {
+        return 'Rejected';
+    }
+    
+    // Return normal approval status
+    return doc.approval.approvalStatus || doc.status || doc.type || 'Draft';
+}
 
 // Fungsi untuk mendapatkan ID pengguna yang login - using auth.js approach
 function getUserId() {
@@ -595,20 +703,30 @@ function downloadExcel() {
     
     // Convert data to worksheet format
     const wsData = [
-        ["No", "Outgoing Payment No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"]
+        ["No.", "Reimburse No", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
     ];
     
     window.filteredDocuments.forEach((doc, index) => {
+        // Calculate total amount using the same logic as displayDocuments
+        let calculatedTotalAmount = 0;
+        if (doc.lines && doc.lines.length > 0) {
+            calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+        } else if (doc.trsfrSum) {
+            calculatedTotalAmount = doc.trsfrSum;
+        } else {
+            const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+            const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+            calculatedTotalAmount = totalLCValue + totalFCValue;
+        }
+        
         wsData.push([
             index + 1,
-            doc.outgoingPaymentNo || '-',
+            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
-            doc.departmentName || '-',
-            doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'),
-            doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-',
-            doc.bpName || doc.paidToName || '-',
-            doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-'),
-            doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-'),
+            doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-',
+            doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
+            doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'),
+            calculatedTotalAmount.toLocaleString(),
             doc.status || '-'
         ]);
     });
@@ -649,20 +767,30 @@ function downloadPDF() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Prepare table data
-    const tableColumn = ["No", "OP No.", "Requester", "Department", "Posting Date", "Due Date", "BP Name", "Total LC", "Total FC", "Status"];
+    const tableColumn = ["No.", "Reimburse No", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"];
     const tableRows = [];
     
     window.filteredDocuments.forEach((doc, index) => {
+        // Calculate total amount using the same logic as displayDocuments
+        let calculatedTotalAmount = 0;
+        if (doc.lines && doc.lines.length > 0) {
+            calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+        } else if (doc.trsfrSum) {
+            calculatedTotalAmount = doc.trsfrSum;
+        } else {
+            const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+            const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+            calculatedTotalAmount = totalLCValue + totalFCValue;
+        }
+        
         const rowData = [
             index + 1,
-            doc.outgoingPaymentNo || '-',
+            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
-            doc.departmentName || '-',
-            doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'),
-            doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-',
-            doc.bpName || doc.paidToName || '-',
-            doc.totalLC ? doc.totalLC.toLocaleString() : (doc.docTotal ? doc.docTotal.toLocaleString() : '-'),
-            doc.totalFC ? doc.totalFC.toLocaleString() : (doc.docTotalFC ? doc.docTotalFC.toLocaleString() : '-'),
+            doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-',
+            doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
+            doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'),
+            calculatedTotalAmount.toLocaleString(),
             doc.status || '-'
         ];
         tableRows.push(rowData);
@@ -747,7 +875,7 @@ window.onload = function() {
             const searchInput = document.getElementById('searchInput');
             
             // Update input type and placeholder based on search type
-            if (this.value === 'postingDate' || this.value === 'dueDate') {
+            if (this.value === 'docDate' || this.value === 'dueDate') {
                 searchInput.type = 'date';
                 searchInput.placeholder = 'Select date';
             } else {

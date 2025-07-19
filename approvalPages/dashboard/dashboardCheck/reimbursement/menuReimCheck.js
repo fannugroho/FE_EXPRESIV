@@ -20,7 +20,7 @@ function loadDashboard() {
 }
 
 // Variables for pagination and filtering
-let currentPage = 1;
+let reimCheckCurrentPage = 1;
 const itemsPerPage = 10;
 let filteredData = [];
 let allReimbursements = [];
@@ -262,7 +262,7 @@ function updateSampleCounts() {
 // Switch between Prepared and Checked tabs
 function switchTab(tabName) {
     currentTab = tabName;
-    currentPage = 1; // Reset to first page
+            reimCheckCurrentPage = 1; // Reset to first page
     
     // Update tab button styling
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
@@ -356,7 +356,7 @@ function updateTable() {
     const tableBody = document.getElementById('recentDocs');
     tableBody.innerHTML = '';
     
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const startIndex = (reimCheckCurrentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
     
     for (let i = startIndex; i < endIndex; i++) {
@@ -404,19 +404,19 @@ function updateTable() {
 // Update pagination controls
 function updatePagination() {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    document.getElementById('currentPage').textContent = currentPage;
+    document.getElementById('currentPage').textContent = reimCheckCurrentPage;
     
     // Update prev/next button states
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
     
-    if (currentPage <= 1) {
+    if (reimCheckCurrentPage <= 1) {
         prevBtn.classList.add('disabled');
     } else {
         prevBtn.classList.remove('disabled');
     }
     
-    if (currentPage >= totalPages) {
+    if (reimCheckCurrentPage >= totalPages) {
         nextBtn.classList.add('disabled');
     } else {
         nextBtn.classList.remove('disabled');
@@ -426,10 +426,10 @@ function updatePagination() {
 // Change the current page
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const newPage = currentPage + direction;
+    const newPage = reimCheckCurrentPage + direction;
     
     if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
+        reimCheckCurrentPage = newPage;
         updateTable();
         updatePagination();
     }
@@ -438,7 +438,7 @@ function changePage(direction) {
 // Function to show all documents
 function goToTotalDocs() {
     filteredData = allReimbursements;
-    currentPage = 1;
+    reimCheckCurrentPage = 1;
     updateTable();
     updatePagination();
 }
@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dashboardUserIcon').src = userInfo.avatar;
     } else {
         // Default avatar if none is set
-        document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+        document.getElementById('dashboardUserIcon').src = "../../../../image/profil.png";
     }
 });
 
@@ -738,7 +738,12 @@ async function pollPreparedDocs() {
         if (newReimFound) {
             try {
                 const audio = new Audio('../../../../components/shared/tones.mp3');
-                audio.play();
+                // Only play if user has interacted with the page
+                if (document.hasInteracted) {
+                    audio.play().catch(e => {
+                        console.warn('Gagal memutar nada dering notifikasi:', e);
+                    });
+                }
             } catch (e) {
                 console.warn('Gagal memutar nada dering notifikasi:', e);
             }
@@ -787,6 +792,15 @@ setInterval(() => {
     pollPreparedDocs();
     pollCheckedDocs();
 }, 10000);
+
+// Track user interaction for audio playback
+document.addEventListener('click', function() {
+    document.hasInteracted = true;
+});
+
+document.addEventListener('keydown', function() {
+    document.hasInteracted = true;
+});
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {

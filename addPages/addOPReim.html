@@ -116,8 +116,10 @@
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded" autocomplete="off">
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded" autocomplete="off">
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -125,8 +127,10 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                    <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Attachment</h3>
                 <div class="flex items-center space-x-2">
@@ -140,10 +144,7 @@
                 <!-- Area untuk menampilkan attachment yang sudah ada -->
                 <div class="mt-4">
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-medium text-gray-700">Existing Attachments</span>
-                        <button onclick="refreshAttachments()" class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
-                            🔄 Refresh
-                        </button>
+                        <span class="text-sm font-medium text-gray-700">Attachments from Reimbursement</span>
                     </div>
                     <div id="existingAttachments" class="space-y-2">
                         <!-- Attachment yang sudah ada akan ditampilkan di sini -->
@@ -260,10 +261,11 @@
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <!-- Note: Proposed by field is automatically filled with the current logged-in user -->
             <div> 
                 <label><strong>Proposed by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="window.filterUsers('Approval.PreparedById')" autocomplete="off" disabled>
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Auto-filled with current user" class="w-full p-1 border rounded search-input bg-gray-100 cursor-not-allowed" onkeyup="window.filterUsers('Approval.PreparedById')" autocomplete="off" disabled readonly>
                     <select id="Approval.PreparedById" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -324,11 +326,8 @@
         </div>
         <br>
 
-        <!-- Ganti button Reject dan Checked dengan button Save dan Submit -->
+        <!-- Submit button -->
         <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="submitDocument(false)" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Save
-            </button>
             <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Submit
             </button>

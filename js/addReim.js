@@ -2,6 +2,10 @@
 let uploadedFiles = [];
 let businessPartners = []; // Added to store business partners
 let transactionTypes = []; // Added to store transaction types
+let allCategories = []; // Global cache for categories
+let allAccountNames = []; // Global cache for account names
+let categoryCache = new Map(); // Cache for categories by department+transactionType
+let accountNameCache = new Map(); // Cache for account names by category+department+transactionType
 
 // Fungsi untuk memformat tanggal ke format ISO (YYYY-MM-DD) dengan menghindari masalah zona waktu
 function formatDateToISO(dateString) {
@@ -147,14 +151,23 @@ function filterUsers(fieldId) {
                     
                     dropdown.classList.add('hidden');
                     
-                    // Auto-fill department when requesterName is selected
-                    if (fieldId === 'requesterNameSelect') {
-                        console.log('Requester selected:', user.name, 'ID:', user.id);
-                        
-                        // Auto-fill department based on selected user ID
-                        console.log('Calling autoFillDepartmentFromRequesterById with user ID:', user.id);
-                        autoFillDepartmentFromRequesterById(user.id);
-                    }
+                                            // Auto-fill department when requesterName is selected
+                        if (fieldId === 'requesterNameSelect') {
+                            console.log('Requester selected:', user.name, 'ID:', user.id);
+                            
+                            // Auto-fill department based on selected user ID
+                            console.log('Calling autoFillDepartmentFromRequesterById with user ID:', user.id);
+                            autoFillDepartmentFromRequesterById(user.id);
+                            
+                            // Trigger category fetch if transaction type is already selected
+                            setTimeout(() => {
+                                const transactionType = document.getElementById('typeOfTransaction').value;
+                                if (transactionType) {
+                                    console.log('Transaction type already selected, triggering category fetch after department auto-fill...');
+                                    handleDependencyChange();
+                                }
+                            }, 500);
+                        }
                 };
                 dropdown.appendChild(option);
             });
@@ -187,6 +200,25 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDepartments();
     fetchBusinessPartners(); // Added to fetch business partners
     fetchTransactionTypes(); // Added to fetch transaction types
+    
+    // Preload common categories and account names for faster loading
+    preloadCommonData();
+    
+    // Check if department and transaction type are already selected and trigger category fetch
+    setTimeout(() => {
+        const departmentName = document.getElementById('department').value;
+        const transactionType = document.getElementById('typeOfTransaction').value;
+        
+        if (departmentName && transactionType) {
+            console.log('Department and transaction type already selected, triggering initial category fetch...');
+            handleDependencyChange();
+        }
+    }, 1000); // Delay to ensure other data is loaded first
+    
+    // Also check for pre-filled data after a longer delay to ensure all data is loaded
+    setTimeout(() => {
+        checkAndLoadPreFilledData();
+    }, 2000);
     
     // Set min dan max pada input postingDate agar hanya bisa memilih hari ini
     const postingDateInput = document.getElementById('postingDate');
@@ -286,8 +318,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const firstRow = document.querySelector('#tableBody tr');
     if (firstRow) {
         setupRowEventListeners(firstRow);
-        // Also populate categories for the first row if available
-        populateCategoriesForNewRow(firstRow);
+        
+        // Pre-populate categories if already available
+        const categorySearch = firstRow.querySelector('.category-search');
+        if (categorySearch && allCategories.length > 0) {
+            categorySearch.dataset.categories = JSON.stringify(allCategories);
+            console.log('Pre-populated categories for first row:', allCategories.length, 'categories');
+        }
     }
     
     // Setup event listeners for department and transaction type changes
@@ -296,10 +333,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (departmentSelect) {
         departmentSelect.addEventListener('change', handleDependencyChange);
+        // Also trigger on focus for faster response
+        departmentSelect.addEventListener('focus', function() {
+            if (this.value && document.getElementById('typeOfTransaction').value) {
+                handleDependencyChange();
+            }
+        });
+        
+        // Also trigger when department is selected and transaction type is available
+        departmentSelect.addEventListener('change', function() {
+            const transactionType = document.getElementById('typeOfTransaction').value;
+            if (this.value && transactionType) {
+                console.log('Department changed and transaction type available, triggering category fetch...');
+                handleDependencyChange();
+            }
+        });
     }
     
     if (transactionTypeSelect) {
         transactionTypeSelect.addEventListener('change', handleDependencyChange);
+        // Also trigger on focus for faster response
+        transactionTypeSelect.addEventListener('focus', function() {
+            if (this.value && document.getElementById('department').value) {
+                handleDependencyChange();
+            }
+        });
+        
+        // Also trigger when transaction type is selected and department is available
+        transactionTypeSelect.addEventListener('change', function() {
+            const departmentName = document.getElementById('department').value;
+            if (this.value && departmentName) {
+                console.log('Transaction type changed and department available, triggering category fetch...');
+                handleDependencyChange();
+            }
+        });
     }
 });
 
@@ -523,11 +590,74 @@ function addRow() {
 
     tableBody.appendChild(newRow);
     
-    // Setup event listeners for the new row
+    // Setup event listeners for the new row immediately
     setupRowEventListeners(newRow);
     
-    // Populate categories for the new row if data is available
-    populateCategoriesForNewRow(newRow);
+    // Pre-populate categories for the new row if data is available
+    const categorySearch = newRow.querySelector('.category-search');
+    if (categorySearch && allCategories.length > 0) {
+        categorySearch.dataset.categories = JSON.stringify(allCategories);
+        console.log('Pre-populated categories for new row:', allCategories.length, 'categories');
+    }
+    
+    // Pre-populate account names for the new row if data is available
+    const accountNameSearch = newRow.querySelector('.account-name-search');
+    if (accountNameSearch && allAccountNames.length > 0) {
+        accountNameSearch.dataset.accountNames = JSON.stringify(allAccountNames);
+        console.log('Pre-populated account names for new row:', allAccountNames.length, 'account names');
+    }
+    
+    // Also populate if department and transaction type are already selected
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (departmentName && transactionType) {
+        if (allCategories.length === 0) {
+            console.log('Department and transaction type are selected, triggering category fetch for new row...');
+            handleDependencyChange().then(() => {
+                if (allCategories.length > 0) {
+                    categorySearch.dataset.categories = JSON.stringify(allCategories);
+                    console.log('Categories populated after fetch for new row');
+                }
+            });
+        } else {
+            // Categories already available, just populate
+            categorySearch.dataset.categories = JSON.stringify(allCategories);
+            console.log('Categories already available for new row:', allCategories.length, 'categories');
+        }
+        
+        // Also check if we have account names for the first category
+        if (allCategories.length > 0) {
+            const firstCategory = allCategories[0];
+            // Get department ID if not already available
+            getDepartmentIdByName(departmentName).then(departmentId => {
+                if (departmentId) {
+                    const cacheKey = `${firstCategory}-${departmentId}-${transactionType}`;
+                    if (accountNameCache.has(cacheKey)) {
+                        const cachedAccountNames = accountNameCache.get(cacheKey);
+                        const accountNameSearch = newRow.querySelector('.account-name-search');
+                        if (accountNameSearch) {
+                            accountNameSearch.dataset.accountNames = JSON.stringify(cachedAccountNames);
+                            console.log('Pre-populated account names for new row from cache:', cachedAccountNames.length, 'account names');
+                        }
+                    } else {
+                        // Pre-fetch account names for the first category
+                        fetchAccountNames(firstCategory, departmentId, transactionType).then(accountNames => {
+                            const accountNameSearch = newRow.querySelector('.account-name-search');
+                            if (accountNameSearch && accountNames.length > 0) {
+                                accountNameSearch.dataset.accountNames = JSON.stringify(accountNames);
+                                console.log('Pre-fetched account names for new row:', accountNames.length, 'account names');
+                            }
+                        });
+                    }
+                } else {
+                    console.log('Department ID not found for:', departmentName);
+                }
+            }).catch(error => {
+                console.error('Error getting department ID for new row:', error);
+            });
+        }
+    }
 }
 
 function deleteRow(button) {
@@ -1091,8 +1221,8 @@ function populateTransactionTypesDropdown(types) {
 }
 
 // Store global data for categories and account names
-let allCategories = [];
-let allAccountNames = [];
+// let allCategories = [];
+// let allAccountNames = [];
 
 // Function to get department ID by name
 async function getDepartmentIdByName(departmentName) {
@@ -1115,6 +1245,15 @@ async function getDepartmentIdByName(departmentName) {
 
 // Function to fetch categories based on department and transaction type
 async function fetchCategories(departmentId, transactionType) {
+    // Check cache first
+    const cacheKey = `${departmentId}-${transactionType}`;
+    if (categoryCache.has(cacheKey)) {
+        console.log('Using cached categories for:', cacheKey);
+        allCategories = categoryCache.get(cacheKey);
+        updateAllCategoryDropdowns();
+        return;
+    }
+    
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
         
@@ -1124,7 +1263,10 @@ async function fetchCategories(departmentId, transactionType) {
         
         const categories = await response.json();
         allCategories = categories;
-        console.log('Fetched categories:', categories);
+        
+        // Cache the result
+        categoryCache.set(cacheKey, categories);
+        console.log('Fetched and cached categories:', categories);
         
         // Update all category dropdowns in table rows
         updateAllCategoryDropdowns();
@@ -1138,6 +1280,13 @@ async function fetchCategories(departmentId, transactionType) {
 
 // Function to fetch account names based on category, department and transaction type
 async function fetchAccountNames(category, departmentId, transactionType) {
+    // Check cache first
+    const cacheKey = `${category}-${departmentId}-${transactionType}`;
+    if (accountNameCache.has(cacheKey)) {
+        console.log('Using cached account names for:', cacheKey);
+        return accountNameCache.get(cacheKey);
+    }
+    
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
         
@@ -1147,7 +1296,10 @@ async function fetchAccountNames(category, departmentId, transactionType) {
         
         const accountNames = await response.json();
         allAccountNames = accountNames;
-        console.log('Fetched account names:', accountNames);
+        
+        // Cache the result
+        accountNameCache.set(cacheKey, accountNames);
+        console.log('Fetched and cached account names:', accountNames);
         
         return accountNames;
         
@@ -1191,22 +1343,122 @@ function setupRowEventListeners(row) {
             categorySearch.dataset.categories = JSON.stringify(allCategories);
         }
         
+        // Add immediate focus handler for faster response
         categorySearch.addEventListener('focus', function() {
-            filterCategories(this);
+            // Pre-populate dropdown immediately if categories are available
+            if (allCategories.length > 0) {
+                this.dataset.categories = JSON.stringify(allCategories);
+                filterCategories(this);
+            } else {
+                // Try to load categories if department and transaction type are selected
+                const departmentName = document.getElementById('department').value;
+                const transactionType = document.getElementById('typeOfTransaction').value;
+                if (departmentName && transactionType) {
+                    console.log('Categories not loaded on focus, triggering fetch...');
+                    handleDependencyChange().then(() => {
+                        if (allCategories.length > 0) {
+                            this.dataset.categories = JSON.stringify(allCategories);
+                            filterCategories(this);
+                        }
+                    });
+                }
+            }
         });
         
         categorySearch.addEventListener('input', function() {
-            filterCategories(this);
+            // Ensure categories are loaded before filtering
+            if (allCategories.length === 0) {
+                const departmentName = document.getElementById('department').value;
+                const transactionType = document.getElementById('typeOfTransaction').value;
+                if (departmentName && transactionType) {
+                    console.log('Categories not loaded during input, triggering fetch...');
+                    handleDependencyChange().then(() => {
+                        if (allCategories.length > 0) {
+                            this.dataset.categories = JSON.stringify(allCategories);
+                            filterCategories(this);
+                        }
+                    });
+                }
+            } else {
+                filterCategories(this);
+            }
+        });
+        
+        // Add click handler for immediate dropdown display
+        categorySearch.addEventListener('click', function() {
+            // Ensure categories are loaded if not already available
+            if (allCategories.length === 0) {
+                const departmentName = document.getElementById('department').value;
+                const transactionType = document.getElementById('typeOfTransaction').value;
+                if (departmentName && transactionType) {
+                    console.log('Categories not loaded, triggering fetch on click...');
+                    handleDependencyChange().then(() => {
+                        if (allCategories.length > 0) {
+                            this.dataset.categories = JSON.stringify(allCategories);
+                            filterCategories(this);
+                        }
+                    });
+                }
+            } else {
+                filterCategories(this);
+            }
         });
     }
     
     if (accountNameSearch) {
+        // Add immediate focus handler for faster response
         accountNameSearch.addEventListener('focus', function() {
-            filterAccountNames(this);
+            // Try to load account names if category is selected
+            const row = this.closest('tr');
+            const categoryInput = row.querySelector('.category-search');
+            if (categoryInput && categoryInput.value) {
+                loadAccountNamesForRow(row).then(() => {
+                    filterAccountNames(this);
+                });
+            } else {
+                filterAccountNames(this);
+            }
         });
         
         accountNameSearch.addEventListener('input', function() {
-            filterAccountNames(this);
+            // Ensure account names are loaded before filtering
+            const accountNames = JSON.parse(this.dataset.accountNames || '[]');
+            if (accountNames.length === 0) {
+                const row = this.closest('tr');
+                const categoryInput = row.querySelector('.category-search');
+                if (categoryInput && categoryInput.value) {
+                    console.log('Account names not loaded during input, triggering fetch...');
+                    loadAccountNamesForRow(row).then(() => {
+                        const updatedAccountNames = JSON.parse(this.dataset.accountNames || '[]');
+                        if (updatedAccountNames.length > 0) {
+                            filterAccountNames(this);
+                        }
+                    });
+                }
+            } else {
+                filterAccountNames(this);
+            }
+        });
+        
+        // Add click handler for immediate dropdown display
+        accountNameSearch.addEventListener('click', function() {
+            const accountNames = JSON.parse(this.dataset.accountNames || '[]');
+            if (accountNames.length === 0) {
+                // Try to load account names if category is selected
+                const row = this.closest('tr');
+                const categoryInput = row.querySelector('.category-search');
+                if (categoryInput && categoryInput.value) {
+                    console.log('Account names not loaded, triggering fetch on click...');
+                    loadAccountNamesForRow(row).then(() => {
+                        const updatedAccountNames = JSON.parse(this.dataset.accountNames || '[]');
+                        if (updatedAccountNames.length > 0) {
+                            filterAccountNames(this);
+                        }
+                    });
+                }
+            } else {
+                filterAccountNames(this);
+            }
         });
     }
 }
@@ -1227,10 +1479,10 @@ function filterCategories(input) {
             category.toLowerCase().includes(searchText)
         );
         
-        // Display search results
+        // Display search results with highlighting
         filtered.forEach(category => {
             const option = document.createElement('div');
-            option.className = 'dropdown-item';
+            option.className = 'dropdown-item hover:bg-blue-50 cursor-pointer';
             option.innerText = category;
             option.onclick = function() {
                 input.value = category;
@@ -1247,8 +1499,10 @@ function filterCategories(input) {
                 if (accountNameSearch) accountNameSearch.value = '';
                 if (glAccount) glAccount.value = '';
                 
-                // Trigger account names fetch
-                loadAccountNamesForRow(row);
+                // Trigger account names fetch immediately
+                loadAccountNamesForRow(row).then(() => {
+                    console.log('Account names loaded for category:', category);
+                });
             };
             dropdown.appendChild(option);
         });
@@ -1261,7 +1515,7 @@ function filterCategories(input) {
             dropdown.appendChild(noResults);
         }
         
-        // Show dropdown
+        // Show dropdown immediately
         dropdown.classList.remove('hidden');
         
     } catch (error) {
@@ -1285,10 +1539,10 @@ function filterAccountNames(input) {
             account.accountName.toLowerCase().includes(searchText)
         );
         
-        // Display search results
+        // Display search results with highlighting
         filtered.forEach(account => {
             const option = document.createElement('div');
-            option.className = 'dropdown-item';
+            option.className = 'dropdown-item hover:bg-blue-50 cursor-pointer';
             option.innerText = account.accountName;
             option.onclick = function() {
                 input.value = account.accountName;
@@ -1298,11 +1552,12 @@ function filterAccountNames(input) {
                 }
                 dropdown.classList.add('hidden');
                 
-                // Auto-fill GL Account
+                // Auto-fill GL Account immediately
                 const row = input.closest('tr');
                 const glAccount = row.querySelector('.gl-account');
                 if (glAccount) {
                     glAccount.value = account.coa;
+                    console.log('GL Account auto-filled:', account.coa);
                 }
             };
             dropdown.appendChild(option);
@@ -1316,7 +1571,7 @@ function filterAccountNames(input) {
             dropdown.appendChild(noResults);
         }
         
-        // Show dropdown
+        // Show dropdown immediately
         dropdown.classList.remove('hidden');
         
     } catch (error) {
@@ -1347,6 +1602,15 @@ async function loadAccountNamesForRow(row) {
         const departmentId = await getDepartmentIdByName(departmentName);
         if (!departmentId) {
             console.error('Could not find department ID');
+            return;
+        }
+        
+        // Check if we already have account names for this combination
+        const cacheKey = `${category}-${departmentId}-${transactionType}`;
+        if (accountNameCache.has(cacheKey)) {
+            const cachedAccountNames = accountNameCache.get(cacheKey);
+            accountNameInput.dataset.accountNames = JSON.stringify(cachedAccountNames);
+            console.log('Using cached account names for:', cacheKey);
             return;
         }
         
@@ -1384,6 +1648,49 @@ async function handleDependencyChange() {
         
     } catch (error) {
         console.error('Error handling dependency change:', error);
+    }
+}
+
+// Function to preload common data for faster loading
+async function preloadCommonData() {
+    try {
+        // Preload categories for common department-transaction type combinations
+        const commonCombinations = [
+            { departmentId: 1, transactionType: 'Travel' },
+            { departmentId: 1, transactionType: 'Office Supplies' },
+            { departmentId: 2, transactionType: 'Travel' },
+            { departmentId: 2, transactionType: 'Office Supplies' }
+        ];
+        
+        console.log('Preloading common categories...');
+        for (const combo of commonCombinations) {
+            await fetchCategories(combo.departmentId, combo.transactionType);
+        }
+        console.log('Common categories preloaded');
+        
+    } catch (error) {
+        console.error('Error preloading common data:', error);
+    }
+}
+
+// Function to check and load pre-filled data
+function checkAndLoadPreFilledData() {
+    const departmentName = document.getElementById('department').value;
+    const transactionType = document.getElementById('typeOfTransaction').value;
+    
+    if (departmentName && transactionType) {
+        console.log('Pre-filled data detected, triggering category fetch...');
+        handleDependencyChange();
+        
+        // Also check if there are existing rows and populate them
+        const existingRows = document.querySelectorAll('#tableBody tr');
+        existingRows.forEach(row => {
+            const categorySearch = row.querySelector('.category-search');
+            if (categorySearch && allCategories.length > 0) {
+                categorySearch.dataset.categories = JSON.stringify(allCategories);
+                console.log('Pre-populated categories for existing row');
+            }
+        });
     }
 }
 

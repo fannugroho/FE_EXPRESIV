@@ -70,8 +70,10 @@
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
+                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -79,8 +81,18 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <div style="display: none;">
+                    <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
+                    <input type="date" id="TaxDate" class="w-full p-2 border rounded bg-gray-100" readonly>
+                </div>
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
+                    </div>
+                </div>
                 
                 <input type="hidden" id="Doctype" value="A">
             </div>
@@ -159,14 +171,6 @@
             <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
         </div>
 
-        <!-- Attachments Display Section -->
-        <div class="mt-4" id="attachmentsSection">
-            <h3 class="text-lg font-semibold mb-2">Attachments</h3>
-            <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
-                <!-- Attachments will be displayed here -->
-            </div>
-        </div>
-
         <!-- Rejection Remarks section - only visible when status is Rejected -->
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
             <label class="font-semibold text-red-600">Rejection Reason</label>
@@ -242,15 +246,7 @@
                     </select>
                 </div>
             </div>
-            <div id="closedByContainer">
-                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="closedBy" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                </div>
-            </div>
+
         </div>
         <br>
 
