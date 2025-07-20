@@ -1419,18 +1419,6 @@ function submitPR(isSubmit = true) {
 
 function previewPDF(event) {
     const files = event.target.files;
-    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
-    
-    if (files.length + totalExistingFiles > 5) {
-        Swal.fire({
-            title: 'File Limit Exceeded!',
-            text: 'Maximum 5 PDF files are allowed.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
-        });
-        event.target.value = ''; // Clear the file input
-        return;
-    }
     
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
