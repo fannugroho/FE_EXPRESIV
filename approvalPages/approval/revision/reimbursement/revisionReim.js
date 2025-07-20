@@ -252,11 +252,16 @@ function updateTotalAmount() {
 
 function addRow() {
     const tableBody = document.getElementById('reimbursementDetails');
+    
+    // Check if status is "Prepared" to disable table inputs
+    const status = document.getElementById('status').value;
+    const isPreparedStatus = status === 'Prepared';
+    
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
             <div class="relative">
-                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                <input type="text" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
                 <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
                 <select class="hidden category-select">
                     <option value="" disabled selected>Choose Category</option>
@@ -265,7 +270,7 @@ function addRow() {
         </td>
         <td class="p-2 border">
             <div class="relative">
-                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                <input type="text" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
                 <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
                 <select class="hidden account-name-select">
                     <option value="" disabled selected>Choose Account Name</option>
@@ -276,13 +281,13 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full p-1 border rounded" required />
+            <input type="text" maxlength="200" class="w-full p-1 border rounded ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
+            <input type="text" class="w-full p-1 border rounded currency-input-idr ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
                 🗑
             </button>
         </td>
@@ -759,6 +764,30 @@ function controlButtonVisibility() {
                 deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
         });
+        
+        // Additional handling for "Prepared" status - make all fields readonly
+        if (status === "Prepared") {
+            // Disable all form inputs including textareas
+            const allFormElements = document.querySelectorAll('input, select, textarea');
+            allFormElements.forEach(element => {
+                element.disabled = true;
+                element.classList.add('bg-gray-100', 'cursor-not-allowed');
+            });
+            
+            // Disable all table input fields
+            const tableInputs = document.querySelectorAll('#reimbursementDetails input');
+            tableInputs.forEach(input => {
+                input.disabled = true;
+                input.classList.add('bg-gray-100', 'cursor-not-allowed');
+            });
+            
+            // Disable all dropdowns in the table
+            const tableDropdowns = document.querySelectorAll('#reimbursementDetails .search-input');
+            tableDropdowns.forEach(dropdown => {
+                dropdown.disabled = true;
+                dropdown.classList.add('bg-gray-100', 'cursor-not-allowed');
+            });
+        }
     } else {
         // Show buttons
         addRowButton.style.display = "block";
@@ -936,13 +965,17 @@ function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
     tableBody.innerHTML = '';
     
+    // Check if status is "Prepared" to disable table inputs
+    const status = document.getElementById('status').value;
+    const isPreparedStatus = status === 'Prepared';
+    
     if (details && details.length > 0) {
         details.forEach(detail => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
                     <div class="relative">
-                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search" />
+                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
                         <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
                         <select class="hidden category-select">
                             <option value="" disabled selected>Choose Category</option>
@@ -951,7 +984,7 @@ function populateReimbursementDetails(details) {
                 </td>
                 <td class="p-2 border">
                     <div class="relative">
-                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search" />
+                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
                         <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
                         <select class="hidden account-name-select">
                             <option value="" disabled selected>Choose Account Name</option>
@@ -962,13 +995,13 @@ function populateReimbursementDetails(details) {
                     <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded" required />
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr" oninput="formatCurrencyInputIDR(this)" required />
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} oninput="formatCurrencyInputIDR(this)" required />
                 </td>
                 <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
                         🗑
                     </button>
                 </td>
@@ -994,16 +1027,103 @@ function displayAttachments(attachments) {
     attachmentsList.innerHTML = '';
     
     if (attachments && attachments.length > 0) {
-        attachments.forEach(attachment => {
+        attachments.forEach((attachment, index) => {
             const attachmentItem = document.createElement('div');
             attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+            
             attachmentItem.innerHTML = `
                 <span>${attachment.fileName}</span>
-                <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                <div class="flex items-center space-x-2">
+                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                    <button type="button" class="delete-attachment-btn text-red-500 hover:text-red-700 font-bold text-lg" data-attachment-id="${attachment.id}" data-file-name="${attachment.fileName}">×</button>
+                </div>
             `;
+            
+            // Add event listener to the delete button
+            const deleteBtn = attachmentItem.querySelector('.delete-attachment-btn');
+            deleteBtn.addEventListener('click', function() {
+                const attachmentId = this.getAttribute('data-attachment-id');
+                const fileName = this.getAttribute('data-file-name');
+                deleteAttachment(attachmentId, fileName);
+            });
+            
             attachmentsList.appendChild(attachmentItem);
         });
     }
+}
+
+// Function to delete attachment
+async function deleteAttachment(attachmentId, fileName) {
+    // Check if status is "Prepared" to prevent deletion
+    const status = document.getElementById('status').value;
+    if (status === 'Prepared') {
+        Swal.fire('Error', 'Cannot delete attachments when document status is Prepared', 'error');
+        return;
+    }
+    
+    // Get reimbursement ID from URL
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        Swal.fire('Error', 'Reimbursement ID not found', 'error');
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to delete the attachment: ${fileName}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // Use the correct API endpoint with reimbursement ID
+                const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/${attachmentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // Check if response is ok before trying to parse JSON
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Attachment not found or already deleted');
+                    } else {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                }
+                
+                const result = await response.json();
+                
+                if (result.status && result.code === 200) {
+                    Swal.fire(
+                        'Deleted!',
+                        'Attachment has been deleted successfully.',
+                        'success'
+                    ).then(() => {
+                        // Refresh the reimbursement data to update the attachments list
+                        fetchReimbursementData();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error',
+                        result.message || 'Failed to delete attachment',
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Error deleting attachment:', error);
+                Swal.fire(
+                    'Error',
+                    error.message || 'An error occurred while deleting the attachment',
+                    'error'
+                );
+            }
+        }
+    });
 }
 
 function updateReim() {
@@ -1231,9 +1351,8 @@ async function submitReimbursementUpdate() {
             'Reimbursement has been updated successfully.',
             'success'
         ).then(() => {
-            // Don't refresh the form data to preserve user changes
-            // Only update the submit button state if needed
-            updateSubmitButtonState(null);
+            // Redirect to menuReimRevision.html after successful submission
+            window.location.href = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
         });
         
     } catch (error) {
@@ -1247,7 +1366,7 @@ async function submitReimbursementUpdate() {
 }
 
 function goToMenuReim() {
-    window.location.href = '/approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
+    window.location.href = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
 }
 
 function formatDateToDDMMYYYY(dateString) {

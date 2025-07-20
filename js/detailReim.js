@@ -515,12 +515,23 @@ async function submitDocument() {
     }
     
     try {
-        // Call the API to prepare the document
+        // Get current date as submission date
+        const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        
+        // Prepare request data with new submission date
+        const requestData = {
+            submissionDate: currentDate
+        };
+        
+        console.log('Submitting with new submission date:', currentDate);
+        
+        // Call the API to prepare the document with updated submission date
         const response = await fetch(`${BASE_URL}/api/reimbursements/prepared/${id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify(requestData)
         });
         
         const result = await response.json();
@@ -531,10 +542,8 @@ async function submitDocument() {
                 result.message || 'Reimbursement prepared successfully.',
                 'success'
             ).then(() => {
-                // After successful submission, preparedDate will no longer be null
-                // Update the button state directly but don't refresh form data
-                updateSubmitButtonState(new Date().toISOString());
-                // Don't call fetchReimbursementData() to preserve user changes
+                // Redirect to menuReim.html after successful submission
+                window.location.href = '../pages/menuReim.html';
             });
         } else {
             Swal.fire(
@@ -1949,9 +1958,8 @@ function updateReim() {
                     'Reimbursement has been updated successfully.',
                     'success'
                 ).then(() => {
-                    // Don't refresh the form data to preserve user changes
-                    // Only update the submit button state if needed
-                    updateSubmitButtonState(result.data?.preparedDate || null);
+                    // Redirect to menuReim.html after successful update
+                    window.location.href = '../pages/menuReim.html';
                 });
             } catch (error) {
                 console.error('Error updating reimbursement:', error);

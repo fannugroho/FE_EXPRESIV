@@ -737,7 +737,9 @@ function toggleEditableFields(isEditable) {
             // Visual indication for non-editable fields
             if (!isEditable) {
                 field.classList.add('bg-gray-100');
+                field.classList.remove('bg-white');
             } else {
+                field.classList.remove('bg-gray-100');
                 field.classList.add('bg-white');
             }
         }
@@ -764,8 +766,8 @@ function toggleEditableFields(isEditable) {
         }
     }
     
-    // Handle table inputs - only for editable fields in table
-    const tableInputs = document.querySelectorAll('#tableBody input:not(.item-description):not(.item-uom)');
+    // Handle ALL table inputs and textareas - make them non-editable when not Draft
+    const tableInputs = document.querySelectorAll('#tableBody input, #tableBody textarea');
     tableInputs.forEach(input => {
         if (input.type === 'checkbox' || input.type === 'radio') {
             input.disabled = !isEditable;
@@ -775,8 +777,13 @@ function toggleEditableFields(isEditable) {
         
         if (!isEditable) {
             input.classList.add('bg-gray-100');
+            input.classList.remove('bg-white');
         } else {
-            input.classList.remove('bg-gray-100');
+            // For editable state, only remove gray background from non-description/non-uom fields
+            if (!input.classList.contains('item-description') && !input.classList.contains('item-uom')) {
+                input.classList.remove('bg-gray-100');
+                input.classList.add('bg-white');
+            }
         }
     });
     
@@ -838,8 +845,6 @@ function toggleEditableFields(isEditable) {
     });
     
     // Handle approval fields
-
-
     const selects = [
         { id: 'preparedBy', searchId: 'preparedBySearch', approvalKey: 'preparedById' },
         { id: 'checkedBy', searchId: 'checkedBySearch', approvalKey: 'checkedById' },
@@ -865,7 +870,9 @@ function toggleEditableFields(isEditable) {
                 searchInput.disabled = !isEditable;
                 if (!isEditable) {
                     searchInput.classList.add('bg-gray-100');
+                    searchInput.classList.remove('bg-white');
                 } else {
+                    searchInput.classList.remove('bg-gray-100');
                     searchInput.classList.add('bg-white');
                 }
             }
@@ -1004,28 +1011,32 @@ function populateItemDetails(items) {
 function addItemRow(item = null) {
     const tableBody = document.getElementById('tableBody');
     const row = document.createElement('tr');
+    
+    // Check current editable state
+    const isEditable = window.currentValues?.status === 'Draft';
+    
     row.innerHTML = `
         <td class="p-2 border relative">
-            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." value="${item?.itemNo || ''}" />
+            <input type="text" class="item-input w-full p-2 border rounded ${!isEditable ? 'bg-gray-100' : 'bg-white'}" placeholder="Search item..." value="${item?.itemNo || ''}" ${!isEditable ? 'readonly' : ''} />
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
-        <td class="p-2 border bg-gray-100">
+        <td class="p-2 border">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled title="${item?.description || ''}" style="height: 40px;">${item?.description || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;">${item?.detail || ''}</textarea>
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="100" required style="resize: none; height: 40px;" ${!isEditable ? 'readonly' : ''}>${item?.detail || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;">${item?.purpose || ''}</textarea>
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="100" required style="resize: none; height: 40px;" ${!isEditable ? 'readonly' : ''}>${item?.purpose || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center" min="1" required />
+            <textarea class="w-full item-quantity overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="10" required style="resize: none; height: 40px; text-align: center;" oninput="validateQuantity(this)" ${!isEditable ? 'readonly' : ''}>${item?.quantity || ''}</textarea>
         </td>
-        <td class="p-2 border bg-gray-100">
+        <td class="p-2 border h-12">
             <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" ${!isEditable ? 'style="display: none;"' : ''}>🗑</button>
         </td>
     `;
     
@@ -1039,28 +1050,31 @@ function addRow() {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
     
+    // Check current editable state
+    const isEditable = window.currentValues?.status === 'Draft';
+    
     newRow.innerHTML = `
         <td class="p-2 border relative">
-            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." />
+            <input type="text" class="item-input w-full p-2 border rounded ${!isEditable ? 'bg-gray-100' : 'bg-white'}" placeholder="Search item..." ${!isEditable ? 'readonly' : ''} />
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
         <td class="p-2 border bg-gray-100">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
+            <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="100" required style="resize: none; height: 40px;" ${!isEditable ? 'readonly' : ''}></textarea>
         </td>
         <td class="p-2 border h-12">
-            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
+            <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="100" required style="resize: none; height: 40px;" ${!isEditable ? 'readonly' : ''}></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+            <textarea class="w-full item-quantity overflow-x-auto whitespace-nowrap ${!isEditable ? 'bg-gray-100' : 'bg-white'}" maxlength="10" required style="resize: none; height: 40px; text-align: center;" oninput="validateQuantity(this)" ${!isEditable ? 'readonly' : ''}></textarea>
         </td>
         <td class="p-2 border bg-gray-100">
             <input type="text" class="w-full item-uom bg-gray-100" disabled />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" ${!isEditable ? 'style="display: none;"' : ''}>🗑</button>
         </td>
     `;
     
@@ -1078,6 +1092,21 @@ function updateItemDescription(selectElement) {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+}
+
+// Function to validate quantity input (only numbers allowed)
+function validateQuantity(textarea) {
+    // Remove any non-numeric characters except decimal point
+    let value = textarea.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Update the textarea value
+    textarea.value = value;
 }
 
 async function confirmDelete() {
@@ -1339,8 +1368,14 @@ async function updatePR(isSubmit = false) {
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
-                    // Reload the PR data to show updated information
-                    fetchPRDetails(prId, prType);
+                    // Check if this is an update or submit operation for a Draft document
+                    if (status === 'Draft') {
+                        // Redirect to menu page for Draft updates and submissions
+                        goToMenuPR();
+                    } else {
+                        // Reload the PR data to show updated information for other cases
+                        fetchPRDetails(prId, prType);
+                    }
                     
                     // Clear uploaded files since they're now saved
                     uploadedFiles = [];

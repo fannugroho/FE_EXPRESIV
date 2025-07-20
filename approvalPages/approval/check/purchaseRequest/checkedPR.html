@@ -51,6 +51,114 @@
         textarea::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        
+        /* Custom width for table columns */
+        .itemno-column {
+            width: 140px !important;
+            min-width: 140px !important;
+        }
+        
+        .itemno-input {
+            width: 120px !important;
+        }
+        
+        .description-column {
+            width: 300px !important;
+            min-width: 300px !important;
+        }
+        
+        .quantity-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        .quantity-input {
+            width: 60px !important;
+            text-align: center;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .uom-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        .uom-input {
+            width: 60px !important;
+            text-align: center;
+        }
+        
+        .action-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        /* Wider dropdown for item search */
+        .item-dropdown {
+            width: 500px !important;
+            max-width: 500px !important;
+            min-width: 500px !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 300px !important;
+            overflow-y: auto !important;
+        }
+        
+        .item-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .item-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-code {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-name {
+            color: #6b7280 !important;
+            margin-left: 8px !important;
+        }
+        
+        .item-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-detail,
+        .item-purpose,
+        .item-quantity {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity textarea */
+        .item-quantity {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
     </style>
 </head>
 
@@ -114,13 +222,13 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th class="p-2">Item No.</th>
-                    <th class="p-2">Description</th>
+                    <th class="p-2 itemno-column">Item No.</th>
+                    <th class="p-2 description-column">Description</th>
                     <th class="p-2">Detail</th>
                     <th class="p-2">Purpose</th>
-                    <th class="p-2">Quantity</th>
-                    <th class="p-2">UOM</th>
-                    <th class="p-2">Action</th>
+                    <th class="p-2 quantity-column">Quantity</th>
+                    <th class="p-2 uom-column">UOM</th>
+                    <th class="p-2 action-column">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">

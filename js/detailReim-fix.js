@@ -432,7 +432,8 @@ window.submitReimbursementUpdate = async function() {
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
         
-        if (categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
+        // Hanya proses baris yang memiliki data-id (baris yang sudah ada)
+        if (detailId && categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
             // Parse amount correctly using parseCurrencyIDR
             const amountText = amountInput.value.trim();
             const numericAmount = parseCurrencyIDR(amountText);
@@ -447,6 +448,8 @@ window.submitReimbursementUpdate = async function() {
                 description: descriptionInput.value || "",
                 amount: numericAmount // Use correctly parsed amount
             });
+        } else if (!detailId) {
+            console.log(`Row ${index + 1} is a new row (no data-id), skipping for PUT request`);
         } else {
             console.error(`Missing required inputs in row ${index + 1}`);
         }
@@ -488,28 +491,14 @@ window.submitReimbursementUpdate = async function() {
         
         const result = await response.json();
         
-        if (result.status && result.code === 200) {
-            Swal.fire(
-                'Updated!',
-                'Reimbursement has been updated successfully.',
-                'success'
-            ).then(() => {
-                fetchReimbursementData();
-            });
-        } else {
-            Swal.fire(
-                'Error',
-                result.message || 'Failed to update reimbursement',
-                'error'
-            );
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to update reimbursement');
         }
+        
+        return result;
     } catch (error) {
         console.error('Error updating reimbursement:', error);
-        Swal.fire(
-            'Error',
-            'An error occurred while updating the reimbursement',
-            'error'
-        );
+        throw error;
     }
 };
 

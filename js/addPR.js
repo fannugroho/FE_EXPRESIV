@@ -126,12 +126,12 @@ function addRow() {
     const newRow = document.createElement("tr");
     
     newRow.innerHTML = `
-        <td class="p-2 border relative">
-            <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." />
+        <td class="p-2 border relative itemno-column">
+            <input type="text" class="item-input itemno-input p-2 border rounded" />
             <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
         </td>
-        <td class="p-2 border bg-gray-100">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
+        <td class="p-2 border bg-gray-100 description-column">
+            <textarea class="w-full item-description resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
             <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
@@ -139,13 +139,13 @@ function addRow() {
         <td class="p-2 border h-12">
             <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
-        <td class="p-2 border h-12">
-            <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+        <td class="p-2 border h-12 quantity-column">
+            <textarea class="quantity-input item-quantity overflow-x-auto whitespace-nowrap" maxlength="10" required style="resize: none; height: 40px; text-align: center;" oninput="validateQuantity(this)"></textarea>
         </td>
-        <td class="p-2 border bg-gray-100">
-            <input type="text" class="w-full item-uom bg-gray-100" disabled />
+        <td class="p-2 border bg-gray-100 uom-column">
+            <input type="text" class="uom-input item-uom" disabled />
         </td>
-        <td class="p-2 border text-center">
+        <td class="p-2 border text-center action-column">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
     `;
@@ -160,6 +160,21 @@ function addRow() {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+}
+
+// Function to validate quantity input (only numbers allowed)
+function validateQuantity(textarea) {
+    // Remove any non-numeric characters except decimal point
+    let value = textarea.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Update the textarea value
+    textarea.value = value;
 }
 
 
@@ -486,8 +501,8 @@ function setupItemDropdown(row) {
         if (filteredItems.length > 0) {
             filteredItems.forEach(item => {
                 const option = document.createElement('div');
-                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
-                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.className = 'dropdown-item cursor-pointer';
+                option.innerHTML = `<span class="item-code">${item.itemCode}</span><span class="item-name">- ${item.itemName}</span>`;
                 option.onclick = function() {
                     itemInput.value = item.itemCode;
                     itemInput.setAttribute('data-selected-item', JSON.stringify(item));
@@ -500,7 +515,11 @@ function setupItemDropdown(row) {
             });
             itemDropdown.classList.remove('hidden');
         } else {
-            itemDropdown.classList.add('hidden');
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results';
+            noResults.textContent = 'No items found';
+            itemDropdown.appendChild(noResults);
+            itemDropdown.classList.remove('hidden');
         }
     });
     
@@ -511,8 +530,8 @@ function setupItemDropdown(row) {
             
             allItems.forEach(item => {
                 const option = document.createElement('div');
-                option.className = 'p-2 cursor-pointer hover:bg-gray-100';
-                option.innerHTML = `<span class="font-medium">${item.itemCode}</span> - ${item.itemName}`;
+                option.className = 'dropdown-item cursor-pointer';
+                option.innerHTML = `<span class="item-code">${item.itemCode}</span><span class="item-name">- ${item.itemName}</span>`;
                 option.onclick = function() {
                     itemInput.value = item.itemCode;
                     itemInput.setAttribute('data-selected-item', JSON.stringify(item));

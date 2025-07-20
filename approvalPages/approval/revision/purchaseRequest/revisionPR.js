@@ -852,7 +852,7 @@ function addItemRow(item = null) {
             <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;">${item?.purpose || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center" min="1" required />
+            <textarea class="w-full item-quantity overflow-x-auto whitespace-nowrap" maxlength="10" required style="resize: none; height: 40px; text-align: center;" oninput="validateQuantity(this)">${item?.quantity || ''}</textarea>
         </td>
         <td class="p-2 border bg-gray-100">
             <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
@@ -887,7 +887,7 @@ function addRow() {
             <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;"></textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="number" class="w-full h-full item-quantity text-center" min="1" required />
+            <textarea class="w-full item-quantity overflow-x-auto whitespace-nowrap" maxlength="10" required style="resize: none; height: 40px; text-align: center;" oninput="validateQuantity(this)"></textarea>
         </td>
         <td class="p-2 border bg-gray-100">
             <input type="text" class="w-full item-uom bg-gray-100" disabled />
@@ -1331,6 +1331,21 @@ function populateUserSelects(users, prData = null) {
 
 function deleteRow(button) {
     button.closest("tr").remove();
+}
+
+// Function to validate quantity input (only numbers allowed)
+function validateQuantity(textarea) {
+    // Remove any non-numeric characters except decimal point
+    let value = textarea.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Update the textarea value
+    textarea.value = value;
 }
 
 // Function to make all fields read-only for approval view

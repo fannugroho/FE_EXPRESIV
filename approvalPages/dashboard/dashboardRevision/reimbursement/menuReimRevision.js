@@ -131,6 +131,8 @@ function filterReimbursements(searchTerm = '', tab = 'revised', searchType = 'pr
                     // Format tanggal untuk pencarian
                     const formattedDate = formatDateYYYYMMDD(reim.submissionDate).toLowerCase();
                     searchMatch = formattedDate.includes(searchTerm);
+                } else if (searchType === 'status') {
+                    searchMatch = reim.status && reim.status.toLowerCase().includes(searchTerm);
                 }
             }
             
@@ -152,6 +154,8 @@ function filterReimbursements(searchTerm = '', tab = 'revised', searchType = 'pr
                     // Format tanggal untuk pencarian
                     const formattedDate = formatDateYYYYMMDD(reim.submissionDate).toLowerCase();
                     searchMatch = formattedDate.includes(searchTerm);
+                } else if (searchType === 'status') {
+                    searchMatch = reim.status && reim.status.toLowerCase().includes(searchTerm);
                 }
             }
             
@@ -271,8 +275,8 @@ function displayReimbursements(reimbursements) {
             <td class='p-2'>${reim.department}</td>
             <td class='p-2'>${formattedDate}</td>
             <td class='p-2'>
-                <span class="px-2 py-1 rounded-full text-xs ${reim.status === 'Revised' ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}">
-                    ${reim.status === 'Revised' ? 'Revision' : reim.status}
+                <span class="px-2 py-1 rounded-full text-xs ${reim.status.toLowerCase() === 'revised' ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}">
+                    ${reim.status.toLowerCase() === 'revised' ? 'Revision' : reim.status}
                 </span>
             </td>
             <td class='p-2'>
@@ -878,7 +882,7 @@ function updateTable() {
             formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
         
-        const displayStatus = item.status;
+        const displayStatus = item.status.toLowerCase() === 'revised' ? 'Revision' : item.status;
         
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');

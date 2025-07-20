@@ -68,6 +68,8 @@ function filterReimbursements(searchTerm = '', tab = 'approved', searchType = 'p
                 // Format tanggal untuk pencarian
                 const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
                 searchMatch = formattedDate.includes(searchTerm);
+            } else if (searchType === 'status') {
+                searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
             }
         }
         

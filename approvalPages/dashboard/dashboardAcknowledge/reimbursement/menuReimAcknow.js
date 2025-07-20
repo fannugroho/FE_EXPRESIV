@@ -39,6 +39,8 @@ function filterReimbursements(searchTerm = '', tab = 'checked', searchType = 'pr
                     // Format tanggal untuk pencarian
                     const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
                     searchMatch = formattedDate.includes(searchTerm);
+                } else if (searchType === 'status') {
+                    searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
                 }
             }
             
@@ -273,7 +275,7 @@ function goToAddCash() {window.location.href = "AddCash.html"; }
 function goToAddSettle() {window.location.href = "AddSettle.html"; }
 function goToAddPO() {window.location.href = "AddPO.html"; }
 function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReim() { window.location.href = "MenuReim.html"; }
+function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
 function goToMenuCash() { window.location.href = "MenuCash.html"; }
 function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
 function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }

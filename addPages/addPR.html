@@ -46,6 +46,118 @@
         textarea::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        
+        /* Custom width for quantity column */
+        .quantity-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        .quantity-input {
+            width: 60px !important;
+            text-align: center;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        /* Custom width for UOM column */
+        .uom-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        .uom-input {
+            width: 60px !important;
+            text-align: center;
+        }
+        
+        /* Custom width for Action column */
+        .action-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        /* Custom width for Item No column */
+        .itemno-column {
+            width: 140px !important;
+            min-width: 140px !important;
+        }
+        
+        .itemno-input {
+            width: 120px !important;
+        }
+        
+        /* Wider dropdown for item search */
+        .item-dropdown {
+            width: 500px !important;
+            max-width: 500px !important;
+            min-width: 500px !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 300px !important;
+            overflow-y: auto !important;
+        }
+        
+        .item-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .item-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-code {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-name {
+            color: #6b7280 !important;
+            margin-left: 8px !important;
+        }
+        
+        .item-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
+        }
+        
+        /* Custom width for Description column */
+        .description-column {
+            width: 300px !important;
+            min-width: 300px !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-detail,
+        .item-purpose,
+        .item-quantity {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity textarea */
+        .item-quantity {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
     </style>
 </head>
 
@@ -101,37 +213,37 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th class="p-2">Item No.</th>
-                    <th class="p-2">Description</th>
+                    <th class="p-2 itemno-column">Item No.</th>
+                    <th class="p-2 description-column">Description</th>
                     <th class="p-2">Detail</th>
                     <th class="p-2">Purpose</th>
-                    <th class="p-2">Quantity</th>
-                    <th class="p-2">UOM</th>
-                    <th class="p-2">Action</th>
+                    <th class="p-2 quantity-column">Quantity</th>
+                    <th class="p-2 uom-column">UOM</th>
+                    <th class="p-2 action-column">Action</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td class="p-2 border relative">
-                        <input type="text" class="item-input w-full p-2 border rounded" placeholder="Search item..." autocomplete="off" />
+                    <td class="p-2 border relative itemno-column">
+                        <input type="text" class="item-input itemno-input p-2 border rounded" autocomplete="off" />
                         <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
                     </td>
-                    <td class="p-2 border bg-gray-100">
-                        <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px;" autocomplete="off"></textarea>
+                    <td class="p-2 border  description-column">
+                        <textarea class="w-full item-description bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="200" disabled style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12">
-                        <textarea class="w-full item-detail text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
+                        <textarea class="w-full item-detail bg-white overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12">
-                        <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
+                        <textarea class="w-full item-purpose bg-white overflow-x-auto whitespace-nowrap" maxlength="100" required style="resize: none; height: 40px;" autocomplete="off"></textarea>
                     </td>
-                    <td class="p-2 border h-12">
-                        <input type="number" class="w-full h-full item-quantity text-center" min="1" required autocomplete="off" />
+                    <td class="p-2 border h-12 quantity-column">
+                        <textarea class="quantity-input item-quantity bg-white overflow-x-auto whitespace-nowrap" maxlength="10" required style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
                     </td>
-                    <td class="p-2 border bg-gray-100">
-                        <input type="text" class="w-full item-uom bg-gray-100" disabled autocomplete="off" />
+                    <td class="p-2 border uom-column">
+                        <input type="text" class="uom-input bg-white item-uom" disabled autocomplete="off" />
                     </td>
-                    <td class="p-2 border text-center">
+                    <td class="p-2 border text-center action-column">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
                     </td>
                 </tr>

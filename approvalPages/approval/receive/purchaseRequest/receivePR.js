@@ -264,7 +264,7 @@ function addItemRow(item = null) {
             <textarea class="w-full item-purpose text-center overflow-x-auto whitespace-nowrap bg-gray-100" maxlength="100" readonly style="resize: none; height: 40px;">${item?.purpose || ''}</textarea>
         </td>
         <td class="p-2 border h-12">
-            <input type="number" value="${item?.quantity || ''}" class="w-full h-full item-quantity text-center bg-gray-100" readonly />
+            <textarea class="w-full item-quantity overflow-x-auto whitespace-nowrap bg-gray-100" maxlength="10" readonly style="resize: none; height: 40px; text-align: center;">${item?.quantity || ''}</textarea>
         </td>
         <td class="p-2 border bg-gray-100">
             <input type="text" value="${item?.uom || ''}" class="w-full item-uom bg-gray-100" disabled />
@@ -739,29 +739,47 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
+// Function to validate quantity input (only numbers allowed)
+function validateQuantity(textarea) {
+    // Remove any non-numeric characters except decimal point
+    let value = textarea.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Update the textarea value
+    textarea.value = value;
+}
+
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only
+    // Make all input fields read-only with gray background
     const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        field.classList.remove('bg-white');
     });
     
-    // Make search inputs read-only but with normal styling
+    // Make search inputs read-only with gray background
     const searchInputs = document.querySelectorAll('input[id$="Search"]');
     searchInputs.forEach(field => {
         field.readOnly = true;
-        field.classList.add('bg-gray-50');
+        field.classList.add('bg-gray-100');
+        field.classList.remove('bg-gray-50', 'bg-white');
         // Remove the onkeyup event to prevent search triggering
         field.removeAttribute('onkeyup');
     });
     
-    // Disable all select fields
+    // Disable all select fields with gray background
     const selectFields = document.querySelectorAll('select');
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        field.classList.remove('bg-white');
     });
     
     // Disable all checkboxes
@@ -769,6 +787,14 @@ function makeAllFieldsReadOnly() {
     checkboxFields.forEach(field => {
         field.disabled = true;
         field.classList.add('cursor-not-allowed');
+    });
+    
+    // Handle table inputs and textareas - make them all gray
+    const tableInputs = document.querySelectorAll('#tableBody input, #tableBody textarea');
+    tableInputs.forEach(input => {
+        input.readOnly = true;
+        input.classList.add('bg-gray-100');
+        input.classList.remove('bg-white');
     });
     
     // Hide add row button
@@ -788,6 +814,7 @@ function makeAllFieldsReadOnly() {
     if (fileInput) {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        fileInput.classList.remove('bg-white');
     }
 }
 
