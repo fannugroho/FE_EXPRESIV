@@ -106,7 +106,7 @@ window.onload = function() {
     });
 };
 
-function populateUserSelects(users, approvalData = null) {
+async function populateUserSelects(users, approvalData = null) {
     // Handle case when users is null, undefined, or empty
     if (!users || users.length === 0) {
         users = [];
@@ -264,9 +264,9 @@ function populateUserSelects(users, approvalData = null) {
     autoFillPreparedBy(users);
     
     // For PR documents, always use "NRM" as transaction type
-    // Populate superior employees immediately
+    // Populate superior employees immediately and return a promise
     console.log('Starting to populate superior employees for PR with NRM transaction type...');
-    populateAllSuperiorEmployeeDropdowns("NRM");
+    await populateAllSuperiorEmployeeDropdowns("NRM");
     
     // Add event listeners for search inputs to show dropdowns
     const searchInputs = [
@@ -293,6 +293,8 @@ function populateUserSelects(users, approvalData = null) {
             });
         }
     });
+    
+    return true; // Return a resolved promise
 }
 
 // Helper function to auto-fill preparedBy with logged-in user
@@ -442,7 +444,7 @@ async function fetchPRDetails(prId, prType) {
             await fetchDropdownOptions(responseData.data);
             
             // Then populate PR details so items can be properly matched
-            populatePRDetails(responseData.data);
+            await populatePRDetails(responseData.data);
             
             const isEditable = responseData.data && responseData.data.status === 'Draft';
             toggleEditableFields(isEditable);
@@ -937,7 +939,7 @@ function toggleEditableFields(isEditable) {
     });
 }
 
-function populatePRDetails(data) {
+async function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
     
@@ -1034,10 +1036,10 @@ function populatePRDetails(data) {
     
     // Now that requester data is set, populate user selects with proper selection
     if (window.allUsers) {
-        populateUserSelects(window.allUsers, data);
+        await populateUserSelects(window.allUsers, data);
     }
     
-    // Populate approval fields with existing values from API
+    // Populate approval fields with existing values from API AFTER superior employee dropdowns are populated
     console.log('About to populate approval fields with data:', {
         preparedByName: data.preparedByName,
         checkedByName: data.checkedByName,
@@ -1105,14 +1107,75 @@ function populateApprovalFields(data) {
         const searchInput = document.getElementById(fieldConfig.searchInput);
         const selectElement = document.getElementById(fieldConfig.selectElement);
         
+        console.log(`Processing field: ${fieldKey}`);
+        console.log(`API data - ${fieldConfig.apiField}:`, data[fieldConfig.apiField]);
+        console.log(`API data - ${fieldConfig.apiIdField}:`, data[fieldConfig.apiIdField]);
+        console.log(`Search input found:`, !!searchInput);
+        console.log(`Select element found:`, !!selectElement);
+        
         if (searchInput && data[fieldConfig.apiField]) {
             console.log(`Setting ${fieldConfig.searchInput} to: ${data[fieldConfig.apiField]}`);
             searchInput.value = data[fieldConfig.apiField];
             
-            // Also set the select element value if available
+            // Handle the select element value
             if (selectElement && data[fieldConfig.apiIdField]) {
                 console.log(`Setting ${fieldConfig.selectElement} to: ${data[fieldConfig.apiIdField]}`);
-                selectElement.value = data[fieldConfig.apiIdField];
+                console.log(`Current select options:`, Array.from(selectElement.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+                
+                // Check if the user ID already exists in the select options
+                let userExists = false;
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
+                        selectElement.selectedIndex = i;
+                        userExists = true;
+                        console.log(`Found existing option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                        break;
+                    }
+                }
+                
+                // If the user doesn't exist in the select options, add them
+                if (!userExists) {
+                    console.log(`Adding new option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                    const option = document.createElement('option');
+                    option.value = data[fieldConfig.apiIdField];
+                    option.textContent = data[fieldConfig.apiField];
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                }
+                
+                // Also update the search input dataset to include this user
+                if (searchInput.dataset.users) {
+                    try {
+                        const users = JSON.parse(searchInput.dataset.users);
+                        const userExists = users.find(u => u.id === data[fieldConfig.apiIdField]);
+                        if (!userExists) {
+                            users.push({
+                                id: data[fieldConfig.apiIdField],
+                                name: data[fieldConfig.apiField]
+                            });
+                            searchInput.dataset.users = JSON.stringify(users);
+                            console.log(`Added user to search dataset for ${fieldConfig.searchInput}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error updating search dataset for ${fieldConfig.searchInput}:`, error);
+                    }
+                }
+                
+                console.log(`Final select value for ${fieldConfig.selectElement}:`, selectElement.value);
+            }
+        } else if (searchInput && data[fieldConfig.apiIdField]) {
+            // If we have the ID but not the name, try to find the name from the select options
+            console.log(`No name found for ${fieldKey}, but ID exists: ${data[fieldConfig.apiIdField]}`);
+            if (selectElement) {
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
+                        const userName = selectElement.options[i].textContent;
+                        searchInput.value = userName;
+                        selectElement.selectedIndex = i;
+                        console.log(`Found user name from select options: ${userName}`);
+                        break;
+                    }
+                }
             }
         } else {
             console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiField}`);
@@ -1445,6 +1508,14 @@ async function updatePR(isSubmit = false) {
  
         // Use current user ID if preparedBy is empty
         const finalPreparedById = preparedByValue || currentUserId;
+        
+        // Debug logging for approval field values
+        console.log('Approval field values being submitted:');
+        console.log('PreparedById:', finalPreparedById);
+        console.log('CheckedById:', document.getElementById('checkedBy')?.value);
+        console.log('AcknowledgedById:', document.getElementById('acknowledgeBy')?.value);
+        console.log('ApprovedById:', document.getElementById('approvedBy')?.value);
+        console.log('ReceivedById:', document.getElementById('receivedBy')?.value);
         
         formData.append('PreparedById', finalPreparedById);
         formData.append('CheckedById', document.getElementById('checkedBy')?.value);
