@@ -13,8 +13,23 @@ function loadDashboard() {
     
     // Add event listener for search type dropdown
     document.getElementById('searchType').addEventListener('change', function() {
+        const searchInput = document.getElementById('searchInput');
+        const searchType = this.value;
+        
+        // Change input type based on search type
+        if (searchType === 'date') {
+            searchInput.type = 'date';
+            searchInput.placeholder = 'Select date...';
+        } else {
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search...';
+        }
+        
+        // Clear the search input when changing search type
+        searchInput.value = '';
+        
         // Trigger search again when dropdown changes
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchTerm = searchInput.value.toLowerCase();
         handleSearch({target: {value: searchTerm}});
     });
 }
@@ -46,9 +61,9 @@ function filterReimbursements(searchTerm = '', tab = 'prepared', searchType = 'p
                 } else if (searchType === 'requester') {
                     searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
                 } else if (searchType === 'date') {
-                    // Format tanggal untuk pencarian
-                    const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
-                    searchMatch = formattedDate.includes(searchTerm);
+                    // Handle date search - searchTerm should be in YYYY-MM-DD format from date input
+                    const formattedDate = formatDateYYYYMMDD(item.submissionDate);
+                    searchMatch = formattedDate === searchTerm;
                 } else if (searchType === 'status') {
                     searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
                 }
@@ -552,27 +567,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to navigate to user profile page
 function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
+    // Function disabled - no action
+    return;
 }
 
 window.onload = loadDashboard;
 
 // ================= NOTIFICATION POLLING =================
-// Notifikasi dokumen yang perlu diperiksa (prepared)
+// Variables for notifications
 let notifiedReims = new Set();
 let notificationContainer = null;
 let isNotificationVisible = false;
 
 function updateNotificationBadge() {
     const badge = document.getElementById('notificationBadge');
-    if (!badge) return;
+    if (!badge) {
+        console.log('Notification badge element not found');
+        return;
+    }
     const count = notifiedReims.size;
+    console.log('Updating notification badge, count:', count);
     if (count > 0) {
         badge.textContent = count;
         badge.classList.remove('hidden');
+        console.log('Badge updated, showing count:', count);
     } else {
         badge.textContent = '0';
         badge.classList.add('hidden');
+        console.log('Badge hidden, no notifications');
     }
 }
 
@@ -672,20 +694,23 @@ function updateNotificationContent() {
     notificationContainer.innerHTML = content;
 }
 
-function showNotification(message, reimNumber) {
-    // Simpan data notifikasi ke localStorage
+function showNotification(doc) {
+    console.log('Showing notification for document:', doc);
+    
+    // Simpan data notifikasi ke localStorage dengan format yang benar
     const notificationData = JSON.parse(localStorage.getItem('notificationDataReim') || '{}');
     const data = {
-        voucherNo: reimNumber,
-        requesterName: message.split('-')[1] || 'Unknown',
-        department: message.split('-')[2] || 'Unknown',
-        submissionDate: message.split('-')[3] || '-',
-        status: message.split('-')[4] || 'Prepared'
+        voucherNo: doc.voucherNo,
+        requesterName: doc.requesterName || 'Unknown',
+        department: doc.department || 'Unknown',
+        submissionDate: doc.submissionDate || '-',
+        status: doc.status || 'Prepared'
     };
-    notificationData[reimNumber] = data;
+    notificationData[doc.voucherNo] = data;
     localStorage.setItem('notificationDataReim', JSON.stringify(notificationData));
     
-    notifiedReims.add(reimNumber);
+    notifiedReims.add(doc.voucherNo);
+    console.log('Current notified documents:', Array.from(notifiedReims));
     updateNotificationBadge();
     
     // Update panel jika sedang terbuka
@@ -712,7 +737,12 @@ function removeNotification(reimNumber) {
 async function pollPreparedDocs() {
     try {
         const userId = getUserId();
-        if (!userId) return;
+        if (!userId) {
+            console.log('No user ID found for notification polling');
+            return;
+        }
+        
+        console.log('Polling prepared documents for user:', userId);
         
         // Menggunakan endpoint untuk reimbursement
         const response = await fetch(`${BASE_URL}/api/reimbursements/checker/${userId}`, {
@@ -720,38 +750,31 @@ async function pollPreparedDocs() {
         });
         
         const data = await response.json();
-        if (!data.status || data.code !== 200) return;
+        if (!data.status || data.code !== 200) {
+            console.log('API response error:', data);
+            return;
+        }
         
         const docs = data.data || [];
+        console.log('Found documents:', docs.length);
+        
         let newReimFound = false;
         
         docs.forEach(doc => {
             // Hanya notifikasi untuk dokumen dengan status Prepared
             if (doc.status === 'Prepared' && !notifiedReims.has(doc.voucherNo)) {
-                // Format pesan notifikasi
-                const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
-                const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
-                showNotification(message, doc.voucherNo);
+                console.log('New prepared document found:', doc.voucherNo);
+                showNotification(doc);
                 newReimFound = true;
             }
         });
         
         // Play sound jika ada dokumen baru
         if (newReimFound) {
-            try {
-                const audio = new Audio('../../../../components/shared/tones.mp3');
-                // Only play if user has interacted with the page
-                if (document.hasInteracted) {
-                    audio.play().catch(e => {
-                        console.warn('Gagal memutar nada dering notifikasi:', e);
-                    });
-                }
-            } catch (e) {
-                console.warn('Gagal memutar nada dering notifikasi:', e);
-            }
+            console.log('Playing notification sound for new documents');
+            playNotificationSound();
         }
     } catch (e) {
-        // Silent error
         console.error('Error polling reimbursements:', e);
     }
 }
@@ -789,6 +812,31 @@ async function pollCheckedDocs() {
     }
 }
 
+function playNotificationSound() {
+    console.log('Attempting to play notification sound');
+    try {
+        // Use the correct path from current directory to components/shared/tones.mp3
+        const audioPath = '../../../../components/shared/tones.mp3';
+        
+        // Only attempt to play if user has interacted with the page
+        if (document.hasInteracted) {
+            console.log('User has interacted, attempting to play audio from:', audioPath);
+            const audio = new Audio(audioPath);
+            audio.volume = 0.5; // Set volume to 50%
+            
+            audio.play().then(() => {
+                console.log('Notification sound played successfully');
+            }).catch(e => {
+                console.warn('Failed to play notification sound:', e);
+            });
+        } else {
+            console.log('User has not interacted with page yet, cannot play audio');
+        }
+    } catch (e) {
+        console.warn('Failed to play notification sound:', e);
+    }
+}
+
 // Polling interval (setiap 10 detik)
 setInterval(() => {
     pollPreparedDocs();
@@ -806,7 +854,8 @@ document.addEventListener('keydown', function() {
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Existing DOMContentLoaded code will run first
+    // Load dashboard
+    loadDashboard();
     
     // Tambahkan polling notifikasi
     setTimeout(() => {
@@ -814,15 +863,8 @@ document.addEventListener('DOMContentLoaded', function() {
         pollCheckedDocs();
         updateNotificationBadge();
         
-        // Event click pada bell untuk toggle notifikasi panel
-        const bell = document.getElementById('notificationBell');
-        if (bell) {
-            bell.addEventListener('click', function() {
-                toggleNotificationPanel();
-            });
-        }
-        
         // Tutup panel jika klik di luar
+        const bell = document.getElementById('notificationBell');
         document.addEventListener('click', function(event) {
             if (notificationContainer && 
                 !notificationContainer.contains(event.target) && 

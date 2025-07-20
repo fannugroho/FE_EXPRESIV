@@ -193,7 +193,8 @@ function logout() {
 
 // Function to navigate to user profile page
 function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
+    // Function disabled - no action
+    return;
 }
 
 function goToDetailReim(reimId) {
@@ -375,51 +376,89 @@ function goToTotalDocs() {
 
 // Download table data as Excel
 function downloadExcel() {
+    // Get current tab name for filename
+    let statusText = 'Checked';
+    if (currentTab === 'acknowledge') {
+        statusText = 'Acknowledged';
+    } else if (currentTab === 'rejected') {
+        statusText = 'Rejected';
+    }
+    
     // Create a worksheet from the filtered data
-    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+        'Doc Number': item.id || '',
+        'Reimbursement Number': item.voucherNo || '',
+        'Requester': item.requesterName || '',
+        'Department': item.department || '',
+        'Submission Date': item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
+        'Status': item.status
+    })));
     
     // Create a workbook with the worksheet
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reimbursements");
     
-    // Generate Excel file and trigger download
-    XLSX.writeFile(workbook, "reimbursement_data.xlsx");
+    // Generate Excel file with tab name
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 }
 
 // Download table data as PDF
 function downloadPDF() {
+    // Get current tab name for title and filename
+    let statusText = 'Checked';
+    if (currentTab === 'acknowledge') {
+        statusText = 'Acknowledged';
+    } else if (currentTab === 'rejected') {
+        statusText = 'Rejected';
+    }
+    
     // Initialize jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add title
+    // Add title with current tab
     doc.setFontSize(18);
-    doc.text("Reimbursement Report", 14, 20);
+    doc.text(`Reimbursement ${statusText} Documents`, 14, 20);
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Set up the table
-    const headers = [["ID", "Doc Number", "Voucher", "Requester", "Department", "Date", "Status"]];
+    const headers = [['Doc Number', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status']];
     
     const data = filteredData.map(item => [
-        item.id,
-        item.docNumber,
-        item.voucherNo,
-        item.requesterName,
-        item.department,
-        new Date(item.submissionDate).toLocaleDateString(),
+        item.id || '',
+        item.voucherNo || '',
+        item.requesterName || '',
+        item.department || '',
+        item.submissionDate ? new Date(item.submissionDate).toLocaleDateString() : '',
         item.status
     ]);
     
     // Add the table to the PDF
     doc.autoTable({
-        startY: 30,
+        startY: 40,
         head: headers,
         body: data,
-        theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] }
+        theme: 'grid',
+        styles: {
+            fontSize: 8,
+            cellPadding: 2
+        },
+        headStyles: {
+            fillColor: [66, 153, 225],
+            textColor: 255
+        },
+        alternateRowStyles: {
+            fillColor: [240, 240, 240]
+        }
     });
     
-    // Save the PDF
-    doc.save("reimbursement_report.pdf");
+    // Save the PDF with tab name
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(fileName);
 }
 
 // Initialize dashboard on page load

@@ -72,6 +72,27 @@
       }
     }
 
+    // Function to hash password using SHA-256
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    }
+
+    // Function to store initial password hash
+    async function storeInitialPasswordHash(password) {
+      try {
+        const passwordHash = await hashPassword(password);
+        localStorage.setItem('initialPasswordHash', passwordHash);
+        console.log('Initial password hash stored successfully:', passwordHash.substring(0, 10) + '...');
+      } catch (error) {
+        console.error('Error storing initial password hash:', error);
+      }
+    }
+
     // Function to check if user is a first-time login
     async function checkFirstTimeLogin(userId) {
       try {
@@ -101,7 +122,7 @@
     }
 
     // API-based login function
-    function handleLogin(event) {
+    async function handleLogin(event) {
       event.preventDefault();
       
       const usercode = document.getElementById("ExtEmpNo").value.trim();
@@ -127,17 +148,19 @@
 
       console.log(loginData);
 
-      // Make API call
-      fetch(`${BASE_URL}/api/authentication/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(loginData)
-      })
-      .then(response => response.json())
-      .then(result => {
+      try {
+        // Make API call
+        const response = await fetch(`${BASE_URL}/api/authentication/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(loginData)
+        });
+        
+        const result = await response.json();
+        
         if (result.status && result.code === 200) {
           // Login successful
           const { accessToken, refreshToken } = result.data;
@@ -163,6 +186,9 @@
             localStorage.setItem("userId", userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
             localStorage.setItem("userRoles", JSON.stringify(userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]));
             
+            // Store initial password hash for password change validation
+            await storeInitialPasswordHash(password);
+            
             // Show success message
             alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
             
@@ -178,40 +204,31 @@
               window.location.href = "changepass.html";
             } else {
               // Check with the API if user needs to change password
-              checkFirstTimeLogin(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"])
-                .then(requireChange => {
-                  if (requireChange) {
-                    // Redirect to password change page
-                    window.location.href = "changepass.html";
-                  } else {
-                    // Redirect to dashboard
-                    window.location.href = "dashboard.html";
-                  }
-                })
-                .catch(() => {
-                  // If error, just redirect to dashboard
-                  window.location.href = "dashboard.html";
-                });
+              const requireChange = await checkFirstTimeLogin(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
+              if (requireChange) {
+                // Redirect to password change page
+                window.location.href = "changepass.html";
+              } else {
+                // Redirect to dashboard
+                window.location.href = "dashboard.html";
+              }
             }
           } else {
             alert("Failed to decode user information from token");
           }
         } else {
-          
           // Login failed
           const errorMessage = result.message || "Login failed. Please check your credentials.";
           alert(errorMessage);
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Login error:', error);
         alert("Connection error. Please check if the server is running and try again.");
-      })
-      .finally(() => {
+      } finally {
         // Reset button state
         loginButton.disabled = false;
         loginButton.innerText = originalText;
-      });
+      }
     }
 
     // Function to check if user is already logged in
@@ -250,4 +267,5 @@
       localStorage.removeItem("userId");
       localStorage.removeItem("userRoles");
       localStorage.removeItem("requirePasswordChange");
+      localStorage.removeItem("initialPasswordHash");
     }

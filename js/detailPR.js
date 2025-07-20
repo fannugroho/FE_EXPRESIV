@@ -21,8 +21,8 @@ function setupDateFields() {
     const requiredDateInput = document.getElementById("requiredDate");
     
     if (submissionDateInput && requiredDateInput) {
-        // Set minimum date for submission date to today
-        submissionDateInput.min = formattedDate;
+        // Don't set minimum date for submission date since it's readonly and filled from API
+        // submissionDateInput.min = formattedDate;
         
         // Function to update required date minimum based on submission date
         const updateRequiredDateMin = function() {
@@ -48,8 +48,8 @@ function setupDateFields() {
             }
         };
         
-        // Add event listener to automatically update required date when submission date changes
-        submissionDateInput.addEventListener('change', updateRequiredDateMin);
+        // Don't add event listener to submission date since it's readonly
+        // submissionDateInput.addEventListener('change', updateRequiredDateMin);
         
         // Store the update function globally so it can be called after data is populated
         window.updateRequiredDateMin = updateRequiredDateMin;
@@ -67,17 +67,14 @@ function setDefaultDatesIfEmpty() {
         const today = new Date();
         const formattedDate = formatDateForInput(today);
         
-        // Set default issuance date to today if empty
-        if (!submissionDateInput.value) {
-            submissionDateInput.value = formattedDate;
-        }
+        // Don't set default issuance date - it should be filled with preparedDateFormatted from API
+        // The submission date is always readonly and populated from the API data
         
-        // Set default required date to 2 weeks from issuance date if empty
+        // Set default required date to 2 weeks from today if empty
         if (!requiredDateInput.value) {
-            const issuanceDate = submissionDateInput.value ? new Date(submissionDateInput.value + 'T00:00:00') : today;
-            const twoWeeksFromIssuance = new Date(issuanceDate);
-            twoWeeksFromIssuance.setDate(issuanceDate.getDate() + 14);
-            const requiredDateFormatted = formatDateForInput(twoWeeksFromIssuance);
+            const twoWeeksFromToday = new Date(today);
+            twoWeeksFromToday.setDate(today.getDate() + 14);
+            const requiredDateFormatted = formatDateForInput(twoWeeksFromToday);
             
             requiredDateInput.value = requiredDateFormatted;
         }
@@ -709,7 +706,6 @@ function toggleEditableFields(isEditable) {
     const editableFields = [
         'requesterSearch', // Requester name search input
         'classification',
-        'submissionDate',
         'requiredDate',
         'remarks',
         'PO',
@@ -721,7 +717,8 @@ function toggleEditableFields(isEditable) {
         'purchaseRequestNo',
         'department', 
         'status',
-        'prType'
+        'prType',
+        'submissionDate' // Always readonly, filled with preparedDateFormatted
     ];
     
     // Toggle editable fields
@@ -900,7 +897,8 @@ function populatePRDetails(data) {
     }
     
     // Format and set dates - extract date part directly to avoid timezone issues
-    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
+    // Use preparedDateFormatted for submission date if available, otherwise fall back to submissionDate
+    const submissionDate = data.preparedDateFormatted ? data.preparedDateFormatted.split('/').reverse().join('-') : (data.submissionDate ? data.submissionDate.split('T')[0] : '');
     const requiredDate = data.requiredDate ? data.requiredDate.split('T')[0] : '';
     document.getElementById('submissionDate').value = submissionDate;
     document.getElementById('requiredDate').value = requiredDate;

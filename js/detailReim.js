@@ -325,11 +325,20 @@ function previewPDF(event) {
     // Mendapatkan file yang dipilih oleh user
     const files = event.target.files;
     if (files.length === 0) return;
-    
-    // Validasi: Maksimum 5 file yang diperbolehkan
-    if (files.length > 5) {
-        alert('Maksimum 5 file yang diperbolehkan');
-        return;
+
+    // Validasi: Hanya file PDF yang diperbolehkan
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `File "${file.name}" bukan file PDF. Hanya file PDF yang diperbolehkan.`
+            });
+            // Reset file input
+            event.target.value = '';
+            return;
+        }
     }
 
     // Panggil fungsi untuk upload file ke server
@@ -344,6 +353,19 @@ async function uploadAttachments(files) {
     if (!reimbursementId) {
         alert('ID reimbursement tidak ditemukan');
         return;
+    }
+    
+    // Validasi tambahan: Pastikan semua file adalah PDF
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `File "${file.name}" bukan file PDF. Hanya file PDF yang diperbolehkan.`
+            });
+            return;
+        }
     }
     
     try {
@@ -476,7 +498,7 @@ async function deleteDocument() {
                 window.history.back();
             });
         } else {
-            Swal.fire('Error!', data.message || 'Gagal menghapus dokumen karena status dokumen sudah bukan draft.', 'error');
+            Swal.fire('Error!', data.message || 'Gagal menghapus dokumen.', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -961,45 +983,32 @@ function updateSubmitButtonState(preparedDate) {
 
 // Fungsi untuk mengontrol apakah tabel reimbursement bisa diedit berdasarkan status
 function toggleReimTableEditability() {
-    // Ambil status dokumen saat ini
-    const status = document.getElementById('status').value;
+    // Aktifkan semua input dan tombol tanpa pembatasan status
     
-    // Hanya izinkan pengeditan jika status adalah Draft
-    const isEditable = status === 'Draft' || status === 'Revised';
-    
-    // Sembunyikan atau tampilkan tombol tambah baris
+    // Tampilkan tombol tambah baris
     const addRowButton = document.querySelector('button[onclick="addRow()"]');
     if (addRowButton) {
-        addRowButton.style.display = isEditable ? 'block' : 'none';
+        addRowButton.style.display = 'block';
     }
     
-    // Nonaktifkan tombol hapus pada baris jika tidak bisa diedit
+    // Aktifkan tombol hapus pada baris
     const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick="deleteRow(this)"]');
     deleteButtons.forEach(button => {
-        button.style.display = isEditable ? 'inline-block' : 'none';
+        button.style.display = 'inline-block';
     });
     
-    // Nonaktifkan semua input di dalam tabel reimbursement
+    // Aktifkan semua input di dalam tabel reimbursement
     const tableInputs = document.querySelectorAll('#reimbursementDetails input, #reimbursementDetails select');
     tableInputs.forEach(input => {
-        input.disabled = !isEditable;
-        
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
-        }
+        input.disabled = false;
+        input.classList.remove('bg-gray-100', 'cursor-not-allowed');
     });
     
-    // Nonaktifkan dropdown search
+    // Aktifkan dropdown search
     const searchInputs = document.querySelectorAll('#reimbursementDetails .search-input');
     searchInputs.forEach(input => {
-        input.disabled = !isEditable;
-        if (!isEditable) {
-            input.classList.add('bg-gray-100', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
-        }
+        input.disabled = false;
+        input.classList.remove('bg-gray-100', 'cursor-not-allowed');
     });
 }
 
@@ -1496,16 +1505,22 @@ function controlButtonVisibility() {
     const fileInput = document.getElementById('filePath');
     const tableRows = document.querySelectorAll('#reimbursementDetails tr');
     
-    // Jika status bukan Draft, sembunyikan tombol dan nonaktifkan field
-    if (status !== "Draft") {
-        // Hide buttons
-        addRowButton.style.display = "none";
-        deleteButton.style.display = "none";
-        updateButton.style.display = "none";
-        submitButton.style.display = "none";
+    // Check if status is not "Draft" - hide buttons and disable editing
+    if (status && status !== "Draft") {
+        // Hide action buttons
+        if (addRowButton) addRowButton.style.display = "none";
+        if (deleteButton) deleteButton.style.display = "none";
+        if (updateButton) updateButton.style.display = "none";
+        if (submitButton) submitButton.style.display = "none";
         
-        // Disable all input fields
+        // Disable input fields (except those that should remain disabled)
         inputFields.forEach(field => {
+            // Skip fields that should remain disabled
+            if (field.id === 'voucherNo' || field.id === 'status' || 
+                field.classList.contains('gl-account')) {
+                return;
+            }
+            
             field.disabled = true;
             field.classList.add('bg-gray-100', 'cursor-not-allowed');
         });
@@ -1516,20 +1531,21 @@ function controlButtonVisibility() {
             fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
         }
         
-        // Disable delete buttons in table rows
+        // Hide delete buttons in table rows
         tableRows.forEach(row => {
             const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
             if (deleteBtn) {
+                deleteBtn.style.display = "none";
                 deleteBtn.disabled = true;
                 deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
         });
     } else {
-        // Show buttons only if status is Draft
-        addRowButton.style.display = "block";
-        deleteButton.style.display = "block";
-        updateButton.style.display = "block";
-        submitButton.style.display = "block";
+        // Show all buttons for Draft status
+        if (addRowButton) addRowButton.style.display = "block";
+        if (deleteButton) deleteButton.style.display = "block";
+        if (updateButton) updateButton.style.display = "block";
+        if (submitButton) submitButton.style.display = "block";
         
         // Enable input fields (except those that should remain disabled)
         inputFields.forEach(field => {
@@ -1549,10 +1565,11 @@ function controlButtonVisibility() {
             fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
         
-        // Enable delete buttons in table rows
+        // Show delete buttons in table rows
         tableRows.forEach(row => {
             const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
             if (deleteBtn) {
+                deleteBtn.style.display = "inline-block";
                 deleteBtn.disabled = false;
                 deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
@@ -1863,10 +1880,6 @@ function displayAttachments(attachments) {
     const attachmentsList = document.getElementById('attachmentsList');
     attachmentsList.innerHTML = '';
     
-    // Dapatkan status dokumen untuk menentukan apakah tombol hapus ditampilkan
-    const status = document.getElementById('status').value;
-    console.log('Status dokumen:', status);
-    
     if (attachments && attachments.length > 0) {
         console.log('Jumlah attachment:', attachments.length);
         
@@ -1874,24 +1887,14 @@ function displayAttachments(attachments) {
             const attachmentItem = document.createElement('div');
             attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
             
-            // Tambahkan tombol hapus hanya jika status dokumen adalah Draft
-            if (status === 'Draft') {
-                console.log('Menampilkan tombol hapus untuk attachment:', attachment.fileName);
-                attachmentItem.innerHTML = `
-                    <span>${attachment.fileName}</span>
-                    <div>
-                        <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700 mr-3">View</a>
-                        <button type="button" onclick="deleteAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700">X</button>
-                    </div>
-                `;
-            } else {
-                // Jika bukan Draft, hanya tampilkan tombol View
-                console.log('Status bukan Draft, hanya menampilkan tombol View untuk:', attachment.fileName);
-                attachmentItem.innerHTML = `
-                    <span>${attachment.fileName}</span>
-                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
-                `;
-            }
+            // Tampilkan tombol View dan Delete untuk semua attachment
+            attachmentItem.innerHTML = `
+                <span>${attachment.fileName}</span>
+                <div>
+                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700 mr-3">View</a>
+                    <button type="button" onclick="deleteAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700">X</button>
+                </div>
+            `;
             
             attachmentsList.appendChild(attachmentItem);
         });
@@ -2745,78 +2748,82 @@ function populateCategoriesForNewRow(row) {
 
 // Modifikasi fungsi toggleReimTableEditability untuk mengontrol input file
 function toggleReimTableEditability() {
-    const status = document.getElementById('status').value;
+    const status = document.getElementById("status").value;
     const tableRows = document.querySelectorAll('#reimbursementDetails tr');
-    const inputs = document.querySelectorAll('#reimbursementDetails input, #requesterNameSearch, #payToSearch, #currency, #referenceDoc, #typeOfTransaction, #remarks');
+    const inputs = document.querySelectorAll('#requesterNameSearch, #payToSearch, #currency, #referenceDoc, #typeOfTransaction, #remarks');
     const fileInput = document.getElementById('filePath');
     
-    // Jika status bukan Draft, nonaktifkan semua input termasuk file input
-    if (status !== 'Draft') {
-        // Nonaktifkan input di tabel
+    // Check if status is not "Draft" - disable editing
+    if (status && status !== "Draft") {
+        // Disable input di tabel
         tableRows.forEach(row => {
-            const inputs = row.querySelectorAll('input');
+            const inputs = row.querySelectorAll('input:not(.gl-account)');
             inputs.forEach(input => {
                 input.disabled = true;
                 input.classList.add('bg-gray-100', 'cursor-not-allowed');
             });
             
-            // Nonaktifkan tombol hapus di tabel
+            // Hide tombol hapus di tabel
             const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
             if (deleteBtn) {
+                deleteBtn.style.display = "none";
                 deleteBtn.disabled = true;
                 deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
         });
         
-        // Nonaktifkan input lainnya
+        // Disable input lainnya
         inputs.forEach(field => {
             field.disabled = true;
             field.classList.add('bg-gray-100', 'cursor-not-allowed');
         });
         
-        // Nonaktifkan tombol tambah baris
+        // Hide tombol tambah baris
         const addRowBtn = document.querySelector('button[onclick="addRow()"]');
         if (addRowBtn) {
+            addRowBtn.style.display = "none";
             addRowBtn.disabled = true;
             addRowBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
         
-        // Nonaktifkan file input
+        // Disable file input
         if (fileInput) {
             fileInput.disabled = true;
             fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
         }
-        } else {
-        // Aktifkan input di tabel
+    } else {
+        // Enable input di tabel for Draft status
         tableRows.forEach(row => {
             const inputs = row.querySelectorAll('input:not(.gl-account)');
             inputs.forEach(input => {
                 input.disabled = false;
-            input.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                input.classList.remove('bg-gray-100', 'cursor-not-allowed');
             });
             
-            // Aktifkan tombol hapus di tabel
+            // Show tombol hapus di tabel
             const deleteBtn = row.querySelector('button[onclick="deleteRow(this)"]');
             if (deleteBtn) {
+                deleteBtn.style.display = "inline-block";
                 deleteBtn.disabled = false;
                 deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         });
         
-        // Aktifkan input lainnya
+        // Enable input lainnya
         inputs.forEach(field => {
             field.disabled = false;
             field.classList.remove('bg-gray-100', 'cursor-not-allowed');
         });
         
-        // Aktifkan tombol tambah baris
+        // Show tombol tambah baris
         const addRowBtn = document.querySelector('button[onclick="addRow()"]');
         if (addRowBtn) {
+            addRowBtn.style.display = "block";
             addRowBtn.disabled = false;
             addRowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
         
-        // Aktifkan file input
+        // Enable file input
         if (fileInput) {
             fileInput.disabled = false;
             fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');

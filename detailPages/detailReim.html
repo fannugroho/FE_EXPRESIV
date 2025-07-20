@@ -102,7 +102,18 @@
                     </select>
 
                     <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                    <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded">
+                    <select id="currency" class="w-full p-2 border rounded" required autocomplete="off">
+                        <option value="" disabled selected>Select Currency</option>
+                        <option value="IDR">IDR</option>
+                        <option value="USD">USD</option>
+                        <option value="SGD">SGD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="JPY">JPY</option>
+                        <option value="GBP">GBP</option>
+                        <option value="AUD">AUD</option>
+                        <option value="CAD">CAD</option>
+                        <option value="CHF">CHF</option>
+                    </select>
 
                     <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                     <div class="relative">
@@ -131,10 +142,11 @@
                         <option value="Revised">Revision</option>
                     </select>
 
-                    <!-- Input untuk upload attachment - hanya bisa menambah/hapus jika status Draft -->
+                    <!-- Input untuk upload attachment - hanya file PDF yang diperbolehkan -->
                     <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
                     <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
-                    <!-- Container untuk menampilkan daftar attachment dengan tombol View dan Delete (jika Draft) -->
+                    <p class="text-sm text-gray-600 mt-1">Hanya file PDF yang diperbolehkan</p>
+                    <!-- Container untuk menampilkan daftar attachment dengan tombol View dan Delete -->
                     <div id="attachmentsList" class="mt-2"></div>
                     
                     <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>

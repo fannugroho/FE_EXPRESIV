@@ -31,8 +31,23 @@ function loadDashboard() {
     
     // Add event listener for search type dropdown
     document.getElementById('searchType').addEventListener('change', function() {
+        const searchInput = document.getElementById('searchInput');
+        const searchType = this.value;
+        
+        // Change input type based on search type
+        if (searchType === 'date') {
+            searchInput.type = 'date';
+            searchInput.placeholder = 'Select date...';
+        } else {
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search...';
+        }
+        
+        // Clear the search input when changing search type
+        searchInput.value = '';
+        
         // Trigger search again when dropdown changes
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchTerm = searchInput.value.toLowerCase();
         handleSearch({target: {value: searchTerm}});
     });
 }
@@ -65,9 +80,9 @@ function filterReimbursements(searchTerm = '', tab = 'approved', searchType = 'p
             } else if (searchType === 'requester') {
                 searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
             } else if (searchType === 'date') {
-                // Format tanggal untuk pencarian
-                const formattedDate = formatDateYYYYMMDD(item.submissionDate).toLowerCase();
-                searchMatch = formattedDate.includes(searchTerm);
+                // Handle date search - searchTerm should be in YYYY-MM-DD format from date input
+                const formattedDate = formatDateYYYYMMDD(item.submissionDate);
+                searchMatch = formattedDate === searchTerm;
             } else if (searchType === 'status') {
                 searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
             }
@@ -513,13 +528,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dashboardUserIcon').src = userInfo.avatar;
     } else {
         // Default avatar if none is set
-        document.getElementById('dashboardUserIcon').src = "../../../../image/default-avatar.png";
+        document.getElementById('dashboardUserIcon').src = "../../../../image/profil.png";
     }
 });
 
 // Function to navigate to user profile page
 function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
+    // Function disabled - no action
+    return;
 }
 
 window.onload = loadDashboard;
@@ -767,15 +783,8 @@ document.addEventListener('DOMContentLoaded', function() {
         pollReceivedDocs();
         updateNotificationBadge();
         
-        // Event click pada bell untuk toggle notifikasi panel
-        const bell = document.getElementById('notificationBell');
-        if (bell) {
-            bell.addEventListener('click', function() {
-                toggleNotificationPanel();
-            });
-        }
-        
         // Tutup panel jika klik di luar
+        const bell = document.getElementById('notificationBell');
         document.addEventListener('click', function(event) {
             if (notificationContainer && 
                 !notificationContainer.contains(event.target) && 

@@ -14,9 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <!-- External JS -->
-    <script src="menuReimAcknow.js"></script>
-    <script src="../../../../js/auth.js"></script>
     <!-- Add the shared menu CSS for better styling -->
     <link rel="stylesheet" href="../../../../css/shared-menu.css">
     <link rel="stylesheet" href="menuReimAcknow.css">
@@ -65,13 +62,13 @@
         <div class="absolute top-4 right-4 flex items-center space-x-4">
             <!-- Notification Icon -->
             <div id="notificationBellWrapper" class="relative">
-                <button id="notificationBell" class="focus:outline-none">
+                <button id="notificationBell" class="focus:outline-none" onclick="toggleNotificationPanel()">
                     <i class="fas fa-bell text-white text-2xl"></i>
                     <span id="notificationBadge" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
                 </button>
             </div>
             <!-- User Avatar + Name -->
-            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full" style="display: none;">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
                      class="user-avatar w-9 h-9 rounded-full cursor-pointer"
                      onclick="goToProfile()">
@@ -272,6 +269,15 @@
             
             // Call function after page loads
             addScrollToLongCells();
+            
+            // Track user interaction for audio playback
+            document.addEventListener('click', function() {
+                document.hasInteracted = true;
+            });
+            
+            document.addEventListener('keydown', function() {
+                document.hasInteracted = true;
+            });
         });
     </script>
 </body>

@@ -1,4 +1,3 @@
-let uploadedFiles = [];
 let reimbursementId = '';
 
 // Add document ready event listener
@@ -58,40 +57,150 @@ document.getElementById("docType")?.addEventListener("change", function () {
 
 function previewPDF(event) {
     const files = event.target.files;
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
+    if (files.length > 5) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Too Many Files',
+            text: 'Maximum 5 PDF files are allowed.'
+        });
         return;
     }
 
-    Array.from(files).forEach(file => {
-        if (file.type === 'application/pdf') {
-            uploadedFiles.push(file);
-        } else {
-            alert('Please upload a valid PDF file');
+    // Validate all files are PDF
+    const pdfFiles = Array.from(files).filter(file => {
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `File "${file.name}" is not a PDF. Only PDF files are allowed.`
+            });
+            return false;
         }
+        return true;
     });
 
-    displayFileList();
+    if (pdfFiles.length > 0) {
+        // Upload files immediately
+        uploadAttachments(pdfFiles);
+    }
+    
+    // Clear the file input
+    event.target.value = '';
 }
 
 function displayFileList() {
     const attachmentsList = document.getElementById('attachmentsList');
     attachmentsList.innerHTML = '';
     
-    uploadedFiles.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
-        fileItem.innerHTML = `
-            <span>${file.name}</span>
-            <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">Remove</button>
-        `;
-        attachmentsList.appendChild(fileItem);
-    });
+    // First, display existing attachments from database (if any)
+    if (window.existingAttachments && window.existingAttachments.length > 0) {
+        window.existingAttachments.forEach((attachment, index) => {
+            const attachmentItem = document.createElement('div');
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
+            
+            attachmentItem.innerHTML = `
+                <span>${attachment.fileName}</span>
+                <div class="flex items-center space-x-2">
+                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
+                    <button type="button" class="delete-attachment-btn text-red-500 hover:text-red-700 font-bold text-lg" data-attachment-id="${attachment.id}" data-file-name="${attachment.fileName}">×</button>
+                </div>
+            `;
+            
+            // Add event listener to the delete button
+            const deleteBtn = attachmentItem.querySelector('.delete-attachment-btn');
+            deleteBtn.addEventListener('click', function() {
+                const attachmentId = this.getAttribute('data-attachment-id');
+                const fileName = this.getAttribute('data-file-name');
+                deleteAttachment(attachmentId, fileName);
+            });
+            
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
+    
+    // Note: New files are now uploaded immediately, so this section is simplified
+    // The uploadedFiles array will be empty since files are uploaded directly
 }
 
-function removeFile(index) {
-    uploadedFiles.splice(index, 1);
-    displayFileList();
+// Function removeFile is no longer needed since files are uploaded immediately
+
+// Function to upload attachments to server
+async function uploadAttachments(files) {
+    const reimbursementId = getReimbursementIdFromUrl();
+    if (!reimbursementId) {
+        Swal.fire('Error', 'Reimbursement ID not found', 'error');
+        return;
+    }
+    
+    // Validate that all files are PDF
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `File "${file.name}" is not a PDF. Only PDF files are allowed.`
+            });
+            return;
+        }
+    }
+    
+    try {
+        // Prepare FormData for file upload
+        const formData = new FormData();
+        
+        // Add all files to formData
+        Array.from(files).forEach(file => {
+            formData.append('files', file);
+            console.log('Adding file for upload:', file.name);
+        });
+        
+        // Show loading message
+        Swal.fire({
+            title: 'Uploading Attachments',
+            text: 'Please wait while we upload your files...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Send to server using API endpoint
+        console.log(`Uploading attachments to: ${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`);
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+            console.log('Upload attachment successful:', result);
+            
+            // Refresh data to show new attachments
+            await fetchReimbursementData();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Upload Successful',
+                text: 'Attachments have been uploaded successfully.'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Upload Failed',
+                text: result.message || 'Failed to upload attachments'
+            });
+            console.error('Upload attachment failed:', result);
+        }
+    } catch (error) {
+        console.error('Error uploading attachments:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Upload Error',
+            text: 'An error occurred while uploading files'
+        });
+    }
 }
 
 // Function to format number with US format (comma as thousands separator, period as decimal separator)
@@ -1023,33 +1132,11 @@ function populateReimbursementDetails(details) {
 }
 
 function displayAttachments(attachments) {
-    const attachmentsList = document.getElementById('attachmentsList');
-    attachmentsList.innerHTML = '';
+    // Store existing attachments in global variable for use in displayFileList
+    window.existingAttachments = attachments || [];
     
-    if (attachments && attachments.length > 0) {
-        attachments.forEach((attachment, index) => {
-            const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'flex items-center justify-between p-2 bg-gray-100 rounded mb-2';
-            
-            attachmentItem.innerHTML = `
-                <span>${attachment.fileName}</span>
-                <div class="flex items-center space-x-2">
-                    <a href="${BASE_URL}/${attachment.filePath}" target="_blank" class="text-blue-500 hover:text-blue-700">View</a>
-                    <button type="button" class="delete-attachment-btn text-red-500 hover:text-red-700 font-bold text-lg" data-attachment-id="${attachment.id}" data-file-name="${attachment.fileName}">×</button>
-                </div>
-            `;
-            
-            // Add event listener to the delete button
-            const deleteBtn = attachmentItem.querySelector('.delete-attachment-btn');
-            deleteBtn.addEventListener('click', function() {
-                const attachmentId = this.getAttribute('data-attachment-id');
-                const fileName = this.getAttribute('data-file-name');
-                deleteAttachment(attachmentId, fileName);
-            });
-            
-            attachmentsList.appendChild(attachmentItem);
-        });
-    }
+    // Use displayFileList to show both existing and new attachments
+    displayFileList();
 }
 
 // Function to delete attachment
@@ -1104,8 +1191,14 @@ async function deleteAttachment(attachmentId, fileName) {
                         'Attachment has been deleted successfully.',
                         'success'
                     ).then(() => {
-                        // Refresh the reimbursement data to update the attachments list
-                        fetchReimbursementData();
+                        // Remove the deleted attachment from window.existingAttachments
+                        if (window.existingAttachments) {
+                            window.existingAttachments = window.existingAttachments.filter(
+                                attachment => attachment.id.toString() !== attachmentId.toString()
+                            );
+                        }
+                        // Update the display
+                        displayFileList();
                     });
                 } else {
                     Swal.fire(

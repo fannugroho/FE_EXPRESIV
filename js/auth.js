@@ -51,6 +51,7 @@ function isFirstLogin() {
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
     localStorage.removeItem("userPermissions");
+    localStorage.removeItem("initialPasswordHash");
     userPermissions = [];
     
     // Redirect to login page with correct relative path

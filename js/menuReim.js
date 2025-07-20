@@ -271,6 +271,14 @@ function changePage(direction) {
 function downloadExcel() {
     const workbook = XLSX.utils.book_new();
     
+    // Get current tab name for filename
+    let statusText = 'All';
+    if (currentTab === 'draft') {
+        statusText = 'Draft';
+    } else if (currentTab === 'prepared') {
+        statusText = 'Prepared';
+    }
+    
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
     const sortedData = [...filteredReimbursements].sort((a, b) => {
         // Pertama, urutkan berdasarkan tanggal submission terbaru
@@ -300,8 +308,9 @@ function downloadExcel() {
     const worksheet = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Reimbursements');
     
-    // Generate Excel file
-    XLSX.writeFile(workbook, 'reimbursements.xlsx');
+    // Generate Excel file with tab name
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 }
 
 // Function to download PDF
@@ -309,9 +318,17 @@ function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add title
+    // Get current tab name for title and filename
+    let statusText = 'All';
+    if (currentTab === 'draft') {
+        statusText = 'Draft';
+    } else if (currentTab === 'prepared') {
+        statusText = 'Prepared';
+    }
+    
+    // Add title with current tab
     doc.setFontSize(16);
-    doc.text('Reimbursements Report', 14, 15);
+    doc.text(`Reimbursements Report - ${statusText}`, 14, 15);
     
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
     const sortedData = [...filteredReimbursements].sort((a, b) => {
@@ -346,8 +363,9 @@ function downloadPDF() {
         startY: 25
     });
     
-    // Save PDF
-    doc.save('reimbursements.pdf');
+    // Save PDF with tab name
+    const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(fileName);
 }
 
 // Function to update the status counts on the page

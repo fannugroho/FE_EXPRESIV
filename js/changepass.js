@@ -35,7 +35,8 @@ const translations = {
     passwordMismatch: "Passwords do not match",
     passwordTooShort: "Password must be at least 8 characters long",
     passwordChanged: "Password changed successfully",
-    error: "An error occurred. Please try again."
+    error: "An error occurred. Please try again.",
+    initialPasswordError: "You cannot use your initial login password. Please choose a different password."
   },
   id: {
     welcome: "Ubah Kata Sandi Anda",
@@ -46,7 +47,8 @@ const translations = {
     passwordMismatch: "Kata sandi tidak cocok",
     passwordTooShort: "Kata sandi harus minimal 8 karakter",
     passwordChanged: "Kata sandi berhasil diubah",
-    error: "Terjadi kesalahan. Silakan coba lagi."
+    error: "Terjadi kesalahan. Silakan coba lagi.",
+    initialPasswordError: "Anda tidak dapat menggunakan kata sandi login awal. Silakan pilih kata sandi yang berbeda."
   }
 };
 
@@ -61,7 +63,40 @@ function applyLanguage(lang) {
   document.getElementById("changeButton").innerText = translations[lang].changeButton;
 }
 
+// Function to hash password using SHA-256
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
+// Function to check if password matches initial password
+async function isInitialPassword(newPassword) {
+  try {
+    const initialPasswordHash = localStorage.getItem('initialPasswordHash');
+    if (!initialPasswordHash) {
+      console.log('No initial password hash found, allowing password change');
+      return false; // No initial password stored, allow the change
+    }
+    
+    const newPasswordHash = await hashPassword(newPassword);
+    const isMatch = newPasswordHash === initialPasswordHash;
+    
+    if (isMatch) {
+      console.log('New password matches initial password - blocking change');
+    } else {
+      console.log('New password is different from initial password - allowing change');
+    }
+    
+    return isMatch;
+  } catch (error) {
+    console.error('Error checking initial password:', error);
+    return false;
+  }
+}
 
 // Handle password change submission
 async function handlePasswordChange(event) {
@@ -79,6 +114,13 @@ async function handlePasswordChange(event) {
   
   if (newPassword.length < 8) {
     alert(translations[lang].passwordTooShort);
+    return;
+  }
+  
+  // Check if new password is the same as initial password
+  const isInitial = await isInitialPassword(newPassword);
+  if (isInitial) {
+    alert(translations[lang].initialPasswordError);
     return;
   }
   
@@ -128,18 +170,27 @@ async function handlePasswordChange(event) {
     const endpoint = isFirstTimeLogin 
       ? '/api/authentication/initial-password' 
       : '/api/authentication/change-password';
-
-    console.log(endpoint);
-    console.log(passwordData);
       
     const response = await makeAuthenticatedRequest(endpoint, {
       method: 'POST',
       body: JSON.stringify(passwordData)
     });
     
+    // Check if response is ok before trying to parse JSON
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
     const result = await response.json();
     
-    if (result.Status && result.Code === 200) {
+    // Check for different possible response formats
+    const isSuccess = (result.Status && result.Code === 200) || 
+                     (result.status && result.code === 200) ||
+                     (result.success === true) ||
+                     (response.ok && result.message);
+    
+    if (isSuccess) {
       // Password change successful
       alert(translations[lang].passwordChanged);
       
@@ -150,7 +201,6 @@ async function handlePasswordChange(event) {
           const user = JSON.parse(userStr);
           user.isFirstLogin = false;
           localStorage.setItem('loggedInUser', JSON.stringify(user));
-          console.log('Updated first login status to false in localStorage');
         }
       } catch (error) {
         console.error('Error updating first login status:', error);
@@ -159,16 +209,48 @@ async function handlePasswordChange(event) {
       // Remove the password change requirement
       localStorage.removeItem("requirePasswordChange");
       
-      // Redirect to dashboard
-      window.location.href = "dashboard.html";
+      // Redirect to dashboard with better path handling
+      const currentPath = window.location.pathname;
+      const pathSegments = currentPath.split('/').filter(segment => segment !== '');
+      
+      // Remove the filename if it exists
+      if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].includes('.html')) {
+        pathSegments.pop();
+      }
+      
+      // Calculate the relative path to dashboard
+      let dashboardPath = '';
+      if (pathSegments.length === 0) {
+        dashboardPath = 'pages/dashboard.html';
+      } else if (pathSegments.length === 1 && pathSegments[0] === 'pages') {
+        dashboardPath = 'dashboard.html';
+      } else {
+        const goBack = '../'.repeat(pathSegments.length);
+        dashboardPath = goBack + 'pages/dashboard.html';
+      }
+      
+      window.location.href = dashboardPath;
     } else {
       // Password change failed
-      const errorMessage = result.Message || translations[lang].error;
+      const errorMessage = result.Message || result.message || translations[lang].error;
       alert(errorMessage);
     }
   } catch (error) {
     console.error('Password change error:', error);
-    alert(translations[lang].error);
+    
+    // Provide more specific error messages
+    let errorMessage = translations[lang].error;
+    if (error.message.includes('fetch')) {
+      errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error.message.includes('401')) {
+      errorMessage = 'Session expired. Please login again.';
+    } else if (error.message.includes('404')) {
+      errorMessage = 'API endpoint not found. Please contact administrator.';
+    } else if (error.message.includes('500')) {
+      errorMessage = 'Server error. Please try again later.';
+    }
+    
+    alert(errorMessage);
   } finally {
     // Reset button state
     changeButton.disabled = false;

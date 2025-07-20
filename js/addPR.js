@@ -343,6 +343,9 @@ function setMinDateToday() {
         if (currentRequiredDate < minRequiredDate) {
             requiredDateInput.value = minRequiredFormatted;
         }
+        
+        // Update preparedDateFormatted when submission date changes
+        document.getElementById("preparedDateFormatted").value = this.value;
     });
 }
 
@@ -356,6 +359,11 @@ window.onload = function(){
     
     // Set min date untuk Issuance Date
     setMinDateToday();
+    
+    // Initialize preparedDateFormatted with current date
+    const today = new Date();
+    const formattedDate = formatDateForInput(today);
+    document.getElementById("preparedDateFormatted").value = formattedDate;
     
     // Ensure all description and UOM fields are initially empty and properly styled
     document.querySelectorAll('.item-description').forEach(input => {
@@ -863,10 +871,21 @@ async function submitDocument(isSubmit = false) {
             console.log("Required Date:", new Date(requiredDate).toISOString());
         }
         
-        const submissionDate = document.getElementById("submissionDate").value;
+        // Set submission date based on whether document is being submitted or saved
+        let submissionDate;
+        if (isSubmit) {
+            // If submitting, use current date and update preparedDateFormatted
+            const today = new Date();
+            submissionDate = formatDateForInput(today);
+            document.getElementById("preparedDateFormatted").value = submissionDate;
+            console.log("Submission Date (Submit):", submissionDate);
+        } else {
+            // If saving as draft, use the date from the input field
+            submissionDate = document.getElementById("submissionDate").value;
+            console.log("Submission Date (Draft):", submissionDate);
+        }
+        
         if (submissionDate) {
-            console.log("Submission Date:", submissionDate);
-            // Send date value directly without timezone conversion
             formData.append('SubmissionDate', submissionDate);
         }
         
@@ -942,6 +961,14 @@ async function submitDocument(isSubmit = false) {
         // Parse the successful response
         const result = await response.json();
         console.log("Submit PR result:", result);
+        
+        // Update submission date and preparedDateFormatted in UI if submitting
+        if (isSubmit) {
+            const today = new Date();
+            const formattedDate = formatDateForInput(today);
+            document.getElementById("submissionDate").value = formattedDate;
+            document.getElementById("preparedDateFormatted").value = formattedDate;
+        }
         
         // Show appropriate success message
         if (isSubmit) {

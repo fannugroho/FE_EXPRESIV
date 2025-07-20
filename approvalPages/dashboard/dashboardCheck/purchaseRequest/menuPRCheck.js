@@ -564,7 +564,8 @@ async function downloadPDF() {
 
 // Function to navigate to user profile page
 function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
+    // Function disabled - no action
+    return;
 }
 
 // ================= NOTIFICATION POLLING =================
@@ -742,10 +743,20 @@ async function pollPreparedDocs() {
         // Play sound jika ada dokumen baru
         if (newPRFound) {
             try {
-                const audio = new Audio('../../../../components/shared/tones.mp3');
-                audio.play();
+                // Only play if user has interacted with the page
+                if (document.hasInteracted) {
+                    const audio = new Audio('../../../../components/shared/tones.mp3');
+                    audio.volume = 0.5; // Set volume to 50%
+                    audio.play().then(() => {
+                        console.log('Notification sound played successfully');
+                    }).catch(e => {
+                        console.warn('Failed to play notification sound:', e);
+                    });
+                } else {
+                    console.log('User has not interacted with page yet, cannot play audio');
+                }
             } catch (e) {
-                console.warn('Gagal memutar nada dering notifikasi:', e);
+                console.warn('Failed to play notification sound:', e);
             }
         }
     } catch (e) {

@@ -230,5 +230,6 @@ function downloadPDF() {
 
 // Function to navigate to user profile page
 function goToProfile() {
-    window.location.href = "../../../../pages/profil.html";
+    // Function disabled - no action
+    return;
 }

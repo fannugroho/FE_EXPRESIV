@@ -72,7 +72,7 @@
                 </button>
             </div>
             <!-- User Avatar + Name -->
-            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full" style="display: none;">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
                      class="user-avatar w-9 h-9 rounded-full cursor-pointer"
                      onclick="goToProfile()">
@@ -237,5 +237,16 @@
     <script src="../../../../components/shared/sidebar-loader.js"></script>
     <script src="../../../../components/shared/navigation.js"></script>
     <script src="menuPRCheck.js"></script>
+    
+    <!-- Track user interaction for audio playback -->
+    <script>
+        document.addEventListener('click', function() {
+            document.hasInteracted = true;
+        });
+        
+        document.addEventListener('keydown', function() {
+            document.hasInteracted = true;
+        });
+    </script>
 </body>
 </html>
