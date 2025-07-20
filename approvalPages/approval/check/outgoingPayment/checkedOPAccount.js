@@ -8,7 +8,7 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
-let apiBaseUrl = 'https://api.example.com'; // Replace with actual API URL
+// Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
 
 // Helper function to get logged-in user ID
 function getUserId() {
@@ -480,7 +480,7 @@ function loadOutgoingPaymentDetails() {
     });
     
     // Fetch outgoing payment details from API
-    fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -678,7 +678,7 @@ function approveOP() {
             });
             
             // Send approval request to API
-            fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}/check`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/check`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -777,7 +777,7 @@ function rejectOP() {
             });
             
             // Send rejection request to API
-            fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,

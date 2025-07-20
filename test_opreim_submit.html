@@ -255,7 +255,7 @@
                 };
 
                 // Submit to API
-                const response = await fetch('https://expressiv.idsdev.site/api/staging-outgoing-payments/headers', {
+                const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json-patch+json',

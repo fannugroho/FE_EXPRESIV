@@ -1,5 +1,5 @@
 // Global variables
-let apiBaseUrl = 'https://expressiv.idsdev.site'; // API base URL
+// Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
 let outgoingPaymentData = null;
 let docId = null;
 
@@ -130,7 +130,7 @@ async function loadOutgoingPaymentDetails() {
         });
         
         // Fetch document details from API using the new staging endpoint
-        const response = await fetch(`${apiBaseUrl}/api/staging-outgoing-payments/headers/${docId}`, {
+        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ async function receiveOPReim() {
         };
         
         // Make API request to update approval status using PUT method
-        const response = await fetch(`${apiBaseUrl}/api/staging-outgoing-payments/approvals/${docId}`, {
+        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json-patch+json',
@@ -482,7 +482,7 @@ async function rejectOPReim() {
         };
         
         // Call API to reject document
-        const response = await fetch(`${apiBaseUrl}/api/op-reim/reject`, {
+        const response = await fetch(`${BASE_URL}/api/op-reim/reject`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -584,7 +584,7 @@ async function revisionOPReim() {
         };
         
         // Call API to submit revision
-        const response = await fetch(`${apiBaseUrl}/api/op-reim/revision`, {
+        const response = await fetch(`${BASE_URL}/api/op-reim/revision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

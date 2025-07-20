@@ -18,7 +18,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
             includeDetails: 'false'
         });
         
-        const response = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/headers?${params.toString()}`, {
+        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ function fetchReimbursementDocs() {
     const tableBody = document.getElementById("reimbursementDocs");
     tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">Loading data...</td></tr>';
     
-    fetch(`https://expressiv.idsdev.site/api/reimbursements?Status=received`, {
+    fetch(`${BASE_URL}/api/reimbursements?Status=received`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ async function loadDashboard() {
 
     try {
         // Fetch dashboard summary data
-        const summaryResponse = await fetch(`https://expressiv.idsdev.site/api/staging-outgoing-payments/dashboard/summary`);
+        const summaryResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/dashboard/summary`);
         const summaryData = await summaryResponse.json();
         
         // Handle different response structures

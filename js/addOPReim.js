@@ -9,7 +9,7 @@ let stagingOutgoingPaymentId = null; // Track the staging outgoing payment ID fo
 // Global variables
 let rowCounter = 1;
 let outgoingPaymentData = null;
-let apiBaseUrl = 'https://expressiv.idsdev.site'; // API base URL
+// Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
 
 // Function to check authentication
 function checkAuthentication() {
@@ -1492,7 +1492,7 @@ function loadOutgoingPaymentDetails(outgoingPaymentId) {
     });
     
     // Fetch outgoing payment details from API
-    fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1687,7 +1687,7 @@ function approveOP() {
             });
             
             // Send approval request to API
-            fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}/check`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/check`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1786,7 +1786,7 @@ function rejectOP() {
             });
             
             // Send rejection request to API
-            fetch(`${apiBaseUrl}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1927,10 +1927,9 @@ async function viewAttachment(attachment) {
             Swal.close();
             
             // Use the base URL from the API endpoint
-            const baseUrl = 'https://expressiv.idsdev.site';
             // Remove /api/files and decode %2F to /
             const decodedPath = decodeURIComponent(attachment.filePath);
-            const fileUrl = `${baseUrl}/${decodedPath}`;
+            const fileUrl = `${BASE_URL}/${decodedPath}`;
             
             // Open file in new tab
             window.open(fileUrl, '_blank');
@@ -1983,10 +1982,9 @@ async function viewAttachment(attachment) {
         // Construct the file URL using the filePath from API response
         if (targetAttachment.filePath) {
             // Use the base URL from the API endpoint
-            const baseUrl = 'https://expressiv.idsdev.site';
             // Remove /api/files and decode %2F to /
             const decodedPath = decodeURIComponent(targetAttachment.filePath);
-            const fileUrl = `${baseUrl}/${decodedPath}`;
+            const fileUrl = `${BASE_URL}/${decodedPath}`;
             
             // Open file in new tab
             window.open(fileUrl, '_blank');
@@ -3066,7 +3064,7 @@ async function makeAuthenticatedRequest(url, options = {}) {
     }
     
     // Construct full URL if it's a relative path
-    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+            const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
     
     const defaultOptions = {
         headers: {
