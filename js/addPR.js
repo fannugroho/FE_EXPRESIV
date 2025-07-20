@@ -312,8 +312,13 @@ function filterUsers(fieldId) {
     
     console.log(`filterUsers called for fieldId: ${fieldId}, searchText: "${searchText}"`);
     
-    // Clear dropdown
-    dropdown.innerHTML = '';
+    // Clear dropdown - add null check before setting innerHTML
+    if (dropdown) {
+        dropdown.innerHTML = '';
+    } else {
+        console.error(`Dropdown is null for fieldId: ${fieldId}`);
+        return;
+    }
     
     let filteredUsers = [];
     
@@ -358,9 +363,13 @@ function filterUsers(fieldId) {
                         }
                     }
                     
-                    dropdown.classList.add('hidden');
+                    if (dropdown) {
+                        dropdown.classList.add('hidden');
+                    }
                 };
-                dropdown.appendChild(option);
+                if (dropdown) {
+                    dropdown.appendChild(option);
+                }
             });
         } catch (error) {
             console.error("Error parsing users data:", error);
@@ -372,12 +381,18 @@ function filterUsers(fieldId) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
         noResults.innerText = 'Name Not Found';
-        dropdown.appendChild(noResults);
+        if (dropdown) {
+            dropdown.appendChild(noResults);
+        }
     }
     
     // Show dropdown
-    dropdown.classList.remove('hidden');
-    console.log(`Dropdown shown for ${fieldId} with ${filteredUsers.length} results`);
+    if (dropdown) {
+        dropdown.classList.remove('hidden');
+        console.log(`Dropdown shown for ${fieldId} with ${filteredUsers.length} results`);
+    } else {
+        console.error(`Dropdown is null when trying to show for fieldId: ${fieldId}`);
+    }
 }
 
 // Helper function to format date as YYYY-MM-DD without timezone issues
@@ -433,10 +448,10 @@ function setMinDateToday() {
 }
 
 // Setup event listener untuk dropdown approval
-window.onload = function(){
+window.onload = async function(){
     // Kode onload yang sudah ada
     fetchDepartments();
-    fetchUsers();
+    await fetchUsers(); // Wait for users to be fetched and dropdowns to be populated
     fetchItemOptions(); // This will now setup searchable dropdowns
     fetchClassifications();
     
@@ -556,11 +571,11 @@ async function fetchUsers() {
         }
         const data = await response.json();
         console.log("User data:", data);
-        populateUserSelects(data.data);
+        await populateUserSelects(data.data);
     } catch (error) {
         console.error('Error fetching users:', error);
         // Jika gagal fetch users, populate dengan array kosong
-        populateUserSelects([]);
+        await populateUserSelects([]);
         // Tampilkan pesan error kepada pengguna
         console.warn('Failed to load users from API. Please check your connection and try again.');
     }
@@ -713,7 +728,7 @@ function populateDepartmentSelect(departments) {
     }
 }
 
-function populateUserSelects(users) {
+async function populateUserSelects(users) {
     // Jika tidak ada data users dari API, gunakan array kosong
     if (!users || users.length === 0) {
         users = [];
@@ -765,7 +780,7 @@ function populateUserSelects(users) {
     // For PR documents, always use "NRM" as transaction type
     // Populate superior employees immediately
     console.log('Starting to populate superior employees for PR with NRM transaction type...');
-    populateAllSuperiorEmployeeDropdowns("NRM");
+    await populateAllSuperiorEmployeeDropdowns("NRM");
 }
 
 // Legacy function kept for backward compatibility (no longer used)
