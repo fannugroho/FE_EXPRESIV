@@ -1,6 +1,7 @@
 let uploadedFiles = [];
 let existingAttachments = []; // Track existing attachments from API
 let attachmentsToKeep = []; // Track which existing attachments to keep
+let fileObjectUrls = new Map(); // Track object URLs for uploaded files
 
 let prId; // Declare global variable
 let prType; // Declare global variable
@@ -509,6 +510,17 @@ async function updatePR(isSubmit = false) {
         })
         .then(response => {
             if (response.ok) {
+                // Clean up object URLs after successful submission
+                uploadedFiles.forEach(file => {
+                    if (file && file instanceof File) {
+                        const objectUrl = fileObjectUrls.get(file);
+                        if (objectUrl) {
+                            URL.revokeObjectURL(objectUrl);
+                            fileObjectUrls.delete(file);
+                        }
+                    }
+                });
+                
                 Swal.fire({
                     title: 'Success!',
                     text: `PR has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
@@ -686,18 +698,6 @@ function toggleEditableFields(isEditable) {
 // Function to handle file upload (similar to detailPR.js)
 function previewPDF(event) {
     const files = event.target.files;
-    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
-    
-    if (files.length + totalExistingFiles > 5) {
-        Swal.fire({
-            title: 'File Limit Exceeded!',
-            text: 'Maximum 5 PDF files are allowed.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
-        });
-        event.target.value = '';
-        return;
-    }
     
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
@@ -753,6 +753,11 @@ function updateAttachmentsDisplay() {
     uploadedFiles.forEach((file, index) => {
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        
+        // Create object URL for the file to enable viewing
+        const fileUrl = URL.createObjectURL(file);
+        fileObjectUrls.set(file, fileUrl); // Store the object URL
+        
         attachmentItem.innerHTML = `
             <div class="flex items-center">
                 <span class="text-green-600 mr-2">📄</span>
@@ -760,6 +765,9 @@ function updateAttachmentsDisplay() {
                 <span class="text-xs text-green-600 ml-2">(new)</span>
             </div>
             <div class="flex items-center gap-2">
+                <a href="${fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </a>
                 ${isEditable ? 
                 `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove
@@ -777,6 +785,15 @@ function updateAttachmentsDisplay() {
 
 // Function to remove a new uploaded file
 function removeUploadedFile(index) {
+    // Revoke the object URL to prevent memory leaks
+    const file = uploadedFiles[index];
+    if (file) {
+        const objectUrl = fileObjectUrls.get(file);
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            fileObjectUrls.delete(file);
+        }
+    }
     uploadedFiles.splice(index, 1);
     updateAttachmentsDisplay();
 }
@@ -1565,9 +1582,7 @@ function displayAttachments(attachments) {
             
             attachmentItem.innerHTML = `
                 <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
-                    </svg>
+                    <span class="text-blue-600 mr-2">📄</span>
                     <span class="text-sm text-gray-700">${attachment.fileName}</span>
                 </div>
                 <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">
@@ -1616,6 +1631,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (dropdown && input) {
                 if (!input.contains(event.target) && !dropdown.contains(event.target)) {
                     dropdown.classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Clean up object URLs when page is unloaded
+    window.addEventListener('beforeunload', function() {
+        uploadedFiles.forEach(file => {
+            if (file && file instanceof File) {
+                const objectUrl = fileObjectUrls.get(file);
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                    fileObjectUrls.delete(file);
                 }
             }
         });

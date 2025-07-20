@@ -156,6 +156,47 @@
         td:has(textarea) {
             vertical-align: top !important;
         }
+        
+        /* Attachment section styling */
+        .attachment-item {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .attachment-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .attachment-buttons {
+            opacity: 0.8;
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .attachment-item:hover .attachment-buttons {
+            opacity: 1;
+        }
+        
+        /* File type indicator */
+        .file-type-indicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .file-type-pdf {
+            background-color: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .file-type-new {
+            background-color: #f0fdf4;
+            color: #16a34a;
+        }
     </style>
 </head>
 

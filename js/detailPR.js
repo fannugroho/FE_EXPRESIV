@@ -1443,6 +1443,68 @@ function displayFileList() {
     // You can implement a more sophisticated file list display here if needed
 }
 
+// Function to view a newly uploaded file
+function viewUploadedFile(index) {
+    if (index >= 0 && index < uploadedFiles.length) {
+        const file = uploadedFiles[index];
+        
+        // Create a blob URL for the file
+        const blobUrl = URL.createObjectURL(file);
+        
+        // Open the file in a new tab/window
+        const newWindow = window.open(blobUrl, '_blank');
+        
+        // Clean up the blob URL after a delay to ensure the window has loaded
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 1000);
+        
+        // If the window couldn't be opened (e.g., popup blocked), show a fallback
+        if (!newWindow) {
+            Swal.fire({
+                title: 'File Viewer',
+                html: `
+                    <div class="text-left">
+                        <p><strong>File Name:</strong> ${file.name}</p>
+                        <p><strong>File Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                        <p><strong>File Type:</strong> ${file.type}</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'OK',
+                showCancelButton: true,
+                cancelButtonText: 'Download',
+                showDenyButton: true,
+                denyButtonText: 'Try Again'
+            }).then((result) => {
+                if (result.isDenied) {
+                    // Try opening again
+                    window.open(blobUrl, '_blank');
+                } else if (result.isDismissed) {
+                    // Download the file
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = blobUrl;
+                    downloadLink.download = file.name;
+                    downloadLink.click();
+                }
+                // Clean up the blob URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000);
+            });
+        }
+    } else {
+        Swal.fire({
+            title: 'Error',
+            text: 'File not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+
+
 // Function to remove a new uploaded file
 function removeUploadedFile(index) {
     uploadedFiles.splice(index, 1);
@@ -1469,14 +1531,16 @@ function updateAttachmentsDisplay() {
     const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
     existingToKeep.forEach(attachment => {
         const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+        attachmentItem.className = 'attachment-item flex items-center justify-between p-3 bg-white border rounded mb-2 hover:bg-gray-50';
         attachmentItem.innerHTML = `
             <div class="flex items-center">
-                <span class="text-blue-600 mr-2">📄</span>
-                <span class="text-sm font-medium">${attachment.fileName}</span>
-                <span class="text-xs text-gray-500 ml-2">(existing)</span>
+                <span class="file-type-indicator file-type-pdf mr-3">PDF</span>
+                <div>
+                    <span class="text-sm font-medium text-gray-900">${attachment.fileName}</span>
+                    <span class="text-xs text-gray-500 ml-2">(existing)</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="attachment-buttons flex items-center gap-2">
                 <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
                     View
                 </a>
@@ -1492,14 +1556,19 @@ function updateAttachmentsDisplay() {
     // Display new uploaded files
     uploadedFiles.forEach((file, index) => {
         const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        attachmentItem.className = 'attachment-item flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded mb-2';
         attachmentItem.innerHTML = `
             <div class="flex items-center">
-                <span class="text-green-600 mr-2">📄</span>
-                <span class="text-sm font-medium">${file.name}</span>
-                <span class="text-xs text-green-600 ml-2">(new)</span>
+                <span class="file-type-indicator file-type-new mr-3">NEW</span>
+                <div>
+                    <span class="text-sm font-medium text-gray-900">${file.name}</span>
+                    <span class="text-xs text-green-600 ml-2">(new)</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="attachment-buttons flex items-center gap-2">
+                <button onclick="viewUploadedFile(${index})" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </button>
                 ${window.currentValues && window.currentValues.status && window.currentValues.status.toLowerCase() === 'draft' ? 
                 `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove
@@ -1624,25 +1693,27 @@ function displayAttachments(attachments) {
             
             // Add download/view button
             const actionButtons = document.createElement('div');
-            actionButtons.className = 'flex space-x-2';
+            actionButtons.className = 'flex items-center gap-2';
             
             // View button
             const viewButton = document.createElement('button');
             viewButton.type = 'button';
-            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm';
-            viewButton.innerHTML = '👁️'; // Eye icon
+            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition';
+            viewButton.textContent = 'View';
             viewButton.title = 'View attachment';
             viewButton.onclick = function() {
                 window.open(attachment.filePath, '_blank');
             };
             actionButtons.appendChild(viewButton);
             
+
+            
             // Delete button (only shown for Draft status)
             if (window.currentValues?.status === 'Draft') {
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
-                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm';
-                deleteButton.innerHTML = '🗑️'; // Trash icon
+                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition';
+                deleteButton.textContent = 'Remove';
                 deleteButton.title = 'Remove attachment';
                 deleteButton.onclick = function() {
                     removeExistingAttachment(attachment.id);
@@ -1659,14 +1730,12 @@ function displayAttachments(attachments) {
 // Function to display revised remarks from API
 function displayRevisedRemarks(data) {
     const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCountElement = document.getElementById('revisedCount');
     
     // Check if there are any revisions
     const hasRevisions = data.revisions && data.revisions.length > 0;
     
     if (hasRevisions) {
         revisedRemarksSection.style.display = 'block';
-        revisedCountElement.textContent = data.revisions.length || '0';
         
         // Clear existing revision content from the revisedRemarksSection
         revisedRemarksSection.innerHTML = `
@@ -1674,7 +1743,7 @@ function displayRevisedRemarks(data) {
             <div class="bg-gray-50 p-4 rounded-lg border">
                 <div class="mb-2">
                     <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
-                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
                 </div>
                 <!-- Dynamic revision content will be inserted here by JavaScript -->
             </div>

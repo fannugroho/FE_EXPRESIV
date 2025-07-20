@@ -1231,6 +1231,7 @@ async function fetchUsers() {
         populateDropdown("checkedBySelect", users, false);
         populateDropdown("approvedBySelect", users, false);
         populateDropdown("receivedBySelect", users, false);
+        populateDropdown("payToSelect", users, false); // Add payToSelect dropdown population
         
         // Auto-fill preparedBy with current logged-in user
         autofillPreparedByWithCurrentUser(users);
@@ -1257,24 +1258,32 @@ function filterUsers(fieldId) {
     // Handle payToSelect dropdown separately
     if (fieldId === 'payToSelect') {
         try {
-            const filtered = businessPartners.filter(bp => 
-                (bp.name && bp.name.toLowerCase().includes(searchText)) || 
-                (bp.code && bp.code.toLowerCase().includes(searchText))
+            // Use users data instead of business partners (same as addReim.js)
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            const filtered = users.filter(user => 
+                user && user.fullName && 
+                (user.fullName.toLowerCase().includes(searchText) || 
+                user.employeeId && user.employeeId.toLowerCase().includes(searchText) ||
+                user.kansaiEmployeeId && user.kansaiEmployeeId.toLowerCase().includes(searchText))
             );
             
             // Display search results
-            filtered.forEach(bp => {
+            filtered.forEach(user => {
+                if (!user || !user.fullName) return; // Skip users without names
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
-                option.innerText = `${bp.code} - ${bp.name}`;
+                const displayText = user.kansaiEmployeeId ? 
+                    `${user.kansaiEmployeeId} - ${user.fullName}` : 
+                    `${user.employeeId || ''} - ${user.fullName}`;
+                option.innerText = displayText;
                 option.onclick = function() {
-                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    searchInput.value = displayText;
                     const selectElement = document.getElementById(fieldId);
                     if (selectElement) {
-                        // Find or create option with this business partner
+                        // Find or create option with this user
                         let optionExists = false;
                         for (let i = 0; i < selectElement.options.length; i++) {
-                            if (selectElement.options[i].value === bp.id) {
+                            if (selectElement.options[i].value === user.id) {
                                 selectElement.selectedIndex = i;
                                 optionExists = true;
                                 break;
@@ -1283,10 +1292,10 @@ function filterUsers(fieldId) {
                         
                         if (!optionExists && selectElement.options.length > 0) {
                             const newOption = document.createElement('option');
-                            newOption.value = bp.id;
-                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
                             selectElement.appendChild(newOption);
-                            selectElement.value = bp.id;
+                            selectElement.value = user.id;
                         }
                     }
                     
@@ -1299,7 +1308,7 @@ function filterUsers(fieldId) {
             if (filtered.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
-                noResults.innerText = 'No Business Partner Found';
+                noResults.innerText = 'No User Found';
                 dropdown.appendChild(noResults);
             }
             
@@ -1307,7 +1316,7 @@ function filterUsers(fieldId) {
             dropdown.classList.remove('hidden');
             return;
         } catch (error) {
-            console.error("Error filtering business partners:", error);
+            console.error("Error filtering users:", error);
         }
     }
     
@@ -1375,23 +1384,27 @@ function filterUsers(fieldId) {
                     
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
-                        // Auto-fill payTo with the same user (find in business partners)
+                        // Auto-fill payTo with the same user (same as addReim.js)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
                         
                         if (payToSearch && payToSelect) {
-                            // Find matching business partner by name
-                            const matchingBP = businessPartners.find(bp => 
-                                bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
+                            // Find matching user by name (same user for payTo)
+                            const users = JSON.parse(searchInput.dataset.users || '[]');
+                            const matchingUser = users.find(u => 
+                                u.name && user.name && u.name.toLowerCase() === user.name.toLowerCase()
                             );
                             
-                            if (matchingBP) {
-                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                            if (matchingUser) {
+                                const displayText = matchingUser.kansaiEmployeeId ? 
+                                    `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName}` : 
+                                    `${matchingUser.employeeId || ''} - ${matchingUser.fullName}`;
+                                payToSearch.value = displayText;
                                 
-                                // Set the business partner ID as the value in the select element
+                                // Set the user ID as the value in the select element
                                 let optionExists = false;
                                 for (let i = 0; i < payToSelect.options.length; i++) {
-                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                    if (payToSelect.options[i].value === matchingUser.id.toString()) {
                                         payToSelect.selectedIndex = i;
                                         optionExists = true;
                                         break;
@@ -1400,10 +1413,10 @@ function filterUsers(fieldId) {
                                 
                                 if (!optionExists && payToSelect.options.length > 0) {
                                     const newOption = document.createElement('option');
-                                    newOption.value = matchingBP.id;
-                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    newOption.value = matchingUser.id;
+                                    newOption.textContent = displayText;
                                     payToSelect.appendChild(newOption);
-                                    payToSelect.value = matchingBP.id;
+                                    payToSelect.value = matchingUser.id;
                                 }
                             }
                         }
@@ -1474,20 +1487,33 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         "acknowledgeBySelect", 
         "checkedBySelect", 
         "approvedBySelect",
-        "receivedBySelect"
+        "receivedBySelect",
+        "payToSelect" // Add payToSelect to searchable fields
     ];
     
     if (searchableFields.includes(dropdownId)) {
         const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
         if (searchInput) {
             // Store users data for searching
-            searchInput.dataset.users = JSON.stringify(users.map(user => {
-                let displayName = user.fullName || 'Unknown User';
-                return {
+            if (dropdownId === "payToSelect") {
+                // For payToSelect, store full user data including kansaiEmployeeId and employeeId
+                searchInput.dataset.users = JSON.stringify(users.map(user => ({
                     id: user.id,
-                    name: displayName
-                };
-            }));
+                    name: user.fullName || 'Unknown User',
+                    fullName: user.fullName || 'Unknown User',
+                    employeeId: user.employeeId,
+                    kansaiEmployeeId: user.kansaiEmployeeId
+                })));
+            } else {
+                // For other fields, store simplified user data
+                searchInput.dataset.users = JSON.stringify(users.map(user => {
+                    let displayName = user.fullName || 'Unknown User';
+                    return {
+                        id: user.id,
+                        name: displayName
+                    };
+                }));
+            }
         }
     }
 }
@@ -1614,19 +1640,21 @@ function populateFormData(data) {
     setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
     
-    // Update for searchable payTo with business partners
+    // Update for searchable payTo with users (same as addReim.js)
     const payToSearch = document.getElementById('payToSearch');
     const payToSelect = document.getElementById('payToSelect');
-    if (payToSearch && data.payTo && businessPartners && businessPartners.length > 0) {
-        // Find the corresponding business partner for the payTo ID
-        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
+    if (payToSearch && data.payTo && window.allUsers && window.allUsers.length > 0) {
+        // Find the corresponding user for the payTo ID (same as addReim.js)
+        const matchingUser = window.allUsers.find(user => user.id.toString() === data.payTo.toString());
         
-        if (matchingBP) {
-            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+        if (matchingUser) {
+            const displayText = matchingUser.kansaiEmployeeId ? 
+                `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName}` : 
+                `${matchingUser.employeeId || ''} - ${matchingUser.fullName}`;
             payToSearch.value = displayText;
             
             if (payToSelect) {
-                // Find or create option with this business partner
+                // Find or create option with this user
                 let optionExists = false;
                 for (let i = 0; i < payToSelect.options.length; i++) {
                     if (payToSelect.options[i].value === data.payTo.toString()) {
@@ -1638,15 +1666,15 @@ function populateFormData(data) {
                 
                 if (!optionExists) {
                     const newOption = document.createElement('option');
-                    newOption.value = matchingBP.id;
+                    newOption.value = matchingUser.id;
                     newOption.textContent = displayText;
                     payToSelect.appendChild(newOption);
-                    payToSelect.value = matchingBP.id;
+                    payToSelect.value = matchingUser.id;
                 }
             }
         }
     } else if (payToSearch && data.payTo) {
-        // Fallback: just set the ID value if business partners not loaded yet
+        // Fallback: just set the ID value if users not loaded yet
         payToSearch.value = data.payTo;
         if (payToSelect) {
             payToSelect.value = data.payTo;
