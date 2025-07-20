@@ -2,7 +2,8 @@
 
 // API Configuration
 if (typeof BASE_URL === 'undefined') {
-    var BASE_URL = "https://expressiv.idsdev.site";
+    var BASE_URL = "https://expressiv-be-sb.idsdev.site";
+    // var BASE_URL = "https://expressiv.idsdev.site";
     // var BASE_URL = "http://localhost:5246"
 }
 

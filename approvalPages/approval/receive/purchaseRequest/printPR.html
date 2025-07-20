@@ -209,20 +209,12 @@
                         <div class="form-field">QF-PR-021</div>
                 </div>
                 <div class="form-row">
-                    <div class="form-label">PR Number:</div>
-                    <div class="form-field" id="prForm"></div>
-                </div>
-                <div class="form-row">
                     <div class="form-label">Rev:</div>
                     <div class="form-field" id="rev"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-label">Effective Date:</div>
                     <div class="form-field" id="effectiveDate"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-label">Page:</div>
-                    <div class="form-field" id="page"></div>
                 </div>
             </div>
         </div>
@@ -347,10 +339,8 @@
             document.getElementById('remarks').textContent = urlParams.get('remarks') || '';
             
             // Set form metadata
-            document.getElementById('prForm').textContent = 'KPI-F-PROC-01';
             document.getElementById('rev').textContent = '01';
             document.getElementById('effectiveDate').textContent = '26 Maret 2025';
-            document.getElementById('page').textContent = '1 of 1';
             
             // Set approval information
             
