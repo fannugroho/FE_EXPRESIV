@@ -118,6 +118,9 @@ function populateCADetails(data) {
         console.log('No attachments found in data');
     }
     
+    // Display revised remarks if available
+    displayRevisedRemarks(data);
+    
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
 }
@@ -753,4 +756,85 @@ function getUserInfo() {
     }
     
     return { name: userName, role: userRole };
+} 
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revisions
+    const hasRevisions = data.revisions && data.revisions.length > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        revisedCountElement.textContent = data.revisions.length || '0';
+        
+        // Clear existing revision content from the revisedRemarksSection
+        revisedRemarksSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                </div>
+                <!-- Dynamic revision content will be inserted here by JavaScript -->
+            </div>
+        `;
+        
+        // Group revisions by stage
+        const revisionsByStage = {};
+        data.revisions.forEach(revision => {
+            // Map enum values to display names
+            let stageName = 'Unknown';
+            if (revision.stage === 'Checked' || revision.stage === 1) {
+                stageName = 'Checked';
+            } else if (revision.stage === 'Acknowledged' || revision.stage === 2) {
+                stageName = 'Acknowledged';
+            } else if (revision.stage === 'Approved' || revision.stage === 3) {
+                stageName = 'Approved';
+            } else if (revision.stage === 'Received' || revision.stage === 4) {
+                stageName = 'Received';
+            }
+            
+            if (!revisionsByStage[stageName]) {
+                revisionsByStage[stageName] = [];
+            }
+            revisionsByStage[stageName].push(revision);
+        });
+        
+        // Display revisions grouped by stage
+        Object.keys(revisionsByStage).forEach(stage => {
+            const stageRevisions = revisionsByStage[stage];
+            
+            // Create stage header
+            const stageHeader = document.createElement('div');
+            stageHeader.className = 'mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded';
+            stageHeader.innerHTML = `
+                <h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${stageRevisions.length})</h4>
+            `;
+            revisedRemarksSection.appendChild(stageHeader);
+            
+            // Display each revision in this stage
+            stageRevisions.forEach((revision, index) => {
+                const revisionContainer = document.createElement('div');
+                revisionContainer.className = 'mb-3 ml-4';
+                revisionContainer.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700">Revision ${index + 1}:</label>
+                            <div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${revision.remarks || ''}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Date: ${revision.revisionDate ? new Date(revision.revisionDate).toLocaleDateString() : 'N/A'}
+                                ${revision.revisedByName ? ` | By: ${revision.revisedByName}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                revisedRemarksSection.appendChild(revisionContainer);
+            });
+        });
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
 } 

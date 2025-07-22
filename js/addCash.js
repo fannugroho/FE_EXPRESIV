@@ -650,6 +650,120 @@ function validateFormFields(isSubmit) {
     return { isValid: true };
 }
 
+// Helper function to validate a single row (returns {isValid, message})
+function validateRow(row, rowIndex) {
+    const category = row.querySelector('.category-input')?.value.trim();
+    const accountName = row.querySelector('.account-name')?.value.trim();
+    const coa = row.querySelector('.coa')?.value.trim();
+    const amount = row.querySelector('.total')?.value.trim();
+    // Details/description is optional
+
+    let missing = [];
+    if (!category) missing.push('Category');
+    if (!accountName) missing.push('Account Name');
+    if (!coa) missing.push('COA');
+    if (!amount) missing.push('Amount');
+
+    if (missing.length > 0) {
+        return {
+            isValid: false,
+            message: `Row ${rowIndex + 1}: Please fill in ${missing.join(', ')}.`
+        };
+    }
+    return { isValid: true };
+}
+
+// Validate all rows before submit or addRow
+function validateAllRows() {
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    for (let i = 0; i < tableRows.length; i++) {
+        const row = tableRows[i];
+        // Only validate rows that have any input (ignore completely empty rows)
+        const hasAnyInput = Array.from(row.querySelectorAll('input, select')).some(input => input.value.trim() !== '');
+        if (hasAnyInput) {
+            const result = validateRow(row, i);
+            if (!result.isValid) return result;
+        }
+    }
+    return { isValid: true };
+}
+
+// Patch addRow to validate before adding
+if (typeof window._addRowPatched === 'undefined') {
+    window._addRowPatched = true;
+    const originalAddRow = addRow;
+    addRow = async function() {
+      const validation = validateAllRows();
+      if (!validation.isValid) {
+        await Swal.fire({
+          title: 'Validation Error',
+          text: validation.message,
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      await originalAddRow();
+    };
+  }
+
+// Helper function to validate header fields (returns {isValid, message})
+function validateHeaderFields() {
+    // List of required header field IDs and their labels
+    const requiredFields = [
+        { id: 'requesterSearch', label: 'Requester' },
+        { id: 'RequesterId', label: 'Requester (hidden)' }, // hidden select, must have value
+        { id: 'department', label: 'Department' },
+        { id: 'TransactionType', label: 'Transaction Type' },
+        { id: 'Purpose', label: 'Purpose' },
+        { id: 'SubmissionDate', label: 'Submission Date' },
+        { id: 'EmployeeNIK', label: 'Employee NIK' },
+        { id: 'EmployeeName', label: 'Employee Name' }
+    ];
+    let missing = [];
+    for (const field of requiredFields) {
+        const el = document.getElementById(field.id);
+        if (!el || !el.value || el.value.trim() === '') {
+            missing.push(field.label);
+        }
+    }
+    if (missing.length > 0) {
+        return {
+            isValid: false,
+            message: `Please fill in the following header fields: ${missing.join(', ')}`
+        };
+    }
+    return { isValid: true };
+}
+
+// Patch saveDocument to validate header fields and rows before submit
+const originalSaveDocument = saveDocument;
+saveDocument = async function(isSubmit = false) {
+    // Validate header fields first
+    const headerValidation = validateHeaderFields();
+    if (!headerValidation.isValid) {
+        await Swal.fire({
+            title: 'Validation Error',
+            text: headerValidation.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    // Then validate rows
+    const validation = validateAllRows();
+    if (!validation.isValid) {
+        await Swal.fire({
+            title: 'Validation Error',
+            text: validation.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    await originalSaveDocument(isSubmit);
+};
+
 // Function to submit document (calls saveDocument with isSubmit=true)
 async function submitDocument() {
     await saveDocument(true);
@@ -659,16 +773,6 @@ function goToMenuCash() {
     window.location.href = "../pages/MenuCash.html";
 }
 
-// document.getElementById("docType").addEventListener("change", function() {
-// const selectedValue = this.value;
-// const cashTable = document.getElementById("cashTable");
-
-// if (selectedValue === "Pilih") {
-// cashTable.style.display = "none";
-// } else {
-// cashTable.style.display = "table";
-// }
-// });
 
 function previewPDF(event) {
 const files = event.target.files;
@@ -908,7 +1012,6 @@ function fetchBusinessPartners() {
 function setupBusinessPartnerSearch(businessPartners) {
     // Store business partners globally for search functionality - only store active employee business partners
     window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
-        id: bp.id,
         code: bp.code,
         name: bp.name
     }));
@@ -941,7 +1044,7 @@ function setupBusinessPartnerSearch(businessPartners) {
                 option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
                 option.onclick = function() {
                     paidToSearchInput.value = `${partner.code} - ${partner.name}`;
-                    paidToHiddenInput.value = partner.id;
+                    paidToHiddenInput.value = partner.code;
                     paidToDropdown.classList.add('hidden');
                 };
                 paidToDropdown.appendChild(option);
@@ -1063,10 +1166,7 @@ function populateUserSelects(users) {
         // Function to populate dropdown with filtered requesters
         function populateRequesterDropdown(filter = '') {
             requesterDropdown.innerHTML = '';
-            
-            const filteredRequesters = window.requesters.filter(r => 
-                r.fullName.toLowerCase().includes(filter)
-            );
+            const filteredRequesters = window.requesters.filter(r => r.fullName && r.fullName.toLowerCase().includes(filter));
             
             filteredRequesters.forEach(requester => {
                 const option = document.createElement('div');
