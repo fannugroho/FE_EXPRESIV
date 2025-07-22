@@ -35,16 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Set up revision field handling
-    document.addEventListener('input', function(event) {
-        if (event.target.tagName === 'TEXTAREA' && event.target.closest('#revisionContainer')) {
-            checkRevisionButton();
-        }
-    });
-    
-    // Initialize button states
-    checkRevisionButton();
-    updateAddButtonState();
+            // Initialize button states
+        // Note: Revision functionality has been removed
 }
 
 // Load outgoing payment reimbursement details from API
@@ -177,10 +169,12 @@ function checkUserPermissions(data) {
     console.log('Is assigned checker:', isAssignedChecker);
     console.log('Is above checker:', isAboveChecker);
     
+    // Hide buttons based on document status
+    hideButtonsBasedOnStatus(data);
+    
     // Update button states based on user permissions
     const approveButton = document.getElementById('approveButton');
     const rejectButton = document.getElementById('rejectButton');
-    const revisionButton = document.getElementById('revisionButton');
     
     if (currentStatus === 'Prepared' && isAssignedChecker) {
         // User is the assigned checker and document is ready for checking
@@ -188,8 +182,6 @@ function checkUserPermissions(data) {
         approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = false;
         rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        revisionButton.disabled = false;
-        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
         
         console.log('Buttons enabled for checking');
         
@@ -220,8 +212,6 @@ function checkUserPermissions(data) {
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = true;
         rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-        revisionButton.disabled = true;
-        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
         
     } else if (currentStatus !== 'Prepared') {
         // Document has already been checked or is in a different status
@@ -241,8 +231,50 @@ function checkUserPermissions(data) {
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = true;
         rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-        revisionButton.disabled = true;
-        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Hide buttons based on document status
+function hideButtonsBasedOnStatus(data) {
+    const approveButton = document.getElementById('approveButton');
+    const rejectButton = document.getElementById('rejectButton');
+    
+    // Determine current status based on approval data
+    let currentStatus = 'Prepared';
+    if (data.approval) {
+        if (data.approval.checkedDate) {
+            currentStatus = 'Checked';
+        }
+        if (data.approval.acknowledgedDate) {
+            currentStatus = 'Acknowledged';
+        }
+        if (data.approval.approvedDate) {
+            currentStatus = 'Approved';
+        }
+        if (data.approval.receivedDate) {
+            currentStatus = 'Received';
+        }
+        if (data.approval.rejectedDate) {
+            currentStatus = 'Rejected';
+        }
+    }
+    
+    // Hide both buttons if status is not 'Prepared'
+    if (currentStatus !== 'Prepared') {
+        if (approveButton) {
+            approveButton.style.display = 'none';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'none';
+        }
+    } else {
+        // Show buttons if status is 'Prepared'
+        if (approveButton) {
+            approveButton.style.display = 'inline-block';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'inline-block';
+        }
     }
 }
 
@@ -271,52 +303,122 @@ function getStatusMessage(status) {
     }
 }
 
-// Populate form fields with data from API
+// Populate form fields with data
 function populateFormFields(data) {
-    console.log('Populating form fields with data:', data);
-    console.log('Attachments data:', data.attachments);
-    // Populate header fields
+    // Helper function to safely set value
     const setValue = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
+    
+    // Map header fields
     setValue('CounterRef', data.counterRef || '');
-    setValue('RequesterName', getUserNameById(data.requesterId) || 'Unknown Requester');
+    setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
     setValue('Address', data.address || '');
     setValue('DocNum', data.docNum || '');
-    setValue('Comments', data.comments || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
-    setValue('TypeOfTransaction', data.type || 'REIMBURSEMENT');
     setValue('TrsfrAcct', data.trsfrAcct || '');
-    setValue('TrsfrSum', formatCurrency(data.trsfrSum) || '0');
-    // Set dates if available
-    if (data.docDate) setValue('DocDate', new Date(data.docDate).toISOString().split('T')[0]);
-    if (data.docDueDate) setValue('DocDueDate', new Date(data.docDueDate).toISOString().split('T')[0]);
-    if (data.taxDate) setValue('TaxDate', new Date(data.taxDate).toISOString().split('T')[0]);
-    if (data.trsfrDate) setValue('TrsfrDate', new Date(data.trsfrDate).toISOString().split('T')[0]);
+    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
+    
+    // Map date fields
+    if (data.docDate) {
+        const docDate = new Date(data.docDate);
+        setValue('DocDate', docDate.toISOString().split('T')[0]);
+    }
+    if (data.docDueDate) {
+        const docDueDate = new Date(data.docDueDate);
+        setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
+    }
+    if (data.taxDate) {
+        const taxDate = new Date(data.taxDate);
+        setValue('TaxDate', taxDate.toISOString().split('T')[0]);
+    }
+    if (data.trsfrDate) {
+        const trsfrDate = new Date(data.trsfrDate);
+        setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
+    }
+    
+    // Calculate totals from lines
+    let totalAmountDue = 0;
+    if (data.lines && data.lines.length > 0) {
+        data.lines.forEach(line => {
+            totalAmountDue += line.sumApplied || 0;
+        });
+    }
+    setValue('totalAmountDue', formatCurrency(totalAmountDue));
+    
+    // Map remarks
     setValue('remarks', data.remarks || '');
     setValue('journalRemarks', data.journalRemarks || '');
-    // Populate line items in table
-    populateTableRows(data.lines || []);
-    // Populate approval information with user names
-    populateApprovalInfo(data.approval);
-    // Handle revision history if any
-    handleRevisionHistory(data.approval);
-    // Display attachments if any
-    displayAttachments(data.attachments || []);
-    // Update totals
-    updateTotals(data.lines || []);
-    // Show rejection remarks if status is rejected
-    if (data.approval && data.approval.approvalStatus === 'Rejected') {
-        const rejSec = document.getElementById('rejectionRemarksSection');
-        const rejTxt = document.getElementById('rejectionRemarks');
-        if (rejSec) rejSec.style.display = 'block';
-        if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
+    
+    // Map approval data
+    if (data.approval) {
+        populateApprovalInfo(data.approval);
+        // Show rejection remarks if status is rejected
+        if (data.approval.approvalStatus === 'Rejected') {
+            const rejSec = document.getElementById('rejectionRemarksSection');
+            const rejTxt = document.getElementById('rejectionRemarks');
+            if (rejSec) rejSec.style.display = 'block';
+            if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
+        }
+        // Display status
+        displayApprovalStatus(data.approval);
+    } else {
+        // If no approval data, show as Prepared
+        displayApprovalStatus({ approvalStatus: 'Prepared' });
     }
-    // Toggle visibility of closed by field based on transaction type
-    toggleClosedByVisibility(data.type);
+    
+    // Map table lines
+    if (data.lines && data.lines.length > 0) {
+        populateTableRows(data.lines);
+    }
+    
+    // Display attachments if available
+    if (data.attachments && data.attachments.length > 0) {
+        displayAttachments(data.attachments);
+    }
+}
+
+// Function to display approval status with select dropdown
+function displayApprovalStatus(approval) {
+    const statusSelect = document.getElementById('status');
+    
+    if (!statusSelect) {
+        console.error('Status select element not found');
+        return;
+    }
+    
+    let status = 'Prepared'; // Default to Prepared
+    
+    if (approval) {
+        // Determine status based on approval data
+        if (approval.approvalStatus) {
+            status = approval.approvalStatus;
+        } else if (approval.rejectedDate) {
+            status = 'Rejected';
+        } else if (approval.receivedBy) {
+            status = 'Received';
+        } else if (approval.approvedBy) {
+            status = 'Approved';
+        } else if (approval.acknowledgedBy) {
+            status = 'Acknowledged';
+        } else if (approval.checkedBy) {
+            status = 'Checked';
+        } else if (approval.preparedBy) {
+            status = 'Prepared';
+        }
+    }
+    
+    // Update select value - only if the status exists in the select options
+    const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
+    if (availableStatuses.includes(status)) {
+        statusSelect.value = status;
+    } else {
+        // If status is not in available options, default to Prepared
+        statusSelect.value = 'Prepared';
+    }
 }
 
 // Populate table rows with line items
@@ -394,51 +496,10 @@ function populateApprovalInfo(approval) {
         document.getElementById('receivedBySearch').value = receivedByName;
     }
     
-    // Set closed by
-    if (approval.closedBy) {
-        const closedByName = getUserNameById(approval.closedBy);
-        document.getElementById('closedBySearch').value = closedByName;
-    }
+
 }
 
-// Handle revision history
-function handleRevisionHistory(approval) {
-    if (!approval || !approval.revisionNumber || approval.revisionNumber <= 0) {
-        return;
-    }
-    
-    // Show revision history section
-    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    revisedRemarksSection.style.display = 'block';
-    
-    // Update revision count
-    document.getElementById('revisedCount').textContent = approval.revisionNumber;
-    
-    // Create revision history content
-    const revisionsContainer = document.createElement('div');
-    revisionsContainer.className = 'mt-2 space-y-2';
-    
-    // Add revision remarks if available
-    if (approval.revisionRemarks) {
-        const revisionEntry = document.createElement('div');
-        revisionEntry.className = 'p-2 bg-blue-50 border border-blue-200 rounded';
-        
-        const revisionDate = approval.revisionDate ? new Date(approval.revisionDate).toLocaleString() : 'Unknown date';
-        
-        revisionEntry.innerHTML = `
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-medium text-blue-700">Revision #${approval.revisionNumber}</span>
-                <span class="text-xs text-gray-500">${revisionDate}</span>
-            </div>
-            <p class="text-sm text-gray-800">${approval.revisionRemarks}</p>
-        `;
-        
-        revisionsContainer.appendChild(revisionEntry);
-    }
-    
-    // Append to the section
-    revisedRemarksSection.appendChild(revisionsContainer);
-}
+
 
 // Display attachments
 function displayAttachments(attachments) {
@@ -534,36 +595,75 @@ function viewAttachment(attachmentId) {
 }
 
 // Toggle visibility of closed by field based on transaction type
-function toggleClosedByVisibility(transactionType) {
-    const closedByContainer = document.getElementById('closedByContainer');
-    
-    if (closedByContainer) {
-        if (transactionType === 'LOAN') {
-            closedByContainer.style.display = 'block';
-        } else {
-            closedByContainer.style.display = 'none';
-        }
-    }
-}
+
 
 // Format currency with Indonesian format
 function formatCurrency(number) {
+    console.log('formatCurrency input:', number, 'type:', typeof number);
     // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
+        console.log('formatCurrency: returning 0 for null/undefined/empty');
         return '0';
     }
     
     // Parse the number
     const num = parseFloat(number);
+    console.log('formatCurrency parsed number:', num);
     if (isNaN(num)) {
+        console.log('formatCurrency: returning 0 for NaN');
         return '0';
     }
     
-    // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
-    return num.toLocaleString('id-ID', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    // Get the string representation to check if it has decimal places
+    const numStr = num.toString();
+    const hasDecimal = numStr.includes('.');
+    
+    try {
+        // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+        if (hasDecimal) {
+            const decimalPlaces = numStr.split('.')[1].length;
+            const formatted = num.toLocaleString('id-ID', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+            console.log('formatCurrency formatted result:', formatted);
+            return formatted;
+        } else {
+            const formatted = num.toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            console.log('formatCurrency formatted result:', formatted);
+            return formatted;
+        }
+    } catch (e) {
+        // Fallback for very large numbers
+        console.error('Error formatting number:', e);
+        
+        let strNum = num.toString();
+        let sign = '';
+        
+        if (strNum.startsWith('-')) {
+            sign = '-';
+            strNum = strNum.substring(1);
+        }
+        
+        const parts = strNum.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+        
+        let formattedInteger = '';
+        for (let i = 0; i < integerPart.length; i++) {
+            if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                formattedInteger += '.';
+            }
+            formattedInteger += integerPart.charAt(i);
+        }
+        
+        const fallbackResult = sign + formattedInteger + decimalPart;
+        console.log('formatCurrency fallback result:', fallbackResult);
+        return fallbackResult;
+    }
 }
 
 // Parse currency string back to number
@@ -690,20 +790,41 @@ async function rejectOPReim() {
             return;
         }
         
-        // Prompt for rejection reason
+        // Create custom dialog with single field
         const { value: rejectionReason } = await Swal.fire({
-            title: 'Rejection Reason',
-            input: 'textarea',
-            inputLabel: 'Please provide a reason for rejection',
-            inputPlaceholder: 'Type your reason here...',
-            inputAttributes: {
-                'aria-label': 'Type your reason here'
-            },
+            title: 'Reject Outgoing Payment Reimbursement',
+            html: `
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                    <div id="rejectionFieldsContainer">
+                        <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                    </div>
+                </div>
+            `,
             showCancelButton: true,
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'You need to provide a reason for rejection';
+            confirmButtonText: 'Reject',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            width: '600px',
+            didOpen: () => {
+                const firstField = document.getElementById('rejectionField1');
+                if (firstField) {
+                    initializeWithRejectionPrefix(firstField);
                 }
+                const field = document.querySelector('#rejectionFieldsContainer textarea');
+                if (field) {
+                    field.addEventListener('input', handleRejectionInput);
+                }
+            },
+            preConfirm: () => {
+                const field = document.querySelector('#rejectionFieldsContainer textarea');
+                const remarks = field ? field.value.trim() : '';
+                if (remarks === '') {
+                    Swal.showValidationMessage('Please enter a rejection reason');
+                    return false;
+                }
+                return remarks;
             }
         });
         
@@ -727,16 +848,45 @@ async function rejectOPReim() {
             throw new Error('Unable to get user ID. Please login again.');
         }
         
-        // Prepare request data
+        // Prepare request data for rejection
         const requestData = {
             stagingID: documentId,
-            userId: userId,
-            rejectionRemarks: rejectionReason
+            createdAt: outgoingPaymentReimData.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            approvalStatus: "Rejected",
+            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
+            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
+            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
+            approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
+            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
+            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
+            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
+            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
+            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
+            approvedByName: outgoingPaymentReimData.approval?.approvedByName || null,
+            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
+            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
+            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
+            approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
+            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
+            rejectedDate: new Date().toISOString(),
+            rejectionRemarks: rejectionReason,
+            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
+            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
+            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            header: {}
         };
         
-        // Make API request to reject document
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${documentId}/reject`, {
-            method: 'POST',
+        // Also add rejectionRemarks at root level in case backend expects it there
+        requestData.rejectionRemarks = rejectionReason;
+        
+        // Debug: Log the request data to console
+        console.log('Rejection request data:', requestData);
+        console.log('Rejection reason:', rejectionReason);
+        
+        // Make API request to reject document using the approvals endpoint
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -753,6 +903,14 @@ async function rejectOPReim() {
                 console.error('Could not parse error response:', e);
             }
             throw new Error(errorMessage);
+        }
+        
+        // Debug: Log the response data
+        try {
+            const responseData = await response.json();
+            console.log('Rejection response data:', responseData);
+        } catch (e) {
+            console.log('Response does not contain JSON data');
         }
         
         // Show success message
@@ -777,110 +935,7 @@ async function rejectOPReim() {
     }
 }
 
-// Request revision for the outgoing payment reimbursement
-async function revisionOPReim() {
-    try {
-        // Validate document status and user permissions
-        if (!validateDocumentStatus()) {
-            return;
-        }
-        
-        // Check if revision button is disabled
-        if (document.getElementById('revisionButton').disabled) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Please add and fill in the revision field first'
-            });
-            return;
-        }
-        
-        // Collect all revision remarks
-        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-        let allRemarks = '';
-        
-        revisionFields.forEach((field, index) => {
-            // Include the entire content including the prefix
-            if (field.value.trim() !== '') {
-                if (allRemarks !== '') allRemarks += '\n\n';
-                allRemarks += field.value.trim();
-            }
-        });
-        
-        if (revisionFields.length === 0 || allRemarks.trim() === '') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Please add and fill in the revision field first'
-            });
-            return;
-        }
-        
-        // Show loading indicator
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Requesting revision, please wait...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        // Get current user ID
-        const userId = getUserId();
-        if (!userId) {
-            throw new Error('Unable to get user ID. Please login again.');
-        }
-        
-        // Prepare request data
-        const requestData = {
-            stagingID: documentId,
-            userId: userId,
-            revisionRemarks: allRemarks
-        };
-        
-        // Make API request to request revision
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${documentId}/revise`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-        
-        if (!response.ok) {
-            // Try to get detailed error message
-            let errorMessage = `API error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorData.Message || errorMessage;
-            } catch (e) {
-                console.error('Could not parse error response:', e);
-            }
-            throw new Error(errorMessage);
-        }
-        
-        // Show success message
-        await Swal.fire({
-            title: 'Success',
-            text: 'Revision has been requested',
-            icon: 'success'
-        });
-        
-        // Redirect back to menu
-        goToMenuCheckOPReim();
-        
-    } catch (error) {
-        console.error('Error requesting revision:', error);
-        
-        // Show error message
-        await Swal.fire({
-            title: 'Error',
-            text: `Failed to request revision: ${error.message}`,
-            icon: 'error'
-        });
-    }
-}
+
 
 // Validate document status before allowing actions
 function validateDocumentStatus() {
@@ -940,4 +995,58 @@ function getUserId() {
         console.error('Error getting user ID:', error);
         return null;
     }
+}
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Checker'; // Default role for this page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
 } 

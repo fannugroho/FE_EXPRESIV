@@ -486,7 +486,8 @@
         // Add function to check text length and apply scrollable class
         window.makeScrollableIfNeeded = function() {
             const tableCells = document.querySelectorAll('td[data-content]');
-            tableCells.forEach(cell => {
+            // Convert NodeList to Array to ensure forEach is available
+            Array.from(tableCells).forEach(cell => {
                 const content = cell.getAttribute('data-content');
                 if (content && content.length > 8) {
                     cell.classList.add('scrollable-cell');

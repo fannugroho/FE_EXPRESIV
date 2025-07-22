@@ -27,6 +27,9 @@ function initializeSidebar() {
             el.classList.remove('mx-auto');
         });
     }
+    
+    // Check and show/hide Outgoing Payment menu based on user access
+    checkOutgoingPaymentAccess();
 }
 
 // Toggle sidebar collapse/expand - modified to always keep sidebar open
@@ -223,6 +226,23 @@ function goToMenuRole() {
 function logout() {
     localStorage.removeItem("loggedInUser");
     window.location.href = "../../../../pages/login.html";
+}
+
+// Function to check and show/hide Outgoing Payment menu based on user access
+function checkOutgoingPaymentAccess() {
+    const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
+    
+    if (outgoingPaymentMenu) {
+        const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+        
+        if (hasAccess === 'true') {
+            // User has access, show the menu
+            outgoingPaymentMenu.style.display = 'block';
+        } else {
+            // User doesn't have access, hide the menu
+            outgoingPaymentMenu.style.display = 'none';
+        }
+    }
 }
 
 // Initialize common UI elements

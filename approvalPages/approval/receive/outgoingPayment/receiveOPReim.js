@@ -15,54 +15,61 @@ function getUserId() {
 }
 
 // Helper function to format number as currency with Indonesian format
-function formatCurrencyIDR(number) {
+function formatCurrency(number) {
     // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
-        return '';
+        return '0';
     }
     
-    // Parse the number, ensuring we can handle very large values
-    let num;
+    // Parse the number
+    const num = parseFloat(number);
+    if (isNaN(num)) {
+        return '0';
+    }
+    
+    // Get the string representation to check if it has decimal places
+    const numStr = num.toString();
+    const hasDecimal = numStr.includes('.');
+    
     try {
-        // Handle string inputs that might be very large
-        if (typeof number === 'string') {
-            // Remove all non-numeric characters except decimal point and comma
-            const cleanedStr = number.replace(/[^\d,-]/g, '').replace(',', '.');
-            num = parseFloat(cleanedStr);
+        // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+        if (hasDecimal) {
+            const decimalPlaces = numStr.split('.')[1].length;
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
         } else {
-            num = parseFloat(number);
-        }
-        
-        // If parsing failed, return empty string
-        if (isNaN(num)) {
-            return '';
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
         }
     } catch (e) {
-        console.error('Error parsing number:', e);
-        return '';
-    }
-    
-    // Format with Indonesian format (thousand separator: '.', decimal separator: ',')
-    try {
-        // Convert to string with fixed decimal places
-        let parts = num.toFixed(2).split('.');
-        let integerPart = parts[0];
-        let decimalPart = parts.length > 1 ? parts[1] : '00';
+        // Fallback for very large numbers
+        console.error('Error formatting number:', e);
         
-        // Add thousand separators (dot) to integer part
+        let strNum = num.toString();
+        let sign = '';
+        
+        if (strNum.startsWith('-')) {
+            sign = '-';
+            strNum = strNum.substring(1);
+        }
+        
+        const parts = strNum.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+        
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
-                formattedInteger += '.'; // Use dot as thousand separator for Indonesian format
+                formattedInteger += '.';
             }
             formattedInteger += integerPart.charAt(i);
         }
         
-        // Return with comma as decimal separator
-        return formattedInteger + ',' + decimalPart;
-    } catch (e) {
-        console.error('Error formatting number:', e);
-        return number.toString();
+        return sign + formattedInteger + decimalPart;
     }
 }
 
@@ -166,6 +173,9 @@ async function loadOutgoingPaymentDetails() {
         // Populate form fields with document data
         populateFormFields(outgoingPaymentData);
         
+        // Hide buttons based on document status
+        hideButtonsBasedOnStatus(outgoingPaymentData);
+        
         // Close loading indicator
         Swal.close();
     } catch (error) {
@@ -185,144 +195,217 @@ async function loadOutgoingPaymentDetails() {
 function populateFormFields(data) {
     console.log('Populating form with data:', data);
     
-    // Populate header fields with new API structure
-    document.getElementById('CounterRef').value = data.counterRef || '';
-    document.getElementById('RequesterName').value = data.requesterName || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('Address').value = data.address || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('Comments').value = data.comments || '';
-    document.getElementById('JrnlMemo').value = data.jrnlMemo || '';
-    document.getElementById('DocCurr').value = data.docCurr || 'IDR';
-    document.getElementById('TypeOfTransaction').value = data.type || 'REIMBURSEMENT';
+    // Helper function to safely set value
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
     
-    // Format and set dates
+    // Map header fields
+    setValue('CounterRef', data.counterRef || '');
+    setValue('RequesterName', data.requesterName || '');
+    setValue('CardName', data.cardName || '');
+    setValue('Address', data.address || '');
+    setValue('DocNum', data.docNum || '');
+    setValue('JrnlMemo', data.jrnlMemo || '');
+    setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('TrsfrAcct', data.trsfrAcct || '');
+    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
+    
+    // Map date fields
     if (data.docDate) {
-        document.getElementById('DocDate').value = new Date(data.docDate).toISOString().split('T')[0];
+        const docDate = new Date(data.docDate);
+        setValue('DocDate', docDate.toISOString().split('T')[0]);
     }
     if (data.docDueDate) {
-        document.getElementById('DocDueDate').value = new Date(data.docDueDate).toISOString().split('T')[0];
+        const docDueDate = new Date(data.docDueDate);
+        setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
     }
     if (data.taxDate) {
-        document.getElementById('TaxDate').value = new Date(data.taxDate).toISOString().split('T')[0];
+        const taxDate = new Date(data.taxDate);
+        setValue('TaxDate', taxDate.toISOString().split('T')[0]);
     }
     if (data.trsfrDate) {
-        document.getElementById('TrsfrDate').value = new Date(data.trsfrDate).toISOString().split('T')[0];
+        const trsfrDate = new Date(data.trsfrDate);
+        setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
     
-    // Populate transfer account
-    document.getElementById('TrsfrAcct').value = data.trsfrAcct || '';
-    
-    // Populate table rows
-    const tableBody = document.getElementById('tableBody');
-    tableBody.innerHTML = '';
-    
+    // Calculate totals from lines
+    let totalAmountDue = 0;
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach(line => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-2 border">${line.acctCode || ''}</td>
-                <td class="p-2 border">${line.acctName || ''}</td>
-                <td class="p-2 border">${line.description || ''}</td>
-                <td class="p-2 border text-right">${formatCurrencyIDR(line.docTotal || 0)}</td>
-            `;
-            tableBody.appendChild(row);
+            totalAmountDue += line.sumApplied || 0;
         });
     }
+    setValue('totalAmountDue', formatCurrency(totalAmountDue));
     
-    // Populate totals
-    document.getElementById('netTotal').value = data.netTotal || 0;
-    document.getElementById('totalTax').value = data.totalTax || 0;
-    document.getElementById('totalAmountDue').value = data.totalAmountDue || 0;
-    document.getElementById('TrsfrSum').value = data.trsfrSum || 0;
+    // Map remarks
+    setValue('remarks', data.remarks || '');
+    setValue('journalRemarks', data.journalRemarks || '');
     
-    // Populate remarks
-    document.getElementById('remarks').value = data.remarks || '';
-    document.getElementById('journalRemarks').value = data.journalRemarks || '';
+    // Map approval data
+    if (data.approval) {
+        // Show/hide rejection remarks based on status
+        const rejSec = document.getElementById('rejectionRemarksSection');
+        const rejTxt = document.getElementById('rejectionRemarks');
+        if (data.approval.approvalStatus === 'Rejected') {
+            if (rejSec) rejSec.style.display = 'block';
+            if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
+        } else {
+            if (rejSec) rejSec.style.display = 'none';
+            if (rejTxt) rejTxt.value = '';
+        }
+        
+        // Populate approval fields
+        setValue('preparedBySearch', data.approval.preparedByName || '');
+        setValue('checkedBySearch', data.approval.checkedByName || '');
+        setValue('acknowledgedBySearch', data.approval.acknowledgedByName || '');
+        setValue('approvedBySearch', data.approval.approvedByName || '');
+        setValue('receivedBySearch', data.approval.receivedByName || '');
+        
+        // Display status
+        displayApprovalStatus(data.approval);
+    } else {
+        // If no approval data, show as Prepared
+        displayApprovalStatus({ approvalStatus: 'Prepared' });
+    }
     
-    // Populate attachments
+    // Map table lines
+    if (data.lines && data.lines.length > 0) {
+        const tableBody = document.getElementById('tableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            data.lines.forEach(line => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-2 border">${line.acctCode || ''}</td>
+                    <td class="p-2 border">${line.acctName || ''}</td>
+                    <td class="p-2 border">${line.descrip || ''}</td>
+                    <td class="p-2 border text-right">${formatCurrency(line.sumApplied || 0)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    }
+    
+    // Display attachments if available
     if (data.attachments && data.attachments.length > 0) {
         const attachmentsList = document.getElementById('attachmentsList');
-        attachmentsList.innerHTML = '';
-        
-        data.attachments.forEach(attachment => {
-            const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'flex items-center justify-between p-2 border-b last:border-b-0';
-            
-            attachmentItem.innerHTML = `
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="text-sm">${attachment.fileName || 'Attachment'}</span>
-                </div>
-                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">View</a>
-            `;
-            
-            attachmentsList.appendChild(attachmentItem);
-        });
+        if (attachmentsList) {
+            attachmentsList.innerHTML = '';
+            data.attachments.forEach(attachment => {
+                const attachmentItem = document.createElement('div');
+                attachmentItem.className = 'flex justify-between items-center p-2 border-b last:border-b-0';
+                attachmentItem.innerHTML = `
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        <span class="text-sm">${attachment.fileName || 'Attachment'}</span>
+                    </div>
+                    <div>
+                        <button type="button" class="text-blue-500 hover:text-blue-700 text-sm" onclick="viewAttachment('${attachment.id}')">
+                            View
+                        </button>
+                    </div>
+                `;
+                attachmentsList.appendChild(attachmentItem);
+            });
+        }
+    }
+}
+
+// Hide buttons based on document status
+function hideButtonsBasedOnStatus(data) {
+    const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
+    const printButton = document.getElementById('printButton');
+    
+    // Determine current status based on approval data
+    let currentStatus = 'Prepared';
+    if (data.approval) {
+        if (data.approval.checkedDate) {
+            currentStatus = 'Checked';
+        }
+        if (data.approval.acknowledgedDate) {
+            currentStatus = 'Acknowledged';
+        }
+        if (data.approval.approvedDate) {
+            currentStatus = 'Approved';
+        }
+        if (data.approval.receivedDate) {
+            currentStatus = 'Received';
+        }
+        if (data.approval.rejectedDate) {
+            currentStatus = 'Rejected';
+        }
+    }
+    
+    // Hide both buttons if status is not 'Approved'
+    if (currentStatus !== 'Approved') {
+        if (receiveButton) {
+            receiveButton.style.display = 'none';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'none';
+        }
     } else {
-        document.getElementById('attachmentsList').innerHTML = '<div class="text-sm text-gray-500 p-2">No attachments</div>';
+        // Show buttons if status is 'Approved'
+        if (receiveButton) {
+            receiveButton.style.display = 'inline-block';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'inline-block';
+        }
     }
     
-    // Populate approval information with new API structure
-    if (data.approval && data.approval.preparedByName) {
-        document.getElementById('preparedBySearch').value = data.approval.preparedByName;
+    // Show print button only if status is 'Received'
+    if (printButton) {
+        if (currentStatus === 'Received') {
+            printButton.style.display = 'inline-block';
+        } else {
+            printButton.style.display = 'none';
+        }
+    }
+}
+
+// Function to display approval status with select dropdown
+function displayApprovalStatus(approval) {
+    const statusSelect = document.getElementById('status');
+    
+    if (!statusSelect) {
+        console.error('Status select element not found');
+        return;
     }
     
-    if (data.approval && data.approval.checkedByName) {
-        document.getElementById('checkedBySearch').value = data.approval.checkedByName;
+    let status = 'Prepared'; // Default to Prepared
+    
+    if (approval) {
+        // Determine status based on approval data
+        if (approval.approvalStatus) {
+            status = approval.approvalStatus;
+        } else if (approval.rejectedDate) {
+            status = 'Rejected';
+        } else if (approval.receivedBy) {
+            status = 'Received';
+        } else if (approval.approvedBy) {
+            status = 'Approved';
+        } else if (approval.acknowledgedBy) {
+            status = 'Acknowledged';
+        } else if (approval.checkedBy) {
+            status = 'Checked';
+        } else if (approval.preparedBy) {
+            status = 'Prepared';
+        }
     }
     
-    if (data.approval && data.approval.acknowledgedByName) {
-        document.getElementById('acknowledgedBySearch').value = data.approval.acknowledgedByName;
-    }
-    
-    if (data.approval && data.approval.approvedByName) {
-        document.getElementById('approvedBySearch').value = data.approval.approvedByName;
-    }
-    
-    if (data.approval && data.approval.receivedByName) {
-        document.getElementById('receivedBySearch').value = data.approval.receivedByName;
-    }
-    
-    // Show rejection remarks if document is rejected
-    if (data.approval && data.approval.approvalStatus === 'Rejected' && data.approval.rejectionRemarks) {
-        document.getElementById('rejectionRemarksSection').style.display = 'block';
-        document.getElementById('rejectionRemarks').value = data.approval.rejectionRemarks;
+    // Update select value - only if the status exists in the select options
+    const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
+    if (availableStatuses.includes(status)) {
+        statusSelect.value = status;
     } else {
-        document.getElementById('rejectionRemarksSection').style.display = 'none';
-    }
-    
-    // Show revision history if document has revisions
-    if (data.revisions && data.revisions.length > 0) {
-        document.getElementById('revisedRemarksSection').style.display = 'block';
-        document.getElementById('revisedCount').textContent = data.revisions.length;
-        
-        const revisionsContainer = document.querySelector('#revisedRemarksSection .bg-gray-50');
-        
-        // Clear existing content after the count display
-        const countDisplay = revisionsContainer.querySelector('.mb-2');
-        revisionsContainer.innerHTML = '';
-        revisionsContainer.appendChild(countDisplay);
-        
-        // Add each revision
-        data.revisions.forEach((revision, index) => {
-            const revisionItem = document.createElement('div');
-            revisionItem.className = 'border-t pt-3 mt-3 first:border-t-0 first:pt-0 first:mt-0';
-            
-            revisionItem.innerHTML = `
-                <div class="flex justify-between mb-1">
-                    <span class="text-sm font-semibold">${revision.revisedBy || 'Unknown User'}</span>
-                    <span class="text-xs text-gray-500">${new Date(revision.revisedDate).toLocaleString()}</span>
-                </div>
-                <p class="text-sm">${revision.remarks || 'No remarks provided'}</p>
-            `;
-            
-            revisionsContainer.appendChild(revisionItem);
-        });
-    } else {
-        document.getElementById('revisedRemarksSection').style.display = 'none';
+        // If status is not in available options, default to Prepared
+        statusSelect.value = 'Prepared';
     }
 }
 
@@ -365,26 +448,26 @@ async function receiveOPReim() {
             createdAt: outgoingPaymentData.createdAt || currentDate,
             updatedAt: currentDate,
             approvalStatus: "Received",
-            preparedBy: outgoingPaymentData.preparedBy || null,
-            checkedBy: outgoingPaymentData.checkedBy || null,
-            acknowledgedBy: outgoingPaymentData.acknowledgedBy || null,
-            approvedBy: outgoingPaymentData.approvedBy || null,
+            preparedBy: outgoingPaymentData.approval?.preparedBy || null,
+            checkedBy: outgoingPaymentData.approval?.checkedBy || null,
+            acknowledgedBy: outgoingPaymentData.approval?.acknowledgedBy || null,
+            approvedBy: outgoingPaymentData.approval?.approvedBy || null,
             receivedBy: userId,
-            preparedDate: outgoingPaymentData.preparedDate || null,
-            preparedByName: outgoingPaymentData.preparedByName || null,
-            checkedByName: outgoingPaymentData.checkedByName || null,
-            acknowledgedByName: outgoingPaymentData.acknowledgedByName || null,
-            approvedByName: outgoingPaymentData.approvedByName || null,
+            preparedDate: outgoingPaymentData.approval?.preparedDate || null,
+            preparedByName: outgoingPaymentData.approval?.preparedByName || null,
+            checkedByName: outgoingPaymentData.approval?.checkedByName || null,
+            acknowledgedByName: outgoingPaymentData.approval?.acknowledgedByName || null,
+            approvedByName: outgoingPaymentData.approval?.approvedByName || null,
             receivedByName: currentUser?.username || null,
-            checkedDate: outgoingPaymentData.checkedDate || null,
-            acknowledgedDate: outgoingPaymentData.acknowledgedDate || null,
-            approvedDate: outgoingPaymentData.approvedDate || null,
+            checkedDate: outgoingPaymentData.approval?.checkedDate || null,
+            acknowledgedDate: outgoingPaymentData.approval?.acknowledgedDate || null,
+            approvedDate: outgoingPaymentData.approval?.approvedDate || null,
             receivedDate: currentDate,
-            rejectedDate: outgoingPaymentData.rejectedDate || null,
-            rejectionRemarks: outgoingPaymentData.rejectionRemarks || "",
-            revisionNumber: outgoingPaymentData.revisionNumber || null,
-            revisionDate: outgoingPaymentData.revisionDate || null,
-            revisionRemarks: outgoingPaymentData.revisionRemarks || null,
+            rejectedDate: outgoingPaymentData.approval?.rejectedDate || null,
+            rejectionRemarks: outgoingPaymentData.approval?.rejectionRemarks || "",
+            revisionNumber: outgoingPaymentData.approval?.revisionNumber || null,
+            revisionDate: outgoingPaymentData.approval?.revisionDate || null,
+            revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
             header: {}
         };
         
@@ -438,20 +521,98 @@ async function receiveOPReim() {
     }
 }
 
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Receiver'; // Default role for this page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
 // Function to reject outgoing payment reimbursement
 async function rejectOPReim() {
     try {
-        // Prompt for rejection reason
+        // Create custom dialog with single field
         const result = await Swal.fire({
-            title: 'Reject Document',
-            input: 'textarea',
-            inputLabel: 'Rejection Reason',
-            inputPlaceholder: 'Enter reason for rejection...',
+            title: 'Reject Outgoing Payment Reimbursement',
+            html: `
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                    <div id="rejectionFieldsContainer">
+                        <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                    </div>
+                </div>
+            `,
             showCancelButton: true,
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'You need to provide a reason for rejection';
+            confirmButtonText: 'Reject',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            width: '600px',
+            didOpen: () => {
+                const firstField = document.getElementById('rejectionField1');
+                if (firstField) {
+                    initializeWithRejectionPrefix(firstField);
                 }
+                const field = document.querySelector('#rejectionFieldsContainer textarea');
+                if (field) {
+                    field.addEventListener('input', handleRejectionInput);
+                }
+            },
+            preConfirm: () => {
+                const field = document.querySelector('#rejectionFieldsContainer textarea');
+                const remarks = field ? field.value.trim() : '';
+                if (remarks === '') {
+                    Swal.showValidationMessage('Please enter a rejection reason');
+                    return false;
+                }
+                return remarks;
             }
         });
         
@@ -474,41 +635,69 @@ async function rejectOPReim() {
             throw new Error('User ID not found. Please log in again.');
         }
         
-        // Prepare data for API
-        const rejectData = {
-            id: docId,
-            rejectedBy: userId,
+        // Prepare request data for rejection
+        const requestData = {
+            stagingID: docId,
+            createdAt: outgoingPaymentData.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            approvalStatus: "Rejected",
+            preparedBy: outgoingPaymentData.approval?.preparedBy || null,
+            checkedBy: outgoingPaymentData.approval?.checkedBy || null,
+            acknowledgedBy: outgoingPaymentData.approval?.acknowledgedBy || null,
+            approvedBy: outgoingPaymentData.approval?.approvedBy || null,
+            receivedBy: outgoingPaymentData.approval?.receivedBy || null,
+            preparedDate: outgoingPaymentData.approval?.preparedDate || null,
+            preparedByName: outgoingPaymentData.approval?.preparedByName || null,
+            checkedByName: outgoingPaymentData.approval?.checkedByName || null,
+            acknowledgedByName: outgoingPaymentData.approval?.acknowledgedByName || null,
+            approvedByName: outgoingPaymentData.approval?.approvedByName || null,
+            receivedByName: outgoingPaymentData.approval?.receivedByName || null,
+            checkedDate: outgoingPaymentData.approval?.checkedDate || null,
+            acknowledgedDate: outgoingPaymentData.approval?.acknowledgedDate || null,
+            approvedDate: outgoingPaymentData.approval?.approvedDate || null,
+            receivedDate: outgoingPaymentData.approval?.receivedDate || null,
+            rejectedDate: new Date().toISOString(),
             rejectionRemarks: result.value,
-            rejectedDate: new Date().toISOString()
+            revisionNumber: outgoingPaymentData.approval?.revisionNumber || null,
+            revisionDate: outgoingPaymentData.approval?.revisionDate || null,
+            revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
+            header: {}
         };
         
-        // Call API to reject document
-        const response = await fetch(`${BASE_URL}/api/op-reim/reject`, {
-            method: 'POST',
+        // Also add rejectionRemarks at root level in case backend expects it there
+        requestData.rejectionRemarks = result.value;
+        
+        // Call API to reject document using the approvals endpoint
+        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAccessToken()}`
             },
-            body: JSON.stringify(rejectData)
+            body: JSON.stringify(requestData)
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Try to get detailed error message
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.Message || errorMessage;
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            throw new Error(errorMessage);
         }
         
-        const responseData = await response.json();
+        // Show success message
+        await Swal.fire({
+            title: 'Success',
+            text: 'Document has been rejected',
+            icon: 'success'
+        });
         
-        if (responseData.status) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success',
-                text: 'Outgoing payment reimbursement rejected successfully'
-            }).then(() => {
-                goToMenuReceiveOPReim();
-            });
-        } else {
-            throw new Error(responseData.message || 'Failed to reject document');
-        }
+        // Redirect back to menu
+        goToMenuReceiveOPReim();
     } catch (error) {
         console.error('Error rejecting document:', error);
         
@@ -520,104 +709,24 @@ async function rejectOPReim() {
     }
 }
 
-// Function to submit revision for outgoing payment reimbursement
-async function revisionOPReim() {
+// Function to print OP Reimbursement voucher
+function printOPReim() {
     try {
-        // Get revision remarks from all textarea fields in the revision container
-        const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-        
-        if (revisionFields.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'No Revision',
-                text: 'Please add revision details before submitting'
-            });
-            return;
+        // Store current data in localStorage for the print page to access
+        if (outgoingPaymentData) {
+            localStorage.setItem(`opReimData_${docId}`, JSON.stringify(outgoingPaymentData));
         }
         
-        // Collect all revision remarks
-        const revisionRemarks = Array.from(revisionFields).map(field => field.value.trim()).filter(Boolean);
-        
-        if (revisionRemarks.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Empty Revision',
-                text: 'Please enter revision details before submitting'
-            });
-            return;
-        }
-        
-        // Confirm action
-        const result = await Swal.fire({
-            title: 'Confirm Revision',
-            text: 'Are you sure you want to submit this revision?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, submit revision',
-            cancelButtonText: 'Cancel'
-        });
-        
-        if (!result.isConfirmed) {
-            return;
-        }
-        
-        // Show loading indicator
-        Swal.fire({
-            title: 'Processing...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        // Get current user ID
-        const userId = getUserId();
-        if (!userId) {
-            throw new Error('User ID not found. Please log in again.');
-        }
-        
-        // Prepare data for API
-        const revisionData = {
-            id: docId,
-            revisedBy: userId,
-            remarks: revisionRemarks.join('\n'),
-            revisedDate: new Date().toISOString()
-        };
-        
-        // Call API to submit revision
-        const response = await fetch(`${BASE_URL}/api/op-reim/revision`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
-            },
-            body: JSON.stringify(revisionData)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const responseData = await response.json();
-        
-        if (responseData.status) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success',
-                text: 'Revision submitted successfully'
-            }).then(() => {
-                goToMenuReceiveOPReim();
-            });
-        } else {
-            throw new Error(responseData.message || 'Failed to submit revision');
-        }
+        // Open print page in new window
+        const printUrl = `printOPReim.html?docId=${docId}`;
+        window.open(printUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
     } catch (error) {
-        console.error('Error submitting revision:', error);
+        console.error('Error opening print page:', error);
         
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Failed to submit revision: ${error.message}`
+            text: 'Failed to open print page. Please try again.'
         });
     }
-} 
+}

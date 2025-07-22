@@ -186,13 +186,61 @@ function sortDocumentsByReimNo(documents) {
 
 // Function to format currency with Indonesian format
 function formatCurrency(number) {
-    if (number === null || number === undefined) return '-';
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(number);
+    // Handle empty or invalid input
+    if (number === null || number === undefined || number === '') {
+        return '0';
+    }
+    
+    // Parse the number
+    const num = parseFloat(number);
+    if (isNaN(num)) {
+        return '0';
+    }
+    
+    // Get the string representation to check if it has decimal places
+    const numStr = num.toString();
+    const hasDecimal = numStr.includes('.');
+    
+    try {
+        // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+        if (hasDecimal) {
+            const decimalPlaces = numStr.split('.')[1].length;
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        } else {
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+    } catch (e) {
+        // Fallback for very large numbers
+        console.error('Error formatting number:', e);
+        
+        let strNum = num.toString();
+        let sign = '';
+        
+        if (strNum.startsWith('-')) {
+            sign = '-';
+            strNum = strNum.substring(1);
+        }
+        
+        const parts = strNum.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+        
+        let formattedInteger = '';
+        for (let i = 0; i < integerPart.length; i++) {
+            if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                formattedInteger += '.';
+            }
+            formattedInteger += integerPart.charAt(i);
+        }
+        
+        return sign + formattedInteger + decimalPart;
+    }
 }
 
 // Function to update the table with documents

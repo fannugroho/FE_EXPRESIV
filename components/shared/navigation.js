@@ -235,6 +235,7 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
     // Redirect to login page
     const basePath = getBasePath();
     window.location.href = `${basePath}pages/login.html`;

@@ -8,78 +8,81 @@ let businessPartners = []; // Added to store business partners
 
 // Currency formatting functions
 function formatCurrencyIDR(number) {
-    // Handle input kosong atau tidak valid
+    // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
-        return '0.00';
+        return '0';
     }
     
-    // Parse angka, pastikan dapat menangani nilai yang sangat besar
+    // Parse the number
     let num;
     try {
-        // Handle input string yang mungkin sangat besar
         if (typeof number === 'string') {
-            // Hapus semua karakter non-numerik kecuali titik desimal dan koma
             const cleanedStr = number.replace(/[^\d,.]/g, '');
-            // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
             if (cleanedStr.length > 15) {
-                // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
-                // Hapus koma dan parse
                 num = Number(cleanedStr.replace(/,/g, ''));
             } else {
                 num = parseFloat(cleanedStr.replace(/,/g, ''));
             }
         } else {
-            num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
+            num = Number(number);
         }
         
-        // Jika parsing gagal, kembalikan string kosong
         if (isNaN(num)) {
-            return '0.00';
+            return '0';
         }
     } catch (e) {
         console.error('Error parsing number:', e);
-        return '0.00';
+        return '0';
     }
     
-    // Batasi maksimum 100 triliun
-    const maxAmount = 100000000000000; // 100 triliun
+    const maxAmount = 100000000000000;
     if (num > maxAmount) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Amount Exceeds Limit',
-                text: 'Total amount must not exceed 100 trillion rupiah'
-            });
-        } else {
-            alert('Total amount must not exceed 100 trillion rupiah');
-        }
         num = maxAmount;
     }
     
-    // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
-    // Untuk angka yang sangat besar, gunakan metode manual
-    if (num >= 1e12) { // Jika angka >= 1 triliun
-        let strNum = num.toString();
-        let result = '';
-        let count = 0;
+    // Get the string representation to check if it has decimal places
+    const numStr = num.toString();
+    const hasDecimal = numStr.includes('.');
+    
+    try {
+        // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+        if (hasDecimal) {
+            const decimalPlaces = numStr.split('.')[1].length;
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        } else {
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+    } catch (e) {
+        // Fallback for very large numbers
+        console.error('Error formatting number:', e);
         
-        // Tambahkan koma setiap 3 digit dari belakang
-        for (let i = strNum.length - 1; i >= 0; i--) {
-            result = strNum[i] + result;
-            count++;
-            if (count % 3 === 0 && i > 0) {
-                result = ',' + result;
-            }
+        let strNum = num.toString();
+        let sign = '';
+        
+        if (strNum.startsWith('-')) {
+            sign = '-';
+            strNum = strNum.substring(1);
         }
         
-        // Tambahkan 2 desimal
-        return result + '.00';
-    } else {
-        // Untuk angka yang lebih kecil, gunakan toLocaleString
-        return num.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+        const parts = strNum.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+        
+        let formattedInteger = '';
+        for (let i = 0; i < integerPart.length; i++) {
+            if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                formattedInteger += '.';
+            }
+            formattedInteger += integerPart.charAt(i);
+        }
+        
+        return sign + formattedInteger + decimalPart;
     }
 }
 

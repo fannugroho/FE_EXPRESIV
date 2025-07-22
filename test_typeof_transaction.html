@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test TypeOfTransaction Field</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        input { padding: 5px; margin: 5px; }
+        button { padding: 10px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test TypeOfTransaction Field Mapping</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Check if TypeOfTransaction field exists</h3>
+        <input type="text" id="TypeOfTransaction" placeholder="Type Of Transaction" readonly>
+        <button onclick="testFieldExists()">Test Field Exists</button>
+        <div id="result1"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Simulate API Response Mapping</h3>
+        <button onclick="testMapping()">Test Mapping</button>
+        <div id="result2"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Check Current Value</h3>
+        <button onclick="checkCurrentValue()">Check Value</button>
+        <div id="result3"></div>
+    </div>
+
+    <script>
+        function testFieldExists() {
+            const field = document.getElementById('TypeOfTransaction');
+            const result = document.getElementById('result1');
+            
+            if (field) {
+                result.innerHTML = '<div class="success">✅ TypeOfTransaction field found!</div>';
+                result.innerHTML += `<p>Field type: ${field.type}</p>`;
+                result.innerHTML += `<p>Field readonly: ${field.readOnly}</p>`;
+            } else {
+                result.innerHTML = '<div class="error">❌ TypeOfTransaction field not found!</div>';
+            }
+        }
+        
+        function testMapping() {
+            const field = document.getElementById('TypeOfTransaction');
+            const result = document.getElementById('result2');
+            
+            if (!field) {
+                result.innerHTML = '<div class="error">❌ Field not found!</div>';
+                return;
+            }
+            
+            // Simulate different API response structures
+            const testCases = [
+                { typeOfTransaction: 'REIMBURSEMENT' },
+                { type: 'REIMBURSEMENT' },
+                { transactionType: 'REIMBURSEMENT' },
+                { otherField: 'REIMBURSEMENT' }
+            ];
+            
+            let output = '<h4>Testing different API response structures:</h4>';
+            
+            testCases.forEach((testData, index) => {
+                const originalValue = field.value;
+                
+                if (testData.typeOfTransaction) {
+                    field.value = testData.typeOfTransaction;
+                    output += `<p>✅ typeOfTransaction: "${testData.typeOfTransaction}" → Field value: "${field.value}"</p>`;
+                } else if (testData.type) {
+                    field.value = testData.type;
+                    output += `<p>✅ type: "${testData.type}" → Field value: "${field.value}"</p>`;
+                } else if (testData.transactionType) {
+                    field.value = testData.transactionType;
+                    output += `<p>✅ transactionType: "${testData.transactionType}" → Field value: "${field.value}"</p>`;
+                } else {
+                    field.value = 'REIMBURSEMENT'; // Default
+                    output += `<p>⚠️ No type field found → Using default: "${field.value}"</p>`;
+                }
+                
+                field.value = originalValue; // Reset
+            });
+            
+            result.innerHTML = output;
+        }
+        
+        function checkCurrentValue() {
+            const field = document.getElementById('TypeOfTransaction');
+            const result = document.getElementById('result3');
+            
+            if (field) {
+                result.innerHTML = `<div class="success">Current value: "${field.value}"</div>`;
+            } else {
+                result.innerHTML = '<div class="error">❌ Field not found!</div>';
+            }
+        }
+    </script>
+</body>
+</html> 

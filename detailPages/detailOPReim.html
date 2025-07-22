@@ -34,6 +34,11 @@
          * - TrsfrAcct (Account Bank Transfer) → trsfrAcct
          * - TrsfrSum (Total Transfer) → trsfrSum
          * 
+         * STATUS FIELD (NEW):
+         * - Status (Current Approval Status) → approval.approvalStatus atau approval data
+         *   Status values: Prepared, Checked, Acknowledged, Approved, Received, Rejected
+         *   Display: Select dropdown (disabled, read-only)
+         * 
          * ATTACHMENT FIELDS:
          * - attachment (File Upload) → attachments[]
          * 
@@ -64,6 +69,7 @@
          * FUNCTIONS:
          * - loadDocumentData() → GET https://expressiv.idsdev.site/api/staging-outgoing-payments/headers/{id}
          * - mapResponseToForm() → Maps API response back to form fields
+         * - displayApprovalStatus() → Displays current approval status with badge and date
          */
         
         // Base URL is now defined in auth.js as BASE_URL
@@ -124,16 +130,11 @@
                 
 
                 
-                <h3 class="text-lg font-semibold mb-2">Attachment</h3>
-                <div class="w-full p-2 border rounded bg-gray-50">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm font-medium text-gray-700">Existing Attachments</span>
-                        <button onclick="refreshAttachments()" class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
-                            🔄 Refresh
-                        </button>
-                    </div>
-                    <div id="existingAttachments">
-                        <!-- Attachment yang sudah ada akan ditampilkan di sini -->
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Attachments will be displayed here -->
                     </div>
                 </div>
                 
@@ -144,16 +145,21 @@
                 <h3 class="text-lg font-semibold mb-2">DocNum</h3>
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
+                    <option value="Prepared">Prepared</option>
+                    <option value="Checked">Checked</option>
+                    <option value="Acknowledged">Acknowledged</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Received">Received</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
                 
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
                 <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <input type="text" id="TypeOfTransaction" placeholder="Type of Transaction" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -210,10 +216,12 @@
             <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly placeholder="No journal remarks available"></textarea>
         </div>
 
-        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <!-- Rejection Remarks Display Section -->
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <label class="font-semibold text-red-600">Rejection Reason</label>
-            <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+            </div>
         </div>
 
         <!-- Approval section -->
@@ -268,7 +276,6 @@
                     <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
-
         </div>
         <br>
     </div>

@@ -121,6 +121,43 @@
       }
     }
 
+    // Function to check if user has access to Outgoing Payment
+    async function checkOutgoingPaymentAccess(userId) {
+      try {
+        // Make API call to check if user has access to Outgoing Payment
+        const response = await fetch(`${BASE_URL}/api/employee-superior-document-approvals/user/${userId}/document-type/OP`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status && result.code === 200) {
+          // Check if the response data array has any items (user has access)
+          const hasAccess = result.data && result.data.length > 0;
+          
+          // Store the result in localStorage
+          localStorage.setItem("hasOutgoingPaymentAccess", hasAccess.toString());
+          console.log('Outgoing Payment access check:', hasAccess);
+          
+          return hasAccess;
+        }
+        
+        // If API call fails, default to no access
+        localStorage.setItem("hasOutgoingPaymentAccess", "false");
+        return false;
+      } catch (error) {
+        console.error('Error checking Outgoing Payment access:', error);
+        // If there's an error, default to no access
+        localStorage.setItem("hasOutgoingPaymentAccess", "false");
+        return false;
+      }
+    }
+
     // API-based login function
     async function handleLogin(event) {
       event.preventDefault();
@@ -188,6 +225,9 @@
             
             // Store initial password hash for password change validation
             await storeInitialPasswordHash(password);
+            
+            // Check if user has access to Outgoing Payment
+            await checkOutgoingPaymentAccess(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
             
             // Show success message
             alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
@@ -268,4 +308,5 @@
       localStorage.removeItem("userRoles");
       localStorage.removeItem("requirePasswordChange");
       localStorage.removeItem("initialPasswordHash");
+      localStorage.removeItem("hasOutgoingPaymentAccess");
     }
