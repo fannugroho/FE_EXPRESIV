@@ -106,7 +106,7 @@ window.onload = function() {
     });
 };
 
-function populateUserSelects(users, approvalData = null) {
+async function populateUserSelects(users, approvalData = null) {
     // Handle case when users is null, undefined, or empty
     if (!users || users.length === 0) {
         users = [];
@@ -257,104 +257,166 @@ function populateUserSelects(users, approvalData = null) {
         }
     }
 
-    // Populate approval select dropdowns with search functionality
-    const selects = [
-        { id: 'preparedBy', searchId: 'preparedBySearch', approvalKey: 'preparedById' },
-        { id: 'checkedBy', searchId: 'checkedBySearch', approvalKey: 'checkedById' },
-        { id: 'acknowledgeBy', searchId: 'acknowledgeBySearch', approvalKey: 'acknowledgedById' },
-        { id: 'approvedBy', searchId: 'approvedBySearch', approvalKey: 'approvedById' },
-        { id: 'receivedBy', searchId: 'receivedBySearch', approvalKey: 'receivedById' }
+    // For approval fields, we'll populate them based on transaction type selection
+    // Don't populate them with all users initially
+    
+    // Auto-fill preparedBy with logged-in user if not already set
+    autoFillPreparedBy(users);
+    
+    // For PR documents, always use "NRM" as transaction type
+    // Populate superior employees immediately and return a promise
+    console.log('Starting to populate superior employees for PR with NRM transaction type...');
+    await populateAllSuperiorEmployeeDropdowns("NRM");
+    
+    // Add event listeners for search inputs to show dropdowns
+    const searchInputs = [
+        'preparedBySearch', 
+        'acknowledgeBySearch', 
+        'checkedBySearch', 
+        'approvedBySearch', 
+        'receivedBySearch'
     ];
     
-    selects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        const searchInput = document.getElementById(selectInfo.searchId);
-        
-        if (select && searchInput) {
-            // Clear and populate the hidden select
-            select.innerHTML = '<option value="" disabled>Select User</option>';
+    searchInputs.forEach(inputId => {
+        const searchInput = document.getElementById(inputId);
+        if (searchInput) {
+            // Show dropdown on focus
+            searchInput.addEventListener('focus', function() {
+                console.log(`Search input focused: ${inputId}`);
+                filterUsers(inputId.replace('Search', ''));
+            });
             
-            if (users && users.length > 0) {
-                users.forEach(user => {
-                    // console.log("user", user);
-                    const option = document.createElement("option");
-                    option.value = user.id;
-                    option.textContent = user.fullName;
-                    select.appendChild(option);
-                });
-            }
-            
-            // Set the value from approval data if available and update search input
-            if (approvalData && approvalData[selectInfo.approvalKey]) {
-                select.value = approvalData[selectInfo.approvalKey];
-                
-                // Find the user and update the search input
-                const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
-                if (selectedUser) {
-                    searchInput.value = selectedUser.fullName;
-                }
-                
-                // Auto-select and disable for Prepared by if it matches logged in user
-                if(selectInfo.id === "preparedBy" && select.value == getUserId()){
-                    searchInput.disabled = true;
-                    searchInput.classList.add('bg-gray-100');
-                }
-            }
-            
-            // Always disable and auto-select preparedBy to logged-in user
-            if(selectInfo.id === "preparedBy"){
-                const loggedInUserId = getUserId();
-                if(loggedInUserId) {
-                    select.value = loggedInUserId;
-                    const loggedInUser = users.find(user => user.id === loggedInUserId);
-                    if(loggedInUser) {
-                        searchInput.value = loggedInUser.fullName;
-                    }
-                    searchInput.disabled = true;
-                    searchInput.classList.add('bg-gray-100');
-                }
-            }
+            // Handle input changes
+            searchInput.addEventListener('input', function() {
+                console.log(`Search input changed: ${inputId}`);
+                filterUsers(inputId.replace('Search', ''));
+            });
         }
     });
+    
+    return true; // Return a resolved promise
 }
 
-// Function to filter users for approval dropdowns (like addPR.js)
+// Helper function to auto-fill preparedBy with logged-in user
+function autoFillPreparedBy(users) {
+    const currentUserId = getUserId();
+    if (!currentUserId) return;
+    
+    // Find the current user in the users array
+    const currentUser = users.find(user => user.id == currentUserId);
+    if (!currentUser) return;
+    
+    // Construct full name
+    let displayName = currentUser.fullName;
+    
+    // Set the preparedBy search input value and disable it
+    const preparedBySearch = document.getElementById("preparedBySearch");
+    if (preparedBySearch) {
+        preparedBySearch.value = displayName;
+        preparedBySearch.disabled = true;
+        preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+    }
+    
+    // Also set the select element value to ensure it's available for form submission
+    const preparedBySelect = document.getElementById("preparedBy");
+    if (preparedBySelect) {
+        // Clear existing options
+        preparedBySelect.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+        
+        // Add current user as an option
+        const option = document.createElement('option');
+        option.value = currentUserId;
+        option.textContent = displayName;
+        option.selected = true;
+        preparedBySelect.appendChild(option);
+        
+        console.log('Auto-filled preparedBy select with current user:', currentUserId);
+    }
+}
+
+// Function to filter and display user dropdown
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
+    if (!searchInput) {
+        console.error(`Search input not found for fieldId: ${fieldId}`);
+        return;
+    }
+    
     const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    const dropdown = document.getElementById(`${fieldId}SelectDropdown`);
+    if (!dropdown) {
+        console.error(`Dropdown not found for fieldId: ${fieldId}`);
+        return;
+    }
+    
+    console.log(`filterUsers called for fieldId: ${fieldId}, searchText: "${searchText}"`);
     
     // Clear dropdown
     dropdown.innerHTML = '';
     
-    // Filter users based on search text
-    const filteredUsers = window.employees && window.employees.length > 0 ? 
-        window.employees.filter(user => user.fullName && user.fullName.toLowerCase().includes(searchText)) : 
-        [];
+    let filteredUsers = [];
     
-    // Show filtered results
+    // Handle all searchable selects
+    if (fieldId === 'preparedBy' || 
+        fieldId === 'acknowledgeBy' || 
+        fieldId === 'checkedBy' || 
+        fieldId === 'approvedBy' ||
+        fieldId === 'receivedBy') {
+        try {
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            console.log(`Users from dataset for ${fieldId}:`, users);
+            
+            filteredUsers = users.filter(user => user && user.name && user.name.toLowerCase().includes(searchText));
+            console.log(`Filtered users for ${fieldId}:`, filteredUsers);
+            
+            // Show search results
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        option.innerText = user.fullName;
+                option.innerText = user.name;
         option.onclick = function() {
-            searchInput.value = user.fullName;
-            document.getElementById(fieldId).value = user.id;
+                    searchInput.value = user.name;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Store the ID as the value
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === user.id.toString()) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!optionExists && selectElement.options.length > 0) {
+                            const newOption = document.createElement('option');
+                            newOption.value = user.id;
+                            newOption.textContent = user.name;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = user.id;
+                        }
+                    }
+                    
             dropdown.classList.add('hidden');
         };
         dropdown.appendChild(option);
     });
+        } catch (error) {
+            console.error("Error parsing users data:", error);
+        }
+    }
     
-    // Show "no results" message if no users found
+    // Show message if no results
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users';
+        noResults.innerText = 'Name Not Found';
         dropdown.appendChild(noResults);
     }
     
     // Show dropdown
     dropdown.classList.remove('hidden');
+    console.log(`Dropdown shown for ${fieldId} with ${filteredUsers.length} results`);
 }
 
 async function fetchPRDetails(prId, prType) {
@@ -382,7 +444,7 @@ async function fetchPRDetails(prId, prType) {
             await fetchDropdownOptions(responseData.data);
             
             // Then populate PR details so items can be properly matched
-            populatePRDetails(responseData.data);
+            await populatePRDetails(responseData.data);
             
             const isEditable = responseData.data && responseData.data.status === 'Draft';
             toggleEditableFields(isEditable);
@@ -877,7 +939,7 @@ function toggleEditableFields(isEditable) {
     });
 }
 
-function populatePRDetails(data) {
+async function populatePRDetails(data) {
     // Populate basic PR information
     document.getElementById('purchaseRequestNo').value = data.purchaseRequestNo;
     
@@ -974,8 +1036,18 @@ function populatePRDetails(data) {
     
     // Now that requester data is set, populate user selects with proper selection
     if (window.allUsers) {
-        populateUserSelects(window.allUsers, data);
+        await populateUserSelects(window.allUsers, data);
     }
+    
+    // Populate approval fields with existing values from API AFTER superior employee dropdowns are populated
+    console.log('About to populate approval fields with data:', {
+        preparedByName: data.preparedByName,
+        checkedByName: data.checkedByName,
+        acknowledgedByName: data.acknowledgedByName,
+        approvedByName: data.approvedByName,
+        receivedByName: data.receivedByName
+    });
+    populateApprovalFields(data);
     
     // Set default dates if fields are empty (only for Draft status)
     setDefaultDatesIfEmpty();
@@ -991,6 +1063,125 @@ function populatePRDetails(data) {
 }
 
 
+
+// Function to populate approval fields with existing values from API
+function populateApprovalFields(data) {
+    console.log('Populating approval fields with data:', data);
+    
+    // Map of field names to API response field names
+    const approvalFieldMapping = {
+        'preparedBy': {
+            searchInput: 'preparedBySearch',
+            selectElement: 'preparedBy',
+            apiField: 'preparedByName',
+            apiIdField: 'preparedById'
+        },
+        'checkedBy': {
+            searchInput: 'checkedBySearch',
+            selectElement: 'checkedBy',
+            apiField: 'checkedByName',
+            apiIdField: 'checkedById'
+        },
+        'acknowledgeBy': {
+            searchInput: 'acknowledgeBySearch',
+            selectElement: 'acknowledgeBy',
+            apiField: 'acknowledgedByName',
+            apiIdField: 'acknowledgedById'
+        },
+        'approvedBy': {
+            searchInput: 'approvedBySearch',
+            selectElement: 'approvedBy',
+            apiField: 'approvedByName',
+            apiIdField: 'approvedById'
+        },
+        'receivedBy': {
+            searchInput: 'receivedBySearch',
+            selectElement: 'receivedBy',
+            apiField: 'receivedByName',
+            apiIdField: 'receivedById'
+        }
+    };
+    
+    // Populate each approval field
+    Object.entries(approvalFieldMapping).forEach(([fieldKey, fieldConfig]) => {
+        const searchInput = document.getElementById(fieldConfig.searchInput);
+        const selectElement = document.getElementById(fieldConfig.selectElement);
+        
+        console.log(`Processing field: ${fieldKey}`);
+        console.log(`API data - ${fieldConfig.apiField}:`, data[fieldConfig.apiField]);
+        console.log(`API data - ${fieldConfig.apiIdField}:`, data[fieldConfig.apiIdField]);
+        console.log(`Search input found:`, !!searchInput);
+        console.log(`Select element found:`, !!selectElement);
+        
+        if (searchInput && data[fieldConfig.apiField]) {
+            console.log(`Setting ${fieldConfig.searchInput} to: ${data[fieldConfig.apiField]}`);
+            searchInput.value = data[fieldConfig.apiField];
+            
+            // Handle the select element value
+            if (selectElement && data[fieldConfig.apiIdField]) {
+                console.log(`Setting ${fieldConfig.selectElement} to: ${data[fieldConfig.apiIdField]}`);
+                console.log(`Current select options:`, Array.from(selectElement.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+                
+                // Check if the user ID already exists in the select options
+                let userExists = false;
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
+                        selectElement.selectedIndex = i;
+                        userExists = true;
+                        console.log(`Found existing option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                        break;
+                    }
+                }
+                
+                // If the user doesn't exist in the select options, add them
+                if (!userExists) {
+                    console.log(`Adding new option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                    const option = document.createElement('option');
+                    option.value = data[fieldConfig.apiIdField];
+                    option.textContent = data[fieldConfig.apiField];
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                }
+                
+                // Also update the search input dataset to include this user
+                if (searchInput.dataset.users) {
+                    try {
+                        const users = JSON.parse(searchInput.dataset.users);
+                        const userExists = users.find(u => u.id === data[fieldConfig.apiIdField]);
+                        if (!userExists) {
+                            users.push({
+                                id: data[fieldConfig.apiIdField],
+                                name: data[fieldConfig.apiField]
+                            });
+                            searchInput.dataset.users = JSON.stringify(users);
+                            console.log(`Added user to search dataset for ${fieldConfig.searchInput}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error updating search dataset for ${fieldConfig.searchInput}:`, error);
+                    }
+                }
+                
+                console.log(`Final select value for ${fieldConfig.selectElement}:`, selectElement.value);
+            }
+        } else if (searchInput && data[fieldConfig.apiIdField]) {
+            // If we have the ID but not the name, try to find the name from the select options
+            console.log(`No name found for ${fieldKey}, but ID exists: ${data[fieldConfig.apiIdField]}`);
+            if (selectElement) {
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
+                        const userName = selectElement.options[i].textContent;
+                        searchInput.value = userName;
+                        selectElement.selectedIndex = i;
+                        console.log(`Found user name from select options: ${userName}`);
+                        break;
+                    }
+                }
+            }
+        } else {
+            console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiField}`);
+        }
+    });
+}
 
 function populateItemDetails(items) {
     const tableBody = document.getElementById('tableBody');
@@ -1307,12 +1498,26 @@ async function updatePR(isSubmit = false) {
         const classificationSelect = document.getElementById('classification');
         const selectedClassification = classificationSelect.options[classificationSelect.selectedIndex].text;
         formData.append('Classification', selectedClassification);
+        formData.append('TypeOfTransaction', 'NRM'); // PR documents always use "NRM"
         
         formData.append('Remarks', document.getElementById('remarks').value);
         
-        // Approvals
+        // Approvals with special handling for preparedBy
+        const preparedByValue = document.getElementById('preparedBy')?.value;
+        const currentUserId = getUserId();
  
-        formData.append('PreparedById', document.getElementById('preparedBy')?.value);
+        // Use current user ID if preparedBy is empty
+        const finalPreparedById = preparedByValue || currentUserId;
+        
+        // Debug logging for approval field values
+        console.log('Approval field values being submitted:');
+        console.log('PreparedById:', finalPreparedById);
+        console.log('CheckedById:', document.getElementById('checkedBy')?.value);
+        console.log('AcknowledgedById:', document.getElementById('acknowledgeBy')?.value);
+        console.log('ApprovedById:', document.getElementById('approvedBy')?.value);
+        console.log('ReceivedById:', document.getElementById('receivedBy')?.value);
+        
+        formData.append('PreparedById', finalPreparedById);
         formData.append('CheckedById', document.getElementById('checkedBy')?.value);
         formData.append('AcknowledgedById', document.getElementById('acknowledgeBy')?.value);
         formData.append('ApprovedById', document.getElementById('approvedBy')?.value);
@@ -1443,6 +1648,68 @@ function displayFileList() {
     // You can implement a more sophisticated file list display here if needed
 }
 
+// Function to view a newly uploaded file
+function viewUploadedFile(index) {
+    if (index >= 0 && index < uploadedFiles.length) {
+        const file = uploadedFiles[index];
+        
+        // Create a blob URL for the file
+        const blobUrl = URL.createObjectURL(file);
+        
+        // Open the file in a new tab/window
+        const newWindow = window.open(blobUrl, '_blank');
+        
+        // Clean up the blob URL after a delay to ensure the window has loaded
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 1000);
+        
+        // If the window couldn't be opened (e.g., popup blocked), show a fallback
+        if (!newWindow) {
+            Swal.fire({
+                title: 'File Viewer',
+                html: `
+                    <div class="text-left">
+                        <p><strong>File Name:</strong> ${file.name}</p>
+                        <p><strong>File Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                        <p><strong>File Type:</strong> ${file.type}</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'OK',
+                showCancelButton: true,
+                cancelButtonText: 'Download',
+                showDenyButton: true,
+                denyButtonText: 'Try Again'
+            }).then((result) => {
+                if (result.isDenied) {
+                    // Try opening again
+                    window.open(blobUrl, '_blank');
+                } else if (result.isDismissed) {
+                    // Download the file
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = blobUrl;
+                    downloadLink.download = file.name;
+                    downloadLink.click();
+                }
+                // Clean up the blob URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000);
+            });
+        }
+    } else {
+        Swal.fire({
+            title: 'Error',
+            text: 'File not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+
+
 // Function to remove a new uploaded file
 function removeUploadedFile(index) {
     uploadedFiles.splice(index, 1);
@@ -1469,14 +1736,16 @@ function updateAttachmentsDisplay() {
     const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
     existingToKeep.forEach(attachment => {
         const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
+        attachmentItem.className = 'attachment-item flex items-center justify-between p-3 bg-white border rounded mb-2 hover:bg-gray-50';
         attachmentItem.innerHTML = `
             <div class="flex items-center">
-                <span class="text-blue-600 mr-2">📄</span>
-                <span class="text-sm font-medium">${attachment.fileName}</span>
-                <span class="text-xs text-gray-500 ml-2">(existing)</span>
+                <span class="file-type-indicator file-type-pdf mr-3">PDF</span>
+                <div>
+                    <span class="text-sm font-medium text-gray-900">${attachment.fileName}</span>
+                    <span class="text-xs text-gray-500 ml-2">(existing)</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="attachment-buttons flex items-center gap-2">
                 <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
                     View
                 </a>
@@ -1492,14 +1761,19 @@ function updateAttachmentsDisplay() {
     // Display new uploaded files
     uploadedFiles.forEach((file, index) => {
         const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        attachmentItem.className = 'attachment-item flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded mb-2';
         attachmentItem.innerHTML = `
             <div class="flex items-center">
-                <span class="text-green-600 mr-2">📄</span>
-                <span class="text-sm font-medium">${file.name}</span>
-                <span class="text-xs text-green-600 ml-2">(new)</span>
+                <span class="file-type-indicator file-type-new mr-3">NEW</span>
+                <div>
+                    <span class="text-sm font-medium text-gray-900">${file.name}</span>
+                    <span class="text-xs text-green-600 ml-2">(new)</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="attachment-buttons flex items-center gap-2">
+                <button onclick="viewUploadedFile(${index})" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </button>
                 ${window.currentValues && window.currentValues.status && window.currentValues.status.toLowerCase() === 'draft' ? 
                 `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove
@@ -1624,25 +1898,27 @@ function displayAttachments(attachments) {
             
             // Add download/view button
             const actionButtons = document.createElement('div');
-            actionButtons.className = 'flex space-x-2';
+            actionButtons.className = 'flex items-center gap-2';
             
             // View button
             const viewButton = document.createElement('button');
             viewButton.type = 'button';
-            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm';
-            viewButton.innerHTML = '👁️'; // Eye icon
+            viewButton.className = 'text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition';
+            viewButton.textContent = 'View';
             viewButton.title = 'View attachment';
             viewButton.onclick = function() {
                 window.open(attachment.filePath, '_blank');
             };
             actionButtons.appendChild(viewButton);
             
+
+            
             // Delete button (only shown for Draft status)
             if (window.currentValues?.status === 'Draft') {
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
-                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm';
-                deleteButton.innerHTML = '🗑️'; // Trash icon
+                deleteButton.className = 'text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition';
+                deleteButton.textContent = 'Remove';
                 deleteButton.title = 'Remove attachment';
                 deleteButton.onclick = function() {
                     removeExistingAttachment(attachment.id);
@@ -1659,14 +1935,12 @@ function displayAttachments(attachments) {
 // Function to display revised remarks from API
 function displayRevisedRemarks(data) {
     const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCountElement = document.getElementById('revisedCount');
     
     // Check if there are any revisions
     const hasRevisions = data.revisions && data.revisions.length > 0;
     
     if (hasRevisions) {
         revisedRemarksSection.style.display = 'block';
-        revisedCountElement.textContent = data.revisions.length || '0';
         
         // Clear existing revision content from the revisedRemarksSection
         revisedRemarksSection.innerHTML = `
@@ -1674,7 +1948,7 @@ function displayRevisedRemarks(data) {
             <div class="bg-gray-50 p-4 rounded-lg border">
                 <div class="mb-2">
                     <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
-                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
                 </div>
                 <!-- Dynamic revision content will be inserted here by JavaScript -->
             </div>
@@ -1739,4 +2013,363 @@ function displayRevisedRemarks(data) {
 
 function goToMenuPR() {
     window.location.href = '../pages/menuPR.html';
+}
+
+// New function to fetch superior employees based on document type, transaction type, and superior level
+async function fetchSuperiorEmployees(documentType, transactionType, superiorLevel) {
+    try {
+        const currentUserId = getUserId();
+        if (!currentUserId) {
+            console.error('No current user ID found');
+            return [];
+        }
+
+        const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`;
+        console.log(`Fetching superior employees from: ${apiUrl}`);
+        console.log(`Parameters: documentType=${documentType}, transactionType=${transactionType}, superiorLevel=${superiorLevel}`);
+
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API Response:', result);
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch superior employees');
+        }
+        
+        const allSuperiors = result.data;
+        console.log('All superiors from API:', allSuperiors);
+        
+        // Filter by transaction type and superior level
+        const filteredSuperiors = allSuperiors.filter(superior => {
+            // Map transaction type to API transaction type
+            const transactionTypeMap = {
+                'NRM': 'NRM', // PR documents always use NRM
+                'Entertainment': 'EN',
+                'Golf Competition': 'GC',
+                'Medical': 'ME',
+                'Others': 'OT',
+                'Travelling': 'TR'
+            };
+            
+            const apiTransactionType = transactionTypeMap[transactionType];
+            if (!apiTransactionType) {
+                console.warn(`Unknown transaction type: ${transactionType}`);
+                return false;
+            }
+            
+            return superior.typeTransaction === apiTransactionType && superior.superiorLevel === superiorLevel;
+        });
+        
+        console.log(`Found ${filteredSuperiors.length} superior employees for ${documentType}/${transactionType}/${superiorLevel}`);
+        console.log('Filtered superiors:', filteredSuperiors);
+        
+        // Fetch full user details for each superior to get full names
+        const superiorsWithFullNames = [];
+        
+        for (const superior of filteredSuperiors) {
+            try {
+                // Try to get full name from cached users first
+                let fullName = superior.superiorName; // Default to the name from API
+                
+                if (window.requesters && window.requesters.length > 0) {
+                    const user = window.requesters.find(u => u.id === superior.superiorUserId);
+                    if (user && user.fullName) {
+                        fullName = user.fullName;
+                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                    }
+                } else {
+                    // Fetch user details from API if not in cache
+                    try {
+                        const userResponse = await fetch(`${BASE_URL}/api/users/${superior.superiorUserId}`);
+                        if (userResponse.ok) {
+                            const userResult = await userResponse.json();
+                            if (userResult.status && userResult.data && userResult.data.fullName) {
+                                fullName = userResult.data.fullName;
+                                console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch full name for user ${superior.superiorUserId}:`, error);
+                        // Keep the original superiorName if API call fails
+                    }
+                }
+                
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: fullName
+                });
+                
+            } catch (error) {
+                console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                // Add the superior with original name if there's an error
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: superior.superiorName
+                });
+            }
+        }
+        
+        return superiorsWithFullNames;
+        
+    } catch (error) {
+        console.error("Error fetching superior employees:", error);
+        return [];
+    }
+}
+
+// Function to map superior level to field ID
+function getSuperiorLevelForField(fieldId) {
+    const levelMap = {
+        'preparedBy': 'PR',
+        'checkedBy': 'CH',
+        'acknowledgeBy': 'AC',
+        'approvedBy': 'AP',
+        'receivedBy': 'RE'
+    };
+    return levelMap[fieldId] || null;
+}
+
+// Function to populate superior employee dropdown with provided data
+async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
+    console.log(`populateSuperiorEmployeeDropdownWithData called for fieldId: ${fieldId} with ${superiors.length} superiors`);
+    
+    // Clear existing options
+    const selectElement = document.getElementById(fieldId);
+    if (!selectElement) {
+        console.error(`Select element not found for fieldId: ${fieldId}`);
+        return;
+    }
+    
+    selectElement.innerHTML = '<option value="" disabled selected>Select User</option>';
+    
+    // Add superior employees to dropdown
+    console.log(`Adding ${superiors.length} superiors to dropdown for fieldId: ${fieldId}`);
+    superiors.forEach(superior => {
+        const option = document.createElement('option');
+        option.value = superior.superiorUserId;
+        option.textContent = superior.superiorFullName; // Use superiorFullName
+        selectElement.appendChild(option);
+        console.log(`Added superior: ${superior.superiorFullName} (${superior.superiorUserId}) to ${fieldId}`);
+    });
+    
+    // Update the search input dataset
+    const searchInput = document.getElementById(fieldId + 'Search');
+    if (searchInput) {
+        searchInput.dataset.users = JSON.stringify(superiors.map(s => ({
+            id: s.superiorUserId,
+            name: s.superiorFullName
+        })));
+    }
+    
+    // Special handling for preparedBy - auto-select current user if they are in the superiors list
+    if (fieldId === 'preparedBy') {
+        const currentUserId = getUserId();
+        if (currentUserId) {
+            const currentUserInSuperiors = superiors.find(s => s.superiorUserId === currentUserId);
+            if (currentUserInSuperiors) {
+                selectElement.value = currentUserId;
+                console.log('Auto-selected current user for preparedBy from superiors list');
+            } else {
+                // If current user is not in superiors list, add them as an option
+                const currentUser = window.requesters ? window.requesters.find(u => u.id === currentUserId) : null;
+                if (currentUser) {
+                    const option = document.createElement('option');
+                    option.value = currentUserId;
+                    option.textContent = currentUser.fullName || currentUser.name;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                    console.log('Added current user to preparedBy select (not in superiors list)');
+                }
+            }
+        }
+    }
+    
+    // Set pending approval values if they exist
+    if (window.pendingApprovalValues) {
+        const pendingUserId = window.pendingApprovalValues[fieldId];
+        if (pendingUserId) {
+            // Check if the user exists in the superiors list
+            const matchingSuperior = superiors.find(s => s.superiorUserId === pendingUserId);
+            if (matchingSuperior) {
+                selectElement.value = pendingUserId;
+                const searchInput = document.getElementById(fieldId + 'Search');
+                if (searchInput) {
+                    searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
+                }
+                console.log(`Set pending approval value for ${fieldId}:`, pendingUserId);
+            }
+        }
+    }
+}
+
+// Function to populate superior employee dropdown (legacy - kept for backward compatibility)
+async function populateSuperiorEmployeeDropdown(fieldId, documentType, transactionType) {
+    const superiorLevel = getSuperiorLevelForField(fieldId);
+    if (!superiorLevel) {
+        console.error(`No superior level mapping found for field: ${fieldId}`);
+        return;
+    }
+    
+    const superiors = await fetchSuperiorEmployees(documentType, transactionType, superiorLevel);
+    
+    // Clear existing options
+    const selectElement = document.getElementById(fieldId);
+    if (!selectElement) return;
+    
+    selectElement.innerHTML = '<option value="" disabled selected>Select User</option>';
+    
+    // Add superior employees to dropdown
+    superiors.forEach(superior => {
+        const option = document.createElement('option');
+        option.value = superior.superiorUserId;
+        option.textContent = superior.superiorFullName; // Use superiorFullName
+        selectElement.appendChild(option);
+    });
+    
+    // Update the search input dataset
+    const searchInput = document.getElementById(fieldId + 'Search');
+    if (searchInput) {
+        searchInput.dataset.users = JSON.stringify(superiors.map(s => ({
+            id: s.superiorUserId,
+            name: s.superiorFullName
+        })));
+    }
+    
+    // Special handling for preparedBy - auto-select current user if they are in the superiors list
+    if (fieldId === 'preparedBy') {
+        const currentUserId = getUserId();
+        if (currentUserId) {
+            const currentUserInSuperiors = superiors.find(s => s.superiorUserId === currentUserId);
+            if (currentUserInSuperiors) {
+                selectElement.value = currentUserId;
+                console.log('Auto-selected current user for preparedBy from superiors list');
+            } else {
+                // If current user is not in superiors list, add them as an option
+                const currentUser = window.requesters ? window.requesters.find(u => u.id === currentUserId) : null;
+                if (currentUser) {
+                    const option = document.createElement('option');
+                    option.value = currentUserId;
+                    option.textContent = currentUser.fullName || currentUser.name;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                    console.log('Added current user to preparedBy select (not in superiors list)');
+                }
+            }
+        }
+    }
+    
+    // Set pending approval values if they exist
+    if (window.pendingApprovalValues) {
+        const pendingUserId = window.pendingApprovalValues[fieldId];
+        if (pendingUserId) {
+            // Check if the user exists in the superiors list
+            const matchingSuperior = superiors.find(s => s.superiorUserId === pendingUserId);
+            if (matchingSuperior) {
+                selectElement.value = pendingUserId;
+                const searchInput = document.getElementById(fieldId + 'Search');
+                if (searchInput) {
+                    searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
+                }
+                console.log(`Set pending approval value for ${fieldId}:`, pendingUserId);
+            }
+        }
+    }
+}
+
+// Function to populate all superior employee dropdowns
+async function populateAllSuperiorEmployeeDropdowns(transactionType) {
+    const documentType = 'PR'; // Purchase Request
+    
+    console.log(`populateAllSuperiorEmployeeDropdowns called with transactionType: ${transactionType}, documentType: ${documentType}`);
+    
+    // Fetch all superiors once
+    const currentUserId = getUserId();
+    if (!currentUserId) {
+        console.error('No current user ID found');
+        return;
+    }
+
+    const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`;
+    console.log(`Fetching all superior employees from: ${apiUrl}`);
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API Response:', result);
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch superior employees');
+        }
+        
+        const allSuperiors = result.data;
+        console.log('All superiors from API:', allSuperiors);
+        
+        // Filter by transaction type (NRM for PR documents)
+        const filteredSuperiors = allSuperiors.filter(superior => superior.typeTransaction === 'NRM');
+        console.log(`Found ${filteredSuperiors.length} superiors with NRM transaction type`);
+        
+        // Fetch full names for all superiors
+        const superiorsWithFullNames = [];
+        for (const superior of filteredSuperiors) {
+            try {
+                let fullName = superior.superiorName; // Default to the name from API
+                
+                if (window.requesters && window.requesters.length > 0) {
+                    const user = window.requesters.find(u => u.id === superior.superiorUserId);
+                    if (user && user.fullName) {
+                        fullName = user.fullName;
+                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                    }
+                }
+                
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: fullName
+                });
+                
+            } catch (error) {
+                console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: superior.superiorName
+                });
+            }
+        }
+        
+        // Now populate each field with the appropriate superiors
+        const approvalFields = [
+            { id: 'preparedBy', level: 'PR' },
+            { id: 'checkedBy', level: 'CH' },
+            { id: 'acknowledgeBy', level: 'AC' },
+            { id: 'approvedBy', level: 'AP' },
+            { id: 'receivedBy', level: 'RE' }
+        ];
+        
+        console.log(`Will populate ${approvalFields.length} approval fields:`, approvalFields.map(f => f.id));
+        
+        for (const fieldInfo of approvalFields) {
+            console.log(`Populating field: ${fieldInfo.id} with level: ${fieldInfo.level}`);
+            
+            // Filter superiors for this specific level
+            const levelSuperiors = superiorsWithFullNames.filter(superior => superior.superiorLevel === fieldInfo.level);
+            console.log(`Found ${levelSuperiors.length} superiors for level ${fieldInfo.level}`);
+            
+            // Populate the dropdown
+            await populateSuperiorEmployeeDropdownWithData(fieldInfo.id, levelSuperiors);
+        }
+        
+        console.log('Finished populating all superior employee dropdowns');
+        
+    } catch (error) {
+        console.error("Error fetching superior employees:", error);
+    }
 }

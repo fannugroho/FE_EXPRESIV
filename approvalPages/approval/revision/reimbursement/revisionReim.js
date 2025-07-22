@@ -1,12 +1,12 @@
 let reimbursementId = '';
 
-// Add document ready event listener
-document.addEventListener("DOMContentLoaded", function() {
-    // Call function to control button visibility
-    controlButtonVisibility();
-    
-    // Other initialization code can go here
-});
+// Global variables for data storage
+let businessPartners = [];
+let allCategories = [];
+let allAccountNames = [];
+let transactionTypes = [];
+
+
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
@@ -1500,20 +1500,22 @@ function renderRevisionHistory(revisions) {
     section.innerHTML = html;
 }
 
-// Store global data for categories and account names
-let allCategories = [];
-let allAccountNames = [];
-let transactionTypes = [];
-let businessPartners = [];
-
 // Function to filter and display user dropdown
 function filterUsers(fieldId) {
+    console.log('filterUsers called with fieldId:', fieldId);
+    
     const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
-    if (!searchInput) return;
+    if (!searchInput) {
+        console.log('Search input not found for fieldId:', fieldId);
+        return;
+    }
     
     const searchText = searchInput.value.toLowerCase();
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    if (!dropdown) return;
+    if (!dropdown) {
+        console.log('Dropdown not found for fieldId:', fieldId);
+        return;
+    }
     
     // Clear dropdown
     dropdown.innerHTML = '';
@@ -1522,11 +1524,17 @@ function filterUsers(fieldId) {
     
     // Handle payToSelect dropdown separately
     if (fieldId === 'payToSelect') {
+        console.log('Processing payToSelect...');
+        console.log('businessPartners length:', businessPartners ? businessPartners.length : 'undefined');
+        console.log('searchText:', searchText);
+        
         try {
             const filtered = businessPartners.filter(bp => 
                 (bp.name && bp.name.toLowerCase().includes(searchText)) || 
                 (bp.code && bp.code.toLowerCase().includes(searchText))
             );
+            
+            console.log('Filtered business partners:', filtered.length);
             
             // Display search results
             filtered.forEach(bp => {
@@ -1752,6 +1760,9 @@ function populateTransactionTypesDropdown(types) {
 // Function to fetch business partners
 async function fetchBusinessPartners() {
     try {
+        console.log('Fetching business partners...');
+        console.log('BASE_URL:', BASE_URL);
+        
         const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
         
         if (!response.ok) {
@@ -1766,6 +1777,7 @@ async function fetchBusinessPartners() {
         
         businessPartners = result.data;
         console.log('Stored', businessPartners.length, 'business partners in global cache');
+        console.log('Sample business partner:', businessPartners[0]);
         
     } catch (error) {
         console.error("Error fetching business partners:", error);
@@ -1773,8 +1785,15 @@ async function fetchBusinessPartners() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded event fired');
+    console.log('BASE_URL available:', typeof BASE_URL !== 'undefined');
+    
+    // Call function to control button visibility
+    controlButtonVisibility();
+    
     // Load users, departments, business partners, and transaction types first
     Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
+        console.log('All initial data loaded');
         // Then load reimbursement data
         fetchReimbursementData();
     });
@@ -1790,16 +1809,22 @@ document.addEventListener('DOMContentLoaded', function() {
         'receivedBySearch'
     ];
     
+    console.log('Setting up event listeners for search fields:', searchFields);
+    
     searchFields.forEach(fieldId => {
         const searchInput = document.getElementById(fieldId);
+        console.log(`Setting up event listener for ${fieldId}:`, searchInput ? 'found' : 'not found');
+        
         if (searchInput) {
             searchInput.addEventListener('focus', function() {
+                console.log(`Focus event for ${fieldId}`);
                 const actualFieldId = fieldId.replace('Search', 'Select');
                 filterUsers(actualFieldId);
             });
             
             // Add input event for real-time filtering
             searchInput.addEventListener('input', function() {
+                console.log(`Input event for ${fieldId}, value:`, this.value);
                 const actualFieldId = fieldId.replace('Search', 'Select');
                 filterUsers(actualFieldId);
             });
@@ -2215,3 +2240,4 @@ function populateCategoriesForNewRow(row) {
         }
     }
 }
+

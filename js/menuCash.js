@@ -241,21 +241,52 @@
             doc.save('cash_advance_list.pdf');
         }
 
-        function goToMenu() { window.location.href = "Menu.html"; }
-        function goToAddDoc() {window.location.href = "AddDoc.html"; }
-        function goToAddReim() {window.location.href = "AddReim.html"; }
-        function goToAddCash() {window.location.href = "../addPages/AddCash.html"; }
-        function goToAddSettle() {window.location.href = "AddSettle.html"; }
-        function goToAddPO() {window.location.href = "AddPO.html"; }
-        function goToMenuPR() { window.location.href = "MenuPR.html"; }
-        function goToMenuReim() { window.location.href = "pages/menuReim.html"; }
-        function goToMenuCash() { window.location.href = "MenuCash.html"; }
-        function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-        function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-        function goToMenuPO() { window.location.href = "MenuPO.html"; }
-        function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-        function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-        function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; } 
+        function goToMenu() { 
+            window.location.href = "pages/dashboard.html"; 
+        }
+        function goToAddDoc() {
+            window.location.href = "addPages/addReim.html"; 
+        }
+        function goToAddReim() {
+            window.location.href = "addPages/addReim.html"; 
+        }
+        function goToAddCash() {
+            window.location.href = "addPages/addCash.html"; 
+        }
+        function goToAddSettle() {
+            window.location.href = "addPages/addSettle.html"; 
+        }
+        function goToAddPO() {
+            window.location.href = "addPages/addPO.html"; 
+        }
+        function goToMenuPR() { 
+            window.location.href = "pages/menuPR.html"; 
+        }
+        function goToMenuReim() { 
+            window.location.href = "pages/menuReim.html"; 
+        }
+        function goToMenuCash() { 
+            window.location.href = "pages/menuCash.html"; 
+        }
+        function goToMenuSettle() { 
+            window.location.href = "pages/menuSettle.html"; 
+        }
+        function goToApprovalReport() { 
+            window.location.href = "pages/approval-dashboard.html"; 
+        }
+        function goToMenuPO() { 
+            window.location.href = "pages/menuPO.html"; 
+        }
+        function goToMenuInvoice() { 
+            window.location.href = "pages/menuInvoice.html"; 
+        }
+        function goToMenuBanking() { 
+            window.location.href = "pages/menuBanking.html"; 
+        }
+        function logout() { 
+            localStorage.removeItem("loggedInUser"); 
+            window.location.href = "pages/login.html"; 
+        }
 
         function detailDoc(caId) {
             // Store the selected document ID in localStorage for the detail page to use

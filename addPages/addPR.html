@@ -268,52 +268,60 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
+                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="preparedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgeBy')" autocomplete="off">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="acknowledgeBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="acknowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="checkedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
+                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="approvedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off">
+                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="receivedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Notes Section -->
+        <div id="notesSection" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Notes</h3>
+            <div id="notesContent" class="text-sm text-gray-700">
+                <p class="italic">Loading notes...</p>
             </div>
         </div>
         <br>

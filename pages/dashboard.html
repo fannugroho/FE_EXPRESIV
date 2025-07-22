@@ -12,8 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../css/dashboard.css">
-    <!-- SignalR Client Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
     
     <style>
         body {
@@ -278,6 +277,246 @@
                             <p id="checkedDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                         </div>
                     </div>
+                    
+                    <!-- Hidden Checked Tab for Purchase Request -->
+                    <div id="checkedTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Prepared</h3>
+                                <p id="prPreparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Checked</h3>
+                                <p id="prCheckedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Rejected</h3>
+                                <p id="prRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Total</h3>
+                                <p id="prTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Acknowledge Tab for Purchase Request -->
+                    <div id="acknowledgeTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Total</h3>
+                                <p id="prAckTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Checked</h3>
+                                <p id="prAckCheckedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Acknowledged</h3>
+                                <p id="prAckAcknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Rejected</h3>
+                                <p id="prAckRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Approve Tab for Purchase Request -->
+                    <div id="approveTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Total</h3>
+                                <p id="prAppTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Acknowledge</h3>
+                                <p id="prAppAcknowledgeCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Approved</h3>
+                                <p id="prAppApprovedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Rejected</h3>
+                                <p id="prAppRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Receive Tab for Purchase Request -->
+                    <div id="receiveTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Total</h3>
+                                <p id="prRecTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Approved</h3>
+                                <p id="prRecApprovedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Received</h3>
+                                <p id="prRecReceivedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Rejected</h3>
+                                <p id="prRecRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Revision Tab for Purchase Request -->
+                    <div id="revisionTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Revision</h3>
+                                <p id="prRevRevisionCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">PR Prepared</h3>
+                                <p id="prRevPreparedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Checked Tab for Reimbursement -->
+                    <div id="reimCheckedTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Prepared</h3>
+                                <p id="reimPreparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Checked</h3>
+                                <p id="reimCheckedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Rejected</h3>
+                                <p id="reimRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Total</h3>
+                                <p id="reimTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Acknowledge Tab for Reimbursement -->
+                    <div id="reimAcknowledgeTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Total</h3>
+                                <p id="reimAckTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Checked</h3>
+                                <p id="reimAckCheckedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Acknowledged</h3>
+                                <p id="reimAckAcknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Rejected</h3>
+                                <p id="reimAckRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Approve Tab for Reimbursement -->
+                    <div id="reimApproveTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Total</h3>
+                                <p id="reimAppTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Acknowledge</h3>
+                                <p id="reimAppAcknowledgeCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Approved</h3>
+                                <p id="reimAppApprovedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Rejected</h3>
+                                <p id="reimAppRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Receive Tab for Reimbursement -->
+                    <div id="reimReceiveTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Total</h3>
+                                <p id="reimRecTotalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-yellow-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Approved</h3>
+                                <p id="reimRecApprovedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Received</h3>
+                                <p id="reimRecReceivedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-red-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Rejected</h3>
+                                <p id="reimRecRejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Revision Tab for Reimbursement -->
+                    <div id="reimRevisionTab" style="display: none;">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-blue-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Revision</h3>
+                                <p id="reimRevRevisionCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                                <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+                                <h3 class="text-lg font-semibold text-gray-800">Reim Prepared</h3>
+                                <p id="reimRevPreparedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
@@ -319,5 +558,53 @@
     <!-- Shared Components -->
     <script src="../components/shared/sidebar-loader.js"></script>
     <script src="../components/shared/navigation.js"></script>
+    
+    <!-- Hidden Debug Button for Checked Tab (for development/testing) -->
+    <div style="position: fixed; bottom: 10px; left: 10px; z-index: 1000; display: none;">
+        <button onclick="toggleCheckedTab()" style="background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+            Toggle Checked Tab
+        </button>
+        <button onclick="toggleAcknowledgeTab()" style="background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Acknowledge Tab
+        </button>
+        <button onclick="toggleApproveTab()" style="background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Approve Tab
+        </button>
+        <button onclick="toggleReceiveTab()" style="background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Receive Tab
+        </button>
+        <button onclick="toggleRevisionTab()" style="background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Revision Tab
+        </button>
+        <button onclick="showAllTabs()" style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Show All Tabs
+        </button>
+        <button onclick="hideAllTabs()" style="background: #dc3545; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Hide All Tabs
+        </button>
+        <br><br>
+        <!-- Reimbursement Debug Buttons -->
+        <button onclick="toggleReimCheckedTab()" style="background: #6f42c1; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+            Toggle Reim Checked Tab
+        </button>
+        <button onclick="toggleReimAcknowledgeTab()" style="background: #6f42c1; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Reim Acknowledge Tab
+        </button>
+        <button onclick="toggleReimApproveTab()" style="background: #6f42c1; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Reim Approve Tab
+        </button>
+        <button onclick="toggleReimReceiveTab()" style="background: #6f42c1; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Reim Receive Tab
+        </button>
+        <button onclick="toggleReimRevisionTab()" style="background: #6f42c1; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Toggle Reim Revision Tab
+        </button>
+        <button onclick="showAllReimTabs()" style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Show All Reim Tabs
+        </button>
+        <button onclick="hideAllReimTabs()" style="background: #dc3545; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-left: 5px;">
+            Hide All Reim Tabs
+        </button>
+    </div>
 </body>
 </html>

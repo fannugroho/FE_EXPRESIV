@@ -101,26 +101,57 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "Menu.html"; }
-function goToAddDoc() {window.location.href = "AddDoc.html"; }
-function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
-
-function goToDetailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+function goToMenu() { 
+    window.location.href = "../../../../pages/dashboard.html"; 
+}
+function goToAddDoc() {
+    window.location.href = "../../../../addPages/addReim.html"; 
+}
+function goToAddReim() {
+    window.location.href = "../../../../addPages/addReim.html"; 
+}
+function goToAddCash() {
+    window.location.href = "../../../../addPages/addCash.html"; 
+}
+function goToAddSettle() {
+    window.location.href = "../../../../addPages/addSettle.html"; 
+}
+function goToAddPO() {
+    window.location.href = "../../../../addPages/addPO.html"; 
+}
+function goToMenuPR() { 
+    window.location.href = "../../../../pages/menuPR.html"; 
 }
 
-function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+function goToDetailReim(reimId) {
+    window.location.href = `../../../../detailPages/detailReim.html?reim-id=${reimId}`;
+}
+
+function goToMenuReim() { 
+    window.location.href = "../../../../pages/menuReim.html"; 
+}
+function goToMenuCash() { 
+    window.location.href = "../../../../pages/menuCash.html"; 
+}
+function goToMenuSettle() { 
+    window.location.href = "../../../../pages/menuSettle.html"; 
+}
+function goToApprovalReport() { 
+    window.location.href = "../../../../pages/approval-dashboard.html"; 
+}
+function goToMenuPO() { 
+    window.location.href = "../../../../pages/menuPO.html"; 
+}
+function goToMenuInvoice() { 
+    window.location.href = "../../../../pages/menuInvoice.html"; 
+}
+function goToMenuBanking() { 
+    window.location.href = "../../../../pages/menuBanking.html"; 
+}
+function logout() { 
+    localStorage.removeItem("loggedInUser"); 
+    window.location.href = "../../../../pages/login.html"; 
+}
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {

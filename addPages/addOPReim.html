@@ -44,14 +44,13 @@
          * 
          * REMARKS FIELDS:
          * - remarks (Remarks) → remarks
-         * - journalRemarks (Journal Remarks) → Not available in new API
+         * - journalRemarks (Journal Remarks) → Manual input (not mapped from API)
          * - rejectionRemarks (Rejection Reason) → remarksRejectByChecker/remarksRejectByAcknowledger/remarksRejectByApprover/remarksRejectByReceiver
          * 
          * TABLE LINES:
          * - AcctCode (G/L Account) → reimbursementDetails[].glAccount
          * - AcctName (Account Name) → reimbursementDetails[].accountName
          * - description (Description) → reimbursementDetails[].description
-         * - division (Division) → reimbursementDetails[].category
          * - DocTotal (Net Amount) → reimbursementDetails[].amount
          * 
          * APPROVAL FIELDS:
@@ -109,7 +108,7 @@
                 <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
                 <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
+                <h3 class="text-lg font-semibold mb-2">Requester Payment</h3>
                 <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
@@ -121,15 +120,12 @@
                 </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
-                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off">
+                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <div style="display: none;">
-                    <h3 class="text-lg font-semibold mb-2">Tax Date</h3>
-                    <input type="date" id="TaxDate" class="w-full p-2 border rounded" autocomplete="off">
-                </div>
+
                 
                 <h3 class="text-lg font-semibold mb-2">Attachment</h3>
                 <div class="flex items-center space-x-2">
@@ -158,8 +154,7 @@
                 <h3 class="text-lg font-semibold mb-2">DocNum</h3>
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Comments</h3>
-                <input type="text" id="Comments" placeholder="Comments" class="w-full p-2 border rounded" autocomplete="off">
+
                 
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
                 <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off">
@@ -174,7 +169,20 @@
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
-                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded" autocomplete="off">
+                <select id="TrsfrAcct" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="" disabled selected>Select Account Bank Transfer</option>
+                    <option value="1110">1110 - Cash on hand (Rp)</option>
+                    <option value="1210">1210 - Mizuho Bank  (Rp)</option>
+                    <option value="1211">1211 - Mizuho Bank  (US$)</option>
+                    <option value="1212">1212 - Mizuho (JPY)</option>
+                    <option value="1213">1213 - MUFG Bank (Rp)</option>
+                    <option value="1214">1214 - MUFG Bank (US$)</option>
+                    <option value="1215">1215 - MUFG Bank (Jpy)</option>
+                    <option value="1222">1222 - CIMB NIAGA (Rp)</option>
+                    <option value="1310">1310 - Saving Account (IDR, Mizuho)</option>
+                    <option value="1313">1313 - Saving Account (IDR, MUFG)</option>
+                    <option value="1316">1316 - Saving Account (IDR, CIMB NIAGA)</option>
+                </select>
             </div>
         </div>
         
@@ -185,7 +193,6 @@
                     <th id="AcctCode" class="p-2">G/L Account</th>
                     <th id="AcctName" class="p-2">Account Name</th>
                     <th id="Descrip" class="p-2">Description</th>
-                    <th id="Division" class="p-2">Division</th>
                     <th id="DocTotal" class="p-2">Net Amount</th>
                     <th id="thActions" class="p-2">Action</th>
                 </tr>
@@ -200,9 +207,6 @@
                     </td>
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
-                    </td>
-                    <td id="tdDivision" class="p-2 border">
-                        <input type="text" id="division" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
@@ -609,9 +613,6 @@
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="description" maxlength="255" class="w-full" />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" id="division" maxlength="255" class="w-full" />
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />

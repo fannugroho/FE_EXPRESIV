@@ -392,7 +392,8 @@
                     // Dapatkan sel yang perlu di-scroll
                     const cells = row.cells;
                     
-                    cells.forEach(cell => {
+                    // Convert NodeList to Array to use forEach
+                    Array.from(cells).forEach(cell => {
                         if (cell && cell.textContent.trim().length > 15) {
                             cell.classList.add('scrollable-cell');
                         }

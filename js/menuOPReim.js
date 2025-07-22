@@ -8,6 +8,9 @@ let itemsPerPage = 10;
 let filteredDocuments = [];
 let allDocuments = [];
 
+// Global variable to store users
+let users = [];
+
 // Reusable function to fetch outgoing payment documents by approval step
 async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false) {
     try {
@@ -72,9 +75,9 @@ async function fetchPreparedDocuments(userId) {
 }
 
 // Fungsi untuk menampilkan modal reimbursement
-function showReimbursementModal() {
+async function showReimbursementModal() {
     // Ambil data reimbursement
-    fetchReimbursementDocs();
+    await fetchReimbursementDocs();
     
     // Tampilkan modal
     const modal = document.getElementById('reimbursementModal');
@@ -109,24 +112,30 @@ function closeReimbursementModal() {
 }
 
 // Fungsi untuk mengambil data dokumen
-function fetchReimbursementDocs() {
+async function fetchReimbursementDocs() {
     const tableBody = document.getElementById("reimbursementDocs");
     tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">Loading data...</td></tr>';
     
-    fetch(`${BASE_URL}/api/reimbursements?Status=received`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'accept': '*/*'
+    try {
+        // Fetch users first if not already loaded
+        if (users.length === 0) {
+            await fetchUsers();
         }
-    })
-    .then(response => {
+        
+        const response = await fetch(`${BASE_URL}/api/reimbursements?Status=received`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'accept': '*/*'
+            }
+        });
+        
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        return response.json();
-    })
-    .then(data => {
+        
+        const data = await response.json();
+        
         if (data.status && data.data) {
             // Format baru dengan property status dan data
             reimbursementDocs = data.data;
@@ -146,11 +155,10 @@ function fetchReimbursementDocs() {
         } else {
             tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">No data available</td></tr>';
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error fetching document data:', error);
         tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>';
-    });
+    }
 }
 
 // Fungsi untuk menampilkan dokumen
@@ -174,7 +182,7 @@ function displayReimbursementDocs(docs) {
         
         // Format data berdasarkan struktur API baru
         const voucherNo = applyScrollClass(doc.voucherNo || '-');
-        const requesterName = applyScrollClass(doc.requesterName || '-');
+        const requesterName = applyScrollClass(doc.receivedByName || doc.receivedBy || '-');
         const department = applyScrollClass(doc.department || '-');
         
         // Format nilai Total
@@ -183,10 +191,13 @@ function displayReimbursementDocs(docs) {
         
         // Format tanggal
         const postingDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
-        const dueDate = doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-';
+        const dueDate = doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : 
+                       (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-');
         
-        // Pay To
-        const payTo = applyScrollClass(doc.payToName || '-');
+        // Pay To - Map user ID to user name
+        const payToId = doc.payTo;
+        const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || '-');
+        const payTo = applyScrollClass(payToName);
         
         // Status
         const status = doc.status || 'Draft';
@@ -231,11 +242,17 @@ function filterReimbursementDocs() {
     }
     
     const filteredDocs = reimbursementDocs.filter(doc => {
+        // Get mapped payTo name for search
+        const payToId = doc.payTo;
+        const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || '');
+        
         return (
             (doc.voucherNo && doc.voucherNo.toLowerCase().includes(searchTerm)) ||
             (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
             (doc.department && doc.department.toLowerCase().includes(searchTerm)) ||
-            (doc.payToName && doc.payToName.toLowerCase().includes(searchTerm)) ||
+            (payToName && payToName.toLowerCase().includes(searchTerm)) ||
+            (doc.receivedByName && doc.receivedByName.toLowerCase().includes(searchTerm)) ||
+            (doc.receivedBy && doc.receivedBy.toLowerCase().includes(searchTerm)) ||
             (doc.status && doc.status.toLowerCase().includes(searchTerm))
         );
     });
@@ -284,6 +301,9 @@ async function loadDashboard() {
     console.log('Loading dashboard with userId:', userId);
 
     try {
+        // Fetch users first
+        await fetchUsers();
+        
         // Fetch dashboard summary data
         const summaryResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/dashboard/summary`);
         const summaryData = await summaryResponse.json();
@@ -344,6 +364,51 @@ async function loadDashboard() {
     }
 }
 
+// Function to fetch users from API
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch users: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            users = result.data;
+        } else if (Array.isArray(result)) {
+            users = result;
+        } else if (result.data) {
+            users = result.data;
+        } else {
+            users = [];
+        }
+        
+        console.log('Users loaded successfully:', users.length);
+        return users;
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        return [];
+    }
+}
+
+// Function to get user name by ID
+function getUserNameById(userId) {
+    if (!users || users.length === 0) {
+        return userId; // Return the ID if users not loaded
+    }
+    
+    const user = users.find(u => u.id === userId);
+    return user ? (user.fullName || user.name || user.userName || userId) : userId;
+}
+
 // Function untuk menampilkan dokumen dengan pagination
 function displayDocuments(documents) {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -368,7 +433,11 @@ function displayDocuments(documents) {
         // Memformat data dengan kelas scrollable jika perlu
         const reimburseNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
         const requester = applyScrollClass(doc.requesterName || '-');
-        const payTo = applyScrollClass(doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-');
+        const requesterName = applyScrollClass(doc.receivedByName || doc.receivedBy || '-');
+        // Pay To - Map user ID to user name
+        const payToId = doc.payTo;
+        const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '-');
+        const payTo = applyScrollClass(payToName);
         
         // Calculate total amount from lines (like menuOPReimCheck.js)
         let calculatedTotalAmount = 0;
@@ -397,13 +466,15 @@ function displayDocuments(documents) {
                        (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : 
                        (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-'));
         
-        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : 
-                       (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-');
+        const dueDate = doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : 
+                       (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : 
+                       (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'));
         
         const row = `<tr class='border-b'>
             <td class='p-2'>${startIndex + index + 1}</td>
             <td class='p-2'>${reimburseNo}</td>
             <td class='p-2'>${requester}</td>
+            <td class='p-2'>${requesterName}</td>
             <td class='p-2'>${payTo}</td>
             <td class='p-2'>${docDate}</td>
             <td class='p-2'>${dueDate}</td>
@@ -545,14 +616,18 @@ async function switchTab(tab) {
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm));
                 } else if (searchType === 'requester') {
                     return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'requesterName') {
+                    const requesterName = doc.receivedByName || doc.receivedBy || '';
+                    return requesterName.toLowerCase().includes(searchTerm);
                 } else if (searchType === 'payTo') {
-                    const payTo = doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '';
-                    return payTo.toLowerCase().includes(searchTerm);
+                    const payToId = doc.payTo;
+                    const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
+                    return payToName.toLowerCase().includes(searchTerm);
                 } else if (searchType === 'docDate') {
                     const docDate = doc.docDate || doc.postingDate || doc.submissionDate;
                     return docDate && new Date(docDate).toLocaleDateString().toLowerCase().includes(searchTerm);
                 } else if (searchType === 'dueDate') {
-                    const dueDate = doc.docDueDate || doc.dueDate;
+                    const dueDate = doc.receivedDate || doc.docDueDate || doc.dueDate;
                     return dueDate && new Date(dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
                 } else if (searchType === 'totalAmount') {
                     // Handle multiple possible field names for Total Amount
@@ -574,15 +649,20 @@ async function switchTab(tab) {
                     return status.toLowerCase().includes(searchTerm);
                 } else {
                     // Default search across multiple fields
+                    const payToId = doc.payTo;
+                    const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
+                    
                     return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
                            (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
                            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm)) ||
                            (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+                           (doc.receivedByName && doc.receivedByName.toLowerCase().includes(searchTerm)) ||
+                           (doc.receivedBy && doc.receivedBy.toLowerCase().includes(searchTerm)) ||
                            (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
                            (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
                            (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm)) ||
-                           (doc.payToName && doc.payToName.toLowerCase().includes(searchTerm)) ||
+                           (payToName && payToName.toLowerCase().includes(searchTerm)) ||
                            (doc.comments && doc.comments.toLowerCase().includes(searchTerm));
                 }
             });
@@ -703,7 +783,7 @@ function downloadExcel() {
     
     // Convert data to worksheet format
     const wsData = [
-        ["No.", "Reimburse No", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
+        ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
     ];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -719,13 +799,18 @@ function downloadExcel() {
             calculatedTotalAmount = totalLCValue + totalFCValue;
         }
         
+        // Get mapped payTo name
+        const payToId = doc.payTo;
+        const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '-');
+        
         wsData.push([
             index + 1,
             doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
-            doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-',
+            doc.receivedByName || doc.receivedBy || '-',
+            payToName,
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
-            doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'),
+            doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
             doc.status || '-'
         ]);
@@ -767,7 +852,7 @@ function downloadPDF() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Prepare table data
-    const tableColumn = ["No.", "Reimburse No", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"];
+    const tableColumn = ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Document Date", "Total Amount", "Status"];
     const tableRows = [];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -783,13 +868,18 @@ function downloadPDF() {
             calculatedTotalAmount = totalLCValue + totalFCValue;
         }
         
+        // Get mapped payTo name
+        const payToId = doc.payTo;
+        const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '-');
+        
         const rowData = [
             index + 1,
             doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
-            doc.cardName || doc.bpName || doc.paidToName || doc.payToName || '-',
+            doc.receivedByName || doc.receivedBy || '-',
+            payToName,
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
-            doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-'),
+            doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
             doc.status || '-'
         ];
@@ -823,21 +913,50 @@ function downloadPDF() {
     doc.save(fileName);
 }
 
-function goToMenu() { window.location.href = "Menu.html"; }
-function goToAddDoc() {window.location.href = "AddDoc.html"; }
-function goToAddReim() {window.location.href = "AddReim.html"; }
+function goToMenu() { 
+    window.location.href = "pages/dashboard.html"; 
+}
+function goToAddDoc() {
+    window.location.href = "addPages/addReim.html"; 
+}
+function goToAddReim() {
+    window.location.href = "addPages/addReim.html"; 
+}
 
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
-function goToMenuReim() { window.location.href = "pages/menuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; } 
+function goToAddSettle() {
+    window.location.href = "addPages/addSettle.html"; 
+}
+function goToAddPO() {
+    window.location.href = "addPages/addPO.html"; 
+}
+function goToMenuPR() { 
+    window.location.href = "pages/menuPR.html"; 
+}
+function goToMenuReim() { 
+    window.location.href = "pages/menuReim.html"; 
+}
+function goToMenuCash() { 
+    window.location.href = "pages/menuCash.html"; 
+}
+function goToMenuSettle() { 
+    window.location.href = "pages/menuSettle.html"; 
+}
+function goToApprovalReport() { 
+    window.location.href = "pages/approval-dashboard.html"; 
+}
+function goToMenuPO() { 
+    window.location.href = "pages/menuPO.html"; 
+}
+function goToMenuInvoice() { 
+    window.location.href = "pages/menuInvoice.html"; 
+}
+function goToMenuBanking() { 
+    window.location.href = "pages/menuBanking.html"; 
+}
+function logout() { 
+    localStorage.removeItem("loggedInUser"); 
+    window.location.href = "pages/login.html"; 
+}
 
 // Function to handle search input
 function handleSearch() {

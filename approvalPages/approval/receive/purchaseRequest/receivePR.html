@@ -580,20 +580,21 @@
             const textarea = event.target;
             const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
             
-            // If user tries to modify content before the prefix length
-            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
-                // Restore the prefix
-                const userInfo = getUserInfo();
-                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            // Get the expected prefix
+            const userInfo = getUserInfo();
+            const expectedPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+            
+            // Check if the current value starts with the expected prefix
+            if (!textarea.value.startsWith(expectedPrefix)) {
+                // If prefix is damaged, restore it
+                const userText = textarea.value.substring(prefixLength);
+                textarea.value = expectedPrefix + userText;
                 
-                // Only restore if the prefix is damaged
-                if (!textarea.value.startsWith(prefix)) {
-                    const userText = textarea.value.substring(prefixLength);
-                    textarea.value = prefix + userText;
-                    
-                    // Reset cursor position after the prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                } else {
+                // Reset cursor position after the prefix
+                textarea.setSelectionRange(prefixLength, prefixLength);
+            } else {
+                // If user tries to modify content before or within the prefix
+                if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
                     // Just move cursor after prefix
                     textarea.setSelectionRange(prefixLength, prefixLength);
                 }

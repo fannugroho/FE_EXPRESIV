@@ -1,9 +1,17 @@
 // Authentication utilities for handling JWT tokens and API calls
 
-// API Configuration
+// API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
-    var BASE_URL = "https://expressiv.idsdev.site";
-    // var BASE_URL = "http://localhost:5246"
+    // Production environment
+    var BASE_URL = "https://expressiv-be-sb.idsdev.site";
+    
+    // Development environment (uncomment for local development)
+    // var BASE_URL = "http://localhost:5246";
+    
+    // Staging environment (uncomment for staging)
+    // var BASE_URL = "https://expressiv.idsdev.site";
+    
+    console.log('Using BASE_URL:', BASE_URL);
 }
 
 // Helper function to get access token from localStorage

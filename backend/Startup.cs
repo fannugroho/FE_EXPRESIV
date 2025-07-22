@@ -1,5 +1,4 @@
 using ExpressivSystem.Services;
-using ExpressivSystem.Hubs;
 
 namespace ExpressivSystem
 {
@@ -9,10 +8,20 @@ namespace ExpressivSystem
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // ... existing service configurations ...
+            // Add CORS configuration
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", builder =>
+                {
+                    builder
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            });
 
-            // Add SignalR
-            services.AddSignalR();
+            // ... existing service configurations ...
 
             // Add Notification Service
             services.AddScoped<INotificationService, NotificationService>();
@@ -24,12 +33,14 @@ namespace ExpressivSystem
         {
             // ... existing middleware configurations ...
 
+            // Use CORS before routing
+            app.UseCors("AllowAll");
+
+            // ... existing middleware configurations ...
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                
-                // Add SignalR Hub
-                endpoints.MapHub<NotificationHub>("/notificationHub");
                 
                 // ... existing endpoint mappings ...
             });

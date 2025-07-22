@@ -709,12 +709,10 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users);
-        populateDropdown("preparedBySelect", users);
-        populateDropdown("acknowledgeBySelect", users);
-        populateDropdown("checkedBySelect", users);
-        populateDropdown("approvedBySelect", users);
-        populateDropdown("receivedBySelect", users);
         populateDropdown("payToSelect", users);
+        
+        // For approval fields, we'll populate them based on transaction type selection
+        // Don't populate them with all users initially
         
         // Auto-fill preparedBy with logged-in user
         autoFillPreparedBy(users);
@@ -739,6 +737,18 @@ async function fetchUsers() {
                 
                 // Auto-fill department based on requester
                 autoFillDepartmentFromRequester(selectedName, users);
+            });
+        }
+        
+        // Add event listener for transaction type dropdown to populate superior employees
+        const transactionTypeSelect = document.getElementById("typeOfTransaction");
+        if (transactionTypeSelect) {
+            transactionTypeSelect.addEventListener("change", function() {
+                const selectedTransactionType = this.value;
+                if (selectedTransactionType) {
+                    console.log('Transaction type changed to:', selectedTransactionType);
+                    populateAllSuperiorEmployeeDropdowns(selectedTransactionType);
+                }
             });
         }
         
@@ -797,18 +807,28 @@ function autoFillPreparedBy(users) {
     // Construct full name
     let displayName = currentUser.fullName;
     
-    // Set the preparedBy select value
-    const preparedBySelect = document.getElementById("preparedBySelect");
-    if (preparedBySelect) {
-        preparedBySelect.value = currentUser.id;
-    }
-    
     // Set the preparedBy search input value and disable it
     const preparedBySearch = document.getElementById("preparedBySearch");
     if (preparedBySearch) {
         preparedBySearch.value = displayName;
         preparedBySearch.disabled = true;
         preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+    }
+    
+    // Also set the select element value to ensure it's available for form submission
+    const preparedBySelect = document.getElementById("preparedBySelect");
+    if (preparedBySelect) {
+        // Clear existing options
+        preparedBySelect.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+        
+        // Add current user as an option
+        const option = document.createElement('option');
+        option.value = currentUserId;
+        option.textContent = displayName;
+        option.selected = true;
+        preparedBySelect.appendChild(option);
+        
+        console.log('Auto-filled preparedBy select with current user:', currentUserId);
     }
 }
 
@@ -1080,7 +1100,18 @@ async function processDocument(isSubmit) {
         const selectElement = document.getElementById(`${id}Select`);
         
         // Always use the select element value which contains the ID
-        return selectElement ? selectElement.value : "";
+        let value = selectElement ? selectElement.value : "";
+        
+        // Special handling for preparedBy - if empty, use current user ID
+        if (id === "preparedBy" && !value) {
+            const currentUserId = getUserId();
+            if (currentUserId) {
+                value = currentUserId;
+                console.log('Using current user ID for preparedBy:', currentUserId);
+            }
+        }
+        
+        return value;
     };
 
     // Get the selected user for payTo to extract additional information
@@ -1751,6 +1782,209 @@ function populateCategoriesForNewRow(row) {
                 }
             });
         }
+    }
+}
+
+// New function to fetch superior employees based on document type, transaction type, and superior level
+async function fetchSuperiorEmployees(documentType, transactionType, superiorLevel) {
+    try {
+        const currentUserId = getUserId();
+        if (!currentUserId) {
+            console.error('No current user ID found');
+            return [];
+        }
+
+        const response = await fetch(`${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch superior employees');
+        }
+        
+        const allSuperiors = result.data;
+        
+        // Filter by transaction type and superior level
+        const filteredSuperiors = allSuperiors.filter(superior => {
+            // Map transaction type to API transaction type
+            const transactionTypeMap = {
+                'Entertainment': 'EN',
+                'Golf Competition': 'GC',
+                'Medical': 'ME',
+                'Others': 'OT',
+                'Travelling': 'TR'
+            };
+            
+            const apiTransactionType = transactionTypeMap[transactionType];
+            if (!apiTransactionType) {
+                console.warn(`Unknown transaction type: ${transactionType}`);
+                return false;
+            }
+            
+            return superior.typeTransaction === apiTransactionType && superior.superiorLevel === superiorLevel;
+        });
+        
+        console.log(`Found ${filteredSuperiors.length} superior employees for ${documentType}/${transactionType}/${superiorLevel}`);
+        
+        // Fetch full user details for each superior to get full names
+        const superiorsWithFullNames = [];
+        
+        for (const superior of filteredSuperiors) {
+            try {
+                // Try to get full name from cached users first
+                let fullName = superior.superiorName; // Default to the name from API
+                
+                if (window.allUsers && window.allUsers.length > 0) {
+                    const user = window.allUsers.find(u => u.id === superior.superiorUserId);
+                    if (user && user.fullName) {
+                        fullName = user.fullName;
+                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                    }
+                } else {
+                    // Fetch user details from API if not in cache
+                    try {
+                        const userResponse = await fetch(`${BASE_URL}/api/users/${superior.superiorUserId}`);
+                        if (userResponse.ok) {
+                            const userResult = await userResponse.json();
+                            if (userResult.status && userResult.data && userResult.data.fullName) {
+                                fullName = userResult.data.fullName;
+                                console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch full name for user ${superior.superiorUserId}:`, error);
+                        // Keep the original superiorName if API call fails
+                    }
+                }
+                
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: fullName
+                });
+                
+            } catch (error) {
+                console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                // Add the superior with original name if there's an error
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: superior.superiorName
+                });
+            }
+        }
+        
+        return superiorsWithFullNames;
+        
+    } catch (error) {
+        console.error("Error fetching superior employees:", error);
+        return [];
+    }
+}
+
+// Function to map superior level to field ID
+function getSuperiorLevelForField(fieldId) {
+    const levelMap = {
+        'preparedBySelect': 'PR',
+        'checkedBySelect': 'CH',
+        'acknowledgeBySelect': 'AC',
+        'approvedBySelect': 'AP',
+        'receivedBySelect': 'RE'
+    };
+    return levelMap[fieldId] || null;
+}
+
+// Function to populate superior employee dropdown
+async function populateSuperiorEmployeeDropdown(fieldId, documentType, transactionType) {
+    const superiorLevel = getSuperiorLevelForField(fieldId);
+    if (!superiorLevel) {
+        console.error(`No superior level mapping found for field: ${fieldId}`);
+        return;
+    }
+    
+    const superiors = await fetchSuperiorEmployees(documentType, transactionType, superiorLevel);
+    
+    // Clear existing options
+    const selectElement = document.getElementById(fieldId);
+    if (!selectElement) return;
+    
+    selectElement.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+    
+    // Add superior employees to dropdown
+    superiors.forEach(superior => {
+        const option = document.createElement('option');
+        option.value = superior.superiorUserId;
+        option.textContent = superior.superiorFullName; // Use superiorFullName
+        selectElement.appendChild(option);
+    });
+    
+    // Update the search input dataset
+    const searchInput = document.getElementById(fieldId.replace('Select', '') + 'Search');
+    if (searchInput) {
+        searchInput.dataset.users = JSON.stringify(superiors.map(s => ({
+            id: s.superiorUserId,
+            name: s.superiorFullName // Use superiorFullName
+        })));
+    }
+    
+    // Special handling for preparedBy - auto-select current user if they are in the superiors list
+    if (fieldId === 'preparedBySelect') {
+        const currentUserId = getUserId();
+        if (currentUserId) {
+            const currentUserInSuperiors = superiors.find(s => s.superiorUserId === currentUserId);
+            if (currentUserInSuperiors) {
+                selectElement.value = currentUserId;
+                console.log('Auto-selected current user for preparedBy from superiors list');
+            } else {
+                // If current user is not in superiors list, add them as an option
+                const currentUser = window.allUsers ? window.allUsers.find(u => u.id === currentUserId) : null;
+                if (currentUser) {
+                    const option = document.createElement('option');
+                    option.value = currentUserId;
+                    option.textContent = currentUser.fullName || currentUser.name;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                    console.log('Added current user to preparedBy select (not in superiors list)');
+                }
+            }
+        }
+    }
+    
+    // Set pending approval values if they exist
+    if (window.pendingApprovalValues) {
+        const fieldPrefix = fieldId.replace('Select', '');
+        const pendingUserId = window.pendingApprovalValues[fieldPrefix];
+        if (pendingUserId) {
+            // Check if the user exists in the superiors list
+            const matchingSuperior = superiors.find(s => s.superiorUserId === pendingUserId);
+            if (matchingSuperior) {
+                selectElement.value = pendingUserId;
+                const searchInput = document.getElementById(fieldId.replace('Select', '') + 'Search');
+                if (searchInput) {
+                    searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
+                }
+                console.log(`Set pending approval value for ${fieldPrefix}:`, pendingUserId);
+            }
+        }
+    }
+}
+
+// Function to populate all superior employee dropdowns
+async function populateAllSuperiorEmployeeDropdowns(transactionType) {
+    const documentType = 'RE'; // Reimbursement
+    
+    const approvalFields = [
+        'preparedBySelect',
+        'checkedBySelect', 
+        'acknowledgeBySelect',
+        'approvedBySelect',
+        'receivedBySelect'
+    ];
+    
+    for (const fieldId of approvalFields) {
+        await populateSuperiorEmployeeDropdown(fieldId, documentType, transactionType);
     }
 }
     

@@ -102,7 +102,7 @@ function populateFormFields(data) {
     document.getElementById('Comments').value = data.comments || '';
     document.getElementById('JrnlMemo').value = data.jrnlMemo || '';
     document.getElementById('DocCurr').value = data.docCurr || 'IDR';
-    document.getElementById('DiffCurr').value = data.diffCurr || 'IDR';
+    document.getElementById('TypeOfTransaction').value = data.type || 'REIMBURSEMENT';
     document.getElementById('TrsfrAcct').value = data.trsfrAcct || '';
     document.getElementById('TrsfrSum').value = formatCurrency(data.trsfrSum) || '0';
     
@@ -174,7 +174,6 @@ function populateTableRows(lines) {
             <td class="p-2 border">${line.acctCode || ''}</td>
             <td class="p-2 border">${line.acctName || ''}</td>
             <td class="p-2 border">${line.descrip || ''}</td>
-            <td class="p-2 border">${line.ocrCode3 || ''}</td>
             <td class="p-2 border text-right">${formatCurrency(line.sumApplied) || '0'}</td>
         `;
         tableBody.appendChild(row);

@@ -209,26 +209,57 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { window.location.href = "Menu.html"; }
-function goToAddDoc() {window.location.href = "AddDoc.html"; }
-function goToAddReim() {window.location.href = "../addPages/addReim.html"; }
-function goToAddCash() {window.location.href = "AddCash.html"; }
-function goToAddSettle() {window.location.href = "AddSettle.html"; }
-function goToAddPO() {window.location.href = "AddPO.html"; }
-function goToMenuPR() { window.location.href = "MenuPR.html"; }
-
-function goToDetailReim(reimId) {
-    window.location.href = `/detailPages/detailReim.html?reim-id=${reimId}`;
+function goToMenu() { 
+    window.location.href = "../../../../pages/dashboard.html"; 
+}
+function goToAddDoc() {
+    window.location.href = "../../../../addPages/addReim.html"; 
+}
+function goToAddReim() {
+    window.location.href = "../../../../addPages/addReim.html"; 
+}
+function goToAddCash() {
+    window.location.href = "../../../../addPages/addCash.html"; 
+}
+function goToAddSettle() {
+    window.location.href = "../../../../addPages/addSettle.html"; 
+}
+function goToAddPO() {
+    window.location.href = "../../../../addPages/addPO.html"; 
+}
+function goToMenuPR() { 
+    window.location.href = "../../../../pages/menuPR.html"; 
 }
 
-function goToMenuReim() { window.location.href = "../../../../pages/menuReim.html"; }
-function goToMenuCash() { window.location.href = "MenuCash.html"; }
-function goToMenuSettle() { window.location.href = "MenuSettle.html"; }
-function goToApprovalReport() { window.location.href = "ApprovalReport.html"; }
-function goToMenuPO() { window.location.href = "MenuPO.html"; }
-function goToMenuInvoice() { window.location.href = "MenuInvoice.html"; }
-function goToMenuBanking() { window.location.href = "MenuBanking.html"; }
-function logout() { localStorage.removeItem("loggedInUser"); window.location.href = "Login.html"; }
+function goToDetailReim(reimId) {
+    window.location.href = `../../../../detailPages/detailReim.html?reim-id=${reimId}`;
+}
+
+function goToMenuReim() { 
+    window.location.href = "../../../../pages/menuReim.html"; 
+}
+function goToMenuCash() { 
+    window.location.href = "../../../../pages/menuCash.html"; 
+}
+function goToMenuSettle() { 
+    window.location.href = "../../../../pages/menuSettle.html"; 
+}
+function goToApprovalReport() { 
+    window.location.href = "../../../../pages/approval-dashboard.html"; 
+}
+function goToMenuPO() { 
+    window.location.href = "../../../../pages/menuPO.html"; 
+}
+function goToMenuInvoice() { 
+    window.location.href = "../../../../pages/menuInvoice.html"; 
+}
+function goToMenuBanking() { 
+    window.location.href = "../../../../pages/menuBanking.html"; 
+}
+function logout() { 
+    localStorage.removeItem("loggedInUser"); 
+    window.location.href = "../../../../pages/login.html"; 
+}
 
 // Function to redirect to detail page with reimbursement ID
 function detailReim(reimId) {
@@ -598,6 +629,71 @@ function updateNotificationBadge() {
     }
 }
 
+// Debug function to check notification elements
+function debugNotificationElements() {
+    console.log('=== Notification Debug Info ===');
+    console.log('Notification bell element:', document.getElementById('notificationBell'));
+    console.log('Notification badge element:', document.getElementById('notificationBadge'));
+    console.log('Notification container:', notificationContainer);
+    console.log('Is notification visible:', isNotificationVisible);
+    console.log('Notified reimbursements:', Array.from(notifiedReims));
+    console.log('User ID:', getUserId());
+    console.log('Base URL:', BASE_URL);
+    console.log('================================');
+}
+
+// Test function to manually trigger notification (for debugging)
+function testNotification() {
+    console.log('Testing notification system...');
+    const testDoc = {
+        voucherNo: 'TEST-REIM-001',
+        requesterName: 'Test User',
+        department: 'Test Department',
+        submissionDate: new Date().toISOString(),
+        status: 'Prepared'
+    };
+    showNotification(testDoc);
+    playNotificationSound();
+    console.log('Test notification triggered');
+}
+
+// Test function to manually test audio only
+function testAudio() {
+    console.log('=== MANUAL AUDIO TEST ===');
+    console.log('Forcing user interaction to true');
+    document.hasInteracted = true;
+    console.log('User interaction set to:', document.hasInteracted);
+    playNotificationSound();
+}
+
+// Test function to check audio file availability
+async function testAudioFile() {
+    console.log('=== AUDIO FILE TEST ===');
+    const audioPaths = [
+        '../../../../components/shared/tones.mp3',
+        '../../../components/shared/tones.mp3',
+        '/components/shared/tones.mp3',
+        './components/shared/tones.mp3',
+        'components/shared/tones.mp3'
+    ];
+    
+    for (let i = 0; i < audioPaths.length; i++) {
+        const path = audioPaths[i];
+        try {
+            const response = await fetch(path);
+            console.log(`Path ${i + 1}: ${path} - Status: ${response.status} ${response.statusText}`);
+        } catch (error) {
+            console.log(`Path ${i + 1}: ${path} - Error: ${error.message}`);
+        }
+    }
+}
+
+// Add test function to window for console access
+window.testNotification = testNotification;
+window.debugNotificationElements = debugNotificationElements;
+window.testAudio = testAudio;
+window.testAudioFile = testAudioFile;
+
 function toggleNotificationPanel() {
     if (!notificationContainer) {
         createNotificationPanel();
@@ -749,6 +845,11 @@ async function pollPreparedDocs() {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
+        if (!response.ok) {
+            console.error('API response not ok:', response.status, response.statusText);
+            return;
+        }
+        
         const data = await response.json();
         if (!data.status || data.code !== 200) {
             console.log('API response error:', data);
@@ -813,28 +914,95 @@ async function pollCheckedDocs() {
 }
 
 function playNotificationSound() {
+    console.log('=== AUDIO DEBUG START ===');
     console.log('Attempting to play notification sound');
+    console.log('User interaction status:', document.hasInteracted);
+    console.log('Current page URL:', window.location.href);
+    
     try {
-        // Use the correct path from current directory to components/shared/tones.mp3
-        const audioPath = '../../../../components/shared/tones.mp3';
+        // Multiple audio paths to try
+        const audioPaths = [
+            '../../../../components/shared/tones.mp3',
+            '../../../components/shared/tones.mp3',
+            '/components/shared/tones.mp3',
+            './components/shared/tones.mp3',
+            'components/shared/tones.mp3'
+        ];
         
         // Only attempt to play if user has interacted with the page
         if (document.hasInteracted) {
-            console.log('User has interacted, attempting to play audio from:', audioPath);
-            const audio = new Audio(audioPath);
-            audio.volume = 0.5; // Set volume to 50%
+            console.log('User has interacted, attempting to play audio');
             
-            audio.play().then(() => {
-                console.log('Notification sound played successfully');
-            }).catch(e => {
-                console.warn('Failed to play notification sound:', e);
-            });
+            // Try each path until one works
+            let audioPlayed = false;
+            
+            for (let i = 0; i < audioPaths.length && !audioPlayed; i++) {
+                const audioPath = audioPaths[i];
+                console.log(`Trying audio path ${i + 1}/${audioPaths.length}:`, audioPath);
+                
+                try {
+                    const audio = new Audio(audioPath);
+                    audio.volume = 0.5; // Set volume to 50%
+                    
+                    // Add event listeners for debugging
+                    audio.addEventListener('loadstart', () => console.log(`Audio ${i + 1}: Load started`));
+                    audio.addEventListener('canplay', () => console.log(`Audio ${i + 1}: Can play`));
+                    audio.addEventListener('canplaythrough', () => console.log(`Audio ${i + 1}: Can play through`));
+                    audio.addEventListener('error', function(e) {
+                        console.warn(`Audio ${i + 1} loading error:`, e);
+                        console.warn('Error details:', e.target.error);
+                    });
+                    
+                    // Try to play the audio
+                    audio.play().then(() => {
+                        console.log(`Audio ${i + 1} played successfully from:`, audioPath);
+                        audioPlayed = true;
+                    }).catch(e => {
+                        console.warn(`Audio ${i + 1} play failed:`, e);
+                        console.warn('Error details:', e.message);
+                    });
+                    
+                    // If we successfully started playing, break the loop
+                    if (audioPlayed) break;
+                    
+                } catch (e) {
+                    console.warn(`Audio ${i + 1} creation failed:`, e);
+                }
+            }
+            
+            if (!audioPlayed) {
+                console.error('All audio paths failed to play');
+                // Try to create a simple beep sound as fallback
+                try {
+                    console.log('Attempting to create fallback beep sound');
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    
+                    console.log('Fallback beep sound created successfully');
+                } catch (e) {
+                    console.error('Fallback beep sound also failed:', e);
+                }
+            }
+            
         } else {
             console.log('User has not interacted with page yet, cannot play audio');
+            console.log('Please click or press any key on the page to enable audio');
         }
     } catch (e) {
-        console.warn('Failed to play notification sound:', e);
+        console.error('Failed to play notification sound:', e);
     }
+    
+    console.log('=== AUDIO DEBUG END ===');
 }
 
 // Polling interval (setiap 10 detik)
@@ -844,18 +1012,34 @@ setInterval(() => {
 }, 10000);
 
 // Track user interaction for audio playback
-document.addEventListener('click', function() {
+function enableUserInteraction() {
     document.hasInteracted = true;
-});
+    console.log('User interaction enabled:', document.hasInteracted);
+}
 
-document.addEventListener('keydown', function() {
-    document.hasInteracted = true;
-});
+document.addEventListener('click', enableUserInteraction);
+document.addEventListener('keydown', enableUserInteraction);
+document.addEventListener('mousedown', enableUserInteraction);
+document.addEventListener('touchstart', enableUserInteraction);
+document.addEventListener('scroll', enableUserInteraction);
+
+// Also enable on page load after a short delay
+setTimeout(() => {
+    if (!document.hasInteracted) {
+        console.log('Auto-enabling user interaction after timeout');
+        enableUserInteraction();
+    }
+}, 2000);
 
 // Jalankan polling pertama kali dan setup event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Load dashboard
     loadDashboard();
+    
+    // Debug notification elements
+    setTimeout(() => {
+        debugNotificationElements();
+    }, 500);
     
     // Tambahkan polling notifikasi
     setTimeout(() => {
@@ -863,8 +1047,20 @@ document.addEventListener('DOMContentLoaded', function() {
         pollCheckedDocs();
         updateNotificationBadge();
         
-        // Tutup panel jika klik di luar
+        // Setup notification bell event listener
         const bell = document.getElementById('notificationBell');
+        if (bell) {
+            console.log('Setting up notification bell event listener');
+            bell.addEventListener('click', function(event) {
+                event.stopPropagation();
+                console.log('Notification bell clicked');
+                toggleNotificationPanel();
+            });
+        } else {
+            console.error('Notification bell element not found');
+        }
+        
+        // Tutup panel jika klik di luar
         document.addEventListener('click', function(event) {
             if (notificationContainer && 
                 !notificationContainer.contains(event.target) && 

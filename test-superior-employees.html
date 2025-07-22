@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Superior Employees with Full Names</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-4xl">
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Test Superior Employees with Full Names</h2>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Document Type:</label>
+            <select id="documentType" class="w-full p-2 border rounded">
+                <option value="RE">Reimbursement (RE)</option>
+                <option value="PR">Purchase Request (PR)</option>
+            </select>
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Transaction Type:</label>
+            <select id="transactionType" class="w-full p-2 border rounded">
+                <option value="" disabled selected>Select Transaction Type</option>
+                <option value="Entertainment">Entertainment (EN)</option>
+                <option value="Golf Competition">Golf Competition (GC)</option>
+                <option value="Medical">Medical (ME)</option>
+                <option value="Others">Others (OT)</option>
+                <option value="Travelling">Travelling (TR)</option>
+            </select>
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Superior Level:</label>
+            <select id="superiorLevel" class="w-full p-2 border rounded">
+                <option value="PR">Prepared By (PR)</option>
+                <option value="CH">Checked By (CH)</option>
+                <option value="AC">Acknowledged By (AC)</option>
+                <option value="AP">Approved By (AP)</option>
+                <option value="RE">Received By (RE)</option>
+            </select>
+        </div>
+        
+        <button onclick="testSuperiorEmployees()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
+            Test Superior Employees
+        </button>
+        
+        <div id="results" class="mt-4">
+            <h3 class="text-lg font-semibold mb-2">Results:</h3>
+            <div id="resultsContent" class="bg-gray-100 p-4 rounded"></div>
+        </div>
+        
+        <div class="mt-4">
+            <h3 class="text-lg font-semibold mb-2">Test Dropdown:</h3>
+            <div class="relative">
+                <input type="text" id="testSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
+                <div id="testDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                <select id="testSelect" class="hidden">
+                    <option value="" disabled selected>Choose Name</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock BASE_URL for testing
+        const BASE_URL = 'https://expressiv-be-sb.idsdev.site';
+        
+        // Mock getUserId function
+        function getUserId() {
+            return 'fd7c0044-b1e8-4a91-9b6e-df7c9bc83c74'; // Use the user ID from the example
+        }
+        
+        // Mock window.allUsers for testing
+        window.allUsers = [
+            {
+                id: 'b8f9a821-1867-4249-b635-ad83a6d66cdc',
+                fullName: 'Pasuansusen Full Name',
+                name: 'pasuansusen'
+            },
+            {
+                id: '4941a5a3-1c38-4bab-96f3-c3639e9435c6',
+                fullName: 'Ryannovianpribadi Full Name',
+                name: 'ryannovianpribadi'
+            }
+        ];
+        
+        // Copy the fetchSuperiorEmployees function from addReim.js
+        async function fetchSuperiorEmployees(documentType, transactionType, superiorLevel) {
+            try {
+                const currentUserId = getUserId();
+                if (!currentUserId) {
+                    console.error('No current user ID found');
+                    return [];
+                }
+
+                const response = await fetch(`${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.status || result.code !== 200) {
+                    throw new Error(result.message || 'Failed to fetch superior employees');
+                }
+                
+                const allSuperiors = result.data;
+                
+                // Filter by transaction type and superior level
+                const filteredSuperiors = allSuperiors.filter(superior => {
+                    // Map transaction type to API transaction type
+                    const transactionTypeMap = {
+                        'Entertainment': 'EN',
+                        'Golf Competition': 'GC',
+                        'Medical': 'ME',
+                        'Others': 'OT',
+                        'Travelling': 'TR'
+                    };
+                    
+                    const apiTransactionType = transactionTypeMap[transactionType];
+                    if (!apiTransactionType) {
+                        console.warn(`Unknown transaction type: ${transactionType}`);
+                        return false;
+                    }
+                    
+                    return superior.typeTransaction === apiTransactionType && superior.superiorLevel === superiorLevel;
+                });
+                
+                console.log(`Found ${filteredSuperiors.length} superior employees for ${documentType}/${transactionType}/${superiorLevel}`);
+                
+                // Fetch full user details for each superior to get full names
+                const superiorsWithFullNames = [];
+                
+                for (const superior of filteredSuperiors) {
+                    try {
+                        // Try to get full name from cached users first
+                        let fullName = superior.superiorName; // Default to the name from API
+                        
+                        if (window.allUsers && window.allUsers.length > 0) {
+                            const user = window.allUsers.find(u => u.id === superior.superiorUserId);
+                            if (user && user.fullName) {
+                                fullName = user.fullName;
+                                console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                            }
+                        } else {
+                            // Fetch user details from API if not in cache
+                            try {
+                                const userResponse = await fetch(`${BASE_URL}/api/users/${superior.superiorUserId}`);
+                                if (userResponse.ok) {
+                                    const userResult = await userResponse.json();
+                                    if (userResult.status && userResult.data && userResult.data.fullName) {
+                                        fullName = userResult.data.fullName;
+                                        console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn(`Failed to fetch full name for user ${superior.superiorUserId}:`, error);
+                                // Keep the original superiorName if API call fails
+                            }
+                        }
+                        
+                        superiorsWithFullNames.push({
+                            ...superior,
+                            superiorFullName: fullName
+                        });
+                        
+                    } catch (error) {
+                        console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                        // Add the superior with original name if there's an error
+                        superiorsWithFullNames.push({
+                            ...superior,
+                            superiorFullName: superior.superiorName
+                        });
+                    }
+                }
+                
+                return superiorsWithFullNames;
+                
+            } catch (error) {
+                console.error("Error fetching superior employees:", error);
+                return [];
+            }
+        }
+        
+        async function testSuperiorEmployees() {
+            const documentType = document.getElementById('documentType').value;
+            const transactionType = document.getElementById('transactionType').value;
+            const superiorLevel = document.getElementById('superiorLevel').value;
+            
+            if (!transactionType) {
+                alert('Please select a transaction type');
+                return;
+            }
+            
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = '<div class="text-blue-600">Loading...</div>';
+            
+            try {
+                const superiors = await fetchSuperiorEmployees(documentType, transactionType, superiorLevel);
+                
+                let html = `<div class="text-green-600 mb-2">Found ${superiors.length} superior employees:</div>`;
+                
+                if (superiors.length > 0) {
+                    html += '<div class="space-y-2">';
+                    superiors.forEach((superior, index) => {
+                        html += `
+                            <div class="border p-3 rounded">
+                                <div><strong>Superior ${index + 1}:</strong></div>
+                                <div>ID: ${superior.superiorUserId}</div>
+                                <div>Original Name: ${superior.superiorName}</div>
+                                <div>Full Name: ${superior.superiorFullName}</div>
+                                <div>Level: ${superior.superiorLevel}</div>
+                                <div>Transaction Type: ${superior.typeTransaction}</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    
+                    // Populate test dropdown
+                    populateTestDropdown(superiors);
+                } else {
+                    html += '<div class="text-yellow-600">No superior employees found for the selected criteria.</div>';
+                }
+                
+                resultsContent.innerHTML = html;
+                
+            } catch (error) {
+                resultsContent.innerHTML = `<div class="text-red-600">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function populateTestDropdown(superiors) {
+            const selectElement = document.getElementById('testSelect');
+            const searchInput = document.getElementById('testSearch');
+            
+            // Clear existing options
+            selectElement.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+            
+            // Add superior employees to dropdown
+            superiors.forEach(superior => {
+                const option = document.createElement('option');
+                option.value = superior.superiorUserId;
+                option.textContent = superior.superiorFullName;
+                selectElement.appendChild(option);
+            });
+            
+            // Update the search input dataset
+            if (searchInput) {
+                searchInput.dataset.users = JSON.stringify(superiors.map(s => ({
+                    id: s.superiorUserId,
+                    name: s.superiorFullName
+                })));
+            }
+            
+            // Show the select element
+            selectElement.classList.remove('hidden');
+            searchInput.classList.add('hidden');
+        }
+        
+        // Add event listener for transaction type change
+        document.getElementById('transactionType').addEventListener('change', function() {
+            const superiorLevel = document.getElementById('superiorLevel').value;
+            if (this.value && superiorLevel) {
+                testSuperiorEmployees();
+            }
+        });
+        
+        // Add event listener for superior level change
+        document.getElementById('superiorLevel').addEventListener('change', function() {
+            const transactionType = document.getElementById('transactionType').value;
+            if (this.value && transactionType) {
+                testSuperiorEmployees();
+            }
+        });
+    </script>
+</body>
+</html> 

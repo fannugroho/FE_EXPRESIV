@@ -654,19 +654,30 @@ function autofillPreparedByWithCurrentUser(users) {
         // Combine names with spaces, handling empty middle/last names
         let displayName = matchingUser.fullName;
         
-        // Set the preparedBy select and search input
-        const preparedBySelect = document.getElementById('preparedBySelect');
+        // Set the preparedBy search input value and disable it
         const preparedBySearch = document.getElementById('preparedBySearch');
-        
-        if (preparedBySelect) {
-            preparedBySelect.value = matchingUser.id;
-        }
         
         if (preparedBySearch) {
             preparedBySearch.value = displayName;
             // Disable the preparedBy field since it's auto-filled with current user
             preparedBySearch.disabled = true;
             preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+        }
+        
+        // Also set the select element value to ensure it's available for form submission
+        const preparedBySelect = document.getElementById("preparedBySelect");
+        if (preparedBySelect) {
+            // Clear existing options
+            preparedBySelect.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+            
+            // Add current user as an option
+            const option = document.createElement('option');
+            option.value = currentUser.id;
+            option.textContent = displayName;
+            option.selected = true;
+            preparedBySelect.appendChild(option);
+            
+            console.log('Auto-filled preparedBy select with current user:', currentUser.id);
         }
     }
 }
@@ -1226,14 +1237,25 @@ async function fetchUsers() {
         
         // Populate dropdowns
         populateDropdown("requesterNameSelect", users, true); // Use name as value
-        populateDropdown("preparedBySelect", users, false);
-        populateDropdown("acknowledgeBySelect", users, false);
-        populateDropdown("checkedBySelect", users, false);
-        populateDropdown("approvedBySelect", users, false);
-        populateDropdown("receivedBySelect", users, false);
+        populateDropdown("payToSelect", users, false); // Add payToSelect dropdown population
+        
+        // For approval fields, we'll populate them based on transaction type selection
+        // Don't populate them with all users initially
         
         // Auto-fill preparedBy with current logged-in user
         autofillPreparedByWithCurrentUser(users);
+        
+        // Add event listener for transaction type dropdown to populate superior employees
+        const transactionTypeSelect = document.getElementById("typeOfTransaction");
+        if (transactionTypeSelect) {
+            transactionTypeSelect.addEventListener("change", function() {
+                const selectedTransactionType = this.value;
+                if (selectedTransactionType) {
+                    console.log('Transaction type changed to:', selectedTransactionType);
+                    populateAllSuperiorEmployeeDropdowns(selectedTransactionType);
+                }
+            });
+        }
         
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -1257,24 +1279,32 @@ function filterUsers(fieldId) {
     // Handle payToSelect dropdown separately
     if (fieldId === 'payToSelect') {
         try {
-            const filtered = businessPartners.filter(bp => 
-                (bp.name && bp.name.toLowerCase().includes(searchText)) || 
-                (bp.code && bp.code.toLowerCase().includes(searchText))
+            // Use users data instead of business partners (same as addReim.js)
+            const users = JSON.parse(searchInput.dataset.users || '[]');
+            const filtered = users.filter(user => 
+                user && user.fullName && 
+                (user.fullName.toLowerCase().includes(searchText) || 
+                user.employeeId && user.employeeId.toLowerCase().includes(searchText) ||
+                user.kansaiEmployeeId && user.kansaiEmployeeId.toLowerCase().includes(searchText))
             );
             
             // Display search results
-            filtered.forEach(bp => {
+            filtered.forEach(user => {
+                if (!user || !user.fullName) return; // Skip users without names
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
-                option.innerText = `${bp.code} - ${bp.name}`;
+                const displayText = user.kansaiEmployeeId ? 
+                    `${user.kansaiEmployeeId} - ${user.fullName}` : 
+                    `${user.employeeId || ''} - ${user.fullName}`;
+                option.innerText = displayText;
                 option.onclick = function() {
-                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    searchInput.value = displayText;
                     const selectElement = document.getElementById(fieldId);
                     if (selectElement) {
-                        // Find or create option with this business partner
+                        // Find or create option with this user
                         let optionExists = false;
                         for (let i = 0; i < selectElement.options.length; i++) {
-                            if (selectElement.options[i].value === bp.id) {
+                            if (selectElement.options[i].value === user.id) {
                                 selectElement.selectedIndex = i;
                                 optionExists = true;
                                 break;
@@ -1283,10 +1313,10 @@ function filterUsers(fieldId) {
                         
                         if (!optionExists && selectElement.options.length > 0) {
                             const newOption = document.createElement('option');
-                            newOption.value = bp.id;
-                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
                             selectElement.appendChild(newOption);
-                            selectElement.value = bp.id;
+                            selectElement.value = user.id;
                         }
                     }
                     
@@ -1299,7 +1329,7 @@ function filterUsers(fieldId) {
             if (filtered.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
-                noResults.innerText = 'No Business Partner Found';
+                noResults.innerText = 'No User Found';
                 dropdown.appendChild(noResults);
             }
             
@@ -1307,7 +1337,7 @@ function filterUsers(fieldId) {
             dropdown.classList.remove('hidden');
             return;
         } catch (error) {
-            console.error("Error filtering business partners:", error);
+            console.error("Error filtering users:", error);
         }
     }
     
@@ -1375,23 +1405,27 @@ function filterUsers(fieldId) {
                     
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
-                        // Auto-fill payTo with the same user (find in business partners)
+                        // Auto-fill payTo with the same user (same as addReim.js)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
                         
                         if (payToSearch && payToSelect) {
-                            // Find matching business partner by name
-                            const matchingBP = businessPartners.find(bp => 
-                                bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
+                            // Find matching user by name (same user for payTo)
+                            const users = JSON.parse(searchInput.dataset.users || '[]');
+                            const matchingUser = users.find(u => 
+                                u.name && user.name && u.name.toLowerCase() === user.name.toLowerCase()
                             );
                             
-                            if (matchingBP) {
-                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                            if (matchingUser) {
+                                const displayText = matchingUser.kansaiEmployeeId ? 
+                                    `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName}` : 
+                                    `${matchingUser.employeeId || ''} - ${matchingUser.fullName}`;
+                                payToSearch.value = displayText;
                                 
-                                // Set the business partner ID as the value in the select element
+                                // Set the user ID as the value in the select element
                                 let optionExists = false;
                                 for (let i = 0; i < payToSelect.options.length; i++) {
-                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                    if (payToSelect.options[i].value === matchingUser.id.toString()) {
                                         payToSelect.selectedIndex = i;
                                         optionExists = true;
                                         break;
@@ -1400,10 +1434,10 @@ function filterUsers(fieldId) {
                                 
                                 if (!optionExists && payToSelect.options.length > 0) {
                                     const newOption = document.createElement('option');
-                                    newOption.value = matchingBP.id;
-                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    newOption.value = matchingUser.id;
+                                    newOption.textContent = displayText;
                                     payToSelect.appendChild(newOption);
-                                    payToSelect.value = matchingBP.id;
+                                    payToSelect.value = matchingUser.id;
                                 }
                             }
                         }
@@ -1474,20 +1508,33 @@ function populateDropdown(dropdownId, users, useDisplayNameAsValue = false) {
         "acknowledgeBySelect", 
         "checkedBySelect", 
         "approvedBySelect",
-        "receivedBySelect"
+        "receivedBySelect",
+        "payToSelect" // Add payToSelect to searchable fields
     ];
     
     if (searchableFields.includes(dropdownId)) {
         const searchInput = document.getElementById(dropdownId.replace("Select", "Search"));
         if (searchInput) {
             // Store users data for searching
-            searchInput.dataset.users = JSON.stringify(users.map(user => {
-                let displayName = user.fullName || 'Unknown User';
-                return {
+            if (dropdownId === "payToSelect") {
+                // For payToSelect, store full user data including kansaiEmployeeId and employeeId
+                searchInput.dataset.users = JSON.stringify(users.map(user => ({
                     id: user.id,
-                    name: displayName
-                };
-            }));
+                    name: user.fullName || 'Unknown User',
+                    fullName: user.fullName || 'Unknown User',
+                    employeeId: user.employeeId,
+                    kansaiEmployeeId: user.kansaiEmployeeId
+                })));
+            } else {
+                // For other fields, store simplified user data
+                searchInput.dataset.users = JSON.stringify(users.map(user => {
+                    let displayName = user.fullName || 'Unknown User';
+                    return {
+                        id: user.id,
+                        name: displayName
+                    };
+                }));
+            }
         }
     }
 }
@@ -1614,19 +1661,21 @@ function populateFormData(data) {
     setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
     
-    // Update for searchable payTo with business partners
+    // Update for searchable payTo with users (same as addReim.js)
     const payToSearch = document.getElementById('payToSearch');
     const payToSelect = document.getElementById('payToSelect');
-    if (payToSearch && data.payTo && businessPartners && businessPartners.length > 0) {
-        // Find the corresponding business partner for the payTo ID
-        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
+    if (payToSearch && data.payTo && window.allUsers && window.allUsers.length > 0) {
+        // Find the corresponding user for the payTo ID (same as addReim.js)
+        const matchingUser = window.allUsers.find(user => user.id.toString() === data.payTo.toString());
         
-        if (matchingBP) {
-            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+        if (matchingUser) {
+            const displayText = matchingUser.kansaiEmployeeId ? 
+                `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName}` : 
+                `${matchingUser.employeeId || ''} - ${matchingUser.fullName}`;
             payToSearch.value = displayText;
             
             if (payToSelect) {
-                // Find or create option with this business partner
+                // Find or create option with this user
                 let optionExists = false;
                 for (let i = 0; i < payToSelect.options.length; i++) {
                     if (payToSelect.options[i].value === data.payTo.toString()) {
@@ -1638,15 +1687,15 @@ function populateFormData(data) {
                 
                 if (!optionExists) {
                     const newOption = document.createElement('option');
-                    newOption.value = matchingBP.id;
+                    newOption.value = matchingUser.id;
                     newOption.textContent = displayText;
                     payToSelect.appendChild(newOption);
-                    payToSelect.value = matchingBP.id;
+                    payToSelect.value = matchingUser.id;
                 }
             }
         }
     } else if (payToSearch && data.payTo) {
-        // Fallback: just set the ID value if business partners not loaded yet
+        // Fallback: just set the ID value if users not loaded yet
         payToSearch.value = data.payTo;
         if (payToSelect) {
             payToSelect.value = data.payTo;
@@ -1672,6 +1721,15 @@ function populateFormData(data) {
     document.getElementById('referenceDoc').value = data.referenceDoc || '';
     document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     document.getElementById('remarks').value = data.remarks || '';
+    
+    // If transaction type is set, populate superior employee dropdowns
+    if (data.typeOfTransaction) {
+        console.log('Transaction type found in data:', data.typeOfTransaction);
+        // Use setTimeout to ensure this runs after the form is fully populated
+        setTimeout(() => {
+            populateAllSuperiorEmployeeDropdowns(data.typeOfTransaction);
+        }, 100);
+    }
     
     // Set approval values in both select and search inputs
     setApprovalValue('preparedBy', data.preparedBy);
@@ -1759,6 +1817,15 @@ function setApprovalValue(fieldPrefix, userId) {
         if (searchInput && selectElement.selectedOptions[0]) {
             searchInput.value = selectElement.selectedOptions[0].textContent;
         }
+    }
+    
+    // Store the userId to be set after superior employee dropdowns are populated
+    if (userId) {
+        // Store the approval values to be set after superior employee dropdowns are populated
+        if (!window.pendingApprovalValues) {
+            window.pendingApprovalValues = {};
+        }
+        window.pendingApprovalValues[fieldPrefix] = userId;
     }
 }
 
@@ -2846,6 +2913,209 @@ function safeLogout() {
         // Force logout by clearing storage and redirecting
         localStorage.clear();
         window.location.href = '../pages/login.html';
+    }
+}
+
+// New function to fetch superior employees based on document type, transaction type, and superior level
+async function fetchSuperiorEmployees(documentType, transactionType, superiorLevel) {
+    try {
+        const currentUserId = getUserId();
+        if (!currentUserId) {
+            console.error('No current user ID found');
+            return [];
+        }
+
+        const response = await fetch(`${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch superior employees');
+        }
+        
+        const allSuperiors = result.data;
+        
+        // Filter by transaction type and superior level
+        const filteredSuperiors = allSuperiors.filter(superior => {
+            // Map transaction type to API transaction type
+            const transactionTypeMap = {
+                'Entertainment': 'EN',
+                'Golf Competition': 'GC',
+                'Medical': 'ME',
+                'Others': 'OT',
+                'Travelling': 'TR'
+            };
+            
+            const apiTransactionType = transactionTypeMap[transactionType];
+            if (!apiTransactionType) {
+                console.warn(`Unknown transaction type: ${transactionType}`);
+                return false;
+            }
+            
+            return superior.typeTransaction === apiTransactionType && superior.superiorLevel === superiorLevel;
+        });
+        
+        console.log(`Found ${filteredSuperiors.length} superior employees for ${documentType}/${transactionType}/${superiorLevel}`);
+        
+        // Fetch full user details for each superior to get full names
+        const superiorsWithFullNames = [];
+        
+        for (const superior of filteredSuperiors) {
+            try {
+                // Try to get full name from cached users first
+                let fullName = superior.superiorName; // Default to the name from API
+                
+                if (window.allUsers && window.allUsers.length > 0) {
+                    const user = window.allUsers.find(u => u.id === superior.superiorUserId);
+                    if (user && user.fullName) {
+                        fullName = user.fullName;
+                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                    }
+                } else {
+                    // Fetch user details from API if not in cache
+                    try {
+                        const userResponse = await fetch(`${BASE_URL}/api/users/${superior.superiorUserId}`);
+                        if (userResponse.ok) {
+                            const userResult = await userResponse.json();
+                            if (userResult.status && userResult.data && userResult.data.fullName) {
+                                fullName = userResult.data.fullName;
+                                console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch full name for user ${superior.superiorUserId}:`, error);
+                        // Keep the original superiorName if API call fails
+                    }
+                }
+                
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: fullName
+                });
+                
+            } catch (error) {
+                console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                // Add the superior with original name if there's an error
+                superiorsWithFullNames.push({
+                    ...superior,
+                    superiorFullName: superior.superiorName
+                });
+            }
+        }
+        
+        return superiorsWithFullNames;
+        
+    } catch (error) {
+        console.error("Error fetching superior employees:", error);
+        return [];
+    }
+}
+
+// Function to map superior level to field ID
+function getSuperiorLevelForField(fieldId) {
+    const levelMap = {
+        'preparedBySelect': 'PR',
+        'checkedBySelect': 'CH',
+        'acknowledgeBySelect': 'AC',
+        'approvedBySelect': 'AP',
+        'receivedBySelect': 'RE'
+    };
+    return levelMap[fieldId] || null;
+}
+
+// Function to populate superior employee dropdown
+async function populateSuperiorEmployeeDropdown(fieldId, documentType, transactionType) {
+    const superiorLevel = getSuperiorLevelForField(fieldId);
+    if (!superiorLevel) {
+        console.error(`No superior level mapping found for field: ${fieldId}`);
+        return;
+    }
+    
+    const superiors = await fetchSuperiorEmployees(documentType, transactionType, superiorLevel);
+    
+    // Clear existing options
+    const selectElement = document.getElementById(fieldId);
+    if (!selectElement) return;
+    
+    selectElement.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+    
+    // Add superior employees to dropdown
+    superiors.forEach(superior => {
+        const option = document.createElement('option');
+        option.value = superior.superiorUserId;
+        option.textContent = superior.superiorFullName; // Use superiorFullName
+        selectElement.appendChild(option);
+    });
+    
+    // Update the search input dataset
+    const searchInput = document.getElementById(fieldId.replace('Select', '') + 'Search');
+    if (searchInput) {
+        searchInput.dataset.users = JSON.stringify(superiors.map(s => ({
+            id: s.superiorUserId,
+            name: s.superiorFullName // Use superiorFullName
+        })));
+    }
+    
+    // Special handling for preparedBy - auto-select current user if they are in the superiors list
+    if (fieldId === 'preparedBySelect') {
+        const currentUserId = getUserId();
+        if (currentUserId) {
+            const currentUserInSuperiors = superiors.find(s => s.superiorUserId === currentUserId);
+            if (currentUserInSuperiors) {
+                selectElement.value = currentUserId;
+                console.log('Auto-selected current user for preparedBy from superiors list');
+            } else {
+                // If current user is not in superiors list, add them as an option
+                const currentUser = window.allUsers ? window.allUsers.find(u => u.id === currentUserId) : null;
+                if (currentUser) {
+                    const option = document.createElement('option');
+                    option.value = currentUserId;
+                    option.textContent = currentUser.fullName || currentUser.name;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                    console.log('Added current user to preparedBy select (not in superiors list)');
+                }
+            }
+        }
+    }
+    
+    // Set pending approval values if they exist
+    if (window.pendingApprovalValues) {
+        const fieldPrefix = fieldId.replace('Select', '');
+        const pendingUserId = window.pendingApprovalValues[fieldPrefix];
+        if (pendingUserId) {
+            // Check if the user exists in the superiors list
+            const matchingSuperior = superiors.find(s => s.superiorUserId === pendingUserId);
+            if (matchingSuperior) {
+                selectElement.value = pendingUserId;
+                const searchInput = document.getElementById(fieldId.replace('Select', '') + 'Search');
+                if (searchInput) {
+                    searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
+                }
+                console.log(`Set pending approval value for ${fieldPrefix}:`, pendingUserId);
+            }
+        }
+    }
+}
+
+// Function to populate all superior employee dropdowns
+async function populateAllSuperiorEmployeeDropdowns(transactionType) {
+    const documentType = 'RE'; // Reimbursement
+    
+    const approvalFields = [
+        'preparedBySelect',
+        'checkedBySelect', 
+        'acknowledgeBySelect',
+        'approvedBySelect',
+        'receivedBySelect'
+    ];
+    
+    for (const fieldId of approvalFields) {
+        await populateSuperiorEmployeeDropdown(fieldId, documentType, transactionType);
     }
 }
 
