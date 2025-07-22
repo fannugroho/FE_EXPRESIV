@@ -5,73 +5,66 @@ let documentData = null;
 // Function to map API response data to form fields
 function mapResponseToForm(data) {
     documentData = data;
-    
+    // Helper to safely set value
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
     // Map header fields
-    document.getElementById('CounterRef').value = data.counterRef || '';
-    document.getElementById('RequesterName').value = data.requesterName || ''; // Use requesterName directly from API
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('Address').value = data.address || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('Comments').value = data.comments || '';
-    document.getElementById('JrnlMemo').value = data.jrnlMemo || '';
-    document.getElementById('DocCurr').value = data.docCurr || 'IDR';
-    document.getElementById('TrsfrAcct').value = data.trsfrAcct || '';
-    document.getElementById('TrsfrSum').value = formatCurrencyIDR(data.trsfrSum || 0);
-    
+    setValue('CounterRef', data.counterRef || '');
+    setValue('RequesterName', data.requesterName || '');
+    setValue('CardName', data.cardName || '');
+    setValue('Address', data.address || '');
+    setValue('DocNum', data.docNum || '');
+    setValue('JrnlMemo', data.jrnlMemo || '');
+    setValue('DocCurr', data.docCurr || 'IDR');
+    document.getElementById('TypeOfTransaction').value = data.type || 'REIMBURSEMENT';
+    setValue('TrsfrAcct', data.trsfrAcct || '');
+    setValue('TrsfrSum', formatCurrencyIDR(data.trsfrSum || 0));
     // Map date fields
     if (data.docDate) {
         const docDate = new Date(data.docDate);
-        document.getElementById('DocDate').value = docDate.toISOString().split('T')[0];
+        setValue('DocDate', docDate.toISOString().split('T')[0]);
     }
-    
     if (data.docDueDate) {
         const docDueDate = new Date(data.docDueDate);
-        document.getElementById('DocDueDate').value = docDueDate.toISOString().split('T')[0];
+        setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
     }
-    
     if (data.taxDate) {
         const taxDate = new Date(data.taxDate);
-        document.getElementById('TaxDate').value = taxDate.toISOString().split('T')[0];
+        setValue('TaxDate', taxDate.toISOString().split('T')[0]);
     }
-    
     if (data.trsfrDate) {
         const trsfrDate = new Date(data.trsfrDate);
-        document.getElementById('TrsfrDate').value = trsfrDate.toISOString().split('T')[0];
+        setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
-    
-
-    
     // Calculate totals from lines
     let netTotal = 0;
     let totalAmountDue = 0;
-    
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach(line => {
             netTotal += line.sumApplied || 0;
             totalAmountDue += line.sumApplied || 0;
         });
     }
-    
     // Map totals
-    document.getElementById('netTotal').value = formatCurrencyIDR(netTotal);
-    document.getElementById('totalTax').value = formatCurrencyIDR(0); // Not available in response
-    document.getElementById('totalAmountDue').value = formatCurrencyIDR(totalAmountDue);
-    
+    setValue('netTotal', formatCurrencyIDR(netTotal));
+    setValue('totalTax', formatCurrencyIDR(0)); // Not available in response
+    setValue('totalAmountDue', formatCurrencyIDR(totalAmountDue));
     // Map remarks
-    document.getElementById('remarks').value = ''; // Not available in response
-    document.getElementById('journalRemarks').value = ''; // Not available in response
-    
+    setValue('remarks', data.remarks || '');
+    setValue('journalRemarks', data.journalRemarks || '');
     // Map approval data
     if (data.approval) {
         mapApprovalData(data.approval);
-        
         // Show rejection remarks if status is rejected
         if (data.approval.approvalStatus === 'Rejected') {
-            document.getElementById('rejectionRemarksSection').style.display = 'block';
-            document.getElementById('rejectionRemarks').value = data.approval.rejectionRemarks || '';
+            const rejSec = document.getElementById('rejectionRemarksSection');
+            const rejTxt = document.getElementById('rejectionRemarks');
+            if (rejSec) rejSec.style.display = 'block';
+            if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
         }
     }
-    
     // Map table lines
     if (data.lines && data.lines.length > 0) {
         populateTableLines(data.lines);
@@ -124,7 +117,6 @@ function populateTableLines(lines) {
             <td class="p-2">${line.acctCode || ''}</td>
             <td class="p-2">${line.acctName || ''}</td>
             <td class="p-2">${line.descrip || ''}</td>
-            <td class="p-2">${line.ocrCode3 || ''}</td>
             <td class="p-2 text-right">${formatCurrencyIDR(line.sumApplied || 0)}</td>
         `;
         tableBody.appendChild(row);

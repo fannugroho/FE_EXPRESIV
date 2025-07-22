@@ -1476,3 +1476,60 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         console.error("Error fetching superior employees:", error);
     }
 }
+
+// Function to fetch and display notes
+async function fetchAndDisplayNotes() {
+    try {
+        const currentUserId = getUserId();
+        if (!currentUserId) {
+            console.error('No current user ID found');
+            return;
+        }
+
+        const apiUrl = `https://expressiv-be-sb.idsdev.site/api/document-notes?userId=${currentUserId}&type=PR`;
+        console.log(`Fetching notes from: ${apiUrl}`);
+
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Notes API Response:', result);
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch notes');
+        }
+        
+        const notesContent = document.getElementById('notesContent');
+        if (!notesContent) {
+            console.error('Notes content element not found');
+            return;
+        }
+        
+        if (result.data && result.data.length > 0) {
+            // Display all notes
+            const notesHtml = result.data.map(note => 
+                `<div class="mb-2 p-3 bg-white border-l-4 border-blue-500 rounded shadow-sm">
+                    <p class="text-gray-800">${note.notes}</p>
+                </div>`
+            ).join('');
+            notesContent.innerHTML = notesHtml;
+        } else {
+            notesContent.innerHTML = '<p class="text-gray-500 italic">No notes available</p>';
+        }
+        
+    } catch (error) {
+        console.error("Error fetching notes:", error);
+        const notesContent = document.getElementById('notesContent');
+        if (notesContent) {
+            notesContent.innerHTML = '<p class="text-red-500 italic">Error loading notes</p>';
+        }
+    }
+}
+
+// Call fetchAndDisplayNotes when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing initialization code can go here
+    fetchAndDisplayNotes();
+});

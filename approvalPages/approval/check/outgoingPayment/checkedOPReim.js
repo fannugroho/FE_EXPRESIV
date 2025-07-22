@@ -275,62 +275,46 @@ function getStatusMessage(status) {
 function populateFormFields(data) {
     console.log('Populating form fields with data:', data);
     console.log('Attachments data:', data.attachments);
-    
     // Populate header fields
-    document.getElementById('CounterRef').value = data.counterRef || '';
-    document.getElementById('RequesterName').value = getUserNameById(data.requesterId) || 'Unknown Requester';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('Address').value = data.address || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('Comments').value = data.comments || '';
-    document.getElementById('JrnlMemo').value = data.jrnlMemo || '';
-    document.getElementById('DocCurr').value = data.docCurr || 'IDR';
-    document.getElementById('DiffCurr').value = data.diffCurr || 'IDR';
-    document.getElementById('TrsfrAcct').value = data.trsfrAcct || '';
-    document.getElementById('TrsfrSum').value = formatCurrency(data.trsfrSum) || '0';
-    
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setValue('CounterRef', data.counterRef || '');
+    setValue('RequesterName', getUserNameById(data.requesterId) || 'Unknown Requester');
+    setValue('CardName', data.cardName || '');
+    setValue('Address', data.address || '');
+    setValue('DocNum', data.docNum || '');
+    setValue('Comments', data.comments || '');
+    setValue('JrnlMemo', data.jrnlMemo || '');
+    setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('TypeOfTransaction', data.type || 'REIMBURSEMENT');
+    setValue('TrsfrAcct', data.trsfrAcct || '');
+    setValue('TrsfrSum', formatCurrency(data.trsfrSum) || '0');
     // Set dates if available
-    if (data.docDate) {
-        document.getElementById('DocDate').value = new Date(data.docDate).toISOString().split('T')[0];
-    }
-    
-    if (data.docDueDate) {
-        document.getElementById('DocDueDate').value = new Date(data.docDueDate).toISOString().split('T')[0];
-    }
-    
-    if (data.taxDate) {
-        document.getElementById('TaxDate').value = new Date(data.taxDate).toISOString().split('T')[0];
-    }
-    
-    if (data.trsfrDate) {
-        document.getElementById('TrsfrDate').value = new Date(data.trsfrDate).toISOString().split('T')[0];
-    }
-    
-    // Populate remarks fields
-    document.getElementById('remarks').value = data.remarks || '';
-    document.getElementById('journalRemarks').value = data.journalRemarks || '';
-    
+    if (data.docDate) setValue('DocDate', new Date(data.docDate).toISOString().split('T')[0]);
+    if (data.docDueDate) setValue('DocDueDate', new Date(data.docDueDate).toISOString().split('T')[0]);
+    if (data.taxDate) setValue('TaxDate', new Date(data.taxDate).toISOString().split('T')[0]);
+    if (data.trsfrDate) setValue('TrsfrDate', new Date(data.trsfrDate).toISOString().split('T')[0]);
+    setValue('remarks', data.remarks || '');
+    setValue('journalRemarks', data.journalRemarks || '');
     // Populate line items in table
     populateTableRows(data.lines || []);
-    
     // Populate approval information with user names
     populateApprovalInfo(data.approval);
-    
     // Handle revision history if any
     handleRevisionHistory(data.approval);
-    
     // Display attachments if any
     displayAttachments(data.attachments || []);
-    
     // Update totals
     updateTotals(data.lines || []);
-    
     // Show rejection remarks if status is rejected
     if (data.approval && data.approval.approvalStatus === 'Rejected') {
-        document.getElementById('rejectionRemarksSection').style.display = 'block';
-        document.getElementById('rejectionRemarks').value = data.approval.rejectionRemarks || '';
+        const rejSec = document.getElementById('rejectionRemarksSection');
+        const rejTxt = document.getElementById('rejectionRemarks');
+        if (rejSec) rejSec.style.display = 'block';
+        if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
     }
-    
     // Toggle visibility of closed by field based on transaction type
     toggleClosedByVisibility(data.type);
 }
@@ -357,7 +341,6 @@ function populateTableRows(lines) {
             <td class="p-2 border">${line.acctCode || ''}</td>
             <td class="p-2 border">${line.acctName || ''}</td>
             <td class="p-2 border">${line.descrip || ''}</td>
-            <td class="p-2 border">${line.ocrCode3 || ''}</td>
             <td class="p-2 border text-right">${formatCurrency(line.sumApplied) || '0'}</td>
         `;
         tableBody.appendChild(row);

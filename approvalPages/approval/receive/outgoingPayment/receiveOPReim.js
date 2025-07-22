@@ -193,6 +193,8 @@ function populateFormFields(data) {
     document.getElementById('DocNum').value = data.docNum || '';
     document.getElementById('Comments').value = data.comments || '';
     document.getElementById('JrnlMemo').value = data.jrnlMemo || '';
+    document.getElementById('DocCurr').value = data.docCurr || 'IDR';
+    document.getElementById('TypeOfTransaction').value = data.type || 'REIMBURSEMENT';
     
     // Format and set dates
     if (data.docDate) {
@@ -222,7 +224,6 @@ function populateFormFields(data) {
                 <td class="p-2 border">${line.acctCode || ''}</td>
                 <td class="p-2 border">${line.acctName || ''}</td>
                 <td class="p-2 border">${line.description || ''}</td>
-                <td class="p-2 border">${line.division || ''}</td>
                 <td class="p-2 border text-right">${formatCurrencyIDR(line.docTotal || 0)}</td>
             `;
             tableBody.appendChild(row);
