@@ -264,58 +264,35 @@ async function loadDashboard() {
 // Function to update counters by fetching data for all statuses
 async function updateCounters(userId) {
     try {
-        // Fetch counts for each status using new API endpoints
-        const acknowledgedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=acknowledgedBy&userId=${userId}&onlyCurrentStep=false`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const approvedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=approvedBy&userId=${userId}&onlyCurrentStep=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=approvedBy&userId=${userId}&onlyCurrentStep=true&isRejected=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-
-        // Helper function to extract data from API response
-        const extractDataFromResponse = async (response) => {
-            if (!response.ok) {
-                console.error(`API error: ${response.status} ${response.statusText}`);
-                return [];
-            }
-            try {
-                const data = await response.json();
-                console.log('Counter API response:', data);
-                
-                if (Array.isArray(data)) {
-                    return data;
-                } else if (data && data.data && Array.isArray(data.data)) {
-                    return data.data;
-                } else if (data && data.data) {
-                    return Array.isArray(data.data) ? data.data : [data.data];
-                } else {
-                    console.error('Unexpected API response structure:', data);
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error parsing API response:', error);
-                return [];
-            }
-        };
-
-        const acknowledgedData = await extractDataFromResponse(acknowledgedResponse);
-        const approvedData = await extractDataFromResponse(approvedResponse);
-        const rejectedData = await extractDataFromResponse(rejectedResponse);
-
-        // For acknowledged count, filter for acknowledged status
-        const acknowledgedCount = acknowledgedData.filter(doc => {
-            const status = getStatusDisplay(doc);
+        console.log('updateCounters called with userId:', userId);
+        
+        // Fetch all documents using the approvedBy endpoint
+        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        
+        // Count documents by status
+        const acknowledgedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             return status.toLowerCase() === 'acknowledged';
         }).length;
         
-        // For approved count, use the approvedBy endpoint to get all documents
-        const approvedCount = approvedData.length;
+        // For approved count, count all documents (approved tab shows all documents)
+        const approvedCount = allDocuments.length;
         
-        const rejectedCount = rejectedData.length;
-        const totalCount = acknowledgedCount + approvedCount + rejectedCount;
+        const rejectedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'rejected';
+        }).length;
+        
+        const totalCount = allDocuments.length;
+
+        console.log('Counter results:', {
+            total: totalCount,
+            acknowledged: acknowledgedCount,
+            approved: approvedCount,
+            rejected: rejectedCount
+        });
 
         // Update counters
         document.getElementById("totalCount").textContent = totalCount;
@@ -488,46 +465,51 @@ async function switchTab(tabName) {
     try {
         let documents = [];
         
+        // Use the approvedBy endpoint as specified in the API call
+        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        console.log(`Total documents fetched from approvedBy endpoint: ${allDocuments.length}`);
+        
         if (tabName === 'acknowledged') {
             console.log('Loading acknowledged tab...');
             document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
-            // For "Acknowledged" tab, show all documents with Approval Status "Acknowledged"
-            const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-            console.log(`Total documents fetched: ${allDocuments.length}`);
             
+            // For "Acknowledged" tab, show all documents with Approval Status "Acknowledged"
             documents = allDocuments.filter(doc => {
-                const status = getStatusDisplay(doc);
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
                 const isAcknowledged = status.toLowerCase() === 'acknowledged';
                 
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
-                    console.log('Document structure:', doc);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isAcknowledged=${isAcknowledged}`);
+                    console.log('Document approval data:', approval);
                 }
                 
                 return isAcknowledged;
             });
             console.log('Acknowledged documents loaded:', documents.length);
+            
         } else if (tabName === 'approved') {
             console.log('Loading approved tab...');
             document.getElementById('approvedTabBtn').classList.add('tab-active');
-            // For "Approved" tab, show all documents regardless of status using approvedBy endpoint
-            documents = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-            console.log('Approved documents loaded:', documents.length);
+            
+            // For "Approved" tab, show all documents regardless of status
+            documents = allDocuments;
+            console.log('All documents loaded for approved tab:', documents.length);
+            
         } else if (tabName === 'rejected') {
             console.log('Loading rejected tab...');
             document.getElementById('rejectedTabBtn').classList.add('tab-active');
-            // For "Rejected" tab, show all documents with Approval Status "Rejected"
-            const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-            console.log(`Total documents fetched: ${allDocuments.length}`);
             
+            // For "Rejected" tab, show all documents with Approval Status "Rejected"
             documents = allDocuments.filter(doc => {
-                const status = getStatusDisplay(doc);
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
                 const isRejected = status.toLowerCase() === 'rejected';
                 
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isRejected=${isRejected}`);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}`);
                     console.log('Document structure:', doc);
                 }
                 
@@ -622,10 +604,16 @@ function getStatusClass(status) {
     }
 }
 
-// Helper function to determine status display for rejected documents
+// Helper function to determine status display for documents
 function getStatusDisplay(doc) {
+    // If no approval object, check various status fields
     if (!doc.approval) {
-        return 'Draft';
+        const status = doc.status || doc.type || doc.doctype || 'Draft';
+        // Map "Draft" status to "Prepared" for display consistency
+        if (status.toLowerCase() === 'draft') {
+            return 'Prepared';
+        }
+        return status;
     }
     
     // Check if document is rejected
@@ -634,7 +622,14 @@ function getStatusDisplay(doc) {
     }
     
     // Return normal approval status
-    return doc.approval.approvalStatus || 'Draft';
+    const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+    
+    // Map "Draft" status to "Prepared" for display consistency
+    if (status.toLowerCase() === 'draft') {
+        return 'Prepared';
+    }
+    
+    return status;
 }
 
 // Update pagination information
@@ -842,25 +837,29 @@ async function debugTabFunctionality() {
     console.log('=== DEBUG: Testing Tab Functionality ===');
     
     try {
+        // Get all documents using the approvedBy endpoint
+        const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        console.log('All documents fetched:', allDocs.length);
+        
         // Test Acknowledged tab
-        console.log('Testing Acknowledged tab...');
-        const acknowledgedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-        const acknowledgedFiltered = acknowledgedDocs.filter(doc => {
-            const status = getStatusDisplay(doc);
+        console.log('=== TESTING ACKNOWLEDGED TAB ===');
+        const acknowledgedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             return status.toLowerCase() === 'acknowledged';
         });
         console.log('Acknowledged documents:', acknowledgedFiltered.length, acknowledgedFiltered);
         
         // Test Approved tab
-        console.log('Testing Approved tab...');
-        const approvedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-        console.log('Approved documents:', approvedDocs.length, approvedDocs);
+        console.log('=== TESTING APPROVED TAB ===');
+        // Approved tab shows all documents regardless of status
+        console.log('All documents for approved tab:', allDocs.length, allDocs);
         
         // Test Rejected tab
-        console.log('Testing Rejected tab...');
-        const rejectedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-        const rejectedFiltered = rejectedDocs.filter(doc => {
-            const status = getStatusDisplay(doc);
+        console.log('=== TESTING REJECTED TAB ===');
+        const rejectedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             return status.toLowerCase() === 'rejected';
         });
         console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
@@ -869,6 +868,57 @@ async function debugTabFunctionality() {
         
     } catch (error) {
         console.error('Error in debugTabFunctionality:', error);
+    }
+}
+
+// Function to show all documents for debugging
+async function showAllDocuments() {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
+        console.log('Total documents:', allDocs.length);
+        
+        allDocs.forEach((doc, index) => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            console.log(`Document ${index + 1}:`, {
+                id: doc.stagingID || doc.id,
+                counterRef: doc.counterRef,
+                approvalStatus: approval.approvalStatus,
+                status: status,
+                approvedBy: approval.approvedBy,
+                approvedById: approval.approvedById,
+                currentUser: userId,
+                isApprovedBy: approval.approvedBy === userId || approval.approvedById === userId
+            });
+        });
+        
+        // Show alert with summary
+        const acknowledgedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'acknowledged';
+        }).length;
+        
+        const approvedCount = allDocs.length; // All documents for approved tab
+        
+        const rejectedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'rejected';
+        }).length;
+        
+        alert(`Total Documents: ${allDocs.length}\nAcknowledged: ${acknowledgedCount}\nApproved (all documents): ${approvedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
+        
+    } catch (error) {
+        console.error('Error in showAllDocuments:', error);
+        alert('Error loading documents. Check console for details.');
     }
 }
 
