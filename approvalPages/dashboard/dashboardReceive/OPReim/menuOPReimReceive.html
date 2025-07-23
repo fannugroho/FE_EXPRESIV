@@ -288,6 +288,12 @@
                         <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
                           <i class="fas fa-file-pdf mr-2"></i>PDF
                         </button>
+                        <button onclick="debugTabFunctionality()" class="bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                          <i class="fas fa-bug mr-2"></i>Debug Tabs
+                        </button>
+                        <button onclick="showAllDocuments()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                          <i class="fas fa-list mr-2"></i>Show All Docs
+                        </button>
                     </div>
                 </div>
             </div>
@@ -319,6 +325,10 @@
         <button onclick="downloadPDF()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-pdf text-xl"></i>
             <span>PDF</span>
+        </button>
+        <button onclick="showAllDocuments()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-list text-xl"></i>
+            <span>Debug</span>
         </button>
     </nav>
 

@@ -5,6 +5,78 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
+// Reusable function to fetch outgoing payment documents by approval step
+async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+    try {
+        console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
+        
+        const params = new URLSearchParams({
+            step: step,
+            userId: userId,
+            onlyCurrentStep: onlyCurrentStep.toString(),
+            includeDetails: 'false'
+        });
+        
+        // Add isRejected parameter if specified
+        if (isRejected) {
+            params.append('isRejected', 'true');
+        }
+        
+        const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for step ${step} (onlyCurrentStep: ${onlyCurrentStep}):`, result);
+
+        // Handle different response structures
+        let documents = [];
+        if (result.status && result.data) {
+            documents = result.data;
+        } else if (Array.isArray(result)) {
+            documents = result;
+        } else if (result.data) {
+            documents = result.data;
+        } else {
+            documents = [];
+        }
+        
+        console.log(`Returning ${documents.length} documents for step ${step}`);
+        
+        // Debug: Log first document structure if available
+        if (documents.length > 0) {
+            console.log('First document structure:', documents[0]);
+            console.log('First document status fields:', {
+                approval: documents[0].approval,
+                status: documents[0].status,
+                type: documents[0].type,
+                doctype: documents[0].doctype
+            });
+        }
+        
+        return documents;
+    } catch (error) {
+        console.error(`Error fetching documents for step ${step}:`, error);
+        return [];
+    }
+}
+
 // Helper function to get access token
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -55,126 +127,10 @@ async function loadDashboard() {
             return;
         }
 
-        // Build base URL and params
-        let baseUrl;
-        const params = new URLSearchParams();
-        params.append('ApproverId', userId);
-        params.append('ApproverRole', 'received');
+        console.log('loadDashboard called with currentTab:', currentTab);
         
-        // Build URL based on current tab
-        if (currentTab === 'approved') {
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
-            params.append('includeDetails', 'false');
-            params.append('step', 'approvedBy');
-            params.append('userId', userId);
-            params.append('onlyCurrentStep', 'false');
-        } else if (currentTab === 'received') {
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
-            params.append('includeDetails', 'false');
-            params.append('step', 'receivedBy');
-            params.append('userId', userId);
-            params.append('onlyCurrentStep', 'true');
-        } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
-            params.append('includeDetails', 'false');
-            params.append('step', 'receivedBy');
-            params.append('userId', userId);
-            params.append('onlyCurrentStep', 'true');
-            params.append('isRejected', 'true');
-        }
-        
-        // Add search parameters if available
-        if (currentSearchTerm) {
-            switch (currentSearchType) {
-                case 'reimNo':
-                    params.append('counterRef', currentSearchTerm);
-                    break;
-                case 'requester':
-                    params.append('requesterName', currentSearchTerm);
-                    break;
-                case 'payTo':
-                    params.append('cardName', currentSearchTerm);
-                    break;
-                case 'totalAmount':
-                    params.append('totalAmount', currentSearchTerm);
-                    break;
-                case 'status':
-                    params.append('status', currentSearchTerm);
-                    break;
-                case 'docDate':
-                case 'dueDate':
-                    // For date search, try to parse and use date range
-                    const dateValue = new Date(currentSearchTerm);
-                    if (!isNaN(dateValue.getTime())) {
-                        const dateField = currentSearchType === 'docDate' ? 'docDate' : 'docDueDate';
-                        params.append(`${dateField}From`, dateValue.toISOString().split('T')[0]);
-                        params.append(`${dateField}To`, dateValue.toISOString().split('T')[0]);
-                    }
-                    break;
-            }
-        }
-        
-        const url = `${baseUrl}?${params.toString()}`;
-
-        console.log('Fetching dashboard data from:', url);
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
-            }
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('HTTP error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
-
-        let result;
-        try {
-            result = await response.json();
-            console.log('Dashboard API response:', result);
-        } catch (jsonError) {
-            console.error('Error parsing JSON response:', jsonError);
-            const responseText = await response.text();
-            console.error('Raw response:', responseText);
-            throw new Error(`Invalid JSON response: ${jsonError.message}`);
-        }
-
-        // Check if result is an array (direct data) or has a data property
-        let documents = [];
-        if (Array.isArray(result)) {
-            documents = result;
-        } else if (result && result.data && Array.isArray(result.data)) {
-            documents = result.data;
-        } else if (result && result.data) {
-            // If data is not an array, try to convert it
-            documents = Array.isArray(result.data) ? result.data : [result.data];
-        } else {
-            console.error('API response structure:', result);
-            console.error('Expected array or object with data property');
-            // Fallback to empty state
-            updateTable([]);
-            updatePaginationInfo(0);
-            return;
-        }
-        
-        // Sort documents by Reimburse No (newest first)
-        const sortedDocuments = sortDocumentsByReimNo(documents);
-        
-        // Update counters by fetching all statuses
-        await updateCounters(userId);
-        
-        // Update the table with filtered documents
-        updateTable(sortedDocuments);
-        
-        // Update pagination info
-        updatePaginationInfo(sortedDocuments.length);
+        // Use the switchTab function to load the appropriate data
+        await switchTab(currentTab);
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -189,51 +145,42 @@ async function loadDashboard() {
 // Function to update counters by fetching data for all statuses
 async function updateCounters(userId) {
     try {
-        // Fetch counts for each status using new API endpoints
-        const approvedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=approvedBy&userId=${userId}&onlyCurrentStep=false`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const receivedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=receivedBy&userId=${userId}&onlyCurrentStep=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
-        const rejectedResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?includeDetails=false&step=receivedBy&userId=${userId}&onlyCurrentStep=true&isRejected=true`, {
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` }
-        });
+        console.log('updateCounters called with userId:', userId);
+        
+        // Fetch all documents using the receivedBy endpoint
+        const allDocuments = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
+        
+        // Count documents by status
+        const approvedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'approved';
+        }).length;
+        
+        // For received count, count all documents except Checked, Acknowledged and Approved
+        const receivedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isChecked = status.toLowerCase() === 'checked';
+            const isAcknowledged = status.toLowerCase() === 'acknowledged';
+            const isApproved = status.toLowerCase() === 'approved';
+            return !isChecked && !isAcknowledged && !isApproved;
+        }).length;
+        
+        const rejectedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'rejected';
+        }).length;
+        
+        const totalCount = allDocuments.length;
 
-        // Helper function to extract data from API response
-        const extractDataFromResponse = async (response) => {
-            if (!response.ok) {
-                console.error(`API error: ${response.status} ${response.statusText}`);
-                return [];
-            }
-            try {
-                const data = await response.json();
-                console.log('Counter API response:', data);
-                
-                if (Array.isArray(data)) {
-                    return data;
-                } else if (data && data.data && Array.isArray(data.data)) {
-                    return data.data;
-                } else if (data && data.data) {
-                    return Array.isArray(data.data) ? data.data : [data.data];
-                } else {
-                    console.error('Unexpected API response structure:', data);
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error parsing API response:', error);
-                return [];
-            }
-        };
-
-        const approvedData = await extractDataFromResponse(approvedResponse);
-        const receivedData = await extractDataFromResponse(receivedResponse);
-        const rejectedData = await extractDataFromResponse(rejectedResponse);
-
-        const approvedCount = approvedData.length;
-        const receivedCount = receivedData.length;
-        const rejectedCount = rejectedData.length;
-        const totalCount = approvedCount + receivedCount + rejectedCount;
+        console.log('Counter results:', {
+            total: totalCount,
+            approved: approvedCount,
+            received: receivedCount,
+            rejected: rejectedCount
+        });
 
         // Update counters
         document.getElementById("totalCount").textContent = totalCount;
@@ -390,18 +337,137 @@ function updateTable(documents) {
 }
 
 // Function to switch between tabs
-function switchTab(tabName) {
+async function switchTab(tabName) {
+    console.log('switchTab called with:', tabName);
     currentTab = tabName;
     
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'approved') {
-        document.getElementById('approvedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'received') {
-        document.getElementById('receivedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        let documents = [];
+        
+        // Use the receivedBy endpoint as specified in the API call
+        const allDocuments = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
+        console.log(`Total documents fetched from receivedBy endpoint: ${allDocuments.length}`);
+        
+        if (tabName === 'approved') {
+            console.log('Loading approved tab...');
+            document.getElementById('approvedTabBtn').classList.add('tab-active');
+            
+            // For "Approved" tab, show all documents with Approval Status "Approved"
+            documents = allDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                const isApproved = status.toLowerCase() === 'approved';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isApproved=${isApproved}`);
+                    console.log('Document approval data:', approval);
+                }
+                
+                return isApproved;
+            });
+            console.log('Approved documents loaded:', documents.length);
+            
+        } else if (tabName === 'received') {
+            console.log('Loading received tab...');
+            document.getElementById('receivedTabBtn').classList.add('tab-active');
+            
+            // For "Received" tab, show all documents regardless of status except Checked, Acknowledged and Approved
+            documents = allDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                const isChecked = status.toLowerCase() === 'checked';
+                const isAcknowledged = status.toLowerCase() === 'acknowledged';
+                const isApproved = status.toLowerCase() === 'approved';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isChecked=${isChecked}, isAcknowledged=${isAcknowledged}, isApproved=${isApproved}`);
+                }
+                
+                // Show all documents EXCEPT Checked, Acknowledged and Approved
+                return !isChecked && !isAcknowledged && !isApproved;
+            });
+            console.log('All documents except Checked, Acknowledged and Approved loaded for received tab:', documents.length);
+            
+        } else if (tabName === 'rejected') {
+            console.log('Loading rejected tab...');
+            document.getElementById('rejectedTabBtn').classList.add('tab-active');
+            
+            // For "Rejected" tab, show all documents with Approval Status "Rejected"
+            documents = allDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                const isRejected = status.toLowerCase() === 'rejected';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}`);
+                    console.log('Document structure:', doc);
+                }
+                
+                return isRejected;
+            });
+            console.log('Rejected documents loaded:', documents.length);
+        }
+        
+        console.log('Total documents before filtering:', documents.length);
+        
+        // Apply search filter if there's a search term
+        let filteredDocuments = documents;
+        if (currentSearchTerm) {
+            console.log('Applying search filter with term:', currentSearchTerm);
+            filteredDocuments = documents.filter(doc => {
+                switch (currentSearchType) {
+                    case 'reimNo':
+                        return doc.counterRef && doc.counterRef.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'requester':
+                        return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'payTo':
+                        return doc.cardName && doc.cardName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'totalAmount':
+                        const totalAmount = doc.trsfrSum ? doc.trsfrSum.toString() : '';
+                        return totalAmount.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'status':
+                        const status = getStatusDisplay(doc);
+                        return status.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'docDate':
+                        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '';
+                        return docDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'dueDate':
+                        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '';
+                        return dueDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    default:
+                        return true;
+                }
+            });
+            console.log('Documents after filtering:', filteredDocuments.length);
+        }
+        
+        // Sort documents by Reimburse No (newest first)
+        const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
+        console.log('Documents after sorting:', sortedDocuments.length);
+        
+        // Update the table with filtered documents
+        updateTable(sortedDocuments);
+        
+        // Update pagination info
+        updatePaginationInfo(sortedDocuments.length);
+        
+    } catch (error) {
+        console.error('Error switching tab:', error);
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
     }
     
     // Reset search when switching tabs
@@ -413,9 +479,6 @@ function switchTab(tabName) {
     
     // Reset pagination
     currentPage = 1;
-    
-    // Reload dashboard with the new filter
-    loadDashboard();
 }
 
 // Function to handle search input
@@ -443,10 +506,16 @@ function getStatusClass(status) {
     }
 }
 
-// Helper function to determine status display for rejected documents
+// Helper function to determine status display for documents
 function getStatusDisplay(doc) {
+    // If no approval object, check various status fields
     if (!doc.approval) {
-        return 'Draft';
+        const status = doc.status || doc.type || doc.doctype || 'Draft';
+        // Map "Draft" status to "Prepared" for display consistency
+        if (status.toLowerCase() === 'draft') {
+            return 'Prepared';
+        }
+        return status;
     }
     
     // Check if document is rejected
@@ -455,7 +524,14 @@ function getStatusDisplay(doc) {
     }
     
     // Return normal approval status
-    return doc.approval.approvalStatus || 'Draft';
+    const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+    
+    // Map "Draft" status to "Prepared" for display consistency
+    if (status.toLowerCase() === 'draft') {
+        return 'Prepared';
+    }
+    
+    return status;
 }
 
 // Update pagination information
@@ -650,6 +726,116 @@ function downloadPDF() {
     
     // Save the PDF with current filter in the filename
     doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// Debug function to test tab functionality
+async function debugTabFunctionality() {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found for debug');
+        return;
+    }
+    
+    console.log('=== DEBUG: Testing Tab Functionality ===');
+    
+    try {
+        // Get all documents using the receivedBy endpoint
+        const allDocs = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
+        console.log('All documents fetched:', allDocs.length);
+        
+        // Test Approved tab
+        console.log('=== TESTING APPROVED TAB ===');
+        const approvedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'approved';
+        });
+        console.log('Approved documents:', approvedFiltered.length, approvedFiltered);
+        
+        // Test Received tab
+        console.log('=== TESTING RECEIVED TAB ===');
+        const receivedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isChecked = status.toLowerCase() === 'checked';
+            const isAcknowledged = status.toLowerCase() === 'acknowledged';
+            const isApproved = status.toLowerCase() === 'approved';
+            return !isChecked && !isAcknowledged && !isApproved;
+        });
+        console.log('All documents except Checked, Acknowledged and Approved:', receivedFiltered.length, receivedFiltered);
+        
+        // Test Rejected tab
+        console.log('=== TESTING REJECTED TAB ===');
+        const rejectedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'rejected';
+        });
+        console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
+        
+        console.log('=== DEBUG: Tab Functionality Test Complete ===');
+        
+    } catch (error) {
+        console.error('Error in debugTabFunctionality:', error);
+    }
+}
+
+// Function to show all documents for debugging
+async function showAllDocuments() {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        const allDocs = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
+        console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
+        console.log('Total documents:', allDocs.length);
+        
+        allDocs.forEach((doc, index) => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            console.log(`Document ${index + 1}:`, {
+                id: doc.stagingID || doc.id,
+                counterRef: doc.counterRef,
+                approvalStatus: approval.approvalStatus,
+                status: status,
+                receivedBy: approval.receivedBy,
+                receivedById: approval.receivedById,
+                currentUser: userId,
+                isReceivedBy: approval.receivedBy === userId || approval.receivedById === userId
+            });
+        });
+        
+        // Show alert with summary
+        const approvedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'approved';
+        }).length;
+        
+        const receivedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isChecked = status.toLowerCase() === 'checked';
+            const isAcknowledged = status.toLowerCase() === 'acknowledged';
+            const isApproved = status.toLowerCase() === 'approved';
+            return !isChecked && !isAcknowledged && !isApproved;
+        }).length;
+        
+        const rejectedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            return status.toLowerCase() === 'rejected';
+        }).length;
+        
+        alert(`Total Documents: ${allDocs.length}\nApproved: ${approvedCount}\nReceived (all except Checked, Acknowledged, Approved): ${receivedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
+        
+    } catch (error) {
+        console.error('Error in showAllDocuments:', error);
+        alert('Error loading documents. Check console for details.');
+    }
 }
 
 // Function to navigate to user profile page
