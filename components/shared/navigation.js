@@ -51,6 +51,11 @@ function navigateToPage(path) {
     }
 }
 
+// Make navigateToPage available globally
+if (typeof window !== 'undefined') {
+    window.navigateToPage = navigateToPage;
+}
+
 // Main Dashboard
 function goToMenu() {
     navigateToPage('pages/dashboard.html');
@@ -246,4 +251,48 @@ if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
         cachedBasePath = null;
     });
+    
+    // Make all navigation functions available globally
+    window.navigateToPage = navigateToPage;
+    window.goToMenu = goToMenu;
+    window.goToMenuPR = goToMenuPR;
+    window.goToMenuCheckPR = goToMenuCheckPR;
+    window.goToMenuAcknowPR = goToMenuAcknowPR;
+    window.goToMenuApprovPR = goToMenuApprovPR;
+    window.goToMenuReceivePR = goToMenuReceivePR;
+    window.goToMenuRevisionPR = goToMenuRevisionPR;
+    window.goToAddReim = goToAddReim;
+    window.goToMenuReim = goToMenuReim;
+    window.goToMenuCheckReim = goToMenuCheckReim;
+    window.goToMenuAcknowReim = goToMenuAcknowReim;
+    window.goToMenuApprovReim = goToMenuApprovReim;
+    window.goToMenuReceiveReim = goToMenuReceiveReim;
+    window.goToMenuRevisionReim = goToMenuRevisionReim;
+    window.goToMenuOPReim = goToMenuOPReim;
+    window.goToMenuCheckOPReim = goToMenuCheckOPReim;
+    window.goToMenuAcknowOPReim = goToMenuAcknowOPReim;
+    window.goToMenuApprovOPReim = goToMenuApprovOPReim;
+    window.goToMenuReceiveOPReim = goToMenuReceiveOPReim;
+    window.goToMenuCash = goToMenuCash;
+    window.goToMenuCheckCash = goToMenuCheckCash;
+    window.goToMenuAcknowCash = goToMenuAcknowCash;
+    window.goToMenuApprovCash = goToMenuApprovCash;
+    window.goToMenuReceiveCash = goToMenuReceiveCash;
+    window.goToMenuRevisionCash = goToMenuRevisionCash;
+    window.goToMenuCloseCash = goToMenuCloseCash;
+    window.goToMenuSettle = goToMenuSettle;
+    window.goToMenuCheckSettle = goToMenuCheckSettle;
+    window.goToMenuAcknowSettle = goToMenuAcknowSettle;
+    window.goToMenuApprovSettle = goToMenuApprovSettle;
+    window.goToMenuReceiveSettle = goToMenuReceiveSettle;
+    window.goToMenuRevisionSettle = goToMenuRevisionSettle;
+    window.goToMenuAPR = goToMenuAPR;
+    window.goToMenuPO = goToMenuPO;
+    window.goToMenuBanking = goToMenuBanking;
+    window.goToMenuInvoice = goToMenuInvoice;
+    window.goToMenuRegist = goToMenuRegist;
+    window.goToMenuUser = goToMenuUser;
+    window.goToMenuRole = goToMenuRole;
+    window.goToProfile = goToProfile;
+    window.logout = logout;
 } 

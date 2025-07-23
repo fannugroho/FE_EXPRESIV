@@ -6,6 +6,14 @@
 // Global flag to prevent multiple loads
 let sidebarLoaded = false;
 
+// Listen for sidebar loaded event to check access
+document.addEventListener('sidebarLoaded', function() {
+    console.log('Sidebar loaded event received, checking Outgoing Payment access');
+    setTimeout(() => {
+        checkOutgoingPaymentAccess();
+    }, 50);
+});
+
 document.addEventListener('DOMContentLoaded', async function() {
     const sidebarElement = document.getElementById('sidebar');
     
@@ -71,6 +79,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Dispatch custom event to notify other scripts
         document.dispatchEvent(new CustomEvent('sidebarLoaded'));
         
+        // Check Outgoing Payment access after sidebar is loaded
+        setTimeout(() => {
+            checkOutgoingPaymentAccess();
+        }, 100);
+        
     } catch (error) {
         console.error('Error loading sidebar:', error);
         // Show fallback content
@@ -96,6 +109,9 @@ function initializeSidebarFunctionality() {
     
     // Ensure sidebar is visible and stable
     ensureSidebarStability();
+    
+    // Check and show/hide Outgoing Payment menu based on user access
+    checkOutgoingPaymentAccess();
 }
 
 // Set active menu item
@@ -240,4 +256,31 @@ window.stopSidebarMonitoring = function() {
         clearInterval(sidebarCheckInterval);
         sidebarCheckInterval = null;
     }
-}; 
+};
+
+// Function to check and show/hide Outgoing Payment menu based on user access
+function checkOutgoingPaymentAccess() {
+    console.log('=== Sidebar Loader checkOutgoingPaymentAccess Start ===');
+    
+    const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
+    console.log('Outgoing Payment Menu Element:', outgoingPaymentMenu);
+    
+    if (outgoingPaymentMenu) {
+        const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+        console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
+        
+        if (hasAccess === 'true') {
+            // User has access, show the menu
+            outgoingPaymentMenu.style.display = 'block';
+            console.log('Showing Outgoing Payment menu');
+        } else {
+            // User doesn't have access, hide the menu
+            outgoingPaymentMenu.style.display = 'none';
+            console.log('Hiding Outgoing Payment menu');
+        }
+    } else {
+        console.log('Outgoing Payment menu element not found');
+    }
+    
+    console.log('=== Sidebar Loader checkOutgoingPaymentAccess End ===');
+} 

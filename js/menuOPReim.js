@@ -572,53 +572,53 @@ function changePage(direction) {
 
 // Fungsi navigasi ke halaman status tertentu
 function goToCheckedDocs() {
-    currentTab = 'checked';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Checked') || 
-        doc.status === 'Checked'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the checked documents page
+    debugNavigation('goToCheckedDocs', 'approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html';
+    }
 }
 
 function goToApprovedDocs() {
-    currentTab = 'approved';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Approved') || 
-        doc.status === 'Approved'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the approved documents page
+    debugNavigation('goToApprovedDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToRejectDocs() {
-    currentTab = 'rejected';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Rejected') || 
-        doc.status === 'Rejected'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the rejected documents page (same as approved but filtered)
+    debugNavigation('goToRejectDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToPaidDocs() {
-    currentTab = 'paid';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Paid') || 
-        doc.status === 'Paid'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the paid documents page (same as approved but filtered)
+    debugNavigation('goToPaidDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToSettledDocs() {
-    currentTab = 'settled';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Settled') || 
-        doc.status === 'Settled'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the settled documents page (same as approved but filtered)
+    debugNavigation('goToSettledDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 // Function untuk switch tab
@@ -984,49 +984,131 @@ function downloadPDF() {
     doc.save(fileName);
 }
 
+// Add debugging for navigation functions
+function debugNavigation(functionName, path) {
+    console.log(`Navigation called: ${functionName} -> ${path}`);
+    console.log('navigateToPage available:', typeof navigateToPage === 'function');
+    console.log('Current location:', window.location.href);
+}
+
 function goToMenu() { 
-    window.location.href = "pages/dashboard.html"; 
+    debugNavigation('goToMenu', 'pages/dashboard.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/dashboard.html');
+    } else {
+        window.location.href = 'pages/dashboard.html';
+    }
 }
+
 function goToAddDoc() {
-    window.location.href = "addPages/addReim.html"; 
+    debugNavigation('goToAddDoc', 'addPages/addReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addReim.html');
+    } else {
+        window.location.href = 'addPages/addReim.html';
+    }
 }
+
 function goToAddReim() {
-    window.location.href = "addPages/addReim.html"; 
+    debugNavigation('goToAddReim', 'addPages/addReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addReim.html');
+    } else {
+        window.location.href = 'addPages/addReim.html';
+    }
 }
 
 function goToAddSettle() {
-    window.location.href = "addPages/addSettle.html"; 
+    debugNavigation('goToAddSettle', 'addPages/addSettle.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addSettle.html');
+    } else {
+        window.location.href = 'addPages/addSettle.html';
+    }
 }
+
 function goToAddPO() {
-    window.location.href = "addPages/addPO.html"; 
+    // PO page doesn't exist yet, redirect to a placeholder or main menu
+    alert('PO page is not yet implemented');
 }
+
 function goToMenuPR() { 
-    window.location.href = "pages/menuPR.html"; 
+    debugNavigation('goToMenuPR', 'pages/menuPR.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuPR.html');
+    } else {
+        window.location.href = 'pages/menuPR.html';
+    }
 }
+
 function goToMenuReim() { 
-    window.location.href = "pages/menuReim.html"; 
+    debugNavigation('goToMenuReim', 'pages/menuReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuReim.html');
+    } else {
+        window.location.href = 'pages/menuReim.html';
+    }
 }
+
 function goToMenuCash() { 
-    window.location.href = "pages/menuCash.html"; 
+    debugNavigation('goToMenuCash', 'pages/menuCash.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuCash.html');
+    } else {
+        window.location.href = 'pages/menuCash.html';
+    }
 }
+
 function goToMenuSettle() { 
-    window.location.href = "pages/menuSettle.html"; 
+    debugNavigation('goToMenuSettle', 'pages/menuSettle.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuSettle.html');
+    } else {
+        window.location.href = 'pages/menuSettle.html';
+    }
 }
+
 function goToApprovalReport() { 
-    window.location.href = "pages/approval-dashboard.html"; 
+    debugNavigation('goToApprovalReport', 'pages/approval-dashboard.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/approval-dashboard.html');
+    } else {
+        window.location.href = 'pages/approval-dashboard.html';
+    }
 }
+
 function goToMenuPO() { 
-    window.location.href = "pages/menuPO.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('PO Approval page is not yet implemented');
 }
+
 function goToMenuInvoice() { 
-    window.location.href = "pages/menuInvoice.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('AR Invoice Approval page is not yet implemented');
 }
+
 function goToMenuBanking() { 
-    window.location.href = "pages/menuBanking.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('Outgoing Approval page is not yet implemented');
 }
+
 function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "pages/login.html"; 
+    // Clear any authentication tokens or session data
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserCode");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRoles");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
+    
+    // Redirect to login page
+    debugNavigation('logout', 'pages/login.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/login.html');
+    } else {
+        window.location.href = 'pages/login.html';
+    }
 }
 
 // Function to handle search input
@@ -1038,7 +1120,12 @@ function handleSearch() {
 
 function detailDoc(opId) {
     // Navigate to outgoing payment reimbursement detail page
-    window.location.href = `../detailPages/detailOPReim.html?id=${opId}`;
+    debugNavigation('detailDoc', `detailPages/detailOPReim.html?id=${opId}`);
+    if (typeof navigateToPage === 'function') {
+        navigateToPage(`detailPages/detailOPReim.html?id=${opId}`);
+    } else {
+        window.location.href = `detailPages/detailOPReim.html?id=${opId}`;
+    }
 }
 
 // Load dashboard using the same approach as Purchase Request
