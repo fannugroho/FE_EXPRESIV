@@ -5,6 +5,78 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
+// Reusable function to fetch outgoing payment documents by approval step
+async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+    try {
+        console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
+        
+        const params = new URLSearchParams({
+            step: step,
+            userId: userId,
+            onlyCurrentStep: onlyCurrentStep.toString(),
+            includeDetails: 'false'
+        });
+        
+        // Add isRejected parameter if specified
+        if (isRejected) {
+            params.append('isRejected', 'true');
+        }
+        
+        const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for step ${step} (onlyCurrentStep: ${onlyCurrentStep}):`, result);
+
+        // Handle different response structures
+        let documents = [];
+        if (result.status && result.data) {
+            documents = result.data;
+        } else if (Array.isArray(result)) {
+            documents = result;
+        } else if (result.data) {
+            documents = result.data;
+        } else {
+            documents = [];
+        }
+        
+        console.log(`Returning ${documents.length} documents for step ${step}`);
+        
+        // Debug: Log first document structure if available
+        if (documents.length > 0) {
+            console.log('First document structure:', documents[0]);
+            console.log('First document status fields:', {
+                approval: documents[0].approval,
+                status: documents[0].status,
+                type: documents[0].type,
+                doctype: documents[0].doctype
+            });
+        }
+        
+        return documents;
+    } catch (error) {
+        console.error(`Error fetching documents for step ${step}:`, error);
+        return [];
+    }
+}
+
 // Helper function to get access token
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -170,6 +242,9 @@ async function loadDashboard() {
         // Update counters by fetching all statuses
         await updateCounters(userId);
         
+        // Debug: Test tab functionality
+        await debugTabFunctionality();
+        
         // Update the table with filtered documents
         updateTable(sortedDocuments);
         
@@ -230,8 +305,15 @@ async function updateCounters(userId) {
         const approvedData = await extractDataFromResponse(approvedResponse);
         const rejectedData = await extractDataFromResponse(rejectedResponse);
 
-        const acknowledgedCount = acknowledgedData.length;
+        // For acknowledged count, filter for acknowledged status
+        const acknowledgedCount = acknowledgedData.filter(doc => {
+            const status = getStatusDisplay(doc);
+            return status.toLowerCase() === 'acknowledged';
+        }).length;
+        
+        // For approved count, use the approvedBy endpoint to get all documents
         const approvedCount = approvedData.length;
+        
         const rejectedCount = rejectedData.length;
         const totalCount = acknowledgedCount + approvedCount + rejectedCount;
 
@@ -390,18 +472,118 @@ function updateTable(documents) {
 }
 
 // Function to switch between tabs
-function switchTab(tabName) {
+async function switchTab(tabName) {
+    console.log('switchTab called with:', tabName);
     currentTab = tabName;
     
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
     
-    if (tabName === 'acknowledged') {
-        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'approved') {
-        document.getElementById('approvedTabBtn').classList.add('tab-active');
-    } else if (tabName === 'rejected') {
-        document.getElementById('rejectedTabBtn').classList.add('tab-active');
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        let documents = [];
+        
+        if (tabName === 'acknowledged') {
+            console.log('Loading acknowledged tab...');
+            document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+            // For "Acknowledged" tab, show all documents with Approval Status "Acknowledged"
+            const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+            console.log(`Total documents fetched: ${allDocuments.length}`);
+            
+            documents = allDocuments.filter(doc => {
+                const status = getStatusDisplay(doc);
+                const isAcknowledged = status.toLowerCase() === 'acknowledged';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                    console.log('Document structure:', doc);
+                }
+                
+                return isAcknowledged;
+            });
+            console.log('Acknowledged documents loaded:', documents.length);
+        } else if (tabName === 'approved') {
+            console.log('Loading approved tab...');
+            document.getElementById('approvedTabBtn').classList.add('tab-active');
+            // For "Approved" tab, show all documents regardless of status using approvedBy endpoint
+            documents = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+            console.log('Approved documents loaded:', documents.length);
+        } else if (tabName === 'rejected') {
+            console.log('Loading rejected tab...');
+            document.getElementById('rejectedTabBtn').classList.add('tab-active');
+            // For "Rejected" tab, show all documents with Approval Status "Rejected"
+            const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+            console.log(`Total documents fetched: ${allDocuments.length}`);
+            
+            documents = allDocuments.filter(doc => {
+                const status = getStatusDisplay(doc);
+                const isRejected = status.toLowerCase() === 'rejected';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isRejected=${isRejected}`);
+                    console.log('Document structure:', doc);
+                }
+                
+                return isRejected;
+            });
+            console.log('Rejected documents loaded:', documents.length);
+        }
+        
+        console.log('Total documents before filtering:', documents.length);
+        
+        // Apply search filter if there's a search term
+        let filteredDocuments = documents;
+        if (currentSearchTerm) {
+            console.log('Applying search filter with term:', currentSearchTerm);
+            filteredDocuments = documents.filter(doc => {
+                switch (currentSearchType) {
+                    case 'reimNo':
+                        return doc.counterRef && doc.counterRef.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'requester':
+                        return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'payTo':
+                        return doc.cardName && doc.cardName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'totalAmount':
+                        const totalAmount = doc.trsfrSum ? doc.trsfrSum.toString() : '';
+                        return totalAmount.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'status':
+                        const status = getStatusDisplay(doc);
+                        return status.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'docDate':
+                        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '';
+                        return docDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'dueDate':
+                        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '';
+                        return dueDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    default:
+                        return true;
+                }
+            });
+            console.log('Documents after filtering:', filteredDocuments.length);
+        }
+        
+        // Sort documents by Reimburse No (newest first)
+        const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
+        console.log('Documents after sorting:', sortedDocuments.length);
+        
+        // Update the table with filtered documents
+        updateTable(sortedDocuments);
+        
+        // Update pagination info
+        updatePaginationInfo(sortedDocuments.length);
+        
+    } catch (error) {
+        console.error('Error switching tab:', error);
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
     }
     
     // Reset search when switching tabs
@@ -413,9 +595,6 @@ function switchTab(tabName) {
     
     // Reset pagination
     currentPage = 1;
-    
-    // Reload dashboard with the new filter
-    loadDashboard();
 }
 
 // Function to handle search input
@@ -650,6 +829,47 @@ function downloadPDF() {
     
     // Save the PDF with current filter in the filename
     doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// Debug function to test tab functionality
+async function debugTabFunctionality() {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found for debug');
+        return;
+    }
+    
+    console.log('=== DEBUG: Testing Tab Functionality ===');
+    
+    try {
+        // Test Acknowledged tab
+        console.log('Testing Acknowledged tab...');
+        const acknowledgedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const acknowledgedFiltered = acknowledgedDocs.filter(doc => {
+            const status = getStatusDisplay(doc);
+            return status.toLowerCase() === 'acknowledged';
+        });
+        console.log('Acknowledged documents:', acknowledgedFiltered.length, acknowledgedFiltered);
+        
+        // Test Approved tab
+        console.log('Testing Approved tab...');
+        const approvedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        console.log('Approved documents:', approvedDocs.length, approvedDocs);
+        
+        // Test Rejected tab
+        console.log('Testing Rejected tab...');
+        const rejectedDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const rejectedFiltered = rejectedDocs.filter(doc => {
+            const status = getStatusDisplay(doc);
+            return status.toLowerCase() === 'rejected';
+        });
+        console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
+        
+        console.log('=== DEBUG: Tab Functionality Test Complete ===');
+        
+    } catch (error) {
+        console.error('Error in debugTabFunctionality:', error);
+    }
 }
 
 // Function to navigate to user profile page

@@ -1,13 +1,30 @@
-/* Sidebar Styles */
+/* Sidebar Styles - Enhanced version with glitch prevention */
 #sidebar {
     box-shadow: 0 0 20px rgba(0,0,0,0.1);
     height: 100vh;
-    position: sticky;
-    top: 0;
+    position: sticky !important;
+    top: 0 !important;
     overflow-y: auto;
     scrollbar-width: thin;
-    width: 280px; /* Set fixed full width */
-    background-color: rgba(255, 255, 255, 0.98);
+    width: 280px !important; /* Set fixed full width */
+    background-color: rgba(255, 255, 255, 0.98) !important;
+    z-index: 1000 !important;
+    transition: opacity 0.3s ease;
+    /* Prevent any unwanted transformations */
+    transform: none !important;
+    margin-left: 0 !important;
+    visibility: visible !important;
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Prevent sidebar from being hidden or moved */
+#sidebar.hidden,
+#sidebar[style*="display: none"],
+#sidebar[style*="visibility: hidden"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 #sidebar::-webkit-scrollbar {
@@ -35,13 +52,13 @@
 }
 
 .active-menu-item {
-    background-color: #EBF5FF;
-    color: #2563eb;
-    font-weight: 500;
+    background-color: #EBF5FF !important;
+    color: #2563eb !important;
+    font-weight: 500 !important;
 }
 
 .active-menu-item i {
-    color: #2563eb;
+    color: #2563eb !important;
 }
 
 .sidebar-logo-container {
@@ -63,6 +80,11 @@
 .menu-btn {
     transition: all 0.3s ease;
     border-radius: 0.5rem;
+    /* Prevent text selection during transitions */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .menu-btn:hover {
@@ -70,11 +92,101 @@
     padding-left: 0.75rem;
 }
 
+.menu-btn:active {
+    transform: scale(0.98);
+}
+
 .submenu-btn {
     transition: all 0.3s ease;
+    /* Prevent text selection during transitions */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .submenu-btn:hover {
     color: #2563eb;
     padding-left: 0.5rem;
+}
+
+.submenu-btn:active {
+    transform: scale(0.98);
+}
+
+/* Loading state for sidebar */
+.sidebar-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+}
+
+.sidebar-loading .animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error state for sidebar */
+.sidebar-error {
+    padding: 1rem;
+    text-align: center;
+    color: #6B7280;
+}
+
+.sidebar-error i {
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    color: #EF4444;
+}
+
+/* Ensure submenus are properly styled */
+div[id^="Menu"], #settings, #OutgoingPayment {
+    transition: all 0.3s ease;
+}
+
+div[id^="Menu"].hidden, #settings.hidden, #OutgoingPayment.hidden {
+    display: none !important;
+}
+
+/* Prevent any CSS overrides that might cause glitches */
+@media (max-width: 768px) {
+    #sidebar {
+        width: 280px !important;
+        position: sticky !important;
+        transform: none !important;
+    }
+}
+
+/* Ensure chevron icons are properly styled */
+.fa-chevron-right {
+    transition: transform 0.3s ease;
+}
+
+/* Prevent any unwanted animations during page transitions */
+.page-transitioning #sidebar {
+    transition: opacity 0.2s ease;
+}
+
+/* Ensure consistent button styling */
+.menu-btn, .submenu-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+    text-align: left;
+}
+
+.menu-btn:focus, .submenu-btn:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
 } 

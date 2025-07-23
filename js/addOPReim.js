@@ -1311,7 +1311,7 @@ window.filterTransactionTypes = function() {
     console.log('Filtering transaction types...');
 };
 
-// Global variable to store users
+// Global variable to store users - make it consistent across all functions
 let users = [];
 
 // Function to initialize user dropdowns
@@ -1350,7 +1350,9 @@ async function initializeUserDropdowns() {
             throw new Error('Invalid response from API');
         }
 
+        // Set both local and global users array for consistency
         users = result.data;
+        window.users = result.data;
         console.log('Loaded users:', users);
 
         // Setup user search for each approval field
@@ -1405,6 +1407,8 @@ function setupUserSearch(fieldId) {
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
         filterUsersBySearchTerm(fieldId, searchTerm);
+        
+
     });
 
     // Add focus event to show dropdown
@@ -1444,16 +1448,31 @@ function filterUsersBySearchTerm(fieldId, searchTerm) {
         return;
     }
 
-    // Filter users
-    const filteredUsers = users.filter(user => 
+    console.log(`Filtering users for field ${fieldId} with search term: "${searchTerm}"`);
+
+    // Filter users with exact match priority
+    const exactMatches = users.filter(user => 
         typeof user.fullName === 'string' &&
-        (
-            user.fullName.toLowerCase().includes(searchTerm) ||
-            (user.kansaiEmployeeId && typeof user.kansaiEmployeeId === 'string' && user.kansaiEmployeeId.toLowerCase().includes(searchTerm)) ||
-            (user.position && typeof user.position === 'string' && user.position.toLowerCase().includes(searchTerm)) ||
-            (user.department && typeof user.department === 'string' && user.department.toLowerCase().includes(searchTerm))
-        )
+        user.fullName.toLowerCase().trim() === searchTerm.toLowerCase().trim()
     );
+    
+    const startsWithMatches = users.filter(user => 
+        typeof user.fullName === 'string' &&
+        user.fullName.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+        user.fullName.toLowerCase().trim() !== searchTerm.toLowerCase().trim()
+    );
+    
+    const partialMatches = users.filter(user => 
+        typeof user.fullName === 'string' &&
+        user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !user.fullName.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+        user.fullName.toLowerCase().trim() !== searchTerm.toLowerCase().trim()
+    );
+    
+    // Combine results with exact matches first, then starts with, then partial matches
+    const filteredUsers = [...exactMatches, ...startsWithMatches, ...partialMatches];
+
+    console.log(`Found ${filteredUsers.length} users for "${searchTerm}":`, filteredUsers.map(u => `${u.id} - ${u.fullName}`));
 
     // Display filtered users
     filteredUsers.forEach(user => {
@@ -1464,6 +1483,7 @@ function filterUsersBySearchTerm(fieldId, searchTerm) {
         `;
         
         item.addEventListener('click', () => {
+            console.log(`User selected for ${fieldId}: ${user.id} - ${user.fullName}`);
             selectUser(fieldId, user);
         });
         
@@ -1503,22 +1523,65 @@ function showAllUsers(fieldId) {
     dropdown.classList.remove('hidden');
 }
 
-// Function to select a user
+// Function to select a user - IMPROVED VERSION
 function selectUser(fieldId, user) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
     const hiddenSelect = document.getElementById(fieldId);
     
-    if (!searchInput || !dropdown || !hiddenSelect) return;
+    if (!searchInput || !dropdown || !hiddenSelect) {
+        console.error(`Missing elements for field ${fieldId}:`, {
+            searchInput: !!searchInput,
+            dropdown: !!dropdown,
+            hiddenSelect: !!hiddenSelect
+        });
+        return;
+    }
 
-    // Set the search input value
+    console.log(`Setting user for ${fieldId}:`, {
+        userId: user.id,
+        userName: user.fullName,
+        fieldId: fieldId
+    });
+
+    // Set the search input value (display name)
     searchInput.value = user.fullName;
+    
+    // Clear existing options and add the selected user
+    hiddenSelect.innerHTML = '';
+    const option = document.createElement('option');
+    option.value = user.id;
+    option.text = user.fullName;
+    option.selected = true;
+    hiddenSelect.appendChild(option);
     
     // Set the hidden select value
     hiddenSelect.value = user.id;
     
+    // Verify the values were set correctly
+    console.log(`Verification for ${fieldId}:`, {
+        searchInputValue: searchInput.value,
+        hiddenSelectValue: hiddenSelect.value,
+        expectedUserId: user.id,
+        expectedUserName: user.fullName
+    });
+    
     // Hide dropdown
     dropdown.classList.add('hidden');
+    
+    // Trigger change event to notify other parts of the system
+    const changeEvent = new Event('change', { bubbles: true });
+    hiddenSelect.dispatchEvent(changeEvent);
+    searchInput.dispatchEvent(changeEvent);
+    
+    // Additional verification after a short delay
+    setTimeout(() => {
+        console.log(`Final verification for ${fieldId}:`, {
+            searchInputValue: searchInput.value,
+            hiddenSelectValue: hiddenSelect.value,
+            selectedOption: hiddenSelect.selectedOptions[0]?.text || 'None'
+        });
+    }, 100);
 }
 
 // Function to filter users (keeping for backward compatibility)
@@ -2673,13 +2736,7 @@ function collectFormData(userId, isSubmit) {
     
     console.log('Total attachments collected:', attachments.length);
     
-    // Debug approval field values
-    console.log('Approval field values:');
-    console.log('PreparedById:', document.getElementById("Approval.PreparedById")?.value);
-    console.log('CheckedById:', document.getElementById("Approval.CheckedById")?.value);
-    console.log('AcknowledgedById:', document.getElementById("Approval.AcknowledgedById")?.value);
-    console.log('ApprovedById:', document.getElementById("Approval.ApprovedById")?.value);
-    console.log('ReceivedById:', document.getElementById("Approval.ReceivedById")?.value);
+
     
     // Collect approval field values using the new function
     const approvalData = collectApprovalFieldValues();
@@ -3524,16 +3581,38 @@ function collectApprovalFieldValues() {
         const searchInput = document.getElementById(`${fieldId}Search`);
         
         if (hiddenSelect && searchInput) {
-            const userId = hiddenSelect.value;
+            let userId = hiddenSelect.value;
             const userName = searchInput.value;
             
             // Extract the field name (e.g., "PreparedById" from "Approval.PreparedById")
             const fieldName = fieldId.replace('Approval.', '');
             
+            // If we have a userName but no userId, try to find the user ID
+            if (userName && userName.trim() && !userId) {
+                const user = users.find(u => u.fullName === userName.trim());
+                if (user) {
+                    userId = user.id;
+                    console.log(`Found user ID for ${fieldName}: ${userName} -> ${userId}`);
+                }
+            }
+            
+            // Additional verification: check if the selected option matches the user name
+            if (userId && userName) {
+                const selectedOption = hiddenSelect.selectedOptions[0];
+                if (selectedOption && selectedOption.text !== userName) {
+                    console.warn(`Mismatch for ${fieldName}: option text="${selectedOption.text}" vs userName="${userName}"`);
+                }
+            }
+            
             approvalData[fieldName] = userId;
             approvalData[`${fieldName}Name`] = userName;
             
             console.log(`Collected ${fieldName}: ID=${userId}, Name=${userName}`);
+        } else {
+            console.warn(`Missing elements for ${fieldId}:`, {
+                hiddenSelect: !!hiddenSelect,
+                searchInput: !!searchInput
+            });
         }
     });
     
@@ -3570,19 +3649,39 @@ async function ensureApprovalFieldsBeforeSubmit() {
                     console.log(`Searching for user ID for ${fieldId}: ${searchInput.value}`);
                     const userId = await findUserIdByName(searchInput.value);
                     if (userId) {
+                        // Clear existing options and add the found user
+                        hiddenSelect.innerHTML = '';
+                        const option = document.createElement('option');
+                        option.value = userId;
+                        option.text = searchInput.value;
+                        option.selected = true;
+                        hiddenSelect.appendChild(option);
+                        
                         hiddenSelect.value = userId;
                         console.log(`Found user for ${fieldId}: ${userId} - ${searchInput.value}`);
-                        
-                        // Create option if it doesn't exist
-                        if (!hiddenSelect.querySelector(`option[value="${userId}"]`)) {
-                            const newOption = document.createElement('option');
-                            newOption.value = userId;
-                            newOption.text = searchInput.value;
-                            newOption.selected = true;
-                            hiddenSelect.appendChild(newOption);
-                        }
                     } else {
                         console.warn(`Could not find user ID for ${fieldId}: ${searchInput.value}`);
+                    }
+                }
+                
+                // Additional verification: ensure the hidden select has the correct value
+                if (searchInput.value && searchInput.value.trim()) {
+                    const selectedOption = hiddenSelect.selectedOptions[0];
+                    if (!selectedOption || selectedOption.text !== searchInput.value.trim()) {
+                        console.warn(`Mismatch detected for ${fieldId}: option text="${selectedOption?.text || 'None'}" vs searchInput="${searchInput.value}"`);
+                        
+                        // Try to fix the mismatch
+                        const user = users.find(u => u.fullName === searchInput.value.trim());
+                        if (user) {
+                            hiddenSelect.innerHTML = '';
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.text = user.fullName;
+                            option.selected = true;
+                            hiddenSelect.appendChild(option);
+                            hiddenSelect.value = user.id;
+                            console.log(`Fixed mismatch for ${fieldId}: ${user.id} - ${user.fullName}`);
+                        }
                     }
                 }
                 
@@ -3598,6 +3697,8 @@ async function ensureApprovalFieldsBeforeSubmit() {
 // Make ensureApprovalFieldsBeforeSubmit globally available
 window.ensureApprovalFieldsBeforeSubmit = ensureApprovalFieldsBeforeSubmit;
 
+
+
 // Function to find user ID by name when users array is not available
 async function findUserIdByName(userName) {
     if (!userName || typeof userName !== 'string' || !userName.trim()) {
@@ -3605,10 +3706,12 @@ async function findUserIdByName(userName) {
         return null;
     }
     
+    console.log(`Finding user ID for name: "${userName}"`);
+    
     // Try to find in global users array first
     if (window.users && window.users.length > 0) {
-        const user = window.users.find(user => {
-            // Check if user and fullName exist and are strings
+        // First try exact match
+        let user = window.users.find(user => {
             if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
                 return false;
             }
@@ -3616,11 +3719,28 @@ async function findUserIdByName(userName) {
             const searchName = userName.toLowerCase().trim();
             const fullName = user.fullName.toLowerCase().trim();
             
-            return fullName.includes(searchName) || fullName === searchName;
+            return fullName === searchName;
         });
         
         if (user) {
-            console.log(`Found user by name in global array: ${user.id} - ${user.fullName}`);
+            console.log(`Found exact match: ${user.id} - ${user.fullName}`);
+            return user.id;
+        }
+        
+        // If no exact match, try partial match
+        user = window.users.find(user => {
+            if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
+                return false;
+            }
+            
+            const searchName = userName.toLowerCase().trim();
+            const fullName = user.fullName.toLowerCase().trim();
+            
+            return fullName.includes(searchName);
+        });
+        
+        if (user) {
+            console.log(`Found partial match: ${user.id} - ${user.fullName}`);
             return user.id;
         }
     }
@@ -3634,8 +3754,8 @@ async function findUserIdByName(userName) {
         
         // Try to find again after loading
         if (window.users && window.users.length > 0) {
-            const user = window.users.find(user => {
-                // Check if user and fullName exist and are strings
+            // First try exact match
+            let user = window.users.find(user => {
                 if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
                     return false;
                 }
@@ -3643,11 +3763,28 @@ async function findUserIdByName(userName) {
                 const searchName = userName.toLowerCase().trim();
                 const fullName = user.fullName.toLowerCase().trim();
                 
-                return fullName.includes(searchName) || fullName === searchName;
+                return fullName === searchName;
             });
             
             if (user) {
-                console.log(`Found user by name after loading: ${user.id} - ${user.fullName}`);
+                console.log(`Found exact match after loading: ${user.id} - ${user.fullName}`);
+                return user.id;
+            }
+            
+            // If no exact match, try partial match
+            user = window.users.find(user => {
+                if (!user || typeof user.fullName !== 'string' || !user.fullName.trim()) {
+                    return false;
+                }
+                
+                const searchName = userName.toLowerCase().trim();
+                const fullName = user.fullName.toLowerCase().trim();
+                
+                return fullName.includes(searchName);
+            });
+            
+            if (user) {
+                console.log(`Found partial match after loading: ${user.id} - ${user.fullName}`);
                 return user.id;
             }
         }
@@ -4338,10 +4475,20 @@ function parseCurrency(formattedValue) {
     return parseFloat(cleaned) || 0;
 }
 
-// Ensure jrnlMemo and remarks are always readonly
-window.addEventListener('DOMContentLoaded', function() {
+// Ensure jrnlMemo and remarks are always readonly and initialize users
+window.addEventListener('DOMContentLoaded', async function() {
     var jrnlMemo = document.getElementById('jrnlMemo');
     if (jrnlMemo) jrnlMemo.readOnly = true;
     var remarks = document.getElementById('remarks');
     if (remarks) remarks.readOnly = true;
+    
+    // Initialize user dropdowns
+    try {
+        await initializeUserDropdowns();
+        console.log('User dropdowns initialized successfully');
+    } catch (error) {
+        console.error('Error initializing user dropdowns:', error);
+    }
 });
+
+

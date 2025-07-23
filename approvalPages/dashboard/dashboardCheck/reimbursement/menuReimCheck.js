@@ -124,7 +124,17 @@ function getStatusColorClass(status) {
 // Function to fetch status counts from API
 function fetchStatusCounts() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
+    
+    // Use generic endpoint with parameters
+    const params = new URLSearchParams({
+        step: 'preparedBy',
+        userId: userId,
+        onlyCurrentStep: 'false',
+        includeDetails: 'false'
+    });
+    
+    const endpoint = `/api/reimbursements/headers?${params.toString()}`;
+    console.log('Fetching status counts from:', endpoint);
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -135,22 +145,266 @@ function fetchStatusCounts() {
         })
         .then(data => {
             if (data.status && data.code === 200) {
-                updateStatusCounts(data.data);
+                // Calculate counts from the data
+                const documents = data.data || [];
+                const counts = calculateStatusCounts(documents, userId);
+                updateStatusCounts(counts);
             } else {
                 console.error('API returned an error:', data.message);
+                // Use sample counts if API fails
+                updateSampleCounts();
             }
         })
         .catch(error => {
             console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
+            // Use sample counts if API fails
             updateSampleCounts();
         });
+}
+
+// Function to calculate status counts from documents
+function calculateStatusCounts(documents, userId) {
+    const counts = {
+        totalCount: documents.length,
+        preparedCount: 0,
+        checkedCount: 0,
+        rejectedCount: 0
+    };
+    
+    documents.forEach(doc => {
+        const approval = doc.approval || {};
+        const isCheckedBy = approval.checkedBy === userId || approval.checkedById === userId;
+        
+        if (isCheckedBy) {
+            if (doc.status === 'Prepared') {
+                counts.preparedCount++;
+            } else if (doc.status === 'Checked') {
+                counts.checkedCount++;
+            } else if (doc.status === 'Rejected') {
+                counts.rejectedCount++;
+            }
+        }
+    });
+    
+    console.log('Calculated status counts:', counts);
+    return counts;
+}
+
+// Reusable function to fetch reimbursement documents by approval step
+async function fetchReimbursementDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+    try {
+        console.log(`Fetching reimbursement documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
+        
+        const params = new URLSearchParams({
+            step: step,
+            userId: userId,
+            onlyCurrentStep: onlyCurrentStep.toString(),
+            includeDetails: 'false'
+        });
+        
+        // Add isRejected parameter if specified
+        if (isRejected) {
+            params.append('isRejected', 'true');
+        }
+        
+        const apiUrl = `${BASE_URL}/api/reimbursements/headers?${params.toString()}`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for step ${step} (onlyCurrentStep: ${onlyCurrentStep}):`, result);
+
+        // Handle different response structures
+        let documents = [];
+        if (result.status && result.data) {
+            documents = result.data;
+        } else if (Array.isArray(result)) {
+            documents = result;
+        } else if (result.data) {
+            documents = result.data;
+        } else {
+            documents = [];
+        }
+        
+        console.log(`Returning ${documents.length} reimbursement documents for step ${step}`);
+        return documents;
+    } catch (error) {
+        console.error(`Error fetching reimbursement documents for step ${step}:`, error);
+        return [];
+    }
+}
+
+// Function to fetch all documents for "All Documents" tab
+async function fetchAllReimbursementDocuments(userId) {
+    try {
+        const steps = ['CheckedBy', 'AcknowledgedBy', 'ApprovedBy', 'ReceivedBy'];
+        
+        // Make parallel API calls for all steps with onlyCurrentStep = false (historical view)
+        const promises = steps.map(step => fetchReimbursementDocuments(step, userId, false));
+        const results = await Promise.all(promises);
+        
+        // Combine all results into a single array
+        const allDocuments = results.flat();
+        
+        // Remove duplicates based on document ID
+        const uniqueDocuments = allDocuments.filter((doc, index, self) => 
+            index === self.findIndex(d => (d.stagingID || d.id) === (doc.stagingID || doc.id))
+        );
+        
+        return uniqueDocuments;
+    } catch (error) {
+        console.error('Error fetching all reimbursement documents:', error);
+        return [];
+    }
+}
+
+// Function to fetch checked documents for "Checked" tab
+async function fetchCheckedReimbursementDocuments(userId) {
+    console.log('fetchCheckedReimbursementDocuments called with userId:', userId);
+    
+    // For "Checked" tab, we want only documents currently waiting for this user's check
+    // Try multiple approaches to get the right data
+    try {
+        // First try: Get documents assigned to this user for checking
+        const documents = await fetchReimbursementDocuments('checkedBy', userId, true);
+        console.log('Documents from checkedBy endpoint:', documents);
+        
+        // If no documents found, try alternative approach
+        if (!documents || documents.length === 0) {
+            console.log('No documents found with checkedBy, trying alternative approach...');
+            
+            // Try getting all documents with "Prepared" status that this user should check
+            const allPreparedDocs = await fetchReimbursementDocuments('preparedBy', userId, false);
+            console.log('All prepared documents:', allPreparedDocs);
+            
+            // Filter documents where this user is the checkedBy
+            const userCheckedDocs = allPreparedDocs.filter(doc => {
+                const approval = doc.approval || {};
+                console.log('Document approval data:', approval);
+                console.log('Checking if user', userId, 'is checkedBy for document:', doc.voucherNo);
+                return approval.checkedBy === userId || approval.checkedById === userId;
+            });
+            
+            console.log('Filtered documents for this user to check:', userCheckedDocs);
+            return userCheckedDocs;
+        }
+        
+        return documents;
+    } catch (error) {
+        console.error('Error in fetchCheckedReimbursementDocuments:', error);
+        return [];
+    }
+}
+
+// Function to fetch prepared documents for "Prepared" tab
+async function fetchPreparedReimbursementDocuments(userId) {
+    console.log('fetchPreparedReimbursementDocuments called with userId:', userId);
+    
+    // For "Prepared" tab, we want documents with "Prepared" status that this user needs to check
+    // NOT documents that this user prepared
+    try {
+        // Get all documents with "Prepared" status
+        const allPreparedDocs = await fetchReimbursementDocuments('preparedBy', userId, false);
+        console.log('All prepared documents:', allPreparedDocs);
+        
+        // Filter documents where this user is the checkedBy (needs to approve)
+        const userCheckedDocs = allPreparedDocs.filter(doc => {
+            const approval = doc.approval || {};
+            console.log('Document approval data:', approval);
+            console.log('Checking if user', userId, 'is checkedBy for document:', doc.voucherNo);
+            return approval.checkedBy === userId || approval.checkedById === userId;
+        });
+        
+        console.log('Filtered documents for this user to check:', userCheckedDocs);
+        return userCheckedDocs;
+    } catch (error) {
+        console.error('Error in fetchPreparedReimbursementDocuments:', error);
+        return [];
+    }
+}
+
+// Function to get all documents that need approval from current user
+async function fetchReimbursementDocumentsNeedingApproval(userId) {
+    console.log('fetchReimbursementDocumentsNeedingApproval called with userId:', userId);
+    
+    try {
+        // Get all documents from different endpoints
+        const preparedDocs = await fetchReimbursementDocuments('preparedBy', userId, false);
+        const checkedDocs = await fetchReimbursementDocuments('checkedBy', userId, true);
+        
+        console.log('All prepared documents:', preparedDocs);
+        console.log('Checked documents:', checkedDocs);
+        
+        // Combine and filter documents where current user is the approver
+        const allDocs = [...preparedDocs, ...checkedDocs];
+        
+        // Remove duplicates based on stagingID
+        const uniqueDocs = allDocs.filter((doc, index, self) => 
+            index === self.findIndex(d => (d.stagingID || d.id) === (doc.stagingID || doc.id))
+        );
+        
+        // Filter documents where current user is the checkedBy
+        const userApprovalDocs = uniqueDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const isCheckedBy = approval.checkedBy === userId || approval.checkedById === userId;
+            const isAcknowledgedBy = approval.acknowledgedBy === userId || approval.acknowledgedById === userId;
+            const isApprovedBy = approval.approvedBy === userId || approval.approvedById === userId;
+            const isReceivedBy = approval.receivedBy === userId || approval.receivedById === userId;
+            
+            console.log(`Document ${doc.voucherNo}:`, {
+                checkedBy: approval.checkedBy,
+                acknowledgedBy: approval.acknowledgedBy,
+                approvedBy: approval.approvedBy,
+                receivedBy: approval.receivedBy,
+                currentUser: userId,
+                isCheckedBy,
+                isAcknowledgedBy,
+                isApprovedBy,
+                isReceivedBy
+            });
+            
+            return isCheckedBy || isAcknowledgedBy || isApprovedBy || isReceivedBy;
+        });
+        
+        console.log('Documents needing approval from current user:', userApprovalDocs);
+        return userApprovalDocs;
+        
+    } catch (error) {
+        console.error('Error in fetchReimbursementDocumentsNeedingApproval:', error);
+        return [];
+    }
 }
 
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/checker/${userId}`;
+    
+    // Use generic endpoint with parameters instead of role-specific endpoint
+    const params = new URLSearchParams({
+        step: 'preparedBy',
+        userId: userId,
+        onlyCurrentStep: 'false',
+        includeDetails: 'false'
+    });
+    
+    const endpoint = `/api/reimbursements/headers?${params.toString()}`;
+    console.log('Fetching reimbursements from:', endpoint);
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -307,10 +561,10 @@ function updateSampleCounts() {
     document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between Prepared and Checked tabs
+// Function to switch between tabs
 function switchTab(tabName) {
     currentTab = tabName;
-            reimCheckCurrentPage = 1; // Reset to first page
+    reimCheckCurrentPage = 1; // Reset to first page
     
     // Update tab button styling
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
@@ -333,9 +587,41 @@ function switchTab(tabName) {
     tableBody.style.transform = 'translateY(10px)';
     tableBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     
-    // Fetch data from specific API endpoint for each tab
+    // Fetch data using new generic endpoint functions
     setTimeout(() => {
-        fetchReimbursementsByStatus(tabName);
+        const userId = getUserId();
+        if (!userId) {
+            console.error('User ID not found');
+            return;
+        }
+        
+        let documents = [];
+        
+        if (tabName === 'prepared') {
+            console.log('Loading prepared tab...');
+            // Use new function for prepared documents
+            fetchReimbursementDocumentsNeedingApproval(userId).then(docs => {
+                documents = docs;
+                console.log('Prepared documents loaded:', documents.length);
+                updateTableWithDocuments(documents);
+            });
+        } else if (tabName === 'checked') {
+            console.log('Loading checked tab...');
+            // Use new function for checked documents
+            fetchCheckedReimbursementDocuments(userId).then(docs => {
+                documents = docs;
+                console.log('Checked documents loaded:', documents.length);
+                updateTableWithDocuments(documents);
+            });
+        } else if (tabName === 'rejected') {
+            console.log('Loading rejected tab...');
+            // Use generic endpoint for rejected documents
+            fetchReimbursementDocuments('checkedBy', userId, true, true).then(docs => {
+                documents = docs;
+                console.log('Rejected documents loaded:', documents.length);
+                updateTableWithDocuments(documents);
+            });
+        }
         
         // Add fade-in effect
         setTimeout(() => {
@@ -345,19 +631,33 @@ function switchTab(tabName) {
     }, 200); // Short delay for the transition effect
 }
 
-// New function to fetch reimbursements by status using role-specific API endpoints
-// This replaces client-side filtering with server-side filtering for better performance
-// Uses role-specific endpoints: /api/reimbursements/checker/{userId}/{status}
+// Helper function to update table with documents
+function updateTableWithDocuments(documents) {
+    allReimbursements = documents;
+    
+    // Apply search filter if there's an active search
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchType = document.getElementById('searchType').value;
+    if (searchTerm) {
+        filterReimbursements(searchTerm, currentTab, searchType);
+    } else {
+        filteredData = allReimbursements;
+        updateTable();
+        updatePagination();
+    }
+}
+
+// New function to fetch reimbursements by status using generic endpoint
+// This replaces role-specific endpoints with generic endpoint using parameters
 function fetchReimbursementsByStatus(status) {
     const userId = getUserId();
     let endpoint;
     
-    // Map tab names to role-specific endpoints
-    // These endpoints are designed specifically for checker role with user ID in path
+    // Map tab names to generic endpoint with parameters
     const endpointMap = {
-        'prepared': `/api/reimbursements/checker/${userId}/prepared`,
-        'checked': `/api/reimbursements/checker/${userId}/checked`,
-        'rejected': `/api/reimbursements/checker/${userId}/rejected`
+        'prepared': `/api/reimbursements/headers?step=preparedBy&userId=${userId}&onlyCurrentStep=false&includeDetails=false`,
+        'checked': `/api/reimbursements/headers?step=checkedBy&userId=${userId}&onlyCurrentStep=true&includeDetails=false`,
+        'rejected': `/api/reimbursements/headers?step=checkedBy&userId=${userId}&onlyCurrentStep=true&isRejected=true&includeDetails=false`
     };
     
     endpoint = endpointMap[status];
@@ -365,6 +665,8 @@ function fetchReimbursementsByStatus(status) {
         console.error('Invalid status:', status);
         return;
     }
+    
+    console.log('Fetching reimbursements by status:', status, 'from:', endpoint);
     
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
@@ -840,8 +1142,18 @@ async function pollPreparedDocs() {
         
         console.log('Polling prepared documents for user:', userId);
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/checker/${userId}`, {
+        // Use generic endpoint with parameters
+        const params = new URLSearchParams({
+            step: 'preparedBy',
+            userId: userId,
+            onlyCurrentStep: 'false',
+            includeDetails: 'false'
+        });
+        
+        const endpoint = `/api/reimbursements/headers?${params.toString()}`;
+        console.log('Polling from endpoint:', endpoint);
+        
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
@@ -862,15 +1174,18 @@ async function pollPreparedDocs() {
         let newReimFound = false;
         
         docs.forEach(doc => {
-            // Hanya notifikasi untuk dokumen dengan status Prepared
-            if (doc.status === 'Prepared' && !notifiedReims.has(doc.voucherNo)) {
+            // Only notify for documents with "Prepared" status where current user is checkedBy
+            const approval = doc.approval || {};
+            const isCheckedBy = approval.checkedBy === userId || approval.checkedById === userId;
+            
+            if (doc.status === 'Prepared' && isCheckedBy && !notifiedReims.has(doc.voucherNo)) {
                 console.log('New prepared document found:', doc.voucherNo);
                 showNotification(doc);
                 newReimFound = true;
             }
         });
         
-        // Play sound jika ada dokumen baru
+        // Play sound if there are new documents
         if (newReimFound) {
             console.log('Playing notification sound for new documents');
             playNotificationSound();
@@ -885,8 +1200,17 @@ async function pollCheckedDocs() {
         const userId = getUserId();
         if (!userId) return;
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/checker/${userId}`, {
+        // Use generic endpoint with parameters
+        const params = new URLSearchParams({
+            step: 'checkedBy',
+            userId: userId,
+            onlyCurrentStep: 'true',
+            includeDetails: 'false'
+        });
+        
+        const endpoint = `/api/reimbursements/headers?${params.toString()}`;
+        
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
@@ -895,13 +1219,13 @@ async function pollCheckedDocs() {
         
         const docs = data.data || [];
         
-        // Buat set dari reimbursement yang sudah Checked
+        // Create set of reimbursements that are already Checked
         const checkedReims = new Set(
             docs.filter(doc => doc.status === 'Checked')
                 .map(doc => doc.voucherNo)
         );
         
-        // Hapus notifikasi untuk reimbursement yang sudah checked
+        // Remove notifications for reimbursements that are already checked
         notifiedReims.forEach(reimNumber => {
             if (checkedReims.has(reimNumber)) {
                 removeNotification(reimNumber);

@@ -39,6 +39,12 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
         // Debug: Log first document structure if available
         if (result.data && result.data.length > 0) {
             console.log('First document structure:', result.data[0]);
+            console.log('First document status fields:', {
+                approval: result.data[0].approval,
+                status: result.data[0].status,
+                type: result.data[0].type,
+                doctype: result.data[0].doctype
+            });
         }
 
         // Handle different response structures
@@ -60,8 +66,8 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 // Function to fetch all documents for "All Documents" tab
 async function fetchAllDocuments(userId) {
     try {
-        // For "All Documents" tab, we want only documents currently waiting at the prepared step (active work)
-        return await fetchOutgoingPaymentDocuments('preparedBy', userId, true);
+        // For "All Documents" tab, we want all documents regardless of status
+        return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
     } catch (error) {
         console.error('Error fetching all documents:', error);
         return [];
@@ -70,8 +76,31 @@ async function fetchAllDocuments(userId) {
 
 // Function to fetch prepared documents for "Prepared" tab
 async function fetchPreparedDocuments(userId) {
-    // For "Prepared" tab, we want all documents the user has prepared (historical view)
-    return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+    try {
+        // For "Prepared" tab, we want only documents with status "Prepared"
+        const allDocuments = await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+        console.log(`Total documents fetched: ${allDocuments.length}`);
+        
+        const preparedDocuments = allDocuments.filter(doc => {
+            // Check various possible status fields
+            const status = doc.approval?.approvalStatus || doc.status || doc.type || doc.doctype || '';
+            const isPrepared = status.toLowerCase() === 'prepared';
+            
+            // Debug logging for first few documents
+            if (allDocuments.indexOf(doc) < 3) {
+                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isPrepared=${isPrepared}`);
+                console.log('Document structure:', doc);
+            }
+            
+            return isPrepared;
+        });
+        
+        console.log(`Filtered to prepared documents: ${preparedDocuments.length}`);
+        return preparedDocuments;
+    } catch (error) {
+        console.error('Error fetching prepared documents:', error);
+        return [];
+    }
 }
 
 // Fungsi untuk menampilkan modal reimbursement
@@ -411,12 +440,21 @@ function getUserNameById(userId) {
 
 // Function untuk menampilkan dokumen dengan pagination
 function displayDocuments(documents) {
+    console.log(`Displaying ${documents.length} documents, page ${currentPage}, items per page: ${itemsPerPage}`);
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
     const paginatedDocuments = documents.slice(startIndex, endIndex);
     
+    console.log(`Showing documents ${startIndex + 1} to ${endIndex} of ${documents.length}`);
+    
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
+    
+    if (paginatedDocuments.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-gray-500">No documents found for the selected tab.</td></tr>`;
+        return;
+    }
     
     paginatedDocuments.forEach((doc, index) => {
         // Fungsi untuk menerapkan kelas scrollable jika teks melebihi 10 karakter
@@ -429,6 +467,18 @@ function displayDocuments(documents) {
         
         // Get document status from approval object if available
         const status = getStatusDisplay(doc);
+        
+        // Apply status styling
+        let statusClass = "bg-gray-100 text-gray-800"; // Default
+        if (status === 'Prepared') {
+            statusClass = "bg-yellow-100 text-yellow-800";
+        } else if (status === 'Checked' || status === 'Acknowledged' || status === 'Approved' || status === 'Received' || status === 'Paid' || status === 'Settled') {
+            statusClass = "bg-green-100 text-green-800";
+        } else if (status === 'Rejected') {
+            statusClass = "bg-red-100 text-red-800";
+        }
+        
+        const statusDisplay = `<span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span>`;
         
         // Memformat data dengan kelas scrollable jika perlu
         const reimburseNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
@@ -479,7 +529,7 @@ function displayDocuments(documents) {
             <td class='p-2'>${docDate}</td>
             <td class='p-2'>${dueDate}</td>
             <td class='p-2'>${totalAmount}</td>
-            <td class='p-2'>${status}</td>
+            <td class='p-2'>${statusDisplay}</td>
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -576,6 +626,8 @@ async function switchTab(tab) {
     currentTab = tab;
     currentPage = 1;
     
+    console.log(`Switching to tab: ${tab}`);
+    
     // Update tab button styling
     document.getElementById('allTabBtn').classList.remove('tab-active');
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
@@ -591,12 +643,14 @@ async function switchTab(tab) {
         
         if (tab === 'all') {
             document.getElementById('allTabBtn').classList.add('tab-active');
-            // Fetch only documents currently waiting at the prepared step (active work)
+            console.log('Fetching all documents...');
             documents = await fetchAllDocuments(userId);
+            console.log(`All documents fetched: ${documents.length} documents`);
         } else if (tab === 'prepared') {
             document.getElementById('preparedTabBtn').classList.add('tab-active');
-            // Fetch all documents the user has prepared (historical view)
+            console.log('Fetching prepared documents...');
             documents = await fetchPreparedDocuments(userId);
+            console.log(`Prepared documents fetched: ${documents.length} documents`);
         }
         
         // Update the filtered documents
@@ -606,6 +660,9 @@ async function switchTab(tab) {
         // Apply search filter if there's a search term
         const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
         const searchType = document.getElementById('searchType')?.value || 'all';
+        
+        console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
+        console.log(`Documents before search filter: ${filteredDocuments.length}`);
         
         if (searchTerm) {
             filteredDocuments = filteredDocuments.filter(doc => {
@@ -645,7 +702,7 @@ async function switchTab(tab) {
                     
                     return totalAmountString.includes(searchTerm.toLowerCase());
                 } else if (searchType === 'status') {
-                    const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || '');
+                    const status = getStatusDisplay(doc);
                     return status.toLowerCase().includes(searchTerm);
                 } else {
                     // Default search across multiple fields
@@ -668,6 +725,7 @@ async function switchTab(tab) {
             });
         }
         
+        console.log(`Documents after search filter: ${filteredDocuments.length}`);
         displayDocuments(filteredDocuments);
         
     } catch (error) {
@@ -690,10 +748,16 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// Helper function to determine status display for rejected documents
+// Helper function to determine status display for documents
 function getStatusDisplay(doc) {
+    // If no approval object, check various status fields
     if (!doc.approval) {
-        return doc.status || doc.type || 'Draft';
+        const status = doc.status || doc.type || doc.doctype || 'Draft';
+        // Map "Draft" status to "Prepared" for display consistency
+        if (status.toLowerCase() === 'draft') {
+            return 'Prepared';
+        }
+        return status;
     }
     
     // Check if document is rejected
@@ -702,7 +766,14 @@ function getStatusDisplay(doc) {
     }
     
     // Return normal approval status
-    return doc.approval.approvalStatus || doc.status || doc.type || 'Draft';
+    const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+    
+    // Map "Draft" status to "Prepared" for display consistency
+    if (status.toLowerCase() === 'draft') {
+        return 'Prepared';
+    }
+    
+    return status;
 }
 
 // Fungsi untuk mendapatkan ID pengguna yang login - using auth.js approach
@@ -812,7 +883,7 @@ function downloadExcel() {
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
             doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
-            doc.status || '-'
+            getStatusDisplay(doc)
         ]);
     });
     
@@ -881,7 +952,7 @@ function downloadPDF() {
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
             doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
-            doc.status || '-'
+            getStatusDisplay(doc)
         ];
         tableRows.push(rowData);
     });
