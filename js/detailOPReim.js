@@ -15,7 +15,7 @@ function mapResponseToForm(data) {
     setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
     setValue('Address', data.address || '');
-    setValue('DocNum', data.docNum || '');
+    setValue('DocNum', data.counterRef || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
     // TypeOfTransaction field removed
@@ -259,7 +259,9 @@ function displayExistingAttachments(attachments) {
     
     console.log('Displaying attachments:', attachments);
     
-    let html = '';
+    // Add header for outgoing payment attachments
+    let html = '<h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>';
+    
     attachments.forEach((attachment, index) => {
         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
         const fileIcon = getFileIcon(fileName);
@@ -280,7 +282,7 @@ function displayExistingAttachments(attachments) {
                     <div>
                         <div class="font-medium text-sm">${fileName}</div>
                         <div class="text-xs text-gray-500">${fileSize} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
-                        <div class="text-xs text-gray-400">Uploaded: ${uploadDate}</div>
+                        <div class="text-xs text-gray-400">Outgoing Payment Attachment • Uploaded: ${uploadDate}</div>
                     </div>
                 </div>
                 <div class="flex space-x-2">
@@ -544,13 +546,32 @@ async function viewAttachment(attachmentOrPath, fileName) {
 // Function to parse currency string back to number
 function parseCurrencyValue(value) {
     if (!value) return 0;
-    // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
-    // Replace dots (thousand separators) with nothing and commas (decimal separators) with dots
-    const numericValue = value.toString()
-        .replace(/\./g, '') // Remove thousand separators (dots)
-        .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
-    
-    return parseFloat(numericValue) || 0;
+    // Remove all non-digit, non-comma, non-dot characters
+    let cleaned = value.toString().replace(/[^\d.,-]/g, '');
+    // If both comma and dot exist, decide which is decimal
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+        // If comma is after dot, treat comma as decimal (e.g. 95,000.00 is US/UK style)
+        if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+            // Remove all dots (thousand sep), replace last comma with dot (decimal)
+            cleaned = cleaned.replace(/\./g, '');
+            cleaned = cleaned.replace(/,/, '.');
+        } else {
+            // Remove all commas (thousand sep), replace last dot with dot (decimal)
+            cleaned = cleaned.replace(/,/g, '');
+        }
+    } else if (cleaned.includes(',')) {
+        // If only comma, treat as decimal if at end, else thousand sep
+        if (cleaned.split(',').pop().length === 2) {
+            cleaned = cleaned.replace(/\./g, '');
+            cleaned = cleaned.replace(/,/, '.');
+        } else {
+            cleaned = cleaned.replace(/,/g, '');
+        }
+    } else {
+        // Only dot or only digits
+        cleaned = cleaned.replace(/\./g, '');
+    }
+    return parseFloat(cleaned) || 0;
 }
 
 // Function to format number to currency string (for JS file compatibility)
@@ -677,6 +698,33 @@ async function loadDocumentData() {
                     await loadAttachmentsFromAPI(docId);
                 }
                 
+                // Load reimbursement attachments if this outgoing payment was created from a reimbursement
+                if (result.expressivNo) {
+                    console.log('Outgoing payment created from reimbursement:', result.expressivNo);
+                    // Fetch reimbursement data to get voucherNo
+                    try {
+                        const reimResponse = await makeAuthenticatedRequest(`/api/reimbursements/${result.expressivNo}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (reimResponse.ok) {
+                            const reimResult = await reimResponse.json();
+                            if (reimResult && reimResult.data && reimResult.data.voucherNo) {
+                                // Set CounterRef to voucherNo from reimbursement
+                                const counterRefInput = document.getElementById('CounterRef');
+                                if (counterRefInput) {
+                                    counterRefInput.value = reimResult.data.voucherNo;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch reimbursement voucherNo:', err);
+                    }
+                    await loadReimbursementAttachments(result.expressivNo);
+                }
+                
                 // Show success message
                 Swal.fire({
                     title: 'Success',
@@ -776,6 +824,153 @@ async function loadAttachmentsFromAPI(docId) {
         if (container) {
             container.innerHTML = '<p class="text-gray-500 text-sm">Error loading attachments</p>';
         }
+    }
+}
+
+// Function to load reimbursement attachments
+async function loadReimbursementAttachments(reimbursementId) {
+    try {
+        console.log('Loading reimbursement attachments for ID:', reimbursementId);
+        
+        // Fetch reimbursement data from API
+        const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.warn(`Failed to load reimbursement data: ${response.status}`);
+            return;
+        }
+
+        const result = await response.json();
+        
+        if (result.data && result.data.reimbursementAttachments && result.data.reimbursementAttachments.length > 0) {
+            console.log('Found reimbursement attachments:', result.data.reimbursementAttachments);
+            
+            // Create a separate section for reimbursement attachments
+            const container = document.getElementById('attachmentsList');
+            if (container) {
+                // Add a header for reimbursement attachments
+                const reimbursementHeader = document.createElement('div');
+                reimbursementHeader.className = 'mt-4 mb-2';
+                reimbursementHeader.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
+                container.appendChild(reimbursementHeader);
+                
+                // Display reimbursement attachments
+                displayReimbursementAttachments(result.data.reimbursementAttachments);
+            }
+        } else {
+            console.log('No reimbursement attachments found');
+        }
+        
+    } catch (error) {
+        console.error("Error loading reimbursement attachments:", error);
+        // Don't show error to user as this is not critical
+    }
+}
+
+// Function to display reimbursement attachments
+function displayReimbursementAttachments(attachments) {
+    const container = document.getElementById('attachmentsList');
+    if (!container) {
+        console.warn('Attachments container not found: attachmentsList');
+        return;
+    }
+    
+    if (!attachments || attachments.length === 0) {
+        return;
+    }
+    
+    // Create attachment list
+    const attachmentList = document.createElement('div');
+    attachmentList.className = 'space-y-2 mb-4';
+    
+    attachments.forEach((attachment, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-2';
+        
+        // File icon based on type
+        const fileIcon = getFileIcon(attachment.fileName || attachment.name);
+        
+        fileInfo.innerHTML = `
+            <span class="text-lg">${fileIcon}</span>
+            <div>
+                <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
+                <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
+                <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
+            </div>
+        `;
+        
+        const actions = document.createElement('div');
+        actions.className = 'flex space-x-2';
+        
+        // View button
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+        viewBtn.innerHTML = 'View';
+        viewBtn.onclick = () => viewReimbursementAttachment(attachment);
+        
+        actions.appendChild(viewBtn);
+        
+        attachmentItem.appendChild(fileInfo);
+        attachmentItem.appendChild(actions);
+        attachmentList.appendChild(attachmentItem);
+    });
+    
+    container.appendChild(attachmentList);
+}
+
+// Function to view reimbursement attachment
+async function viewReimbursementAttachment(attachment) {
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Loading attachment, please wait...',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Use the filePath from the attachment
+        if (attachment.filePath) {
+            // Close loading indicator
+            Swal.close();
+            
+            // Use the base URL from the API endpoint
+            const decodedPath = decodeURIComponent(attachment.filePath);
+            const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
+            
+            // Open file in new tab
+            window.open(fileUrl, '_blank');
+            return;
+        }
+
+        throw new Error('No file path available for this attachment');
+
+    } catch (error) {
+        console.error('Error viewing reimbursement attachment:', error);
+        
+        // Close loading indicator
+        Swal.close();
+        
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to view attachment: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -1050,4 +1245,7 @@ window.getFileIcon = getFileIcon;
 window.formatFileSize = formatFileSize;
 window.formatDate = formatDate;
 window.constructFileUrl = constructFileUrl;
-window.displayApprovalStatus = displayApprovalStatus; 
+window.displayApprovalStatus = displayApprovalStatus;
+window.loadReimbursementAttachments = loadReimbursementAttachments;
+window.displayReimbursementAttachments = displayReimbursementAttachments;
+window.viewReimbursementAttachment = viewReimbursementAttachment; 

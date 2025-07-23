@@ -99,6 +99,9 @@ async function initializePage() {
             console.log('Loading reimbursement data from URL with reimbursementId:', reimbursementId);
             // Load reimbursement data from URL parameter
             loadReimbursementDataFromUrl(reimbursementId);
+        } else if (!docId) {
+            // Only fetch last serial number for new document
+            await fetchAndSetLastSerialNumber();
         } else {
             console.log('Loading reimbursement data from localStorage');
             // Check if we're creating from reimbursement data (fallback to localStorage)
@@ -292,13 +295,28 @@ function autofillPreparedByWithCurrentUser() {
     // Set the preparedBy field with current user
     setApprovalFieldValue('Approval.PreparedById', currentUser.id, currentUser.name);
     
-    // Disable the preparedBy field since it's auto-filled with current user
+    // Manually set the search input value for approval fields since setApprovalFieldValue skips them
     if (preparedBySearch) {
+        // Try to get the user's full name from the users list if available
+        let displayName = currentUser.name;
+        if (window.users && window.users.length > 0) {
+            const user = window.users.find(u => u.id === currentUser.id);
+            if (user && user.fullName) {
+                displayName = user.fullName;
+            }
+        }
+        
+        preparedBySearch.value = displayName;
         preparedBySearch.disabled = true;
         preparedBySearch.readOnly = true;
         preparedBySearch.classList.add('bg-gray-100', 'cursor-not-allowed');
         preparedBySearch.title = 'Auto-filled with current user';
         preparedBySearch.placeholder = 'Auto-filled with current user';
+        // Hide the dropdown for prepared by
+        var dropdown = document.getElementById('Approval.PreparedByIdDropdown');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
     }
     
     console.log('PreparedBy field auto-filled and disabled');
@@ -427,7 +445,13 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
             receivedByName: detailedData.receivedByName
         });
 
-        // --- PATCH: Show GUID first, then replace with fullName if users are loaded ---
+        // Populate form fields with detailed reimbursement data
+        document.getElementById('CounterRef').value = detailedData.voucherNo || reimbursementId || '';
+        
+        // Set RequesterName to receivedByName from reimbursement data
+        document.getElementById('RequesterName').value = detailedData.receivedByName || '';
+        
+        // Set CardName to the name of the user whose ID is in payTo field
         if (detailedData.payTo) {
             document.getElementById('CardName').value = detailedData.payTo;
             function tryReplaceWithFullName() {
@@ -452,11 +476,6 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
         } else if (detailedData.payToName) {
             document.getElementById('CardName').value = detailedData.payToName;
         }
-        // --- END PATCH ---
-
-        // Populate form fields with detailed reimbursement data
-        document.getElementById('CounterRef').value = detailedData.voucherNo || reimbursementId || '';
-        document.getElementById('RequesterName').value = detailedData.requesterName || '';
         document.getElementById('Address').value = ''; // Address not available in new API
         
         // Format dates properly
@@ -471,7 +490,7 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
         document.getElementById('TrsfrDate').value = today.toISOString().split('T')[0];
         
         // Set other fields
-        document.getElementById('DocNum').value = detailedData.referenceDoc || ''; // Map from referenceDoc
+        await fetchAndSetLastSerialNumber(); // Fill DocNum with last serial number from API
         
         // Map Type of Transaction to Journal Memo
         const jrnlMemoValue = detailedData.typeOfTransaction || detailedData.jrnlMemo || 'REIMBURSEMENT';
@@ -581,7 +600,10 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
             
             if (hiddenSelect && searchInput) {
                 hiddenSelect.value = userId || '';
-                searchInput.value = userName || '';
+                // Don't set search input value for approval fields to keep them empty
+                if (!fieldId.startsWith('Approval.')) {
+                    searchInput.value = userName || '';
+                }
                 console.log(`Set ${fieldId} - hiddenSelect.value:`, hiddenSelect.value, 'searchInput.value:', searchInput.value);
             } else {
                 console.warn(`Could not find elements for ${fieldId}`);
@@ -590,7 +612,7 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
                     hiddenSelect.value = userId || '';
                     console.log(`Fallback: Set ${fieldId} hiddenSelect.value:`, hiddenSelect.value);
                 }
-                if (searchInput) {
+                if (searchInput && !fieldId.startsWith('Approval.')) {
                     searchInput.value = userName || '';
                     console.log(`Fallback: Set ${fieldId} searchInput.value:`, searchInput.value);
                 }
@@ -1340,6 +1362,9 @@ async function initializeUserDropdowns() {
 
         // Update user names in approval fields if they were set before users were loaded
         updateUserNamesInApprovalFields();
+        
+        // Auto-fill preparedBy with current user after users are loaded
+        autofillPreparedByWithCurrentUser();
 
         // Close loading indicator
         Swal.close();
@@ -2200,7 +2225,7 @@ function deleteAttachment(attachmentId) {
                 }
                 
                 // Remove attachment from the list
-                const container = document.getElementById('existingAttachments');
+                const container = document.getElementById('attachmentsList');
                 if (container) {
                     const attachmentItems = container.querySelectorAll('.flex.items-center.justify-between');
                     attachmentItems.forEach(item => {
@@ -2231,6 +2256,32 @@ function deleteAttachment(attachmentId) {
 
 // Function to submit document with API endpoint implementation
 async function submitDocument(isSubmit = false) {
+    // Debug: Log all approval field values before collecting data
+    const approvalFields = [
+        'Approval.PreparedById',
+        'Approval.CheckedById',
+        'Approval.AcknowledgedById',
+        'Approval.ApprovedById',
+        'Approval.ReceivedById'
+    ];
+    console.log('==== APPROVAL FIELD VALUES BEFORE SUBMIT ====');
+    approvalFields.forEach(fieldId => {
+        const hidden = document.getElementById(fieldId);
+        const search = document.getElementById(`${fieldId}Search`);
+        console.log(`${fieldId}: hidden=${hidden ? hidden.value : 'N/A'}, search=${search ? search.value : 'N/A'}`);
+    });
+    
+    // Log users array entries for selected IDs
+    if (window.users && window.users.length > 0) {
+        approvalFields.forEach(fieldId => {
+            const hidden = document.getElementById(fieldId);
+            if (hidden && hidden.value) {
+                const user = window.users.find(u => u.id === hidden.value);
+                console.log(`User for ${fieldId}:`, user);
+            }
+        });
+    }
+    
     // Validate required fields first
     const validationErrors = validateRequiredFields();
     if (validationErrors.length > 0) {
@@ -2320,6 +2371,10 @@ async function submitDocument(isSubmit = false) {
         
         // Collect form data
         const formData = collectFormData(userId, isSubmit);
+        
+        // Log approval data being sent
+        console.log('==== APPROVAL DATA BEING SENT TO API ====');
+        console.log('formData.approval:', formData.approval);
         
         // Validate form data before submission
         if (!formData.stagingID) {
@@ -2654,8 +2709,8 @@ function collectFormData(userId, isSubmit) {
         docDueDate: document.getElementById("DocDueDate")?.value ? new Date(document.getElementById("DocDueDate").value).toISOString() : null,
         // TaxDate field doesn't exist in this HTML - skip it
         // taxDate: document.getElementById("TaxDate")?.value ? new Date(document.getElementById("TaxDate").value).toISOString() : null,
-        counterRef: document.getElementById("CounterRef")?.value || "",
-        docNum: document.getElementById("DocNum")?.value ? parseInt(document.getElementById("DocNum").value) : 0,
+        counterRef: document.getElementById("DocNum")?.value || "", // Use DocNum value for counterRef
+        docNum: 0, // Always send 0 for docNum
 
         // Comments field doesn't exist in this HTML - skip it
         // comments: document.getElementById("Comments")?.value || "",
@@ -2957,6 +3012,26 @@ async function loadDocumentData() {
 // Function to map response data back to form fields
 function mapResponseToForm(responseData) {
     console.log('mapResponseToForm called with:', responseData);
+    
+    // Debug: Log approval data received from API
+    console.log('==== APPROVAL DATA RECEIVED FROM API ====');
+    if (responseData.approval) {
+        console.log('API approval object:', responseData.approval);
+    } else {
+        // Fallback for other structures
+        console.log('API approval fields:', {
+            preparedBy: responseData.preparedBy,
+            preparedByName: responseData.preparedByName,
+            checkedBy: responseData.checkedBy,
+            checkedByName: responseData.checkedByName,
+            acknowledgedBy: responseData.acknowledgedBy,
+            acknowledgedByName: responseData.acknowledgedByName,
+            approvedBy: responseData.approvedBy,
+            approvedByName: responseData.approvedByName,
+            receivedBy: responseData.receivedBy,
+            receivedByName: responseData.receivedByName
+        });
+    }
     // Map header fields based on new API response structure
     if (responseData.voucherNo) document.getElementById("CounterRef").value = responseData.voucherNo;
     if (responseData.receivedByName) document.getElementById("RequesterName").value = responseData.receivedByName;
@@ -2975,7 +3050,7 @@ function mapResponseToForm(responseData) {
     document.getElementById("TrsfrDate").value = today.toISOString().split('T')[0];
     
     // Map other fields
-    if (responseData.referenceDoc) document.getElementById("DocNum").value = responseData.referenceDoc;
+    if (responseData.docNum) document.getElementById("DocNum").value = responseData.docNum;
     
     // Map Type of Transaction to Journal Memo
     if (responseData.typeOfTransaction) document.getElementById("jrnlMemo").value = responseData.typeOfTransaction;
@@ -3092,15 +3167,15 @@ async function loadAttachmentsFromAPI(docId) {
         });
 
         if (!response.ok) {
-            if (response.status === 404) {
-                console.warn(`No attachments found for document ${docId}`);
-                // Show no attachments message
-                const container = document.getElementById('existingAttachments');
-                if (container) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-                }
-                return;
+                    if (response.status === 404) {
+            console.warn(`No attachments found for document ${docId}`);
+            // Show no attachments message
+            const container = document.getElementById('attachmentsList');
+            if (container) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
             }
+            return;
+        }
             console.warn(`Failed to load attachments: ${response.status}`);
             return;
         }
@@ -3112,7 +3187,7 @@ async function loadAttachmentsFromAPI(docId) {
             displayExistingAttachments(result.data);
         } else {
             // Show no attachments message
-            const container = document.getElementById('existingAttachments');
+            const container = document.getElementById('attachmentsList');
             if (container) {
                 container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
             }
@@ -3164,6 +3239,20 @@ async function makeAuthenticatedRequest(url, options = {}) {
     return response;
 }
 
+// Function to toggle closed by visibility based on transaction type
+function toggleClosedByVisibility() {
+    const transactionType = "REIMBURSEMENT"; // Default type since field removed
+    const closedByContainer = document.getElementById('closed')?.parentElement;
+    
+    if (closedByContainer) {
+        if (transactionType === 'LOAN') {
+            closedByContainer.style.display = 'block';
+        } else {
+            closedByContainer.style.display = 'none';
+        }
+    }
+}
+
 // Make functions globally available for HTML onclick handlers
 window.submitDocument = submitDocument;
 window.viewAttachment = viewAttachment;
@@ -3213,7 +3302,10 @@ window.deleteRow = deleteRow;
 
 // Function to update employee names in approval fields after employees are loaded
 function updateUserNamesInApprovalFields() {
+    console.log(`🔄 updateUserNamesInApprovalFields called, users count: ${window.users ? window.users.length : 0}`);
+    
     if (!window.users || window.users.length === 0) {
+        console.log(`🔄 No users available, skipping update`);
         return;
     }
     
@@ -3244,6 +3336,8 @@ window.updateUserNamesInApprovalFields = updateUserNamesInApprovalFields;
 
 // Function to set approval field value with proper DOM manipulation
 function setApprovalFieldValue(fieldId, userId, userName = null) {
+    console.log(`🔍 setApprovalFieldValue called:`, { fieldId, userId, userName });
+    
     const hiddenSelect = document.getElementById(fieldId);
     const searchInput = document.getElementById(`${fieldId}Search`);
     
@@ -3269,47 +3363,40 @@ function setApprovalFieldValue(fieldId, userId, userName = null) {
         
         // If no matching option exists, create one
         if (!hiddenSelect.querySelector(`option[value="${userId}"]`)) {
+            // Always use the name from users array if available
+            let displayName = userName;
+            if (window.users && window.users.length > 0) {
+                const user = window.users.find(u => u.id === userId);
+                if (user && user.fullName) displayName = user.fullName;
+            }
             const newOption = document.createElement('option');
             newOption.value = userId;
-            newOption.text = userName || `User ${userId}`;
+            newOption.text = displayName || `User ${userId}`;
             newOption.selected = true;
             hiddenSelect.appendChild(newOption);
         }
     } else {
         hiddenSelect.value = '';
     }
-    
-    // Set the search input value
-    if (userName) {
+    // Always set the search input value for display, using ID lookup
+    if (window.users && window.users.length > 0 && userId) {
+        const user = window.users.find(u => u.id === userId);
+        console.log(`🔍 Looking up user by ID ${userId}:`, user);
+        searchInput.value = user ? user.fullName : (userName || '');
+        console.log(`🔍 Set search input to: "${searchInput.value}"`);
+    } else if (userName) {
         searchInput.value = userName;
-    } else if (userId && window.users && window.users.length > 0) {
-        // Try to find user name from global users array
-        const user = window.users.find(user => user.id === userId);
-        if (user) {
-            searchInput.value = user.fullName;
-        } else {
-            searchInput.value = `User ID: ${userId}`;
-        }
-    } else if (userId) {
-        searchInput.value = `User ID: ${userId}`;
+        console.log(`🔍 Set search input to userName: "${searchInput.value}"`);
     } else {
         searchInput.value = '';
+        console.log(`🔍 Set search input to empty`);
     }
-    
-    // Trigger change event to ensure any listeners are notified
+    // Trigger change/input events
     const changeEvent = new Event('change', { bubbles: true });
     const inputEvent = new Event('input', { bubbles: true });
-    
     hiddenSelect.dispatchEvent(changeEvent);
     searchInput.dispatchEvent(inputEvent);
     searchInput.dispatchEvent(changeEvent);
-    
-    console.log(`Set ${fieldId}: ID=${hiddenSelect.value}, Name=${searchInput.value}`);
-    
-    // Verify the value was set correctly
-    setTimeout(() => {
-        console.log(`Verification - ${fieldId}: hiddenSelect.value=${hiddenSelect.value}, searchInput.value=${searchInput.value}`);
-    }, 100);
 }
 
 // Function to ensure approval field values are properly set after page load
@@ -3328,31 +3415,21 @@ async function ensureApprovalFieldValues() {
         
         if (hiddenSelect && searchInput) {
             try {
-                // If hidden select has a value but search input is empty, try to set the name
+                // If hidden select has a value but search input is empty, set the name by ID
                 if (hiddenSelect.value && !searchInput.value.trim()) {
-                    const userId = hiddenSelect.value;
-                    if (window.users && window.users.length > 0) {
-                        const user = window.users.find(user => user && user.id === userId);
-                        if (user && user.fullName) {
-                            searchInput.value = user.fullName;
-                        } else {
-                            searchInput.value = `User ID: ${userId}`;
-                        }
-                    } else {
-                        searchInput.value = `User ID: ${userId}`;
-                    }
+                    setApprovalFieldValue(fieldId, hiddenSelect.value);
                 }
-                // If search input has value but hidden select is empty, try to find user ID
+                // If search input has value but hidden select is empty, try to find user ID by name (fallback only)
                 else if (searchInput.value && searchInput.value.trim() && !hiddenSelect.value) {
-                    const userId = await findUserIdByName(searchInput.value);
-                    if (userId) {
-                        hiddenSelect.value = userId;
-                        console.log(`Set ${fieldId}: ${userId} for ${searchInput.value}`);
+                    if (window.users && window.users.length > 0) {
+                        const user = window.users.find(u => u.fullName === searchInput.value.trim());
+                        if (user) {
+                            setApprovalFieldValue(fieldId, user.id);
+                        }
                     }
                 }
             } catch (error) {
                 console.error(`Error processing approval field ${fieldId}:`, error);
-                // Continue with other fields even if one fails
             }
         }
     }
@@ -3388,6 +3465,47 @@ function debugApprovalFields() {
 
 // Make debug function globally available
 window.debugApprovalFields = debugApprovalFields;
+
+// Additional debug function to check user mapping
+function debugUserMapping() {
+    console.log('=== USER MAPPING DEBUG ===');
+    console.log('Users array length:', window.users ? window.users.length : 0);
+    
+    if (window.users && window.users.length > 0) {
+        const idaUser = window.users.find(u => u.fullName && u.fullName.toLowerCase().includes('ida'));
+        const atsushiUser = window.users.find(u => u.fullName && u.fullName.toLowerCase().includes('atsushi'));
+        
+        console.log('Ida user:', idaUser);
+        console.log('Atsushi user:', atsushiUser);
+        
+        // Check approval fields
+        const approvalFields = [
+            'Approval.PreparedById',
+            'Approval.CheckedById',
+            'Approval.AcknowledgedById',
+            'Approval.ApprovedById',
+            'Approval.ReceivedById'
+        ];
+        
+        approvalFields.forEach(fieldId => {
+            const hidden = document.getElementById(fieldId);
+            const search = document.getElementById(`${fieldId}Search`);
+            const userId = hidden ? hidden.value : 'N/A';
+            const displayName = search ? search.value : 'N/A';
+            
+            console.log(`${fieldId}: ID="${userId}", Display="${displayName}"`);
+            
+            if (userId && window.users) {
+                const actualUser = window.users.find(u => u.id === userId);
+                console.log(`  -> Actual user for ID ${userId}:`, actualUser ? actualUser.fullName : 'NOT FOUND');
+            }
+        });
+    }
+    console.log('========================');
+}
+
+// Make debug function globally available
+window.debugUserMapping = debugUserMapping;
 
 // Function to collect approval field values for form submission
 function collectApprovalFieldValues() {
@@ -3598,6 +3716,7 @@ window.loadAttachmentsFromAPI = loadAttachmentsFromAPI;
 window.displayFileList = displayFileList;
 window.removeFile = removeFile;
 window.clearAllFiles = clearAllFiles;
+window.viewNewAttachment = viewNewAttachment;
 
 
 
@@ -3605,8 +3724,11 @@ window.clearAllFiles = clearAllFiles;
 
 // Enhanced attachment display function
 function displayExistingAttachments(attachments) {
-    const container = document.getElementById('existingAttachments');
-    if (!container) return;
+    const container = document.getElementById('attachmentsList');
+    if (!container) {
+        console.warn('Attachments container not found: attachmentsList');
+        return;
+    }
     
     // Clear existing content
     container.innerHTML = '';
@@ -3705,9 +3827,12 @@ function previewPDF(event) {
 
 // Function to display file list
 function displayFileList() {
-    const fileList = document.getElementById('fileList');
+    const fileList = document.getElementById('newFilesList');
     
-    if (!fileList) return;
+    if (!fileList) {
+        console.warn('New files list container not found: newFilesList');
+        return;
+    }
     
     // Clear existing content
     fileList.innerHTML = '';
@@ -4012,50 +4137,9 @@ async function uploadAttachmentsAfterDocumentCreation(stagingId) {
     }
     
     console.log(`Upload completed: ${successCount} successful, ${errorCount} failed`);
-
-    // After uploading new files, also upload existing attachments from reimbursement if any
-    if (window.existingAttachments && Array.isArray(window.existingAttachments) && window.existingAttachments.length > 0) {
-        console.log(`Uploading ${window.existingAttachments.length} existing reimbursement attachments to staging ID: ${stagingId}`);
-        for (let i = 0; i < window.existingAttachments.length; i++) {
-            const att = window.existingAttachments[i];
-            if (!att.filePath) {
-                console.warn('Skipping existing attachment with no filePath:', att);
-                continue;
-            }
-            try {
-                // Show progress for existing attachments
-                if (window.existingAttachments.length > 1) {
-                    Swal.getTitle().innerHTML = `Uploading Reimbursement Attachments (${i + 1}/${window.existingAttachments.length})`;
-                    Swal.getHtmlContainer().innerHTML = `Uploading: ${att.fileName || att.name}`;
-                }
-                // Fetch the file as a blob
-                const decodedPath = decodeURIComponent(att.filePath);
-                const fileUrl = (decodedPath.startsWith('http') ? decodedPath : `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`);
-                console.log('Attempting to fetch file from URL:', fileUrl);
-                const response = await fetch(fileUrl);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch file: ${fileUrl} (Status: ${response.status})`);
-                }
-                const blob = await response.blob();
-                // Create a File object (best effort, fallback to Blob if not possible)
-                let fileObj;
-                try {
-                    fileObj = new File([blob], att.fileName || att.name || 'attachment', { type: blob.type || att.mimeType || att.fileType || 'application/octet-stream' });
-                } catch (e) {
-                    // Fallback for browsers that don't support File constructor
-                    fileObj = blob;
-                }
-                await uploadAttachmentToStaging(fileObj, att.description || att.fileName || att.name || '', att.attachmentType || 'Document', stagingId);
-                console.log(`Successfully uploaded reimbursement attachment: ${att.fileName || att.name}`);
-            } catch (error) {
-                console.error('Error uploading reimbursement attachment:', {
-                    attachment: att,
-                    error: error.message,
-                    stack: error.stack
-                });
-            }
-        }
-    }
+    
+    // Note: Existing reimbursement attachments are not re-uploaded to avoid duplication
+    // They are already available in the reimbursement record and will be linked appropriately
 }
 
 // Enhanced refresh attachments function
@@ -4174,3 +4258,90 @@ async function uploadAdditionalAttachments() {
 // Journal Memo field removed
 
 // Journal Memo field removed
+
+// Function to fetch the last serial number for Outgoing Payment (for display only)
+async function fetchAndSetLastSerialNumber() {
+    try {
+        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/last', {
+            method: 'GET',
+            headers: {
+                'accept': '*/*'
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.serialNumber) {
+                const docNumInput = document.getElementById('DocNum');
+                if (docNumInput) {
+                    docNumInput.value = 'VCR/' + data.serialNumber;
+                }
+            }
+        } else {
+            console.error('Failed to fetch last serial number:', response.status);
+        }
+    } catch (error) {
+        console.error('Error fetching last serial number:', error);
+    }
+}
+
+// Function to fetch the next serial number for Outgoing Payment (for submit only)
+async function fetchNextSerialNumber() {
+    try {
+        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/next', {
+            method: 'POST',
+            headers: {
+                'accept': '*/*'
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.serialNumber) {
+                return data.serialNumber;
+            }
+        } else {
+            console.error('Failed to fetch next serial number:', response.status);
+        }
+    } catch (error) {
+        console.error('Error fetching next serial number:', error);
+    }
+    return null;
+}
+
+// Robust parseCurrency for all currency input styles
+function parseCurrency(formattedValue) {
+    if (!formattedValue) return 0;
+    // Remove all non-digit, non-comma, non-dot characters
+    let cleaned = formattedValue.toString().replace(/[^\d.,-]/g, '');
+    // If both comma and dot exist, decide which is decimal
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+        // If comma is after dot, treat comma as decimal (e.g. 95,000.00 is US/UK style)
+        if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+            // Remove all dots (thousand sep), replace last comma with dot (decimal)
+            cleaned = cleaned.replace(/\./g, '');
+            cleaned = cleaned.replace(/,/, '.');
+        } else {
+            // Remove all commas (thousand sep), replace last dot with dot (decimal)
+            cleaned = cleaned.replace(/,/g, '');
+        }
+    } else if (cleaned.includes(',')) {
+        // If only comma, treat as decimal if at end, else thousand sep
+        if (cleaned.split(',').pop().length === 2) {
+            cleaned = cleaned.replace(/\./g, '');
+            cleaned = cleaned.replace(/,/, '.');
+        } else {
+            cleaned = cleaned.replace(/,/g, '');
+        }
+    } else {
+        // Only dot or only digits
+        cleaned = cleaned.replace(/\./g, '');
+    }
+    return parseFloat(cleaned) || 0;
+}
+
+// Ensure jrnlMemo and remarks are always readonly
+window.addEventListener('DOMContentLoaded', function() {
+    var jrnlMemo = document.getElementById('jrnlMemo');
+    if (jrnlMemo) jrnlMemo.readOnly = true;
+    var remarks = document.getElementById('remarks');
+    if (remarks) remarks.readOnly = true;
+});

@@ -130,8 +130,31 @@
                 <!-- Attachments Display Section -->
                 <div class="mt-4" id="attachmentsSection">
                     <h3 class="text-lg font-semibold mb-2">Attachments</h3>
-                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
-                        <!-- Attachments will be displayed here -->
+                    
+                    <!-- File Upload Section -->
+                    <div class="mb-4 p-4 border rounded bg-blue-50">
+                        <h4 class="text-md font-medium mb-2 text-blue-800">Upload New Attachments</h4>
+                        <div class="flex items-center space-x-4">
+                            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                   onchange="previewPDF(event)">
+                            <button onclick="clearAllFiles()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                                Clear All
+                            </button>
+                        </div>
+                        
+                        <!-- New Files List -->
+                        <div id="newFilesList" class="mt-3 space-y-2">
+                            <!-- New files will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Existing Attachments Section -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachments</h4>
+                        <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Existing attachments will be displayed here -->
+                        </div>
                     </div>
                 </div>
                 
@@ -143,7 +166,7 @@
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
-                <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off">
+                <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
@@ -232,7 +255,7 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" readonly></textarea>
             </div>
             <div class="mt-4">
                 <label>Journal Remarks</label>
@@ -798,18 +821,7 @@
             }
         }
 
-        function toggleClosedByVisibility() {
-            const transactionType = "REIMBURSEMENT"; // Default type since field removed
-            const closedByContainer = document.getElementById('closed')?.parentElement;
-            
-            if (closedByContainer) {
-                if (transactionType === 'LOAN') {
-                    closedByContainer.style.display = 'block';
-                } else {
-                    closedByContainer.style.display = 'none';
-                }
-            }
-        }
+
 
         // Function to submit document - implementation moved to addOPReim.js
         // This function is now implemented in the JavaScript file for better organization
