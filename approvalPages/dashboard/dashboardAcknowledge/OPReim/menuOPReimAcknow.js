@@ -168,8 +168,14 @@ async function updateCounters(userId) {
             return status.toLowerCase() === 'checked';
         }).length;
         
-        // For acknowledged count, count all documents (acknowledged tab shows all documents)
-        const acknowledgedCount = allDocuments.length;
+        // For acknowledged count, count all documents except Prepared and Checked (acknowledged tab shows all documents except Prepared and Checked)
+        const acknowledgedCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isPrepared = status.toLowerCase() === 'prepared';
+            const isChecked = status.toLowerCase() === 'checked';
+            return !isPrepared && !isChecked;
+        }).length;
         
         const rejectedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
@@ -390,9 +396,22 @@ async function switchTab(tabName) {
             console.log('Loading acknowledged tab...');
             document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
             
-            // For "Acknowledged" tab, show all documents regardless of status
-            documents = allDocuments;
-            console.log('All documents loaded for acknowledged tab:', documents.length);
+            // For "Acknowledged" tab, show all documents regardless of status except Prepared and Checked
+            documents = allDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                const isPrepared = status.toLowerCase() === 'prepared';
+                const isChecked = status.toLowerCase() === 'checked';
+                
+                // Debug logging for first few documents
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isPrepared=${isPrepared}, isChecked=${isChecked}`);
+                }
+                
+                // Show all documents EXCEPT Prepared and Checked
+                return !isPrepared && !isChecked;
+            });
+            console.log('All documents except Prepared and Checked loaded for acknowledged tab:', documents.length);
             
         } else if (tabName === 'rejected') {
             console.log('Loading rejected tab...');
@@ -754,8 +773,14 @@ async function debugTabFunctionality() {
         
         // Test Acknowledged tab
         console.log('=== TESTING ACKNOWLEDGED TAB ===');
-        // Acknowledged tab shows all documents regardless of status
-        console.log('All documents for acknowledged tab:', allDocs.length, allDocs);
+        const acknowledgedFiltered = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isPrepared = status.toLowerCase() === 'prepared';
+            const isChecked = status.toLowerCase() === 'checked';
+            return !isPrepared && !isChecked;
+        });
+        console.log('All documents except Prepared and Checked for acknowledged tab:', acknowledgedFiltered.length, acknowledgedFiltered);
         
         // Test Rejected tab
         console.log('=== TESTING REJECTED TAB ===');
@@ -808,7 +833,13 @@ async function showAllDocuments() {
             return status.toLowerCase() === 'checked';
         }).length;
         
-        const acknowledgedCount = allDocs.length; // All documents for acknowledged tab
+        const acknowledgedCount = allDocs.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isPrepared = status.toLowerCase() === 'prepared';
+            const isChecked = status.toLowerCase() === 'checked';
+            return !isPrepared && !isChecked;
+        }).length; // All documents except Prepared and Checked for acknowledged tab
         
         const rejectedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
@@ -816,7 +847,7 @@ async function showAllDocuments() {
             return status.toLowerCase() === 'rejected';
         }).length;
         
-        alert(`Total Documents: ${allDocs.length}\nChecked: ${checkedCount}\nAcknowledged (all documents): ${acknowledgedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
+        alert(`Total Documents: ${allDocs.length}\nChecked: ${checkedCount}\nAcknowledged (all except Prepared, Checked): ${acknowledgedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
         
     } catch (error) {
         console.error('Error in showAllDocuments:', error);
