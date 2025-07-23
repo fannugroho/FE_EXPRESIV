@@ -135,9 +135,10 @@ async function loadDashboard() {
         
         // Build URL based on current tab
         if (currentTab === 'acknowledged') {
+            // For acknowledged tab, we'll use the approvedBy endpoint and filter in JavaScript
             baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
             params.append('includeDetails', 'false');
-            params.append('step', 'acknowledgedBy');
+            params.append('step', 'approvedBy');
             params.append('userId', userId);
             params.append('onlyCurrentStep', 'false');
         } else if (currentTab === 'approved') {
@@ -245,11 +246,31 @@ async function loadDashboard() {
         // Debug: Test tab functionality
         await debugTabFunctionality();
         
-        // Update the table with filtered documents
-        updateTable(sortedDocuments);
-        
-        // Update pagination info
-        updatePaginationInfo(sortedDocuments.length);
+        // If current tab is acknowledged, filter for acknowledged documents
+        if (currentTab === 'acknowledged') {
+            const acknowledgedDocuments = sortedDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                const statusLower = status.toLowerCase();
+                
+                // Check for acknowledged status variations
+                return statusLower === 'acknowledged' || 
+                       statusLower === 'acknowledge' || 
+                       statusLower === 'ack' ||
+                       approval.acknowledgedDate ||
+                       approval.acknowledgedBy;
+            });
+            
+            console.log('Filtered acknowledged documents for dashboard:', acknowledgedDocuments.length);
+            updateTable(acknowledgedDocuments);
+            updatePaginationInfo(acknowledgedDocuments.length);
+        } else {
+            // Update the table with filtered documents
+            updateTable(sortedDocuments);
+            
+            // Update pagination info
+            updatePaginationInfo(sortedDocuments.length);
+        }
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -469,6 +490,12 @@ async function switchTab(tabName) {
         return;
     }
     
+    // Special handling for acknowledged tab
+    if (tabName === 'acknowledged') {
+        await loadAcknowledgedDocuments(userId);
+        return;
+    }
+    
     try {
         let documents = [];
         
@@ -495,6 +522,31 @@ async function switchTab(tabName) {
                 return isAcknowledged;
             });
             console.log('Acknowledged documents loaded:', documents.length);
+            
+            // If no acknowledged documents found, try alternative status checks
+            if (documents.length === 0) {
+                console.log('No documents with "acknowledged" status found, trying alternative checks...');
+                documents = allDocuments.filter(doc => {
+                    const approval = doc.approval || {};
+                    const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                    
+                    // Check for various possible "acknowledged" status variations
+                    const statusLower = status.toLowerCase();
+                    const isAcknowledged = statusLower === 'acknowledged' || 
+                                         statusLower === 'acknowledge' || 
+                                         statusLower === 'ack' ||
+                                         approval.acknowledgedDate ||
+                                         approval.acknowledgedBy;
+                    
+                    if (allDocuments.indexOf(doc) < 3) {
+                        console.log(`Alternative check - Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                        console.log('Alternative approval data:', approval);
+                    }
+                    
+                    return isAcknowledged;
+                });
+                console.log('Acknowledged documents after alternative check:', documents.length);
+            }
             
         } else if (tabName === 'approved') {
             console.log('Loading approved tab...');
@@ -610,6 +662,7 @@ function getStatusClass(status) {
         case 'Checked': return 'bg-green-100 text-green-800';
         case 'Acknowledged': return 'bg-blue-100 text-blue-800';
         case 'Acknowledge': return 'bg-blue-100 text-blue-800';
+        case 'Ack': return 'bg-blue-100 text-blue-800';
         case 'Approved': return 'bg-indigo-100 text-indigo-800';
         case 'Rejected': return 'bg-red-100 text-red-800';
         case 'Reject': return 'bg-red-100 text-red-800';
@@ -641,6 +694,12 @@ function getStatusDisplay(doc) {
     // Map "Draft" status to "Prepared" for display consistency
     if (status.toLowerCase() === 'draft') {
         return 'Prepared';
+    }
+    
+    // Normalize acknowledged status variations
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'acknowledge' || statusLower === 'ack') {
+        return 'Acknowledged';
     }
     
     return status;
@@ -855,14 +914,29 @@ async function debugTabFunctionality() {
         const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
         
-        // Test Acknowledged tab
+        // Test Acknowledged tab with enhanced filtering
         console.log('=== TESTING ACKNOWLEDGED TAB ===');
         const acknowledgedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'acknowledged';
+            const statusLower = status.toLowerCase();
+            
+            // Check for acknowledged status variations
+            const isAcknowledged = statusLower === 'acknowledged' || 
+                                 statusLower === 'acknowledge' || 
+                                 statusLower === 'ack' ||
+                                 approval.acknowledgedDate ||
+                                 approval.acknowledgedBy;
+            
+            // Debug logging for first few documents
+            if (allDocs.indexOf(doc) < 3) {
+                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                console.log('Document approval data:', approval);
+            }
+            
+            return isAcknowledged;
         });
-        console.log('Acknowledged documents:', acknowledgedFiltered.length, acknowledgedFiltered);
+        console.log('Acknowledged documents (enhanced filtering):', acknowledgedFiltered.length, acknowledgedFiltered);
         
         // Test Approved tab
         console.log('=== TESTING APPROVED TAB ===');
@@ -921,11 +995,18 @@ async function showAllDocuments() {
             });
         });
         
-        // Show alert with summary
+        // Show alert with summary using enhanced filtering
         const acknowledgedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'acknowledged';
+            const statusLower = status.toLowerCase();
+            
+            // Check for acknowledged status variations
+            return statusLower === 'acknowledged' || 
+                   statusLower === 'acknowledge' || 
+                   statusLower === 'ack' ||
+                   approval.acknowledgedDate ||
+                   approval.acknowledgedBy;
         }).length;
         
         const approvedCount = allDocs.filter(doc => {
@@ -943,11 +1024,121 @@ async function showAllDocuments() {
             return status.toLowerCase() === 'rejected';
         }).length;
         
-        alert(`Total Documents: ${allDocs.length}\nAcknowledged: ${acknowledgedCount}\nApproved (all documents): ${approvedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
+        alert(`Total Documents: ${allDocs.length}\nAcknowledged (enhanced): ${acknowledgedCount}\nApproved (all documents): ${approvedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
         
     } catch (error) {
         console.error('Error in showAllDocuments:', error);
         alert('Error loading documents. Check console for details.');
+    }
+}
+
+// Function to test acknowledged tab specifically
+async function testAcknowledgedTab() {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('User ID not found');
+        return;
+    }
+    
+    try {
+        console.log('=== TESTING ACKNOWLEDGED TAB SPECIFICALLY ===');
+        
+        // Switch to acknowledged tab
+        currentTab = 'acknowledged';
+        document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+        
+        // Load acknowledged documents
+        await loadAcknowledgedDocuments(userId);
+        
+        console.log('=== ACKNOWLEDGED TAB TEST COMPLETE ===');
+        
+    } catch (error) {
+        console.error('Error testing acknowledged tab:', error);
+        alert('Error testing acknowledged tab. Check console for details.');
+    }
+}
+
+// Function to load acknowledged documents specifically
+async function loadAcknowledgedDocuments(userId) {
+    try {
+        console.log('Loading acknowledged documents for user:', userId);
+        document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
+        
+        // Fetch all documents using the approvedBy endpoint
+        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        console.log(`Total documents fetched: ${allDocuments.length}`);
+        
+        // Filter for acknowledged documents
+        let acknowledgedDocuments = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const statusLower = status.toLowerCase();
+            
+            // Check for acknowledged status variations
+            const isAcknowledged = statusLower === 'acknowledged' || 
+                                 statusLower === 'acknowledge' || 
+                                 statusLower === 'ack' ||
+                                 approval.acknowledgedDate ||
+                                 approval.acknowledgedBy;
+            
+            // Debug logging for first few documents
+            if (allDocuments.indexOf(doc) < 3) {
+                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                console.log('Document approval data:', approval);
+            }
+            
+            return isAcknowledged;
+        });
+        
+        console.log('Acknowledged documents found:', acknowledgedDocuments.length);
+        
+        // Apply search filter if there's a search term
+        let filteredDocuments = acknowledgedDocuments;
+        if (currentSearchTerm) {
+            console.log('Applying search filter with term:', currentSearchTerm);
+            filteredDocuments = acknowledgedDocuments.filter(doc => {
+                switch (currentSearchType) {
+                    case 'reimNo':
+                        return doc.counterRef && doc.counterRef.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'requester':
+                        return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'payTo':
+                        return doc.cardName && doc.cardName.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'totalAmount':
+                        const totalAmount = doc.trsfrSum ? doc.trsfrSum.toString() : '';
+                        return totalAmount.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'status':
+                        const status = getStatusDisplay(doc);
+                        return status.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'docDate':
+                        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '';
+                        return docDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    case 'dueDate':
+                        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '';
+                        return dueDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
+                    default:
+                        return true;
+                }
+            });
+            console.log('Documents after filtering:', filteredDocuments.length);
+        }
+        
+        // Sort documents by Reimburse No (newest first)
+        const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
+        console.log('Documents after sorting:', sortedDocuments.length);
+        
+        // Update the table with filtered documents
+        updateTable(sortedDocuments);
+        
+        // Update pagination info
+        updatePaginationInfo(sortedDocuments.length);
+        
+    } catch (error) {
+        console.error('Error loading acknowledged documents:', error);
+        // Fallback to empty state
+        updateTable([]);
+        updatePaginationInfo(0);
     }
 }
 
