@@ -224,40 +224,6 @@ async function debugDocumentsNeedingApproval(userId) {
     }
 }
 
-// Function to add debug button to the page
-function addDebugButton() {
-    const debugButton = document.createElement('button');
-    debugButton.textContent = 'Debug Documents';
-    debugButton.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-4';
-    debugButton.onclick = async () => {
-        const userId = getUserId();
-        if (userId) {
-            const debugResult = await debugDocumentsNeedingApproval(userId);
-            console.log('Debug result:', debugResult);
-            
-            // Show debug info in alert
-            if (debugResult) {
-                const message = `
-Enhanced Debug Results:
-- Documents needing approval: ${debugResult.approvalDocs.length}
-- Regular prepared documents: ${debugResult.regularPreparedDocs.length}
-
-Check browser console for detailed information.
-                `;
-                alert(message);
-            }
-        } else {
-            alert('User ID not found');
-        }
-    };
-    
-    // Add button to the page
-    const container = document.querySelector('.flex.justify-between.mt-4');
-    if (container) {
-        container.appendChild(debugButton);
-    }
-}
-
 // Function to fetch prepared documents for "Prepared" tab
 async function fetchPreparedDocuments(userId) {
     console.log('fetchPreparedDocuments called with userId:', userId);
@@ -446,9 +412,6 @@ async function debugTabFunctionality() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, calling loadDashboard');
     loadDashboard();
-    
-    // Add debug button for troubleshooting
-    addDebugButton();
     
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');

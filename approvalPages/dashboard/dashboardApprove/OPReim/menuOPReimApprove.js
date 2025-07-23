@@ -250,15 +250,10 @@ async function loadDashboard() {
         if (currentTab === 'acknowledged') {
             const acknowledgedDocuments = sortedDocuments.filter(doc => {
                 const approval = doc.approval || {};
-                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-                const statusLower = status.toLowerCase();
+                const approvalStatus = approval.approvalStatus;
                 
-                // Check for acknowledged status variations
-                return statusLower === 'acknowledged' || 
-                       statusLower === 'acknowledge' || 
-                       statusLower === 'ack' ||
-                       approval.acknowledgedDate ||
-                       approval.acknowledgedBy;
+                // Filter for documents with exact "Acknowledged" status
+                return approvalStatus === 'Acknowledged';
             });
             
             console.log('Filtered acknowledged documents for dashboard:', acknowledgedDocuments.length);
@@ -293,8 +288,9 @@ async function updateCounters(userId) {
         // Count documents by status
         const acknowledgedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'acknowledged';
+            const approvalStatus = approval.approvalStatus;
+            // Count documents with exact "Acknowledged" status
+            return approvalStatus === 'Acknowledged';
         }).length;
         
         // For approved count, count all documents except Prepared, Checked, Acknowledged
@@ -507,15 +503,17 @@ async function switchTab(tabName) {
             console.log('Loading acknowledged tab...');
             document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
             
-            // For "Acknowledged" tab, show all documents with Approval Status "Acknowledged"
+            // For "Acknowledged" tab, show only documents with Approval Status "Acknowledged"
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
-                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-                const isAcknowledged = status.toLowerCase() === 'acknowledged';
+                const approvalStatus = approval.approvalStatus;
+                
+                // Primary check: exact match for "Acknowledged" status
+                const isAcknowledged = approvalStatus === 'Acknowledged';
                 
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isAcknowledged=${isAcknowledged}`);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                     console.log('Document approval data:', approval);
                 }
                 
@@ -523,29 +521,23 @@ async function switchTab(tabName) {
             });
             console.log('Acknowledged documents loaded:', documents.length);
             
-            // If no acknowledged documents found, try alternative status checks
+            // If no documents found with exact "Acknowledged" status, try case-insensitive check
             if (documents.length === 0) {
-                console.log('No documents with "acknowledged" status found, trying alternative checks...');
+                console.log('No documents with exact "Acknowledged" status found, trying case-insensitive check...');
                 documents = allDocuments.filter(doc => {
                     const approval = doc.approval || {};
-                    const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+                    const approvalStatus = approval.approvalStatus;
                     
-                    // Check for various possible "acknowledged" status variations
-                    const statusLower = status.toLowerCase();
-                    const isAcknowledged = statusLower === 'acknowledged' || 
-                                         statusLower === 'acknowledge' || 
-                                         statusLower === 'ack' ||
-                                         approval.acknowledgedDate ||
-                                         approval.acknowledgedBy;
+                    // Case-insensitive check for "acknowledged" status
+                    const isAcknowledged = approvalStatus && approvalStatus.toLowerCase() === 'acknowledged';
                     
                     if (allDocuments.indexOf(doc) < 3) {
-                        console.log(`Alternative check - Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
-                        console.log('Alternative approval data:', approval);
+                        console.log(`Case-insensitive check - Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                     }
                     
                     return isAcknowledged;
                 });
-                console.log('Acknowledged documents after alternative check:', documents.length);
+                console.log('Acknowledged documents after case-insensitive check:', documents.length);
             }
             
         } else if (tabName === 'approved') {
@@ -914,29 +906,24 @@ async function debugTabFunctionality() {
         const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
         
-        // Test Acknowledged tab with enhanced filtering
+        // Test Acknowledged tab with specific filtering for "approvalStatus": "Acknowledged"
         console.log('=== TESTING ACKNOWLEDGED TAB ===');
         const acknowledgedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const statusLower = status.toLowerCase();
+            const approvalStatus = approval.approvalStatus;
             
-            // Check for acknowledged status variations
-            const isAcknowledged = statusLower === 'acknowledged' || 
-                                 statusLower === 'acknowledge' || 
-                                 statusLower === 'ack' ||
-                                 approval.acknowledgedDate ||
-                                 approval.acknowledgedBy;
+            // Primary check: exact match for "Acknowledged" status
+            const isAcknowledged = approvalStatus === 'Acknowledged';
             
             // Debug logging for first few documents
             if (allDocs.indexOf(doc) < 3) {
-                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                 console.log('Document approval data:', approval);
             }
             
             return isAcknowledged;
         });
-        console.log('Acknowledged documents (enhanced filtering):', acknowledgedFiltered.length, acknowledgedFiltered);
+        console.log('Acknowledged documents (exact "Acknowledged" status):', acknowledgedFiltered.length, acknowledgedFiltered);
         
         // Test Approved tab
         console.log('=== TESTING APPROVED TAB ===');
@@ -995,18 +982,13 @@ async function showAllDocuments() {
             });
         });
         
-        // Show alert with summary using enhanced filtering
+        // Show alert with summary using specific filtering for "approvalStatus": "Acknowledged"
         const acknowledgedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const statusLower = status.toLowerCase();
+            const approvalStatus = approval.approvalStatus;
             
-            // Check for acknowledged status variations
-            return statusLower === 'acknowledged' || 
-                   statusLower === 'acknowledge' || 
-                   statusLower === 'ack' ||
-                   approval.acknowledgedDate ||
-                   approval.acknowledgedBy;
+            // Count documents with exact "Acknowledged" status
+            return approvalStatus === 'Acknowledged';
         }).length;
         
         const approvedCount = allDocs.filter(doc => {
@@ -1069,27 +1051,41 @@ async function loadAcknowledgedDocuments(userId) {
         const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log(`Total documents fetched: ${allDocuments.length}`);
         
-        // Filter for acknowledged documents
+        // Filter for acknowledged documents - only show documents with "approvalStatus": "Acknowledged"
         let acknowledgedDocuments = allDocuments.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const statusLower = status.toLowerCase();
+            const approvalStatus = approval.approvalStatus;
             
-            // Check for acknowledged status variations
-            const isAcknowledged = statusLower === 'acknowledged' || 
-                                 statusLower === 'acknowledge' || 
-                                 statusLower === 'ack' ||
-                                 approval.acknowledgedDate ||
-                                 approval.acknowledgedBy;
+            // Primary check: exact match for "Acknowledged" status
+            const isAcknowledged = approvalStatus === 'Acknowledged';
             
             // Debug logging for first few documents
             if (allDocuments.indexOf(doc) < 3) {
-                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isAcknowledged=${isAcknowledged}`);
+                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                 console.log('Document approval data:', approval);
             }
             
             return isAcknowledged;
         });
+        
+        // If no documents found with exact "Acknowledged" status, try case-insensitive check
+        if (acknowledgedDocuments.length === 0) {
+            console.log('No documents with exact "Acknowledged" status found, trying case-insensitive check...');
+            acknowledgedDocuments = allDocuments.filter(doc => {
+                const approval = doc.approval || {};
+                const approvalStatus = approval.approvalStatus;
+                
+                // Case-insensitive check for "acknowledged" status
+                const isAcknowledged = approvalStatus && approvalStatus.toLowerCase() === 'acknowledged';
+                
+                if (allDocuments.indexOf(doc) < 3) {
+                    console.log(`Case-insensitive check - Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
+                }
+                
+                return isAcknowledged;
+            });
+            console.log('Acknowledged documents after case-insensitive check:', acknowledgedDocuments.length);
+        }
         
         console.log('Acknowledged documents found:', acknowledgedDocuments.length);
         
