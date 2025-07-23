@@ -77,6 +77,9 @@ function mapResponseToForm(data) {
     if (data.lines && data.lines.length > 0) {
         populateTableLines(data.lines);
     }
+    
+    // Display Print Out Reimbursement document
+    displayPrintOutReimbursement(data);
 }
 
 // Function to map approval data

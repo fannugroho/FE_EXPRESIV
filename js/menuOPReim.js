@@ -481,7 +481,7 @@ function displayDocuments(documents) {
         const statusDisplay = `<span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span>`;
         
         // Memformat data dengan kelas scrollable jika perlu
-        const reimburseNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
+        const reimburseNo = applyScrollClass(doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
         const requester = applyScrollClass(doc.requesterName || '-');
         const requesterName = applyScrollClass(doc.receivedByName || doc.receivedBy || '-');
         // Pay To - Map user ID to user name
@@ -667,7 +667,7 @@ async function switchTab(tab) {
         if (searchTerm) {
             filteredDocuments = filteredDocuments.filter(doc => {
                 if (searchType === 'reimNo') {
-                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) || 
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) || 
                            (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
                            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm));
@@ -709,7 +709,7 @@ async function switchTab(tab) {
                     const payToId = doc.payTo;
                     const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
                     
-                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) ||
                            (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
                            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm)) ||
@@ -854,7 +854,7 @@ function downloadExcel() {
     
     // Convert data to worksheet format
     const wsData = [
-        ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
+        ["No.", "Voucher No.", "Requester", "Requester Name", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
     ];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -876,7 +876,7 @@ function downloadExcel() {
         
         wsData.push([
             index + 1,
-            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
             doc.receivedByName || doc.receivedBy || '-',
             payToName,
@@ -923,7 +923,7 @@ function downloadPDF() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Prepare table data
-    const tableColumn = ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Document Date", "Total Amount", "Status"];
+    const tableColumn = ["No.", "Voucher No.", "Requester", "Requester Name", "Pay To", "Document Date", "Document Date", "Total Amount", "Status"];
     const tableRows = [];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -945,7 +945,7 @@ function downloadPDF() {
         
         const rowData = [
             index + 1,
-            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
             doc.receivedByName || doc.receivedBy || '-',
             payToName,

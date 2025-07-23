@@ -138,6 +138,14 @@
                     </div>
                 </div>
                 
+                <!-- Print Out Reimbursement Section -->
+                <div class="mb-4" id="printOutReimbursementSection">
+                    <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
+                    <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Print Receive Reimbursement document will be displayed here -->
+                    </div>
+                </div>
+                
                 <input type="hidden" id="Doctype" value="A">
             </div>
             
@@ -358,6 +366,181 @@
         // Make functions available globally
         window.formatCurrencyIDR = formatCurrencyIDR;
         window.parseCurrencyIDR = parseCurrencyIDR;
+        
+        // Function to display Print Out Reimbursement document
+        function displayPrintOutReimbursement(reimbursementData) {
+            const container = document.getElementById('printOutReimbursementList');
+            if (!container) {
+                console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
+                return;
+            }
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            // Get reimbursement ID from various possible sources
+            let reimbursementId = null;
+            
+            // Try to get from URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
+            
+            // If not in URL, try to get from form data
+            if (!reimbursementId) {
+                const counterRefField = document.getElementById('CounterRef');
+                if (counterRefField && counterRefField.value) {
+                    reimbursementId = counterRefField.value;
+                }
+            }
+            
+            // If still not found, try to get from reimbursement data
+            if (!reimbursementId && reimbursementData && reimbursementData.id) {
+                reimbursementId = reimbursementData.id;
+            }
+            
+            if (!reimbursementId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
+                return;
+            }
+            
+            // Build the Print Receive Reimbursement URL with parameters
+            const baseUrl = window.location.origin;
+            const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+            
+            // Add additional parameters if available from reimbursement data
+            let fullUrl = printReimUrl;
+            if (reimbursementData) {
+                const params = new URLSearchParams();
+                
+                // Add all available parameters from reimbursement data
+                if (reimbursementData.cardName) params.append('payTo', encodeURIComponent(reimbursementData.cardName));
+                if (reimbursementData.counterRef) params.append('voucherNo', encodeURIComponent(reimbursementData.counterRef));
+                if (reimbursementData.docDate) params.append('submissionDate', reimbursementData.docDate);
+                if (reimbursementData.requesterName) params.append('preparedBy', encodeURIComponent(reimbursementData.requesterName));
+                if (reimbursementData.totalAmountDue) params.append('totalAmount', reimbursementData.totalAmountDue);
+                if (reimbursementData.docCurr) params.append('currency', reimbursementData.docCurr);
+                if (reimbursementData.comments) params.append('remarks', encodeURIComponent(reimbursementData.comments));
+                
+                // Add details if available
+                if (reimbursementData.lines && reimbursementData.lines.length > 0) {
+                    const details = reimbursementData.lines.map(line => ({
+                        category: line.category || '',
+                        accountName: line.acctName || '',
+                        glAccount: line.acctCode || '',
+                        description: line.descrip || '',
+                        amount: line.sumApplied || 0
+                    }));
+                    params.append('details', encodeURIComponent(JSON.stringify(details)));
+                }
+                
+                // If we have parameters, append them to the URL
+                if (params.toString()) {
+                    fullUrl += '&' + params.toString();
+                }
+            }
+            
+            // Create the document item
+            const documentItem = document.createElement('div');
+            documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'flex items-center space-x-2';
+            
+            // Use a document icon for the print reimbursement
+            fileInfo.innerHTML = `
+                <span class="text-lg">📄</span>
+                <div>
+                    <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
+                    <div class="text-xs text-gray-500">Document • PDF</div>
+                    <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
+                </div>
+            `;
+            
+            const actions = document.createElement('div');
+            actions.className = 'flex space-x-2';
+            
+            // View button
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+            viewBtn.innerHTML = 'View';
+            viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
+            
+            // Open in new tab button
+            const openBtn = document.createElement('button');
+            openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
+            openBtn.innerHTML = 'Open';
+            openBtn.onclick = () => openPrintReimbursement(fullUrl);
+            
+            actions.appendChild(viewBtn);
+            actions.appendChild(openBtn);
+            
+            documentItem.appendChild(fileInfo);
+            documentItem.appendChild(actions);
+            container.appendChild(documentItem);
+        }
+
+        // Function to view Print Reimbursement document
+        async function viewPrintReimbursement(url) {
+            try {
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Loading Print Receive Reimbursement document...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Open the URL in a new window/tab
+                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                if (newWindow) {
+                    // Close loading indicator
+                    Swal.close();
+                    
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Print Receive Reimbursement document opened in new window',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    throw new Error('Failed to open document window');
+                }
+                
+            } catch (error) {
+                console.error('Error viewing Print Reimbursement document:', error);
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Function to open Print Reimbursement document in new tab
+        function openPrintReimbursement(url) {
+            try {
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error opening Print Reimbursement document:', error);
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
     </script>
 </body>
 </html> 

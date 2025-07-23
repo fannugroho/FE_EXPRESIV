@@ -591,6 +591,9 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
             attachmentsToKeep = [];
         }
         
+        // Display Print Out Reimbursement document
+        displayPrintOutReimbursement(detailedData);
+        
         // Set approval information if available
         const setUserField = (fieldId, userId, userName) => {
             const hiddenSelect = document.getElementById(fieldId);
@@ -1769,6 +1772,9 @@ function populateFormFields(data) {
     } else {
         document.getElementById('rejectionRemarksSection').style.display = 'none';
     }
+    
+    // Display Print Out Reimbursement document
+    displayPrintOutReimbursement(data);
 }
 
 // Function to approve/check the outgoing payment
@@ -3021,6 +3027,9 @@ async function loadDocumentData() {
             console.log('Calling mapResponseToForm with data:', result.data);
             mapResponseToForm(result.data);
             
+            // Display Print Out Reimbursement document
+            displayPrintOutReimbursement(result.data);
+            
                     // Journal Memo field removed
             
             // Update user names in approval fields after mapping
@@ -3209,6 +3218,9 @@ function mapResponseToForm(responseData) {
         
         // Update totals after mapping lines
         updateTotalAmountDue();
+        
+        // Display Print Out Reimbursement document
+        displayPrintOutReimbursement(responseData);
     }
 }
 
@@ -4490,5 +4502,187 @@ window.addEventListener('DOMContentLoaded', async function() {
         console.error('Error initializing user dropdowns:', error);
     }
 });
+
+// Function to display Print Out Reimbursement document
+function displayPrintOutReimbursement(reimbursementData) {
+    const container = document.getElementById('printOutReimbursementList');
+    if (!container) {
+        console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
+        return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Get reimbursement ID from various possible sources
+    let reimbursementId = null;
+    
+    // Try to get from URL parameters first
+    const urlParams = new URLSearchParams(window.location.search);
+    reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
+    
+    // If not in URL, try to get from form data
+    if (!reimbursementId) {
+        const counterRefField = document.getElementById('CounterRef');
+        if (counterRefField && counterRefField.value) {
+            reimbursementId = counterRefField.value;
+        }
+    }
+    
+    // If still not found, try to get from reimbursement data
+    if (!reimbursementId && reimbursementData && reimbursementData.id) {
+        reimbursementId = reimbursementData.id;
+    }
+    
+    if (!reimbursementId) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
+        return;
+    }
+    
+    // Build the Print Receive Reimbursement URL with parameters
+    const baseUrl = window.location.origin;
+    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+    
+    // Add additional parameters if available from reimbursement data
+    let fullUrl = printReimUrl;
+    if (reimbursementData) {
+        const params = new URLSearchParams();
+        
+        // Add all available parameters from reimbursement data
+        if (reimbursementData.payToName) params.append('payTo', encodeURIComponent(reimbursementData.payToName));
+        if (reimbursementData.voucherNo) params.append('voucherNo', encodeURIComponent(reimbursementData.voucherNo));
+        if (reimbursementData.submissionDate) params.append('submissionDate', reimbursementData.submissionDate);
+        if (reimbursementData.department) params.append('department', encodeURIComponent(reimbursementData.department));
+        if (reimbursementData.referenceDoc) params.append('referenceDoc', encodeURIComponent(reimbursementData.referenceDoc));
+        if (reimbursementData.preparedByName) params.append('preparedBy', encodeURIComponent(reimbursementData.preparedByName));
+        if (reimbursementData.checkedByName) params.append('checkedBy', encodeURIComponent(reimbursementData.checkedByName));
+        if (reimbursementData.acknowledgedByName) params.append('acknowledgeBy', encodeURIComponent(reimbursementData.acknowledgedByName));
+        if (reimbursementData.approvedByName) params.append('approvedBy', encodeURIComponent(reimbursementData.approvedByName));
+        if (reimbursementData.receivedByName) params.append('receivedBy', encodeURIComponent(reimbursementData.receivedByName));
+        if (reimbursementData.totalAmount) params.append('totalAmount', reimbursementData.totalAmount);
+        if (reimbursementData.currency) params.append('currency', reimbursementData.currency);
+        if (reimbursementData.remarks) params.append('remarks', encodeURIComponent(reimbursementData.remarks));
+        if (reimbursementData.typeOfTransaction) params.append('typeOfTransaction', encodeURIComponent(reimbursementData.typeOfTransaction));
+        
+        // Add details if available
+        if (reimbursementData.reimbursementDetails && reimbursementData.reimbursementDetails.length > 0) {
+            const details = reimbursementData.reimbursementDetails.map(detail => ({
+                category: detail.category || '',
+                accountName: detail.accountName || '',
+                glAccount: detail.glAccount || '',
+                description: detail.description || '',
+                amount: detail.amount || 0
+            }));
+            params.append('details', encodeURIComponent(JSON.stringify(details)));
+        }
+        
+        // If we have parameters, append them to the URL
+        if (params.toString()) {
+            fullUrl += '&' + params.toString();
+        }
+    }
+    
+    // Create the document item
+    const documentItem = document.createElement('div');
+    documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+    
+    const fileInfo = document.createElement('div');
+    fileInfo.className = 'flex items-center space-x-2';
+    
+    // Use a document icon for the print reimbursement
+    fileInfo.innerHTML = `
+        <span class="text-lg">📄</span>
+        <div>
+            <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
+            <div class="text-xs text-gray-500">Document • PDF</div>
+            <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
+        </div>
+    `;
+    
+    const actions = document.createElement('div');
+    actions.className = 'flex space-x-2';
+    
+    // View button
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+    viewBtn.innerHTML = 'View';
+    viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
+    
+    // Open in new tab button
+    const openBtn = document.createElement('button');
+    openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
+    openBtn.innerHTML = 'Open';
+    openBtn.onclick = () => openPrintReimbursement(fullUrl);
+    
+    actions.appendChild(viewBtn);
+    actions.appendChild(openBtn);
+    
+    documentItem.appendChild(fileInfo);
+    documentItem.appendChild(actions);
+    container.appendChild(documentItem);
+}
+
+// Function to view Print Reimbursement document
+async function viewPrintReimbursement(url) {
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Loading Print Receive Reimbursement document...',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Open the URL in a new window/tab
+        const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        
+        if (newWindow) {
+            // Close loading indicator
+            Swal.close();
+            
+            // Show success message
+            Swal.fire({
+                title: 'Success',
+                text: 'Print Receive Reimbursement document opened in new window',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            throw new Error('Failed to open document window');
+        }
+        
+    } catch (error) {
+        console.error('Error viewing Print Reimbursement document:', error);
+        
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to open Print Reimbursement document in new tab
+function openPrintReimbursement(url) {
+    try {
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error opening Print Reimbursement document:', error);
+        
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
 
 

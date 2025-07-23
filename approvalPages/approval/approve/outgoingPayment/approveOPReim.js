@@ -164,6 +164,9 @@ function populateFormFields(data) {
     if (data.attachments && data.attachments.length > 0) {
         displayAttachments(data.attachments);
     }
+    
+    // Display Print Out Reimbursement document
+    displayPrintOutReimbursement(data);
 }
 
 // Hide buttons based on document status

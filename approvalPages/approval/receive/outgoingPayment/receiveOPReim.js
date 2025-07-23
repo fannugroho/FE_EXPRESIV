@@ -288,6 +288,9 @@ function populateFormFields(data) {
         }
     }
     
+    // Display Print Out Reimbursement document
+    displayPrintOutReimbursement(data);
+    
     // Display attachments if available
     if (data.attachments && data.attachments.length > 0) {
         const attachmentsList = document.getElementById('attachmentsList');

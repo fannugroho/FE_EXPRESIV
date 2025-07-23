@@ -633,7 +633,7 @@ function downloadExcel() {
     
     // Table headers
     const headers = [
-        'No', 'Reimburse No', 'Requester', 'Pay To', 
+        'No', 'Voucher No.', 'Requester', 'Pay To', 
         'Document Date', 'Due Date', 'Total Amount', 'Status'
     ];
     tableData.push(headers);
@@ -645,7 +645,7 @@ function downloadExcel() {
         
         if (cells.length > 0) {
             rowData.push(cells[0] ? cells[0].textContent.trim() : index + 1); // No
-            rowData.push(cells[1] ? cells[1].textContent.trim() : ''); // Reimburse No
+            rowData.push(cells[1] ? cells[1].textContent.trim() : ''); // Voucher No.
             rowData.push(cells[2] ? cells[2].textContent.trim() : ''); // Requester
             rowData.push(cells[3] ? cells[3].textContent.trim() : ''); // Pay To
             rowData.push(cells[4] ? cells[4].textContent.trim() : ''); // Document Date
@@ -696,7 +696,7 @@ function downloadPDF() {
         if (cells.length > 0) {
             const rowData = [
                 cells[0] ? cells[0].textContent.trim() : '', // No
-                cells[1] ? cells[1].textContent.trim() : '', // Reimburse No
+                cells[1] ? cells[1].textContent.trim() : '', // Voucher No.
                 cells[2] ? cells[2].textContent.trim() : '', // Requester
                 cells[3] ? cells[3].textContent.trim() : '', // Pay To
                 cells[4] ? cells[4].textContent.trim() : '', // Document Date
@@ -710,7 +710,7 @@ function downloadPDF() {
     
     // Add table with styling
     doc.autoTable({
-        head: [['No', 'Reimburse No', 'Requester', 'Pay To', 'Document Date', 'Due Date', 'Total Amount', 'Status']],
+        head: [['No', 'Voucher No.', 'Requester', 'Pay To', 'Document Date', 'Due Date', 'Total Amount', 'Status']],
         body: tableData,
         startY: 30,
         styles: {
