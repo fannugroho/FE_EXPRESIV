@@ -641,6 +641,18 @@ function onApprove() {
                 return;
             }
             
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving document and generating print...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
             // Make API call to approve the reimbursement
             fetch(`${BASE_URL}/api/reimbursements/receiver/${id}/approve`, {
                 method: 'PATCH',
@@ -652,14 +664,41 @@ function onApprove() {
             .then(response => response.json())
             .then(result => {
                 if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Approved!',
-                        'The document has been approved.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReceiveReim();
-                    });
+                    // Check if auto-print is enabled
+                    const autoPrintEnabled = document.getElementById('autoPrintEnabled').checked;
+                    
+                    if (autoPrintEnabled) {
+                        // After successful approval, trigger auto-print and save as attachment
+                        autoPrintAndSaveAsAttachment(id).then(() => {
+                            Swal.fire(
+                                'Approved!',
+                                'The document has been approved and print has been generated.',
+                                'success'
+                            ).then(() => {
+                                // Return to menu
+                                goToMenuReceiveReim();
+                            });
+                        }).catch(error => {
+                            console.error('Error in auto-print:', error);
+                            Swal.fire(
+                                'Approved with Warning',
+                                'Document approved but there was an issue with auto-print. You can manually print the document.',
+                                'warning'
+                            ).then(() => {
+                                goToMenuReceiveReim();
+                            });
+                        });
+                    } else {
+                        // Just approve without auto-print
+                        Swal.fire(
+                            'Approved!',
+                            'The document has been approved.',
+                            'success'
+                        ).then(() => {
+                            // Return to menu
+                            goToMenuReceiveReim();
+                        });
+                    }
                 } else {
                     Swal.fire(
                         'Error',
@@ -678,6 +717,511 @@ function onApprove() {
             });
         }
     });
+}
+
+// New function to handle auto-print and save as attachment
+async function autoPrintAndSaveAsAttachment(reimbursementId) {
+    try {
+        // First, generate the print data
+        const printData = await generatePrintData();
+        
+        // Generate HTML content for the print
+        const printContent = await generatePrintContent(printData);
+        
+        // Create a temporary div to hold the print content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = printContent;
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        document.body.appendChild(tempDiv);
+        
+        try {
+            // Convert HTML to PDF using html2pdf
+            const pdfBlob = await html2pdf().from(tempDiv).outputPdf('blob');
+            
+            // Save PDF as attachment
+            await savePrintAsAttachment(reimbursementId, pdfBlob, 'pdf');
+            
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            // Wait a bit for content to load, then print
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            
+            // Fallback: just save HTML and trigger print
+            const htmlBlob = new Blob([printContent], { type: 'text/html' });
+            await savePrintAsAttachment(reimbursementId, htmlBlob, 'html');
+            
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        } finally {
+            // Clean up temporary div
+            document.body.removeChild(tempDiv);
+        }
+        
+    } catch (error) {
+        console.error('Error in auto-print:', error);
+        throw error;
+    }
+}
+
+// Function to generate print data
+async function generatePrintData() {
+    // Get values from form fields
+    const voucherNo = document.getElementById('voucherNo').value || '';
+    const payTo = document.getElementById('payTo').value || '';
+    const submissionDate = document.getElementById('submissionDate').value || '';
+    const department = document.getElementById('department').value || '';
+    const referenceDoc = document.getElementById('referenceDoc').value || '';
+    const typeOfTransaction = document.getElementById('typeOfTransaction').value || '';
+    const remarks = document.getElementById('remarks').value || '';
+    const currency = document.getElementById('currency').value || '';
+    
+    // Get approvers
+    const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
+    const checkedBy = document.getElementById('checkedBySelect').options[document.getElementById('checkedBySelect').selectedIndex]?.text || '';
+    const acknowledgeBy = document.getElementById('acknowledgedBySelect').options[document.getElementById('acknowledgedBySelect').selectedIndex]?.text || '';
+    const approvedBy = document.getElementById('approvedBySelect').options[document.getElementById('approvedBySelect').selectedIndex]?.text || '';
+    const receivedBy = document.getElementById('receiveBySelect').options[document.getElementById('receiveBySelect').selectedIndex]?.text || '';
+    
+    // Get total amount
+    const totalAmountElement = document.getElementById('totalAmount');
+    let totalAmount = '0';
+    
+    if (totalAmountElement) {
+        if (totalAmountElement.dataset && totalAmountElement.dataset.rawValue) {
+            totalAmount = totalAmountElement.dataset.rawValue;
+        } else {
+            totalAmount = totalAmountElement.value || '0';
+        }
+    }
+    
+    // Get reimbursement details from table
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const details = [];
+    
+    if (detailsTable) {
+        const rows = detailsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const categoryCell = row.querySelector('td:nth-child(1) select');
+            const accountNameCell = row.querySelector('td:nth-child(2) input');
+            const glAccountCell = row.querySelector('td:nth-child(3) input');
+            const descriptionCell = row.querySelector('td:nth-child(4) input');
+            const amountCell = row.querySelector('td:nth-child(5) input');
+            
+            if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+                return;
+            }
+            
+            const amount = parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0;
+            
+            details.push({
+                category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
+                accountName: accountNameCell.value,
+                glAccount: glAccountCell.value,
+                description: descriptionCell.value,
+                amount: amount
+            });
+        });
+    }
+    
+    return {
+        voucherNo,
+        payTo,
+        submissionDate,
+        department,
+        referenceDoc,
+        typeOfTransaction,
+        remarks,
+        currency,
+        preparedBy,
+        checkedBy,
+        acknowledgeBy,
+        approvedBy,
+        receivedBy,
+        totalAmount,
+        details
+    };
+}
+
+// Function to convert number to words (for amount in words)
+function numberToWords(num) {
+    const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    
+    // Function to convert a number less than 1000 to words
+    function convertLessThanOneThousand(num) {
+        if (num === 0) return '';
+        
+        let result = '';
+        
+        if (num < 10) {
+            result = units[num];
+        } else if (num < 20) {
+            result = teens[num - 10];
+        } else if (num < 100) {
+            result = tens[Math.floor(num / 10)];
+            if (num % 10 > 0) {
+                result += '-' + units[num % 10];
+            }
+        } else {
+            result = units[Math.floor(num / 100)] + ' hundred';
+            if (num % 100 > 0) {
+                result += ' and ' + convertLessThanOneThousand(num % 100);
+            }
+        }
+        
+        return result;
+    }
+    
+    if (num === 0) return 'zero';
+    
+    let result = '';
+    let isNegative = num < 0;
+    
+    if (isNegative) {
+        num = Math.abs(num);
+    }
+    
+    // Handle billions
+    if (num >= 1000000000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000000000)) + ' billion';
+        num %= 1000000000;
+        if (num > 0) result += ' ';
+    }
+    
+    // Handle millions
+    if (num >= 1000000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000000)) + ' million';
+        num %= 1000000;
+        if (num > 0) result += ' ';
+    }
+    
+    // Handle thousands
+    if (num >= 1000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000)) + ' thousand';
+        num %= 1000;
+        if (num > 0) result += ' ';
+    }
+    
+    // Handle hundreds and below
+    if (num > 0) {
+        result += convertLessThanOneThousand(num);
+    }
+    
+    if (isNegative) {
+        result = 'negative ' + result;
+    }
+    
+    return result;
+}
+
+// Function to generate print URL
+function generatePrintUrl(printData) {
+    const detailsParam = encodeURIComponent(JSON.stringify(printData.details));
+    
+    return `printReim.html?reim-id=${getReimbursementIdFromUrl()}&payTo=${encodeURIComponent(printData.payTo)}&voucherNo=${encodeURIComponent(printData.voucherNo)}&submissionDate=${encodeURIComponent(printData.submissionDate)}&department=${encodeURIComponent(printData.department)}&referenceDoc=${encodeURIComponent(printData.referenceDoc)}&preparedBy=${encodeURIComponent(printData.preparedBy)}&checkedBy=${encodeURIComponent(printData.checkedBy)}&acknowledgeBy=${encodeURIComponent(printData.acknowledgeBy)}&approvedBy=${encodeURIComponent(printData.approvedBy)}&receivedBy=${encodeURIComponent(printData.receivedBy)}&totalAmount=${encodeURIComponent(printData.totalAmount)}&details=${detailsParam}&typeOfTransaction=${encodeURIComponent(printData.typeOfTransaction)}&remarks=${encodeURIComponent(printData.remarks)}&currency=${encodeURIComponent(printData.currency)}`;
+}
+
+// Function to save print as attachment
+async function savePrintAsAttachment(reimbursementId, blob, fileType = 'html') {
+    try {
+        // Create FormData for file upload
+        const formData = new FormData();
+        const fileName = `reimbursement_${reimbursementId}_print.${fileType}`;
+        formData.append('files', blob, fileName);
+        
+        // Upload attachment to API using the correct endpoint
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAccessToken()}`
+            },
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to save attachment');
+        }
+        
+        console.log('Print saved as attachment successfully');
+        return result;
+        
+    } catch (error) {
+        console.error('Error saving print as attachment:', error);
+        throw error;
+    }
+}
+
+// Function to generate print content as HTML
+async function generatePrintContent(printData) {
+    // Generate a professional-looking HTML for print
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reimbursement Print - ${printData.voucherNo}</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 20px; }
+            .no-print { display: none; }
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .company-logo {
+            width: 150px;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-transform: uppercase;
+        }
+        
+        .document-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .info-section {
+            flex: 1;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .details { 
+            margin-bottom: 30px; 
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 30px;
+        }
+        
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px 8px; 
+            text-align: left; 
+            font-size: 12px;
+        }
+        
+        th { 
+            background-color: #f8f9fa; 
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .total { 
+            font-weight: bold; 
+            background-color: #f8f9fa;
+        }
+        
+        .amount {
+            text-align: right;
+        }
+        
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 18%;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 10px;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .signature-name {
+            font-size: 11px;
+        }
+        
+        .remarks {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        
+        .remarks-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">PT. KANSAI PAINT INDONESIA</div>
+        <div style="font-size: 12px; color: #666;">
+            Blok DD-7 & DD-6 Kawasan Industri MM2100 Cibitung<br>
+            Cikarang Barat Kab. Bekasi Jawa Barat 17530
+        </div>
+        <div class="document-title">Reimbursement Request</div>
+    </div>
+    
+    <div class="document-info">
+        <div class="info-section">
+            <div class="info-item">
+                <span class="info-label">Voucher No:</span> ${printData.voucherNo}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Submission Date:</span> ${printData.submissionDate}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Department:</span> ${printData.department}
+            </div>
+        </div>
+        <div class="info-section">
+            <div class="info-item">
+                <span class="info-label">Pay To:</span> ${printData.payTo}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Type of Transaction:</span> ${printData.typeOfTransaction}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Reference Doc:</span> ${printData.referenceDoc}
+            </div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Account Name</th>
+                <th>G/L Account</th>
+                <th>Description</th>
+                <th class="amount">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${printData.details.map(detail => `
+                <tr>
+                    <td>${detail.category}</td>
+                    <td>${detail.accountName}</td>
+                    <td>${detail.glAccount}</td>
+                    <td>${detail.description}</td>
+                    <td class="amount">${formatAmount(detail.amount)}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+        <tfoot>
+            <tr class="total">
+                <td colspan="4" style="text-align: right; font-weight: bold;">Total Amount:</td>
+                <td class="amount">${formatAmount(printData.totalAmount)}</td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    ${printData.remarks ? `
+    <div class="remarks">
+        <div class="remarks-title">Remarks:</div>
+        <div>${printData.remarks}</div>
+    </div>
+    ` : ''}
+    
+    <div class="signatures">
+        <div class="signature-box">
+            <div class="signature-title">Prepared by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.preparedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Checked by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.checkedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Acknowledged by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.acknowledgeBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Approved by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.approvedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Received by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.receivedBy}</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #666;">
+        <p>Amount in Words: ${numberToWords(parseFloat(printData.totalAmount))} Rupiah</p>
+        <p>Generated on: ${new Date().toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })}</p>
+    </div>
+</body>
+</html>`;
+    
+    return htmlContent;
 }
 
 function updateApprovalStatus(docNumber, statusKey) {

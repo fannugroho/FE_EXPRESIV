@@ -6,6 +6,8 @@
     <title>Receive Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="receiveReim.js"></script>
     <script src="../../../../js/auth.js"></script>
     <script>
@@ -272,6 +274,19 @@
             <button onclick="revisionReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
                 Revision
             </button>
+        </div>
+        
+        <!-- Auto-print configuration -->
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="autoPrintEnabled" class="rounded" checked>
+                <label for="autoPrintEnabled" class="text-sm font-medium text-gray-700">
+                    Enable auto-print and save as attachment when document is approved
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                When enabled, the system will automatically generate a print document and save it as an attachment when you approve this document.
+            </p>
         </div>
 </div>
     </div>
