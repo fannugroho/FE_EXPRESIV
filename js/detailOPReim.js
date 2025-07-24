@@ -77,7 +77,7 @@ function mapResponseToForm(data) {
     if (data.lines && data.lines.length > 0) {
         populateTableLines(data.lines);
     }
-    
+
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
 }
@@ -89,31 +89,31 @@ function mapApprovalData(approval) {
         document.getElementById('Approval.PreparedByIdSearch').value = approval.preparedByName || '';
         document.getElementById('Approval.PreparedById').value = approval.preparedBy || '';
     }
-    
+
     // Map checked by - use checkedByName for display
     if (approval.checkedByName) {
         document.getElementById('Approval.CheckedByIdSearch').value = approval.checkedByName || '';
         document.getElementById('Approval.CheckedById').value = approval.checkedBy || '';
     }
-    
+
     // Map acknowledged by - use acknowledgedByName for display
     if (approval.acknowledgedByName) {
         document.getElementById('Approval.AcknowledgedByIdSearch').value = approval.acknowledgedByName || '';
         document.getElementById('Approval.AcknowledgedById').value = approval.acknowledgedBy || '';
     }
-    
+
     // Map approved by - use approvedByName for display
     if (approval.approvedByName) {
         document.getElementById('Approval.ApprovedByIdSearch').value = approval.approvedByName || '';
         document.getElementById('Approval.ApprovedById').value = approval.approvedBy || '';
     }
-    
+
     // Map received by - use receivedByName for display
     if (approval.receivedByName) {
         document.getElementById('Approval.ReceivedByIdSearch').value = approval.receivedByName || '';
         document.getElementById('Approval.ReceivedById').value = approval.receivedBy || '';
     }
-    
+
 
 }
 
@@ -122,14 +122,14 @@ function mapApprovalData(approval) {
 // The select is disabled (read-only) to prevent user modification
 function displayApprovalStatus(approval) {
     const statusSelect = document.getElementById('status');
-    
+
     if (!statusSelect) {
         console.error('Status select element not found');
         return;
     }
-    
+
     let status = 'Prepared'; // Default to Prepared instead of Draft
-    
+
     if (approval) {
         // Determine status based on approval data
         if (approval.approvalStatus) {
@@ -147,10 +147,10 @@ function displayApprovalStatus(approval) {
         } else if (approval.preparedBy) {
             status = 'Prepared';
         }
-        
+
         // Remove revision status handling since it's no longer needed
     }
-    
+
     // Update select value - only if the status exists in the select options
     const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
     if (availableStatuses.includes(status)) {
@@ -165,25 +165,56 @@ function displayApprovalStatus(approval) {
 function populateTableLines(lines) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = ''; // Clear existing rows
-    
+
     lines.forEach((line, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2">${line.acctCode || ''}</td>
             <td class="p-2">${line.acctName || ''}</td>
             <td class="p-2">${line.descrip || ''}</td>
+            <td class="p-2">${line.CurrencyItem || line.currencyItem || ''}</td>
             <td class="p-2 text-right">${formatCurrencyIDR(line.sumApplied || 0)}</td>
         `;
         tableBody.appendChild(row);
     });
+    // Update total transfer terbilang setelah render
+    updateTotalTransferTerbilang(lines);
+}
+
+// Tambahkan fungsi updateTotalTransferTerbilang
+function updateTotalTransferTerbilang(lines) {
+    let currency = '';
+    if (Array.isArray(lines) && lines.length > 0 && (lines[0].CurrencyItem || lines[0].currencyItem)) {
+        currency = lines[0].CurrencyItem || lines[0].currencyItem;
+    }
+    // Ambil total amount
+    const totalAmountDueInput = document.getElementById('totalAmountDue');
+    let totalAmount = '';
+    if (totalAmountDueInput) {
+        totalAmount = totalAmountDueInput.value;
+    }
+    // Gabungkan
+    let result = '';
+    if (currency && totalAmount) {
+        result = currency + ' ' + totalAmount;
+    } else if (totalAmount) {
+        result = totalAmount;
+    } else {
+        result = '-';
+    }
+    // Tampilkan
+    const terbilangSpan = document.getElementById('totalTransferTerbilang');
+    if (terbilangSpan) {
+        terbilangSpan.textContent = result;
+    }
 }
 
 // Function to get file icon based on file extension
 function getFileIcon(fileName) {
     if (!fileName || typeof fileName !== 'string') return '📄';
-    
+
     const extension = fileName.split('.').pop()?.toLowerCase();
-    
+
     switch (extension) {
         case 'pdf': return '📄';
         case 'doc':
@@ -203,23 +234,23 @@ function constructFileUrl(filePath) {
         console.error('No file path provided');
         return null;
     }
-    
+
     try {
         // Decode the file path
         const decodedPath = decodeURIComponent(filePath);
-        
+
         // Remove any leading slashes to avoid double slashes
         const cleanPath = decodedPath.replace(/^\/+/, '');
-        
+
         // Construct the full URL
         const fileUrl = `${BASE_URL}/${cleanPath}`;
-        
+
         console.log('File URL construction:');
         console.log('  Original path:', filePath);
         console.log('  Decoded path:', decodedPath);
         console.log('  Clean path:', cleanPath);
         console.log('  Final URL:', fileUrl);
-        
+
         return fileUrl;
     } catch (error) {
         console.error('Error constructing file URL:', error);
@@ -230,10 +261,10 @@ function constructFileUrl(filePath) {
 // Function to format file size
 function formatFileSize(bytes) {
     if (!bytes) return 'Unknown size';
-    
+
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Bytes';
-    
+
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
@@ -249,35 +280,35 @@ function formatDate(dateString) {
 // Function to display existing attachments
 function displayExistingAttachments(attachments) {
     const container = document.getElementById('attachmentsList');
-    
+
     if (!container) {
         console.error('Attachments container not found');
         return;
     }
-    
+
     if (!attachments || attachments.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
         return;
     }
-    
+
     console.log('Displaying attachments:', attachments);
-    
+
     // Add header for outgoing payment attachments
     let html = '<h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>';
-    
+
     attachments.forEach((attachment, index) => {
         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
         const fileIcon = getFileIcon(fileName);
         const fileSize = formatFileSize(attachment.fileSize || attachment.size);
         const uploadDate = formatDate(attachment.uploadDate || attachment.createdAt);
-        
+
         console.log(`Attachment ${index + 1}:`, {
             fileName,
             filePath: attachment.filePath,
             fileSize: attachment.fileSize,
             uploadDate: attachment.uploadDate
         });
-        
+
         html += `
             <div class="flex items-center justify-between p-2 mb-2 bg-gray-50 rounded border">
                 <div class="flex items-center space-x-2">
@@ -297,7 +328,7 @@ function displayExistingAttachments(attachments) {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -305,7 +336,7 @@ function displayExistingAttachments(attachments) {
 async function viewAttachment(attachmentOrPath, fileName) {
     try {
         console.log('viewAttachment called with:', { attachmentOrPath, fileName });
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Loading...',
@@ -323,27 +354,27 @@ async function viewAttachment(attachmentOrPath, fileName) {
         // Get document ID from URL parameters or from attachment object
         const urlParams = new URLSearchParams(window.location.search);
         let docId = urlParams.get('id');
-        
+
         console.log('Document ID from URL:', docId);
-        
+
         // If no docId in URL, try to get it from attachment object
         if (!docId && attachmentOrPath.reimbursementId) {
             docId = attachmentOrPath.reimbursementId;
             console.log('Document ID from attachment object:', docId);
         }
-        
+
         // If still no docId, try to get it from global variable
         if (!docId && window.currentDocumentId) {
             docId = window.currentDocumentId;
             console.log('Document ID from global variable:', docId);
         }
-        
+
         // If still no docId, try to get it from localStorage
         if (!docId) {
             docId = localStorage.getItem('currentStagingOutgoingPaymentId');
             console.log('Document ID from localStorage:', docId);
         }
-        
+
         if (!docId) {
             throw new Error('Document ID not found. Please ensure you are viewing an existing document.');
         }
@@ -364,20 +395,20 @@ async function viewAttachment(attachmentOrPath, fileName) {
         // If attachment already has filePath, use it directly
         if (attachment.filePath) {
             console.log('Using direct filePath:', attachment.filePath);
-            
+
             // Close loading indicator
             Swal.close();
-            
+
             // Construct file URL using helper function
             const fileUrl = constructFileUrl(attachment.filePath);
-            
+
             if (!fileUrl) {
                 throw new Error('Failed to construct file URL');
             }
-            
+
             // Open file in new tab
             window.open(fileUrl, '_blank');
-            
+
             Swal.fire({
                 title: 'Success',
                 text: 'Attachment opened in new tab',
@@ -390,7 +421,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
 
         // If no filePath, try to fetch attachment data from API
         console.log('Fetching attachments from API for document:', docId);
-        
+
         let response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
             method: 'GET',
             headers: {
@@ -412,7 +443,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
                 });
                 return;
             }
-            
+
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying main document endpoint');
                 // Try to get attachments from the main document endpoint
@@ -422,50 +453,50 @@ async function viewAttachment(attachmentOrPath, fileName) {
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to fetch attachment: ${response.status}`);
                 }
-                
+
                 const mainResult = await response.json();
                 console.log('Main document response data:', mainResult);
-                
+
                 if (!mainResult.attachments || mainResult.attachments.length === 0) {
                     throw new Error('No attachments found');
                 }
-                
+
                 // Find the specific attachment by ID or fileName
-                const targetAttachment = mainResult.attachments.find(att => 
-                    att.id === attachment.id || 
+                const targetAttachment = mainResult.attachments.find(att =>
+                    att.id === attachment.id ||
                     att.fileName === attachment.fileName ||
                     att.filePath === attachment.filePath
                 );
-                
+
                 console.log('Looking for attachment:', attachment);
                 console.log('Available attachments:', mainResult.attachments);
                 console.log('Found target attachment:', targetAttachment);
-                
+
                 if (!targetAttachment) {
                     throw new Error('Attachment not found');
                 }
-                
+
                 // Close loading indicator
                 Swal.close();
-                
+
                 // Construct the file URL using the filePath from API response
                 if (targetAttachment.filePath) {
                     console.log('Using filePath from main response:', targetAttachment.filePath);
-                    
+
                     // Construct file URL using helper function
                     const fileUrl = constructFileUrl(targetAttachment.filePath);
-                    
+
                     if (!fileUrl) {
                         throw new Error('Failed to construct file URL');
                     }
-                    
+
                     // Open file in new tab
                     window.open(fileUrl, '_blank');
-                    
+
                     Swal.fire({
                         title: 'Success',
                         text: 'Attachment opened in new tab',
@@ -476,23 +507,23 @@ async function viewAttachment(attachmentOrPath, fileName) {
                 } else {
                     throw new Error('File path not available');
                 }
-                
+
                 return;
             }
-            
+
             throw new Error(`Failed to fetch attachment: ${response.status}`);
         }
 
         const result = await response.json();
         console.log('API response data:', result);
-        
+
         if (!result.data || result.data.length === 0) {
             throw new Error('No attachments found');
         }
 
         // Find the specific attachment by ID or fileName
-        const targetAttachment = result.data.find(att => 
-            att.id === attachment.id || 
+        const targetAttachment = result.data.find(att =>
+            att.id === attachment.id ||
             att.fileName === attachment.fileName ||
             att.filePath === attachment.filePath
         );
@@ -507,21 +538,21 @@ async function viewAttachment(attachmentOrPath, fileName) {
 
         // Close loading indicator
         Swal.close();
-        
+
         // Construct the file URL using the filePath from API response
         if (targetAttachment.filePath) {
             console.log('Using filePath from API response:', targetAttachment.filePath);
-            
+
             // Construct file URL using helper function
             const fileUrl = constructFileUrl(targetAttachment.filePath);
-            
+
             if (!fileUrl) {
                 throw new Error('Failed to construct file URL');
             }
-            
+
             // Open file in new tab
             window.open(fileUrl, '_blank');
-            
+
             Swal.fire({
                 title: 'Success',
                 text: 'Attachment opened in new tab',
@@ -532,7 +563,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
         } else {
             throw new Error('File path not available');
         }
-        
+
     } catch (error) {
         console.error('Error viewing attachment:', error);
         Swal.fire({
@@ -583,7 +614,7 @@ function formatNumberToCurrencyString(number) {
     if (number === null || number === undefined || number === '') {
         return '';
     }
-    
+
     // Parse the number
     let num;
     try {
@@ -593,7 +624,7 @@ function formatNumberToCurrencyString(number) {
         } else {
             num = parseFloat(number);
         }
-        
+
         if (isNaN(num)) {
             return '';
         }
@@ -601,11 +632,11 @@ function formatNumberToCurrencyString(number) {
         console.error('Error parsing number:', e);
         return '';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -623,19 +654,19 @@ function formatNumberToCurrencyString(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -643,7 +674,7 @@ function formatNumberToCurrencyString(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -654,11 +685,11 @@ function formatNumberToCurrencyString(number) {
 async function loadDocumentData() {
     const urlParams = new URLSearchParams(window.location.search);
     const docId = urlParams.get('id');
-    
+
     if (docId) {
         // Store document ID globally for attachment functions
         window.currentDocumentId = docId;
-        
+
         try {
             // Show loading indicator
             Swal.fire({
@@ -673,7 +704,7 @@ async function loadDocumentData() {
                     Swal.showLoading();
                 }
             });
-            
+
             // Fetch document data from API
             const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
                 method: 'GET',
@@ -681,17 +712,17 @@ async function loadDocumentData() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`Failed to load document: ${response.status}`);
             }
-            
+
             const result = await response.json();
-            
+
             if (result) {
                 // Map response data to form
                 mapResponseToForm(result);
-                
+
                 // Check if attachments are included in the main response
                 if (result.attachments && result.attachments.length > 0) {
                     console.log('Attachments found in main response:', result.attachments);
@@ -700,7 +731,7 @@ async function loadDocumentData() {
                     // Try to load attachments from separate API endpoint
                     await loadAttachmentsFromAPI(docId);
                 }
-                
+
                 // Load reimbursement attachments if this outgoing payment was created from a reimbursement
                 if (result.expressivNo) {
                     console.log('Outgoing payment created from reimbursement:', result.expressivNo);
@@ -727,7 +758,7 @@ async function loadDocumentData() {
                     }
                     await loadReimbursementAttachments(result.expressivNo);
                 }
-                
+
                 // Show success message
                 Swal.fire({
                     title: 'Success',
@@ -736,10 +767,10 @@ async function loadDocumentData() {
                     confirmButtonText: 'OK'
                 });
             }
-            
+
         } catch (error) {
             console.error("Error loading document:", error);
-            
+
             Swal.fire({
                 title: 'Error',
                 text: `Failed to load document: ${error.message}`,
@@ -754,7 +785,7 @@ async function loadDocumentData() {
 async function loadAttachmentsFromAPI(docId) {
     try {
         console.log('Attempting to load attachments for document:', docId);
-        
+
         // Try to fetch attachments from the dedicated attachments endpoint
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
             method: 'GET',
@@ -774,7 +805,7 @@ async function loadAttachmentsFromAPI(docId) {
                 }
                 return;
             }
-            
+
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
                 // Try to get attachments from the main document endpoint
@@ -784,7 +815,7 @@ async function loadAttachmentsFromAPI(docId) {
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (mainResponse.ok) {
                     const mainResult = await mainResponse.json();
                     if (mainResult.attachments && mainResult.attachments.length > 0) {
@@ -793,7 +824,7 @@ async function loadAttachmentsFromAPI(docId) {
                         return;
                     }
                 }
-                
+
                 // If still no attachments, show message
                 const container = document.getElementById('attachmentsList');
                 if (container) {
@@ -801,14 +832,14 @@ async function loadAttachmentsFromAPI(docId) {
                 }
                 return;
             }
-            
+
             console.warn(`Failed to load attachments: ${response.status}`);
             return;
         }
 
         const result = await response.json();
         console.log('Attachments API response data:', result);
-        
+
         if (result.data && result.data.length > 0) {
             // Display attachments from API response
             displayExistingAttachments(result.data);
@@ -819,7 +850,7 @@ async function loadAttachmentsFromAPI(docId) {
                 container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
             }
         }
-        
+
     } catch (error) {
         console.error("Error loading attachments:", error);
         // Don't show error to user as this is not critical
@@ -834,7 +865,7 @@ async function loadAttachmentsFromAPI(docId) {
 async function loadReimbursementAttachments(reimbursementId) {
     try {
         console.log('Loading reimbursement attachments for ID:', reimbursementId);
-        
+
         // Fetch reimbursement data from API
         const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
             method: 'GET',
@@ -849,10 +880,10 @@ async function loadReimbursementAttachments(reimbursementId) {
         }
 
         const result = await response.json();
-        
+
         if (result.data && result.data.reimbursementAttachments && result.data.reimbursementAttachments.length > 0) {
             console.log('Found reimbursement attachments:', result.data.reimbursementAttachments);
-            
+
             // Create a separate section for reimbursement attachments
             const container = document.getElementById('attachmentsList');
             if (container) {
@@ -861,14 +892,14 @@ async function loadReimbursementAttachments(reimbursementId) {
                 reimbursementHeader.className = 'mt-4 mb-2';
                 reimbursementHeader.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
                 container.appendChild(reimbursementHeader);
-                
+
                 // Display reimbursement attachments
                 displayReimbursementAttachments(result.data.reimbursementAttachments);
             }
         } else {
             console.log('No reimbursement attachments found');
         }
-        
+
     } catch (error) {
         console.error("Error loading reimbursement attachments:", error);
         // Don't show error to user as this is not critical
@@ -882,25 +913,25 @@ function displayReimbursementAttachments(attachments) {
         console.warn('Attachments container not found: attachmentsList');
         return;
     }
-    
+
     if (!attachments || attachments.length === 0) {
         return;
     }
-    
+
     // Create attachment list
     const attachmentList = document.createElement('div');
     attachmentList.className = 'space-y-2 mb-4';
-    
+
     attachments.forEach((attachment, index) => {
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-        
+
         const fileInfo = document.createElement('div');
         fileInfo.className = 'flex items-center space-x-2';
-        
+
         // File icon based on type
         const fileIcon = getFileIcon(attachment.fileName || attachment.name);
-        
+
         fileInfo.innerHTML = `
             <span class="text-lg">${fileIcon}</span>
             <div>
@@ -909,23 +940,23 @@ function displayReimbursementAttachments(attachments) {
                 <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
             </div>
         `;
-        
+
         const actions = document.createElement('div');
         actions.className = 'flex space-x-2';
-        
+
         // View button
         const viewBtn = document.createElement('button');
         viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
         viewBtn.innerHTML = 'View';
         viewBtn.onclick = () => viewReimbursementAttachment(attachment);
-        
+
         actions.appendChild(viewBtn);
-        
+
         attachmentItem.appendChild(fileInfo);
         attachmentItem.appendChild(actions);
         attachmentList.appendChild(attachmentItem);
     });
-    
+
     container.appendChild(attachmentList);
 }
 
@@ -950,11 +981,11 @@ async function viewReimbursementAttachment(attachment) {
         if (attachment.filePath) {
             // Close loading indicator
             Swal.close();
-            
+
             // Use the base URL from the API endpoint
             const decodedPath = decodeURIComponent(attachment.filePath);
             const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
-            
+
             // Open file in new tab
             window.open(fileUrl, '_blank');
             return;
@@ -964,10 +995,10 @@ async function viewReimbursementAttachment(attachment) {
 
     } catch (error) {
         console.error('Error viewing reimbursement attachment:', error);
-        
+
         // Close loading indicator
         Swal.close();
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to view attachment: ${error.message}`,
@@ -981,7 +1012,7 @@ async function viewReimbursementAttachment(attachment) {
 async function refreshAttachments() {
     const urlParams = new URLSearchParams(window.location.search);
     const docId = urlParams.get('id');
-    
+
     if (!docId) {
         Swal.fire({
             title: 'Error',
@@ -1024,7 +1055,7 @@ async function refreshAttachments() {
                 }
                 return;
             }
-            
+
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
                 // Try to get attachments from the main document endpoint
@@ -1034,7 +1065,7 @@ async function refreshAttachments() {
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (mainResponse.ok) {
                     const mainResult = await mainResponse.json();
                     if (mainResult.attachments && mainResult.attachments.length > 0) {
@@ -1043,7 +1074,7 @@ async function refreshAttachments() {
                         return;
                     }
                 }
-                
+
                 // If still no attachments, show message
                 const container = document.getElementById('attachmentsList');
                 if (container) {
@@ -1051,12 +1082,12 @@ async function refreshAttachments() {
                 }
                 return;
             }
-            
+
             throw new Error(`Failed to refresh attachments: ${response.status}`);
         }
 
         const result = await response.json();
-        
+
         if (result.data && result.data.length > 0) {
             displayExistingAttachments(result.data);
         } else {
@@ -1097,7 +1128,7 @@ function formatCurrencyIDR(number) {
     if (number === null || number === undefined || number === '') {
         return '0';
     }
-    
+
     let num;
     try {
         if (typeof number === 'string') {
@@ -1110,7 +1141,7 @@ function formatCurrencyIDR(number) {
         } else {
             num = Number(number);
         }
-        
+
         if (isNaN(num)) {
             return '0';
         }
@@ -1118,16 +1149,16 @@ function formatCurrencyIDR(number) {
         console.error('Error parsing number:', e);
         return '0';
     }
-    
+
     const maxAmount = 100000000000000;
     if (num > maxAmount) {
         num = maxAmount;
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -1145,19 +1176,19 @@ function formatCurrencyIDR(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -1165,7 +1196,7 @@ function formatCurrencyIDR(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -1175,7 +1206,7 @@ function formatCurrencyWithTwoDecimals(number) {
     if (number === null || number === undefined || number === '') {
         return '0.00';
     }
-    
+
     let num;
     try {
         if (typeof number === 'string') {
@@ -1188,7 +1219,7 @@ function formatCurrencyWithTwoDecimals(number) {
         } else {
             num = Number(number);
         }
-        
+
         if (isNaN(num)) {
             return '0.00';
         }
@@ -1196,17 +1227,17 @@ function formatCurrencyWithTwoDecimals(number) {
         console.error('Error parsing number:', e);
         return '0.00';
     }
-    
+
     const maxAmount = 100000000000000;
     if (num > maxAmount) {
         num = maxAmount;
     }
-    
+
     if (num >= 1e12) {
         let strNum = num.toString();
         let result = '';
         let count = 0;
-        
+
         for (let i = strNum.length - 1; i >= 0; i--) {
             result = strNum[i] + result;
             count++;
@@ -1214,7 +1245,7 @@ function formatCurrencyWithTwoDecimals(number) {
                 result = ',' + result;
             }
         }
-        
+
         return result + '.00';
     } else {
         return num.toLocaleString('en-US', {
@@ -1227,7 +1258,7 @@ function formatCurrencyWithTwoDecimals(number) {
 // Function to parse currency IDR format
 function parseCurrencyIDR(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     try {
         const numericValue = formattedValue.toString().replace(/,/g, '');
         return parseFloat(numericValue) || 0;

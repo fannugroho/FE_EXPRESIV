@@ -6,7 +6,7 @@ if (typeof BASE_URL === 'undefined') {
     var BASE_URL = "https://expressiv-be-sb.idsdev.site";
     
     // Development environment (uncomment for local development)
-    // var BASE_URL = "http://localhost:5246";
+    // var BASE_URL = "http://localhost:5249";
     
     // Staging environment (uncomment for staging)
     // var BASE_URL = "https://expressiv.idsdev.site";
