@@ -18,6 +18,9 @@ window.onload = function () {
     
     // Inisialisasi notifikasi approval
     initApprovalNotifications();
+    
+    // Check and show/hide Outgoing Payment card based on user access
+    checkOutgoingPaymentAccess();
 };
 
 function loadUserGreeting() {
@@ -2037,4 +2040,45 @@ async function pollReimRevisionDocs() {
     } catch (e) {
         console.warn('Error polling reim revision docs:', e);
     }
+}
+
+// Function to check and show/hide Outgoing Payment card based on user access
+function checkOutgoingPaymentAccess() {
+    console.log('=== Dashboard checkOutgoingPaymentAccess Start ===');
+    
+    // Find the Outgoing Payment card by looking for the card that contains "Outgoing Payment" text
+    const cards = document.querySelectorAll('.stat-card');
+    console.log('Total stat-cards found:', cards.length);
+    
+    let outgoingPaymentCard = null;
+    
+    cards.forEach((card, index) => {
+        const title = card.querySelector('h3');
+        console.log(`Card ${index} title:`, title ? title.textContent : 'No title');
+        if (title && title.textContent.includes('Outgoing Payment')) {
+            outgoingPaymentCard = card;
+            console.log('Found Outgoing Payment card at index:', index);
+        }
+    });
+    
+    console.log('Outgoing Payment Card Element:', outgoingPaymentCard);
+    
+    if (outgoingPaymentCard) {
+        const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+        console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
+        
+        if (hasAccess === 'true') {
+            // User has access, show the card
+            outgoingPaymentCard.style.display = 'block';
+            console.log('Showing Outgoing Payment card');
+        } else {
+            // User doesn't have access, hide the card
+            outgoingPaymentCard.style.display = 'none';
+            console.log('Hiding Outgoing Payment card');
+        }
+    } else {
+        console.log('Outgoing Payment card not found');
+    }
+    
+    console.log('=== Dashboard checkOutgoingPaymentAccess End ===');
 }

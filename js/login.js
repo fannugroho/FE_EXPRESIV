@@ -1,4 +1,7 @@
-    // Objek terjemahan
+    // Base URL for API calls
+const BASE_URL = 'https://expressiv-be-sb.idsdev.site';
+
+// Objek terjemahan
     const translations = {
       en: {
         welcome: "Welcome to PT Kansai Paint Indonesia",
@@ -121,6 +124,76 @@
       }
     }
 
+    // Function to check if user has access to Outgoing Payment
+    async function checkOutgoingPaymentAccess(userId) {
+      try {
+        console.log('=== Outgoing Payment Access Check Start ===');
+        console.log('User ID:', userId);
+        console.log('BASE_URL:', BASE_URL);
+        
+        // Clear existing Outgoing Payment access first
+        localStorage.removeItem("hasOutgoingPaymentAccess");
+        console.log('Cleared existing hasOutgoingPaymentAccess from localStorage');
+        
+        // Get access token
+        const accessToken = localStorage.getItem("accessToken");
+        console.log('Access Token exists:', !!accessToken);
+        
+        // Make API call to check if user has access to Outgoing Payment
+        const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/employee/${userId}/document-type/OP`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        console.log('API Response Status:', response.status);
+        console.log('API Response OK:', response.ok);
+        
+        const result = await response.json();
+        console.log('API Response Data:', result);
+        
+        if (result.status && result.code === 200) {
+          // Check if the response data array has any items (user has access)
+          const hasAccess = result.data && result.data.length > 0;
+          console.log('Data array length:', result.data ? result.data.length : 'undefined');
+          console.log('Has Access:', hasAccess);
+          
+          // Store the result in localStorage
+          localStorage.setItem("hasOutgoingPaymentAccess", hasAccess.toString());
+          console.log('Stored hasOutgoingPaymentAccess in localStorage:', hasAccess.toString());
+          
+          console.log('=== Outgoing Payment Access Check End ===');
+          return hasAccess;
+        } else {
+          console.log('API call failed - status or code not 200');
+          console.log('Result status:', result.status);
+          console.log('Result code:', result.code);
+        }
+        
+        // If API call fails, default to no access
+        localStorage.setItem("hasOutgoingPaymentAccess", "false");
+        console.log('Set hasOutgoingPaymentAccess to false (API failed)');
+        console.log('=== Outgoing Payment Access Check End ===');
+        return false;
+      } catch (error) {
+        console.error('=== Outgoing Payment Access Check Error ===');
+        console.error('Error checking Outgoing Payment access:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        // If there's an error, default to no access
+        localStorage.setItem("hasOutgoingPaymentAccess", "false");
+        console.log('Set hasOutgoingPaymentAccess to false (error occurred)');
+        console.log('=== Outgoing Payment Access Check End ===');
+        return false;
+      }
+    }
+
     // API-based login function
     async function handleLogin(event) {
       event.preventDefault();
@@ -188,6 +261,11 @@
             
             // Store initial password hash for password change validation
             await storeInitialPasswordHash(password);
+            
+            // Check if user has access to Outgoing Payment
+            console.log('About to call checkOutgoingPaymentAccess with user ID:', userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
+            await checkOutgoingPaymentAccess(userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]);
+            console.log('Finished calling checkOutgoingPaymentAccess');
             
             // Show success message
             alert(`Login Success! Welcome, ${userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]}`);
@@ -268,4 +346,5 @@
       localStorage.removeItem("userRoles");
       localStorage.removeItem("requirePasswordChange");
       localStorage.removeItem("initialPasswordHash");
+      localStorage.removeItem("hasOutgoingPaymentAccess");
     }

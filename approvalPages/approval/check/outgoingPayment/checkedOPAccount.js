@@ -25,28 +25,13 @@ function getUserId() {
 function formatCurrency(number) {
     // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
-        return '';
+        return '0';
     }
     
-    // Parse the number, ensuring we can handle very large values
-    let num;
-    try {
-        // Handle string inputs that might be very large
-        if (typeof number === 'string') {
-            // Remove all non-numeric characters except decimal point
-            const cleanedStr = number.replace(/[^\d.-]/g, '');
-            num = parseFloat(cleanedStr);
-        } else {
-            num = parseFloat(number);
-        }
-        
-        // If parsing failed, return empty string
-        if (isNaN(num)) {
-            return '';
-        }
-    } catch (e) {
-        console.error('Error parsing number:', e);
-        return '';
+    // Parse the number
+    const num = parseFloat(number);
+    if (isNaN(num)) {
+        return '0';
     }
     
     // Get the string representation to check if it has decimal places
@@ -56,24 +41,21 @@ function formatCurrency(number) {
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
-            // Get the number of decimal places in the original number
             const decimalPlaces = numStr.split('.')[1].length;
             return num.toLocaleString('id-ID', {
                 minimumFractionDigits: decimalPlaces,
                 maximumFractionDigits: decimalPlaces
             });
         } else {
-            // No decimal places in the original number
             return num.toLocaleString('id-ID', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             });
         }
     } catch (e) {
-        // Fallback for very large numbers that might cause issues with toLocaleString
+        // Fallback for very large numbers
         console.error('Error formatting number:', e);
         
-        // Manual formatting for extremely large numbers using Indonesian format
         let strNum = num.toString();
         let sign = '';
         
@@ -82,16 +64,14 @@ function formatCurrency(number) {
             strNum = strNum.substring(1);
         }
         
-        // Split into integer and decimal parts
         const parts = strNum.split('.');
         const integerPart = parts[0];
-        const decimalPart = parts.length > 1 ? ',' + parts[1] : ''; // Use comma as decimal separator
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
         
-        // Add thousand separators (dot) to integer part
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
-                formattedInteger += '.'; // Use dot as thousand separator
+                formattedInteger += '.';
             }
             formattedInteger += integerPart.charAt(i);
         }

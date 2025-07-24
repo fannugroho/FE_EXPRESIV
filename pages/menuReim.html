@@ -406,7 +406,8 @@
             const observer = new MutationObserver(function(mutations) {
                 const rows = document.querySelectorAll('#recentDocs tr');
                 
-                rows.forEach(row => {
+                // Convert NodeList to Array to ensure forEach is available
+                Array.from(rows).forEach(row => {
                     // Dapatkan sel Doc Number (indeks 0), Reimbursement Number (indeks 1), 
                     // Requester (indeks 2), dan Department (indeks 3)
                     const docNumberCell = row.cells[0];

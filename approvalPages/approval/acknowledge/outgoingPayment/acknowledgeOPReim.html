@@ -91,6 +91,14 @@
                     </div>
                 </div>
                 
+                <!-- Print Out Reimbursement Section -->
+                <div class="mb-4" id="printOutReimbursementSection">
+                    <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
+                    <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
+                        <!-- Print Receive Reimbursement document will be displayed here -->
+                    </div>
+                </div>
+                
                 <input type="hidden" id="Doctype" value="A">
             </div>
             
@@ -98,16 +106,21 @@
                 <h3 class="text-lg font-semibold mb-2">DocNum</h3>
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
+                    <option value="Prepared">Prepared</option>
+                    <option value="Checked">Checked</option>
+                    <option value="Acknowledged">Acknowledged</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Received">Received</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
                 
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
                 <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <input type="text" id="TypeOfTransaction" placeholder="Type of Transaction" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -132,28 +145,16 @@
             </tbody>
         </table>
         
-        <!--Net Total-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Net Total :</label>
-            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
-        </div>
-
-        <!--WTax Total-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax:</label>
-            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
-        </div>
-        
         <!--Total Amount Due-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Amount Due :</label>
-            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+            <input type="text" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
         </div>
         
         <!--Total Transfer-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Transfer :</label>
-            <input type="number" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+            <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
         </div>
 
         <div class="mt-4">
@@ -166,10 +167,12 @@
             <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
         </div>
 
-        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <!-- Rejection Remarks Display Section -->
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <label class="font-semibold text-red-600">Rejection Reason</label>
-            <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+            </div>
         </div>
 
         <!-- Revised Remarks Display Section (Read-only) -->
@@ -184,15 +187,7 @@
             </div>
         </div>
             
-        <!-- Revision Remarks Section -->
-        <div class="mt-4">
-            <div class="flex justify-between items-center">
-                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
-            </div>
-            <div id="revisionContainer" class="hidden">
-                <!-- Revision fields will be added here by JavaScript -->
-            </div>
-        </div>
+
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
@@ -241,15 +236,6 @@
                     </select>
                 </div>
             </div>
-            <div id="closedByContainer">
-                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="closedBy" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                </div>
-            </div>
         </div>
         <br>
 
@@ -263,299 +249,185 @@
                     Acknowledge
                 </button>
             </div>
-            <button onclick="revisionOPReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
-                Revision
-            </button>
         </div>
     </div>
 
     <script>
-        // Global variables to track revision fields
-        let revisionFieldsByUser = new Map(); // Track which users have added fields
-        const MAX_REVISION_FIELDS = 1; // Limit to 1 revision per document
-
-        // Toggle revision container visibility and add first field
-        function toggleRevisionField() {
-            // Ensure DOM is ready
-            if (document.readyState !== 'complete') {
-                setTimeout(toggleRevisionField, 100);
-                return;
-            }
-            
-            const container = document.getElementById('revisionContainer');
-            const addBtn = document.getElementById('addRevisionBtn');
-            
-            // Check if container exists
+        // Function to display Print Out Reimbursement document
+        function displayPrintOutReimbursement(reimbursementData) {
+            const container = document.getElementById('printOutReimbursementList');
             if (!container) {
-                console.error('revisionContainer element not found');
+                console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
                 return;
             }
             
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
+            // Clear existing content
+            container.innerHTML = '';
             
-            // Check if user can add a field
-            if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Maximum Limit',
-                    text: 'Only one revision is allowed per document'
-                });
-                return;
-            }
+            // Get reimbursement ID from various possible sources
+            let reimbursementId = null;
             
-            if (revisionFieldsByUser.has(currentUser.name)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Already exists',
-                    text: 'You already added a revision field. Each user can only add one field.'
-                });
-                return;
-            }
+            // Try to get from URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
             
-            if (container.classList.contains('hidden')) {
-                // Show container and add first field
-                container.classList.remove('hidden');
-                addRevisionField();
-            } else {
-                // Add another field
-                addRevisionField();
-            }
-        }
-
-        // Add revision field functionality
-        function addRevisionField() {
-            // Ensure DOM is ready
-            if (document.readyState !== 'complete') {
-                setTimeout(addRevisionField, 100);
-                return;
-            }
-            
-            const container = document.getElementById('revisionContainer');
-            
-            // Check if container exists
-            if (!container) {
-                console.error('revisionContainer element not found');
-                return;
-            }
-            
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
-            
-            // Check if maximum fields reached
-            if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Maximum Limit',
-                    text: 'Only one revision is allowed per document'
-                });
-                return;
-            }
-            
-            // Check if current user already has a field
-            if (revisionFieldsByUser.has(currentUser.name)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Already exists',
-                    text: 'You already added a revision field. Each user can only add one field.'
-                });
-                return;
-            }
-            
-            // Create wrapper div for the textarea and delete button
-            const fieldWrapper = document.createElement('div');
-            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
-            fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
-            
-            // Create textarea
-            const newField = document.createElement('textarea');
-            newField.className = 'w-full p-2 border rounded-md';
-            newField.placeholder = 'Enter additional revision details';
-            
-            // Add event listener for input to handle protected prefix
-            newField.addEventListener('input', handleRevisionInput);
-            
-            // Initialize with user prefix
-            initializeWithUserPrefix(newField);
-            
-            // Create delete button
-            const deleteButton = document.createElement('button');
-            deleteButton.innerHTML = '&times;'; // × symbol
-            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
-            deleteButton.title = 'Delete this revision field';
-            deleteButton.onclick = function() {
-                // Remove user from tracking when field is deleted
-                const userName = fieldWrapper.dataset.userName;
-                revisionFieldsByUser.delete(userName);
-                
-                fieldWrapper.remove();
-                checkRevisionButton(); // Update button state after removing a field
-                checkRevisionContainer(); // Check if container should be hidden
-                updateAddButtonState(); // Update add button state
-            };
-            
-            // Add textarea and delete button to wrapper
-            fieldWrapper.appendChild(newField);
-            fieldWrapper.appendChild(deleteButton);
-            
-            // Add wrapper to container
-            container.appendChild(fieldWrapper);
-            
-            // Track that this user has added a field
-            revisionFieldsByUser.set(currentUser.name, true);
-            
-            // Update the revision button state and add button state
-            checkRevisionButton();
-            updateAddButtonState();
-        }
-        
-        // Check if revision container should be hidden when all fields are removed
-        function checkRevisionContainer() {
-            const container = document.getElementById('revisionContainer');
-            const addBtn = document.getElementById('addRevisionBtn');
-            
-            // Check if container exists
-            if (!container) {
-                console.error('revisionContainer element not found');
-                return;
-            }
-            
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            if (revisionFields.length === 0) {
-                container.classList.add('hidden');
-                addBtn.textContent = '+ Add revision';
-                // Clear the tracking map when container is hidden
-                revisionFieldsByUser.clear();
-            }
-        }
-
-        // Update add button state based on current conditions
-        function updateAddButtonState() {
-            const addBtn = document.getElementById('addRevisionBtn');
-            const container = document.getElementById('revisionContainer');
-            
-            // Check if container exists
-            if (!container) {
-                console.error('revisionContainer element not found');
-                return;
-            }
-            
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
-            
-            // Check if user can add more fields
-            const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
-            
-            if (canAddMore) {
-                addBtn.style.opacity = '1';
-                addBtn.style.cursor = 'pointer';
-                addBtn.style.pointerEvents = 'auto';
-                if (currentFieldCount === 0) {
-                    addBtn.textContent = '+ Add revision';
-                } else {
-                    addBtn.textContent = '+ Add more revision';
-                }
-            } else {
-                addBtn.style.opacity = '0.5';
-                addBtn.style.cursor = 'not-allowed';
-                addBtn.style.pointerEvents = 'none';
-                
-                if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                    addBtn.textContent = 'Revision already added';
-                } else if (revisionFieldsByUser.has(currentUser.name)) {
-                    addBtn.textContent = ' ';
+            // If not in URL, try to get from form data
+            if (!reimbursementId) {
+                const counterRefField = document.getElementById('CounterRef');
+                if (counterRefField && counterRefField.value) {
+                    reimbursementId = counterRefField.value;
                 }
             }
+            
+            // If still not found, try to get from reimbursement data
+            if (!reimbursementId && reimbursementData && reimbursementData.id) {
+                reimbursementId = reimbursementData.id;
+            }
+            
+            if (!reimbursementId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
+                return;
+            }
+            
+            // Build the Print Receive Reimbursement URL with parameters
+            const baseUrl = window.location.origin;
+            const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+            
+            // Add additional parameters if available from reimbursement data
+            let fullUrl = printReimUrl;
+            if (reimbursementData) {
+                const params = new URLSearchParams();
+                
+                // Add all available parameters from reimbursement data
+                if (reimbursementData.cardName) params.append('payTo', encodeURIComponent(reimbursementData.cardName));
+                if (reimbursementData.counterRef) params.append('voucherNo', encodeURIComponent(reimbursementData.counterRef));
+                if (reimbursementData.docDate) params.append('submissionDate', reimbursementData.docDate);
+                if (reimbursementData.requesterName) params.append('preparedBy', encodeURIComponent(reimbursementData.requesterName));
+                if (reimbursementData.totalAmountDue) params.append('totalAmount', reimbursementData.totalAmountDue);
+                if (reimbursementData.docCurr) params.append('currency', reimbursementData.docCurr);
+                if (reimbursementData.comments) params.append('remarks', encodeURIComponent(reimbursementData.comments));
+                
+                // Add details if available
+                if (reimbursementData.lines && reimbursementData.lines.length > 0) {
+                    const details = reimbursementData.lines.map(line => ({
+                        category: line.category || '',
+                        accountName: line.acctName || '',
+                        glAccount: line.acctCode || '',
+                        description: line.descrip || '',
+                        amount: line.sumApplied || 0
+                    }));
+                    params.append('details', encodeURIComponent(JSON.stringify(details)));
+                }
+                
+                // If we have parameters, append them to the URL
+                if (params.toString()) {
+                    fullUrl += '&' + params.toString();
+                }
+            }
+            
+            // Create the document item
+            const documentItem = document.createElement('div');
+            documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'flex items-center space-x-2';
+            
+            // Use a document icon for the print reimbursement
+            fileInfo.innerHTML = `
+                <span class="text-lg">📄</span>
+                <div>
+                    <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
+                    <div class="text-xs text-gray-500">Document • PDF</div>
+                    <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
+                </div>
+            `;
+            
+            const actions = document.createElement('div');
+            actions.className = 'flex space-x-2';
+            
+            // View button
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+            viewBtn.innerHTML = 'View';
+            viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
+            
+            // Open in new tab button
+            const openBtn = document.createElement('button');
+            openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
+            openBtn.innerHTML = 'Open';
+            openBtn.onclick = () => openPrintReimbursement(fullUrl);
+            
+            actions.appendChild(viewBtn);
+            actions.appendChild(openBtn);
+            
+            documentItem.appendChild(fileInfo);
+            documentItem.appendChild(actions);
+            container.appendChild(documentItem);
         }
 
-        // Function to get current user information
-        function getUserInfo() {
-            // Use functions from auth.js to get user information
-            let userName = 'Unknown User';
-            let userRole = 'Acknowledger'; // Default role for this page since we're on the acknowledger page
-            
+        // Function to view Print Reimbursement document
+        async function viewPrintReimbursement(url) {
             try {
-                // Get user info from getCurrentUser function in auth.js
-                const currentUser = getCurrentUser();
-                if (currentUser && currentUser.username) {
-                    userName = currentUser.username;
-                }
-                
-                // Get user role based on the current page
-                // Since we're on the acknowledger page, the role is Acknowledger
-            } catch (e) {
-                console.error('Error getting user info:', e);
-            }
-            
-            return { name: userName, role: userRole };
-        }
-        
-        // Function to initialize textarea with user prefix
-        function initializeWithUserPrefix(textarea) {
-            const userInfo = getUserInfo();
-            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-            textarea.value = prefix;
-            
-            // Store the prefix length as a data attribute
-            textarea.dataset.prefixLength = prefix.length;
-            
-            // Set selection range after the prefix
-            textarea.setSelectionRange(prefix.length, prefix.length);
-            textarea.focus();
-        }
-        
-        // Function to handle input and protect the prefix
-        function handleRevisionInput(event) {
-            const textarea = event.target;
-            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-            
-            // If user tries to modify content before the prefix length
-            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
-                // Restore the prefix
-                const userInfo = getUserInfo();
-                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-                
-                // Only restore if the prefix is damaged
-                if (!textarea.value.startsWith(prefix)) {
-                    const userText = textarea.value.substring(prefixLength);
-                    textarea.value = prefix + userText;
-                    
-                    // Reset cursor position after the prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                } else {
-                    // Just move cursor after prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                }
-            }
-        }
-        
-        // Check if revision remarks are filled to enable/disable revision button
-        function checkRevisionButton() {
-            const revisionButton = document.getElementById('revisionButton');
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            let hasContent = false;
-            
-            // Check if there are any revision fields and if they have content
-            if (revisionFields.length > 0) {
-                revisionFields.forEach(field => {
-                    const prefixLength = parseInt(field.dataset.prefixLength || '0');
-                    // Check if there's content beyond the prefix
-                    if (field.value.trim().length > prefixLength) {
-                        hasContent = true;
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Loading Print Receive Reimbursement document...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
                     }
                 });
+                
+                // Open the URL in a new window/tab
+                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                if (newWindow) {
+                    // Close loading indicator
+                    Swal.close();
+                    
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Print Receive Reimbursement document opened in new window',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    throw new Error('Failed to open document window');
+                }
+                
+            } catch (error) {
+                console.error('Error viewing Print Reimbursement document:', error);
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
-            
-            if (hasContent) {
-                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = false;
-            } else {
-                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = true;
+        }
+
+        // Function to open Print Reimbursement document in new tab
+        function openPrintReimbursement(url) {
+            try {
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error opening Print Reimbursement document:', error);
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         }
     </script>
+
 </body>
 </html> 

@@ -49,28 +49,27 @@ function handleSearch(event) {
 }
 
 // Function to filter reimbursements based on search term, tab, and search type
-// Note: Since we're now using server-side filtering, this function is mainly used for search filtering
 function filterReimbursements(searchTerm = '', tab = 'prepared', searchType = 'pr') {
     // Since data is already filtered by status from the server, we only need to apply search filter
-        filteredData = allReimbursements.filter(item => {
-            // Filter berdasarkan tipe pencarian yang dipilih
-            let searchMatch = true;
-            if (searchTerm) {
-                if (searchType === 'pr') {
-                    searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'requester') {
-                    searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
-                } else if (searchType === 'date') {
-                    // Handle date search - searchTerm should be in YYYY-MM-DD format from date input
-                    const formattedDate = formatDateYYYYMMDD(item.submissionDate);
-                    searchMatch = formattedDate === searchTerm;
-                } else if (searchType === 'status') {
-                    searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
-                }
+    filteredData = allReimbursements.filter(item => {
+        // Filter berdasarkan tipe pencarian yang dipilih
+        let searchMatch = true;
+        if (searchTerm) {
+            if (searchType === 'pr') {
+                searchMatch = item.voucherNo.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'requester') {
+                searchMatch = item.requesterName.toLowerCase().includes(searchTerm);
+            } else if (searchType === 'date') {
+                // Handle date search - searchTerm should be in YYYY-MM-DD format from date input
+                const formattedDate = formatDateYYYYMMDD(item.submissionDate);
+                searchMatch = formattedDate === searchTerm;
+            } else if (searchType === 'status') {
+                searchMatch = item.status && item.status.toLowerCase().includes(searchTerm);
             }
-            
+        }
+        
         return searchMatch;
-        });
+    });
     
     // Update table and pagination
     updateTable();
@@ -121,62 +120,191 @@ function getStatusColorClass(status) {
     }
 }
 
-// Function to fetch status counts from API
+// Function to fetch status counts from API using new Swagger endpoint
 function fetchStatusCounts() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
     
-    fetch(`${BASE_URL}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                updateStatusCounts(data.data);
-            } else {
-                console.error('API returned an error:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching status counts:', error);
-            // Fallback to sample data if API fails
+    // Use new Swagger endpoint for checker status counts
+    const endpoint = `/api/reimbursements/status-counts/checker/${userId}`;
+    console.log('Fetching status counts from:', endpoint);
+    
+    fetch(`${BASE_URL}${endpoint}`, {
+        headers: {
+            'Authorization': `Bearer ${getAccessToken()}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status && data.code === 200) {
+            console.log('Status counts received:', data.data);
+            updateStatusCounts(data.data);
+        } else {
+            console.error('API returned an error:', data.message);
+            // Use sample counts if API fails
             updateSampleCounts();
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching status counts:', error);
+        // Use sample counts if API fails
+        updateSampleCounts();
+    });
 }
 
-// Function to fetch reimbursements from API
+// Function to fetch reimbursement documents using new Swagger endpoints
+async function fetchReimbursementDocuments(role, userId, status = null) {
+    try {
+        let endpoint;
+        if (status) {
+            endpoint = `/api/reimbursements/${role}/${userId}/${status}`;
+        } else {
+            endpoint = `/api/reimbursements/${role}/${userId}`;
+        }
+        
+        console.log(`Fetching reimbursement documents for role: ${role}, userId: ${userId}, status: ${status}`);
+        console.log('API URL:', `${BASE_URL}${endpoint}`);
+        
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`API response for role ${role} (status: ${status}):`, result);
+
+        // Handle different response structures
+        let documents = [];
+        if (result.status && result.data) {
+            documents = result.data;
+        } else if (Array.isArray(result)) {
+            documents = result;
+        } else if (result.data) {
+            documents = result.data;
+        } else {
+            documents = [];
+        }
+        
+        console.log(`Returning ${documents.length} reimbursement documents for role ${role}`);
+        return documents;
+    } catch (error) {
+        console.error(`Error fetching reimbursement documents for role ${role}:`, error);
+        return [];
+    }
+}
+
+// Function to fetch all documents for "All Documents" tab using new API
+async function fetchAllReimbursementDocuments(userId) {
+    try {
+        // For "All Documents" tab, we'll use the general checker endpoint
+        const documents = await fetchReimbursementDocuments('checker', userId);
+        return documents;
+    } catch (error) {
+        console.error('Error fetching all reimbursement documents:', error);
+        return [];
+    }
+}
+
+// Function to fetch checked documents for "Checked" tab using new API
+async function fetchCheckedReimbursementDocuments(userId) {
+    console.log('fetchCheckedReimbursementDocuments called with userId:', userId);
+    
+    try {
+        // Use new Swagger endpoint for checked documents
+        const documents = await fetchReimbursementDocuments('checker', userId, 'checked');
+        console.log('Checked documents loaded:', documents.length);
+        return documents;
+    } catch (error) {
+        console.error('Error in fetchCheckedReimbursementDocuments:', error);
+        return [];
+    }
+}
+
+// Function to fetch prepared documents for "Prepared" tab using new API
+async function fetchPreparedReimbursementDocuments(userId) {
+    console.log('fetchPreparedReimbursementDocuments called with userId:', userId);
+    
+    try {
+        // Use new Swagger endpoint for prepared documents
+        const documents = await fetchReimbursementDocuments('checker', userId, 'prepared');
+        console.log('Prepared documents loaded:', documents.length);
+        return documents;
+    } catch (error) {
+        console.error('Error in fetchPreparedReimbursementDocuments:', error);
+        return [];
+    }
+}
+
+// Function to fetch rejected documents using new API
+async function fetchRejectedReimbursementDocuments(userId) {
+    console.log('fetchRejectedReimbursementDocuments called with userId:', userId);
+    
+    try {
+        // Use new Swagger endpoint for rejected documents
+        const documents = await fetchReimbursementDocuments('checker', userId, 'rejected');
+        console.log('Rejected documents loaded:', documents.length);
+        return documents;
+    } catch (error) {
+        console.error('Error in fetchRejectedReimbursementDocuments:', error);
+        return [];
+    }
+}
+
+// Function to fetch reimbursements from API using new Swagger endpoint
 function fetchReimbursements() {
     const userId = getUserId();
-    const endpoint = `/api/reimbursements/checker/${userId}`;
     
-    fetch(`${BASE_URL}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                allReimbursements = data.data;
-                // Initialize with prepared tab data
-                fetchReimbursementsByStatus('prepared');
-            } else {
-                console.error('API returned an error:', data.message);
-                // Use sample data if API fails
-                useSampleData();
-                switchTab(currentTab);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching reimbursements:', error);
+    // Use new Swagger endpoint for checker documents
+    const endpoint = `/api/reimbursements/checker/${userId}`;
+    console.log('Fetching reimbursements from:', endpoint);
+    
+    fetch(`${BASE_URL}${endpoint}`, {
+        headers: {
+            'Authorization': `Bearer ${getAccessToken()}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status && data.code === 200) {
+            console.log('Reimbursements data received:', data.data);
+            allReimbursements = data.data;
+            // Initialize with prepared tab data
+            fetchReimbursementsByStatus('prepared');
+        } else {
+            console.error('API returned an error:', data.message);
             // Use sample data if API fails
             useSampleData();
             switchTab(currentTab);
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching reimbursements:', error);
+        // Use sample data if API fails
+        useSampleData();
+        switchTab(currentTab);
+    });
 }
 
 // Function to display reimbursements in the table
@@ -188,10 +316,15 @@ function displayReimbursements(reimbursements) {
 
 // Function to update the status counts on the page
 function updateStatusCounts(data) {
+    console.log('Updating status counts with data:', data);
+    
+    // Update the count displays with proper error handling
     document.getElementById("totalCount").textContent = data.totalCount || 0;
     document.getElementById("preparedCount").textContent = data.preparedCount || 0;
     document.getElementById("checkedCount").textContent = data.checkedCount || 0;
     document.getElementById("rejectedCount").textContent = data.rejectedCount || 0;
+    
+    console.log('Status counts updated successfully');
 }
 
 // Set up events for tab switching and pagination
@@ -307,10 +440,12 @@ function updateSampleCounts() {
     document.getElementById("rejectedCount").textContent = data.filter(item => item.status === 'Rejected').length;
 }
 
-// Switch between Prepared and Checked tabs
+// Function to switch between tabs using new Swagger API
 function switchTab(tabName) {
     currentTab = tabName;
-            reimCheckCurrentPage = 1; // Reset to first page
+    reimCheckCurrentPage = 1; // Reset to first page
+    
+    console.log('Switching to tab:', tabName);
     
     // Update tab button styling
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
@@ -333,9 +468,42 @@ function switchTab(tabName) {
     tableBody.style.transform = 'translateY(10px)';
     tableBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     
-    // Fetch data from specific API endpoint for each tab
+    // Fetch data using new Swagger API endpoints
     setTimeout(() => {
-        fetchReimbursementsByStatus(tabName);
+        const userId = getUserId();
+        if (!userId) {
+            console.error('User ID not found');
+            return;
+        }
+        
+        if (tabName === 'prepared') {
+            console.log('Loading prepared tab...');
+            fetchPreparedReimbursementDocuments(userId).then(docs => {
+                console.log('Prepared documents loaded:', docs.length);
+                updateTableWithDocuments(docs);
+            }).catch(error => {
+                console.error('Error loading prepared documents:', error);
+                updateTableWithDocuments([]);
+            });
+        } else if (tabName === 'checked') {
+            console.log('Loading checked tab...');
+            fetchCheckedReimbursementDocuments(userId).then(docs => {
+                console.log('Checked documents loaded:', docs.length);
+                updateTableWithDocuments(docs);
+            }).catch(error => {
+                console.error('Error loading checked documents:', error);
+                updateTableWithDocuments([]);
+            });
+        } else if (tabName === 'rejected') {
+            console.log('Loading rejected tab...');
+            fetchRejectedReimbursementDocuments(userId).then(docs => {
+                console.log('Rejected documents loaded:', docs.length);
+                updateTableWithDocuments(docs);
+            }).catch(error => {
+                console.error('Error loading rejected documents:', error);
+                updateTableWithDocuments([]);
+            });
+        }
         
         // Add fade-in effect
         setTimeout(() => {
@@ -345,15 +513,32 @@ function switchTab(tabName) {
     }, 200); // Short delay for the transition effect
 }
 
-// New function to fetch reimbursements by status using role-specific API endpoints
-// This replaces client-side filtering with server-side filtering for better performance
-// Uses role-specific endpoints: /api/reimbursements/checker/{userId}/{status}
+// Helper function to update table with documents
+function updateTableWithDocuments(documents) {
+    console.log('Updating table with documents:', documents);
+    
+    allReimbursements = documents;
+    
+    // Apply search filter if there's an active search
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchType = document.getElementById('searchType').value;
+    if (searchTerm) {
+        filterReimbursements(searchTerm, currentTab, searchType);
+    } else {
+        filteredData = allReimbursements;
+        updateTable();
+        updatePagination();
+    }
+    
+    console.log('Table updated with', documents.length, 'documents');
+}
+
+// New function to fetch reimbursements by status using new Swagger API
 function fetchReimbursementsByStatus(status) {
     const userId = getUserId();
     let endpoint;
     
-    // Map tab names to role-specific endpoints
-    // These endpoints are designed specifically for checker role with user ID in path
+    // Map tab names to new Swagger endpoints
     const endpointMap = {
         'prepared': `/api/reimbursements/checker/${userId}/prepared`,
         'checked': `/api/reimbursements/checker/${userId}/checked`,
@@ -366,43 +551,52 @@ function fetchReimbursementsByStatus(status) {
         return;
     }
     
-    fetch(`${BASE_URL}${endpoint}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status && data.code === 200) {
-                allReimbursements = data.data;
-                // Apply search filter if there's an active search
-                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                const searchType = document.getElementById('searchType').value;
-                if (searchTerm) {
-                    filterReimbursements(searchTerm, status, searchType);
-                } else {
-                    filteredData = allReimbursements;
-                    updateTable();
-                    updatePagination();
-                }
+    console.log('Fetching reimbursements by status:', status, 'from:', endpoint);
+    
+    fetch(`${BASE_URL}${endpoint}`, {
+        headers: {
+            'Authorization': `Bearer ${getAccessToken()}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status && data.code === 200) {
+            allReimbursements = data.data;
+            // Apply search filter if there's an active search
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchType = document.getElementById('searchType').value;
+            if (searchTerm) {
+                filterReimbursements(searchTerm, status, searchType);
             } else {
-                console.error('API returned an error:', data.message);
-                // Fallback to sample data
-                useSampleData();
+                filteredData = allReimbursements;
+                updateTable();
+                updatePagination();
             }
-        })
-        .catch(error => {
-            console.error('Error fetching reimbursements by status:', error);
+        } else {
+            console.error('API returned an error:', data.message);
             // Fallback to sample data
             useSampleData();
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching reimbursements by status:', error);
+        // Fallback to sample data
+        useSampleData();
+    });
 }
 
 // Update the table with current data
 function updateTable() {
     const tableBody = document.getElementById('recentDocs');
     tableBody.innerHTML = '';
+    
+    console.log('Updating table with filtered data:', filteredData.length, 'items');
     
     const startIndex = (reimCheckCurrentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
@@ -416,7 +610,6 @@ function updateTable() {
             formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
         
-        // Remove Draft to Prepared conversion as it's no longer needed
         const displayStatus = item.status;
         
         const row = document.createElement('tr');
@@ -447,6 +640,8 @@ function updateTable() {
     document.getElementById('startItem').textContent = filteredData.length > 0 ? startIndex + 1 : 0;
     document.getElementById('endItem').textContent = endIndex;
     document.getElementById('totalItems').textContent = filteredData.length;
+    
+    console.log('Table updated successfully');
 }
 
 // Update pagination controls
@@ -497,9 +692,8 @@ function downloadExcel() {
     const statusText = currentTab === 'prepared' ? 'Prepared' : currentTab === 'checked' ? 'Checked' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     
-    // Prepare data for export - no changes needed here as it already doesn't include checkbox data
+    // Prepare data for export
     const data = filteredData.map((item, index) => {
-        // Remove Draft to Prepared conversion as it's no longer needed
         return {
             'No.': index + 1,
             'Reimbursement Number': item.voucherNo || '',
@@ -539,12 +733,11 @@ function downloadPDF() {
     doc.setFontSize(12);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    // Prepare table data - column headers are already correct without checkbox column
+    // Prepare table data
     const tableColumn = ['No.', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
     const tableRows = [];
     
     filteredData.forEach((item, index) => {
-        // Remove Draft to Prepared conversion as it's no longer needed
         const dataRow = [
             index + 1,
             item.voucherNo || '',
@@ -579,9 +772,40 @@ function downloadPDF() {
     doc.save(fileName);
 }
 
+// Function to preload audio file
+async function preloadAudio() {
+    console.log('Preloading audio file...');
+    
+    // First check which audio path is available
+    const availablePath = await checkAudioFileAvailability();
+    
+    if (availablePath) {
+        console.log('Using available audio path:', availablePath);
+        const audio = new Audio(availablePath);
+        
+        audio.addEventListener('canplaythrough', () => {
+            console.log(`✅ Audio preloaded successfully from: ${availablePath}`);
+            // Store the working audio path
+            window.workingAudioPath = availablePath;
+        });
+        
+        audio.addEventListener('error', (e) => {
+            console.log(`❌ Audio preload failed for: ${availablePath}`);
+        });
+        
+        // Try to load the audio
+        audio.load();
+    } else {
+        console.log('No audio file found, will use fallback beep sound');
+    }
+}
+
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     loadDashboard();
+    
+    // Preload audio file
+    await preloadAudio();
     
     // Set user avatar and name if available
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
@@ -674,7 +898,9 @@ async function testAudioFile() {
         '../../../components/shared/tones.mp3',
         '/components/shared/tones.mp3',
         './components/shared/tones.mp3',
-        'components/shared/tones.mp3'
+        'components/shared/tones.mp3',
+        '../../../../../components/shared/tones.mp3',
+        '../../../../../../components/shared/tones.mp3'
     ];
     
     for (let i = 0; i < audioPaths.length; i++) {
@@ -682,10 +908,55 @@ async function testAudioFile() {
         try {
             const response = await fetch(path);
             console.log(`Path ${i + 1}: ${path} - Status: ${response.status} ${response.statusText}`);
+            if (response.ok) {
+                console.log(`✅ SUCCESS: Audio file found at ${path}`);
+            }
         } catch (error) {
-            console.log(`Path ${i + 1}: ${path} - Error: ${error.message}`);
+            console.log(`❌ FAILED: Path ${i + 1}: ${path} - Error: ${error.message}`);
         }
     }
+    
+    // Also test the absolute path
+    try {
+        const absolutePath = window.location.origin + '/components/shared/tones.mp3';
+        const response = await fetch(absolutePath);
+        console.log(`Absolute path: ${absolutePath} - Status: ${response.status} ${response.statusText}`);
+    } catch (error) {
+        console.log(`Absolute path failed: ${error.message}`);
+    }
+}
+
+// Function to check audio file availability
+async function checkAudioFileAvailability() {
+    console.log('=== CHECKING AUDIO FILE AVAILABILITY ===');
+    
+    const audioPaths = [
+        '../../../../components/shared/tones.mp3',
+        '../../../components/shared/tones.mp3',
+        '/components/shared/tones.mp3',
+        './components/shared/tones.mp3',
+        'components/shared/tones.mp3',
+        '../../../../../components/shared/tones.mp3',
+        '../../../../../../components/shared/tones.mp3'
+    ];
+    
+    for (let i = 0; i < audioPaths.length; i++) {
+        const path = audioPaths[i];
+        try {
+            const response = await fetch(path, { method: 'HEAD' });
+            if (response.ok) {
+                console.log(`✅ Audio file found at: ${path}`);
+                return path;
+            } else {
+                console.log(`❌ Audio file not found at: ${path} (Status: ${response.status})`);
+            }
+        } catch (error) {
+            console.log(`❌ Error checking path: ${path} - ${error.message}`);
+        }
+    }
+    
+    console.log('❌ No audio file found in any of the tested paths');
+    return null;
 }
 
 // Add test function to window for console access
@@ -693,6 +964,7 @@ window.testNotification = testNotification;
 window.debugNotificationElements = debugNotificationElements;
 window.testAudio = testAudio;
 window.testAudioFile = testAudioFile;
+window.checkAudioFileAvailability = checkAudioFileAvailability;
 
 function toggleNotificationPanel() {
     if (!notificationContainer) {
@@ -830,6 +1102,7 @@ function removeNotification(reimNumber) {
     }
 }
 
+// Updated polling function using new Swagger API
 async function pollPreparedDocs() {
     try {
         const userId = getUserId();
@@ -840,8 +1113,11 @@ async function pollPreparedDocs() {
         
         console.log('Polling prepared documents for user:', userId);
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/checker/${userId}`, {
+        // Use new Swagger endpoint for prepared documents
+        const endpoint = `/api/reimbursements/checker/${userId}/prepared`;
+        console.log('Polling from endpoint:', endpoint);
+        
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
@@ -862,15 +1138,15 @@ async function pollPreparedDocs() {
         let newReimFound = false;
         
         docs.forEach(doc => {
-            // Hanya notifikasi untuk dokumen dengan status Prepared
-            if (doc.status === 'Prepared' && !notifiedReims.has(doc.voucherNo)) {
+            // Only notify for documents that haven't been notified yet
+            if (!notifiedReims.has(doc.voucherNo)) {
                 console.log('New prepared document found:', doc.voucherNo);
                 showNotification(doc);
                 newReimFound = true;
             }
         });
         
-        // Play sound jika ada dokumen baru
+        // Play sound if there are new documents
         if (newReimFound) {
             console.log('Playing notification sound for new documents');
             playNotificationSound();
@@ -880,13 +1156,16 @@ async function pollPreparedDocs() {
     }
 }
 
+// Updated polling function for checked documents using new Swagger API
 async function pollCheckedDocs() {
     try {
         const userId = getUserId();
         if (!userId) return;
         
-        // Menggunakan endpoint untuk reimbursement
-        const response = await fetch(`${BASE_URL}/api/reimbursements/checker/${userId}`, {
+        // Use new Swagger endpoint for checked documents
+        const endpoint = `/api/reimbursements/checker/${userId}/checked`;
+        
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         
@@ -895,13 +1174,13 @@ async function pollCheckedDocs() {
         
         const docs = data.data || [];
         
-        // Buat set dari reimbursement yang sudah Checked
+        // Create set of reimbursements that are already Checked
         const checkedReims = new Set(
             docs.filter(doc => doc.status === 'Checked')
                 .map(doc => doc.voucherNo)
         );
         
-        // Hapus notifikasi untuk reimbursement yang sudah checked
+        // Remove notifications for reimbursements that are already checked
         notifiedReims.forEach(reimNumber => {
             if (checkedReims.has(reimNumber)) {
                 removeNotification(reimNumber);
@@ -920,19 +1199,44 @@ function playNotificationSound() {
     console.log('Current page URL:', window.location.href);
     
     try {
-        // Multiple audio paths to try
+        // Check if we have a working audio path from preload
+        if (window.workingAudioPath) {
+            console.log('Using preloaded audio path:', window.workingAudioPath);
+            const audio = new Audio(window.workingAudioPath);
+            audio.volume = 0.5;
+            
+            audio.play().then(() => {
+                console.log('Audio played successfully using preloaded path');
+            }).catch(e => {
+                console.warn('Preloaded audio play failed:', e);
+                // Fallback to other paths
+                tryOtherAudioPaths();
+            });
+            return;
+        }
+        
+        // Multiple audio paths to try - updated with correct relative paths
         const audioPaths = [
             '../../../../components/shared/tones.mp3',
             '../../../components/shared/tones.mp3',
             '/components/shared/tones.mp3',
             './components/shared/tones.mp3',
-            'components/shared/tones.mp3'
+            'components/shared/tones.mp3',
+            // Add more specific paths for this page location
+            '../../../../../components/shared/tones.mp3',
+            '../../../../../../components/shared/tones.mp3'
         ];
         
         // Only attempt to play if user has interacted with the page
         if (document.hasInteracted) {
             console.log('User has interacted, attempting to play audio');
-            
+            tryOtherAudioPaths();
+        } else {
+            console.log('User has not interacted with page yet, cannot play audio');
+            console.log('Please click or press any key on the page to enable audio');
+        }
+        
+        function tryOtherAudioPaths() {
             // Try each path until one works
             let audioPlayed = false;
             
@@ -957,6 +1261,8 @@ function playNotificationSound() {
                     audio.play().then(() => {
                         console.log(`Audio ${i + 1} played successfully from:`, audioPath);
                         audioPlayed = true;
+                        // Store the working path for future use
+                        window.workingAudioPath = audioPath;
                     }).catch(e => {
                         console.warn(`Audio ${i + 1} play failed:`, e);
                         console.warn('Error details:', e.message);
@@ -993,11 +1299,8 @@ function playNotificationSound() {
                     console.error('Fallback beep sound also failed:', e);
                 }
             }
-            
-        } else {
-            console.log('User has not interacted with page yet, cannot play audio');
-            console.log('Please click or press any key on the page to enable audio');
         }
+        
     } catch (e) {
         console.error('Failed to play notification sound:', e);
     }

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add AR Invoice</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Custom scrollbar styling */
+        textarea::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Custom width for quantity column */
+        .quantity-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        .quantity-input {
+            width: 80px !important;
+            text-align: center;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        /* Custom width for price column */
+        .price-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .price-input {
+            width: 100px !important;
+            text-align: right;
+        }
+        
+        /* Custom width for line total column */
+        .line-total-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .line-total-input {
+            width: 100px !important;
+            text-align: right;
+        }
+        
+        /* Custom width for Action column */
+        .action-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        /* Custom width for Item Code column */
+        .item-code-column {
+            width: 140px !important;
+            min-width: 140px !important;
+        }
+        
+        .item-code-input {
+            width: 120px !important;
+        }
+        
+        /* Wider dropdown for item search */
+        .item-dropdown {
+            width: 500px !important;
+            max-width: 500px !important;
+            min-width: 500px !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 300px !important;
+            overflow-y: auto !important;
+        }
+        
+        .item-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .item-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-code {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-name {
+            color: #6b7280 !important;
+            margin-left: 8px !important;
+        }
+        
+        .item-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
+        }
+        
+        /* Custom width for Description column */
+        .description-column {
+            width: 300px !important;
+            min-width: 300px !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity and price textarea */
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .item-price,
+        .item-line-total {
+            text-align: right !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl">
+        <button onclick="goToMenuARInv()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add AR Invoice</h2>
+        <br>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">DocEntry</h3>
+                <input type="text" id="docEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
+                <input type="text" id="docNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">CardCode</h3>
+                <div class="relative">
+                    <input type="text" id="cardCodeSearch" placeholder="Search customer code" class="w-full p-2 border rounded" onkeyup="filterCustomers()" autocomplete="off">
+                    <select id="cardCode" class="hidden" autocomplete="off">
+                        <option value="">Select a customer</option>
+                    </select>
+                    <div id="cardCodeDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto"></div>
+                </div>
+
+                <h3 class="text-lg font-semibold mb-2">CardName</h3>
+                <input type="text" id="cardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">DocCur</h3>
+                <select id="docCur" class="w-full p-2 border rounded bg-white" autocomplete="off">
+                    <option value="" disabled selected>Select Currency</option>
+                    <option value="IDR">IDR</option>
+                    <option value="USD">USD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="JPY">JPY</option>
+                    <option value="GBP">GBP</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                </select>
+                
+                <h3 class="text-lg font-semibold mb-2">NumAtCard</h3>
+                <input type="text" id="numAtCard" placeholder="External Document Number" class="w-full p-2 border rounded" autocomplete="off">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">DocDate</h3>
+                <input type="date" id="docDate" class="w-full p-2 border rounded" autocomplete="off" readonly>
+                <small class="text-gray-600 text-sm">*Date will be automatically updated when document is submitted</small>
+                
+                <h3 class="text-lg font-semibold mb-2">DocStatus</h3>
+                <select id="docStatus" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                    <option value="D" selected>Draft</option>
+                    <option value="O">Open</option>
+                    <option value="C">Closed</option>
+                </select>
+                
+                <h3 class="text-lg font-semibold mb-2">DocTotal</h3>
+                <input type="text" id="docTotal" placeholder="0.00" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">VatSum</h3>
+                <input type="text" id="vatSum" placeholder="0.00" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Series</h3>
+                <input type="number" id="series" placeholder="Series" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">CntctCode</h3>
+                <input type="number" id="cntctCode" placeholder="Contact Code" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">SlpCode</h3>
+                <input type="number" id="slpCode" placeholder="Sales Person Code" class="w-full p-2 border rounded" autocomplete="off">
+            </div>
+        </div>
+        
+        <!-- Table for Item details -->
+        <table id="arInvTable" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 description-column">Description</th>
+                    <th class="p-2 quantity-column">Quantity</th>
+                    <th class="p-2 price-column">Price</th>
+                    <th class="p-2 line-total-column">Line Total</th>
+                    <th class="p-2">VatGroup</th>
+                    <th class="p-2">WhsCode</th>
+                    <th class="p-2">AccountCode</th>
+                    <th class="p-2">BaseEntry</th>
+                    <th class="p-2">BaseLine</th>
+                    <th class="p-2">BaseType</th>
+                    <th class="p-2 action-column">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td class="p-2 border relative item-code-column">
+                        <input type="text" class="item-input item-code-input p-2 border rounded" autocomplete="off" />
+                        <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
+                    </td>
+                    <td class="p-2 border description-column">
+                        <textarea class="w-full item-description bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
+                    </td>
+                    <td class="p-2 border h-12 quantity-column">
+                        <textarea class="quantity-input item-quantity bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
+                    </td>
+                    <td class="p-2 border h-12 price-column">
+                        <textarea class="price-input item-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
+                    </td>
+                    <td class="p-2 border h-12 line-total-column">
+                        <textarea class="line-total-input item-line-total bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: right;" autocomplete="off" disabled></textarea>
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="w-full p-2 border rounded" maxlength="15" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" class="w-full p-2 border rounded" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" class="w-full p-2 border rounded" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" class="w-full p-2 border rounded" autocomplete="off" />
+                    </td>
+                    <td class="p-2 border text-center action-column">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Add Row button -->
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
+
+        <!-- Comments section -->
+        <div class="mt-4">
+            <label class="font-semibold">Comments</label>
+            <textarea id="comments" class="w-full p-2 border rounded-md" maxlength="254" autocomplete="off"></textarea>
+        </div>
+
+        <!-- Approval -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="preparedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="checkedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="approvedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="receivedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notes Section -->
+        <div id="notesSection" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Notes</h3>
+            <div id="notesContent" class="text-sm text-gray-700">
+                <p class="italic">Loading notes...</p>
+            </div>
+        </div>
+        <br>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="submitDocument(false)" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Save
+            </button>
+            <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Submit
+            </button>
+        </div>
+    </div>
+    
+    <script src="../js/addARInv.js"></script>
+    <script src="../js/auth.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

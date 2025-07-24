@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outgoing Payment Access Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .menu-item {
+            background: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Outgoing Payment Access Implementation Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="setAccess(true)">Grant Access</button>
+        <button onclick="setAccess(false)">Deny Access</button>
+        <button onclick="clearAccess()">Clear Access Setting</button>
+        <button onclick="checkCurrentState()">Check Current State</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Current State</h2>
+        <div id="currentState" class="info">
+            Click "Check Current State" to see the current access status
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Menu Visibility Test</h2>
+        <div id="outgoingPaymentMenu" class="menu-item">
+            <button onclick="toggleSubMenu('OutgoingPayment')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                <div class="flex items-center">
+                    <span class="menu-icon"><i class="fas fa-money-bill-wave" aria-hidden="true"></i></span>
+                    <span class="ml-3">Outgoing Payment</span>
+                </div>
+                <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+            </button>
+            <div id="OutgoingPayment" class="hidden pl-10 mt-1 mb-1">
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Add OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Checked OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Acknowledge OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Approval OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Receive OP Reimbursement</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Dashboard Card Test</h2>
+        <div class="stat-card" style="display: block;">
+            <div class="text-green-600 mb-2"><i class="text-2xl"></i></div>
+            <h3 class="text-lg font-semibold text-gray-800">Outgoing Payment</h3>
+            <p class="text-3xl font-bold text-green-600 mt-2">0</p>
+            <p class="text-gray-500 text-sm mt-1">Pending Approvals</p>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the checkOutgoingPaymentAccess function
+        function checkOutgoingPaymentAccess() {
+            const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
+            const outgoingPaymentCard = document.querySelector('.stat-card');
+            
+            if (outgoingPaymentMenu) {
+                const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+                
+                if (hasAccess === 'true') {
+                    // User has access, show the menu
+                    outgoingPaymentMenu.style.display = 'block';
+                } else {
+                    // User doesn't have access, hide the menu
+                    outgoingPaymentMenu.style.display = 'none';
+                }
+            }
+            
+            if (outgoingPaymentCard) {
+                const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+                
+                if (hasAccess === 'true') {
+                    // User has access, show the card
+                    outgoingPaymentCard.style.display = 'block';
+                } else {
+                    // User doesn't have access, hide the card
+                    outgoingPaymentCard.style.display = 'none';
+                }
+            }
+        }
+
+        // Function to simulate API call with user ID
+        async function simulateApiCall(userId) {
+            // Simulate API call to the correct endpoint
+            const apiUrl = `https://expressiv-be-sb.idsdev.site/api/employee-superior-document-approvals/employee/${userId}/document-type/OP`;
+            console.log('Simulating API call to:', apiUrl);
+            
+            // For testing purposes, we'll simulate different responses based on user ID
+            if (userId === 'df1d0bd0-fed5-4854-89c9-a70e5b1eb274') {
+                // This user has access
+                return {
+                    status: true,
+                    code: 200,
+                    message: "Operation successful",
+                    data: [
+                        {
+                            "id": 5406,
+                            "userID": "df1d0bd0-fed5-4854-89c9-a70e5b1eb274",
+                            "typeDocument": "OP",
+                            "typeTransaction": "ALL",
+                            "superiorUserId": "1b7137ab-e63c-4a21-8a6d-d0e2575b6254",
+                            "superiorLevel": "CH",
+                            "createdAt": "2025-07-19T22:11:55",
+                            "updatedAt": "2025-07-19T22:11:55",
+                            "userName": "annisakusumawardani",
+                            "superiorName": "ida"
+                        }
+                    ]
+                };
+            } else {
+                // This user doesn't have access
+                return {
+                    status: true,
+                    code: 200,
+                    message: "Operation successful",
+                    data: []
+                };
+            }
+        }
+
+        function setAccess(hasAccess) {
+            localStorage.setItem('hasOutgoingPaymentAccess', hasAccess.toString());
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        }
+
+        function clearAccess() {
+            localStorage.removeItem('hasOutgoingPaymentAccess');
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        }
+
+        function checkCurrentState() {
+            const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+            const stateDiv = document.getElementById('currentState');
+            
+            let status = 'Not set';
+            let className = 'info';
+            
+            if (hasAccess === 'true') {
+                status = 'Access Granted (Menu and Card should be visible)';
+                className = 'success';
+            } else if (hasAccess === 'false') {
+                status = 'Access Denied (Menu and Card should be hidden)';
+                className = 'error';
+            } else {
+                status = 'No access setting found (Menu and Card should be hidden)';
+                className = 'info';
+            }
+            
+            stateDiv.innerHTML = `
+                <div class="${className}">
+                    <strong>Status:</strong> ${status}<br>
+                    <strong>localStorage value:</strong> "${hasAccess}"<br>
+                    <strong>Menu visibility:</strong> ${document.getElementById('outgoingPaymentMenu').style.display === 'block' ? 'Visible' : 'Hidden'}<br>
+                    <strong>Card visibility:</strong> ${document.querySelector('.stat-card').style.display === 'block' ? 'Visible' : 'Hidden'}
+                </div>
+            `;
+        }
+
+        function toggleSubMenu(id) {
+            const submenu = document.getElementById(id);
+            if (submenu.classList.contains('hidden')) {
+                submenu.classList.remove('hidden');
+            } else {
+                submenu.classList.add('hidden');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        });
+    </script>
+</body>
+</html> 

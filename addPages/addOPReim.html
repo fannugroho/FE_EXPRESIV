@@ -26,10 +26,10 @@
          * - DocDueDate (Due Date) → Set to current date (not in API)
          * - TaxDate (Tax Date) → Set to current date (not in API)
          * - DocNum (DocNum) → referenceDoc
+
          * - Comments (Comments) → remarks
-         * - JrnlMemo (Journal Memo) → typeOfTransaction
+         * - JrnlMemo (Journal Memo) → jrnlMemo
          * - DocCurr (Document Currency) → currency
-         * - TypeOfTransaction (Type of Transaction) → typeOfTransaction
          * - TrsfrDate (Transfer Date) → Set to current date (not in API)
          * - TrsfrAcct (Account Bank Transfer) → Not available in new API
          * - TrsfrSum (Total Transfer) → totalAmount
@@ -109,10 +109,10 @@
                 <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Requester Payment</h3>
-                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded" autocomplete="off">
+                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded" autocomplete="off">
+                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
                 
                 <div style="display: none;">
                     <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
@@ -127,23 +127,42 @@
                 
 
                 
-                <h3 class="text-lg font-semibold mb-2">Attachment</h3>
-                <div class="flex items-center space-x-2">
-                    <input type="file" id="attachment" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" class="flex-1 p-2 border rounded" onchange="previewPDF(event)" autocomplete="off" multiple>
-                    <button type="button" onclick="clearAllFiles()" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
-                        Clear All
-                    </button>
-                </div>
-                <div id="fileList" class="mt-2"></div>
-                
-                <!-- Area untuk menampilkan attachment yang sudah ada -->
-                <div class="mt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-medium text-gray-700">Attachments from Reimbursement</span>
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                    
+                    <!-- File Upload Section -->
+                    <div class="mb-4 p-4 border rounded bg-blue-50">
+                        <h4 class="text-md font-medium mb-2 text-blue-800">Upload New Attachments</h4>
+                        <div class="flex items-center space-x-4">
+                            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                   onchange="previewPDF(event)">
+                            <button onclick="clearAllFiles()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                                Clear All
+                            </button>
+                        </div>
+                        
+                        <!-- New Files List -->
+                        <div id="newFilesList" class="mt-3 space-y-2">
+                            <!-- New files will be displayed here -->
+                        </div>
                     </div>
-                    <div id="existingAttachments" class="space-y-2">
-                        <!-- Attachment yang sudah ada akan ditampilkan di sini -->
-                        <div class="text-gray-500 text-sm text-center py-4">No attachments found</div>
+                    
+                    <!-- Existing Attachments Section -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachments</h4>
+                        <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Existing attachments will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Print Out Reimbursement Section -->
+                    <div class="mb-4" id="printOutReimbursementSection">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
+                        <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Print Receive Reimbursement document will be displayed here -->
+                        </div>
                     </div>
                 </div>
                 
@@ -154,16 +173,11 @@
                 <h3 class="text-lg font-semibold mb-2">DocNum</h3>
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
                 
-
-                
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
-                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off">
+                <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <input type="text" id="TypeOfTransaction" placeholder="Type of Transaction" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -249,7 +263,7 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" readonly></textarea>
             </div>
             <div class="mt-4">
                 <label>Journal Remarks</label>
@@ -315,25 +329,16 @@
                     <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
-            <div>
-                <!--closed by-->
-                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ClosedById')" autocomplete="off">
-                    <select id="Approval.ClosedById" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                </div>
-            </div>
         </div>
         <br>
 
         <!-- Submit button -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Submit
-            </button>
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Submit
+                </button>
+            </div>
         </div>
     </div>
 
@@ -652,13 +657,7 @@
                 }
             });
             
-            // Add event listener for Type of Transaction
-            const typeOfTransactionSelect = document.getElementById('TypeOfTransaction');
-            if (typeOfTransactionSelect) {
-                typeOfTransactionSelect.addEventListener('change', function() {
-                    toggleClosedByVisibility();
-                });
-            }
+
             
             toggleClosedByVisibility();
             
@@ -830,18 +829,7 @@
             }
         }
 
-        function toggleClosedByVisibility() {
-            const transactionType = document.getElementById('TypeOfTransaction')?.value;
-            const closedByContainer = document.getElementById('closed')?.parentElement;
-            
-            if (closedByContainer) {
-                if (transactionType === 'LOAN') {
-                    closedByContainer.style.display = 'block';
-                } else {
-                    closedByContainer.style.display = 'none';
-                }
-            }
-        }
+
 
         // Function to submit document - implementation moved to addOPReim.js
         // This function is now implemented in the JavaScript file for better organization

@@ -1,9 +1,17 @@
 /**
  * Navigation functions for the sidebar
+ * Enhanced version with better path calculation and glitch prevention
  */
 
-// Calculate relative path depth
+// Cache for base path to prevent recalculation
+let cachedBasePath = null;
+
+// Calculate relative path depth with caching
 function getBasePath() {
+    if (cachedBasePath !== null) {
+        return cachedBasePath;
+    }
+    
     const currentPath = window.location.pathname;
     const pathSegments = currentPath.split('/').filter(Boolean);
     
@@ -15,179 +23,176 @@ function getBasePath() {
         basePath = '../'.repeat(depth);
     }
     
+    cachedBasePath = basePath;
     return basePath;
+}
+
+// Enhanced navigation function with error handling
+function navigateToPage(path) {
+    try {
+        const basePath = getBasePath();
+        const fullPath = `${basePath}${path}`;
+        
+        // Add loading indicator
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.style.opacity = '0.7';
+        }
+        
+        // Navigate with a small delay to show loading state
+        setTimeout(() => {
+            window.location.href = fullPath;
+        }, 100);
+        
+    } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback to direct navigation
+        window.location.href = path;
+    }
+}
+
+// Make navigateToPage available globally
+if (typeof window !== 'undefined') {
+    window.navigateToPage = navigateToPage;
 }
 
 // Main Dashboard
 function goToMenu() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/dashboard.html`;
+    navigateToPage('pages/dashboard.html');
 }
 
 // Purchase Request Navigation
 function goToMenuPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/menuPR.html`;
+    navigateToPage('pages/menuPR.html');
 }
 
 function goToMenuCheckPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html`;
+    navigateToPage('approvalPages/dashboard/dashboardCheck/purchaseRequest/menuPRCheck.html');
 }
 
 function goToMenuAcknowPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html`;
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/purchaseRequest/menuPRAcknow.html');
 }
 
 function goToMenuApprovPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html`;
+    navigateToPage('approvalPages/dashboard/dashboardApprove/purchaseRequest/menuPRApprove.html');
 }
 
 function goToMenuReceivePR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/purchaseRequest/menuPRReceive.html`;
+    navigateToPage('approvalPages/dashboard/dashboardReceive/purchaseRequest/menuPRReceive.html');
 }
 
 function goToMenuRevisionPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html`;
+    navigateToPage('approvalPages/dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html');
 }
 
 // Reimbursement Navigation
 function goToAddReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}addPages/addReim.html`;
+    navigateToPage('addPages/addReim.html');
 }
 
 function goToMenuReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/menuReim.html`;
+    navigateToPage('pages/menuReim.html');
 }
 
 function goToMenuCheckReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/reimbursement/menuReimCheck.html`;
+    navigateToPage('approvalPages/dashboard/dashboardCheck/reimbursement/menuReimCheck.html');
 }
 
 function goToMenuAcknowReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/reimbursement/menuReimAcknow.html`;
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/reimbursement/menuReimAcknow.html');
 }
 
 function goToMenuApprovReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/reimbursement/menuReimApprove.html`;
+    navigateToPage('approvalPages/dashboard/dashboardApprove/reimbursement/menuReimApprove.html');
 }
 
 function goToMenuReceiveReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/reimbursement/menuReimReceive.html`;
+    navigateToPage('approvalPages/dashboard/dashboardReceive/reimbursement/menuReimReceive.html');
 }
 
 function goToMenuRevisionReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html`;
+    navigateToPage('approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html');
 }
 
 // Outgoing Payment Reimbursement Navigation
 function goToMenuOPReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/menuOPReim.html`;
+    navigateToPage('pages/menuOPReim.html');
 }
 
 function goToMenuCheckOPReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html`;
+    navigateToPage('approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html');
 }
 
 function goToMenuAcknowOPReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknow.html`;
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknow.html');
 }
 
 function goToMenuApprovOPReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html`;
+    navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
 }
 
 function goToMenuReceiveOPReim() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html`;
+    navigateToPage('approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html');
 }
 
 // Cash Advance Navigation
 function goToMenuCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/menuCash.html`;
+    navigateToPage('pages/menuCash.html');
 }
 
 function goToMenuCheckCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/cashAdvance/menuCashCheck.html`;
+    navigateToPage('approvalPages/dashboard/dashboardCheck/cashAdvance/menuCashCheck.html');
 }
 
 function goToMenuAcknowCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html`;
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html');
 }
 
 function goToMenuApprovCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/cashAdvance/menuCashApprove.html`;
+    navigateToPage('approvalPages/dashboard/dashboardApprove/cashAdvance/menuCashApprove.html');
 }
 
 function goToMenuReceiveCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/cashAdvance/menuCashReceive.html`;
+    navigateToPage('approvalPages/dashboard/dashboardReceive/cashAdvance/menuCashReceive.html');
 }
 
 function goToMenuRevisionCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/cashAdvance/menuCashRevision.html`;
+    navigateToPage('approvalPages/dashboard/dashboardRevision/cashAdvance/menuCashRevision.html');
 }
 
 function goToMenuCloseCash() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardClose/cashAdvance/menuCloser.html`;
+    navigateToPage('approvalPages/dashboard/dashboardClose/cashAdvance/menuCloser.html');
 }
 
 // Settlement Navigation
 function goToMenuSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/menuSettle.html`;
+    navigateToPage('pages/menuSettle.html');
 }
 
 function goToMenuCheckSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardCheck/settlement/menuSettleCheck.html`;
+    navigateToPage('approvalPages/dashboard/dashboardCheck/settlement/menuSettleCheck.html');
 }
 
 function goToMenuAcknowSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardAcknowledge/settlement/menuSettleAcknow.html`;
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/settlement/menuSettleAcknow.html');
 }
 
 function goToMenuApprovSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardApprove/settlement/menuSettleApprove.html`;
+    navigateToPage('approvalPages/dashboard/dashboardApprove/settlement/menuSettleApprove.html');
 }
 
 function goToMenuReceiveSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardReceive/settlement/menuSettleReceive.html`;
+    navigateToPage('approvalPages/dashboard/dashboardReceive/settlement/menuSettleReceive.html');
 }
 
 function goToMenuRevisionSettle() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}approvalPages/dashboard/dashboardRevision/settlement/menuSettleRevision.html`;
+    navigateToPage('approvalPages/dashboard/dashboardRevision/settlement/menuSettleRevision.html');
 }
 
 // Decision Report Navigation
 function goToMenuAPR() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html`;
+    navigateToPage('decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html');
 }
 
 function goToMenuPO() {
@@ -207,24 +212,20 @@ function goToMenuInvoice() {
 
 // Admin Navigation
 function goToMenuRegist() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/register.html`;
+    navigateToPage('pages/register.html');
 }
 
 function goToMenuUser() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/dashboard-users.html`;
+    navigateToPage('pages/dashboard-users.html');
 }
 
 function goToMenuRole() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/dashboard-roles.html`;
+    navigateToPage('pages/dashboard-roles.html');
 }
 
 // Profile and Logout
 function goToProfile() {
-    const basePath = getBasePath();
-    window.location.href = `${basePath}pages/profil.html`;
+    navigateToPage('pages/profil.html');
 }
 
 function logout() {
@@ -235,7 +236,63 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
+    
+    // Clear cached base path
+    cachedBasePath = null;
+    
     // Redirect to login page
     const basePath = getBasePath();
     window.location.href = `${basePath}pages/login.html`;
+}
+
+// Reset cache when page loads (for development)
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        cachedBasePath = null;
+    });
+    
+    // Make all navigation functions available globally
+    window.navigateToPage = navigateToPage;
+    window.goToMenu = goToMenu;
+    window.goToMenuPR = goToMenuPR;
+    window.goToMenuCheckPR = goToMenuCheckPR;
+    window.goToMenuAcknowPR = goToMenuAcknowPR;
+    window.goToMenuApprovPR = goToMenuApprovPR;
+    window.goToMenuReceivePR = goToMenuReceivePR;
+    window.goToMenuRevisionPR = goToMenuRevisionPR;
+    window.goToAddReim = goToAddReim;
+    window.goToMenuReim = goToMenuReim;
+    window.goToMenuCheckReim = goToMenuCheckReim;
+    window.goToMenuAcknowReim = goToMenuAcknowReim;
+    window.goToMenuApprovReim = goToMenuApprovReim;
+    window.goToMenuReceiveReim = goToMenuReceiveReim;
+    window.goToMenuRevisionReim = goToMenuRevisionReim;
+    window.goToMenuOPReim = goToMenuOPReim;
+    window.goToMenuCheckOPReim = goToMenuCheckOPReim;
+    window.goToMenuAcknowOPReim = goToMenuAcknowOPReim;
+    window.goToMenuApprovOPReim = goToMenuApprovOPReim;
+    window.goToMenuReceiveOPReim = goToMenuReceiveOPReim;
+    window.goToMenuCash = goToMenuCash;
+    window.goToMenuCheckCash = goToMenuCheckCash;
+    window.goToMenuAcknowCash = goToMenuAcknowCash;
+    window.goToMenuApprovCash = goToMenuApprovCash;
+    window.goToMenuReceiveCash = goToMenuReceiveCash;
+    window.goToMenuRevisionCash = goToMenuRevisionCash;
+    window.goToMenuCloseCash = goToMenuCloseCash;
+    window.goToMenuSettle = goToMenuSettle;
+    window.goToMenuCheckSettle = goToMenuCheckSettle;
+    window.goToMenuAcknowSettle = goToMenuAcknowSettle;
+    window.goToMenuApprovSettle = goToMenuApprovSettle;
+    window.goToMenuReceiveSettle = goToMenuReceiveSettle;
+    window.goToMenuRevisionSettle = goToMenuRevisionSettle;
+    window.goToMenuAPR = goToMenuAPR;
+    window.goToMenuPO = goToMenuPO;
+    window.goToMenuBanking = goToMenuBanking;
+    window.goToMenuInvoice = goToMenuInvoice;
+    window.goToMenuRegist = goToMenuRegist;
+    window.goToMenuUser = goToMenuUser;
+    window.goToMenuRole = goToMenuRole;
+    window.goToProfile = goToProfile;
+    window.logout = logout;
 } 

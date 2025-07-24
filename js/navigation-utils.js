@@ -178,6 +178,7 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
     
     // Navigate to login
     const basePath = getRelativePathToRoot();

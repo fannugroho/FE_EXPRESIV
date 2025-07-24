@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Outgoing Payment Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        #outgoingPaymentMenu {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Outgoing Payment Access Implementation</h1>
+    
+    <div class="test-section info">
+        <h2>Implementation Details</h2>
+        <ul>
+            <li>• API Endpoint: <code>GET /api/employee-superior-document-approvals/user/{userId}/document-type/OP</code></li>
+            <li>• Function: <code>checkOutgoingPaymentAccess()</code></li>
+            <li>• Menu element ID: <code>outgoingPaymentMenu</code></li>
+            <li>• localStorage key: <code>hasOutgoingPaymentAccess</code></li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button class="btn-primary" onclick="testWithAccess()">Test with Access (true)</button>
+        <button class="btn-danger" onclick="testWithoutAccess()">Test without Access (false)</button>
+        <button class="btn-success" onclick="clearAccess()">Clear Access</button>
+        <button onclick="checkCurrentState()">Check Current State</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Current State</h2>
+        <div id="currentState">Loading...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Menu Visibility Test</h2>
+        <div id="outgoingPaymentMenu" style="display: none;">
+            <button onclick="toggleSubMenu('OutgoingPayment')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+                <div class="flex items-center">
+                    <span class="menu-icon"><i class="fas fa-money-bill-wave" aria-hidden="true"></i></span>
+                    <span class="ml-3">Outgoing Payment</span>
+                </div>
+                <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+            </button>
+            <div id="OutgoingPayment" class="hidden pl-10 mt-1 mb-1">
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Add OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Checked OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Acknowledge OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Approval OP Reimbursement</button>
+                <button class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm">Receive OP Reimbursement</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the checkOutgoingPaymentAccess function
+        function checkOutgoingPaymentAccess() {
+            const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
+            
+            if (outgoingPaymentMenu) {
+                const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+                
+                if (hasAccess === 'true') {
+                    // User has access, show the menu
+                    outgoingPaymentMenu.style.display = 'block';
+                } else {
+                    // User doesn't have access, hide the menu
+                    outgoingPaymentMenu.style.display = 'none';
+                }
+            }
+        }
+
+        function testWithAccess() {
+            localStorage.setItem('hasOutgoingPaymentAccess', 'true');
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        }
+
+        function testWithoutAccess() {
+            localStorage.setItem('hasOutgoingPaymentAccess', 'false');
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        }
+
+        function clearAccess() {
+            localStorage.removeItem('hasOutgoingPaymentAccess');
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        }
+
+        function checkCurrentState() {
+            const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+            const stateDiv = document.getElementById('currentState');
+            
+            let status = 'Not set';
+            let className = 'info';
+            
+            if (hasAccess === 'true') {
+                status = 'Access Granted (Menu should be visible)';
+                className = 'success';
+            } else if (hasAccess === 'false') {
+                status = 'Access Denied (Menu should be hidden)';
+                className = 'error';
+            } else {
+                status = 'No access setting found (Menu should be hidden)';
+                className = 'info';
+            }
+            
+            stateDiv.innerHTML = `
+                <div class="${className}">
+                    <strong>Status:</strong> ${status}<br>
+                    <strong>localStorage value:</strong> "${hasAccess}"<br>
+                    <strong>Menu visibility:</strong> ${document.getElementById('outgoingPaymentMenu').style.display === 'block' ? 'Visible' : 'Hidden'}
+                </div>
+            `;
+        }
+
+        function toggleSubMenu(id) {
+            const submenu = document.getElementById(id);
+            if (submenu.classList.contains('hidden')) {
+                submenu.classList.remove('hidden');
+            } else {
+                submenu.classList.add('hidden');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkOutgoingPaymentAccess();
+            checkCurrentState();
+        });
+    </script>
+</body>
+</html> 

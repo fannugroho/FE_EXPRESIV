@@ -22,11 +22,13 @@ const Dashboard = () => {
     receivedDocs: 0,
     rejectDocs: 0
   });
+  const [hasOutgoingPaymentAccess, setHasOutgoingPaymentAccess] = useState(false);
 
   useEffect(() => {
     loadUserGreeting();
     loadDashboardAvatar();
     loadDashboard();
+    checkOutgoingPaymentAccess();
 
     // Close notification dropdown when clicking outside
     const handleClickOutside = (e) => {
@@ -85,6 +87,11 @@ const Dashboard = () => {
       receivedDocs: documents.filter(doc => doc.docStatus === "Received").length,
       rejectDocs: documents.filter(doc => doc.docStatus === "Rejected").length
     });
+  };
+
+  const checkOutgoingPaymentAccess = () => {
+    const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+    setHasOutgoingPaymentAccess(hasAccess === 'true');
   };
 
   const toggleSidebar = () => {
@@ -437,12 +444,14 @@ const Dashboard = () => {
                 <p id="approvedDocs" className="text-3xl font-bold text-green-600 mt-2">{stats.approvedDocs}</p>
                 <p className="text-gray-500 text-sm mt-1">Pending Approvals</p>
               </div>
-              <div className="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
-                <div className="text-green-600 mb-2"><i className="text-2xl"></i></div>
-                <h3 className="text-lg font-semibold text-gray-800">Outgoing Payment</h3>
-                <p id="receivedDocs" className="text-3xl font-bold text-green-600 mt-2">{stats.receivedDocs}</p>
-                <p className="text-gray-500 text-sm mt-1">Pending Approvals</p>
-              </div>
+              {hasOutgoingPaymentAccess && (
+                <div className="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                  <div className="text-green-600 mb-2"><i className="text-2xl"></i></div>
+                  <h3 className="text-lg font-semibold text-gray-800">Outgoing Payment</h3>
+                  <p id="receivedDocs" className="text-3xl font-bold text-green-600 mt-2">{stats.receivedDocs}</p>
+                  <p className="text-gray-500 text-sm mt-1">Pending Approvals</p>
+                </div>
+              )}
               <div className="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
                 <div className="text-green-600 mb-2"><i className="text-2xl"></i></div>
                 <h3 className="text-lg font-semibold text-gray-800">AR Invoice</h3>

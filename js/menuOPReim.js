@@ -39,6 +39,12 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
         // Debug: Log first document structure if available
         if (result.data && result.data.length > 0) {
             console.log('First document structure:', result.data[0]);
+            console.log('First document status fields:', {
+                approval: result.data[0].approval,
+                status: result.data[0].status,
+                type: result.data[0].type,
+                doctype: result.data[0].doctype
+            });
         }
 
         // Handle different response structures
@@ -60,8 +66,8 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 // Function to fetch all documents for "All Documents" tab
 async function fetchAllDocuments(userId) {
     try {
-        // For "All Documents" tab, we want only documents currently waiting at the prepared step (active work)
-        return await fetchOutgoingPaymentDocuments('preparedBy', userId, true);
+        // For "All Documents" tab, we want all documents regardless of status
+        return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
     } catch (error) {
         console.error('Error fetching all documents:', error);
         return [];
@@ -70,8 +76,31 @@ async function fetchAllDocuments(userId) {
 
 // Function to fetch prepared documents for "Prepared" tab
 async function fetchPreparedDocuments(userId) {
-    // For "Prepared" tab, we want all documents the user has prepared (historical view)
-    return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+    try {
+        // For "Prepared" tab, we want only documents with status "Prepared"
+        const allDocuments = await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+        console.log(`Total documents fetched: ${allDocuments.length}`);
+        
+        const preparedDocuments = allDocuments.filter(doc => {
+            // Check various possible status fields
+            const status = doc.approval?.approvalStatus || doc.status || doc.type || doc.doctype || '';
+            const isPrepared = status.toLowerCase() === 'prepared';
+            
+            // Debug logging for first few documents
+            if (allDocuments.indexOf(doc) < 3) {
+                console.log(`Document ${doc.stagingID || doc.id}: status="${status}", isPrepared=${isPrepared}`);
+                console.log('Document structure:', doc);
+            }
+            
+            return isPrepared;
+        });
+        
+        console.log(`Filtered to prepared documents: ${preparedDocuments.length}`);
+        return preparedDocuments;
+    } catch (error) {
+        console.error('Error fetching prepared documents:', error);
+        return [];
+    }
 }
 
 // Fungsi untuk menampilkan modal reimbursement
@@ -411,12 +440,21 @@ function getUserNameById(userId) {
 
 // Function untuk menampilkan dokumen dengan pagination
 function displayDocuments(documents) {
+    console.log(`Displaying ${documents.length} documents, page ${currentPage}, items per page: ${itemsPerPage}`);
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
     const paginatedDocuments = documents.slice(startIndex, endIndex);
     
+    console.log(`Showing documents ${startIndex + 1} to ${endIndex} of ${documents.length}`);
+    
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
+    
+    if (paginatedDocuments.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-gray-500">No documents found for the selected tab.</td></tr>`;
+        return;
+    }
     
     paginatedDocuments.forEach((doc, index) => {
         // Fungsi untuk menerapkan kelas scrollable jika teks melebihi 10 karakter
@@ -430,8 +468,20 @@ function displayDocuments(documents) {
         // Get document status from approval object if available
         const status = getStatusDisplay(doc);
         
+        // Apply status styling
+        let statusClass = "bg-gray-100 text-gray-800"; // Default
+        if (status === 'Prepared') {
+            statusClass = "bg-yellow-100 text-yellow-800";
+        } else if (status === 'Checked' || status === 'Acknowledged' || status === 'Approved' || status === 'Received' || status === 'Paid' || status === 'Settled') {
+            statusClass = "bg-green-100 text-green-800";
+        } else if (status === 'Rejected') {
+            statusClass = "bg-red-100 text-red-800";
+        }
+        
+        const statusDisplay = `<span class="px-2 py-1 ${statusClass} rounded-full text-xs">${status}</span>`;
+        
         // Memformat data dengan kelas scrollable jika perlu
-        const reimburseNo = applyScrollClass(doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
+        const reimburseNo = applyScrollClass(doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo);
         const requester = applyScrollClass(doc.requesterName || '-');
         const requesterName = applyScrollClass(doc.receivedByName || doc.receivedBy || '-');
         // Pay To - Map user ID to user name
@@ -479,7 +529,7 @@ function displayDocuments(documents) {
             <td class='p-2'>${docDate}</td>
             <td class='p-2'>${dueDate}</td>
             <td class='p-2'>${totalAmount}</td>
-            <td class='p-2'>${status}</td>
+            <td class='p-2'>${statusDisplay}</td>
             <td class='p-2'>
                 <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -522,59 +572,61 @@ function changePage(direction) {
 
 // Fungsi navigasi ke halaman status tertentu
 function goToCheckedDocs() {
-    currentTab = 'checked';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Checked') || 
-        doc.status === 'Checked'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the checked documents page
+    debugNavigation('goToCheckedDocs', 'approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardCheck/OPReim/menuOPReimCheck.html';
+    }
 }
 
 function goToApprovedDocs() {
-    currentTab = 'approved';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Approved') || 
-        doc.status === 'Approved'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the approved documents page
+    debugNavigation('goToApprovedDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToRejectDocs() {
-    currentTab = 'rejected';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Rejected') || 
-        doc.status === 'Rejected'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the rejected documents page (same as approved but filtered)
+    debugNavigation('goToRejectDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToPaidDocs() {
-    currentTab = 'paid';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Paid') || 
-        doc.status === 'Paid'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the paid documents page (same as approved but filtered)
+    debugNavigation('goToPaidDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 function goToSettledDocs() {
-    currentTab = 'settled';
-    currentPage = 1;
-    filteredDocuments = (allDocuments || []).filter(doc => 
-        (doc.approval && doc.approval.approvalStatus === 'Settled') || 
-        doc.status === 'Settled'
-    );
-    displayDocuments(filteredDocuments);
+    // Navigate to the settled documents page (same as approved but filtered)
+    debugNavigation('goToSettledDocs', 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html');
+    } else {
+        window.location.href = 'approvalPages/dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+    }
 }
 
 // Function untuk switch tab
 async function switchTab(tab) {
     currentTab = tab;
     currentPage = 1;
+    
+    console.log(`Switching to tab: ${tab}`);
     
     // Update tab button styling
     document.getElementById('allTabBtn').classList.remove('tab-active');
@@ -591,12 +643,14 @@ async function switchTab(tab) {
         
         if (tab === 'all') {
             document.getElementById('allTabBtn').classList.add('tab-active');
-            // Fetch only documents currently waiting at the prepared step (active work)
+            console.log('Fetching all documents...');
             documents = await fetchAllDocuments(userId);
+            console.log(`All documents fetched: ${documents.length} documents`);
         } else if (tab === 'prepared') {
             document.getElementById('preparedTabBtn').classList.add('tab-active');
-            // Fetch all documents the user has prepared (historical view)
+            console.log('Fetching prepared documents...');
             documents = await fetchPreparedDocuments(userId);
+            console.log(`Prepared documents fetched: ${documents.length} documents`);
         }
         
         // Update the filtered documents
@@ -607,10 +661,13 @@ async function switchTab(tab) {
         const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
         const searchType = document.getElementById('searchType')?.value || 'all';
         
+        console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
+        console.log(`Documents before search filter: ${filteredDocuments.length}`);
+        
         if (searchTerm) {
             filteredDocuments = filteredDocuments.filter(doc => {
                 if (searchType === 'reimNo') {
-                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) || 
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) || 
                            (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
                            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm));
@@ -645,14 +702,14 @@ async function switchTab(tab) {
                     
                     return totalAmountString.includes(searchTerm.toLowerCase());
                 } else if (searchType === 'status') {
-                    const status = doc.approval ? doc.approval.approvalStatus : (doc.status || doc.type || '');
+                    const status = getStatusDisplay(doc);
                     return status.toLowerCase().includes(searchTerm);
                 } else {
                     // Default search across multiple fields
                     const payToId = doc.payTo;
                     const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
                     
-                    return (doc.expressivNo && doc.expressivNo.toLowerCase().includes(searchTerm)) ||
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) ||
                            (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
                            (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
                            (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm)) ||
@@ -668,6 +725,7 @@ async function switchTab(tab) {
             });
         }
         
+        console.log(`Documents after search filter: ${filteredDocuments.length}`);
         displayDocuments(filteredDocuments);
         
     } catch (error) {
@@ -690,10 +748,16 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// Helper function to determine status display for rejected documents
+// Helper function to determine status display for documents
 function getStatusDisplay(doc) {
+    // If no approval object, check various status fields
     if (!doc.approval) {
-        return doc.status || doc.type || 'Draft';
+        const status = doc.status || doc.type || doc.doctype || 'Draft';
+        // Map "Draft" status to "Prepared" for display consistency
+        if (status.toLowerCase() === 'draft') {
+            return 'Prepared';
+        }
+        return status;
     }
     
     // Check if document is rejected
@@ -702,7 +766,14 @@ function getStatusDisplay(doc) {
     }
     
     // Return normal approval status
-    return doc.approval.approvalStatus || doc.status || doc.type || 'Draft';
+    const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+    
+    // Map "Draft" status to "Prepared" for display consistency
+    if (status.toLowerCase() === 'draft') {
+        return 'Prepared';
+    }
+    
+    return status;
 }
 
 // Fungsi untuk mendapatkan ID pengguna yang login - using auth.js approach
@@ -783,7 +854,7 @@ function downloadExcel() {
     
     // Convert data to worksheet format
     const wsData = [
-        ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
+        ["No.", "Voucher No.", "Requester", "Requester Name", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
     ];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -805,14 +876,14 @@ function downloadExcel() {
         
         wsData.push([
             index + 1,
-            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
             doc.receivedByName || doc.receivedBy || '-',
             payToName,
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
             doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
-            doc.status || '-'
+            getStatusDisplay(doc)
         ]);
     });
     
@@ -852,7 +923,7 @@ function downloadPDF() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Prepare table data
-    const tableColumn = ["No.", "Reimburse No", "Requester", "Requester Name", "Pay To", "Document Date", "Document Date", "Total Amount", "Status"];
+    const tableColumn = ["No.", "Voucher No.", "Requester", "Requester Name", "Pay To", "Document Date", "Document Date", "Total Amount", "Status"];
     const tableRows = [];
     
     window.filteredDocuments.forEach((doc, index) => {
@@ -874,14 +945,14 @@ function downloadPDF() {
         
         const rowData = [
             index + 1,
-            doc.expressivNo || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
             doc.requesterName || '-',
             doc.receivedByName || doc.receivedBy || '-',
             payToName,
             doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
             doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
             calculatedTotalAmount.toLocaleString(),
-            doc.status || '-'
+            getStatusDisplay(doc)
         ];
         tableRows.push(rowData);
     });
@@ -913,49 +984,131 @@ function downloadPDF() {
     doc.save(fileName);
 }
 
+// Add debugging for navigation functions
+function debugNavigation(functionName, path) {
+    console.log(`Navigation called: ${functionName} -> ${path}`);
+    console.log('navigateToPage available:', typeof navigateToPage === 'function');
+    console.log('Current location:', window.location.href);
+}
+
 function goToMenu() { 
-    window.location.href = "pages/dashboard.html"; 
+    debugNavigation('goToMenu', 'pages/dashboard.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/dashboard.html');
+    } else {
+        window.location.href = 'pages/dashboard.html';
+    }
 }
+
 function goToAddDoc() {
-    window.location.href = "addPages/addReim.html"; 
+    debugNavigation('goToAddDoc', 'addPages/addReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addReim.html');
+    } else {
+        window.location.href = 'addPages/addReim.html';
+    }
 }
+
 function goToAddReim() {
-    window.location.href = "addPages/addReim.html"; 
+    debugNavigation('goToAddReim', 'addPages/addReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addReim.html');
+    } else {
+        window.location.href = 'addPages/addReim.html';
+    }
 }
 
 function goToAddSettle() {
-    window.location.href = "addPages/addSettle.html"; 
+    debugNavigation('goToAddSettle', 'addPages/addSettle.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('addPages/addSettle.html');
+    } else {
+        window.location.href = 'addPages/addSettle.html';
+    }
 }
+
 function goToAddPO() {
-    window.location.href = "addPages/addPO.html"; 
+    // PO page doesn't exist yet, redirect to a placeholder or main menu
+    alert('PO page is not yet implemented');
 }
+
 function goToMenuPR() { 
-    window.location.href = "pages/menuPR.html"; 
+    debugNavigation('goToMenuPR', 'pages/menuPR.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuPR.html');
+    } else {
+        window.location.href = 'pages/menuPR.html';
+    }
 }
+
 function goToMenuReim() { 
-    window.location.href = "pages/menuReim.html"; 
+    debugNavigation('goToMenuReim', 'pages/menuReim.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuReim.html');
+    } else {
+        window.location.href = 'pages/menuReim.html';
+    }
 }
+
 function goToMenuCash() { 
-    window.location.href = "pages/menuCash.html"; 
+    debugNavigation('goToMenuCash', 'pages/menuCash.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuCash.html');
+    } else {
+        window.location.href = 'pages/menuCash.html';
+    }
 }
+
 function goToMenuSettle() { 
-    window.location.href = "pages/menuSettle.html"; 
+    debugNavigation('goToMenuSettle', 'pages/menuSettle.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/menuSettle.html');
+    } else {
+        window.location.href = 'pages/menuSettle.html';
+    }
 }
+
 function goToApprovalReport() { 
-    window.location.href = "pages/approval-dashboard.html"; 
+    debugNavigation('goToApprovalReport', 'pages/approval-dashboard.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/approval-dashboard.html');
+    } else {
+        window.location.href = 'pages/approval-dashboard.html';
+    }
 }
+
 function goToMenuPO() { 
-    window.location.href = "pages/menuPO.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('PO Approval page is not yet implemented');
 }
+
 function goToMenuInvoice() { 
-    window.location.href = "pages/menuInvoice.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('AR Invoice Approval page is not yet implemented');
 }
+
 function goToMenuBanking() { 
-    window.location.href = "pages/menuBanking.html"; 
+    // Placeholder - Update with correct path when implemented
+    alert('Outgoing Approval page is not yet implemented');
 }
+
 function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "pages/login.html"; 
+    // Clear any authentication tokens or session data
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserCode");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRoles");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
+    
+    // Redirect to login page
+    debugNavigation('logout', 'pages/login.html');
+    if (typeof navigateToPage === 'function') {
+        navigateToPage('pages/login.html');
+    } else {
+        window.location.href = 'pages/login.html';
+    }
 }
 
 // Function to handle search input
@@ -967,7 +1120,12 @@ function handleSearch() {
 
 function detailDoc(opId) {
     // Navigate to outgoing payment reimbursement detail page
-    window.location.href = `../detailPages/detailOPReim.html?id=${opId}`;
+    debugNavigation('detailDoc', `detailPages/detailOPReim.html?id=${opId}`);
+    if (typeof navigateToPage === 'function') {
+        navigateToPage(`detailPages/detailOPReim.html?id=${opId}`);
+    } else {
+        window.location.href = `detailPages/detailOPReim.html?id=${opId}`;
+    }
 }
 
 // Load dashboard using the same approach as Purchase Request
@@ -1009,3 +1167,61 @@ window.onload = function() {
         });
     }
 };
+
+function formatCurrency(number) {
+    // Handle empty or invalid input
+    if (number === null || number === undefined || number === '') {
+        return '0';
+    }
+    
+    // Parse the number
+    const num = parseFloat(number);
+    if (isNaN(num)) {
+        return '0';
+    }
+    
+    // Get the string representation to check if it has decimal places
+    const numStr = num.toString();
+    const hasDecimal = numStr.includes('.');
+    
+    try {
+        // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+        if (hasDecimal) {
+            const decimalPlaces = numStr.split('.')[1].length;
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        } else {
+            return num.toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+    } catch (e) {
+        // Fallback for very large numbers
+        console.error('Error formatting number:', e);
+        
+        let strNum = num.toString();
+        let sign = '';
+        
+        if (strNum.startsWith('-')) {
+            sign = '-';
+            strNum = strNum.substring(1);
+        }
+        
+        const parts = strNum.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+        
+        let formattedInteger = '';
+        for (let i = 0; i < integerPart.length; i++) {
+            if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                formattedInteger += '.';
+            }
+            formattedInteger += integerPart.charAt(i);
+        }
+        
+        return sign + formattedInteger + decimalPart;
+    }
+}

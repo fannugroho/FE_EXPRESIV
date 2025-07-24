@@ -60,6 +60,7 @@ function isFirstLogin() {
     localStorage.removeItem("userRoles");
     localStorage.removeItem("userPermissions");
     localStorage.removeItem("initialPasswordHash");
+    localStorage.removeItem("hasOutgoingPaymentAccess");
     userPermissions = [];
     
     // Redirect to login page with correct relative path

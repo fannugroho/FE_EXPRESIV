@@ -27,6 +27,10 @@ function initializeSidebar() {
             el.classList.remove('mx-auto');
         });
     }
+    
+    // Check and show/hide Outgoing Payment menu based on user access
+    console.log('Calling checkOutgoingPaymentAccess from initializeSidebar');
+    checkOutgoingPaymentAccess();
 }
 
 // Toggle sidebar collapse/expand - modified to always keep sidebar open
@@ -154,8 +158,37 @@ function setGreeting() {
     }
 }
 
+// Function to check and show/hide Outgoing Payment menu based on user access
+function checkOutgoingPaymentAccess() {
+    console.log('=== Shared Menu checkOutgoingPaymentAccess Start ===');
+    
+    const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
+    console.log('Outgoing Payment Menu Element:', outgoingPaymentMenu);
+    
+    if (outgoingPaymentMenu) {
+        const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+        console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
+        
+        if (hasAccess === 'true') {
+            // User has access, show the menu
+            outgoingPaymentMenu.style.display = 'block';
+            console.log('Showing Outgoing Payment menu');
+        } else {
+            // User doesn't have access, hide the menu
+            outgoingPaymentMenu.style.display = 'none';
+            console.log('Hiding Outgoing Payment menu');
+        }
+    } else {
+        console.log('Outgoing Payment menu element not found');
+    }
+    
+    console.log('=== Shared Menu checkOutgoingPaymentAccess End ===');
+}
+
 // Initialize common UI elements
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Shared Menu DOMContentLoaded Start ===');
+    
     // Initialize sidebar first
     initializeSidebar();
     
@@ -171,4 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleNotifications();
         });
     }
+    
+    console.log('=== Shared Menu DOMContentLoaded End ===');
 }); 
