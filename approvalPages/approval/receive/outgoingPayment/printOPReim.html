@@ -8,9 +8,114 @@
     <script src="../../../../js/auth.js"></script>
     <style>
         @media print {
-            body { margin: 0; }
+            body { 
+                margin: 0; 
+                font-size: 9px;
+            }
             .no-print { display: none !important; }
             .print-page { page-break-after: always; }
+            
+            /* Prevent page breaks for single page documents */
+            .voucher-container {
+                page-break-inside: avoid;
+                max-height: 100vh;
+                padding: 5px !important;
+            }
+            
+            /* Reduce margins and spacing for print */
+            .header {
+                margin-bottom: 5px !important;
+            }
+            
+            .company-name {
+                font-size: 14px !important;
+                margin-bottom: 2px !important;
+            }
+            
+            .company-address {
+                font-size: 9px !important;
+                line-height: 1.2 !important;
+            }
+            
+            .payment-to {
+                font-size: 10px !important;
+                margin-top: 5px !important;
+            }
+            
+            .voucher-details {
+                font-size: 9px !important;
+            }
+            
+            .voucher-title {
+                margin: 5px 0 !important;
+                font-size: 16px !important;
+            }
+            
+            .document-info {
+                margin-bottom: 5px !important;
+                padding: 4px !important;
+            }
+            
+            .document-info h3 {
+                font-size: 11px !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 2px !important;
+            }
+            
+            .document-info .info-item {
+                padding: 2px 0 !important;
+            }
+            
+            .document-info strong {
+                font-size: 9px !important;
+                min-width: 100px !important;
+            }
+            
+            .document-info span {
+                font-size: 9px !important;
+            }
+            
+            .approval-boxes {
+                margin-bottom: 5px !important;
+                gap: 5px !important;
+            }
+            
+            .approval-box {
+                padding: 3px !important;
+                min-height: 30px !important;
+            }
+            
+            .approval-title {
+                font-size: 9px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .approval-stamp {
+                height: 18px !important;
+                margin-bottom: 3px !important;
+            }
+            
+            .approval-stamp-text {
+                font-size: 8px !important;
+                padding: 1px 4px !important;
+            }
+            
+            .amount-section {
+                margin-bottom: 5px !important;
+            }
+            
+            .amount-row {
+                margin-bottom: 5px !important;
+            }
+            
+            .amount-value {
+                font-size: 12px !important;
+            }
+            
+            .footer-note {
+                margin-top: 5px !important;
+                font-size: 8px !important;
+            }
         }
         
         body {
@@ -20,17 +125,33 @@
         }
         
         .voucher-container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         
+        @media print {
+            .voucher-container {
+                padding: 5px !important;
+                box-shadow: none !important;
+                page-break-inside: avoid !important;
+                max-height: 100vh !important;
+                overflow: hidden !important;
+            }
+        }
+        
         .header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
+        }
+        
+        @media print {
+            .header {
+                margin-bottom: 10px;
+            }
         }
         
         .company-info {
@@ -67,10 +188,42 @@
             text-transform: uppercase;
         }
         
+        @media print {
+            .voucher-title {
+                margin: 10px 0;
+                font-size: 20px;
+            }
+        }
+        
         .payment-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+        }
+        
+        @media print {
+            .payment-table {
+                margin-bottom: 8px !important;
+                font-size: 8px !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .payment-table th,
+            .payment-table td {
+                padding: 2px !important;
+                font-size: 8px !important;
+            }
+            
+            /* Ensure all text elements are smaller for print */
+            * {
+                font-size: 9px !important;
+            }
+            
+            /* Specific font sizes for print */
+            .company-name { font-size: 14px !important; }
+            .voucher-title { font-size: 16px !important; }
+            .amount-value { font-size: 12px !important; }
+            .footer-note { font-size: 8px !important; }
         }
         
         .payment-table th,
@@ -79,6 +232,14 @@
             padding: 6px;
             text-align: left;
             font-size: 11px;
+        }
+        
+        @media print {
+            .payment-table th,
+            .payment-table td {
+                padding: 4px;
+                font-size: 9px;
+            }
         }
         
         .payment-table th {
@@ -95,26 +256,15 @@
             text-align: right;
         }
         
-        /* Page break controls for payment table */
-        .payment-table tbody tr:nth-child(3n) {
-            page-break-after: always;
-        }
-        
-        .payment-table tbody tr:nth-child(3n+1) {
-            page-break-before: auto;
-        }
-        
+        /* Page break controls for payment table - Removed forced breaks */
         @media print {
-            .payment-table tbody tr:nth-child(3n) {
-                page-break-after: always;
-            }
-            
-            .payment-table tbody tr:nth-child(3n+1) {
-                page-break-before: auto;
-            }
-            
             /* Ensure total row stays with last items */
             .payment-table .total-row {
+                page-break-inside: avoid;
+            }
+            
+            /* Prevent page breaks within payment table for small content */
+            .payment-table {
                 page-break-inside: avoid;
             }
         }
@@ -180,10 +330,35 @@
         }
         
         .approval-boxes {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        @media print {
+            .approval-boxes {
+                margin-bottom: 8px !important;
+                gap: 5px !important;
+                page-break-inside: avoid !important;
+            }
+        }
+        
+        .approval-box {
+            flex: 1;
+            min-width: 150px;
+            border: 1px solid #000;
+            padding: 10px;
+            min-height: 60px;
+            text-align: center;
+        }
+        
+        @media print {
+            .approval-box {
+                padding: 6px;
+                min-height: 45px;
+            }
         }
         
         .approval-box {
@@ -208,23 +383,23 @@
         .approval-stamp {
             position: relative;
             width: 100%;
-            height: 18px;
+            height: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
         }
         
         .approval-stamp-text {
             color: #0056b3;
             font-weight: bold;
-            font-size: 8px;
-            border: 1px solid #0056b3;
-            border-radius: 2px;
-            padding: 1px 4px;
+            font-size: 10px;
+            border: 2px solid #0056b3;
+            border-radius: 4px;
+            padding: 2px 6px;
             display: inline-block;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -233,6 +408,13 @@
         
         .amount-section {
             margin-bottom: 20px;
+        }
+        
+        @media print {
+            .amount-section {
+                margin-bottom: 8px !important;
+                page-break-inside: avoid !important;
+            }
         }
         
         .amount-row {
@@ -256,6 +438,13 @@
             text-align: center;
             margin-top: 20px;
             font-style: italic;
+        }
+        
+        @media print {
+            .footer-note {
+                margin-top: 10px;
+                font-size: 10px;
+            }
         }
         
         .no-print {
@@ -298,6 +487,16 @@
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             border-radius: 6px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        @media print {
+            .document-info {
+                margin-bottom: 8px !important;
+                padding: 4px !important;
+                background: white !important;
+                border: 1px solid #000 !important;
+                page-break-inside: avoid !important;
+            }
         }
         
         .document-info h3 {
@@ -438,66 +637,7 @@
                 </div>
             </div>
             
-            <!-- Additional Document Information -->
-            <div class="document-info">
-                <h3>Document Information</h3>
-                <div class="info-grid">
-                    <div>
-                        <div class="info-item">
-                            <strong>Reimburse No:</strong>
-                            <span id="reimburseNo">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Requester:</strong>
-                            <span id="requesterName">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Document Date:</strong>
-                            <span id="documentDate">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Due Date:</strong>
-                            <span id="dueDate">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Status:</strong>
-                            <span id="documentStatus">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Journal Memo:</strong>
-                            <span id="journalMemo">-</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="info-item">
-                            <strong>Document Currency:</strong>
-                            <span id="documentCurrency">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Transfer Date:</strong>
-                            <span id="transferDate">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Account Bank Transfer:</strong>
-                            <span id="accountBankTransfer">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Total Transfer:</strong>
-                            <span id="totalTransfer">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Remarks:</strong>
-                            <span id="documentRemarks">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Journal Remarks:</strong>
-                            <span id="journalRemarks">-</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-        <div class="voucher-title">PAYMENT VOUCHER</div>
+            <div class="voucher-title">PAYMENT VOUCHER</div>
         
         <table class="payment-table">
             <thead>
@@ -514,13 +654,64 @@
             </tbody>
         </table>
         
-
-        
-
-        
-
-        
-
+        <!-- Additional Document Information -->
+        <div class="document-info">
+            <h3>Document Information</h3>
+            <div class="info-grid">
+                <div>
+                    <div class="info-item">
+                        <strong>Reimburse No:</strong>
+                        <span id="reimburseNo">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Requester:</strong>
+                        <span id="requesterName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Document Date:</strong>
+                        <span id="documentDate">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Due Date:</strong>
+                        <span id="dueDate">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Status:</strong>
+                        <span id="documentStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Journal Memo:</strong>
+                        <span id="journalMemo">-</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-item">
+                        <strong>Document Currency:</strong>
+                        <span id="documentCurrency">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Transfer Date:</strong>
+                        <span id="transferDate">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Account Bank Transfer:</strong>
+                        <span id="accountBankTransfer">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Total Transfer:</strong>
+                        <span id="totalTransfer">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Remarks:</strong>
+                        <span id="documentRemarks">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Journal Remarks:</strong>
+                        <span id="journalRemarks">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Attachments Section -->
         <div class="attachments-section" id="attachmentsSection" style="display: none;">
@@ -529,8 +720,6 @@
                 <!-- Attachments will be populated by JavaScript -->
             </div>
         </div>
-        
-
         
         <!-- Rejection Remarks Section -->
         <div class="rejection-section" id="rejectionSection" style="display: none;">
@@ -546,40 +735,32 @@
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Signed</span>
                 </div>
-                <div style="text-align: center; margin-top: 2px; font-size: 9px;" id="preparedByBox">-</div>
-                <div style="text-align: center; margin-top: 1px; font-size: 7px; color: #666;" id="preparedDateBox">-</div>
+                <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="preparedByBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="preparedDateBox">-</div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Checked by :</div>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Signed</span>
                 </div>
-                <div style="text-align: center; margin-top: 2px; font-size: 9px;" id="checkedByBox">-</div>
-                <div style="text-align: center; margin-top: 1px; font-size: 7px; color: #666;" id="checkedDateBox">-</div>
+                <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="checkedByBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="checkedDateBox">-</div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Acknowledged by :</div>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Signed</span>
                 </div>
-                <div style="text-align: center; margin-top: 2px; font-size: 9px;" id="acknowledgedByBox">-</div>
-                <div style="text-align: center; margin-top: 1px; font-size: 7px; color: #666;" id="acknowledgedDateBox">-</div>
+                <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="acknowledgedByBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="acknowledgedDateBox">-</div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Approved by :</div>
                 <div class="approval-stamp">
                     <span class="approval-stamp-text">Approved</span>
                 </div>
-                <div style="text-align: center; margin-top: 2px; font-size: 9px;" id="approvedBy">N. Widya M.</div>
-                <div style="text-align: center; margin-top: 1px; font-size: 7px; color: #666;" id="approvedDateBox">-</div>
-            </div>
-            <div class="approval-box">
-                <div class="approval-title">Received by :</div>
-                <div class="approval-stamp">
-                    <span class="approval-stamp-text">Received</span>
-                </div>
-                <div style="text-align: center; margin-top: 2px; font-size: 9px;" id="receivedByBox">-</div>
-                <div style="text-align: center; margin-top: 1px; font-size: 7px; color: #666;" id="receivedDateBox">-</div>
+                <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="approvedBy">N. Widya M.</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="approvedDateBox">-</div>
             </div>
         </div>
         
@@ -595,7 +776,7 @@
         </div>
         
         <div class="footer-note">
-            The payment through cash is valid, at the time you sign on the column of "Cash is received by:".
+            Generated by Expressiv system
         </div>
     </div>
 
@@ -620,6 +801,26 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
+        }
+        
+        // Function to get bank account name based on account code
+        // Function to get bank account name based on COA
+        function getBankAccountName(accountCode) {
+            const accountMapping = {
+                '1110': 'Cash on hand (Rp)',
+                '1210': 'Mizuho Bank (Rp)',
+                '1211': 'Mizuho Bank (US$)',
+                '1212': 'Mizuho (JPY)',
+                '1213': 'MUFG Bank (Rp)',
+                '1214': 'MUFG Bank (US$)',
+                '1215': 'MUFG Bank (Jpy)',
+                '1222': 'CIMB NIAGA (Rp)',
+                '1310': 'Saving Account (IDR, Mizuho)',
+                '1313': 'Saving Account (IDR, MUFG)',
+                '1316': 'Saving Account (IDR, CIMB NIAGA)'
+            };
+            
+            return accountMapping[accountCode] || 'Current Account (IDR,BTMU-UFJ)';
         }
         
         // Function to convert number to words
@@ -705,9 +906,25 @@
                 year: 'numeric'
             }) : '-';
             document.getElementById('accountBankTransfer').textContent = data.trsfrAcct || '-';
-            document.getElementById('totalTransfer').textContent = data.trsfrSum ? `IDR ${formatCurrency(data.trsfrSum)}` : '-';
-            document.getElementById('documentRemarks').textContent = data.remarks || '-';
-            document.getElementById('journalRemarks').textContent = data.journalRemarks || '-';
+            
+            // Store bank account name for use in payment table
+            // Note: trsfrAcctName is not available in API response
+            // Using hardcoded value or mapping based on trsfrAcct
+            const bankAccountName = getBankAccountName(data.trsfrAcct) || 'Current Account (IDR,BTMU-UFJ)';
+            // Calculate total from lines for Total Transfer
+            let totalFromLines = 0;
+            if (data.lines && data.lines.length > 0) {
+                data.lines.forEach(line => {
+                    totalFromLines += line.sumApplied || 0;
+                });
+            }
+            document.getElementById('totalTransfer').textContent = `IDR ${formatCurrency(totalFromLines)}`;
+            console.log('PrintOPReim - Remarks data:', data.remarks);
+            console.log('PrintOPReim - Journal Remarks data:', data.journalRemarks);
+            console.log('PrintOPReim - Comments data:', data.comments);
+            console.log('PrintOPReim - JrnlMemo data:', data.jrnlMemo);
+            document.getElementById('documentRemarks').textContent = data.remarks || data.comments || '-';
+            document.getElementById('journalRemarks').textContent = data.journalRemarks || data.jrnlMemo || '-';
             
             // Populate payment table
             const paymentTableBody = document.getElementById('paymentTableBody');
@@ -717,8 +934,11 @@
             let totalCredit = 0;
             
             if (data.lines && data.lines.length > 0) {
-                // Limit to maximum 3 items per page
-                const maxItemsPerPage = 3;
+                // For small content, show all items to fit on one page
+                // If total amount is small (less than 1 million), show all items
+                const totalAmount = data.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+                const isSmallAmount = totalAmount < 1000000; // Less than 1 million
+                const maxItemsPerPage = isSmallAmount ? data.lines.length : Math.min(data.lines.length, 2);
                 const itemsToShow = data.lines.slice(0, maxItemsPerPage);
                 
                 itemsToShow.forEach((line, index) => {
@@ -737,11 +957,11 @@
                     totalDebit += amount;
                 });
                 
-                // Add note if there are more items
-                if (data.lines.length > maxItemsPerPage) {
+                // Add note if there are more items and amount is large
+                if (data.lines.length > maxItemsPerPage && !isSmallAmount) {
                     const noteRow = document.createElement('tr');
                     noteRow.innerHTML = `
-                        <td colspan="5" style="text-align: center; font-style: italic; color: #666; font-size: 10px;">
+                        <td colspan="5" style="text-align: center; font-style: italic; color: #666; font-size: 8px;">
                             Note: Showing first ${maxItemsPerPage} items. Total items: ${data.lines.length}
                         </td>
                     `;
@@ -749,6 +969,17 @@
                 }
                 
                 totalCredit = totalDebit;
+                
+                // Add credit row for bank account (balancing entry)
+                const creditRow = document.createElement('tr');
+                creditRow.innerHTML = `
+                    <td></td>
+                    <td>${data.trsfrAcct || '1213'}</td>
+                    <td>${bankAccountName}</td>
+                    <td class="amount">IDR 0.00</td>
+                    <td class="amount">IDR ${formatCurrency(totalDebit)}</td>
+                `;
+                paymentTableBody.appendChild(creditRow);
                 
                 // Add total row
                 const totalRow = document.createElement('tr');
@@ -758,7 +989,7 @@
                     <td></td>
                     <td></td>
                     <td class="amount"><strong>IDR ${formatCurrency(totalDebit)}</strong></td>
-                    <td class="amount"><strong></strong></td>
+                    <td class="amount"><strong>IDR ${formatCurrency(totalDebit)}</strong></td>
                 `;
                 paymentTableBody.appendChild(totalRow);
             }
@@ -781,7 +1012,6 @@
             document.getElementById('preparedByBox').textContent = data.approval?.preparedByName || '-';
             document.getElementById('checkedByBox').textContent = data.approval?.checkedByName || '-';
             document.getElementById('acknowledgedByBox').textContent = data.approval?.acknowledgedByName || '-';
-            document.getElementById('receivedByBox').textContent = data.approval?.receivedByName || '-';
             
             // Populate approval dates
             const formatDate = (dateString) => {
@@ -798,7 +1028,6 @@
             document.getElementById('checkedDateBox').textContent = formatDate(data.approval?.checkedDate);
             document.getElementById('acknowledgedDateBox').textContent = formatDate(data.approval?.acknowledgedDate);
             document.getElementById('approvedDateBox').textContent = formatDate(data.approval?.approvedDate);
-            document.getElementById('receivedDateBox').textContent = formatDate(data.approval?.receivedDate);
             
             // Display attachments if available
             if (data.attachments && data.attachments.length > 0) {
@@ -862,4 +1091,3 @@
         });
     </script>
 </body>
-</

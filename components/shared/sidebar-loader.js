@@ -60,6 +60,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.head.appendChild(linkElement);
         }
         
+        // Load navigation.js if not already loaded
+        if (!window.goToAddARInvoice) {
+            const scriptElement = document.createElement('script');
+            scriptElement.src = `${basePath}components/shared/navigation.js`;
+            document.head.appendChild(scriptElement);
+        }
+        
         // Fix image paths in the sidebar (Seiho.png)
         const logoImg = sidebarElement.querySelector('.sidebar-logo-container img');
         if (logoImg) {

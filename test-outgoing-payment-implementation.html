@@ -92,6 +92,7 @@
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
     <script>
         // Simulate the checkOutgoingPaymentAccess function
         function checkOutgoingPaymentAccess() {
@@ -126,7 +127,7 @@
         // Function to simulate API call with user ID
         async function simulateApiCall(userId) {
             // Simulate API call to the correct endpoint
-            const apiUrl = `https://expressiv-be-sb.idsdev.site/api/employee-superior-document-approvals/employee/${userId}/document-type/OP`;
+            const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/employee/${userId}/document-type/OP`;
             console.log('Simulating API call to:', apiUrl);
             
             // For testing purposes, we'll simulate different responses based on user ID

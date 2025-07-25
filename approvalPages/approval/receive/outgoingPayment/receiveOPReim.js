@@ -239,9 +239,13 @@ function populateFormFields(data) {
     }
     setValue('totalAmountDue', formatCurrency(totalAmountDue));
     
-    // Map remarks
-    setValue('remarks', data.remarks || '');
-    setValue('journalRemarks', data.journalRemarks || '');
+            // Map remarks
+        console.log('Remarks data:', data.remarks);
+        console.log('Journal Remarks data:', data.journalRemarks);
+        console.log('Comments data:', data.comments);
+        console.log('JrnlMemo data:', data.jrnlMemo);
+        setValue('remarks', data.remarks || data.comments || '');
+        setValue('journalRemarks', data.journalRemarks || data.jrnlMemo || '');
     
     // Map approval data
     if (data.approval) {

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Kansai Paint Invoice</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Library untuk Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Library untuk PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/shared-menu.css">
+
+    <!-- Navigation Script -->
+    
+    
+    <style>
+        /* Inline CSS untuk memastikan style Invoice Number diterapkan */
+        .scrollable-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Override sidebar style to make it permanent */
+        #sidebar {
+            width: 256px !important; /* Fixed width */
+            transform: none !important; /* Prevent transformation */
+            margin-left: 0 !important; /* Remove any margin */
+            position: sticky;
+            top: 0;
+            z-index: 100 !important; /* Ensure sidebar stays above other elements */
+            visibility: visible !important; /* Force visibility */
+            display: block !important; /* Force display */
+            opacity: 1 !important; /* Ensure full opacity */
+            transition: none !important; /* Disable any transitions */
+        }
+        
+        /* Adjust main content for permanent sidebar */
+        .flex-1 {
+            margin-left: 0 !important;
+        }
+        
+        /* Ensure main content doesn't overlap sidebar */
+        .min-h-screen {
+            position: relative;
+        }
+        
+        /* Prevent sidebar manipulation through any class changes */
+        .sidebar-collapsed #sidebar, 
+        .sidebar-hidden #sidebar, 
+        [data-sidebar-hidden="true"] #sidebar,
+        .tab-active ~ #sidebar {
+            width: 256px !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        /* Menu and submenu font styling - make them bold */
+        .menu-btn, .submenu-btn {
+            font-weight: bold !important;
+        }
+        
+        .menu-category {
+            font-weight: bold !important;
+        }
+        
+        /* Menu icon styling */
+        .menu-icon {
+            font-weight: bold !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex min-h-screen bg-gradient">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-white shadow-lg">
+            <!-- Sidebar content will be loaded by sidebar-loader.js -->
+        </aside>
+
+        <!-- User Avatar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- User Avatar + Name -->
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full" style="display: none;">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
+                     onclick="goToProfile()">
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8 pb-20 md:pb-6">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Dashboard Invoice
+            </h2>
+            
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
+                <h3 class="text-white text-xl font-semibold mb-4">Status Overview</h3>
+                
+                <!-- First row with 4 cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
+                        <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
+                        <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                        <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
+                        <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
+                
+                
+                <!-- Second row with 4 cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Acknowledged</h3>
+                        <p id="acknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
+                        <p id="approvedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Received</h3>
+                        <p id="receivedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                        <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
+                        <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Recent Documents</h3>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                        <!-- Tab buttons - kiri -->
+                         <!--status button-->
+                        <div class="flex border-b w-full md:w-auto">
+                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
+                                <i class="fas fa-file-alt mr-2"></i>All Documents
+                            </button>
+                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
+                                <i class="fas fa-file mr-2"></i>Draft
+                            </button>
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                                <i class="fas fa-clipboard-check mr-2"></i>Prepared
+                            </button>
+                        </div>
+                        
+                        <!-- Search by Invoice - kanan -->
+                        <div class="relative">
+                            <!--Search by Invoice-->
+                            <div class="flex">
+                                <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
+                                    <option value="invoice">Invoice No.</option>
+                                    <option value="customer">Customer</option>
+                                    <option value="date">Date</option>
+                                    <option value="status">Status</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    id="searchInput"
+                                    placeholder="Search..."
+                                    class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!--Table-->
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="p-2 text-left">No</th>
+                                    <th class="p-2 text-left">Invoice No.</th>
+                                    <th class="p-2 text-left">Customer</th>
+                                    <th class="p-2 text-left">Sales Employee</th>
+                                    <th class="p-2 text-left">Date</th>
+                                    <th class="p-2 text-left">Due Date</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Total (IDR)</th>
+                                    <th class="p-2 text-left">Type</th>
+                                    <th class="p-2 text-left">Tools</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentDocs"></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination Controls -->
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentPage" class="px-3 py-1">1</span>
+                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button onclick="goToAddInvoice()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Invoice</button>
+                    <div class="flex gap-2">
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fa-regular fa-file-excel mr-2"></i>Export Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fa-regular fa-file-pdf mr-2"></i>Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
+        <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file-alt text-xl"></i>
+            <span>Total</span>
+        </button>
+        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file text-xl"></i>
+            <span>Draft</span>
+        </button>
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-clipboard-check text-xl"></i>
+            <span>Prepared</span>
+        </button>
+        <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check text-xl"></i>
+            <span>Checked</span>
+        </button>
+        <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-thumbs-up text-xl"></i>
+            <span>Approved</span>
+        </button>
+        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-ban text-xl"></i>
+            <span>Reject</span>
+        </button>
+    </nav>
+
+    <!-- External JS -->
+    <script src="../js/auth.js"></script>
+    <!-- Shared Components -->
+    <script src="../components/shared/sidebar-loader.js"></script>
+    <script src="../components/shared/navigation.js"></script>
+    <script src="../js/menuInvoice.js"></script>
+    <script>
+    // Disable any sidebar toggle functionality that might be in the JS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override any toggleSidebar function if it exists
+        if (typeof toggleSidebar === 'function') {
+            window.toggleSidebar = function() {
+                // Do nothing - sidebar is now permanent
+                return false;
+            };
+        }
+        
+        // Make sure sidebar stays fixed when tabs are clicked
+        document.getElementById('allTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('draftTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        // Function to ensure sidebar visibility
+        function ensureSidebarVisible() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.style.width = '256px';
+                sidebar.style.transform = 'none';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.display = 'block';
+            }
+        }
+        
+        // Run immediately and also set interval to keep checking
+        ensureSidebarVisible();
+        setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        
+        // Override switchTab function if it exists to maintain sidebar
+        const originalSwitchTab = window.switchTab;
+        if (typeof originalSwitchTab === 'function') {
+            window.switchTab = function(tab) {
+                // Call the original function
+                originalSwitchTab(tab);
+                // Ensure sidebar remains visible
+                setTimeout(ensureSidebarVisible, 10);
+            };
+        }
+    });
+    </script>
+</body>
+</html> 

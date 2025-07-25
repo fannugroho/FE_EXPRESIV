@@ -13,16 +13,20 @@ function getBasePath() {
     }
     
     const currentPath = window.location.pathname;
+    console.log("Current path:", currentPath);
     const pathSegments = currentPath.split('/').filter(Boolean);
+    console.log("Path segments:", pathSegments);
     
     // Calculate relative path depth
     let basePath = '';
     const depth = pathSegments.length - 1; // -1 because we don't count the HTML file itself
+    console.log("Calculated depth:", depth);
     
     if (depth > 0) {
         basePath = '../'.repeat(depth);
     }
     
+    console.log("Calculated basePath:", basePath);
     cachedBasePath = basePath;
     return basePath;
 }
@@ -32,6 +36,10 @@ function navigateToPage(path) {
     try {
         const basePath = getBasePath();
         const fullPath = `${basePath}${path}`;
+        console.log("Navigation - Current path:", window.location.pathname);
+        console.log("Navigation - Target path:", path);
+        console.log("Navigation - Base path:", basePath);
+        console.log("Navigation - Full path:", fullPath);
         
         // Add loading indicator
         const sidebar = document.getElementById('sidebar');
@@ -206,8 +214,54 @@ function goToMenuBanking() {
 }
 
 function goToMenuInvoice() {
-    // Placeholder - Update with correct path
-    alert('AR Invoice Approval page is not yet implemented');
+    navigateToPage('pages/menuInvoice.html');
+}
+
+function goToAddARInvoice() {
+    console.log("goToAddARInvoice called");
+    try {
+        // Set a flag in localStorage to indicate we're trying to navigate to menuInvoice
+        localStorage.setItem("navigatingToInvoice", "true");
+        
+        // Use standard navigation
+        navigateToPage('pages/menuInvoice.html');
+    } catch (error) {
+        console.error("Error in goToAddARInvoice:", error);
+        // Fallback to direct navigation
+        const basePath = getBasePath();
+        window.location.href = `${basePath}pages/menuInvoice.html`;
+    }
+}
+
+function goToMenuCheckInvoice() {
+    navigateToPage('approvalPages/approval/check/invoiceItem/checkInvItem.html');
+}
+
+function goToMenuAcknowInvoice() {
+    navigateToPage('approvalPages/approval/acknowledge/InvoiceItem/acknowInvItem.html');
+}
+
+function goToMenuApprovInvoice() {
+    navigateToPage('approvalPages/approval/approve/invoiceItem/approveInvItem.html');
+}
+
+function goToMenuReceiveInvoice() {
+    navigateToPage('approvalPages/approval/receive/invoiceItem/receiveInvItem.html');
+}
+
+function goToMenuRevisionInvoice() {
+    // Placeholder - Update with correct path when revision invoice page is created
+    alert('Invoice Revision page is not yet implemented');
+}
+
+function goToAddInvoice() {
+    // Placeholder - Update with correct path when addInvoice.html is created
+    alert('Add Invoice page is not yet implemented');
+}
+
+function goToInvoiceList() {
+    // Placeholder - Update with correct path when invoiceList.html is created
+    alert('Invoice List page is not yet implemented');
 }
 
 // Admin Navigation
@@ -290,6 +344,14 @@ if (typeof window !== 'undefined') {
     window.goToMenuPO = goToMenuPO;
     window.goToMenuBanking = goToMenuBanking;
     window.goToMenuInvoice = goToMenuInvoice;
+    window.goToAddARInvoice = goToAddARInvoice;
+    window.goToMenuCheckInvoice = goToMenuCheckInvoice;
+    window.goToMenuAcknowInvoice = goToMenuAcknowInvoice;
+    window.goToMenuApprovInvoice = goToMenuApprovInvoice;
+    window.goToMenuReceiveInvoice = goToMenuReceiveInvoice;
+    window.goToMenuRevisionInvoice = goToMenuRevisionInvoice;
+    window.goToAddInvoice = goToAddInvoice;
+    window.goToInvoiceList = goToInvoiceList;
     window.goToMenuRegist = goToMenuRegist;
     window.goToMenuUser = goToMenuUser;
     window.goToMenuRole = goToMenuRole;

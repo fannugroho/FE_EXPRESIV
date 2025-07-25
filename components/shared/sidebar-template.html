@@ -88,14 +88,14 @@
     <div class="menu-category">Approval Report</div>
 
     <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('PurchaseOrder')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
                 <span class="ml-3">Purchase Order</span>
             </div>
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
-        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
+        <div id="PurchaseOrder" class="hidden pl-10 mt-1 mb-1">
             <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
             <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
             <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
@@ -104,18 +104,20 @@
     </div>
 
     <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('ApprovalReport')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuARInvoice')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
-                <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="menu-icon"><i class="fas fa-file-invoice"></i></span>
                 <span class="ml-3">AR Invoice</span>
             </div>
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
-        <div id="ApprovalReport" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
-            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
-            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
-            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+        <div id="MenuARInvoice" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToAddARInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add AR Invoice</button>
+            <button onclick="goToMenuCheckInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked AR Invoice</button>
+            <button onclick="goToMenuAcknowInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge AR Invoice</button>
+            <button onclick="goToMenuApprovInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval AR Invoice</button>
+            <button onclick="goToMenuReceiveInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive AR Invoice</button>
+            <button onclick="goToMenuRevisionInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision AR Invoice</button>
         </div>
     </div>
 
@@ -171,6 +173,6 @@
     <!-- Version Patch -->
     <div class="text-center text-xs text-gray-400 mt-2 px-3 pb-3">
         <div>Version Patch:</div>
-        <div class="font-mono">2025/07/24/EX/00:35/AM</div>
+        <div class="font-mono">2025/07/25/EX/07:00/AM</div>
     </div>
 </div> 

@@ -4411,7 +4411,7 @@ async function uploadAdditionalAttachments() {
 // Function to fetch the last serial number for Outgoing Payment (for display only)
 async function fetchAndSetLastSerialNumber() {
     try {
-        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/last', {
+        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/last`, {
             method: 'GET',
             headers: {
                 'accept': '*/*'
@@ -4436,7 +4436,7 @@ async function fetchAndSetLastSerialNumber() {
 // Function to fetch the next serial number for Outgoing Payment (for submit only)
 async function fetchNextSerialNumber() {
     try {
-        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/next', {
+        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/next`, {
             method: 'POST',
             headers: {
                 'accept': '*/*'

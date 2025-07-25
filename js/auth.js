@@ -1,5 +1,8 @@
 // Authentication utilities for handling JWT tokens and API calls
 
+// Development mode - set to true to bypass authentication for development
+const BYPASS_AUTH_FOR_DEVELOPMENT = true;
+
 // API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
     // Production environment
@@ -26,6 +29,12 @@ function getRefreshToken() {
 
 // Helper function to check if user is authenticated
 function isAuthenticated() {
+  // Bypass authentication for development
+  if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+    console.log('Development mode: Bypassing authentication check');
+    return true;
+  }
+  
   const token = getAccessToken();
   if (!token) return false;
   
@@ -197,6 +206,34 @@ function isChangePasswordPage() {
 
 // Function to check authentication on page load
 function checkAuthOnPageLoad() {
+  // Check if we're navigating to menuInvoice.html
+  const navigatingToInvoice = localStorage.getItem("navigatingToInvoice") === "true";
+  if (navigatingToInvoice) {
+    console.log('Navigation to menuInvoice detected, clearing flag');
+    localStorage.removeItem("navigatingToInvoice");
+    
+    // If we're on login.html but already authenticated, go directly to menuInvoice.html
+    if (isLoginPage() && isAuthenticated()) {
+      console.log('Already authenticated, redirecting directly to menuInvoice.html');
+      const currentPath = window.location.pathname;
+      const pathSegments = currentPath.split('/').filter(segment => segment !== '');
+      
+      // Calculate the relative path to menuInvoice.html
+      let relativePath = '';
+      if (pathSegments.length === 0) {
+        relativePath = 'pages/menuInvoice.html';
+      } else if (pathSegments.length === 1 && pathSegments[0] === 'pages') {
+        relativePath = 'menuInvoice.html';
+      } else {
+        const goBack = '../'.repeat(pathSegments.length);
+        relativePath = goBack + 'pages/menuInvoice.html';
+      }
+      
+      window.location.href = relativePath;
+      return false;
+    }
+  }
+  
   // Skip authentication check for login page
   if (isLoginPage()) {
     console.log('Login page detected, skipping auth check');
