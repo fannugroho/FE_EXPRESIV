@@ -719,6 +719,11 @@ function addRowWithData(lineData) {
     descriptionCell.className = 'p-2 border';
     descriptionCell.innerHTML = `<input type="text" id="description" class="w-full" value="${lineData.descrip || ''}" maxlength="255" autocomplete="off" />`;
     
+    // Tambah kolom CurrencyItem
+    const currencyItemCell = newRow.insertCell();
+    currencyItemCell.className = 'p-2 border';
+    currencyItemCell.innerHTML = `<input type="text" id="CurrencyItem" class="w-full" value="${lineData.currencyItem || ''}" maxlength="10" autocomplete="off" />`;
+    
     const amountCell = newRow.insertCell();
     amountCell.className = 'p-2 border';
     // Ensure sumApplied is a valid number
@@ -1140,6 +1145,9 @@ function addRow() {
             <input type="text" id="description_${newRowId}" maxlength="255" class="w-full" />
         </td>
         <td class="p-2 border">
+            <input type="text" id="CurrencyItem_${newRowId}" maxlength="10" class="w-full" />
+        </td>
+        <td class="p-2 border">
             <input type="text" id="DocTotal_${newRowId}" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
         </td>
         <td class="p-2 border text-center">
@@ -1156,6 +1164,7 @@ function addRow() {
     setupTextInput(`description_${newRowId}`);
     setupTextInput(`AcctCode_${newRowId}`);
     setupTextInput(`AcctName_${newRowId}`);
+    setupTextInput(`CurrencyItem_${newRowId}`);
     
     // Add event listener to recalculate total
     document.getElementById(`DocTotal_${newRowId}`).addEventListener('input', updateTotalAmountDue);
@@ -1228,6 +1237,8 @@ function updateTotalAmountDue() {
         }
         trsfrSumInput.numericValue = total;
     }
+    // Update Total Transfer Terbilang
+    updateTotalTransferTerbilang();
 }
 
 // Function to confirm delete
@@ -2650,10 +2661,14 @@ function collectFormData(userId, isSubmit) {
                                row.querySelector('input[id^="description_"]') ||
                                row.querySelector('td:nth-child(3) input');
         
+        const currencyItemInput = row.querySelector('input[id="CurrencyItem"]') ||
+                                 row.querySelector('input[id^="CurrencyItem_"]') ||
+                                 row.querySelector('td:nth-child(4) input');
+        
         const docTotalInput = row.querySelector('input[id="DocTotal"]') || 
                              row.querySelector('input[id^="DocTotal_"]') ||
                              row.querySelector('input.currency-input-idr') ||
-                             row.querySelector('td:nth-child(4) input');
+                             row.querySelector('td:nth-child(5) input');
         
         // Parse amount using IDR format if available
         let parsedAmount = 0;
@@ -2669,15 +2684,17 @@ function collectFormData(userId, isSubmit) {
             acctCodeInput: acctCodeInput,
             acctNameInput: acctNameInput,
             descriptionInput: descriptionInput,
+            currencyItemInput: currencyItemInput,
             docTotalInput: docTotalInput,
             acctCodeValue: acctCodeInput ? acctCodeInput.value : 'N/A',
             acctNameValue: acctNameInput ? acctNameInput.value : 'N/A',
             descriptionValue: descriptionInput ? descriptionInput.value : 'N/A',
+            currencyItemValue: currencyItemInput ? currencyItemInput.value : 'N/A',
             docTotalValue: docTotalInput ? docTotalInput.value : 'N/A',
             parsedAmount: parsedAmount
         });
         
-        if (acctCodeInput && acctNameInput && descriptionInput && docTotalInput) {
+        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && docTotalInput) {
             // Parse amount using IDR format if available
             let amount = 0;
             if (typeof window.parseCurrencyIDR === 'function') {
@@ -2691,6 +2708,7 @@ function collectFormData(userId, isSubmit) {
                 acctCode: acctCodeInput.value || "",
                 acctName: acctNameInput.value || "",
                 descrip: descriptionInput.value || "",
+                CurrencyItem: currencyItemInput.value || "",
                 sumApplied: amount,
                 category: "REIMBURSEMENT",
                 header: {}
@@ -4682,6 +4700,36 @@ function openPrintReimbursement(url) {
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+}
+
+// Tambahkan fungsi baru untuk update total transfer terbilang
+function updateTotalTransferTerbilang() {
+    // Ambil currency item dari baris pertama (atau gabungan jika ingin)
+    let currency = '';
+    const firstCurrencyInput = document.querySelector('#tableBody input[id="CurrencyItem"], #tableBody input[id^="CurrencyItem_"]');
+    if (firstCurrencyInput && firstCurrencyInput.value) {
+        currency = firstCurrencyInput.value.trim();
+    }
+    // Ambil total amount
+    const totalAmountDueInput = document.getElementById('totalAmountDue');
+    let totalAmount = '';
+    if (totalAmountDueInput) {
+        totalAmount = totalAmountDueInput.value;
+    }
+    // Gabungkan
+    let result = '';
+    if (currency && totalAmount) {
+        result = currency + ' ' + totalAmount;
+    } else if (totalAmount) {
+        result = totalAmount;
+    } else {
+        result = '-';
+    }
+    // Tampilkan
+    const terbilangSpan = document.getElementById('totalTransferTerbilang');
+    if (terbilangSpan) {
+        terbilangSpan.textContent = result;
     }
 }
 
