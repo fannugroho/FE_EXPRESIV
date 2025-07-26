@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu - Kansai Paint Supplier</title>
+    <title>Menu - Kansai Paint Invoice</title>
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -17,8 +17,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../css/shared-menu.css">
-    <link rel="stylesheet" href="../css/menuReim.css">
+
+    <!-- Navigation Script -->
+    
+    
     <style>
+        /* Inline CSS untuk memastikan style Invoice Number diterapkan */
+        .scrollable-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
         /* Override sidebar style to make it permanent */
         #sidebar {
             width: 256px !important; /* Fixed width */
@@ -55,95 +85,24 @@
             display: block !important;
         }
         
-        /* Style untuk kolom dengan scrollbar */
-        .cell-with-scroll {
-            max-width: 150px; /* Lebar maksimal untuk sel */
-            overflow-x: auto; /* Tambahkan scrollbar horizontal */
-            white-space: nowrap; /* Mencegah text wrapping */
+        /* Menu and submenu font styling - make them bold */
+        .menu-btn, .submenu-btn {
+            font-weight: bold !important;
         }
         
-        /* Gaya untuk scrollbar */
-        .cell-with-scroll::-webkit-scrollbar {
-            height: 6px; /* Tinggi scrollbar */
+        .menu-category {
+            font-weight: bold !important;
         }
         
-        .cell-with-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1; /* Warna track */
-            border-radius: 3px;
-        }
-        
-        .cell-with-scroll::-webkit-scrollbar-thumb {
-            background: #888; /* Warna thumb */
-            border-radius: 3px;
-        }
-        
-        .cell-with-scroll::-webkit-scrollbar-thumb:hover {
-            background: #555; /* Warna thumb saat hover */
-        }
-        
-        /* New scrollable cell class similar to menuPR.html */
-        .scrollable-cell {
-            max-width: 150px;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 5px;
-            scrollbar-width: thin;
-        }
-        
-        .scrollable-cell::-webkit-scrollbar {
-            height: 4px; /* Reduced height from 6px to 4px */
-        }
-        
-        .scrollable-cell::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        .scrollable-cell::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        
-        .scrollable-cell::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* Pagination button styles */
-        .pagination-btn {
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            background-color: #f3f4f6;
-            transition: all 0.2s;
-        }
-        
-        .pagination-btn:hover:not(.disabled) {
-            background-color: #e5e7eb;
-        }
-        
-        .pagination-btn.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        /* Items per page dropdown styles */
-        #itemsPerPageSelect {
-            border-color: #e5e7eb;
-            border-radius: 0.375rem;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-        
-        #itemsPerPageSelect:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        /* Menu icon styling */
+        .menu-icon {
+            font-weight: bold !important;
         }
     </style>
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
-        <!-- Sidebar - Now permanent -->
+        <!-- Sidebar -->
         <aside id="sidebar" class="bg-white shadow-lg">
             <!-- Sidebar content will be loaded by sidebar-loader.js -->
         </aside>
@@ -165,49 +124,48 @@
         <!-- Main Content -->
         <div class="flex-1 p-8 pb-20 md:pb-6">
             <h2 class="text-3xl font-bold text-white mb-4">
-                Dashboard Reimbursement
+                Dashboard Invoice
             </h2>
             
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
                 <h3 class="text-white text-xl font-semibold mb-4">Status Overview</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                
+                <!-- First row with 4 cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
                         <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
                         <p id="draftCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
                         <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                         <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                </div>
+                
+                
+                <!-- Second row with 4 cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Acknowledged</h3>
-                        <p id="acknowledgedCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                        <p id="acknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
                         <p id="approvedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Received</h3>
-                        <p id="receivedCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                        <p id="receivedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
-                        <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
-                        <p id="paidCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
-                    </div>
-                    <!-- <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
-                        <h3 class="text-lg font-semibold text-gray-800">Close</h3>
-                        <p id="closeCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
-                    </div> -->
-                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
                         <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
                         <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
                     </div>
@@ -219,9 +177,10 @@
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold">Recent Documents</h3>
                     </div>
-                            
+                    
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-                        <!-- Tab buttons -->
+                        <!-- Tab buttons - kiri -->
+                         <!--status button-->
                         <div class="flex border-b w-full md:w-auto">
                             <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
                                 <i class="fas fa-file-alt mr-2"></i>All Documents
@@ -232,19 +191,16 @@
                             <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
-                            <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
-                                <i class="fas fa-times-circle mr-2"></i>Rejected
-                            </button>
                         </div>
-
-                        <!-- Search by PR - kanan -->
+                        
+                        <!-- Search by Invoice - kanan -->
                         <div class="relative">
-                            <!--Search by PR-->
+                            <!--Search by Invoice-->
                             <div class="flex">
                                 <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
-                                    <option value="pr">Reimbursement Number</option>
-                                    <option value="requester">Requester</option>
-                                    <option value="date">Submission Date</option>
+                                    <option value="invoice">Invoice No.</option>
+                                    <option value="customer">Customer</option>
+                                    <option value="date">Date</option>
                                     <option value="status">Status</option>
                                 </select>
                                 <input
@@ -257,31 +213,31 @@
                             </div>
                         </div>
                     </div>
-
+                    <!--Table-->
                     <div class="overflow-x-auto">
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <!-- <th class="p-2 text-left">
-                                        <input type="checkbox" id="selectAll" />
-                                    </th> -->
-                                    <th class="p-2 text-left">No.</th>
-                                    <th class="p-2 text-left">Reimbursement Number</th>
-                                    <th class="p-2 text-left">Requester</th>
-                                    <th class="p-2 text-left">Department</th>
-                                    <th class="p-2 text-left">Submission Date</th>
+                                    <th class="p-2 text-left">No</th>
+                                    <th class="p-2 text-left">Invoice No.</th>
+                                    <th class="p-2 text-left">Customer</th>
+                                    <th class="p-2 text-left">Sales Employee</th>
+                                    <th class="p-2 text-left">Date</th>
+                                    <th class="p-2 text-left">Due Date</th>
                                     <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Total (IDR)</th>
+                                    <th class="p-2 text-left">Type</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
                             <tbody id="recentDocs"></tbody>
                         </table>
                     </div>
-
-                    <!-- Table Button -->
+                    
+                    <!-- Pagination Controls -->
                     <div class="flex justify-between items-center mt-4">
                         <div class="text-sm text-gray-600">
-                            Showing <span id="startItem">1</span>-<span id="endItem">20</span> of <span id="totalItems">0</span> items
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
                         </div>
                         <div class="flex space-x-2">
                             <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
@@ -296,7 +252,7 @@
                 </div>
                 
                 <div class="flex justify-between mt-4">
-                    <button onclick="goToAddReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
+                    <button onclick="goToAddInvoice()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Invoice</button>
                     <div class="flex gap-2">
                         <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
                             <i class="fa-regular fa-file-excel mr-2"></i>Export Excel
@@ -323,10 +279,6 @@
             <i class="fas fa-clipboard-check text-xl"></i>
             <span>Prepared</span>
         </button>
-        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-times-circle text-xl"></i>
-            <span>Rejected</span>
-        </button>
         <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
@@ -335,19 +287,18 @@
             <i class="fas fa-thumbs-up text-xl"></i>
             <span>Approved</span>
         </button>
-        <button onclick="goToCloseDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-times text-xl"></i>
-            <span>Close</span>
+        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-ban text-xl"></i>
+            <span>Reject</span>
         </button>
     </nav>
 
     <!-- External JS -->
-    <script src="../js/dateUtils.js"></script>
     <script src="../js/auth.js"></script>
     <!-- Shared Components -->
     <script src="../components/shared/sidebar-loader.js"></script>
     <script src="../components/shared/navigation.js"></script>
-    <script src="../js/menuReim.js"></script>
+    <script src="../js/menuInvoice.js"></script>
     <script>
     // Disable any sidebar toggle functionality that might be in the JS
     document.addEventListener('DOMContentLoaded', function() {
@@ -369,10 +320,6 @@
         });
         
         document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('rejectedTabBtn').addEventListener('click', function(e) {
             ensureSidebarVisible();
         });
         
@@ -402,54 +349,7 @@
                 setTimeout(ensureSidebarVisible, 10);
             };
         }
-        
-        // Menambahkan class scrollable-cell untuk kolom Doc Number, Reimbursement Number, Requester, dan Department
-        // yang memiliki teks lebih dari 15 karakter
-        function addScrollToLongCells() {
-            const table = document.querySelector('table');
-            if (!table) return;
-            
-            // Observer untuk tabel
-            const observer = new MutationObserver(function(mutations) {
-                const rows = document.querySelectorAll('#recentDocs tr');
-                
-                // Convert NodeList to Array to ensure forEach is available
-                Array.from(rows).forEach(row => {
-                    // Dapatkan sel Doc Number (indeks 0), Reimbursement Number (indeks 1), 
-                    // Requester (indeks 2), dan Department (indeks 3)
-                    const docNumberCell = row.cells[0];
-                    const reimNumberCell = row.cells[1];
-                    const requesterCell = row.cells[2];
-                    const departmentCell = row.cells[3];
-                    
-                    if (docNumberCell && docNumberCell.textContent.trim().length > 15) {
-                        docNumberCell.classList.add('scrollable-cell');
-                    }
-                    
-                    if (reimNumberCell && reimNumberCell.textContent.trim().length > 15) {
-                        reimNumberCell.classList.add('scrollable-cell');
-                    }
-                    
-                    if (requesterCell && requesterCell.textContent.trim().length > 15) {
-                        requesterCell.classList.add('scrollable-cell');
-                    }
-                    
-                    if (departmentCell && departmentCell.textContent.trim().length > 15) {
-                        departmentCell.classList.add('scrollable-cell');
-                    }
-                });
-            });
-            
-            // Konfigurasi observer
-            const config = { childList: true, subtree: true };
-            
-            // Mulai observe tabel
-            observer.observe(document.getElementById('recentDocs'), config);
-        }
-        
-        // Panggil fungsi setelah halaman dimuat
-        addScrollToLongCells();
     });
     </script>
 </body>
-</html>
+</html> 

@@ -719,6 +719,11 @@ function addRowWithData(lineData) {
     descriptionCell.className = 'p-2 border';
     descriptionCell.innerHTML = `<input type="text" id="description" class="w-full" value="${lineData.descrip || ''}" maxlength="255" autocomplete="off" />`;
     
+    // Tambah kolom CurrencyItem
+    const currencyItemCell = newRow.insertCell();
+    currencyItemCell.className = 'p-2 border';
+    currencyItemCell.innerHTML = `<input type="text" id="CurrencyItem" class="w-full" value="${lineData.currencyItem || ''}" maxlength="10" autocomplete="off" />`;
+    
     const amountCell = newRow.insertCell();
     amountCell.className = 'p-2 border';
     // Ensure sumApplied is a valid number
@@ -1140,6 +1145,9 @@ function addRow() {
             <input type="text" id="description_${newRowId}" maxlength="255" class="w-full" />
         </td>
         <td class="p-2 border">
+            <input type="text" id="CurrencyItem_${newRowId}" maxlength="10" class="w-full" />
+        </td>
+        <td class="p-2 border">
             <input type="text" id="DocTotal_${newRowId}" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
         </td>
         <td class="p-2 border text-center">
@@ -1156,6 +1164,7 @@ function addRow() {
     setupTextInput(`description_${newRowId}`);
     setupTextInput(`AcctCode_${newRowId}`);
     setupTextInput(`AcctName_${newRowId}`);
+    setupTextInput(`CurrencyItem_${newRowId}`);
     
     // Add event listener to recalculate total
     document.getElementById(`DocTotal_${newRowId}`).addEventListener('input', updateTotalAmountDue);
@@ -1228,6 +1237,8 @@ function updateTotalAmountDue() {
         }
         trsfrSumInput.numericValue = total;
     }
+    // Update Total Transfer Terbilang
+    updateTotalTransferTerbilang();
 }
 
 // Function to confirm delete
@@ -2438,6 +2449,24 @@ async function submitDocument(isSubmit = false) {
             });
         });
         
+        // Get next serial number and update DocNum field before form submission
+        if (isSubmit) {
+            console.log('Getting next serial number for DocNum...');
+            const nextSerialNumber = await fetchNextSerialNumber();
+            if (nextSerialNumber) {
+                const docNumInput = document.getElementById('DocNum');
+                if (docNumInput) {
+                    docNumInput.value = 'VCR/' + nextSerialNumber;
+                    console.log('Updated DocNum field with next serial number:', 'VCR/' + nextSerialNumber);
+                } else {
+                    console.error('DocNum input field not found');
+                }
+            } else {
+                console.error('Failed to get next serial number');
+                throw new Error('Failed to generate document number. Please try again.');
+            }
+        }
+        
         // Collect form data
         const formData = collectFormData(userId, isSubmit);
         
@@ -2650,10 +2679,14 @@ function collectFormData(userId, isSubmit) {
                                row.querySelector('input[id^="description_"]') ||
                                row.querySelector('td:nth-child(3) input');
         
+        const currencyItemInput = row.querySelector('input[id="CurrencyItem"]') ||
+                                 row.querySelector('input[id^="CurrencyItem_"]') ||
+                                 row.querySelector('td:nth-child(4) input');
+        
         const docTotalInput = row.querySelector('input[id="DocTotal"]') || 
                              row.querySelector('input[id^="DocTotal_"]') ||
                              row.querySelector('input.currency-input-idr') ||
-                             row.querySelector('td:nth-child(4) input');
+                             row.querySelector('td:nth-child(5) input');
         
         // Parse amount using IDR format if available
         let parsedAmount = 0;
@@ -2669,15 +2702,17 @@ function collectFormData(userId, isSubmit) {
             acctCodeInput: acctCodeInput,
             acctNameInput: acctNameInput,
             descriptionInput: descriptionInput,
+            currencyItemInput: currencyItemInput,
             docTotalInput: docTotalInput,
             acctCodeValue: acctCodeInput ? acctCodeInput.value : 'N/A',
             acctNameValue: acctNameInput ? acctNameInput.value : 'N/A',
             descriptionValue: descriptionInput ? descriptionInput.value : 'N/A',
+            currencyItemValue: currencyItemInput ? currencyItemInput.value : 'N/A',
             docTotalValue: docTotalInput ? docTotalInput.value : 'N/A',
             parsedAmount: parsedAmount
         });
         
-        if (acctCodeInput && acctNameInput && descriptionInput && docTotalInput) {
+        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && docTotalInput) {
             // Parse amount using IDR format if available
             let amount = 0;
             if (typeof window.parseCurrencyIDR === 'function') {
@@ -2691,6 +2726,7 @@ function collectFormData(userId, isSubmit) {
                 acctCode: acctCodeInput.value || "",
                 acctName: acctNameInput.value || "",
                 descrip: descriptionInput.value || "",
+                CurrencyItem: currencyItemInput.value || "",
                 sumApplied: amount,
                 category: "REIMBURSEMENT",
                 header: {}
@@ -4411,7 +4447,12 @@ async function uploadAdditionalAttachments() {
 // Function to fetch the last serial number for Outgoing Payment (for display only)
 async function fetchAndSetLastSerialNumber() {
     try {
-        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/last', {
+        // Get current year and month for the API endpoint
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed, so add 1
+        
+        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/last/${year}/${month}`, {
             method: 'GET',
             headers: {
                 'accept': '*/*'
@@ -4420,9 +4461,25 @@ async function fetchAndSetLastSerialNumber() {
         if (response.ok) {
             const data = await response.json();
             if (data.serialNumber) {
-                const docNumInput = document.getElementById('DocNum');
-                if (docNumInput) {
-                    docNumInput.value = 'VCR/' + data.serialNumber;
+                // Increment the numeric part before the slash
+                const parts = data.serialNumber.split('/');
+                if (parts.length === 2) {
+                    let num = parseInt(parts[0], 10);
+                    if (!isNaN(num)) {
+                        num = num + 1;
+                        const paddedNum = num.toString().padStart(parts[0].length, '0');
+                        const nextSerial = `${paddedNum}/${parts[1]}`;
+                        const docNumInput = document.getElementById('DocNum');
+                        if (docNumInput) {
+                            docNumInput.value = 'VCR/' + nextSerial;
+                        }
+                    }
+                } else {
+                    // fallback: just show VCR/ + original
+                    const docNumInput = document.getElementById('DocNum');
+                    if (docNumInput) {
+                        docNumInput.value = 'VCR/' + data.serialNumber;
+                    }
                 }
             }
         } else {
@@ -4436,11 +4493,12 @@ async function fetchAndSetLastSerialNumber() {
 // Function to fetch the next serial number for Outgoing Payment (for submit only)
 async function fetchNextSerialNumber() {
     try {
-        const response = await fetch('https://expressiv-be-sb.idsdev.site/api/outgoing-payment-serial-numbers/next', {
+        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/next`, {
             method: 'POST',
             headers: {
                 'accept': '*/*'
-            }
+            },
+            body: ''
         });
         if (response.ok) {
             const data = await response.json();
@@ -4682,6 +4740,36 @@ function openPrintReimbursement(url) {
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+}
+
+// Tambahkan fungsi baru untuk update total transfer terbilang
+function updateTotalTransferTerbilang() {
+    // Ambil currency item dari baris pertama (atau gabungan jika ingin)
+    let currency = '';
+    const firstCurrencyInput = document.querySelector('#tableBody input[id="CurrencyItem"], #tableBody input[id^="CurrencyItem_"]');
+    if (firstCurrencyInput && firstCurrencyInput.value) {
+        currency = firstCurrencyInput.value.trim();
+    }
+    // Ambil total amount
+    const totalAmountDueInput = document.getElementById('totalAmountDue');
+    let totalAmount = '';
+    if (totalAmountDueInput) {
+        totalAmount = totalAmountDueInput.value;
+    }
+    // Gabungkan
+    let result = '';
+    if (currency && totalAmount) {
+        result = currency + ' ' + totalAmount;
+    } else if (totalAmount) {
+        result = totalAmount;
+    } else {
+        result = '-';
+    }
+    // Tampilkan
+    const terbilangSpan = document.getElementById('totalTransferTerbilang');
+    if (terbilangSpan) {
+        terbilangSpan.textContent = result;
     }
 }
 

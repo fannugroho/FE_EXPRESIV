@@ -101,7 +101,7 @@
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment </h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Detail Outgoing Payment </h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
@@ -129,10 +129,10 @@
                 
                 <!-- Attachments Display Section -->
                 <div class="mt-4" id="attachmentsSection">
-                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                    <!-- <h3 class="text-lg font-semibold mb-2">Attachments</h3> -->
                     
                     <!-- File Upload Section -->
-                    <div class="mb-4 p-4 border rounded bg-blue-50">
+                    <!-- <div class="mb-4 p-4 border rounded bg-blue-50">
                         <h4 class="text-md font-medium mb-2 text-blue-800">Upload New Attachments</h4>
                         <div class="flex items-center space-x-4">
                             <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
@@ -141,13 +141,13 @@
                             <button onclick="clearAllFiles()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
                                 Clear All
                             </button>
-                        </div>
+                        </div> -->
                         
                         <!-- New Files List -->
-                        <div id="newFilesList" class="mt-3 space-y-2">
+                        <!-- <div id="newFilesList" class="mt-3 space-y-2"> -->
                             <!-- New files will be displayed here -->
-                        </div>
-                    </div>
+                        <!-- </div>
+                    </div> -->
                     
                     <!-- Existing Attachments Section -->
                     <div class="mb-4">
@@ -176,7 +176,7 @@
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
                 <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <h3 class="text-lg font-semibold mb-2"> Remittance Request Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
@@ -197,6 +197,9 @@
                     <option value="1313">1313 - Saving Account (IDR, MUFG)</option>
                     <option value="1316">1316 - Saving Account (IDR, CIMB NIAGA)</option>
                 </select>
+                
+                <!-- Hidden TrsfrSum field to prevent JavaScript errors -->
+                <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-full p-2 border rounded currency-input" style="display: none;" readonly>
             </div>
         </div>
         
@@ -207,6 +210,7 @@
                     <th id="AcctCode" class="p-2">G/L Account</th>
                     <th id="AcctName" class="p-2">Account Name</th>
                     <th id="Descrip" class="p-2">Description</th>
+                    <th id="CurrencyItem" class="p-2">Currency</th>
                     <th id="DocTotal" class="p-2">Net Amount</th>
                     <th id="thActions" class="p-2">Action</th>
                 </tr>
@@ -221,6 +225,9 @@
                     </td>
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
+                    </td>
+                    <td id="tdCurrencyItem" class="p-2 border">
+                        <input type="text" id="CurrencyItem" maxlength="10" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
@@ -250,16 +257,16 @@
             <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
         
-        <!--Total Transfer-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Transfer :</label>
-            <input type="number" id="TrsfrSum" placeholder="Total Transfer" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" autocomplete="off">
+            <label class="font-semibold">Total Transfer Terbilang :</label>
+            <span id="totalTransferTerbilang" class="w-80 p-2 border rounded bg-gray-50"></span>
         </div>
         
-        <!-- Tombol Tambah Baris -->
+        <!--
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
         </button>
+        -->
 
             <div class="mt-4">
               <label>Remarks</label>
@@ -618,6 +625,9 @@
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="description" maxlength="255" class="w-full" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" />
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />

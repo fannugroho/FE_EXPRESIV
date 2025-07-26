@@ -1,5 +1,6 @@
     // Base URL for API calls
-const BASE_URL = 'https://expressiv-be-sb.idsdev.site';
+// Remove the hardcoded BASE_URL since it's now defined in auth.js
+// const BASE_URL = 'https://expressiv-be-sb.idsdev.site';
 
 // Objek terjemahan
     const translations = {

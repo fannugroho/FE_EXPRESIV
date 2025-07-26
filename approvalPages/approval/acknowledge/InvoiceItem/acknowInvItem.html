@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acknowledge Invoice Item</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Authentication is disabled for development -->
+    <!-- <script src="../../../../js/auth.js"></script> -->
+    <script src="acknowInvItem.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Disabled button styling */
+        .btn-disabled {
+            background-color: #d1d5db !important;
+            cursor: not-allowed !important;
+            opacity: 0.6 !important;
+        }
+        .btn-disabled:hover {
+            background-color: #d1d5db !important;
+            transform: none !important;
+        }
+        
+        /* Custom scrollbar styling */
+        textarea::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Custom width for quantity column */
+        .quantity-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        .quantity-input {
+            width: 80px !important;
+            text-align: center;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        /* Custom width for price column */
+        .price-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .price-input {
+            width: 100px !important;
+            text-align: right;
+        }
+        
+        /* Custom width for line total column */
+        .line-total-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .line-total-input {
+            width: 100px !important;
+            text-align: right;
+        }
+        
+        /* Custom width for Action column */
+        .action-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        /* Custom width for Item Code column */
+        .item-code-column {
+            width: 140px !important;
+            min-width: 140px !important;
+        }
+        
+        .item-code-input {
+            width: 120px !important;
+        }
+        
+        /* Custom width for No. column */
+        .no-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        .no-input {
+            width: 50px !important;
+            text-align: center;
+        }
+        
+        /* Custom width for UoM column */
+        .uom-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        /* Custom width for Base fields columns */
+        .base-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        /* Custom width for Tax Code column */
+        .tax-code-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        /* Custom width for Discount column */
+        .discount-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        /* Custom width for Account Code column */
+        .account-code-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        /* Wider dropdown for item search */
+        .item-dropdown {
+            width: 500px !important;
+            max-width: 500px !important;
+            min-width: 500px !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 300px !important;
+            overflow-y: auto !important;
+        }
+        
+        .item-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .item-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-code {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-name {
+            color: #6b7280 !important;
+            margin-left: 8px !important;
+        }
+        
+        .item-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
+        }
+        
+        /* Custom width for Description column */
+        .description-column {
+            width: 250px !important;
+            min-width: 250px !important;
+        }
+        
+        /* Custom width for Sales Employee column */
+        .sales-employee-column {
+            width: 200px !important;
+            min-width: 200px !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity and price textarea */
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .item-price,
+        .item-line-total {
+            text-align: right !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+        
+        /* Table container with horizontal scroll for better responsiveness */
+        .table-container {
+            overflow-x: auto;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Ensure table doesn't overflow container */
+        #arInvTable {
+            min-width: 1200px;
+            table-layout: fixed;
+        }
+        
+        /* Better spacing for table cells */
+        #arInvTable th,
+        #arInvTable td {
+            padding: 8px 4px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .description-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .price-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .line-total-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+        }
+        
+        /* Form field improvements */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-field {
+            margin-bottom: 1rem;
+        }
+        
+        .form-field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        .form-field input,
+        .form-field select,
+        .form-field textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Wrap text styles for columns with long content */
+        .wrap-text {
+            white-space: normal !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            min-height: 40px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        
+        .no-wrap {
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Specific column styles for better text handling */
+        .description-column textarea,
+        .item-code-column input,
+        .quantity-column textarea,
+        .price-column textarea {
+            transition: all 0.3s ease;
+        }
+        
+        /* Auto-resize for textarea when content is long */
+        .auto-resize {
+            resize: none;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
+        <button onclick="goToMenuAcknowInvItem()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Acknowledge Invoice Item</h2>
+        <br>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
+                <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
+                
+                <h3 class="text-lg font-semibold mb-2">Invoice No.</h3>
+                <input type="text" id="DocNum" placeholder="Invoice No." class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">CardCode</h3>
+                <input type="text" id="CardCode" placeholder="Customer Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
+                <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Sales Employee</h3>
+                <input type="text" id="SalesEmployee" placeholder="Sales Employee" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Base Ref</h3>
+                <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Currency</h3>
+                <input type="text" id="DocCur" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
+                <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">GroupNum</h3>
+                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">TrnspCode</h3>
+                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
+                <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Payment Group</h3>
+                <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF1</h3>
+                <input type="text" id="U_BSI_UDF1" placeholder="UDF1" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF2</h3>
+                <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+            </div>
+        </div>
+        
+        <!-- Table for Item details -->
+        <div class="table-container">
+            <table id="arInvTable" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th class="p-2 no-column">No.</th>
+                    <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 description-column">Item Name</th>
+                    <th class="p-2 description-column">Catatan</th>
+                    <th class="p-2 sales-employee-column">Sales Employee</th>
+                    <th class="p-2 quantity-column">Sales Qty</th>
+                    <th class="p-2 quantity-column">Inv. Qty</th>
+                    <th class="p-2 uom-column" style="display: none;">UoM</th>
+                    <th class="p-2 price-column">Sales Price</th>
+                    <th class="p-2 price-column">Price</th>
+                    <th class="p-2 discount-column">Disc</th>
+                    <th class="p-2 tax-code-column">Tax Code</th>
+                    <th class="p-2 line-total-column">Total Price</th>
+                    <th class="p-2 account-code-column" style="display: none;">Account Code</th>
+                    <th class="p-2 base-column" style="display: none;">BaseType</th>
+                    <th class="p-2 base-column" style="display: none;">BaseEntry</th>
+                    <th class="p-2 base-column" style="display: none;">BaseLine</th>
+                    <th class="p-2 base-column" style="display: none;">LineType</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+        </div>
+        
+        <!-- Footer totals section -->
+        <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Before Discount :</label>
+            <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
+        </div>
+        
+        <!--Total Tax-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Tax :</label>
+            <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
+        </div>
+        
+        <!--Total Amount-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount :</label>
+            <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
+        </div>
+
+        <!-- Comments section -->
+        <div class="mt-4">
+            <label class="font-semibold">Comments</label>
+            <textarea id="comments" class="w-full p-2 border rounded-md" maxlength="254" autocomplete="off" readonly></textarea>
+        </div>
+
+        <!-- Rejection Remarks Display Section -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+            </div>
+        </div>
+
+        <!-- Approval -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off" readonly>
+                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="preparedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off" readonly>
+                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off" readonly>
+                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="checkedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off" readonly>
+                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="approvedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off" readonly>
+                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="receivedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-start space-x-4 mt-6">
+            <button onclick="rejectInvItem()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Reject
+            </button>
+            <button onclick="approveInvItem()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Acknowledge
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Function to handle text wrapping based on character length
+        function handleTextWrapping(element) {
+            const text = element.value || element.textContent || '';
+            const charLength = text.length;
+            
+            // Remove existing classes
+            element.classList.remove('wrap-text', 'no-wrap', 'auto-resize');
+            
+            if (charLength > 15) {
+                // Apply wrap text styling for long content
+                element.classList.add('wrap-text', 'auto-resize');
+                
+                // Auto-adjust height for textarea elements
+                if (element.tagName === 'TEXTAREA') {
+                    const lineHeight = 20; // Approximate line height
+                    const lines = Math.ceil(charLength / 20); // Rough estimate of lines needed
+                    const newHeight = Math.min(Math.max(40, lines * lineHeight), 80);
+                    element.style.height = newHeight + 'px';
+                }
+            } else {
+                // Apply no-wrap styling for short content
+                element.classList.add('no-wrap');
+                
+                // Reset height for textarea elements
+                if (element.tagName === 'TEXTAREA') {
+                    element.style.height = '40px';
+                }
+            }
+        }
+        
+        // Function to apply text wrapping to all relevant elements
+        function applyTextWrappingToAll() {
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
+            
+            textElements.forEach(element => {
+                handleTextWrapping(element);
+            });
+        }
+        
+        // Function to handle input events for dynamic wrapping
+        function setupTextWrapping() {
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
+            
+            textElements.forEach(element => {
+                // Apply initial wrapping
+                handleTextWrapping(element);
+            });
+        }
+        
+        // Initialize text wrapping when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTextWrapping();
+        });
+        
+        // Re-apply text wrapping when table content changes
+        function refreshTextWrapping() {
+            setTimeout(() => {
+                applyTextWrappingToAll();
+            }, 50);
+        }
+        
+        // Make the function globally available
+        window.refreshTextWrapping = refreshTextWrapping;
+    </script>
+</body>
+</html> 

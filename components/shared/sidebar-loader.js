@@ -60,6 +60,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.head.appendChild(linkElement);
         }
         
+        // Load navigation.js if not already loaded
+        if (!window.goToAddARInvoice) {
+            const scriptElement = document.createElement('script');
+            scriptElement.src = `${basePath}components/shared/navigation.js`;
+            document.head.appendChild(scriptElement);
+        }
+        
         // Fix image paths in the sidebar (Seiho.png)
         const logoImg = sidebarElement.querySelector('.sidebar-logo-container img');
         if (logoImg) {
@@ -135,7 +142,13 @@ function setActiveMenuItem() {
         'menuOPReim.html': '.submenu-btn[onclick*="goToMenuOPReim()"]',
         'dashboard-users.html': '.submenu-btn[onclick*="goToMenuUser()"]',
         'dashboard-roles.html': '.submenu-btn[onclick*="goToMenuRole()"]',
-        'register.html': '.submenu-btn[onclick*="goToMenuRegist()"]'
+        'register.html': '.submenu-btn[onclick*="goToMenuRegist()"]',
+        'menuInvoice.html': '.submenu-btn[onclick*="goToMenuInvoice()"]',
+        'addINVItem.html': '.submenu-btn[onclick*="goToAddARInvoice()"]',
+        'menuARItemCheck.html': '.submenu-btn[onclick*="goToMenuCheckInvoice()"]',
+        'menuARItemAcknow.html': '.submenu-btn[onclick*="goToMenuAcknowInvoice()"]',
+        'menuARItemApprove.html': '.submenu-btn[onclick*="goToMenuApprovInvoice()"]',
+        'menuARItemReceive.html': '.submenu-btn[onclick*="goToMenuReceiveInvoice()"]'
     };
     
     const activeSelector = menuMappings[currentPage];

@@ -28,6 +28,8 @@ function filterReimbursements(searchTerm = '', tab = 'all', searchType = 'pr') {
         filtered = filtered.filter(reim => reim.status.toLowerCase() === 'draft');
     } else if (tab === 'prepared') {
         filtered = filtered.filter(reim => reim.status.toLowerCase() === 'prepared');
+    } else if (tab === 'rejected') {
+        filtered = filtered.filter(reim => reim.status.toLowerCase() === 'rejected');
     }
     
     // Then filter by search term based on search type
@@ -80,6 +82,7 @@ function switchTab(tabName) {
     document.getElementById('allTabBtn').classList.remove('tab-active');
     document.getElementById('draftTabBtn').classList.remove('tab-active');
     document.getElementById('preparedTabBtn').classList.remove('tab-active');
+    document.getElementById('rejectedTabBtn').classList.remove('tab-active');
     
     if (tabName === 'all') {
         document.getElementById('allTabBtn').classList.add('tab-active');
@@ -87,6 +90,8 @@ function switchTab(tabName) {
         document.getElementById('draftTabBtn').classList.add('tab-active');
     } else if (tabName === 'prepared') {
         document.getElementById('preparedTabBtn').classList.add('tab-active');
+    } else if (tabName === 'rejected') {
+        document.getElementById('rejectedTabBtn').classList.add('tab-active');
     }
     
     // Filter reimbursements based on current tab and search term
@@ -195,6 +200,21 @@ function displayReimbursements(reimbursements) {
         const requesterNameClass = reim.requesterName && reim.requesterName.length > 10 ? 'scrollable-cell' : '';
         const departmentClass = reim.department && reim.department.length > 10 ? 'scrollable-cell' : '';
         
+        // Determine status styling - make rejected items red
+        let statusBadgeClass = '';
+        let statusText = reim.status;
+        
+        if (reim.status === 'Draft') {
+            statusBadgeClass = 'bg-yellow-200 text-yellow-800';
+        } else if (reim.status === 'Rejected') {
+            statusBadgeClass = 'bg-red-200 text-red-800';
+        } else if (reim.status === 'Revised') {
+            statusBadgeClass = 'bg-orange-200 text-orange-800';
+            statusText = 'Revision';
+        } else {
+            statusBadgeClass = 'bg-green-200 text-green-800';
+        }
+        
         // <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
         const row = `<tr class='border-b'>
             <td class='p-2'>${rowNumber}</td>
@@ -209,8 +229,8 @@ function displayReimbursements(reimbursements) {
             </td>
             <td class='p-2'>${formattedDate}</td>
             <td class='p-2'>
-                <span class="px-2 py-1 rounded-full text-xs ${reim.status === 'Draft' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
-                    ${reim.status === 'Revised' ? 'Revision' : reim.status}
+                <span class="px-2 py-1 rounded-full text-xs ${statusBadgeClass}">
+                    ${statusText}
                 </span>
             </td>
             <td class='p-2'>
@@ -277,6 +297,8 @@ function downloadExcel() {
         statusText = 'Draft';
     } else if (currentTab === 'prepared') {
         statusText = 'Prepared';
+    } else if (currentTab === 'rejected') {
+        statusText = 'Rejected';
     }
     
     // Buat salinan data untuk diurutkan agar tidak mengubah data asli
@@ -324,6 +346,8 @@ function downloadPDF() {
         statusText = 'Draft';
     } else if (currentTab === 'prepared') {
         statusText = 'Prepared';
+    } else if (currentTab === 'rejected') {
+        statusText = 'Rejected';
     }
     
     // Add title with current tab
@@ -399,6 +423,10 @@ function goToTotalDocs() {
 
 function goToDraftDocs() {
     switchTab('draft');
+}
+
+function goToRejectedDocs() {
+    switchTab('rejected');
 }
 
 // Navigation functions

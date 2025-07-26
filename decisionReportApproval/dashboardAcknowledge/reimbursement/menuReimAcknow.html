@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu - Kansai Paint</title>
+    <title>Dashboard Reimbursement Acknowledge - Kansai Paint</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
     <!-- Library untuk Excel -->
@@ -17,7 +17,6 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="shared-menu.css">
     <link rel="stylesheet" href="menuReimAcknow.css">
-    <!-- Navigation Script -->
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
@@ -33,53 +32,10 @@
         <div class="absolute top-4 right-4 flex items-center space-x-4">
             <!-- Notification Bell with Badge -->
             <div class="relative">
-                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
+                <button id="notificationBell" onclick="toggleNotificationPanel()" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10 hover:bg-white hover:bg-opacity-20 transition-colors">
                     <i class="fas fa-bell text-xl"></i>
-                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                    <span id="notificationBadge" class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden font-bold">0</span>
                 </button>
-                <!-- Notification Dropdown -->
-                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
-                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
-                        <i class="fas fa-bell text-blue-500 mr-2"></i>
-                        <span>Notifikasi</span>
-                    </div>
-                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
-                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 pt-1">
-                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
-                                    </span>
-                                </div>
-                                <div class="ml-3">
-                                    <div class="font-semibold">Purchase Request document</div>
-                                    <div class="text-xs text-gray-500">Requires approval</div>
-                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 pt-1">
-                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
-                                    </span>
-                                </div>
-                                <div class="ml-3">
-                                    <div class="font-semibold">Reimbursement document</div>
-                                    <div class="text-xs text-gray-500">Requires approval</div>
-                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
-                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
-                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
-                            <span>See All Notifications</span>
-                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
-                        </a>
-                    </div>
-                </div>
             </div>
         
             <!-- User Avatar + Name -->
@@ -100,94 +56,224 @@
             </h2>
     
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Total Documents</h3>
-                    <p id="totalCount" class="text-2xl font-bold text-blue-600">0</p>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center hover:shadow-xl transition-shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Total Documents</h3>
+                    <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Checked</h3>
-                    <p id="checkedCount" class="text-2xl font-bold text-yellow-600">0</p>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center hover:shadow-xl transition-shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Checked</h3>
+                    <p id="checkedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Acknowledge</h3>
-                    <p id="acknowledgeCount" class="text-2xl font-bold text-green-600">0</p>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center hover:shadow-xl transition-shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Acknowledged</h3>
+                    <p id="acknowledgedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h3 class="text-lg font-semibold">Rejected</h3>
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center hover:shadow-xl transition-shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Rejected</h3>
+                    <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                </div>
+            </div>
+
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">List Documents</h3>
+                    
+                    <!-- Search Controls -->
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <div class="flex-1 min-w-64">
+                            <input id="searchInput" type="text" placeholder="Search..." 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <select id="searchType" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="pr">Reimbursement Number</option>
+                                <option value="requester">Requester</option>
+                                <option value="date">Date</option>
+                                <option value="status">Status</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab buttons for switching views -->
+                    <div class="flex mb-4 border-b border-gray-200">
+                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-6 py-3 tab-active rounded-t-lg font-medium transition-colors">
+                            <i class="fas fa-check mr-2"></i>Checked
+                        </button>
+                        <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-6 py-3 rounded-t-lg font-medium transition-colors hover:bg-gray-100">
+                            <i class="fas fa-thumbs-up mr-2"></i>Acknowledged
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-6 py-3 rounded-t-lg font-medium transition-colors hover:bg-gray-100">
+                            <i class="fas fa-times-circle mr-2"></i>Rejected
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-sm border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="p-3 text-left font-semibold text-gray-700">No.</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Reimbursement Number</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Requester</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Department</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Submission Date</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Status</th>
+                                    <th class="p-3 text-left font-semibold text-gray-700">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentDocs" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="emptyState" class="hidden text-center py-12">
+                        <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-600 mb-2">No documents found</h3>
+                        <p class="text-gray-500">There are no documents matching your criteria.</p>
+                    </div>
+                    
+                    <!-- Pagination controls -->
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem" class="font-medium">1</span>-<span id="endItem" class="font-medium">10</span> of <span id="totalItems" class="font-medium">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage('prev')" class="pagination-btn px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-chevron-left mr-1"></i>Previous
+                            </button>
+                            <span id="currentPage" class="px-4 py-2 text-sm font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded-md">1</span>
+                            <button id="nextPage" onclick="changePage('next')" class="pagination-btn px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Next<i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-6">
+                    <div class="text-sm text-gray-500">
+                        Last updated: <span id="lastUpdated">-</span>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-all duration-200 flex items-center">
+                            <i class="fas fa-file-excel mr-2"></i>Export Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-all duration-200 flex items-center">
+                            <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-lg rounded-t-xl">
+        <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file-alt text-xl"></i>
+            <span>Total</span>
+        </button>
+        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check text-xl"></i>
+            <span>Checked</span>
+        </button>
+        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-thumbs-up text-xl"></i>
+            <span>Acknowledged</span>
+        </button>
+        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-times-circle text-xl"></i>
+            <span>Rejected</span>
+        </button>
+    </nav>
+
+    <script src="menuReimAcknow.js"></script>
+</body>
+</html>
                     <p id="rejectedCount" class="text-2xl font-bold text-red-600">0</p>
                 </div>
             </div>
 
             <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
-            <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-semibold mb-4">List Documents</h3>
-                
-                <!-- Tab buttons for switching views -->
-                <div class="flex mb-4 border-b">
-                    <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 tab-active rounded-t-lg">
-                        <i class="fas fa-check mr-2"></i>Checked
-                    </button>
-                    <button id="acknowledgeTabBtn" onclick="switchTab('acknowledge')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-thumbs-up mr-2"></i>Acknowledge
-                    </button>
-                    <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
-                        <i class="fas fa-times-circle mr-2"></i>Rejected
-                    </button>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
-                        <thead class="bg-gray-200">
-                            <tr>
-                                <th class="p-2 text-left">
-                                    <input type="checkbox" id="selectAll" />
-                                </th>
-                                <th class="p-2 text-left">Doc Number</th>
-                                <th class="p-2 text-left">Reimbursement Number</th>
-                                <th class="p-2 text-left">Requester</th>
-                                <th class="p-2 text-left">Department</th>
-                                <th class="p-2 text-left">Submission Date</th>
-                                <th class="p-2 text-left">Status</th>
-                                <th class="p-2 text-left">Tools</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentDocs"></tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination controls -->
-                <div class="flex justify-between items-center mt-4">
-                    <div class="text-sm text-gray-600">
-                        Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">List Documents</h3>
+                    
+                    <!-- Search Controls -->
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <div class="flex-1 min-w-64">
+                            <input id="searchInput" type="text" placeholder="Search..." 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <select id="searchType" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="pr">Reimbursement Number</option>
+                                <option value="requester">Requester</option>
+                                <option value="date">Date</option>
+                                <option value="status">Status</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
-                            <i class="fas fa-chevron-left"></i>
+                    
+                    <!-- Tab buttons for switching views -->
+                    <div class="flex mb-4 border-b">
+                        <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <i class="fas fa-check mr-2"></i>Checked
                         </button>
-                        <span id="currentPage" class="px-3 py-1">1</span>
-                        <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
-                            <i class="fas fa-chevron-right"></i>
+                        <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-thumbs-up mr-2"></i>Acknowledged
+                        </button>
+                        <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <i class="fas fa-times-circle mr-2"></i>Rejected
                         </button>
                     </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="p-2 text-left">No.</th>
+                                    <th class="p-2 text-left">Reimbursement Number</th>
+                                    <th class="p-2 text-left">Requester</th>
+                                    <th class="p-2 text-left">Department</th>
+                                    <th class="p-2 text-left">Submission Date</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentDocs"></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination controls -->
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage('prev')" class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentPage" class="px-3 py-1">1</span>
+                            <button id="nextPage" onclick="changePage('next')" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex justify-between mt-4">
-              <!--
-                <button onclick="goToMenuReim()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">Create Reimbursement</button>
-             -->
-                <div class="flex justify-end space-x-2">
-                    <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                    </button>
-                    <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </button>
+                <div class="flex justify-between mt-4">
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-pdf mr-2"></i>PDF
+                        </button>
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     </div>
+    
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
         <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-alt text-xl"></i>
@@ -197,9 +283,9 @@
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
         </button>
-        <button onclick="switchTab('acknowledge')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledge</span>
+            <span>Acknowledged</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-times-circle text-xl"></i>
@@ -208,6 +294,5 @@
     </nav>
 
     <script src="menuReimAcknow.js"></script>
-
 </body>
 </html>

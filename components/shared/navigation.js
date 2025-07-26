@@ -1,6 +1,7 @@
 /**
  * Navigation functions for the sidebar
  * Enhanced version with better path calculation and glitch prevention
+ * NOTE: All navigation functions work without access verification
  */
 
 // Cache for base path to prevent recalculation
@@ -13,16 +14,20 @@ function getBasePath() {
     }
     
     const currentPath = window.location.pathname;
+    console.log("Current path:", currentPath);
     const pathSegments = currentPath.split('/').filter(Boolean);
+    console.log("Path segments:", pathSegments);
     
     // Calculate relative path depth
     let basePath = '';
     const depth = pathSegments.length - 1; // -1 because we don't count the HTML file itself
+    console.log("Calculated depth:", depth);
     
     if (depth > 0) {
         basePath = '../'.repeat(depth);
     }
     
+    console.log("Calculated basePath:", basePath);
     cachedBasePath = basePath;
     return basePath;
 }
@@ -32,6 +37,10 @@ function navigateToPage(path) {
     try {
         const basePath = getBasePath();
         const fullPath = `${basePath}${path}`;
+        console.log("Navigation - Current path:", window.location.pathname);
+        console.log("Navigation - Target path:", path);
+        console.log("Navigation - Base path:", basePath);
+        console.log("Navigation - Full path:", fullPath);
         
         // Add loading indicator
         const sidebar = document.getElementById('sidebar');
@@ -56,12 +65,12 @@ if (typeof window !== 'undefined') {
     window.navigateToPage = navigateToPage;
 }
 
-// Main Dashboard
+// Main Dashboard - No access verification required
 function goToMenu() {
     navigateToPage('pages/dashboard.html');
 }
 
-// Purchase Request Navigation
+// Purchase Request Navigation - No access verification required
 function goToMenuPR() {
     navigateToPage('pages/menuPR.html');
 }
@@ -86,7 +95,7 @@ function goToMenuRevisionPR() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html');
 }
 
-// Reimbursement Navigation
+// Reimbursement Navigation - No access verification required
 function goToAddReim() {
     navigateToPage('addPages/addReim.html');
 }
@@ -115,7 +124,7 @@ function goToMenuRevisionReim() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html');
 }
 
-// Outgoing Payment Reimbursement Navigation
+// Outgoing Payment Reimbursement Navigation - No access verification required
 function goToMenuOPReim() {
     navigateToPage('pages/menuOPReim.html');
 }
@@ -136,7 +145,7 @@ function goToMenuReceiveOPReim() {
     navigateToPage('approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html');
 }
 
-// Cash Advance Navigation
+// Cash Advance Navigation - No access verification required
 function goToMenuCash() {
     navigateToPage('pages/menuCash.html');
 }
@@ -165,7 +174,7 @@ function goToMenuCloseCash() {
     navigateToPage('approvalPages/dashboard/dashboardClose/cashAdvance/menuCloser.html');
 }
 
-// Settlement Navigation
+// Settlement Navigation - No access verification required
 function goToMenuSettle() {
     navigateToPage('pages/menuSettle.html');
 }
@@ -190,7 +199,7 @@ function goToMenuRevisionSettle() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/settlement/menuSettleRevision.html');
 }
 
-// Decision Report Navigation
+// Decision Report Navigation - No access verification required
 function goToMenuAPR() {
     navigateToPage('decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html');
 }
@@ -206,11 +215,40 @@ function goToMenuBanking() {
 }
 
 function goToMenuInvoice() {
-    // Placeholder - Update with correct path
-    alert('AR Invoice Approval page is not yet implemented');
+    navigateToPage('pages/menuInvoice.html');
 }
 
-// Admin Navigation
+function goToAddARInvoice() {
+    navigateToPage('pages/menuInvoice.html');
+}
+
+function goToMenuCheckInvoice() {
+    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
+}
+
+function goToMenuAcknowInvoice() {
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html');
+}
+
+function goToMenuApprovInvoice() {
+    navigateToPage('approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html');
+}
+
+function goToMenuReceiveInvoice() {
+    navigateToPage('approvalPages/dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html');
+}
+
+function goToAddInvoice() {
+    // Placeholder - Update with correct path when addInvoice.html is created
+    alert('Add Invoice page is not yet implemented');
+}
+
+function goToInvoiceList() {
+    // Placeholder - Update with correct path when invoiceList.html is created
+    alert('Invoice List page is not yet implemented');
+}
+
+// Admin Navigation - No access verification required
 function goToMenuRegist() {
     navigateToPage('pages/register.html');
 }
@@ -223,7 +261,7 @@ function goToMenuRole() {
     navigateToPage('pages/dashboard-roles.html');
 }
 
-// Profile and Logout
+// Profile and Logout - No access verification required
 function goToProfile() {
     navigateToPage('pages/profil.html');
 }
@@ -236,7 +274,6 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
-    localStorage.removeItem("hasOutgoingPaymentAccess");
     
     // Clear cached base path
     cachedBasePath = null;
@@ -290,6 +327,13 @@ if (typeof window !== 'undefined') {
     window.goToMenuPO = goToMenuPO;
     window.goToMenuBanking = goToMenuBanking;
     window.goToMenuInvoice = goToMenuInvoice;
+    window.goToAddARInvoice = goToAddARInvoice;
+    window.goToMenuCheckInvoice = goToMenuCheckInvoice;
+    window.goToMenuAcknowInvoice = goToMenuAcknowInvoice;
+    window.goToMenuApprovInvoice = goToMenuApprovInvoice;
+    window.goToMenuReceiveInvoice = goToMenuReceiveInvoice;
+    window.goToAddInvoice = goToAddInvoice;
+    window.goToInvoiceList = goToInvoiceList;
     window.goToMenuRegist = goToMenuRegist;
     window.goToMenuUser = goToMenuUser;
     window.goToMenuRole = goToMenuRole;

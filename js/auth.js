@@ -1,12 +1,17 @@
 // Authentication utilities for handling JWT tokens and API calls
 
+// Development mode - set to true to bypass authentication for development
+const BYPASS_AUTH_FOR_DEVELOPMENT = true;
+// Make it globally accessible
+window.BYPASS_AUTH_FOR_DEVELOPMENT = BYPASS_AUTH_FOR_DEVELOPMENT;
+
 // API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
     // Production environment
     var BASE_URL = "https://expressiv-be-sb.idsdev.site";
     
     // Development environment (uncomment for local development)
-    // var BASE_URL = "http://localhost:5246";
+    // var BASE_URL = "http://localhost:5249";
     
     // Staging environment (uncomment for staging)
     // var BASE_URL = "https://expressiv.idsdev.site";
@@ -26,6 +31,12 @@ function getRefreshToken() {
 
 // Helper function to check if user is authenticated
 function isAuthenticated() {
+  // Bypass authentication for development
+  if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+    console.log('Development mode: Bypassing authentication check');
+    return true;
+  }
+  
   const token = getAccessToken();
   if (!token) return false;
   
@@ -407,6 +418,9 @@ const PAGE_PERMISSIONS = {
   // 'addPR.html': ['PREPARE_PR'],
   // 'detailPR.html': ['PREPARE_PR'],
   
+  // Invoice pages
+ //menuInvoice.html': ['VIEW_INVOICE'], // Add permission for invoice menu
+  
   // You can add more page mappings here
   // 'addCash.html': ['PREPARE_CASH_ADVANCE'],
   // 'detailCash.html': ['PREPARE_CASH_ADVANCE'],
@@ -541,31 +555,43 @@ function pageNeedsProtection() {
 
 // Immediate permission check (runs before page is visible)
 async function immediatePermissionCheck() {
+  console.log('=== immediatePermissionCheck called ===');
+  console.log('Current page:', getCurrentPageName());
+  console.log('Page needs protection:', pageNeedsProtection());
+  
   // If page doesn't need protection, show it immediately
   if (!pageNeedsProtection()) {
+    console.log('Page does not need protection, showing content immediately');
     showPageContent();
     return;
   }
 
+  console.log('Page needs protection, checking authentication and permissions');
+  
   // Hide page content and show loading for protected pages
   hidePageContent();
   showLoadingScreen();
 
   // Check authentication first
   if (!checkAuthOnPageLoad()) {
+    console.log('Authentication check failed, hiding loading screen');
     hideLoadingScreen();
     return; // Will redirect to login
   }
 
   try {
+    console.log('Authentication passed, loading permissions');
     // Load permissions
     await loadUserPermissions();
     
+    console.log('Permissions loaded, checking page permissions');
     // Check page permissions
     if (checkPagePermissions()) {
+      console.log('Page permissions check passed, showing content');
       hideLoadingScreen();
       showPageContent();
     } else {
+      console.log('Page permissions check failed, redirecting to access denied');
       hideLoadingScreen();
       // checkPagePermissions will handle the redirect
     }

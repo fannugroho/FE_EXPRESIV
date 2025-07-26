@@ -1486,7 +1486,7 @@ async function fetchAndDisplayNotes() {
             return;
         }
 
-        const apiUrl = `https://expressiv-be-sb.idsdev.site/api/document-notes?userId=${currentUserId}&type=PR`;
+        const apiUrl = `${BASE_URL}/api/document-notes?userId=${currentUserId}&type=PR`;
         console.log(`Fetching notes from: ${apiUrl}`);
 
         const response = await fetch(apiUrl);
