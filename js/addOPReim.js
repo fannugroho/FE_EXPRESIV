@@ -2449,6 +2449,24 @@ async function submitDocument(isSubmit = false) {
             });
         });
         
+        // Get next serial number and update DocNum field before form submission
+        if (isSubmit) {
+            console.log('Getting next serial number for DocNum...');
+            const nextSerialNumber = await fetchNextSerialNumber();
+            if (nextSerialNumber) {
+                const docNumInput = document.getElementById('DocNum');
+                if (docNumInput) {
+                    docNumInput.value = 'VCR/' + nextSerialNumber;
+                    console.log('Updated DocNum field with next serial number:', 'VCR/' + nextSerialNumber);
+                } else {
+                    console.error('DocNum input field not found');
+                }
+            } else {
+                console.error('Failed to get next serial number');
+                throw new Error('Failed to generate document number. Please try again.');
+            }
+        }
+        
         // Collect form data
         const formData = collectFormData(userId, isSubmit);
         
@@ -4429,7 +4447,12 @@ async function uploadAdditionalAttachments() {
 // Function to fetch the last serial number for Outgoing Payment (for display only)
 async function fetchAndSetLastSerialNumber() {
     try {
-        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/last`, {
+        // Get current year and month for the API endpoint
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed, so add 1
+        
+        const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/last/${year}/${month}`, {
             method: 'GET',
             headers: {
                 'accept': '*/*'
@@ -4438,9 +4461,25 @@ async function fetchAndSetLastSerialNumber() {
         if (response.ok) {
             const data = await response.json();
             if (data.serialNumber) {
-                const docNumInput = document.getElementById('DocNum');
-                if (docNumInput) {
-                    docNumInput.value = 'VCR/' + data.serialNumber;
+                // Increment the numeric part before the slash
+                const parts = data.serialNumber.split('/');
+                if (parts.length === 2) {
+                    let num = parseInt(parts[0], 10);
+                    if (!isNaN(num)) {
+                        num = num + 1;
+                        const paddedNum = num.toString().padStart(parts[0].length, '0');
+                        const nextSerial = `${paddedNum}/${parts[1]}`;
+                        const docNumInput = document.getElementById('DocNum');
+                        if (docNumInput) {
+                            docNumInput.value = 'VCR/' + nextSerial;
+                        }
+                    }
+                } else {
+                    // fallback: just show VCR/ + original
+                    const docNumInput = document.getElementById('DocNum');
+                    if (docNumInput) {
+                        docNumInput.value = 'VCR/' + data.serialNumber;
+                    }
                 }
             }
         } else {
@@ -4458,7 +4497,8 @@ async function fetchNextSerialNumber() {
             method: 'POST',
             headers: {
                 'accept': '*/*'
-            }
+            },
+            body: ''
         });
         if (response.ok) {
             const data = await response.json();
