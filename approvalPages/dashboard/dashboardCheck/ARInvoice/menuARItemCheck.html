@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard AR Invoice Check - Kansai Paint Expressiv System</title>
+    <title>Dashboard AR Invoice Check</title>
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -15,10 +15,10 @@
     <!-- Library untuk PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <!-- Shared Menu CSS for sidebar style -->
+    <link rel="stylesheet" href="../../dashboardCheck/shared-menu.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../shared-menu.css">
     <link rel="stylesheet" href="menuARItemCheck.css">
-    <!-- Navigation Script -->
     
     <style>
         /* Scrollable cell styles */
@@ -152,7 +152,7 @@
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <th class="p-2 text-left">No.</th>
+                                    <th class="p-2 text-left">No</th>
                                     <th class="p-2 text-left">Invoice No.</th>
                                     <th class="p-2 text-left">Customer</th>
                                     <th class="p-2 text-left">Sales Employee</th>
@@ -231,6 +231,7 @@
     <script src="../../../../js/auth.js"></script>
     <!-- Shared Components -->
     <script src="../../../../components/shared/sidebar-loader.js"></script>
+    <script src="../../../../components/shared/sidebar-compatibility.js"></script>
     <script src="../../../../components/shared/navigation.js"></script>
     <script src="menuARItemCheck.js"></script>
     

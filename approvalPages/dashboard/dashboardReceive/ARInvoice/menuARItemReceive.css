@@ -185,6 +185,7 @@
 }
 
 /* Sidebar styles */
+/*
 #sidebar {
     width: 280px;
     min-height: 100vh;
@@ -205,7 +206,6 @@
     }
 }
 
-/* User profile styles */
 .user-profile {
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -221,6 +221,7 @@
     border-color: rgba(255, 255, 255, 0.6);
     transform: scale(1.05);
 }
+*/
 
 /* Notification styles */
 #notificationBell {

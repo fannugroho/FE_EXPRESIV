@@ -338,7 +338,8 @@
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
         <button onclick="goToMenuARInv()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add AR Invoice</h2>
+        <h2 id="pageTitle" class="text-2xl font-bold text-center text-blue-900 mb-4">Add AR Invoice</h2>
+        <p class="text-center text-gray-600 mb-4">All fields are optional. You can submit the document with empty fields.</p>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -358,15 +359,20 @@
                 </div>
 
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
-                <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Sales Employee</h3>
+                <input type="text" id="SalesEmployee" placeholder="Sales Employee" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="Draft">
                 
                 <h3 class="text-lg font-semibold mb-2">base ref</h3>
                 <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
                 <select id="DocCur" class="w-full p-2 border rounded bg-white" autocomplete="off">
-                    <option value="" disabled selected>Select Currency</option>
-                    <option value="IDR">IDR</option>
+                    <option value="IDR" selected>IDR</option>
                     <option value="USD">USD</option>
                     <option value="SGD">SGD</option>
                     <option value="EUR">EUR</option>
@@ -452,19 +458,19 @@
                         <textarea class="w-full item-sales-employee bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
                     </td>
                     <td class="p-2 border h-12 quantity-column">
-                        <textarea class="quantity-input item-sls-qty bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
+                        <textarea class="quantity-input item-sls-qty bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
                     </td>
                     <td class="p-2 border h-12 quantity-column">
-                        <textarea class="quantity-input item-quantity bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
+                        <textarea class="quantity-input item-quantity bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
                     </td>
                     <td class="p-2 border uom-column" style="display: none;">
                         <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" autocomplete="off" disabled />
                     </td>
                     <td class="p-2 border h-12 price-column">
-                        <textarea class="price-input item-sls-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
+                        <textarea class="price-input item-sls-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
                     </td>
                     <td class="p-2 border h-12 price-column">
-                        <textarea class="price-input item-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
+                        <textarea class="price-input item-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
                     </td>
                     <td class="p-2 border discount-column">
                         <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
@@ -473,7 +479,7 @@
                         <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
                     </td>
                     <td class="p-2 border h-12 line-total-column">
-                        <textarea class="line-total-input item-line-total bg-white overflow-x-auto whitespace-nowrap" maxlength="15" required style="resize: none; height: 40px; text-align: right;" autocomplete="off" disabled></textarea>
+                        <textarea class="line-total-input item-line-total bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" disabled></textarea>
                     </td>
                     <td class="p-2 border account-code-column" style="display: none;">
                         <input type="text" class="w-full p-2 border rounded" maxlength="15" autocomplete="off" />
@@ -590,7 +596,7 @@
                 Save
             </button>
             <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Submit
+                <span id="submitButtonText">Submit</span>
             </button>
         </div>
     </div>

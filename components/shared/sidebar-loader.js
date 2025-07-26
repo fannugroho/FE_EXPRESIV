@@ -142,7 +142,13 @@ function setActiveMenuItem() {
         'menuOPReim.html': '.submenu-btn[onclick*="goToMenuOPReim()"]',
         'dashboard-users.html': '.submenu-btn[onclick*="goToMenuUser()"]',
         'dashboard-roles.html': '.submenu-btn[onclick*="goToMenuRole()"]',
-        'register.html': '.submenu-btn[onclick*="goToMenuRegist()"]'
+        'register.html': '.submenu-btn[onclick*="goToMenuRegist()"]',
+        'menuInvoice.html': '.submenu-btn[onclick*="goToMenuInvoice()"]',
+        'addINVItem.html': '.submenu-btn[onclick*="goToAddARInvoice()"]',
+        'menuARItemCheck.html': '.submenu-btn[onclick*="goToMenuCheckInvoice()"]',
+        'menuARItemAcknow.html': '.submenu-btn[onclick*="goToMenuAcknowInvoice()"]',
+        'menuARItemApprove.html': '.submenu-btn[onclick*="goToMenuApprovInvoice()"]',
+        'menuARItemReceive.html': '.submenu-btn[onclick*="goToMenuReceiveInvoice()"]'
     };
     
     const activeSelector = menuMappings[currentPage];

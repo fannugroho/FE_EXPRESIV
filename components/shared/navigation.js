@@ -1,6 +1,7 @@
 /**
  * Navigation functions for the sidebar
  * Enhanced version with better path calculation and glitch prevention
+ * NOTE: All navigation functions work without access verification
  */
 
 // Cache for base path to prevent recalculation
@@ -64,12 +65,12 @@ if (typeof window !== 'undefined') {
     window.navigateToPage = navigateToPage;
 }
 
-// Main Dashboard
+// Main Dashboard - No access verification required
 function goToMenu() {
     navigateToPage('pages/dashboard.html');
 }
 
-// Purchase Request Navigation
+// Purchase Request Navigation - No access verification required
 function goToMenuPR() {
     navigateToPage('pages/menuPR.html');
 }
@@ -94,7 +95,7 @@ function goToMenuRevisionPR() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/purchaseRequest/menuPRRevision.html');
 }
 
-// Reimbursement Navigation
+// Reimbursement Navigation - No access verification required
 function goToAddReim() {
     navigateToPage('addPages/addReim.html');
 }
@@ -123,7 +124,7 @@ function goToMenuRevisionReim() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/reimbursement/menuReimRevision.html');
 }
 
-// Outgoing Payment Reimbursement Navigation
+// Outgoing Payment Reimbursement Navigation - No access verification required
 function goToMenuOPReim() {
     navigateToPage('pages/menuOPReim.html');
 }
@@ -144,7 +145,7 @@ function goToMenuReceiveOPReim() {
     navigateToPage('approvalPages/dashboard/dashboardReceive/OPReim/menuOPReimReceive.html');
 }
 
-// Cash Advance Navigation
+// Cash Advance Navigation - No access verification required
 function goToMenuCash() {
     navigateToPage('pages/menuCash.html');
 }
@@ -173,7 +174,7 @@ function goToMenuCloseCash() {
     navigateToPage('approvalPages/dashboard/dashboardClose/cashAdvance/menuCloser.html');
 }
 
-// Settlement Navigation
+// Settlement Navigation - No access verification required
 function goToMenuSettle() {
     navigateToPage('pages/menuSettle.html');
 }
@@ -198,7 +199,7 @@ function goToMenuRevisionSettle() {
     navigateToPage('approvalPages/dashboard/dashboardRevision/settlement/menuSettleRevision.html');
 }
 
-// Decision Report Navigation
+// Decision Report Navigation - No access verification required
 function goToMenuAPR() {
     navigateToPage('decisionReportApproval/dashboardApprove/purchaseRequest/menuPRApprove.html');
 }
@@ -218,40 +219,23 @@ function goToMenuInvoice() {
 }
 
 function goToAddARInvoice() {
-    console.log("goToAddARInvoice called");
-    try {
-        // Set a flag in localStorage to indicate we're trying to navigate to menuInvoice
-        localStorage.setItem("navigatingToInvoice", "true");
-        
-        // Use standard navigation
-        navigateToPage('pages/menuInvoice.html');
-    } catch (error) {
-        console.error("Error in goToAddARInvoice:", error);
-        // Fallback to direct navigation
-        const basePath = getBasePath();
-        window.location.href = `${basePath}pages/menuInvoice.html`;
-    }
+    navigateToPage('pages/menuInvoice.html');
 }
 
 function goToMenuCheckInvoice() {
-    navigateToPage('approvalPages/approval/check/invoiceItem/checkInvItem.html');
+    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
 }
 
 function goToMenuAcknowInvoice() {
-    navigateToPage('approvalPages/approval/acknowledge/InvoiceItem/acknowInvItem.html');
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html');
 }
 
 function goToMenuApprovInvoice() {
-    navigateToPage('approvalPages/approval/approve/invoiceItem/approveInvItem.html');
+    navigateToPage('approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html');
 }
 
 function goToMenuReceiveInvoice() {
-    navigateToPage('approvalPages/approval/receive/invoiceItem/receiveInvItem.html');
-}
-
-function goToMenuRevisionInvoice() {
-    // Placeholder - Update with correct path when revision invoice page is created
-    alert('Invoice Revision page is not yet implemented');
+    navigateToPage('approvalPages/dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html');
 }
 
 function goToAddInvoice() {
@@ -264,7 +248,7 @@ function goToInvoiceList() {
     alert('Invoice List page is not yet implemented');
 }
 
-// Admin Navigation
+// Admin Navigation - No access verification required
 function goToMenuRegist() {
     navigateToPage('pages/register.html');
 }
@@ -277,7 +261,7 @@ function goToMenuRole() {
     navigateToPage('pages/dashboard-roles.html');
 }
 
-// Profile and Logout
+// Profile and Logout - No access verification required
 function goToProfile() {
     navigateToPage('pages/profil.html');
 }
@@ -290,7 +274,6 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
-    localStorage.removeItem("hasOutgoingPaymentAccess");
     
     // Clear cached base path
     cachedBasePath = null;
@@ -349,7 +332,6 @@ if (typeof window !== 'undefined') {
     window.goToMenuAcknowInvoice = goToMenuAcknowInvoice;
     window.goToMenuApprovInvoice = goToMenuApprovInvoice;
     window.goToMenuReceiveInvoice = goToMenuReceiveInvoice;
-    window.goToMenuRevisionInvoice = goToMenuRevisionInvoice;
     window.goToAddInvoice = goToAddInvoice;
     window.goToInvoiceList = goToInvoiceList;
     window.goToMenuRegist = goToMenuRegist;

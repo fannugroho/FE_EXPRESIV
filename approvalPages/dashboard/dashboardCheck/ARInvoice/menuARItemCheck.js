@@ -10,24 +10,11 @@ const itemsPerPage = 10;
 // API Base URL is defined in auth.js - using that instead of redeclaring
 // const BASE_URL = 'http://localhost:5000'; // Update with your actual API base URL
 
-// ========================================
-// DEVELOPMENT MODE: AUTHENTICATION BYPASSED
-// ========================================
-// Authentication has been temporarily disabled for development purposes.
-// 
-// To re-enable authentication:
-// 1. Comment out the dummy user data section (lines 28-58)
-// 2. Uncomment the original authentication check (lines 60-75)
-// 3. Remove or comment out the isAuthenticated override (lines 12-18)
-// ========================================
-
-// Override authentication check for development
+// Authentication check - using original authentication
 if (typeof isAuthenticated === 'function') {
-    const originalIsAuthenticated = isAuthenticated;
-    window.isAuthenticated = function() {
-        console.log('Development mode: Authentication check bypassed');
-        return true;
-    };
+    if (!isAuthenticated()) {
+        window.location.href = '../../../../pages/login.html';
+    }
 }
 
 // Load dashboard when page is ready
@@ -73,29 +60,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to load user data
 function loadUserData() {
-    // DEVELOPMENT MODE: Bypass authentication check
-    console.log('Development mode: Bypassing authentication check');
-    
-    // Set dummy user data for development
-    const dummyUserData = {
-        name: 'Development User',
-        avatar: '../../../../image/profil.png'
-    };
-    
-    // Display user name and avatar
     try {
-        if (dummyUserData.name) {
+        // Get user data from authentication token
+        const userData = getCurrentUser();
+        
+        if (userData && userData.username) {
             const userNameDisplay = document.getElementById('userNameDisplay');
             if (userNameDisplay) {
-                userNameDisplay.textContent = dummyUserData.name;
+                userNameDisplay.textContent = userData.username;
             }
         }
         
-        if (dummyUserData.avatar) {
-            const dashboardUserIcon = document.getElementById('dashboardUserIcon');
-            if (dashboardUserIcon) {
-                dashboardUserIcon.src = dummyUserData.avatar;
-            }
+        // Set default avatar
+        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+        if (dashboardUserIcon) {
+            dashboardUserIcon.src = '../../../../image/profil.png';
         }
         
         // Show user profile section
@@ -104,14 +83,19 @@ function loadUserData() {
             userProfile.style.display = 'flex';
         }
     } catch (error) {
-        console.log('Development mode: Error setting user display elements:', error);
+        console.error('Error loading user data:', error);
     }
 }
 
-// Helper function to get user ID (for development mode)
+// Helper function to get user ID
 function getUserId() {
-    // For development, return a dummy user ID
-    return 'dev-user-001';
+    try {
+        const userData = getCurrentUser();
+        return userData ? userData.userId : null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
 }
 
 async function loadDashboard() {
@@ -123,164 +107,168 @@ async function loadDashboard() {
             return;
         }
 
-        // Build base URL and params
-        let baseUrl;
-        const params = new URLSearchParams();
-        params.append('CheckerId', userId);
-        params.append('CheckerRole', 'checked');
-        
-        // Build URL based on current tab
-        if (currentTab === 'prepared') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/check`;
-            params.append('isChecked', 'false');
-        } else if (currentTab === 'checked') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/check`;
-            params.append('isChecked', 'true');
-        } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/rejected`;
-        }
-        
-        // Add search parameters if available
-        if (currentSearchTerm) {
-            switch (currentSearchType) {
-                case 'invoice':
-                    params.append('invoiceNo', currentSearchTerm);
-                    break;
-                case 'customer':
-                    params.append('customerName', currentSearchTerm);
-                    break;
-                case 'status':
-                    params.append('status', currentSearchTerm);
-                    break;
-                case 'date':
-                    // For date search, try to parse and use date range
-                    const dateValue = new Date(currentSearchTerm);
-                    if (!isNaN(dateValue.getTime())) {
-                        params.append('invoiceDateFrom', dateValue.toISOString().split('T')[0]);
-                        params.append('invoiceDateTo', dateValue.toISOString().split('T')[0]);
-                    }
-                    break;
-            }
-        }
-        
-        const url = `${baseUrl}?${params.toString()}`;
-        console.log('Fetching data from:', url);
+        // Build API URL for AR Invoices
+        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        console.log('Fetching data from:', apiUrl);
 
-        // For development, use mock data
-        const mockData = getMockInvoiceData();
-        allInvoices = mockData;
-        filteredInvoices = mockData;
-        
-        // Update counters and table
-        updateCounters();
-        updateTable(filteredInvoices);
-        
-        // In production, uncomment this:
-        /*
-        const response = await fetch(url, {
+        // Make API call
+        console.log('Making API call to:', apiUrl);
+        const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
+                'Accept': 'text/plain'
             }
         });
 
+        console.log('API Response status:', response.status);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        allInvoices = data.invoices || [];
-        filteredInvoices = allInvoices;
+        const result = await response.json();
+        console.log('API Response data:', result);
         
-        // Update counters and table
-        updateCounters();
-        updateTable(filteredInvoices);
-        */
+        if (result.status && result.data) {
+            console.log('Transforming API data...');
+            // Transform API data to match our expected format
+            allInvoices = result.data.map(invoice => {
+                // Map docType to display type
+                let displayType = 'Regular';
+                if (invoice.docType === 'I') {
+                    displayType = 'Item';
+                } else if (invoice.docType === 'S') {
+                    displayType = 'Services';
+                }
+                
+                const transformedInvoice = {
+                    id: invoice.stagingID,
+                    invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
+                    customerName: invoice.cardName,
+                    salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
+                    invoiceDate: invoice.docDate,
+                    dueDate: invoice.docDueDate,
+                    status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
+                    totalAmount: invoice.docTotal,
+                    invoiceType: displayType,
+                    // Additional fields from API
+                    cardCode: invoice.cardCode,
+                    address: invoice.address,
+                    comments: invoice.comments,
+                    preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
+                    currency: invoice.docCur,
+                    vatSum: invoice.vatSum,
+                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    createdAt: invoice.createdAt,
+                    updatedAt: invoice.updatedAt,
+                    approvalSummary: invoice.arInvoiceApprovalSummary,
+                    docType: invoice.docType // Keep original docType for reference
+                };
+                console.log('Transformed invoice:', transformedInvoice);
+                return transformedInvoice;
+            });
+            
+            // Filter based on current tab
+            filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
+            
+            // Apply search filter if any
+            if (currentSearchTerm) {
+                filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
+            }
+            
+            // Update counters and table
+            updateCounters();
+            updateTable(filteredInvoices);
+        } else {
+            console.error('API returned error:', result.message);
+            allInvoices = [];
+            filteredInvoices = [];
+            updateCounters();
+            updateTable([]);
+        }
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Error loading dashboard data. Please try again.');
+        
+        // Show empty state when API fails
+        allInvoices = [];
+        filteredInvoices = [];
+        updateCounters();
+        updateTable([]);
     }
 }
 
-// Mock data for development
-function getMockInvoiceData() {
-    const mockInvoices = [
-        {
-            id: 1,
-            invoiceNo: 'INV-2024-001',
-            customerName: 'PT Maju Bersama',
-            salesEmployee: 'John Doe',
-            invoiceDate: '2024-01-15',
-            dueDate: '2024-02-15',
-            status: 'prepared',
-            totalAmount: 15000000,
-            invoiceType: 'Regular'
-        },
-        {
-            id: 2,
-            invoiceNo: 'INV-2024-002',
-            customerName: 'CV Sukses Mandiri',
-            salesEmployee: 'Jane Smith',
-            invoiceDate: '2024-01-16',
-            dueDate: '2024-02-16',
-            status: 'checked',
-            totalAmount: 25000000,
-            invoiceType: 'Regular'
-        },
-        {
-            id: 3,
-            invoiceNo: 'INV-2024-003',
-            customerName: 'PT Global Trading',
-            salesEmployee: 'Mike Johnson',
-            invoiceDate: '2024-01-17',
-            dueDate: '2024-02-17',
-            status: 'rejected',
-            totalAmount: 18000000,
-            invoiceType: 'Regular'
-        },
-        {
-            id: 4,
-            invoiceNo: 'INV-2024-004',
-            customerName: 'PT Sejahtera Abadi',
-            salesEmployee: 'Sarah Wilson',
-            invoiceDate: '2024-01-18',
-            dueDate: '2024-02-18',
-            status: 'prepared',
-            totalAmount: 12000000,
-            invoiceType: 'Regular'
-        },
-        {
-            id: 5,
-            invoiceNo: 'INV-2024-005',
-            customerName: 'CV Berkah Jaya',
-            salesEmployee: 'David Brown',
-            invoiceDate: '2024-01-19',
-            dueDate: '2024-02-19',
-            status: 'checked',
-            totalAmount: 30000000,
-            invoiceType: 'Regular'
-        }
-    ];
-    
-    // Filter based on current tab
-    if (currentTab === 'prepared') {
-        return mockInvoices.filter(inv => inv.status === 'prepared');
-    } else if (currentTab === 'checked') {
-        return mockInvoices.filter(inv => inv.status === 'checked');
-    } else if (currentTab === 'rejected') {
-        return mockInvoices.filter(inv => inv.status === 'rejected');
+// Helper function to determine invoice status based on approval data
+function getInvoiceStatus(invoice) {
+    // Default to prepared if no approval data
+    if (!invoice.arInvoiceApprovalSummary) {
+        return 'prepared';
     }
     
-    return mockInvoices;
+    // You can implement logic here to determine status based on approval data
+    // For now, we'll use a simple logic based on the approval summary
+    const approval = invoice.arInvoiceApprovalSummary;
+    
+    // Check if there's any rejection
+    if (approval && (approval.isRejected || approval.status === 'rejected')) {
+        return 'rejected';
+    }
+    
+    // Check if it's been checked/approved
+    if (approval && (approval.isChecked || approval.status === 'checked' || approval.status === 'approved')) {
+        return 'checked';
+    }
+    
+    // Default to prepared
+    return 'prepared';
 }
+
+// Helper function to filter invoices by tab
+function filterInvoicesByTab(invoices, tab) {
+    switch (tab) {
+        case 'prepared':
+            return invoices.filter(inv => inv.status === 'prepared');
+        case 'checked':
+            return invoices.filter(inv => inv.status === 'checked');
+        case 'rejected':
+            return invoices.filter(inv => inv.status === 'rejected');
+        default:
+            return invoices;
+    }
+}
+
+// Helper function to apply search filter
+function applySearchFilter(invoices, searchTerm, searchType) {
+    if (!searchTerm) return invoices;
+    
+    const term = searchTerm.toLowerCase();
+    
+    return invoices.filter(invoice => {
+        switch (searchType) {
+            case 'invoice':
+                return invoice.invoiceNo.toLowerCase().includes(term);
+            case 'customer':
+                return invoice.customerName.toLowerCase().includes(term);
+            case 'date':
+                return invoice.invoiceDate.includes(term);
+            case 'status':
+                return invoice.status.toLowerCase().includes(term);
+            default:
+                return invoice.invoiceNo.toLowerCase().includes(term) ||
+                       invoice.customerName.toLowerCase().includes(term);
+        }
+    });
+}
+
+
 
 async function updateCounters() {
     try {
         const userId = getUserId();
         
-        // For development, calculate from mock data
+        // Calculate from actual data
         const totalCount = allInvoices.length;
         const preparedCount = allInvoices.filter(inv => inv.status === 'prepared').length;
         const checkedCount = allInvoices.filter(inv => inv.status === 'checked').length;
@@ -291,23 +279,6 @@ async function updateCounters() {
         document.getElementById('preparedCount').textContent = preparedCount;
         document.getElementById('checkedCount').textContent = checkedCount;
         document.getElementById('rejectedCount').textContent = rejectedCount;
-        
-        // In production, uncomment this:
-        /*
-        const response = await fetch(`${BASE_URL}/api/invoice/dashboard/counters?CheckerId=${userId}`, {
-            headers: {
-                'Authorization': `Bearer ${getAccessToken()}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            document.getElementById('totalCount').textContent = data.total || 0;
-            document.getElementById('preparedCount').textContent = data.prepared || 0;
-            document.getElementById('checkedCount').textContent = data.checked || 0;
-            document.getElementById('rejectedCount').textContent = data.rejected || 0;
-        }
-        */
         
     } catch (error) {
         console.error('Error updating counters:', error);
@@ -387,17 +358,7 @@ function updateTable(invoices) {
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
         cellTools.innerHTML = `
-            <div class="flex space-x-1">
-                <button onclick="viewInvoiceDetails(${invoice.id})" class="tool-btn tool-btn-view">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button onclick="editInvoice(${invoice.id})" class="tool-btn tool-btn-edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button onclick="printInvoice(${invoice.id})" class="tool-btn tool-btn-print">
-                    <i class="fas fa-print"></i>
-                </button>
-            </div>
+            <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
     
@@ -574,7 +535,7 @@ window.downloadExcel = async function() {
     try {
         const workbook = XLSX.utils.book_new();
         
-        // Prepare data for export
+        // Prepare data for export with additional API fields
         const exportData = filteredInvoices.map(invoice => ({
             'Invoice No.': invoice.invoiceNo,
             'Customer': invoice.customerName,
@@ -583,7 +544,17 @@ window.downloadExcel = async function() {
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
             'Total (IDR)': invoice.totalAmount,
-            'Type': invoice.invoiceType
+            'Type': invoice.invoiceType,
+            'Doc Type': invoice.docType || '',
+            'Customer Code': invoice.cardCode,
+            'Address': invoice.address,
+            'Prepared By NIK': invoice.preparedByNIK,
+            'Currency': invoice.currency,
+            'VAT Sum': invoice.vatSum,
+            'Comments': invoice.comments,
+            'Is Transfered': invoice.isTransfered,
+            'Created At': formatDate(invoice.createdAt),
+            'Updated At': formatDate(invoice.updatedAt)
         }));
         
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -614,7 +585,7 @@ window.downloadPDF = async function() {
         doc.text(`Generated on: ${new Date().toLocaleDateString('id-ID')}`, 14, 30);
         doc.text(`Status: ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`, 14, 40);
         
-        // Prepare table data
+        // Prepare table data with additional API fields
         const tableData = filteredInvoices.map(invoice => [
             invoice.invoiceNo,
             invoice.customerName,
@@ -632,8 +603,8 @@ window.downloadPDF = async function() {
             body: tableData,
             startY: 50,
             styles: {
-                fontSize: 8,
-                cellPadding: 2
+                fontSize: 7,
+                cellPadding: 1
             },
             headStyles: {
                 fillColor: [66, 153, 225],
