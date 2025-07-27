@@ -139,6 +139,175 @@
             min-width: 120px !important;
         }
         
+        /* Custom width for Description column */
+        .description-column {
+            width: 250px !important;
+            min-width: 250px !important;
+        }
+        
+        /* Custom width for Sales Employee column */
+        .sales-employee-column {
+            width: 200px !important;
+            min-width: 200px !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity and price textarea */
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .item-price,
+        .item-line-total {
+            text-align: right !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+        
+        /* Table container with horizontal scroll for better responsiveness */
+        .table-container {
+            overflow-x: auto;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Ensure table doesn't overflow container */
+        #arInvTable {
+            min-width: 1200px;
+            table-layout: fixed;
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Sticky header for better UX */
+        #arInvTable thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f3f4f6;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Better spacing for table cells */
+        #arInvTable th,
+        #arInvTable td {
+            padding: 8px 4px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle !important;
+        }
+        
+        /* Ensure textarea content is properly displayed */
+        .table-container textarea {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-family: inherit;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        /* Text alignment for different column types */
+        /* No. column - center aligned */
+        .no-column input {
+            text-align: center !important;
+        }
+        
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
+        .description-column textarea {
+            text-align: left !important;
+        }
+        
+        /* UoM column - center aligned */
+        .sales-employee-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+        }
+        
         /* Wider dropdown for item search */
         .item-dropdown {
             width: 500px !important;
@@ -155,6 +324,27 @@
         }
         
         .item-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .item-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-code {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        
+        .item-dropdown .dropdown-item .item-name {
+            color: #6b7280 !important;
+            margin-left: 8px !important;
+        }
+        
+                .item-dropdown .dropdown-item {
             padding: 10px 12px !important;
             border-bottom: 1px solid #e5e7eb !important;
             font-size: 14px !important;
@@ -230,6 +420,63 @@
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Sticky header for better UX */
+        #arInvTable thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f3f4f6;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         /* Ensure table doesn't overflow container */
@@ -245,6 +492,71 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            vertical-align: middle !important;
+        }
+        
+        /* Ensure textarea content is properly displayed */
+        .table-container textarea {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-family: inherit;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        /* Text alignment for different column types */
+        /* No. column - center aligned */
+        .no-column input {
+            text-align: center !important;
+        }
+        
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
+        .description-column textarea {
+            text-align: left !important;
+        }
+        
+        /* UoM column - center aligned */
+        .sales-employee-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Text wrapping styles */
+        .wrap-text {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+        
+        .no-wrap {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        
+        .auto-resize {
+            min-height: 40px !important;
+            max-height: 80px !important;
         }
         
         /* Responsive adjustments */
@@ -422,7 +734,7 @@
                     <th class="p-2 item-code-column">Item Code</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 description-column">Catatan</th>
-                    <th class="p-2 sales-employee-column">Sales Employee</th>
+                    <th class="p-2 sales-employee-column">UoM</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
@@ -440,66 +752,7 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr>
-                    <td class="p-2 border no-column">
-                        <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="0" disabled autocomplete="off" />
-                    </td>
-                    <td class="p-2 border relative item-code-column">
-                        <input type="text" class="item-input item-code-input p-2 border rounded" autocomplete="off" />
-                        <div class="item-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto"></div>
-                    </td>
-                    <td class="p-2 border description-column">
-                        <textarea class="w-full item-description bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
-                    </td>
-                    <td class="p-2 border description-column">
-                        <textarea class="w-full item-free-txt bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
-                    </td>
-                    <td class="p-2 border sales-employee-column">
-                        <textarea class="w-full item-sales-employee bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
-                    </td>
-                    <td class="p-2 border h-12 quantity-column">
-                        <textarea class="quantity-input item-sls-qty bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
-                    </td>
-                    <td class="p-2 border h-12 quantity-column">
-                        <textarea class="quantity-input item-quantity bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
-                    </td>
-                    <td class="p-2 border uom-column" style="display: none;">
-                        <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" autocomplete="off" disabled />
-                    </td>
-                    <td class="p-2 border h-12 price-column">
-                        <textarea class="price-input item-sls-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
-                    </td>
-                    <td class="p-2 border h-12 price-column">
-                        <textarea class="price-input item-price bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" oninput="validatePrice(this)"></textarea>
-                    </td>
-                    <td class="p-2 border discount-column">
-                        <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
-                    </td>
-                    <td class="p-2 border tax-code-column">
-                        <input type="text" class="w-full p-2 border rounded" maxlength="8" autocomplete="off" />
-                    </td>
-                    <td class="p-2 border h-12 line-total-column">
-                        <textarea class="line-total-input item-line-total bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" autocomplete="off" disabled></textarea>
-                    </td>
-                    <td class="p-2 border account-code-column" style="display: none;">
-                        <input type="text" class="w-full p-2 border rounded" maxlength="15" autocomplete="off" />
-                    </td>
-                    <td class="p-2 border base-column" style="display: none;">
-                        <input type="number" class="w-full p-2 border rounded bg-gray-100" value="0" disabled autocomplete="off" />
-                    </td>
-                    <td class="p-2 border base-column" style="display: none;">
-                        <input type="number" class="w-full p-2 border rounded bg-gray-100" value="0" disabled autocomplete="off" />
-                    </td>
-                    <td class="p-2 border base-column" style="display: none;">
-                        <input type="number" class="w-full p-2 border rounded bg-gray-100" value="0" disabled autocomplete="off" />
-                    </td>
-                    <td class="p-2 border base-column" style="display: none;">
-                        <input type="number" class="w-full p-2 border rounded bg-gray-100" value="0" disabled autocomplete="off" />
-                    </td>
-                    <td class="p-2 border text-center action-column">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
-                    </td>
-                </tr>
+                <!-- Table rows will be populated by JavaScript -->
             </tbody>
         </table>
         </div>

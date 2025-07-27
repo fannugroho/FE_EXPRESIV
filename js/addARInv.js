@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', function() {
     loadItems();
     loadUsers();
     setupEventListeners();
+    
+    // Add initial row if not in edit mode
+    if (!isEditMode) {
+        addRow();
+    }
+    
     calculateTotals();
     
     // Apply text wrapping after page initialization
@@ -736,7 +742,7 @@ function addRow() {
     const rowIndex = tableBody.children.length;
     
     newRow.innerHTML = `
-        <td class="p-2 border item-code-column">
+        <td class="p-2 border no-column">
             <input type="number" class="line-num-input p-2 border rounded bg-gray-100" value="${rowIndex}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border relative item-code-column">
@@ -748,6 +754,9 @@ function addRow() {
         </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-free-txt bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
+        </td>
+        <td class="p-2 border sales-employee-column">
+            <textarea class="w-full item-sales-employee bg-white resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" autocomplete="off"></textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-white overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" autocomplete="off" oninput="validateQuantity(this)"></textarea>
@@ -1066,18 +1075,31 @@ function collectFormData(isSubmit) {
     const rows = document.querySelectorAll('#tableBody tr');
     
     rows.forEach((row, index) => {
-        const itemCode = row.querySelector('.item-input').value;
-        const itemName = row.querySelector('.item-description').value;
-        const freeText = row.querySelector('.item-free-txt').value;
-        const salesEmployee = row.querySelector('.item-sales-employee').value;
-        const salesQuantity = parseFloat(row.querySelector('.item-sls-qty').value) || 0;
-        const inventoryQuantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
-        const unitMsr = row.querySelector('td:nth-child(7) input').value || 'PCS'; // UoM column (hidden)
-        const salesPrice = parseFloat(row.querySelector('.item-sls-price').value) || 0;
-        const price = parseFloat(row.querySelector('.item-price').value) || 0;
-        const discount = row.querySelector('td:nth-child(10) input').value || "";
-        const taxCode = row.querySelector('td:nth-child(11) input').value || "";
-        const lineTotal = parseFloat(row.querySelector('.item-line-total').value) || 0;
+        const itemCodeElement = row.querySelector('.item-input');
+        const itemNameElement = row.querySelector('.item-description');
+        const freeTextElement = row.querySelector('.item-free-txt');
+        const salesEmployeeElement = row.querySelector('.item-sales-employee');
+        const salesQuantityElement = row.querySelector('.item-sls-qty');
+        const inventoryQuantityElement = row.querySelector('.item-quantity');
+        const unitMsrElement = row.querySelector('td:nth-child(7) input');
+        const salesPriceElement = row.querySelector('.item-sls-price');
+        const priceElement = row.querySelector('.item-price');
+        const discountElement = row.querySelector('td:nth-child(10) input');
+        const taxCodeElement = row.querySelector('td:nth-child(11) input');
+        const lineTotalElement = row.querySelector('.item-line-total');
+        
+        const itemCode = itemCodeElement ? itemCodeElement.value : "";
+        const itemName = itemNameElement ? itemNameElement.value : "";
+        const freeText = freeTextElement ? freeTextElement.value : "";
+        const salesEmployee = salesEmployeeElement ? salesEmployeeElement.value : "";
+        const salesQuantity = salesQuantityElement ? parseFloat(salesQuantityElement.value) || 0 : 0;
+        const inventoryQuantity = inventoryQuantityElement ? parseFloat(inventoryQuantityElement.value) || 0 : 0;
+        const unitMsr = unitMsrElement ? unitMsrElement.value || 'PCS' : 'PCS';
+        const salesPrice = salesPriceElement ? parseFloat(salesPriceElement.value) || 0 : 0;
+        const price = priceElement ? parseFloat(priceElement.value) || 0 : 0;
+        const discount = discountElement ? discountElement.value || "" : "";
+        const taxCode = taxCodeElement ? taxCodeElement.value || "" : "";
+        const lineTotal = lineTotalElement ? parseFloat(lineTotalElement.value) || 0 : 0;
         
         // Include all rows, even if they have empty values
         // Previously only included rows with itemCode, inventoryQuantity, and price
