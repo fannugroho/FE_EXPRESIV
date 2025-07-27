@@ -387,20 +387,7 @@ function updateTable(invoices) {
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
         cellTools.innerHTML = `
-            <div class="flex space-x-1">
-                <button onclick="viewInvoiceDetails(${invoice.id})" class="tool-btn tool-btn-view">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button onclick="acknowledgeInvoice(${invoice.id})" class="tool-btn tool-btn-edit">
-                    <i class="fas fa-check"></i>
-                </button>
-                <button onclick="rejectInvoice(${invoice.id})" class="tool-btn tool-btn-delete">
-                    <i class="fas fa-times"></i>
-                </button>
-                <button onclick="printInvoice(${invoice.id})" class="tool-btn tool-btn-print">
-                    <i class="fas fa-print"></i>
-                </button>
-            </div>
+            <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
     

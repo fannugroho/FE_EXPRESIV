@@ -367,20 +367,6 @@ function updateTable(invoices) {
                     <button onclick="viewInvoiceDetails(${invoice.id})" class="tool-btn tool-btn-view">
                         <i class="fas fa-eye"></i>
                     </button>
-                    ${invoice.status === 'acknowledge' ? `
-                        <button onclick="approveInvoice(${invoice.id})" class="tool-btn tool-btn-approve">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button onclick="rejectInvoice(${invoice.id})" class="tool-btn tool-btn-reject">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    ` : ''}
-                    <button onclick="editInvoice(${invoice.id})" class="tool-btn tool-btn-edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="printInvoice(${invoice.id})" class="tool-btn tool-btn-print">
-                        <i class="fas fa-print"></i>
-                    </button>
                 </div>
             </td>
         `;

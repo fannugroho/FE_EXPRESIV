@@ -274,19 +274,7 @@ function updateTable(invoices) {
             <td class="p-2">${invoice.invoiceType}</td>
             <td class="p-2 scrollable-cell">${invoice.remarks || '-'}</td>
             <td class="p-2">
-                <div class="flex space-x-1">
-                    <button onclick="viewInvoiceDetails(${invoice.id})" class="text-blue-600 hover:text-blue-800" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${currentTab === 'approved' ? `
-                        <button onclick="receiveInvoice(${invoice.id})" class="text-green-600 hover:text-green-800" title="Receive">
-                            <i class="fas fa-truck-loading"></i>
-                        </button>
-                    ` : ''}
-                    <button onclick="printInvoice(${invoice.id})" class="text-gray-600 hover:text-gray-800" title="Print">
-                        <i class="fas fa-print"></i>
-                    </button>
-                </div>
+                <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
         `;
         

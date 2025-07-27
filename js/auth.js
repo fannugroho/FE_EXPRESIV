@@ -2,6 +2,8 @@
 
 // Development mode - set to true to bypass authentication for development
 const BYPASS_AUTH_FOR_DEVELOPMENT = true;
+// Make it globally accessible
+window.BYPASS_AUTH_FOR_DEVELOPMENT = BYPASS_AUTH_FOR_DEVELOPMENT;
 
 // API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
@@ -206,34 +208,6 @@ function isChangePasswordPage() {
 
 // Function to check authentication on page load
 function checkAuthOnPageLoad() {
-  // Check if we're navigating to menuInvoice.html
-  const navigatingToInvoice = localStorage.getItem("navigatingToInvoice") === "true";
-  if (navigatingToInvoice) {
-    console.log('Navigation to menuInvoice detected, clearing flag');
-    localStorage.removeItem("navigatingToInvoice");
-    
-    // If we're on login.html but already authenticated, go directly to menuInvoice.html
-    if (isLoginPage() && isAuthenticated()) {
-      console.log('Already authenticated, redirecting directly to menuInvoice.html');
-      const currentPath = window.location.pathname;
-      const pathSegments = currentPath.split('/').filter(segment => segment !== '');
-      
-      // Calculate the relative path to menuInvoice.html
-      let relativePath = '';
-      if (pathSegments.length === 0) {
-        relativePath = 'pages/menuInvoice.html';
-      } else if (pathSegments.length === 1 && pathSegments[0] === 'pages') {
-        relativePath = 'menuInvoice.html';
-      } else {
-        const goBack = '../'.repeat(pathSegments.length);
-        relativePath = goBack + 'pages/menuInvoice.html';
-      }
-      
-      window.location.href = relativePath;
-      return false;
-    }
-  }
-  
   // Skip authentication check for login page
   if (isLoginPage()) {
     console.log('Login page detected, skipping auth check');
@@ -444,6 +418,9 @@ const PAGE_PERMISSIONS = {
   // 'addPR.html': ['PREPARE_PR'],
   // 'detailPR.html': ['PREPARE_PR'],
   
+  // Invoice pages
+ //menuInvoice.html': ['VIEW_INVOICE'], // Add permission for invoice menu
+  
   // You can add more page mappings here
   // 'addCash.html': ['PREPARE_CASH_ADVANCE'],
   // 'detailCash.html': ['PREPARE_CASH_ADVANCE'],
@@ -578,31 +555,43 @@ function pageNeedsProtection() {
 
 // Immediate permission check (runs before page is visible)
 async function immediatePermissionCheck() {
+  console.log('=== immediatePermissionCheck called ===');
+  console.log('Current page:', getCurrentPageName());
+  console.log('Page needs protection:', pageNeedsProtection());
+  
   // If page doesn't need protection, show it immediately
   if (!pageNeedsProtection()) {
+    console.log('Page does not need protection, showing content immediately');
     showPageContent();
     return;
   }
 
+  console.log('Page needs protection, checking authentication and permissions');
+  
   // Hide page content and show loading for protected pages
   hidePageContent();
   showLoadingScreen();
 
   // Check authentication first
   if (!checkAuthOnPageLoad()) {
+    console.log('Authentication check failed, hiding loading screen');
     hideLoadingScreen();
     return; // Will redirect to login
   }
 
   try {
+    console.log('Authentication passed, loading permissions');
     // Load permissions
     await loadUserPermissions();
     
+    console.log('Permissions loaded, checking page permissions');
     // Check page permissions
     if (checkPagePermissions()) {
+      console.log('Page permissions check passed, showing content');
       hideLoadingScreen();
       showPageContent();
     } else {
+      console.log('Page permissions check failed, redirecting to access denied');
       hideLoadingScreen();
       // checkPagePermissions will handle the redirect
     }
