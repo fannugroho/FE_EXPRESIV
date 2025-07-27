@@ -234,7 +234,7 @@
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
-                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded currency-input-idr" value="0.00" readonly>
+                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded currency-input-idr" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -290,7 +290,7 @@
                     </td>
                     <td id="tdCurrencyItem" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="CurrencyItem" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
+                            <input type="text" id="CurrencyItem" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" />
                             <div id="CurrencyItemDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
                         </div>
                     </td>
@@ -404,6 +404,9 @@
             <div class="flex space-x-4">
                 <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Submit
+                </button>
+                <button onclick="submitDocumentSimple(true)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Test Submit
                 </button>
             </div>
         </div>
@@ -520,10 +523,11 @@
         // Function to parse currency string back to number
         function parseCurrencyValue(value) {
             if (!value) return 0;
-            // Handle US format (thousand separator: ',', decimal separator: '.')
-            // Remove commas (thousand separators) and keep dots as decimal separators
+            // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
+            // Replace dots (thousand separators) with nothing and commas (decimal separators) with dots
             const numericValue = value.toString()
-                .replace(/,/g, ''); // Remove thousand separators (commas)
+                .replace(/\./g, '') // Remove thousand separators (dots)
+                .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
             
             return parseFloat(numericValue) || 0;
         }
@@ -686,7 +690,7 @@
                     <input type="text" id="description" maxlength="255" class="w-full" />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" value="IDR" placeholder="IDR" />
+                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" />
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
@@ -699,12 +703,6 @@
             `;
             
             tableBody.appendChild(newRow);
-            
-            // Ensure the new currency item field has default value
-            const newCurrencyItemInput = newRow.querySelector('input[id="CurrencyItem"]');
-            if (newCurrencyItemInput && (!newCurrencyItemInput.value || newCurrencyItemInput.value.trim() === '')) {
-                newCurrencyItemInput.value = 'IDR';
-            }
         }
 
         // Function to delete a row from the table
@@ -729,14 +727,6 @@
                     input.addEventListener('input', function() {
                         formatCurrencyInputIDR(this);
                     });
-                }
-            });
-            
-            // Initialize currency item fields with default value
-            const currencyItemInputs = document.querySelectorAll('input[id="CurrencyItem"]');
-            currencyItemInputs.forEach(input => {
-                if (!input.value || input.value.trim() === '') {
-                    input.value = 'IDR';
                 }
             });
             

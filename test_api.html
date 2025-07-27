@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <h1>Test Staging Outgoing Payments API</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            try {
+                const testData = {
+                    stagingID: `OP_${Date.now()}_test`,
+                    cardName: "Test Vendor",
+                    docCurr: "IDR",
+                    diffCurr: "IDR", 
+                    counterRef: "REF001",
+                    remittanceRequestAmount: 100000,
+                    docDate: new Date().toISOString(),
+                    docDueDate: new Date(Date.now() + 86400000).toISOString(), // +1 day
+                    taxDate: new Date().toISOString(),
+                    requesterName: "Test User",
+                    docNum: Math.floor(Math.random() * 1000000),
+                    comments: "Test comment",
+                    jrnlMemo: "Test memo",
+                    remarks: "Test remarks",
+                    doctype: "A",
+                    isInterfaced: false,
+                    type: "REIMBURSEMENT"
+                };
+
+                console.log('Sending data:', testData);
+
+                const response = await fetch('/api/staging-outgoing-payments/headers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.text();
+                console.log('Response:', result);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Response Status: ${response.status}</h3>
+                    <pre>${result}</pre>
+                `;
+
+                if (response.ok) {
+                    alert('Success!');
+                } else {
+                    alert('Error: ' + response.status);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<h3>Error: ${error.message}</h3>`;
+            }
+        }
+    </script>
+</body>
+</html>

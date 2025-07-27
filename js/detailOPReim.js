@@ -4,6 +4,9 @@ let documentData = null;
 
 // Function to map API response data to form fields
 function mapResponseToForm(data) {
+    console.log('🔄 Mapping API Response to Form Fields...');
+    console.log('📊 Data received:', data);
+
     documentData = data;
     // Helper to safely set value
     const setValue = (id, value) => {
@@ -11,6 +14,15 @@ function mapResponseToForm(data) {
         if (el) el.value = value;
     };
     // Map header fields
+    console.log('📝 Header Fields Mapping:');
+    console.log('- CounterRef:', data.counterRef);
+    console.log('- RequesterName:', data.requesterName);
+    console.log('- CardName:', data.cardName);
+    console.log('- Address:', data.address);
+    console.log('- DocNum:', data.counterRef);
+    console.log('- JrnlMemo:', data.jrnlMemo);
+    console.log('- DocCurr:', data.docCurr);
+
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
@@ -21,6 +33,17 @@ function mapResponseToForm(data) {
     // TypeOfTransaction field removed
     setValue('TrsfrAcct', data.trsfrAcct || '');
     setValue('TrsfrSum', formatCurrencyWithTwoDecimals(data.trsfrSum || 0));
+
+    console.log('💰 RemittanceRequestAmount Mapping:');
+    console.log('- Raw value from API (uppercase R):', data.RemittanceRequestAmount);
+    console.log('- Raw value from API (lowercase r):', data.remittanceRequestAmount);
+
+    // Try both field names (uppercase and lowercase)
+    const remittanceAmount = data.RemittanceRequestAmount || data.remittanceRequestAmount || 0;
+    console.log('- Final value used:', remittanceAmount);
+    console.log('- Formatted value:', formatCurrencyWithTwoDecimals(remittanceAmount));
+
+    setValue('RemittanceRequestAmount', formatCurrencyWithTwoDecimals(remittanceAmount));
     // Map date fields
     if (data.docDate) {
         const docDate = new Date(data.docDate);
@@ -38,23 +61,52 @@ function mapResponseToForm(data) {
         const trsfrDate = new Date(data.trsfrDate);
         setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
-    // Calculate totals from lines
+    // Calculate totals from lines grouped by currency
+    console.log('📊 Lines Data:', data.lines);
+
     let netTotal = 0;
     let totalAmountDue = 0;
+    let currencySummary = {};
+
     if (data.lines && data.lines.length > 0) {
-        data.lines.forEach(line => {
-            netTotal += line.sumApplied || 0;
-            totalAmountDue += line.sumApplied || 0;
+        data.lines.forEach((line, index) => {
+            console.log(`📋 Line ${index}:`, line);
+            const amount = line.sumApplied || 0;
+            const currency = line.CurrencyItem || line.currencyItem || 'IDR';
+
+            netTotal += amount;
+            totalAmountDue += amount;
+
+            // Group by currency
+            if (!currencySummary[currency]) {
+                currencySummary[currency] = 0;
+            }
+            currencySummary[currency] += amount;
         });
     }
+
+    console.log('💰 Totals Calculation:');
+    console.log('- Net Total:', netTotal);
+    console.log('- Total Amount Due:', totalAmountDue);
+    console.log('- Currency Summary:', currencySummary);
+
     // Map totals
     setValue('netTotal', formatCurrencyIDR(netTotal));
     setValue('totalTax', formatCurrencyIDR(0)); // Not available in response
     setValue('totalAmountDue', formatCurrencyIDR(totalAmountDue));
+
+    // Display currency summary
+    displayCurrencySummary(currencySummary);
+
+    // Update total outstanding transfers dengan currency summary
+    updateTotalOutstandingTransfers(currencySummary);
+
     // Map remarks
     setValue('remarks', data.remarks || '');
     setValue('journalRemarks', data.journalRemarks || '');
     // Map approval data
+    console.log('👥 Approval Data:', data.approval);
+
     if (data.approval) {
         mapApprovalData(data.approval);
         // Show/hide rejection remarks based on status
@@ -74,12 +126,18 @@ function mapResponseToForm(data) {
         displayApprovalStatus({ approvalStatus: 'Prepared' });
     }
     // Map table lines
+    console.log('📋 Populating Table Lines...');
     if (data.lines && data.lines.length > 0) {
         populateTableLines(data.lines);
+    } else {
+        console.log('⚠️ No lines data found');
     }
 
     // Display Print Out Reimbursement document
+    console.log('🖨️ Displaying Print Out Reimbursement...');
     displayPrintOutReimbursement(data);
+
+    console.log('✅ Form mapping completed successfully!');
 }
 
 // Function to map approval data
@@ -168,45 +226,146 @@ function populateTableLines(lines) {
 
     lines.forEach((line, index) => {
         const row = document.createElement('tr');
+        const amount = line.sumApplied || 0;
+
         row.innerHTML = `
             <td class="p-2">${line.acctCode || ''}</td>
             <td class="p-2">${line.acctName || ''}</td>
             <td class="p-2">${line.descrip || ''}</td>
             <td class="p-2">${line.CurrencyItem || line.currencyItem || ''}</td>
-            <td class="p-2 text-right">${formatCurrencyIDR(line.sumApplied || 0)}</td>
+            <td class="p-2 text-right">${formatCurrencyWithTwoDecimals(amount)}</td>
         `;
         tableBody.appendChild(row);
     });
-    // Update total transfer terbilang setelah render
-    updateTotalTransferTerbilang(lines);
 }
 
-// Tambahkan fungsi updateTotalTransferTerbilang
-function updateTotalTransferTerbilang(lines) {
-    let currency = '';
-    if (Array.isArray(lines) && lines.length > 0 && (lines[0].CurrencyItem || lines[0].currencyItem)) {
-        currency = lines[0].CurrencyItem || lines[0].currencyItem;
+// Function to display currency summary
+function displayCurrencySummary(currencySummary) {
+    const container = document.getElementById('currencySummaryTable');
+    if (!container) {
+        console.warn('Currency summary container not found');
+        return;
     }
-    // Ambil total amount
-    const totalAmountDueInput = document.getElementById('totalAmountDue');
-    let totalAmount = '';
-    if (totalAmountDueInput) {
-        totalAmount = totalAmountDueInput.value;
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No amounts to display</p>';
+        return;
     }
-    // Gabungkan
-    let result = '';
-    if (currency && totalAmount) {
-        result = currency + ' ' + totalAmount;
-    } else if (totalAmount) {
-        result = totalAmount;
-    } else {
-        result = '-';
+
+    let html = '<div class="space-y-1">';
+    html += '<div class="text-sm font-semibold text-gray-700 mb-2">Total Amount Due by Currency:</div>';
+
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        const formattedAmount = formatCurrencyWithTwoDecimals(amount);
+        html += `
+            <div class="flex justify-between items-center">
+                <span class="font-medium">${currency}:</span>
+                <span class="text-right font-mono">${formattedAmount}</span>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to update total outstanding transfers with English number words per currency
+function updateTotalOutstandingTransfers(currencySummary) {
+    const container = document.getElementById('totalOutstandingTransfers');
+    if (!container) {
+        console.warn('Total outstanding transfers container not found');
+        return;
     }
-    // Tampilkan
-    const terbilangSpan = document.getElementById('totalTransferTerbilang');
-    if (terbilangSpan) {
-        terbilangSpan.textContent = result;
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.textContent = 'No outstanding transfers';
+        return;
     }
+
+    let html = '<div class="space-y-2">';
+
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        if (amount > 0) {
+            const numberInWords = numberToWords(amount);
+            html += `
+                <div class="border-b border-gray-200 pb-2 last:border-b-0">
+                    <div class="font-semibold text-gray-700">${currency}:</div>
+                    <div class="text-sm text-gray-600 font-mono">${numberInWords}</div>
+                </div>
+            `;
+        }
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to convert number to English words
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+    function convertLessThanOneThousand(n) {
+        if (n === 0) return '';
+
+        if (n < 10) return ones[n];
+        if (n < 20) return teens[n - 10];
+        if (n < 100) {
+            return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+        }
+        if (n < 1000) {
+            return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+        }
+    }
+
+    function convert(n) {
+        if (n === 0) return 'Zero';
+
+        const trillion = Math.floor(n / 1000000000000);
+        const billion = Math.floor((n % 1000000000000) / 1000000000);
+        const million = Math.floor((n % 1000000000) / 1000000);
+        const thousand = Math.floor((n % 1000000) / 1000);
+        const remainder = n % 1000;
+
+        let result = '';
+
+        if (trillion) {
+            result += convertLessThanOneThousand(trillion) + ' Trillion';
+        }
+
+        if (billion) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(billion) + ' Billion';
+        }
+
+        if (million) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(million) + ' Million';
+        }
+
+        if (thousand) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(thousand) + ' Thousand';
+        }
+
+        if (remainder) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(remainder);
+        }
+
+        return result;
+    }
+
+    // Handle decimal part
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
+
+    let result = convert(integerPart);
+
+    if (decimalPart > 0) {
+        result += ' and ' + convert(decimalPart) + ' Cents';
+    }
+
+    return result;
 }
 
 // Function to get file icon based on file extension
@@ -706,6 +865,8 @@ async function loadDocumentData() {
             });
 
             // Fetch document data from API
+            console.log('🌐 API Request:', `GET /api/staging-outgoing-payments/headers/${docId}`);
+
             const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
                 method: 'GET',
                 headers: {
@@ -713,11 +874,24 @@ async function loadDocumentData() {
                 }
             });
 
+            console.log('📡 Response Status:', response.status, response.statusText);
+
             if (!response.ok) {
                 throw new Error(`Failed to load document: ${response.status}`);
             }
 
             const result = await response.json();
+
+            console.log('📋 FULL API RESPONSE:');
+            console.log('====================');
+            console.log(JSON.stringify(result, null, 2));
+            console.log('====================');
+
+            console.log('🔍 Key Fields Check:');
+            console.log('- RemittanceRequestAmount:', result.RemittanceRequestAmount);
+            console.log('- CardName:', result.cardName);
+            console.log('- Lines count:', result.lines ? result.lines.length : 0);
+            console.log('- Approval status:', result.approval ? result.approval.approvalStatus : 'N/A');
 
             if (result) {
                 // Map response data to form
@@ -1282,4 +1456,7 @@ window.constructFileUrl = constructFileUrl;
 window.displayApprovalStatus = displayApprovalStatus;
 window.loadReimbursementAttachments = loadReimbursementAttachments;
 window.displayReimbursementAttachments = displayReimbursementAttachments;
-window.viewReimbursementAttachment = viewReimbursementAttachment; 
+window.viewReimbursementAttachment = viewReimbursementAttachment;
+window.displayCurrencySummary = displayCurrencySummary;
+window.updateTotalOutstandingTransfers = updateTotalOutstandingTransfers;
+window.numberToWords = numberToWords; 

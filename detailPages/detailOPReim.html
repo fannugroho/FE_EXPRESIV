@@ -98,6 +98,45 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        
+        /* Currency summary styling */
+        #currencySummaryTable {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 200px;
+        }
+        
+        #currencySummaryTable .space-y-1 > div {
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        #currencySummaryTable .space-y-1 > div:last-child {
+            border-bottom: none;
+        }
+        
+        #totalOutstandingTransfers {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        
+        #totalOutstandingTransfers .space-y-2 > div {
+            padding: 8px 0;
+        }
+        
+        #totalOutstandingTransfers .font-semibold {
+            color: #374151;
+            font-weight: 600;
+        }
+        
+        #totalOutstandingTransfers .text-sm {
+            font-size: 13px;
+            color: #4B5563;
+        }
     </style>
 </head>
 
@@ -174,6 +213,9 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
                 <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
+                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded bg-gray-100" readonly>
             </div>
         </div>
         
@@ -205,15 +247,16 @@
             <input type="text" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly value="0.00">
         </div>
          <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount Due :</label>
-            <input type="text" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+        <!-- Hidden Total Amount Due for internal calculation -->
+        <input type="hidden" id="totalAmountDue" value="0">
+        
+        <div class="mt-4 flex justify-end space-x-2 items-start">
+            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
         </div>
         
-        <!--Total Transfer-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Transfer Terbilang :</label>
-            <span id="totalTransferTerbilang" class="w-80 p-2 border rounded bg-gray-50"></span>
+            <label class="font-semibold">Total Outstanding Transfers :</label>
+            <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
         </div>
 
         <div class="mt-4">

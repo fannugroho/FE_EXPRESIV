@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test GL Account Dropdown</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="p-8 bg-gray-100">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-6">Test GL Account & Account Name Dropdown</h1>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">G/L Account (COA)</label>
+                <div class="relative">
+                    <input type="text" id="AcctCode" class="w-full p-2 border rounded search-input" 
+                           placeholder="Type to search COA..." 
+                           autocomplete="off" 
+                           onkeyup="searchGLAccount(this)" 
+                           onfocus="showGLAccountDropdown(this)" />
+                    <div id="AcctCodeDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+                <div class="relative">
+                    <input type="text" id="AcctName" class="w-full p-2 border rounded search-input" 
+                           placeholder="Type to search Account Name..." 
+                           autocomplete="off" 
+                           onkeyup="searchAccountName(this)" 
+                           onfocus="showAccountNameDropdown(this)" />
+                    <div id="AcctNameDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 p-4 bg-blue-50 rounded">
+            <h3 class="font-medium text-blue-800">Instructions:</h3>
+            <ul class="text-sm text-blue-700 mt-2">
+                <li>• Type in G/L Account field to search by COA</li>
+                <li>• Type in Account Name field to search by account name</li>
+                <li>• Selecting from dropdown should auto-fill the other field</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // Base URL from auth.js
+        const BASE_URL = window.BASE_URL || 'http://localhost:5249';
+        
+        // Simple auth request function for testing
+        async function makeAuthenticatedRequest(url, options = {}) {
+            const token = localStorage.getItem('accessToken');
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            return fetch(BASE_URL + url, {
+                ...options,
+                headers
+            });
+        }
+        
+        // GL Account Search Functions
+        async function searchGLAccount(input) {
+            console.log('searchGLAccount called with:', input.value);
+            const searchTerm = input.value.trim();
+            const dropdown = document.getElementById('AcctCodeDropdown');
+            
+            if (searchTerm.length < 1) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            try {
+                console.log('Making API call for COA search:', searchTerm);
+                const response = await makeAuthenticatedRequest(`/api/expenses/search?coa=${encodeURIComponent(searchTerm)}&page=1&pageSize=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.warn('Failed to fetch GL Account data:', response.status);
+                    dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error loading data</div>';
+                    dropdown.classList.remove('hidden');
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('GL Account search result:', result);
+                displayGLAccountDropdown(result.data || [], dropdown, input);
+                
+            } catch (error) {
+                console.error('Error searching GL Account:', error);
+                dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error: ' + error.message + '</div>';
+                dropdown.classList.remove('hidden');
+            }
+        }
+
+        async function searchAccountName(input) {
+            console.log('searchAccountName called with:', input.value);
+            const searchTerm = input.value.trim();
+            const dropdown = document.getElementById('AcctNameDropdown');
+            
+            if (searchTerm.length < 1) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            try {
+                console.log('Making API call for Account Name search:', searchTerm);
+                const response = await makeAuthenticatedRequest(`/api/expenses/search?accountName=${encodeURIComponent(searchTerm)}&page=1&pageSize=20`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.warn('Failed to fetch Account Name data:', response.status);
+                    dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error loading data</div>';
+                    dropdown.classList.remove('hidden');
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('Account Name search result:', result);
+                displayAccountNameDropdown(result.data || [], dropdown, input);
+                
+            } catch (error) {
+                console.error('Error searching Account Name:', error);
+                dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error: ' + error.message + '</div>';
+                dropdown.classList.remove('hidden');
+            }
+        }
+
+        function displayGLAccountDropdown(glAccounts, dropdown, input) {
+            dropdown.innerHTML = '';
+            
+            if (!glAccounts || glAccounts.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item text-gray-500">No GL Accounts found</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            
+            // Remove duplicates based on COA
+            const uniqueAccounts = glAccounts.filter((account, index, self) => 
+                index === self.findIndex(a => a.coa === account.coa)
+            );
+            
+            uniqueAccounts.forEach(account => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item cursor-pointer hover:bg-gray-100 p-2 border-b';
+                item.innerHTML = `
+                    <div class="font-medium">${account.coa}</div>
+                    <div class="text-sm text-gray-600">${account.accountName}</div>
+                `;
+                item.onclick = () => selectGLAccount(account, input, dropdown);
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        function displayAccountNameDropdown(accounts, dropdown, input) {
+            dropdown.innerHTML = '';
+            
+            if (!accounts || accounts.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item text-gray-500">No Account Names found</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            
+            // Remove duplicates based on accountName
+            const uniqueAccounts = accounts.filter((account, index, self) => 
+                index === self.findIndex(a => a.accountName === account.accountName)
+            );
+            
+            uniqueAccounts.forEach(account => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item cursor-pointer hover:bg-gray-100 p-2 border-b';
+                item.innerHTML = `
+                    <div class="font-medium">${account.accountName}</div>
+                    <div class="text-sm text-gray-600">${account.coa}</div>
+                `;
+                item.onclick = () => selectAccountName(account, input, dropdown);
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectGLAccount(account, input, dropdown) {
+            input.value = account.coa;
+            dropdown.classList.add('hidden');
+            
+            // Auto-fill the corresponding Account Name field
+            const accountNameInput = document.getElementById('AcctName');
+            if (accountNameInput) {
+                accountNameInput.value = account.accountName;
+            }
+            
+            console.log('Selected GL Account:', account);
+        }
+
+        function selectAccountName(account, input, dropdown) {
+            input.value = account.accountName;
+            dropdown.classList.add('hidden');
+            
+            // Auto-fill the corresponding GL Account field
+            const glAccountInput = document.getElementById('AcctCode');
+            if (glAccountInput) {
+                glAccountInput.value = account.coa;
+            }
+            
+            console.log('Selected Account Name:', account);
+        }
+
+        function showGLAccountDropdown(input) {
+            if (input.value.trim().length > 0) {
+                searchGLAccount(input);
+            }
+        }
+
+        function showAccountNameDropdown(input) {
+            if (input.value.trim().length > 0) {
+                searchAccountName(input);
+            }
+        }
+
+        // Hide dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const glDropdown = document.getElementById('AcctCodeDropdown');
+            const accountDropdown = document.getElementById('AcctNameDropdown');
+            
+            // Hide GL Account dropdown
+            if (glDropdown && !event.target.closest('#AcctCode') && !event.target.closest('#AcctCodeDropdown')) {
+                glDropdown.classList.add('hidden');
+            }
+            
+            // Hide Account Name dropdown
+            if (accountDropdown && !event.target.closest('#AcctName') && !event.target.closest('#AcctNameDropdown')) {
+                accountDropdown.classList.add('hidden');
+            }
+        });
+
+        // Test functions when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded');
+            console.log('BASE_URL:', BASE_URL);
+            
+            // Test if functions are available
+            console.log('searchGLAccount function:', typeof searchGLAccount);
+            console.log('searchAccountName function:', typeof searchAccountName);
+            
+            // Add some test functionality
+            const glInput = document.getElementById('AcctCode');
+            const nameInput = document.getElementById('AcctName');
+            
+            if (glInput) {
+                glInput.addEventListener('input', function() {
+                    console.log('GL Account input changed:', this.value);
+                });
+            }
+            
+            if (nameInput) {
+                nameInput.addEventListener('input', function() {
+                    console.log('Account Name input changed:', this.value);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

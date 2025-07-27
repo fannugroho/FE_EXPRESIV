@@ -1,5 +1,6 @@
 // Variabel untuk menyimpan dokumen reimbursement
 let reimbursementDocs = [];
+let allReimbursementDocs = []; // Menyimpan semua dokumen sebelum filtering
 
 // Global variables for document management
 let currentTab = 'all';
@@ -167,19 +168,25 @@ async function fetchReimbursementDocs() {
         
         if (data.status && data.data) {
             // Format baru dengan property status dan data
-            reimbursementDocs = data.data;
+            allReimbursementDocs = data.data;
+            // Filter hanya dokumen dengan transferOutgoing = "O"
+            reimbursementDocs = allReimbursementDocs.filter(doc => doc.transferOutgoing === "O");
+            console.log(`Filtered ${reimbursementDocs.length} documents with transferOutgoing="O" from ${allReimbursementDocs.length} total documents`);
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents available</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents with transferOutgoing="O" available</td></tr>';
             }
         } else if (Array.isArray(data)) {
             // Fallback untuk format lama jika masih digunakan
-            reimbursementDocs = data;
+            allReimbursementDocs = data;
+            // Filter hanya dokumen dengan transferOutgoing = "O"
+            reimbursementDocs = allReimbursementDocs.filter(doc => doc.transferOutgoing === "O");
+            console.log(`Filtered ${reimbursementDocs.length} documents with transferOutgoing="O" from ${allReimbursementDocs.length} total documents`);
             displayReimbursementDocs(reimbursementDocs);
             
             if (reimbursementDocs.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents available</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">No documents with transferOutgoing="O" available</td></tr>';
             }
         } else {
             tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">No data available</td></tr>';
@@ -265,11 +272,13 @@ function displayReimbursementDocs(docs) {
 function filterReimbursementDocs() {
     const searchTerm = document.getElementById('reimSearchInput').value.toLowerCase();
     
+    // Selalu mulai dari dokumen yang sudah difilter dengan transferOutgoing = "O"
     if (!searchTerm) {
         displayReimbursementDocs(reimbursementDocs);
         return;
     }
     
+    // Filter dari dokumen yang sudah di-filter dengan transferOutgoing = "O"
     const filteredDocs = reimbursementDocs.filter(doc => {
         // Get mapped payTo name for search
         const payToId = doc.payTo;
@@ -286,6 +295,7 @@ function filterReimbursementDocs() {
         );
     });
     
+    console.log(`Search filtered ${filteredDocs.length} documents from ${reimbursementDocs.length} transferOutgoing="O" documents`);
     displayReimbursementDocs(filteredDocs);
 }
 
