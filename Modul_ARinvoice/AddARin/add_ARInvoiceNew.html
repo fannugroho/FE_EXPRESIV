@@ -16,45 +16,49 @@
          * Method: POST (Submit), GET (Load)
          * Note: Using AR Invoice API
          * 
-         * FORM FIELDS → API RESPONSE BODY MAPPING:
-         * 
-         * HEADER FIELDS:
-         * - DocNum (Document Number) → docNum
-         * - DocType (Document Type) → docType
-         * - DocDate (Document Date) → docDate
-         * - DocDueDate (Due Date) → docDueDate
-         * - CardCode (Card Code) → cardCode
-         * - CardName (Card Name) → cardName
-         * - Address (Address) → address
-         * - NumAtCard (Number at Card) → numAtCard
-         * - Comments (Comments) → comments
-         * - U_BSI_Expressiv_PreparedByNIK (Prepared By NIK) → u_BSI_Expressiv_PreparedByNIK
-         * - U_BSI_Expressiv_PreparedByName (Prepared By Name) → u_BSI_Expressiv_PreparedByName
-         * - DocCur (Document Currency) → docCur
-         * - DocRate (Document Rate) → docRate
-         * - VatSum (VAT Sum) → vatSum
-         * - VatSumFC (VAT Sum FC) → vatSumFC
-         * - WTSum (WT Sum) → wtSum
-         * - WTSumFC (WT Sum FC) → wtSumFC
-         * - DocTotal (Document Total) → docTotal
-         * - DocTotalFC (Document Total FC) → docTotalFC
-         * - TrnspCode (Transport Code) → trnspCode
-         * - U_BSI_ShippingType (Shipping Type) → u_BSI_ShippingType
-         * - GroupNum (Group Number) → groupNum
-         * - U_BSI_PaymentGroup (Payment Group) → u_BSI_PaymentGroup
-         * - U_bsi_invnum (Invoice Number) → u_bsi_invnum
-         * - U_bsi_udf1 (UDF1) → u_bsi_udf1
-         * - U_bsi_udf2 (UDF2) → u_bsi_udf2
-         * - TrackNo (Track Number) → trackNo
-         * - U_BSI_Expressiv_IsTransfered (Is Transfered) → u_BSI_Expressiv_IsTransfered
-         * 
-         * ATTACHMENT FIELDS:
-         * - attachment (File Upload) → arInvoiceAttachments[]
-         * 
-         * TABLE LINES:
-         * - AcctCode (G/L Account) → arInvoiceDetails[].acctCode
-         * - Dscription (Description) → arInvoiceDetails[].dscription
-         * - LineTotal (Line Total) → arInvoiceDetails[].lineTotal
+                                   * FORM FIELDS → API RESPONSE BODY MAPPING:
+                          * 
+                          * HEADER FIELDS:
+                          * - DocNum (Document Number) → docNum
+                          * - DocType (Document Type) → docType
+                          * - DocDate (Document Date) → docDate
+                          * - DocDueDate (Due Date) → docDueDate
+                          * - CardCode (Card Code) → cardCode
+                          * - CardName (Card Name) → cardName
+                          * - Address (Address) → address
+                          * - NumAtCard (Number at Card) → numAtCard
+                          * - Comments (Comments) → comments
+                          * - U_BSI_Expressiv_PreparedByNIK (Prepared By NIK) → u_BSI_Expressiv_PreparedByNIK
+                          * - U_BSI_Expressiv_PreparedByName (Prepared By Name) → u_BSI_Expressiv_PreparedByName
+                          * - DocCur (Document Currency) → docCur
+                          * - DocRate (Document Rate) → docRate
+                          * - VatSum (VAT Sum) → vatSum
+                          * - VatSumFC (VAT Sum FC) → vatSumFC
+                          * - WTSum (WT Sum) → wtSum
+                          * - WTSumFC (WT Sum FC) → wtSumFC
+                          * - DocTotal (Document Total) → docTotal
+                          * - DocTotalFC (Document Total FC) → docTotalFC
+                          * - TrnspCode (Transport Code) → trnspCode
+                          * - U_BSI_ShippingType (Shipping Type) → u_BSI_ShippingType
+                          * - GroupNum (Group Number) → groupNum
+                          * - U_BSI_PaymentGroup (Payment Group) → u_BSI_PaymentGroup
+                          * - U_bsi_invnum (Invoice Number) → u_bsi_invnum
+                          * - U_bsi_udf1 (UDF1) → u_bsi_udf1
+                          * - U_bsi_udf2 (UDF2) → u_bsi_udf2
+                          * - TrackNo (Track Number) → trackNo
+                          * - U_BSI_Expressiv_IsTransfered (Is Transfered) → u_BSI_Expressiv_IsTransfered
+                          * 
+                          * ATTACHMENT FIELDS:
+                          * - attachment (File Upload) → arInvoiceAttachments[]
+                          * 
+                          * TABLE LINES:
+                          * - LineNum (Line Number) → arInvoiceDetails[].lineNum
+                          * - ItemCode (Item Code) → arInvoiceDetails[].itemCode
+                          * - Dscription (Description) → arInvoiceDetails[].dscription
+                          * - AcctCode (G/L Account) → arInvoiceDetails[].acctCode
+                          * - Quantity (Quantity) → arInvoiceDetails[].quantity
+                          * - PriceBefDi (Unit Price) → arInvoiceDetails[].priceBefDi
+                          * - LineTotal (Line Total) → arInvoiceDetails[].lineTotal
          * 
          * FUNCTIONS:
          * - submitDocument() → POST /api/ar-invoices
@@ -150,7 +154,7 @@
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuAR()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add AR Invoice</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Create AR Invoice</h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
@@ -184,27 +188,18 @@
                 
 
                 
-                <!-- Attachments Display Section -->
+                <!-- Attachments Section -->
                 <div class="mt-4" id="attachmentsSection">
-                    <!-- <h3 class="text-lg font-semibold mb-2">Attachments</h3> -->
+                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
                     
                     <!-- File Upload Section -->
-                    <!-- <div class="mb-4 p-4 border rounded bg-blue-50">
+                    <div class="mb-4 p-4 border rounded bg-blue-50">
                         <h4 class="text-md font-medium mb-2 text-blue-800">Upload New Attachments</h4>
                         <div class="flex items-center space-x-4">
-                            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                   onchange="previewPDF(event)">
-                            <button onclick="clearAllFiles()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                                Clear All
-                            </button>
-                        </div> -->
-                        
-                        <!-- New Files List -->
-                        <!-- <div id="newFilesList" class="mt-3 space-y-2"> -->
-                            <!-- New files will be displayed here -->
-                        <!-- </div>
-                    </div> -->
+                            <input type="file" id="attachment" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                    </div>
                     
                     <!-- Existing Attachments Section -->
                     <div class="mb-4">
@@ -213,17 +208,9 @@
                             <!-- Existing attachments will be displayed here -->
                         </div>
                     </div>
-                    
-                    <!-- Print Out Reimbursement Section -->
-                    <div class="mb-4" id="printOutReimbursementSection">
-                        <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
-                        <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
-                            <!-- Print Receive Reimbursement document will be displayed here -->
-                        </div>
-                    </div>
                 </div>
                 
-                <input type="hidden" id="Doctype" value="A" autocomplete="off">
+
             </div>
             
             <div>

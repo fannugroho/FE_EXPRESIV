@@ -2036,6 +2036,7 @@ async function submitDocument(isSubmit = false) {
 
         const requiredFields = [
             { field: 'DocNum', name: 'Document Number' },
+            { field: 'CardCode', name: 'Card Code' },
             { field: 'CardName', name: 'Card Name' },
             { field: 'DocDate', name: 'Document Date' },
             { field: 'DocDueDate', name: 'Due Date' },
@@ -2483,6 +2484,10 @@ function collectFormData(userId, isSubmit) {
     }
 
     // Validate required fields
+    if (!requestData.cardCode || !requestData.cardCode.trim()) {
+        throw new Error('Card Code field is required.');
+    }
+
     if (!requestData.cardName || !requestData.cardName.trim()) {
         throw new Error('Card Name field is required.');
     }
@@ -2727,12 +2732,9 @@ function mapResponseToForm(responseData) {
 
     if (responseData.docTotal) {
         const formattedAmount = formatCurrencyValue(responseData.docTotal);
-        document.getElementById("netTotal").value = formattedAmount;
-        document.getElementById("totalTax").value = formattedAmount;
-        document.getElementById("totalAmountDue").value = formattedAmount;
-        const remittanceField = document.getElementById("RemittanceRequestAmount");
-        remittanceField.value = formattedAmount;
-        remittanceField.setAttribute('data-initial-value', formattedAmount);
+        document.getElementById("documentTotal").value = responseData.docTotal;
+        document.getElementById("DocTotal").value = responseData.docTotal;
+        document.getElementById("DocTotalFC").value = responseData.docTotal;
     }
 
     // Remarks and Journal Remarks fields are left empty for manual input
