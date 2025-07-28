@@ -5,15 +5,17 @@
 </div>
 
 <div class="px-3 py-4">
-    <button onclick="goToMenu()" class="menu-btn w-full text-left flex items-center py-2.5 px-3 rounded mb-1 active-menu-item">
+    <button onclick="goToMenu()"
+        class="menu-btn w-full text-left flex items-center py-2.5 px-3 rounded mb-1 active-menu-item">
         <span class="menu-icon"><i class="fas fa-home"></i></span>
         <span class="ml-3">Dashboard</span>
     </button>
-    
+
     <div class="menu-category">Request Management</div>
-    
+
     <div class="mb-1">
-        <button onclick="toggleSubMenu('MenuPurchaseReq')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuPurchaseReq')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span class="ml-3">Purchase Request</span>
@@ -21,17 +23,30 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="MenuPurchaseReq" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Purchase Request</button>
-            <button onclick="goToMenuCheckPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Purchase Request</button>
-            <button onclick="goToMenuAcknowPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Purchase Request</button>
-            <button onclick="goToMenuApprovPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Purchase Request</button>
-            <button onclick="goToMenuReceivePR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Purchase Request</button>
-            <button onclick="goToMenuRevisionPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Purchase Request</button>
-        </div>            
+            <button onclick="goToMenuPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Purchase
+                Request</button>
+            <button onclick="goToMenuCheckPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Purchase
+                Request</button>
+            <button onclick="goToMenuAcknowPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Purchase
+                Request</button>
+            <button onclick="goToMenuApprovPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Purchase
+                Request</button>
+            <button onclick="goToMenuReceivePR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Purchase
+                Request</button>
+            <button onclick="goToMenuRevisionPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Purchase
+                Request</button>
+        </div>
     </div>
 
     <div class="mb-1">
-        <button onclick="toggleSubMenu('MenuReimbursement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuReimbursement')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-hand-holding-usd"></i></span>
                 <span class="ml-3">Reimbursement</span>
@@ -39,17 +54,30 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="MenuReimbursement" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Reimbursement</button>
-            <button onclick="goToMenuCheckReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Reimbursement</button>
-            <button onclick="goToMenuAcknowReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Reimbursement</button>
-            <button onclick="goToMenuApprovReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Reimbursement</button>
-            <button onclick="goToMenuReceiveReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Reimbursement</button>
-            <button onclick="goToMenuRevisionReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Reimbursement</button>
-        </div>            
+            <button onclick="goToMenuReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add
+                Reimbursement</button>
+            <button onclick="goToMenuCheckReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked
+                Reimbursement</button>
+            <button onclick="goToMenuAcknowReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge
+                Reimbursement</button>
+            <button onclick="goToMenuApprovReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval
+                Reimbursement</button>
+            <button onclick="goToMenuReceiveReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive
+                Reimbursement</button>
+            <button onclick="goToMenuRevisionReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision
+                Reimbursement</button>
+        </div>
     </div>
 
     <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('MenuCashAdvance')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuCashAdvance')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-wallet"></i></span>
                 <span class="ml-3">Cash Advance</span>
@@ -57,18 +85,33 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="MenuCashAdvance" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Cash Advance</button>
-            <button onclick="goToMenuCheckCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Cash Advance</button>
-            <button onclick="goToMenuAcknowCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Cash Advance</button>
-            <button onclick="goToMenuApprovCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Cash Advance</button>
-            <button onclick="goToMenuReceiveCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Cash Advance</button>
-            <button onclick="goToMenuCloseCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Close Cash Advance</button>
-            <button onclick="goToMenuRevisionCash()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Cash Advance</button>
-        </div>            
+            <button onclick="goToMenuCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Cash
+                Advance</button>
+            <button onclick="goToMenuCheckCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Cash
+                Advance</button>
+            <button onclick="goToMenuAcknowCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Cash
+                Advance</button>
+            <button onclick="goToMenuApprovCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Cash
+                Advance</button>
+            <button onclick="goToMenuReceiveCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Cash
+                Advance</button>
+            <button onclick="goToMenuCloseCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Close Cash
+                Advance</button>
+            <button onclick="goToMenuRevisionCash()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Cash
+                Advance</button>
+        </div>
     </div>
 
     <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('MenuSettlement')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuSettlement')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-balance-scale"></i></span>
                 <span class="ml-3">Settlement</span>
@@ -76,19 +119,31 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="MenuSettlement" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Settlement</button>
-            <button onclick="goToMenuCheckSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked Settlement</button>
-            <button onclick="goToMenuAcknowSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge Settlement</button>
-            <button onclick="goToMenuApprovSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval Settlement</button>
-            <button onclick="goToMenuReceiveSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive Settlement</button>
-            <button onclick="goToMenuRevisionSettle()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision Settlement</button>
-        </div>            
+            <button onclick="goToMenuSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add Settlement</button>
+            <button onclick="goToMenuCheckSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked
+                Settlement</button>
+            <button onclick="goToMenuAcknowSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge
+                Settlement</button>
+            <button onclick="goToMenuApprovSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval
+                Settlement</button>
+            <button onclick="goToMenuReceiveSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive
+                Settlement</button>
+            <button onclick="goToMenuRevisionSettle()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Revision
+                Settlement</button>
+        </div>
     </div>
 
     <div class="menu-category">Approval Report</div>
 
     <div class="mb-1" style="display: none;">
-        <button onclick="toggleSubMenu('PurchaseOrder')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('PurchaseOrder')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
                 <span class="ml-3">Purchase Order</span>
@@ -96,15 +151,22 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="PurchaseOrder" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuAPR()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
-            <button onclick="goToMenuPO()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
-            <button onclick="goToMenuBanking()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing Approval</button>
-            <button onclick="goToMenuInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice Approval</button>
+            <button onclick="goToMenuAPR()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PR Approval</button>
+            <button onclick="goToMenuPO()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> PO Approval</button>
+            <button onclick="goToMenuBanking()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Outgoing
+                Approval</button>
+            <button onclick="goToMenuInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> AR Invoice
+                Approval</button>
         </div>
     </div>
 
     <div class="mb-1">
-        <button onclick="toggleSubMenu('MenuARInvoice')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('MenuARInvoice')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-file-invoice"></i></span>
                 <span class="ml-3">AR Invoice</span>
@@ -112,35 +174,86 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="MenuARInvoice" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToAddARInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add AR Invoice</button>
-            <button onclick="goToMenuCheckInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked AR Invoice</button>
-            <button onclick="goToMenuAcknowInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge AR Invoice</button>
-            <button onclick="goToMenuApprovInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval AR Invoice</button>
-            <button onclick="goToMenuReceiveInvoice()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive AR Invoice</button>
+            <button onclick="goToAddARInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add AR Invoice</button>
+            <button onclick="goToMenuCheckARInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked AR
+                Invoice</button>
+            <button onclick="goToMenuAcknowARInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge AR
+                Invoice</button>
+            <button onclick="goToMenuApprovARInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval AR
+                Invoice</button>
+            <button onclick="goToMenuReceiveARInvoice()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive AR
+                Invoice</button>
         </div>
     </div>
 
-    <div class="mb-1" id="outgoingPaymentMenu">
-        <button onclick="toggleSubMenu('OutgoingPayment')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+    <!-- AR Invoice Clone - Separated with unique ID -->
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuARInvoiceClone')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+            <div class="flex items-center">
+                <span class="menu-icon"><i class="fas fa-copy"></i></span>
+                <span class="ml-3">AR Invoice Clone</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+        </button>
+        <div id="MenuARInvoiceClone" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuARInvoiceClone()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add AR Invoice
+                Clone</button>
+            <button onclick="goToMenuCheckARInvoiceClone()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked AR Invoice
+                Clone</button>
+            <button onclick="goToMenuAcknowARInvoiceClone()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge AR Invoice
+                Clone</button>
+            <button onclick="goToMenuApprovARInvoiceClone()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval AR Invoice
+                Clone</button>
+            <button onclick="goToMenuReceiveARInvoiceClone()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive AR Invoice
+                Clone</button>
+        </div>
+    </div>
+
+    <!-- Outgoing Payment - Separated with unique ID -->
+    <div class="mb-1">
+        <button onclick="toggleSubMenu('MenuOutgoingPayment')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-money-bill-wave"></i></span>
                 <span class="ml-3">Outgoing Payment</span>
             </div>
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
-        <div id="OutgoingPayment" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add OP Reimbursement</button>
-            <button onclick="goToMenuCheckOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked OP Reimbursement</button>
-            <button onclick="goToMenuAcknowOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge OP Reimbursement</button>
-            <button onclick="goToMenuApprovOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval OP Reimbursement</button>
-            <button onclick="goToMenuReceiveOPReim()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive OP Reimbursement</button>
+        <div id="MenuOutgoingPayment" class="hidden pl-10 mt-1 mb-1">
+            <button onclick="goToMenuOPReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Add OP
+                Reimbursement</button>
+            <button onclick="goToMenuCheckOPReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Checked OP
+                Reimbursement</button>
+            <button onclick="goToMenuAcknowOPReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Acknowledge OP
+                Reimbursement</button>
+            <button onclick="goToMenuApprovOPReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Approval OP
+                Reimbursement</button>
+            <button onclick="goToMenuReceiveOPReim()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Receive OP
+                Reimbursement</button>
         </div>
     </div>
 
     <div class="menu-category">Tools</div>
 
     <div class="mb-1">
-        <button onclick="toggleSubMenu('settings')" class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
+        <button onclick="toggleSubMenu('settings')"
+            class="menu-btn w-full text-left flex items-center justify-between py-2.5 px-3 rounded">
             <div class="flex items-center">
                 <span class="menu-icon"><i class="fas fa-cog"></i></span>
                 <span class="ml-3">Settings</span>
@@ -148,9 +261,12 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
         </button>
         <div id="settings" class="hidden pl-10 mt-1 mb-1">
-            <button onclick="goToMenuRegist()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Register User</button>
-            <button onclick="goToMenuUser()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> User List</button>
-            <button onclick="goToMenuRole()" class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Role List</button>
+            <button onclick="goToMenuRegist()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Register User</button>
+            <button onclick="goToMenuUser()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> User List</button>
+            <button onclick="goToMenuRole()"
+                class="submenu-btn w-full text-left text-gray-600 py-2 px-2 rounded-md text-sm"> Role List</button>
         </div>
     </div>
 
@@ -168,10 +284,10 @@
     <button onclick="location.reload(true)" class="text-blue-500 text-xs px-3 py-1 hover:text-blue-600">
         Refresh
     </button>
-    
+
     <!-- Version Patch -->
     <div class="text-center text-xs text-gray-400 mt-2 px-3 pb-3">
         <div>Version Patch:</div>
         <div class="font-mono">2025/07/25/EX/07:00/AM</div>
     </div>
-</div> 
+</div>

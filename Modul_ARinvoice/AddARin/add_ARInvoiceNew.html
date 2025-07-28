@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add AR Invoice</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        /**
+         * MAPPING KOLOM FORM DENGAN RESPONSE BODY API
+         * ============================================
+         * 
+         * API Endpoint: /api/ar-invoices
+         * Method: POST (Submit), GET (Load)
+         * Note: Using AR Invoice API
+         * 
+         * FORM FIELDS → API RESPONSE BODY MAPPING:
+         * 
+         * HEADER FIELDS:
+         * - DocNum (Document Number) → docNum
+         * - DocType (Document Type) → docType
+         * - DocDate (Document Date) → docDate
+         * - DocDueDate (Due Date) → docDueDate
+         * - CardCode (Card Code) → cardCode
+         * - CardName (Card Name) → cardName
+         * - Address (Address) → address
+         * - NumAtCard (Number at Card) → numAtCard
+         * - Comments (Comments) → comments
+         * - U_BSI_Expressiv_PreparedByNIK (Prepared By NIK) → u_BSI_Expressiv_PreparedByNIK
+         * - U_BSI_Expressiv_PreparedByName (Prepared By Name) → u_BSI_Expressiv_PreparedByName
+         * - DocCur (Document Currency) → docCur
+         * - DocRate (Document Rate) → docRate
+         * - VatSum (VAT Sum) → vatSum
+         * - VatSumFC (VAT Sum FC) → vatSumFC
+         * - WTSum (WT Sum) → wtSum
+         * - WTSumFC (WT Sum FC) → wtSumFC
+         * - DocTotal (Document Total) → docTotal
+         * - DocTotalFC (Document Total FC) → docTotalFC
+         * - TrnspCode (Transport Code) → trnspCode
+         * - U_BSI_ShippingType (Shipping Type) → u_BSI_ShippingType
+         * - GroupNum (Group Number) → groupNum
+         * - U_BSI_PaymentGroup (Payment Group) → u_BSI_PaymentGroup
+         * - U_bsi_invnum (Invoice Number) → u_bsi_invnum
+         * - U_bsi_udf1 (UDF1) → u_bsi_udf1
+         * - U_bsi_udf2 (UDF2) → u_bsi_udf2
+         * - TrackNo (Track Number) → trackNo
+         * - U_BSI_Expressiv_IsTransfered (Is Transfered) → u_BSI_Expressiv_IsTransfered
+         * 
+         * ATTACHMENT FIELDS:
+         * - attachment (File Upload) → arInvoiceAttachments[]
+         * 
+         * TABLE LINES:
+         * - AcctCode (G/L Account) → arInvoiceDetails[].acctCode
+         * - Dscription (Description) → arInvoiceDetails[].dscription
+         * - LineTotal (Line Total) → arInvoiceDetails[].lineTotal
+         * 
+         * FUNCTIONS:
+         * - submitDocument() → POST /api/ar-invoices
+         * - loadDocumentData() → GET /api/ar-invoices/{stagingId}
+         * - mapResponseToForm() → Maps API response back to form fields
+         */
+        
+        // Using BASE_URL from auth.js instead of hardcoded baseUrlDevAmiru
+    </script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/arInvoiceApiService.js"></script>
+    <script src="add_ARInvoiceNew.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Currency dropdown styling */
+        .currency-dropdown {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .currency-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .currency-search-input {
+            transition: all 0.2s ease;
+        }
+
+        /* Enhanced scrollbar styling for all dropdowns */
+        .search-dropdown::-webkit-scrollbar,
+        .currency-dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+        .search-dropdown::-webkit-scrollbar-track,
+        .currency-dropdown::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb,
+        .currency-dropdown::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb:hover,
+        .currency-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Enhanced dropdown item styling */
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dropdown-item:hover {
+            background-color: #f8fafc;
+            border-left: 3px solid #3b82f6;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuAR()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add AR Invoice</h2>
+        <br>
+        <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Document Number</h3>
+                <input type="text" id="DocNum" placeholder="Document Number" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Type</h3>
+                <select id="Doctype" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="A" selected>A - Invoice</option>
+                    <option value="S">S - Credit Memo</option>
+                    <option value="D">D - Debit Memo</option>
+                </select>
+                
+                <h3 class="text-lg font-semibold mb-2">Card Code</h3>
+                <input type="text" id="CardCode" placeholder="Card Code" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Card Name</h3>
+                <input type="text" id="CardName" placeholder="Card Name" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Address</h3>
+                <input type="text" id="Address" placeholder="Address" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Number at Card</h3>
+                <input type="text" id="NumAtCard" placeholder="Number at Card" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
+                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
+                <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
+                
+
+                
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <!-- <h3 class="text-lg font-semibold mb-2">Attachments</h3> -->
+                    
+                    <!-- File Upload Section -->
+                    <!-- <div class="mb-4 p-4 border rounded bg-blue-50">
+                        <h4 class="text-md font-medium mb-2 text-blue-800">Upload New Attachments</h4>
+                        <div class="flex items-center space-x-4">
+                            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                   onchange="previewPDF(event)">
+                            <button onclick="clearAllFiles()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                                Clear All
+                            </button>
+                        </div> -->
+                        
+                        <!-- New Files List -->
+                        <!-- <div id="newFilesList" class="mt-3 space-y-2"> -->
+                            <!-- New files will be displayed here -->
+                        <!-- </div>
+                    </div> -->
+                    
+                    <!-- Existing Attachments Section -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachments</h4>
+                        <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Existing attachments will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Print Out Reimbursement Section -->
+                    <div class="mb-4" id="printOutReimbursementSection">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
+                        <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Print Receive Reimbursement document will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="Doctype" value="A" autocomplete="off">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
+                <input type="number" id="DocRate" placeholder="Document Rate" class="w-full p-2 border rounded" value="1" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">VAT Sum</h3>
+                <input type="number" id="VatSum" placeholder="VAT Sum" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">VAT Sum FC</h3>
+                <input type="number" id="VatSumFC" placeholder="VAT Sum FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">WT Sum</h3>
+                <input type="number" id="WTSum" placeholder="WT Sum" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">WT Sum FC</h3>
+                <input type="number" id="WTSumFC" placeholder="WT Sum FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Total</h3>
+                <input type="number" id="DocTotal" placeholder="Document Total" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Total FC</h3>
+                <input type="number" id="DocTotalFC" placeholder="Document Total FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Transport Code</h3>
+                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded" value="0" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
+                <input type="text" id="ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Group Number</h3>
+                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded" value="0" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Payment Group</h3>
+                <input type="text" id="PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Invoice Number</h3>
+                <input type="text" id="InvNum" placeholder="Invoice Number" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF1</h3>
+                <input type="text" id="UDF1" placeholder="UDF1" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF2</h3>
+                <input type="text" id="UDF2" placeholder="UDF2" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Track Number</h3>
+                <input type="text" id="TrackNo" placeholder="Track Number" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Is Transfered</h3>
+                <select id="IsTransfered" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="N" selected>N - No</option>
+                    <option value="Y">Y - Yes</option>
+                </select>
+                
+                <h3 class="text-lg font-semibold mb-2">Prepared By NIK</h3>
+                <input type="text" id="PreparedByNIK" placeholder="Prepared By NIK" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Prepared By Name</h3>
+                <input type="text" id="PreparedByName" placeholder="Prepared By Name" class="w-full p-2 border rounded" autocomplete="off">
+            </div>
+        </div>
+        
+        <table id="VPM2" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="LineNum" class="p-2">Line #</th>
+                    <th id="ItemCode" class="p-2">Item Code <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Dscription" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="AcctCode" class="p-2">G/L Account <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Quantity" class="p-2">Quantity</th>
+                    <th id="PriceBefDi" class="p-2">Unit Price</th>
+                    <th id="LineTotal" class="p-2">Line Total <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td id="tdLineNum" class="p-2 border">
+                        <input type="number" id="LineNum" class="w-full" value="0" readonly />
+                    </td>
+                    <td id="tdItemCode" class="p-2 border">
+                        <input type="text" id="ItemCode" maxlength="50" class="w-full" autocomplete="off" placeholder="Item Code" />
+                    </td>
+                    <td id="tdDscription" class="p-2 border">
+                        <input type="text" id="Dscription" maxlength="200" class="w-full" autocomplete="off" placeholder="Description" />
+                    </td>
+                    <td id="tdAcctCode" class="p-2 border">
+                        <div class="relative">
+                            <input type="text" id="AcctCode" maxlength="15" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                            <div id="AcctCodeDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                        </div>
+                    </td>
+                    <td id="tdQuantity" class="p-2 border">
+                        <input type="number" id="Quantity" class="w-full" value="1" step="0.01" autocomplete="off" />
+                    </td>
+                    <td id="tdPriceBefDi" class="p-2 border">
+                        <input type="number" id="PriceBefDi" class="w-full" value="0" step="0.01" autocomplete="off" />
+                    </td>
+                    <td id="tdLineTotal" class="p-2 border">
+                        <input type="number" id="LineTotal" class="w-full" value="0" step="0.01" autocomplete="off" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <!--Totals Section-->
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">Sub Total:</label>
+                <input type="number" id="subTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">VAT Total:</label>
+                <input type="number" id="vatTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">WT Total:</label>
+                <input type="number" id="wtTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">Document Total:</label>
+                <input type="number" id="documentTotal" class="w-40 p-2 border rounded bg-blue-50 font-bold" readonly autocomplete="off" value="0">
+            </div>
+        </div>
+        
+        <!--
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
+        -->
+
+            <div class="mt-4">
+              <label>Comments</label>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter comments here..."></textarea>
+            </div>
+
+            <!-- Rejection Remarks section - only visible when status is Rejected -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <label class="font-semibold text-red-600">Rejection Reason</label>
+                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly autocomplete="off"></textarea>
+            </div>
+
+        <!-- Approval section -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <!-- Note: Proposed by field is automatically filled with the current logged-in user -->
+            <div> 
+                <label><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Auto-filled with current user" class="w-full p-1 border rounded search-input bg-gray-100 cursor-not-allowed" onkeyup="window.filterUsers('Approval.PreparedById')" autocomplete="off" disabled readonly>
+                    <select id="Approval.PreparedById" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.CheckedById')" autocomplete="off">
+                    <select id="Approval.CheckedById" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.AcknowledgedById')" autocomplete="off">
+                    <select id="Approval.AcknowledgedById" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ApprovedById')" autocomplete="off">
+                    <select id="Approval.ApprovedById" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ReceivedById')" autocomplete="off">
+                    <select id="Approval.ReceivedById" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <br>
+
+        <!-- Submit button -->
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="submitDocument(true)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Format currency with dot as decimal separator (format: 2,000,000.00)
+        function formatCurrency(input, decimalSeparator) {
+            // Get input value and remove all non-digits and non-decimal separator
+            let value = input.value.replace(/[^\d.]/g, '');
+            
+            // Ensure only one decimal separator
+            let parts = value.split(decimalSeparator);
+            if (parts.length > 1) {
+                value = parts[0] + decimalSeparator + parts.slice(1).join('');
+            }
+            
+            // Format the whole number part with thousand separators (comma)
+            if (parts.length > 0) {
+                let wholePart = parts[0];
+                let formattedWhole = '';
+                
+                for (let i = 0; i < wholePart.length; i++) {
+                    if (i > 0 && (wholePart.length - i) % 3 === 0) {
+                        formattedWhole += ',';
+                    }
+                    formattedWhole += wholePart[i];
+                }
+                
+                // Reconstruct the value with the decimal part if it exists
+                if (parts.length > 1) {
+                    input.value = formattedWhole + decimalSeparator + parts[1];
+                } else {
+                    input.value = formattedWhole;
+                }
+            }
+        }
+
+        // Function to format number to currency string (for JS file compatibility)
+        function formatNumberToCurrencyString(number) {
+            // Handle empty or invalid input
+            if (number === null || number === undefined || number === '') {
+                return '';
+            }
+            
+            // Parse the number
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d.-]/g, '');
+                    num = parseFloat(cleanedStr);
+                } else {
+                    num = parseFloat(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '';
+            }
+            
+            // Get the string representation to check if it has decimal places
+            const numStr = num.toString();
+            const hasDecimal = numStr.includes('.');
+            
+            try {
+                // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+                if (hasDecimal) {
+                    const decimalPlaces = numStr.split('.')[1].length;
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: decimalPlaces,
+                        maximumFractionDigits: decimalPlaces
+                    });
+                } else {
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                }
+            } catch (e) {
+                // Fallback for very large numbers
+                console.error('Error formatting number:', e);
+                
+                let strNum = num.toString();
+                let sign = '';
+                
+                if (strNum.startsWith('-')) {
+                    sign = '-';
+                    strNum = strNum.substring(1);
+                }
+                
+                const parts = strNum.split('.');
+                const integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+                
+                let formattedInteger = '';
+                for (let i = 0; i < integerPart.length; i++) {
+                    if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                        formattedInteger += '.';
+                    }
+                    formattedInteger += integerPart.charAt(i);
+                }
+                
+                return sign + formattedInteger + decimalPart;
+            }
+        }
+
+        // Make function available globally for JS file
+        window.formatNumberToCurrencyString = formatNumberToCurrencyString;
+        window.parseCurrencyValue = parseCurrencyValue;
+
+        // Function to parse currency string back to number
+        function parseCurrencyValue(value) {
+            if (!value) return 0;
+            // Handle US format (thousand separator: ',', decimal separator: '.')
+            // Remove commas (thousand separators) and keep dots as decimal separators
+            const numericValue = value.toString()
+                .replace(/,/g, ''); // Remove thousand separators (commas)
+            
+            return parseFloat(numericValue) || 0;
+        }
+
+        // Fungsi untuk memformat angka dengan format Indonesia (titik sebagai pemisah ribuan, koma sebagai pemisah desimal)
+        function formatCurrencyIDR(number) {
+            // Handle input kosong atau tidak valid
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            // Parse angka, pastikan dapat menangani nilai yang sangat besar
+            let num;
+            try {
+                // Handle input string yang mungkin sangat besar
+                if (typeof number === 'string') {
+                    // Hapus semua karakter non-numerik kecuali titik desimal dan koma
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
+                    if (cleanedStr.length > 15) {
+                        // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
+                        // Hapus koma dan parse
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
+                }
+                
+                // Jika parsing gagal, kembalikan string kosong
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            // Batasi maksimum 100 triliun
+            const maxAmount = 100000000000000; // 100 triliun
+            if (num > maxAmount) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Amount Exceeds Limit',
+                    text: 'Total amount must not exceed 100 trillion rupiah'
+                });
+                num = maxAmount;
+            }
+            
+            // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
+            // Untuk angka yang sangat besar, gunakan metode manual
+            if (num >= 1e12) { // Jika angka >= 1 triliun
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                // Tambahkan koma setiap 3 digit dari belakang
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                // Tambahkan 2 desimal
+                return result + '.00';
+            } else {
+                // Untuk angka yang lebih kecil, gunakan toLocaleString
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        // Fungsi untuk mengurai format angka US kembali ke angka
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                // Tangani format US (pemisah ribuan: ',', pemisah desimal: '.')
+                // Hapus koma (pemisah ribuan)
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        // Fungsi untuk memformat input nilai mata uang saat pengguna mengetik
+        function formatCurrencyInputIDR(input) {
+            // Simpan posisi kursor
+            const cursorPos = input.selectionStart;
+            const originalLength = input.value.length;
+            
+            // Ambil nilai dan hapus semua karakter non-digit, titik dan koma
+            let value = input.value.replace(/[^\d,.]/g, '');
+            
+            // Pastikan hanya ada satu pemisah desimal
+            let parts = value.split('.');
+            if (parts.length > 1) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Parse nilai ke angka untuk perhitungan
+            const numValue = parseCurrencyIDR(value);
+            
+            // Format dengan format US
+            const formattedValue = formatCurrencyIDR(numValue);
+            
+            // Perbarui nilai input
+            input.value = formattedValue;
+            
+            // Hitung dan perbarui total
+            updateTotals();
+            
+            // Sesuaikan posisi kursor
+            const newLength = input.value.length;
+            const newCursorPos = cursorPos + (newLength - originalLength);
+            input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+        }
+
+        // Function to update Net Total and Total Amount Due
+        function updateTotals() {
+            // Get all DocTotal inputs from the table
+            const docTotalInputs = document.querySelectorAll('#tableBody input[id="DocTotal"]');
+            let total = 0;
+            
+            // Sum all values using IDR format
+            docTotalInputs.forEach(input => {
+                total += parseCurrencyIDR(input.value);
+            });
+            
+            // Format the total with IDR format
+            const formattedTotal = formatCurrencyIDR(total);
+            
+            // Update Net Total and Total Amount Due fields
+            document.getElementById('netTotal').value = formattedTotal;
+            document.getElementById('totalTax').value = formattedTotal;
+            document.getElementById('totalAmountDue').value = formattedTotal;
+        }
+
+        // Function to add a new row to the table
+        function addRow() {
+            const tableBody = document.getElementById('tableBody');
+            const newRow = document.createElement('tr');
+            
+            newRow.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" id="AcctCode" maxlength="255" class="w-full" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="AcctName" class="w-full currency-input" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="description" maxlength="255" class="w-full" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" value="IDR" placeholder="IDR" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            
+            tableBody.appendChild(newRow);
+            
+            // Ensure the new currency item field has default value
+            const newCurrencyItemInput = newRow.querySelector('input[id="CurrencyItem"]');
+            if (newCurrencyItemInput && (!newCurrencyItemInput.value || newCurrencyItemInput.value.trim() === '')) {
+                newCurrencyItemInput.value = 'IDR';
+            }
+        }
+
+        // Function to delete a row from the table
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotalAmountDue(); // Update totals after removing a row
+        }
+
+        // Initialize currency inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all currency inputs with IDR format
+            const currencyInputs = document.querySelectorAll('.currency-input-idr');
+            currencyInputs.forEach(input => {
+                if (!input.readOnly) {
+                    // Set default value if empty
+                    if (!input.value || input.value === '0') {
+                        input.value = '0.00';
+                    }
+                    
+                    // Add event listener for IDR formatting
+                    input.addEventListener('input', function() {
+                        formatCurrencyInputIDR(this);
+                    });
+                }
+            });
+            
+            // Initialize currency item fields with default value
+            const currencyItemInputs = document.querySelectorAll('input[id="CurrencyItem"]');
+            currencyItemInputs.forEach(input => {
+                if (!input.value || input.value.trim() === '') {
+                    input.value = 'IDR';
+                }
+            });
+            
+
+            
+            toggleClosedByVisibility();
+            
+            // Fix ID for Net Total field (was using tdDocTotal which is confusing)
+            const netTotalField = document.getElementById('tdDocTotal');
+            if (netTotalField && netTotalField.tagName === 'INPUT') {
+                netTotalField.id = 'netTotal';
+            }
+            
+            // Initialize totals
+            updateTotalAmountDue();
+            
+            // Load data from API if document ID is provided in URL
+            // loadDocumentData() is now called from addOPReim.js
+        });
+
+        // Function to load document data from API
+        async function loadDocumentData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (docId) {
+                // Store document ID globally for attachment functions
+                window.currentDocumentId = docId;
+                
+                try {
+                    // Show loading indicator
+                    Swal.fire({
+                        title: 'Loading...',
+                        text: 'Loading document data, please wait...',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        allowEnterKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Fetch document data from API
+                    const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to load document: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.data) {
+                        // Map response data to form
+                        mapResponseToForm(result.data);
+                        
+                        // Load attachments from API
+                        await loadAttachmentsFromAPI(docId);
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: 'Success',
+                            text: 'Document data loaded successfully',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error("Error loading document:", error);
+                    
+                    Swal.fire({
+                        title: 'Error',
+                        text: `Failed to load document: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        }
+
+        // Function to load attachments from API
+        async function loadAttachmentsFromAPI(docId) {
+            try {
+                // Fetch attachments from API
+                const response = await makeAuthenticatedRequest(`/api/reimbursements/${docId}/attachments`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn(`Failed to load attachments: ${response.status}`);
+                    return;
+                }
+
+                const result = await response.json();
+                
+                if (result.data && result.data.length > 0) {
+                    // Display attachments from API response
+                    displayExistingAttachments(result.data);
+                } else {
+                    // Show no attachments message
+                    const container = document.getElementById('existingAttachments');
+                    if (container) {
+                        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                    }
+                }
+                
+            } catch (error) {
+                console.error("Error loading attachments:", error);
+                // Don't show error to user as this is not critical
+            }
+        }
+
+        // Function to refresh attachments
+        async function refreshAttachments() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (!docId) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Document ID not found. Please ensure you are viewing an existing document.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            try {
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Refreshing...',
+                    text: 'Loading attachments, please wait...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                await loadAttachmentsFromAPI(docId);
+
+                // Close loading indicator
+                Swal.close();
+
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Attachments refreshed successfully',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+
+            } catch (error) {
+                console.error("Error refreshing attachments:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to refresh attachments: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+
+
+        // Function to submit document - implementation moved to addOPReim.js
+        // This function is now implemented in the JavaScript file for better organization
+
+        // Function to map response data back to form fields - implementation moved to addOPReim.js
+
+        // Attachment functions - implementation moved to addOPReim.js
+
+        // Utility functions - implementation moved to addOPReim.js
+    </script>
+</body>
+</html>
