@@ -356,13 +356,7 @@
     </style>
 </head>
 <body>
-    <div class="print-controls no-print">
-        <button class="print-btn" onclick="window.print()">Print Invoice</button>
-        <button class="print-btn" onclick="window.history.back()" style="background-color: #6b7280; margin-left: 10px;">Back</button>
-        <button class="print-btn" onclick="highlightSignatureAreas()" style="background-color: #dc2626; margin-left: 10px;">Show Signature Areas</button>
-        <button class="print-btn" onclick="highlightLastPageSignature()" style="background-color: #059669; margin-left: 10px;">Show Last Page Signature</button>
-        <button class="print-btn" onclick="getSignatureCoordinatesForESign()" style="background-color: #7c3aed; margin-left: 10px;">Get Coordinates</button>
-    </div>
+    <!--ganti ke logo kansaipaint-->
 
     <div id="pagesContainer">
         <!-- First Page -->
@@ -372,8 +366,7 @@
                 <div class="header">
                     <div class="logo-section">
                         <div class="logo">
-                            <span class="logo-k">K</span>KANSAI<br>
-                            <span style="font-size: 16px;">PAINT</span>
+                            <img src="../../../../../image/Seiho.png" alt="Kansai Paint Logo" style="max-height: 60px; max-width: 200px;">
                         </div>
                     </div>
                     <div class="company-info">
@@ -387,16 +380,16 @@
                 <!-- Invoice Details -->
                 <div class="invoice-details">
                     <div class="invoice-left">
-                        <div class="invoice-field">No. Inv : <span id="invoiceNumber">FNC/INV/KPI/25070071</span></div>
-                        <div class="invoice-field">No. Vision Inv : <span id="visionInvoiceNumber">INVKPI25070071</span></div>
+                        <div class="invoice-field">No. Inv : <span id="invoiceNumber"></span></div>
+                        <div class="invoice-field">No. Vision Inv : <span id="visionInvoiceNumber"></span></div>
                     </div>
                     <div class="invoice-center">
                         <div class="invoice-title">INVOICE</div>
                     </div>
                     <div class="invoice-right">
-                        <div class="invoice-field">DATE: <span id="invoiceDate">11-July-2025</span></div>
-                        <div class="invoice-field">NPWP : <span id="npwp">0010000990092000</span></div>
-                        <div class="invoice-field">Due Date <span id="dueDate">10-Aug-2025</span></div>
+                        <div class="invoice-field">DATE: <span id="invoiceDate"></span></div>
+                        <div class="invoice-field">NPWP : <span id="npwp"></span></div>
+                        <div class="invoice-field">Due Date <span id="dueDate"></span></div>
                     </div>
                 </div>
 
@@ -404,9 +397,9 @@
                 <div class="shipping-info">
                     <div class="recipient">
                         <div class="section-title">FOR ACCOUNT OF MESSRS:</div>
-                        <div id="recipientName">PT TOYOTA MOTOR MANUFACTURING INDONESIA</div>
-                        <div id="recipientAddress">JL. LAKSAMANA YOS SUDARSO, SUNTER II</div>
-                        <div id="recipientCity">JAKARTA UTARA 14330</div>
+                        <div id="recipientName"></div>
+                        <div id="recipientAddress"></div>
+                        <div id="recipientCity"></div>
                     </div>
                     <div class="shipper">
                         <div class="section-title">SHIPPED FROM:</div>
@@ -418,11 +411,11 @@
                 <div class="order-numbers">
                     <div class="order-row">
                         <div class="order-label">DO No:</div>
-                        <div class="order-value" id="doNumbers">MKT/SJ/KPI/25070012, MKT/SJ/KPI/25070098, MKT/SJ/KPI/25070305, MKT/SJ/KPI/25070480, MKT/SJ/KPI/25070657, MKT/SJ/KPI/25070760, MKT/SJ/KPI/25070881, MKT/SJ/KPI/25070938, MKT/SJ/KPI/25070939, MKT/SJ/KPI/</div>
+                        <div class="order-value" id="doNumbers"></div>
                     </div>
                     <div class="order-row">
                         <div class="order-label">P/O NO.:</div>
-                        <div class="order-value" id="poNumbers">4550132926; 4550132926; 4550132926; 4550132926; 4550132926; 4550130477; 4550132926; 4550129892; 4550</div>
+                        <div class="order-value" id="poNumbers"></div>
                     </div>
                 </div>
 
@@ -457,27 +450,27 @@
                     <div class="financial-summary">
                         <div class="summary-row">
                             <span class="summary-label">Total IDR</span>
-                            <span class="summary-value" id="totalAmount">120,885,965</span>
+                            <span class="summary-value" id="totalAmount"></span>
                         </div>
                         <div class="summary-row">
                             <span class="summary-label">Discounted IDR</span>
-                            <span class="summary-value" id="discountAmount">0</span>
+                            <span class="summary-value" id="discountAmount"></span>
                         </div>
                         <div class="summary-row">
                             <span class="summary-label">Sales Amount IDR</span>
-                            <span class="summary-value" id="salesAmount">120,885,965</span>
+                            <span class="summary-value" id="salesAmount"></span>
                         </div>
                         <div class="summary-row">
                             <span class="summary-label">Tax Base Other Value IDR</span>
-                            <span class="summary-value" id="taxBase">110,812,135</span>
+                            <span class="summary-value" id="taxBase"></span>
                         </div>
                         <div class="summary-row">
                             <span class="summary-label">VAT 12% IDR</span>
-                            <span class="summary-value" id="vatAmount">13,297,456</span>
+                            <span class="summary-value" id="vatAmount"></span>
                         </div>
                         <div class="summary-row total-line">
                             <span class="summary-label">GRAND TOTAL IDR</span>
-                            <span class="summary-value" id="grandTotal">134,183,421</span>
+                            <span class="summary-value" id="grandTotal"></span>
                         </div>
                     </div>
                 </div>
@@ -486,10 +479,11 @@
             <!-- Footer (always at bottom) -->
             <div class="footer" id="footer">
                 <div class="signature-section">
-                    <div class="qr-code">QR CODE</div>
+                    
                     <div class="signature-name" id="signatureName">Atsuro Suzuki</div>
                     <div class="signature-title" id="signatureTitle">Vice President Director</div>
                 </div>
+                <div class="qr-code">QR CODE</div>
                 <div class="system-info">
                     <div>Generated by Expressiv</div>
                     <div id="pageInfo">Page 1 of 1</div>
