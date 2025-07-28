@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Invoice API Testing</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn-test {
+            transition: all 0.3s ease;
+        }
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen">
+    <div class="container mx-auto p-6">
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+                🧪 AR Invoice API Testing Dashboard
+            </h1>
+            
+            <!-- User Info -->
+            <div class="bg-blue-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold text-blue-800 mb-2">Current Test User</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <strong>User ID:</strong> df1d0bd0-fed5-4854-89c9-a70e5b1eb274
+                    </div>
+                    <div>
+                        <strong>Username:</strong> annisakusumawardani
+                    </div>
+                    <div>
+                        <strong>Name:</strong> Annisa Kusumawardani
+                    </div>
+                    <div>
+                        <strong>Current Staging ID:</strong> <span id="currentStagingId">OP_1753597103440_hu3sspppc</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Buttons -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <button onclick="testCreateARInvoice()" 
+                        class="btn-test bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg">
+                    🆕 Create AR Invoice
+                </button>
+                
+                <button onclick="testGetARInvoice()" 
+                        class="btn-test bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg">
+                    🔍 Get AR Invoice
+                </button>
+                
+                <button onclick="testUpdateApproval()" 
+                        class="btn-test bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg">
+                    ✅ Update Approval
+                </button>
+                
+                <button onclick="testListARInvoices()" 
+                        class="btn-test bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg">
+                    📋 List AR Invoices
+                </button>
+                
+                <button onclick="testGetByPreparer()" 
+                        class="btn-test bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">
+                    👤 Get by Preparer
+                </button>
+                
+                <button onclick="runAllTests()" 
+                        class="btn-test bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg">
+                    🚀 Run All Tests
+                </button>
+            </div>
+
+            <!-- Manual Input -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Manual Test Input</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="manualStagingId" placeholder="Enter Staging ID..." 
+                           class="flex-1 p-2 border rounded-lg" value="OP_1753597103440_hu3sspppc">
+                    <button onclick="testGetARInvoiceManual()" 
+                            class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                        Test Get
+                    </button>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex gap-4 mb-6">
+                <button onclick="clearLog()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+                    🗑 Clear Log
+                </button>
+                <button onclick="exportLog()" 
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg">
+                    💾 Export Log
+                </button>
+            </div>
+
+            <!-- Log Container -->
+            <div class="bg-gray-800 rounded-lg p-4">
+                <h3 class="text-white text-lg font-semibold mb-2">🖥 Test Console</h3>
+                <div id="logContainer" class="log-container p-4 rounded">
+                    <div class="text-green-400">AR Invoice API Testing Console Ready...</div>
+                    <div class="text-yellow-400">Click any test button to start testing!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load test script -->
+    <script src="test_ar_invoice_post.js"></script>
+    
+    <script>
+        // Override console.log untuk menampilkan di UI
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        function logToUI(message, type = 'log') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let colorClass = 'text-green-400';
+            let prefix = '📝';
+            
+            switch(type) {
+                case 'error':
+                    colorClass = 'text-red-400';
+                    prefix = '❌';
+                    break;
+                case 'warn':
+                    colorClass = 'text-yellow-400';
+                    prefix = '⚠️';
+                    break;
+                case 'success':
+                    colorClass = 'text-green-300';
+                    prefix = '✅';
+                    break;
+                case 'info':
+                    colorClass = 'text-blue-400';
+                    prefix = '🔵';
+                    break;
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `${colorClass} mb-1`;
+            logEntry.innerHTML = `<span class="text-gray-400">[${timestamp}]</span> ${prefix} ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Also log to browser console
+            if (type === 'error') {
+                originalConsoleError(message);
+            } else if (type === 'warn') {
+                originalConsoleWarn(message);
+            } else {
+                originalConsoleLog(message);
+            }
+        }
+
+        // Override console methods
+        console.log = (message) => logToUI(message, 'log');
+        console.error = (message) => logToUI(message, 'error');
+        console.warn = (message) => logToUI(message, 'warn');
+
+        // Custom logging functions
+        window.logSuccess = (message) => logToUI(message, 'success');
+        window.logInfo = (message) => logToUI(message, 'info');
+
+        // Test functions dengan UI feedback
+        async function testCreateARInvoice() {
+            logInfo('🚀 Starting Create AR Invoice test...');
+            try {
+                const stagingId = await window.testCreateARInvoice();
+                if (stagingId) {
+                    document.getElementById('currentStagingId').textContent = stagingId;
+                    document.getElementById('manualStagingId').value = stagingId;
+                    logSuccess(`AR Invoice created with ID: ${stagingId}`);
+                    
+                    Swal.fire({
+                        title: 'Success!',
+                        text: `AR Invoice created with ID: ${stagingId}`,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            } catch (error) {
+                logToUI(`Create test failed: ${error.message}`, 'error');
+                Swal.fire({
+                    title: 'Error!',
+                    text: `Create test failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        async function testGetARInvoice() {
+            const stagingId = document.getElementById('currentStagingId').textContent;
+            logInfo(`🔍 Getting AR Invoice: ${stagingId}`);
+            try {
+                await window.testGetARInvoice(stagingId);
+                logSuccess('Get AR Invoice test completed successfully');
+            } catch (error) {
+                logToUI(`Get test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetARInvoiceManual() {
+            const stagingId = document.getElementById('manualStagingId').value;
+            if (!stagingId) {
+                Swal.fire('Error', 'Please enter a Staging ID', 'error');
+                return;
+            }
+            
+            logInfo(`🔍 Getting AR Invoice (manual): ${stagingId}`);
+            try {
+                await window.testGetARInvoice(stagingId);
+                logSuccess('Manual get test completed successfully');
+            } catch (error) {
+                logToUI(`Manual get test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpdateApproval() {
+            const stagingId = document.getElementById('currentStagingId').textContent;
+            logInfo(`📝 Updating approval for: ${stagingId}`);
+            try {
+                await window.testUpdateARInvoiceApproval(stagingId);
+                logSuccess('Update approval test completed successfully');
+            } catch (error) {
+                logToUI(`Update approval test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testListARInvoices() {
+            logInfo('📋 Testing list AR Invoices...');
+            try {
+                await window.testListARInvoices();
+                logSuccess('List AR Invoices test completed successfully');
+            } catch (error) {
+                logToUI(`List test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetByPreparer() {
+            logInfo('👤 Testing get AR Invoices by preparer...');
+            try {
+                await window.testGetARInvoicesByPreparer();
+                logSuccess('Get by preparer test completed successfully');
+            } catch (error) {
+                logToUI(`Get by preparer test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            logInfo('🚀 Starting comprehensive test suite...');
+            
+            Swal.fire({
+                title: 'Running All Tests',
+                text: 'This will run all API tests. Check the console for detailed output.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Start Tests',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await window.runAllTests();
+                        logSuccess('🎉 All tests completed successfully!');
+                        
+                        Swal.fire({
+                            title: 'Tests Complete!',
+                            text: 'All API tests have been executed. Check the console for detailed results.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    } catch (error) {
+                        logToUI(`Test suite failed: ${error.message}`, 'error');
+                        
+                        Swal.fire({
+                            title: 'Tests Failed!',
+                            text: `Test suite failed: ${error.message}`,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                }
+            });
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+            logInfo('Console cleared');
+        }
+
+        function exportLog() {
+            const logContainer = document.getElementById('logContainer');
+            const logContent = logContainer.innerText;
+            
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ar_invoice_test_log_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            logSuccess('Test log exported successfully');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logInfo('🎯 AR Invoice API Testing Dashboard initialized');
+            logInfo('💡 Select any test to begin API validation');
+        });
+    </script>
+</body>
+</html>

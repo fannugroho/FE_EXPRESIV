@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Currency Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .currency-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .currency-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .dropdown-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .test-button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .test-button:hover {
+            background: #0056b3;
+        }
+    </style>
+    <script src="../js/auth.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Basic Currency Search Test</h1>
+
+        <div class="status info">
+            <strong>Test Instructions:</strong>
+            <ol>
+                <li>Click on the currency field below</li>
+                <li>Type "indon" to search for IDR</li>
+                <li>Type "usd" to search for USD</li>
+                <li>Click on any currency to select it</li>
+            </ol>
+        </div>
+
+        <div class="relative">
+            <input type="text" id="CurrencyItem" class="currency-input"
+                placeholder="🔍 Click here and type to search currencies..." />
+            <div id="CurrencyItemDropdown" class="currency-dropdown hidden"></div>
+        </div>
+
+        <div id="status" class="status info">
+            ✅ Ready to test currency search...
+        </div>
+
+        <div>
+            <button onclick="testClick()" class="test-button">Test Click Event</button>
+            <button onclick="testSearch()" class="test-button">Test Search Function</button>
+            <button onclick="clearField()" class="test-button">Clear Field</button>
+        </div>
+
+        <div id="debug"
+            style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-family: monospace; font-size: 12px;">
+            <strong>Debug Log:</strong><br>
+            <div id="debugLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simple mock data
+        const mockCurrencies = [
+            { id: "1", code: "IDR", name: "Indonesian Rupiah", symbol: "Rp", description: "Official currency of Indonesia" },
+            { id: "2", code: "USD", name: "US Dollar", symbol: "$", description: "Official currency of the United States" },
+            { id: "3", code: "EUR", name: "Euro", symbol: "€", description: "Official currency of the European Union" },
+            { id: "4", code: "SGD", name: "Singapore Dollar", symbol: "S$", description: "Official currency of Singapore" },
+            { id: "5", code: "JPY", name: "Japanese Yen", symbol: "¥", description: "Official currency of Japan" }
+        ];
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function debugLog(message) {
+            const debugDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Currency search functions
+        async function searchCurrencies(inputElement) {
+            debugLog(`🔍 searchCurrencies called with: "${inputElement.value}"`);
+
+            const searchTerm = inputElement.value.trim();
+            const dropdownId = inputElement.id + 'Dropdown';
+            const dropdown = document.getElementById(dropdownId);
+
+            debugLog(`📋 Looking for dropdown: ${dropdownId}`);
+            debugLog(`📋 Dropdown found: ${dropdown ? '✅ YES' : '❌ NO'}`);
+
+            if (!dropdown) {
+                debugLog('❌ ERROR: Dropdown not found!');
+                updateStatus('❌ ERROR: Dropdown not found!', 'error');
+                return;
+            }
+
+            try {
+                // Use real API
+                let url = `${BASE_URL}/api/MasterCurrency/search`;
+                if (searchTerm.length > 0) {
+                    url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
+                }
+
+                debugLog(`🌐 Making API request to: ${url}`);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    debugLog(`📡 API Response: ${JSON.stringify(data, null, 2)}`);
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        displayCurrencyResults(dropdown, data.data);
+                        dropdown.classList.remove('hidden');
+                        updateStatus(`✅ Found ${data.data.length} currencies from API`, 'success');
+                        debugLog(`✅ Displaying ${data.data.length} currencies from API`);
+                    } else {
+                        dropdown.classList.add('hidden');
+                        updateStatus('❌ No currencies found from API', 'info');
+                        debugLog('❌ No currencies found from API');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                debugLog(`❌ API Error: ${error.message}, using mock data`);
+                updateStatus(`❌ API Error: ${error.message}, using mock data`, 'error');
+
+                // Fallback to mock data
+                const filteredCurrencies = mockCurrencies.filter(currency =>
+                    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    currency.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                if (filteredCurrencies.length > 0) {
+                    displayCurrencyResults(dropdown, filteredCurrencies);
+                    dropdown.classList.remove('hidden');
+                    updateStatus(`📋 Found ${filteredCurrencies.length} currencies (mock data)`, 'info');
+                    debugLog(`📋 Displaying ${filteredCurrencies.length} currencies from mock data`);
+                } else {
+                    dropdown.classList.add('hidden');
+                    updateStatus('❌ No currencies found', 'info');
+                    debugLog('❌ No currencies found in mock data');
+                }
+            }
+        }
+
+        function showCurrencyDropdown(inputElement) {
+            debugLog(`📋 showCurrencyDropdown called for: ${inputElement.id}`);
+
+            const dropdownId = inputElement.id + 'Dropdown';
+            const dropdown = document.getElementById(dropdownId);
+
+            debugLog(`📋 Looking for dropdown: ${dropdownId}`);
+            debugLog(`📋 Dropdown found: ${dropdown ? '✅ YES' : '❌ NO'}`);
+
+            if (dropdown) {
+                debugLog('🚀 Triggering searchCurrencies...');
+                searchCurrencies(inputElement);
+            } else {
+                debugLog('❌ ERROR: Dropdown not found!');
+                updateStatus('❌ ERROR: Dropdown not found!', 'error');
+            }
+        }
+
+        function displayCurrencyResults(dropdown, currencies) {
+            debugLog(`📋 Displaying ${currencies.length} currencies in dropdown`);
+            dropdown.innerHTML = '';
+
+            currencies.forEach(currency => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `
+                    <div style="font-weight: bold; color: #007bff; font-size: 16px;">${currency.code}</div>
+                    <div style="font-size: 14px; color: #333;">${currency.name}</div>
+                    <div style="font-size: 12px; color: #666;">Symbol: ${currency.symbol}</div>
+                    <div style="font-size: 11px; color: #999;">${currency.description || ''}</div>
+                `;
+                item.onclick = () => selectCurrency(currency, dropdown);
+                dropdown.appendChild(item);
+            });
+        }
+
+        function selectCurrency(currency, dropdown) {
+            debugLog(`✅ Selected: ${currency.code} - ${currency.name}`);
+            updateStatus(`✅ Selected: ${currency.code} - ${currency.name}`, 'success');
+
+            const inputElement = dropdown.previousElementSibling;
+            if (inputElement) {
+                inputElement.value = currency.code;
+                dropdown.classList.add('hidden');
+                debugLog(`📝 Input value set to: ${currency.code}`);
+            }
+        }
+
+        function testClick() {
+            debugLog('🧪 Testing click event...');
+            const input = document.getElementById('CurrencyItem');
+            if (input) {
+                input.focus();
+                debugLog('✅ Focus event triggered');
+            } else {
+                debugLog('❌ Input element not found');
+            }
+        }
+
+        function testSearch() {
+            debugLog('🧪 Testing search function...');
+            const input = document.getElementById('CurrencyItem');
+            if (input) {
+                input.value = 'indon';
+                searchCurrencies(input);
+                debugLog('✅ Search test completed');
+            } else {
+                debugLog('❌ Input element not found');
+            }
+        }
+
+        function clearField() {
+            document.getElementById('CurrencyItem').value = '';
+            document.getElementById('CurrencyItemDropdown').classList.add('hidden');
+            updateStatus('🧹 Field cleared', 'info');
+            debugLog('🧹 Field cleared');
+        }
+
+        // Initialize event handlers
+        document.addEventListener('DOMContentLoaded', function () {
+            debugLog('🚀 Page loaded, setting up event handlers');
+            updateStatus('🚀 Page loaded, ready to test', 'info');
+
+            const input = document.getElementById('CurrencyItem');
+            if (input) {
+                debugLog('✅ Input element found');
+
+                // Add event listeners
+                input.addEventListener('keyup', function () {
+                    debugLog(`⌨️ Keyup event: "${this.value}"`);
+                    searchCurrencies(this);
+                });
+
+                input.addEventListener('focus', function () {
+                    debugLog('👆 Focus event');
+                    showCurrencyDropdown(this);
+                });
+
+                input.addEventListener('click', function () {
+                    debugLog('🖱️ Click event');
+                    showCurrencyDropdown(this);
+                });
+
+                debugLog('✅ Event handlers attached successfully');
+            } else {
+                debugLog('❌ Input element not found');
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                const dropdown = document.getElementById('CurrencyItemDropdown');
+                const input = document.getElementById('CurrencyItem');
+
+                if (!dropdown.contains(e.target) && !input.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                    debugLog('🚪 Dropdown closed (click outside)');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+    /* Styling tombol */
+    .menu-btn, .submenu-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        padding: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.2s;
+    }
+
+    .menu-btn {
+        background: white;
+        color: #333;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .submenu-btn {
+        background: #f8f9fa;
+        color: #555;
+    }
+
+    /* Hover effect */
+    .menu-btn:hover {
+        background: #f1f1f1;
+        transform: translateX(5px);
+    }
+
+    .submenu-btn:hover {
+        background: #e2e2e2;
+    }
+    
+    /* Tab styling */
+    .tab-active {
+        border-bottom: 3px solid #3b82f6;
+        color: #3b82f6;
+        font-weight: 600;
+    }
+    
+    .main-tab-active {
+        border-bottom: 3px solid #2563eb;
+        color: #2563eb;
+        font-weight: 700;
+        background-color: rgba(219, 234, 254, 0.3);
+    }
+    
+    /* Tab hover effects */
+    #vendorTabBtn:hover, #accountTabBtn:hover {
+        background-color: rgba(219, 234, 254, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    #allTabBtn:hover, #draftTabBtn:hover, #preparedTabBtn:hover {
+        background-color: rgba(219, 234, 254, 0.1);
+        transition: all 0.3s ease;
+    }

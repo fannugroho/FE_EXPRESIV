@@ -71,6 +71,7 @@
     </script>
     <script src="../js/auth.js"></script>
     <script src="../js/addOPReim.js"></script>
+    <script src="../js/addOPReim_simple.js"></script>
     
     <style>
         /* Dropdown styling */
@@ -92,6 +93,59 @@
             border-color: #3b82f6;
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Currency dropdown styling */
+        .currency-dropdown {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .currency-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .currency-search-input {
+            transition: all 0.2s ease;
+        }
+
+        /* Enhanced scrollbar styling for all dropdowns */
+        .search-dropdown::-webkit-scrollbar,
+        .currency-dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+        .search-dropdown::-webkit-scrollbar-track,
+        .currency-dropdown::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb,
+        .currency-dropdown::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb:hover,
+        .currency-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Enhanced dropdown item styling */
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dropdown-item:hover {
+            background-color: #f8fafc;
+            border-left: 3px solid #3b82f6;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
         }
         
 
@@ -179,6 +233,9 @@
                 <h3 class="text-lg font-semibold mb-2"> Remittance Request Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
+                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded currency-input-idr" value="0.00" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
                 
@@ -207,35 +264,38 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th id="AcctCode" class="p-2">G/L Account</th>
-                    <th id="AcctName" class="p-2">Account Name</th>
-                    <th id="Descrip" class="p-2">Description</th>
-                    <th id="CurrencyItem" class="p-2">Currency</th>
-                    <th id="DocTotal" class="p-2">Net Amount</th>
-                    <th id="thActions" class="p-2">Action</th>
+                    <th id="AcctCode" class="p-2">G/L Account <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="AcctName" class="p-2">Account Name <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Descrip" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="CurrencyItem" class="p-2">Currency <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="DocTotal" class="p-2">Net Amount <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
                     <td id="tdAcctCode" class="p-2 border">
-                        <input type="number" id="AcctCode" maxlength="255" class="w-full" autocomplete="off" />
+                        <div class="relative">
+                            <input type="text" id="AcctCode" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                            <div id="AcctCodeDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                        </div>
                     </td>
                     <td id="tdAcctName" class="p-2 border">
-                        <input type="text" id="AcctName" class="w-full currency-input" autocomplete="off" />
+                        <div class="relative">
+                            <input type="text" id="AcctName" class="w-full search-input" autocomplete="off" onkeyup="searchAccountName(this)" onfocus="showAccountNameDropdown(this)" placeholder="Type or search Account Name..." />
+                            <div id="AcctNameDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                        </div>
                     </td>
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdCurrencyItem" class="p-2 border">
-                        <input type="text" id="CurrencyItem" maxlength="10" class="w-full" autocomplete="off" />
+                        <div class="relative">
+                            <input type="text" id="CurrencyItem" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
+                            <div id="CurrencyItemDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+                        </div>
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
-                    </td>
-                    <td id="tdAction" class="p-2 border text-center">
-                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
-                            🗑
-                        </button>
                     </td>
                 </tr>
             </tbody>
@@ -252,14 +312,14 @@
             <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
          <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount Due :</label>
-            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
+        <div class="mt-4 flex justify-end space-x-2 items-start">
+            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
         </div>
         
+        
         <div class="mt-4 flex justify-end space-x-2">
-            <label class="font-semibold">Total Transfer Terbilang :</label>
-            <span id="totalTransferTerbilang" class="w-80 p-2 border rounded bg-gray-50"></span>
+            <label class="font-semibold">Total Outstanding Transfers :</label>
+            <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
         </div>
         
         <!--
@@ -270,11 +330,11 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" readonly></textarea>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter remarks here..."></textarea>
             </div>
             <div class="mt-4">
                 <label>Journal Remarks</label>
-                <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
+                <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter journal remarks here..."></textarea>
             </div>
 
             <!-- Rejection Remarks section - only visible when status is Rejected -->
@@ -460,11 +520,10 @@
         // Function to parse currency string back to number
         function parseCurrencyValue(value) {
             if (!value) return 0;
-            // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
-            // Replace dots (thousand separators) with nothing and commas (decimal separators) with dots
+            // Handle US format (thousand separator: ',', decimal separator: '.')
+            // Remove commas (thousand separators) and keep dots as decimal separators
             const numericValue = value.toString()
-                .replace(/\./g, '') // Remove thousand separators (dots)
-                .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
+                .replace(/,/g, ''); // Remove thousand separators (commas)
             
             return parseFloat(numericValue) || 0;
         }
@@ -627,7 +686,7 @@
                     <input type="text" id="description" maxlength="255" class="w-full" />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" />
+                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" value="IDR" placeholder="IDR" />
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
@@ -640,6 +699,12 @@
             `;
             
             tableBody.appendChild(newRow);
+            
+            // Ensure the new currency item field has default value
+            const newCurrencyItemInput = newRow.querySelector('input[id="CurrencyItem"]');
+            if (newCurrencyItemInput && (!newCurrencyItemInput.value || newCurrencyItemInput.value.trim() === '')) {
+                newCurrencyItemInput.value = 'IDR';
+            }
         }
 
         // Function to delete a row from the table
@@ -664,6 +729,14 @@
                     input.addEventListener('input', function() {
                         formatCurrencyInputIDR(this);
                     });
+                }
+            });
+            
+            // Initialize currency item fields with default value
+            const currencyItemInputs = document.querySelectorAll('input[id="CurrencyItem"]');
+            currencyItemInputs.forEach(input => {
+                if (!input.value || input.value.trim() === '') {
+                    input.value = 'IDR';
                 }
             });
             

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Currency Search Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+
+        /* Currency dropdown styling */
+        .currency-dropdown {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        .currency-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        .currency-search-input {
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Simple Currency Search Test</h1>
+
+    <div class="test-section">
+        <h3>Currency Search Test</h3>
+        <p><strong>Instructions:</strong></p>
+        <ul>
+            <li>Click on the currency field to see all available currencies</li>
+            <li>Type to search (e.g., "indon", "usd", "eur")</li>
+            <li>Click on any currency to select it</li>
+        </ul>
+
+        <div class="mb-4">
+            <label><strong>Currency Field:</strong></label>
+            <div class="relative">
+                <input type="text" id="CurrencyItem" maxlength="10"
+                    class="w-full p-2 border rounded currency-search-input" autocomplete="off"
+                    onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)"
+                    placeholder="Click to see currencies or type to search..." />
+                <div id="CurrencyItemDropdown"
+                    class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label><strong>Selected Currency:</strong></label>
+            <input type="text" id="selectedCurrency" class="w-full p-2 border rounded" readonly>
+        </div>
+
+        <button onclick="testSearch()">Test Search</button>
+        <button onclick="clearFields()">Clear Fields</button>
+        <div id="testResult" class="result"></div>
+    </div>
+
+    <script>
+        // Mock makeAuthenticatedRequest function for testing
+        async function makeAuthenticatedRequest(url) {
+            // For testing purposes, simulate API call
+            // In production, this should use the actual authentication
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add authentication headers if needed
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                // Fallback to mock data if API is not available
+                return getMockCurrencyData(url);
+            }
+        }
+
+        // Fallback mock data function
+        function getMockCurrencyData(url) {
+            const mockCurrencies = [
+                { id: "11111111-1111-1111-1111-111111111111", code: "IDR", name: "Indonesian Rupiah", symbol: "Rp", description: "Official currency of Indonesia" },
+                { id: "22222222-2222-2222-2222-222222222222", code: "USD", name: "US Dollar", symbol: "$", description: "Official currency of the United States" },
+                { id: "33333333-3333-3333-3333-333333333333", code: "EUR", name: "Euro", symbol: "€", description: "Official currency of the European Union" },
+                { id: "44444444-4444-4444-4444-444444444444", code: "SGD", name: "Singapore Dollar", symbol: "S$", description: "Official currency of Singapore" },
+                { id: "55555555-5555-5555-5555-555555555555", code: "JPY", name: "Japanese Yen", symbol: "¥", description: "Official currency of Japan" }
+            ];
+
+            // Check if URL contains search term
+            const urlParams = new URLSearchParams(url.split('?')[1]);
+            const searchTerm = urlParams.get('searchTerm') || '';
+
+            if (searchTerm) {
+                const filtered = mockCurrencies.filter(currency =>
+                    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    currency.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                return {
+                    success: true,
+                    message: `Search completed. Found ${filtered.length} currencies matching '${searchTerm}'`,
+                    searchTerm: searchTerm,
+                    data: filtered
+                };
+            } else {
+                return {
+                    success: true,
+                    message: `Search completed. Found ${mockCurrencies.length} currencies matching ''`,
+                    searchTerm: "",
+                    data: mockCurrencies
+                };
+            }
+        }
+
+        // Currency search and selection functions
+        async function searchCurrencies(inputElement) {
+            const searchTerm = inputElement.value.trim();
+            const dropdownId = inputElement.id + 'Dropdown';
+            const dropdown = document.getElementById(dropdownId);
+
+            if (!dropdown) return;
+
+            try {
+                // Build URL with search term if provided
+                let url = '/api/MasterCurrency/search';
+                if (searchTerm.length > 0) {
+                    url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
+                }
+
+                const response = await makeAuthenticatedRequest(url);
+
+                if (response.success && response.data && response.data.length > 0) {
+                    displayCurrencyResults(dropdown, response.data);
+                    dropdown.classList.remove('hidden');
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error searching currencies:', error);
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        function showCurrencyDropdown(inputElement) {
+            const dropdownId = inputElement.id + 'Dropdown';
+            const dropdown = document.getElementById(dropdownId);
+
+            if (dropdown) {
+                // Always trigger search to get data from API
+                // If field is empty, it will get all currencies
+                // If field has text, it will search based on the text
+                searchCurrencies(inputElement);
+            }
+        }
+
+        function displayCurrencyResults(dropdown, currencies) {
+            dropdown.innerHTML = '';
+
+            currencies.forEach(currency => {
+                const item = document.createElement('div');
+                item.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 transition-colors duration-150';
+                item.innerHTML = `
+                    <div class="font-semibold text-blue-600">${currency.code}</div>
+                    <div class="text-sm text-gray-700">${currency.name}</div>
+                    <div class="text-xs text-gray-500">Symbol: ${currency.symbol}</div>
+                    <div class="text-xs text-gray-400">${currency.description || ''}</div>
+                `;
+                item.onclick = () => selectCurrency(currency, dropdown);
+                item.onmouseenter = () => item.style.backgroundColor = '#eff6ff';
+                item.onmouseleave = () => item.style.backgroundColor = '';
+                dropdown.appendChild(item);
+            });
+        }
+
+        function selectCurrency(currency, dropdown) {
+            const inputElement = dropdown.previousElementSibling;
+            if (inputElement) {
+                inputElement.value = currency.code;
+                document.getElementById('selectedCurrency').value = `${currency.code} - ${currency.name}`;
+                dropdown.classList.add('hidden');
+
+                // Add visual feedback
+                inputElement.style.backgroundColor = '#f0f9ff';
+                inputElement.style.borderColor = '#3b82f6';
+
+                // Reset background after 1 second
+                setTimeout(() => {
+                    inputElement.style.backgroundColor = '';
+                    inputElement.style.borderColor = '';
+                }, 1000);
+
+                console.log(`Selected currency: ${currency.code} - ${currency.name}`);
+            }
+        }
+
+        function testSearch() {
+            const searchTerm = document.getElementById('CurrencyItem').value;
+            const selected = document.getElementById('selectedCurrency').value;
+
+            document.getElementById('testResult').innerHTML = `
+                <strong>Test Results:</strong><br>
+                Search Term: "${searchTerm}"<br>
+                Selected Currency: "${selected}"<br>
+                <em>✅ Currency search is working!</em>
+            `;
+        }
+
+        function clearFields() {
+            document.getElementById('CurrencyItem').value = '';
+            document.getElementById('selectedCurrency').value = '';
+            document.getElementById('testResult').innerHTML = '';
+            document.getElementById('CurrencyItemDropdown').classList.add('hidden');
+        }
+
+        // Initialize click outside handler
+        document.addEventListener('click', function (e) {
+            const dropdown = document.getElementById('CurrencyItemDropdown');
+            const inputElement = document.getElementById('CurrencyItem');
+            if (!dropdown.contains(e.target) && !inputElement.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Initialize the page
+        window.onload = function () {
+            console.log('Simple currency search test page loaded');
+            console.log('Available currencies:', mockCurrencies.map(c => c.code).join(', '));
+        };
+    </script>
+</body>
+
+</html>

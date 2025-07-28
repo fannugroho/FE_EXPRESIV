@@ -562,13 +562,28 @@ function printInvItem() {
     try {
         console.log("Print function started");
         
+        // Get current docEntry
+        const docEntry = document.getElementById('DocEntry').value || '12345';
+        
         // Get all necessary data from the form
         const invData = {
+            DocEntry: docEntry,
             DocNum: document.getElementById('DocNum').value || '',
             CardName: document.getElementById('CardName').value || '',
             CardCode: document.getElementById('CardCode').value || '',
+            NumAtCard: document.getElementById('NumAtCard').value || '',
             DocDate: document.getElementById('DocDate').value || '',
             DocCur: document.getElementById('DocCur').value || '',
+            GroupNum: document.getElementById('GroupNum').value || '',
+            TrnspCode: document.getElementById('TrnspCode').value || '',
+            U_BSI_ShippingType: document.getElementById('U_BSI_ShippingType').value || '',
+            U_BSI_PaymentGroup: document.getElementById('U_BSI_PaymentGroup').value || '',
+            U_BSI_UDF1: document.getElementById('U_BSI_UDF1').value || '',
+            U_BSI_UDF2: document.getElementById('U_BSI_UDF2').value || '',
+            PriceBefDi: parseFloat(document.getElementById('PriceBefDi').value) || 0,
+            VatSum: parseFloat(document.getElementById('VatSum').value) || 0,
+            DocTotal: parseFloat(document.getElementById('DocTotal').value) || 0,
+            Comments: document.getElementById('comments').value || '',
             preparedBy: document.getElementById('preparedBySearch').value || '',
             acknowledgedBy: document.getElementById('acknowledgeBySearch').value || '',
             checkedBy: document.getElementById('checkedBySearch').value || '',
@@ -580,57 +595,63 @@ function printInvItem() {
         const items = [];
         const rows = document.querySelectorAll('#tableBody tr');
         
-        rows.forEach(row => {
+        rows.forEach((row, index) => {
             // Extract data from each row
-            const lineNum = row.querySelector('.line-num-input') ? row.querySelector('.line-num-input').value || '' : '';
+            const lineNum = row.querySelector('.line-num-input') ? row.querySelector('.line-num-input').value || index : index;
             const itemCode = row.querySelector('.item-code-input') ? row.querySelector('.item-code-input').value || '' : '';
             const itemName = row.querySelector('.item-description') ? row.querySelector('.item-description').value || '' : '';
             const freeTxt = row.querySelector('.item-free-txt') ? row.querySelector('.item-free-txt').value || '' : '';
-            const salesQty = row.querySelector('.item-sls-qty') ? row.querySelector('.item-sls-qty').value || '' : '';
-            const invQty = row.querySelector('.item-quantity') ? row.querySelector('.item-quantity').value || '' : '';
-            const salesPrice = row.querySelector('.item-sls-price') ? row.querySelector('.item-sls-price').value || '' : '';
-            const price = row.querySelector('.item-price') ? row.querySelector('.item-price').value || '' : '';
-            const lineTotal = row.querySelector('.item-line-total') ? row.querySelector('.item-line-total').value || '' : '';
+            const salesQty = row.querySelector('.item-sls-qty') ? parseFloat(row.querySelector('.item-sls-qty').value) || 0 : 0;
+            const invQty = row.querySelector('.item-quantity') ? parseFloat(row.querySelector('.item-quantity').value) || 0 : 0;
+            const uom = row.querySelector('.item-uom') ? row.querySelector('.item-uom').value || 'PCS' : 'PCS';
+            const salesPrice = row.querySelector('.item-sls-price') ? parseFloat(row.querySelector('.item-sls-price').value) || 0 : 0;
+            const price = row.querySelector('.item-price') ? parseFloat(row.querySelector('.item-price').value) || 0 : 0;
+            const discPrcnt = row.querySelector('.item-discount') ? parseFloat(row.querySelector('.item-discount').value) || 0 : 0;
+            const taxCode = row.querySelector('.item-tax-code') ? row.querySelector('.item-tax-code').value || 'VAT' : 'VAT';
+            const lineTotal = row.querySelector('.item-line-total') ? parseFloat(row.querySelector('.item-line-total').value) || 0 : 0;
+            const accountCode = row.querySelector('.item-account-code') ? row.querySelector('.item-account-code').value || '4000' : '4000';
+            const baseType = row.querySelector('.item-base-type') ? parseInt(row.querySelector('.item-base-type').value) || 0 : 0;
+            const baseEntry = row.querySelector('.item-base-entry') ? parseInt(row.querySelector('.item-base-entry').value) || 0 : 0;
+            const baseLine = row.querySelector('.item-base-line') ? parseInt(row.querySelector('.item-base-line').value) || 0 : 0;
+            const lineType = row.querySelector('.item-line-type') ? parseInt(row.querySelector('.item-line-type').value) || 0 : 0;
             
             items.push({
-                lineNum: lineNum,
-                itemCode: itemCode,
-                itemName: itemName,
-                freeTxt: freeTxt,
-                salesQty: salesQty,
-                invQty: invQty,
-                salesPrice: salesPrice,
-                price: price,
-                lineTotal: lineTotal
+                LineNum: parseInt(lineNum),
+                ItemCode: itemCode,
+                ItemName: itemName,
+                FreeTxt: freeTxt,
+                Quantity: salesQty,
+                InvQty: invQty,
+                UoM: uom,
+                SalesPrice: salesPrice,
+                Price: price,
+                DiscPrcnt: discPrcnt,
+                TaxCode: taxCode,
+                LineTotal: lineTotal,
+                AccountCode: accountCode,
+                BaseType: baseType,
+                BaseEntry: baseEntry,
+                BaseLine: baseLine,
+                LineType: lineType
             });
         });
         
-        // Create URL parameters for the print page
-        const params = new URLSearchParams();
-        params.append('DocNum', invData.DocNum);
-        params.append('CardName', invData.CardName);
-        params.append('CardCode', invData.CardCode);
-        params.append('DocDate', invData.DocDate);
-        params.append('DocCur', invData.DocCur);
+        // Add items to invoice data
+        invData.Items = items;
         
-        // Add comments from the form
-        const comments = document.getElementById('comments').value || '';
-        params.append('comments', comments);
+        // Save data to storage
+        if (typeof saveInvoiceDataToStorage === 'function') {
+            saveInvoiceDataToStorage(docEntry, invData);
+        } else {
+            // Fallback: save to localStorage directly
+            localStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invData));
+            sessionStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invData));
+        }
         
-        // Add approval information
-        params.append('preparedBy', invData.preparedBy);
-        params.append('acknowledgedBy', invData.acknowledgedBy);
-        params.append('checkedBy', invData.checkedBy);
-        params.append('approvedBy', invData.approvedBy);
-        params.append('receivedBy', invData.receivedBy);
-        
-        // Add items data as JSON
-        params.append('items', encodeURIComponent(JSON.stringify(items)));
-        
-        console.log("Opening print page");
+        console.log("Invoice data saved to storage, opening print page");
         
         // Open the print page in a new window
-        window.open(`printInvItem.html?${params.toString()}`, '_blank');
+        window.open(`printARItem.html?docEntry=${docEntry}`, '_blank');
     } catch (error) {
         console.error("Error in printInvItem function:", error);
         alert("Terjadi kesalahan saat mencetak: " + error.message);
@@ -811,8 +832,36 @@ function validateNumericInput(input) {
     }
 }
 
+// Function to save invoice data to storage (for print functionality)
+function saveInvoiceDataToStorage(docEntry, invoiceData) {
+    try {
+        localStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
+        sessionStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
+        console.log('Invoice data saved to storage for docEntry:', docEntry);
+        return true;
+    } catch (error) {
+        console.error('Error saving invoice data to storage:', error);
+        return false;
+    }
+}
+
+// Function to clear invoice data from storage
+function clearInvoiceDataFromStorage(docEntry) {
+    try {
+        localStorage.removeItem(`invoice_${docEntry}`);
+        sessionStorage.removeItem(`invoice_${docEntry}`);
+        console.log('Invoice data cleared from storage for docEntry:', docEntry);
+        return true;
+    } catch (error) {
+        console.error('Error clearing invoice data from storage:', error);
+        return false;
+    }
+}
+
 // Export functions for global access
 window.receiveInvItem = receiveInvItem;
 window.rejectInvItem = rejectInvItem;
 window.printInvItem = printInvItem;
-window.goToMenuReceiveInvItem = goToMenuReceiveInvItem; 
+window.goToMenuReceiveInvItem = goToMenuReceiveInvItem;
+window.saveInvoiceDataToStorage = saveInvoiceDataToStorage;
+window.clearInvoiceDataFromStorage = clearInvoiceDataFromStorage; 

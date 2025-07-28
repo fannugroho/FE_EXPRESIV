@@ -231,12 +231,69 @@
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
         }
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
             min-width: 1200px;
             table-layout: fixed;
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Sticky header for better UX */
+        #arInvTable thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f3f4f6;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         /* Better spacing for table cells */
@@ -246,6 +303,117 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            vertical-align: middle !important;
+        }
+        
+        /* Ensure textarea content is properly displayed */
+        .table-container textarea {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-family: inherit;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        /* Text alignment for different column types */
+        /* No. column - center aligned */
+        .no-column input {
+            text-align: center !important;
+        }
+        
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
+        .description-column textarea {
+            text-align: left !important;
+        }
+        
+        /* UoM column - center aligned */
+        .sales-employee-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Tax code column - center aligned */
+        .tax-code-column input {
+            text-align: center !important;
+        }
+        
+        /* Discount column - center aligned */
+        .discount-column input {
+            text-align: center !important;
+        }
+        
+        /* Add visual indicator for scrollable content */
+        .table-container textarea.has-scroll {
+            border-right: 2px solid #3b82f6;
+        }
+        
+        /* Improve table row appearance */
+        #arInvTable tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* Ensure consistent cell alignment and height */
+        #arInvTable td {
+            vertical-align: middle !important;
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+        
+        /* Consistent input and textarea styling */
+        #arInvTable input,
+        #arInvTable textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            vertical-align: middle;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Remove any conflicting styles */
+        .item-description,
+        .item-free-txt,
+        .item-sales-employee,
+        .item-sls-qty,
+        .item-quantity,
+        .item-sls-price,
+        .item-price,
+        .item-line-total {
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Ensure table rows have consistent height */
+        #arInvTable tbody tr {
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
         }
         
         /* Responsive adjustments */
@@ -333,6 +501,109 @@
             resize: none;
             overflow-y: auto;
         }
+        
+        /* Attachment section styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-container:hover {
+            border-color: #d1d5db;
+            background-color: #f3f4f6;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-icon {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        
+        .file-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+        
+        .attachment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-download {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-preview {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -375,6 +646,23 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
                 <input type="number" id="docRate" placeholder="Document Rate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <!-- Attachment Section -->
+                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                <div id="attachmentContainer" class="attachment-container w-full p-3">
+                    <div id="attachmentList" class="space-y-2">
+                        <!-- Attachments will be loaded here -->
+                    </div>
+                    <div id="noAttachments" class="text-gray-500 text-center py-4" style="display: none;">
+                        <div class="text-lg">📄</div>
+                        <div class="mt-2">No attachments found</div>
+                        <div class="text-sm text-gray-400 mt-1">This invoice has no attached files</div>
+                    </div>
+                    <div id="attachmentLoading" class="text-center py-4">
+                        <div class="loading-spinner"></div>
+                        <span class="ml-2 text-gray-600">Loading attachments...</span>
+                    </div>
+                </div>
             </div>
             
             <div>
@@ -423,7 +711,7 @@
                     <th class="p-2 item-code-column">Item Code</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 description-column">Catatan</th>
-                    <th class="p-2 sales-employee-column">Sales Employee</th>
+                    <th class="p-2 sales-employee-column">UoM</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
@@ -493,16 +781,26 @@
                 <input type="text" id="receivedByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
         </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="goToMenuARInv()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Back to Menu
-            </button>
-            <button onclick="printDocument()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Print
-            </button>
+
+        <!-- Submit Button -->
+        <div class="mt-6 flex justify-center">
+            <div class="text-center">
+                <button 
+                    id="submitButton" 
+                    onclick="submitInvoiceData()" 
+                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                    disabled
+                >
+                    <span id="submitButtonText">Submit</span>
+                    <div id="submitSpinner" class="hidden inline-block ml-2">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    </div>
+                </button>
+                <p class="text-sm text-gray-600 mt-2">Click to submit this invoice data to the system</p>
+            </div>
         </div>
+        
+
     </div>
     
     <script src="../js/detailInvItem.js"></script>

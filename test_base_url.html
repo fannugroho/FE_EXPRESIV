@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASE_URL Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .test-button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .test-button:hover {
+            background: #0056b3;
+        }
+
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+    <script src="../js/auth.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 BASE_URL Test</h1>
+
+        <div class="test-section">
+            <h3>BASE_URL Information</h3>
+            <div id="baseUrlInfo" class="status info">Loading BASE_URL...</div>
+            <button onclick="checkBaseUrl()" class="test-button">Check BASE_URL</button>
+            <button onclick="testCurrencyAPI()" class="test-button">Test Currency API</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('baseUrlInfo');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function checkBaseUrl() {
+            log('=== Checking BASE_URL ===');
+
+            if (typeof BASE_URL !== 'undefined') {
+                log(`✅ BASE_URL is defined: ${BASE_URL}`);
+                updateStatus(`✅ BASE_URL: ${BASE_URL}`, 'success');
+
+                // Test URL construction
+                const testUrl = `${BASE_URL}/api/MasterCurrency/search`;
+                log(`🔗 Test URL: ${testUrl}`);
+
+                // Test with search term
+                const searchUrl = `${BASE_URL}/api/MasterCurrency/search?searchTerm=indones`;
+                log(`🔍 Search URL: ${searchUrl}`);
+
+            } else {
+                log('❌ BASE_URL is not defined!');
+                updateStatus('❌ BASE_URL is not defined!', 'error');
+            }
+        }
+
+        async function testCurrencyAPI() {
+            log('=== Testing Currency API ===');
+
+            if (typeof BASE_URL === 'undefined') {
+                log('❌ BASE_URL is not defined, cannot test API');
+                return;
+            }
+
+            try {
+                const url = `${BASE_URL}/api/MasterCurrency/search`;
+                log(`🌐 Making request to: ${url}`);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                log(`📡 Response status: ${response.status}`);
+                log(`📡 Response ok: ${response.ok}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ API Response: ${JSON.stringify(data, null, 2)}`);
+
+                    if (data.success && data.data) {
+                        log(`✅ Found ${data.data.length} currencies`);
+                        updateStatus(`✅ API Test SUCCESS - Found ${data.data.length} currencies`, 'success');
+                    } else {
+                        log('❌ API response format incorrect');
+                        updateStatus('❌ API response format incorrect', 'error');
+                    }
+                } else {
+                    log(`❌ HTTP Error: ${response.status}`);
+                    updateStatus(`❌ HTTP Error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`);
+                updateStatus(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-check BASE_URL on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            log('Page loaded, checking BASE_URL...');
+            checkBaseUrl();
+        });
+    </script>
+</body>
+
+</html>

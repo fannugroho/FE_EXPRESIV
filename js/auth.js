@@ -8,10 +8,10 @@ window.BYPASS_AUTH_FOR_DEVELOPMENT = BYPASS_AUTH_FOR_DEVELOPMENT;
 // API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
     // Production environment
-    var BASE_URL = "https://expressiv-be-sb.idsdev.site";
+    // var BASE_URL = "https://expressiv-be-sb.idsdev.site";
     
     // Development environment (uncomment for local development)
-    // var BASE_URL = "http://localhost:5249";
+    var BASE_URL = "http://localhost:5249";
     
     // Staging environment (uncomment for staging)
     // var BASE_URL = "https://expressiv.idsdev.site";
@@ -630,4 +630,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (isAuthenticated() && !isLoginPage()) {
     applyPermissionVisibility();
   }
-}); 
+});
+
+// Make essential functions available globally
+window.makeAuthenticatedRequest = makeAuthenticatedRequest;
+window.getAccessToken = getAccessToken;
+window.getRefreshToken = getRefreshToken;
+window.isAuthenticated = isAuthenticated;
+window.getCurrentUser = getCurrentUser;
+window.getUserId = getUserId;
+window.logoutAuth = logoutAuth;
+window.BASE_URL = BASE_URL; 

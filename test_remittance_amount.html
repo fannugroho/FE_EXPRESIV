@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Remittance Request Amount</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        label {
+            display: inline-block;
+            width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Remittance Request Amount Field</h1>
+
+    <div class="test-section">
+        <h3>Form Fields</h3>
+        <div>
+            <label>Net Amount 1:</label>
+            <input type="text" id="DocTotal1" class="currency-input-idr" value="0.00"
+                oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();">
+        </div>
+        <div>
+            <label>Net Amount 2:</label>
+            <input type="text" id="DocTotal2" class="currency-input-idr" value="0.00"
+                oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();">
+        </div>
+        <div>
+            <label>Net Amount 3:</label>
+            <input type="text" id="DocTotal3" class="currency-input-idr" value="0.00"
+                oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();">
+        </div>
+        <div>
+            <label>Total Amount Due:</label>
+            <input type="text" id="totalAmountDue" class="currency-input" readonly>
+        </div>
+        <div>
+            <label>Remittance Request Amount:</label>
+            <input type="text" id="RemittanceRequestAmount" class="currency-input-idr" readonly>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Actions</h3>
+        <button onclick="testUpdateTotal()">Update Total</button>
+        <button onclick="testFormDataCollection()">Test Form Data Collection</button>
+        <button onclick="clearFields()">Clear Fields</button>
+        <div id="testResult" class="result"></div>
+    </div>
+
+    <script>
+        // Mock currency formatting functions
+        window.formatCurrencyInputIDR = function (input) {
+            let value = input.value.replace(/[^\d.-]/g, '');
+            let numValue = parseFloat(value) || 0;
+            input.numericValue = numValue;
+            input.value = numValue.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        window.parseCurrencyIDR = function (value) {
+            return parseFloat(value.replace(/[^\d.-]/g, '')) || 0;
+        };
+
+        window.formatCurrencyIDR = function (number) {
+            return number.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        // Mock updateTotalAmountDue function
+        function updateTotalAmountDue() {
+            let total = 0;
+
+            // Get all currency inputs from the test fields
+            const docTotalInputs = document.querySelectorAll('.currency-input-idr');
+            docTotalInputs.forEach(input => {
+                if (input.id !== 'RemittanceRequestAmount') { // Exclude the remittance field itself
+                    total += window.parseCurrencyIDR(input.value);
+                }
+            });
+
+            // Update the total amount due
+            const totalAmountDueInput = document.getElementById('totalAmountDue');
+            if (totalAmountDueInput) {
+                totalAmountDueInput.value = window.formatCurrencyIDR(total);
+                totalAmountDueInput.numericValue = total;
+            }
+
+            // Note: Remittance Request Amount is NOT updated to maintain independence
+        }
+
+        // Mock parseCurrency function
+        function parseCurrency(formattedValue) {
+            return parseFloat(formattedValue.replace(/[^\d.-]/g, '')) || 0;
+        }
+
+        // Test functions
+        function testUpdateTotal() {
+            updateTotalAmountDue();
+            document.getElementById('testResult').innerHTML = '<strong>Total updated successfully!</strong><br>' +
+                'Total Amount Due: ' + document.getElementById('totalAmountDue').value + '<br>' +
+                'Remittance Request Amount: ' + document.getElementById('RemittanceRequestAmount').value + '<br>' +
+                '<em>Note: Remittance Request Amount is independent and may not match Total Amount Due</em>';
+        }
+
+        function testFormDataCollection() {
+            const remittanceAmount = parseCurrency(document.getElementById("RemittanceRequestAmount").value);
+            const totalAmountDue = parseCurrency(document.getElementById("totalAmountDue").value);
+
+            const result = {
+                remittanceRequestAmount: remittanceAmount,
+                totalAmountDue: totalAmountDue,
+                isEqual: remittanceAmount === totalAmountDue
+            };
+
+            document.getElementById('testResult').innerHTML = '<strong>Form Data Collection Test:</strong><br>' +
+                'Remittance Request Amount: ' + remittanceAmount + '<br>' +
+                'Total Amount Due: ' + totalAmountDue + '<br>' +
+                'Values are equal: ' + (result.isEqual ? 'Yes' : 'No') + '<br>' +
+                '<em>Note: Remittance Request Amount is independent and may differ from Total Amount Due</em>';
+        }
+
+        function clearFields() {
+            document.getElementById('DocTotal1').value = '0.00';
+            document.getElementById('DocTotal2').value = '0.00';
+            document.getElementById('DocTotal3').value = '0.00';
+            document.getElementById('totalAmountDue').value = '';
+            document.getElementById('RemittanceRequestAmount').value = '';
+            document.getElementById('testResult').innerHTML = '';
+        }
+
+        // Initialize the page
+        window.onload = function () {
+            updateTotalAmountDue();
+            
+            // Set Remittance Request Amount to current total on initial load
+            const remittanceField = document.getElementById('RemittanceRequestAmount');
+            const totalAmountDueField = document.getElementById('totalAmountDue');
+            if (remittanceField && totalAmountDueField && totalAmountDueField.value) {
+                remittanceField.value = totalAmountDueField.value;
+            }
+        };
+    </script>
+</body>
+
+</html>

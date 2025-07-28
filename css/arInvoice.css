@@ -1,0 +1,239 @@
+    /* AR Invoice Menu Styling */
+    .menu-btn, .submenu-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        padding: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.2s;
+    }
+
+    .menu-btn {
+        background: white;
+        color: #333;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .submenu-btn {
+        background: #f8f9fa;
+        color: #555;
+    }
+
+    /* Hover effect */
+    .menu-btn:hover {
+        background: #f1f1f1;
+        transform: translateX(5px);
+    }
+
+    .submenu-btn:hover {
+        background: #e2e2e2;
+    }
+    
+    /* Tab styling */
+    .tab-active {
+        border-bottom: 3px solid #3b82f6;
+        color: #3b82f6;
+        font-weight: 600;
+    }
+    
+    .main-tab-active {
+        border-bottom: 3px solid #2563eb;
+        color: #2563eb;
+        font-weight: 700;
+        background-color: rgba(219, 234, 254, 0.3);
+    }
+    
+    /* Tab hover effects */
+    .tab-button:hover {
+        background-color: rgba(219, 234, 254, 0.5);
+        color: #1d4ed8;
+    }
+
+    /* AR Invoice specific styles */
+    .ar-invoice-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .ar-invoice-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ar-invoice-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .ar-invoice-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-prepared {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-checked {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-acknowledged {
+        background-color: #e0e7ff;
+        color: #3730a3;
+    }
+
+    .status-approved {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-received {
+        background-color: #ecfdf5;
+        color: #047857;
+    }
+
+    /* Form styling for AR Invoice */
+    .ar-invoice-form {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ar-invoice-form-group {
+        margin-bottom: 1rem;
+    }
+
+    .ar-invoice-form-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .ar-invoice-form-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        transition: border-color 0.2s ease;
+    }
+
+    .ar-invoice-form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Button styles for AR Invoice */
+    .ar-invoice-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .ar-invoice-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .ar-invoice-btn-primary {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .ar-invoice-btn-primary:hover {
+        background-color: #2563eb;
+    }
+
+    .ar-invoice-btn-secondary {
+        background-color: #6b7280;
+        color: white;
+    }
+
+    .ar-invoice-btn-secondary:hover {
+        background-color: #4b5563;
+    }
+
+    .ar-invoice-btn-success {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .ar-invoice-btn-success:hover {
+        background-color: #059669;
+    }
+
+    .ar-invoice-btn-danger {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .ar-invoice-btn-danger:hover {
+        background-color: #dc2626;
+    }
+
+    /* Table styling for AR Invoice */
+    .ar-invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ar-invoice-table th {
+        background-color: #f9fafb;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .ar-invoice-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        color: #6b7280;
+    }
+
+    .ar-invoice-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .ar-invoice-card {
+            margin-bottom: 1rem;
+        }
+        
+        .ar-invoice-form {
+            padding: 1rem;
+        }
+        
+        .ar-invoice-table {
+            font-size: 0.875rem;
+        }
+        
+        .ar-invoice-table th,
+        .ar-invoice-table td {
+            padding: 0.5rem;
+        }
+    }

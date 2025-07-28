@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Test - GL Account Dropdown</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .dropdown { position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; 
+                   max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .dropdown-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .dropdown-item:hover { background-color: #f5f5f5; }
+        .dropdown-item:last-child { border-bottom: none; }
+        .relative { position: relative; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .test-btn { padding: 8px 16px; margin: 5px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .test-btn:hover { background: #005a8b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Minimal Test - GL Account & Account Name Dropdown</h1>
+        
+        <div class="debug">
+            <h3>Debug Info:</h3>
+            <div id="debugInfo">Loading...</div>
+        </div>
+
+        <div class="form-group">
+            <label for="testGLAccount">G/L Account (COA):</label>
+            <div class="relative">
+                <input type="text" id="testGLAccount" placeholder="Type to search COA (e.g., 7330)...">
+                <div id="glAccountDropdown" class="dropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="testAccountName">Account Name:</label>
+            <div class="relative">
+                <input type="text" id="testAccountName" placeholder="Type to search Account Name (e.g., Entertainment)...">
+                <div id="accountNameDropdown" class="dropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button class="test-btn" onclick="testAPICall()">Test API Call</button>
+            <button class="test-btn" onclick="testManualInput()">Test Manual Input</button>
+            <button class="test-btn" onclick="clearInputs()">Clear Inputs</button>
+        </div>
+
+        <div class="debug">
+            <h3>Test Log:</h3>
+            <div id="testLog" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let BASE_URL = 'http://localhost:5249';
+        
+        function log(message) {
+            const now = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('testLog');
+            logDiv.textContent += `[${now}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${now}] ${message}`);
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            const glInput = document.getElementById('testGLAccount');
+            const nameInput = document.getElementById('testAccountName');
+            
+            debugDiv.innerHTML = `
+                <strong>Input Status:</strong><br>
+                GL Account - Readonly: ${glInput.readOnly}, Disabled: ${glInput.disabled}, Value: "${glInput.value}"<br>
+                Account Name - Readonly: ${nameInput.readOnly}, Disabled: ${nameInput.disabled}, Value: "${nameInput.value}"<br>
+                <strong>Token:</strong> ${localStorage.getItem('accessToken') ? 'Present' : 'Missing'}<br>
+                <strong>Base URL:</strong> ${BASE_URL}
+            `;
+        }
+
+        async function makeAuthenticatedRequest(url, options = {}) {
+            const token = localStorage.getItem('accessToken');
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'accept': '*/*',
+                ...(options.headers || {})
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            return fetch(BASE_URL + url, {
+                ...options,
+                headers
+            });
+        }
+
+        async function searchGLAccount(input) {
+            const searchTerm = input.value.trim();
+            const dropdown = document.getElementById('glAccountDropdown');
+            
+            log(`searchGLAccount called with: "${searchTerm}"`);
+            
+            if (searchTerm.length < 1) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            try {
+                log(`Making API call: /api/expenses/search?coa=${searchTerm}`);
+                const response = await makeAuthenticatedRequest(`/api/expenses/search?coa=${encodeURIComponent(searchTerm)}&page=1&pageSize=20`);
+                
+                log(`Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    log(`API Error: ${response.status} - ${response.statusText}`);
+                    showDropdownError(dropdown, `Error: ${response.status}`);
+                    return;
+                }
+                
+                const result = await response.json();
+                log(`API Response: ${JSON.stringify(result, null, 2)}`);
+                displayGLAccountDropdown(result.data || [], dropdown, input);
+                
+            } catch (error) {
+                log(`Exception: ${error.message}`);
+                showDropdownError(dropdown, `Error: ${error.message}`);
+            }
+        }
+
+        async function searchAccountName(input) {
+            const searchTerm = input.value.trim();
+            const dropdown = document.getElementById('accountNameDropdown');
+            
+            log(`searchAccountName called with: "${searchTerm}"`);
+            
+            if (searchTerm.length < 1) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            try {
+                log(`Making API call: /api/expenses/search?accountName=${searchTerm}`);
+                const response = await makeAuthenticatedRequest(`/api/expenses/search?accountName=${encodeURIComponent(searchTerm)}&page=1&pageSize=20`);
+                
+                log(`Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    log(`API Error: ${response.status} - ${response.statusText}`);
+                    showDropdownError(dropdown, `Error: ${response.status}`);
+                    return;
+                }
+                
+                const result = await response.json();
+                log(`API Response: ${JSON.stringify(result, null, 2)}`);
+                displayAccountNameDropdown(result.data || [], dropdown, input);
+                
+            } catch (error) {
+                log(`Exception: ${error.message}`);
+                showDropdownError(dropdown, `Error: ${error.message}`);
+            }
+        }
+
+        function showDropdownError(dropdown, message) {
+            dropdown.innerHTML = `<div class="dropdown-item" style="color: red;">${message}</div>`;
+            dropdown.style.display = 'block';
+        }
+
+        function displayGLAccountDropdown(accounts, dropdown, input) {
+            dropdown.innerHTML = '';
+            
+            if (!accounts || accounts.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item" style="color: #999;">No GL Accounts found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            // Remove duplicates based on COA
+            const uniqueAccounts = accounts.filter((account, index, self) => 
+                index === self.findIndex(a => a.coa === account.coa)
+            );
+            
+            log(`Displaying ${uniqueAccounts.length} unique GL Accounts`);
+            
+            uniqueAccounts.forEach(account => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `
+                    <div style="font-weight: bold;">${account.coa}</div>
+                    <div style="font-size: 12px; color: #666;">${account.accountName}</div>
+                `;
+                item.onclick = () => selectGLAccount(account, input, dropdown);
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.style.display = 'block';
+        }
+
+        function displayAccountNameDropdown(accounts, dropdown, input) {
+            dropdown.innerHTML = '';
+            
+            if (!accounts || accounts.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item" style="color: #999;">No Account Names found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            // Remove duplicates based on accountName
+            const uniqueAccounts = accounts.filter((account, index, self) => 
+                index === self.findIndex(a => a.accountName === account.accountName)
+            );
+            
+            log(`Displaying ${uniqueAccounts.length} unique Account Names`);
+            
+            uniqueAccounts.forEach(account => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `
+                    <div style="font-weight: bold;">${account.accountName}</div>
+                    <div style="font-size: 12px; color: #666;">${account.coa}</div>
+                `;
+                item.onclick = () => selectAccountName(account, input, dropdown);
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.style.display = 'block';
+        }
+
+        function selectGLAccount(account, input, dropdown) {
+            log(`Selected GL Account: ${account.coa} - ${account.accountName}`);
+            input.value = account.coa;
+            dropdown.style.display = 'none';
+            
+            // Auto-fill Account Name
+            const nameInput = document.getElementById('testAccountName');
+            nameInput.value = account.accountName;
+            updateDebugInfo();
+        }
+
+        function selectAccountName(account, input, dropdown) {
+            log(`Selected Account Name: ${account.accountName} - ${account.coa}`);
+            input.value = account.accountName;
+            dropdown.style.display = 'none';
+            
+            // Auto-fill GL Account
+            const glInput = document.getElementById('testGLAccount');
+            glInput.value = account.coa;
+            updateDebugInfo();
+        }
+
+        function testAPICall() {
+            log('=== Testing API Call ===');
+            const glInput = document.getElementById('testGLAccount');
+            glInput.value = 'Entertainment';
+            searchAccountName(document.getElementById('testAccountName'));
+        }
+
+        function testManualInput() {
+            log('=== Testing Manual Input ===');
+            const glInput = document.getElementById('testGLAccount');
+            const nameInput = document.getElementById('testAccountName');
+            
+            log('Setting manual values...');
+            glInput.value = '7330-1';
+            nameInput.value = 'Entertainment - A Local';
+            updateDebugInfo();
+        }
+
+        function clearInputs() {
+            log('=== Clearing Inputs ===');
+            document.getElementById('testGLAccount').value = '';
+            document.getElementById('testAccountName').value = '';
+            document.getElementById('glAccountDropdown').style.display = 'none';
+            document.getElementById('accountNameDropdown').style.display = 'none';
+            updateDebugInfo();
+        }
+
+        // Setup event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, setting up event listeners');
+            
+            const glInput = document.getElementById('testGLAccount');
+            const nameInput = document.getElementById('testAccountName');
+            
+            // GL Account events
+            glInput.addEventListener('input', function() {
+                log(`GL Account input event: "${this.value}"`);
+                searchGLAccount(this);
+                updateDebugInfo();
+            });
+            
+            glInput.addEventListener('focus', function() {
+                log('GL Account focused');
+                if (this.value.trim().length > 0) {
+                    searchGLAccount(this);
+                }
+            });
+            
+            glInput.addEventListener('keyup', function() {
+                log(`GL Account keyup: "${this.value}"`);
+                searchGLAccount(this);
+            });
+            
+            // Account Name events
+            nameInput.addEventListener('input', function() {
+                log(`Account Name input event: "${this.value}"`);
+                searchAccountName(this);
+                updateDebugInfo();
+            });
+            
+            nameInput.addEventListener('focus', function() {
+                log('Account Name focused');
+                if (this.value.trim().length > 0) {
+                    searchAccountName(this);
+                }
+            });
+            
+            nameInput.addEventListener('keyup', function() {
+                log(`Account Name keyup: "${this.value}"`);
+                searchAccountName(this);
+            });
+            
+            // Hide dropdowns when clicking outside
+            document.addEventListener('click', function(event) {
+                const glDropdown = document.getElementById('glAccountDropdown');
+                const nameDropdown = document.getElementById('accountNameDropdown');
+                
+                if (!event.target.closest('#testGLAccount') && !event.target.closest('#glAccountDropdown')) {
+                    glDropdown.style.display = 'none';
+                }
+                
+                if (!event.target.closest('#testAccountName') && !event.target.closest('#accountNameDropdown')) {
+                    nameDropdown.style.display = 'none';
+                }
+            });
+            
+            updateDebugInfo();
+            log('Event listeners setup complete');
+        });
+
+        // Load auth token if available
+        try {
+            const authScript = document.createElement('script');
+            authScript.src = 'js/auth.js';
+            authScript.onload = function() {
+                log('Auth script loaded');
+                if (window.BASE_URL) {
+                    BASE_URL = window.BASE_URL;
+                    log(`BASE_URL updated to: ${BASE_URL}`);
+                }
+                updateDebugInfo();
+            };
+            authScript.onerror = function() {
+                log('Failed to load auth script');
+                updateDebugInfo();
+            };
+            document.head.appendChild(authScript);
+        } catch (error) {
+            log(`Error loading auth: ${error.message}`);
+        }
+    </script>
+</body>
+</html>

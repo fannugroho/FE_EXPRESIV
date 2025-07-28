@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple API Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <h1>Simple API Test</h1>
+    <div style="margin: 20px;">
+        <button onclick="testAPI()">Test API Expenses Search</button>
+        <button onclick="testGLFunction()">Test GL Account Function</button>
+    </div>
+    <div id="results" style="margin: 20px; padding: 10px; border: 1px solid #ccc; min-height: 200px;">
+        Results will appear here...
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('Testing API endpoint...');
+            
+            try {
+                const response = await fetch(BASE_URL + '/api/expenses/search?coa=1&accountName=Entertainment&page=1&pageSize=20', {
+                    method: 'GET',
+                    headers: {
+                        'accept': '*/*',
+                        'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+                    }
+                });
+                
+                log('Response status: ' + response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('Response data received: ' + JSON.stringify(data, null, 2));
+                } else {
+                    log('Error response: ' + response.statusText);
+                }
+            } catch (error) {
+                log('Error: ' + error.message);
+            }
+        }
+
+        async function testGLFunction() {
+            log('Testing GL Account search function...');
+            
+            // Create a fake input element for testing
+            const fakeInput = document.createElement('input');
+            fakeInput.value = 'Entertainment';
+            
+            // Test if functions exist
+            log('window.searchGLAccount exists: ' + (typeof window.searchGLAccount));
+            log('window.searchAccountName exists: ' + (typeof window.searchAccountName));
+            
+            if (typeof window.searchGLAccount === 'function') {
+                try {
+                    await window.searchGLAccount(fakeInput);
+                    log('searchGLAccount function called successfully');
+                } catch (error) {
+                    log('Error calling searchGLAccount: ' + error.message);
+                }
+            } else {
+                log('searchGLAccount function not found!');
+            }
+        }
+
+        // Load addOPReim.js functions
+        const script = document.createElement('script');
+        script.src = 'js/addOPReim.js';
+        script.onload = function() {
+            log('addOPReim.js loaded');
+            log('Functions available:');
+            log('- searchGLAccount: ' + (typeof window.searchGLAccount));
+            log('- searchAccountName: ' + (typeof window.searchAccountName));
+        };
+        script.onerror = function() {
+            log('Error loading addOPReim.js');
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
