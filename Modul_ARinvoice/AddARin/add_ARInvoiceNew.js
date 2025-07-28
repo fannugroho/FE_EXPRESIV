@@ -670,6 +670,9 @@ async function initializePage() {
 
         initializeCurrencyDropdownHandlers();
 
+        // Setup line item listeners for automatic calculation
+        setupLineItemListeners();
+
         setTimeout(async () => {
             await ensureApprovalFieldValues();
             autofillPreparedByWithCurrentUser();
@@ -1556,65 +1559,78 @@ function setupTextInput(inputId) {
 function updateTotalAmountDue() {
     console.log('🔄 Updating Total Amount Due...');
 
-    // Kumpulkan total per currency
-    const currencyTotals = {};
+    let subTotal = 0;
+    let vatTotal = 0;
+    let wtTotal = 0;
+    let documentTotal = 0;
+
     const tableRows = document.querySelectorAll('#tableBody tr');
     console.log('Table rows found for total calculation:', tableRows.length);
+
     tableRows.forEach(row => {
-        const currencyInput = row.querySelector('.currency-search-input');
-        const amountInput = row.querySelector('.currency-input-idr');
-        if (!currencyInput || !amountInput) return;
-        const currency = (currencyInput.value || 'IDR').trim().toUpperCase();
-        let amount = 0;
-        if (typeof window.parseCurrencyIDR === 'function') {
-            amount = window.parseCurrencyIDR(amountInput.value);
-        } else {
-            amount = parseCurrency(amountInput.value);
-        }
-        if (!currencyTotals[currency]) currencyTotals[currency] = 0;
-        currencyTotals[currency] += amount;
-    });
-
-    // Ambil currency utama (pertama ditemukan)
-    const currencyKeys = Object.keys(currencyTotals);
-    let mainCurrency = currencyKeys[0] || 'IDR';
-    let mainTotal = currencyTotals[mainCurrency] || 0;
-
-    // Set input total hanya untuk currency utama jika hanya satu currency, kosongkan jika multi-currency
-    const totalAmountDueInput = document.getElementById('totalAmountDue');
-    if (totalAmountDueInput) {
-        if (currencyKeys.length === 1) {
-            totalAmountDueInput.value = typeof window.formatCurrencyIDR === 'function' ? window.formatCurrencyIDR(mainTotal) : formatCurrencyValue(mainTotal);
-        } else {
-            totalAmountDueInput.value = '';
-        }
-    }
-    // Set juga ke netTotal, totalTax, TrsfrSum (hanya currency utama)
-    ['netTotal', 'totalTax', 'TrsfrSum'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            if (currencyKeys.length === 1) {
-                const formattedValue = typeof window.formatCurrencyIDR === 'function' ? window.formatCurrencyIDR(mainTotal) : formatCurrencyValue(mainTotal);
-                el.value = formattedValue;
-            } else {
-                el.value = '';
-            }
+        const lineTotalInput = row.querySelector('input[id="LineTotal"]');
+        if (lineTotalInput) {
+            const lineTotal = parseFloat(lineTotalInput.value) || 0;
+            subTotal += lineTotal;
         }
     });
 
-    // Tampilkan ringkasan currency di sebelah kanan input (selalu tampil, format list, bukan tabel)
-    const summaryDiv = document.getElementById('currencySummaryTable');
-    if (summaryDiv) {
-        if (currencyKeys.length === 0) {
-            summaryDiv.innerHTML = '<span class="text-gray-400">Total Amount Due: -</span>';
-        } else {
-            const list = currencyKeys.map(curr => `${curr} <span class=\"font-semibold\">${typeof window.formatCurrencyIDR === 'function' ? window.formatCurrencyIDR(currencyTotals[curr]) : formatCurrencyValue(currencyTotals[curr])}</span>`);
-            summaryDiv.innerHTML = '<span class="text-gray-700">Total Amount Due:</span> ' + list.join(' <span class="text-gray-400">|</span> ');
-        }
-    }
+    // Get VAT and WT values from header fields
+    const vatSum = parseFloat(document.getElementById('VatSum')?.value) || 0;
+    const wtSum = parseFloat(document.getElementById('WTSum')?.value) || 0;
 
-    updateTotalTransferTerbilang();
+    vatTotal = vatSum;
+    wtTotal = wtSum;
+    documentTotal = subTotal + vatTotal + wtTotal;
+
+    // Update total fields
+    const subTotalInput = document.getElementById('subTotal');
+    const vatTotalInput = document.getElementById('vatTotal');
+    const wtTotalInput = document.getElementById('wtTotal');
+    const documentTotalInput = document.getElementById('documentTotal');
+
+    if (subTotalInput) subTotalInput.value = subTotal.toFixed(2);
+    if (vatTotalInput) vatTotalInput.value = vatTotal.toFixed(2);
+    if (wtTotalInput) wtTotalInput.value = wtTotal.toFixed(2);
+    if (documentTotalInput) documentTotalInput.value = documentTotal.toFixed(2);
+
+    // Update header document total fields
+    const headerDocTotal = document.getElementById('DocTotal');
+    const headerDocTotalFC = document.getElementById('DocTotalFC');
+
+    if (headerDocTotal) headerDocTotal.value = documentTotal.toFixed(2);
+    if (headerDocTotalFC) headerDocTotalFC.value = documentTotal.toFixed(2);
+
     console.log('✅ Total Amount Due update completed');
+}
+
+// Function to calculate line total based on quantity and unit price
+function calculateLineTotal(row) {
+    const quantityInput = row.querySelector('input[id="Quantity"]');
+    const priceInput = row.querySelector('input[id="PriceBefDi"]');
+    const lineTotalInput = row.querySelector('input[id="LineTotal"]');
+
+    if (quantityInput && priceInput && lineTotalInput) {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const lineTotal = quantity * price;
+
+        lineTotalInput.value = lineTotal.toFixed(2);
+        updateTotalAmountDue();
+    }
+}
+
+// Function to add event listeners to line item inputs
+function setupLineItemListeners() {
+    const tableBody = document.getElementById('tableBody');
+    if (tableBody) {
+        tableBody.addEventListener('input', function (e) {
+            if (e.target.matches('input[id="Quantity"], input[id="PriceBefDi"]')) {
+                const row = e.target.closest('tr');
+                calculateLineTotal(row);
+            }
+        });
+    }
 }
 
 // Currency search and selection functions
@@ -2208,26 +2224,33 @@ function collectFormData(userId, isSubmit) {
 
     tableRows.forEach((row, index) => {
         // Look for inputs with multiple possible selectors
-        const acctCodeInput = row.querySelector('input[id="AcctCode"]') ||
-            row.querySelector('input[id^="AcctCode_"]') ||
+        const lineNumInput = row.querySelector('input[id="LineNum"]') ||
+            row.querySelector('input[id^="LineNum_"]') ||
             row.querySelector('td:first-child input');
 
-        const acctNameInput = row.querySelector('input[id="AcctName"]') ||
-            row.querySelector('input[id^="AcctName_"]') ||
+        const itemCodeInput = row.querySelector('input[id="ItemCode"]') ||
+            row.querySelector('input[id^="ItemCode_"]') ||
             row.querySelector('td:nth-child(2) input');
 
-        const descriptionInput = row.querySelector('input[id="description"]') ||
-            row.querySelector('input[id^="description_"]') ||
+        const dscriptionInput = row.querySelector('input[id="Dscription"]') ||
+            row.querySelector('input[id^="Dscription_"]') ||
             row.querySelector('td:nth-child(3) input');
 
-        const currencyItemInput = row.querySelector('input[id="CurrencyItem"]') ||
-            row.querySelector('input[id^="CurrencyItem_"]') ||
+        const acctCodeInput = row.querySelector('input[id="AcctCode"]') ||
+            row.querySelector('input[id^="AcctCode_"]') ||
             row.querySelector('td:nth-child(4) input');
 
-        const docTotalInput = row.querySelector('input[id="DocTotal"]') ||
-            row.querySelector('input[id^="DocTotal_"]') ||
-            row.querySelector('input.currency-input-idr') ||
+        const quantityInput = row.querySelector('input[id="Quantity"]') ||
+            row.querySelector('input[id^="Quantity_"]') ||
             row.querySelector('td:nth-child(5) input');
+
+        const priceBefDiInput = row.querySelector('input[id="PriceBefDi"]') ||
+            row.querySelector('input[id^="PriceBefDi_"]') ||
+            row.querySelector('td:nth-child(6) input');
+
+        const lineTotalInput = row.querySelector('input[id="LineTotal"]') ||
+            row.querySelector('input[id^="LineTotal_"]') ||
+            row.querySelector('td:nth-child(7) input');
 
         // Parse amount using IDR format if available
         let parsedAmount = 0;
@@ -2240,53 +2263,54 @@ function collectFormData(userId, isSubmit) {
         }
 
         console.log(`Row ${index} data collection:`, {
+            lineNumInput: lineNumInput,
+            itemCodeInput: itemCodeInput,
+            dscriptionInput: dscriptionInput,
             acctCodeInput: acctCodeInput,
-            acctNameInput: acctNameInput,
-            descriptionInput: descriptionInput,
-            currencyItemInput: currencyItemInput,
-            docTotalInput: docTotalInput,
+            quantityInput: quantityInput,
+            priceBefDiInput: priceBefDiInput,
+            lineTotalInput: lineTotalInput,
+            lineNumValue: lineNumInput ? lineNumInput.value : 'N/A',
+            itemCodeValue: itemCodeInput ? itemCodeInput.value : 'N/A',
+            dscriptionValue: dscriptionInput ? dscriptionInput.value : 'N/A',
             acctCodeValue: acctCodeInput ? acctCodeInput.value : 'N/A',
-            acctNameValue: acctNameInput ? acctNameInput.value : 'N/A',
-            descriptionValue: descriptionInput ? descriptionInput.value : 'N/A',
-            currencyItemValue: currencyItemInput ? currencyItemInput.value : 'N/A',
-            docTotalValue: docTotalInput ? docTotalInput.value : 'N/A',
-            parsedAmount: parsedAmount
+            quantityValue: quantityInput ? quantityInput.value : 'N/A',
+            priceBefDiValue: priceBefDiInput ? priceBefDiInput.value : 'N/A',
+            lineTotalValue: lineTotalInput ? lineTotalInput.value : 'N/A'
         });
 
-        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && docTotalInput) {
-            // Parse amount using IDR format if available
-            let amount = 0;
-            if (typeof window.parseCurrencyIDR === 'function') {
-                amount = window.parseCurrencyIDR(docTotalInput.value) || 0;
-            } else {
-                amount = parseCurrency(docTotalInput.value) || 0;
-            }
-
-            // Ensure currencyItem is not empty, default to "IDR" if empty
-            const currencyItemValue = currencyItemInput.value.trim() || "IDR";
+        if (acctCodeInput && dscriptionInput && lineTotalInput) {
+            // Parse values
+            const lineNum = parseInt(lineNumInput?.value) || index;
+            const itemCode = itemCodeInput?.value || "";
+            const dscription = dscriptionInput?.value || "";
+            const acctCode = acctCodeInput?.value || "";
+            const quantity = parseFloat(quantityInput?.value) || 1;
+            const priceBefDi = parseFloat(priceBefDiInput?.value) || 0;
+            const lineTotal = parseFloat(lineTotalInput?.value) || 0;
 
             const lineData = {
-                lineNum: index,
+                lineNum: lineNum,
                 visOrder: index,
-                itemCode: acctCodeInput.value || "",
-                dscription: descriptionInput.value || "",
-                acctCode: acctCodeInput.value || "",
-                quantity: 1,
-                invQty: 1,
-                priceBefDi: amount,
-                u_bsi_salprice: amount,
+                itemCode: itemCode,
+                dscription: dscription,
+                acctCode: acctCode,
+                quantity: quantity,
+                invQty: quantity,
+                priceBefDi: priceBefDi,
+                u_bsi_salprice: priceBefDi,
                 u_bsi_source: "AR",
                 vatgroup: "VAT",
                 wtLiable: "N",
-                lineTotal: amount,
-                totalFrgn: amount,
+                lineTotal: lineTotal,
+                totalFrgn: lineTotal,
                 lineVat: 0,
                 lineVatIF: 0,
                 ocrCode3: "",
                 unitMsr: "PCS",
                 numPerMsr: 1,
                 freeTxt: "",
-                text: descriptionInput.value || "",
+                text: dscription,
                 baseType: 0,
                 baseEntry: 0,
                 baseRef: "",
@@ -2484,7 +2508,10 @@ function collectFormData(userId, isSubmit) {
             throw new Error(`Line ${index + 1}: Description is required.`);
         }
         if (!line.lineTotal || line.lineTotal <= 0) {
-            throw new Error(`Line ${index + 1}: Amount must be greater than 0.`);
+            throw new Error(`Line ${index + 1}: Line Total must be greater than 0.`);
+        }
+        if (!line.itemCode || !line.itemCode.trim()) {
+            throw new Error(`Line ${index + 1}: Item Code is required.`);
         }
     });
 

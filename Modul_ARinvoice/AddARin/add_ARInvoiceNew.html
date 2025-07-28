@@ -154,22 +154,30 @@
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
-                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded" autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Document Number</h3>
+                <input type="text" id="DocNum" placeholder="Document Number" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Requester Payment</h3>
-                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
+                <h3 class="text-lg font-semibold mb-2">Document Type</h3>
+                <select id="Doctype" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="A" selected>A - Invoice</option>
+                    <option value="S">S - Credit Memo</option>
+                    <option value="D">D - Debit Memo</option>
+                </select>
                 
-                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
+                <h3 class="text-lg font-semibold mb-2">Card Code</h3>
+                <input type="text" id="CardCode" placeholder="Card Code" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <div style="display: none;">
-                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded" autocomplete="off">
-                </div>
+                <h3 class="text-lg font-semibold mb-2">Card Name</h3>
+                <input type="text" id="CardName" placeholder="Card Name" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Address</h3>
+                <input type="text" id="Address" placeholder="Address" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Number at Card</h3>
+                <input type="text" id="NumAtCard" placeholder="Number at Card" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
-                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off" readonly>
+                <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -219,39 +227,65 @@
             </div>
             
             <div>
-                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
-                <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
-                <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off" readonly>
+                <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
+                <input type="number" id="DocRate" placeholder="Document Rate" class="w-full p-2 border rounded" value="1" step="0.01" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2"> Remittance Request Currency</h3>
-                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
+                <h3 class="text-lg font-semibold mb-2">VAT Sum</h3>
+                <input type="number" id="VatSum" placeholder="VAT Sum" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
-                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded currency-input-idr" value="0.00" readonly>
+                <h3 class="text-lg font-semibold mb-2">VAT Sum FC</h3>
+                <input type="number" id="VatSumFC" placeholder="VAT Sum FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
-                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">WT Sum</h3>
+                <input type="number" id="WTSum" placeholder="WT Sum" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
-                <select id="TrsfrAcct" class="w-full p-2 border rounded" autocomplete="off">
-                    <option value="" disabled selected>Select Account Bank Transfer</option>
-                    <option value="1110">1110 - Cash on hand (Rp)</option>
-                    <option value="1210">1210 - Mizuho Bank  (Rp)</option>
-                    <option value="1211">1211 - Mizuho Bank  (US$)</option>
-                    <option value="1212">1212 - Mizuho (JPY)</option>
-                    <option value="1213">1213 - MUFG Bank (Rp)</option>
-                    <option value="1214">1214 - MUFG Bank (US$)</option>
-                    <option value="1215">1215 - MUFG Bank (Jpy)</option>
-                    <option value="1222">1222 - CIMB NIAGA (Rp)</option>
-                    <option value="1310">1310 - Saving Account (IDR, Mizuho)</option>
-                    <option value="1313">1313 - Saving Account (IDR, MUFG)</option>
-                    <option value="1316">1316 - Saving Account (IDR, CIMB NIAGA)</option>
+                <h3 class="text-lg font-semibold mb-2">WT Sum FC</h3>
+                <input type="number" id="WTSumFC" placeholder="WT Sum FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Total</h3>
+                <input type="number" id="DocTotal" placeholder="Document Total" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Total FC</h3>
+                <input type="number" id="DocTotalFC" placeholder="Document Total FC" class="w-full p-2 border rounded" value="0" step="0.01" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Transport Code</h3>
+                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded" value="0" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
+                <input type="text" id="ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Group Number</h3>
+                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded" value="0" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Payment Group</h3>
+                <input type="text" id="PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Invoice Number</h3>
+                <input type="text" id="InvNum" placeholder="Invoice Number" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF1</h3>
+                <input type="text" id="UDF1" placeholder="UDF1" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">UDF2</h3>
+                <input type="text" id="UDF2" placeholder="UDF2" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Track Number</h3>
+                <input type="text" id="TrackNo" placeholder="Track Number" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Is Transfered</h3>
+                <select id="IsTransfered" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="N" selected>N - No</option>
+                    <option value="Y">Y - Yes</option>
                 </select>
                 
-                <!-- Hidden TrsfrSum field to prevent JavaScript errors -->
-                <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-full p-2 border rounded currency-input" style="display: none;" readonly>
+                <h3 class="text-lg font-semibold mb-2">Prepared By NIK</h3>
+                <input type="text" id="PreparedByNIK" placeholder="Prepared By NIK" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Prepared By Name</h3>
+                <input type="text" id="PreparedByName" placeholder="Prepared By Name" class="w-full p-2 border rounded" autocomplete="off">
             </div>
         </div>
         
@@ -259,62 +293,62 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
+                    <th id="LineNum" class="p-2">Line #</th>
+                    <th id="ItemCode" class="p-2">Item Code <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Dscription" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="AcctCode" class="p-2">G/L Account <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="AcctName" class="p-2">Account Name <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="Descrip" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="CurrencyItem" class="p-2">Currency <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="DocTotal" class="p-2">Net Amount <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Quantity" class="p-2">Quantity</th>
+                    <th id="PriceBefDi" class="p-2">Unit Price</th>
+                    <th id="LineTotal" class="p-2">Line Total <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
+                    <td id="tdLineNum" class="p-2 border">
+                        <input type="number" id="LineNum" class="w-full" value="0" readonly />
+                    </td>
+                    <td id="tdItemCode" class="p-2 border">
+                        <input type="text" id="ItemCode" maxlength="50" class="w-full" autocomplete="off" placeholder="Item Code" />
+                    </td>
+                    <td id="tdDscription" class="p-2 border">
+                        <input type="text" id="Dscription" maxlength="200" class="w-full" autocomplete="off" placeholder="Description" />
+                    </td>
                     <td id="tdAcctCode" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="AcctCode" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                            <input type="text" id="AcctCode" maxlength="15" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
                             <div id="AcctCodeDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
                         </div>
                     </td>
-                    <td id="tdAcctName" class="p-2 border">
-                        <div class="relative">
-                            <input type="text" id="AcctName" class="w-full search-input" autocomplete="off" onkeyup="searchAccountName(this)" onfocus="showAccountNameDropdown(this)" placeholder="Type or search Account Name..." />
-                            <div id="AcctNameDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
-                        </div>
+                    <td id="tdQuantity" class="p-2 border">
+                        <input type="number" id="Quantity" class="w-full" value="1" step="0.01" autocomplete="off" />
                     </td>
-                    <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
+                    <td id="tdPriceBefDi" class="p-2 border">
+                        <input type="number" id="PriceBefDi" class="w-full" value="0" step="0.01" autocomplete="off" />
                     </td>
-                    <td id="tdCurrencyItem" class="p-2 border">
-                        <div class="relative">
-                            <input type="text" id="CurrencyItem" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
-                            <div id="CurrencyItemDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
-                        </div>
-                    </td>
-                    <td id="tdDocTotal" class="p-2 border">
-                        <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
+                    <td id="tdLineTotal" class="p-2 border">
+                        <input type="number" id="LineTotal" class="w-full" value="0" step="0.01" autocomplete="off" />
                     </td>
                 </tr>
             </tbody>
         </table>
-        <!--Net Total-->
-        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
-            <label>Net Total :</label>
-            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
-        </div>
-
-        <!--WTax Total-->
-        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
-            <label>Total Tax:</label>
-            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
-        </div>
-         <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2 items-start">
-            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
-        </div>
-        
-        
-        <div class="mt-4 flex justify-end space-x-2">
-            <label class="font-semibold">Total Outstanding Transfers :</label>
-            <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
+        <!--Totals Section-->
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">Sub Total:</label>
+                <input type="number" id="subTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">VAT Total:</label>
+                <input type="number" id="vatTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">WT Total:</label>
+                <input type="number" id="wtTotal" class="w-40 p-2 border rounded bg-gray-50" readonly autocomplete="off" value="0">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <label class="font-semibold">Document Total:</label>
+                <input type="number" id="documentTotal" class="w-40 p-2 border rounded bg-blue-50 font-bold" readonly autocomplete="off" value="0">
+            </div>
         </div>
         
         <!--
@@ -324,12 +358,8 @@
         -->
 
             <div class="mt-4">
-              <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter remarks here..."></textarea>
-            </div>
-            <div class="mt-4">
-                <label>Journal Remarks</label>
-                <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter journal remarks here..."></textarea>
+              <label>Comments</label>
+              <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter comments here..."></textarea>
             </div>
 
             <!-- Rejection Remarks section - only visible when status is Rejected -->

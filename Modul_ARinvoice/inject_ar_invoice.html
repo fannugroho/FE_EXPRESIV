@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Invoice Data Injection Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .btn-inject {
+            transition: all 0.3s ease;
+        }
+        .btn-inject:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-prepared { background: #fef3c7; color: #92400e; }
+        .status-checked { background: #dbeafe; color: #1e40af; }
+        .status-acknowledged { background: #e0e7ff; color: #3730a3; }
+        .status-approved { background: #d1fae5; color: #065f46; }
+        .status-received { background: #ecfdf5; color: #047857; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-500 to-blue-600 min-h-screen">
+    <div class="container mx-auto p-6">
+        <div class="bg-white rounded-lg shadow-2xl p-8">
+            <h1 class="text-4xl font-bold text-center text-gray-800 mb-2">
+                💉 AR Invoice Data Injection Tool
+            </h1>
+            <p class="text-center text-gray-600 mb-8">
+                Inject test AR Invoice data to database with complete approval workflow
+            </p>
+            
+            <!-- User Info -->
+            <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold text-blue-800 mb-3">Current User (All Approval Stages)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white p-3 rounded">
+                        <strong>User ID:</strong><br>
+                        <code class="text-xs">df1d0bd0-fed5-4854-89c9-a70e5b1eb274</code>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <strong>Username:</strong><br>
+                        <code>annisakusumawardani</code>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <strong>Display Name:</strong><br>
+                        <code>Annisa Kusumawardani</code>
+                    </div>
+                </div>
+                <div class="mt-3 p-3 bg-yellow-100 rounded text-yellow-800 text-sm">
+                    <strong>Note:</strong> Same user will be used for all approval stages (Prepared → Checked → Acknowledged → Approved → Received)
+                </div>
+            </div>
+
+            <!-- Injection Controls -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Quick Injection -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">🚀 Quick Injection</h3>
+                    
+                    <div class="space-y-4">
+                        <button onclick="quickInject(5, true)" 
+                                class="btn-inject w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg">
+                            📋 5 Complete Invoices (Received Status)
+                        </button>
+                        
+                        <button onclick="quickInject(3, false)" 
+                                class="btn-inject w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg">
+                            📝 3 Prepared Invoices (Prepared Status)
+                        </button>
+                        
+                        <button onclick="quickInjectMixed(10)" 
+                                class="btn-inject w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg">
+                            🎨 10 Mixed Status Invoices
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Injection -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">⚙️ Custom Injection</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Number of Invoices
+                            </label>
+                            <input type="number" id="customCount" value="5" min="1" max="50" 
+                                   class="w-full p-2 border rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Injection Type
+                            </label>
+                            <select id="customType" class="w-full p-2 border rounded-lg">
+                                <option value="complete">Complete Workflow (→ Received)</option>
+                                <option value="prepared">Prepared Only</option>
+                                <option value="mixed">Mixed Statuses</option>
+                            </select>
+                        </div>
+                        
+                        <button onclick="customInject()" 
+                                class="btn-inject w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg">
+                            🎯 Start Custom Injection
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="bg-gray-50 p-6 rounded-lg mb-6" id="progressSection" style="display: none;">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">📊 Injection Progress</h3>
+                
+                <div class="bg-gray-200 rounded-full h-4 mb-2">
+                    <div id="progressBar" class="progress-bar bg-blue-500 h-4 rounded-full" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span id="progressText">Ready to start...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-5 gap-2 text-center text-xs">
+                    <div class="bg-white p-2 rounded">
+                        <div class="font-semibold">Prepared</div>
+                        <div id="countPrepared" class="text-yellow-600 font-bold">0</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div class="font-semibold">Checked</div>
+                        <div id="countChecked" class="text-blue-600 font-bold">0</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div class="font-semibold">Acknowledged</div>
+                        <div id="countAcknowledged" class="text-indigo-600 font-bold">0</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div class="font-semibold">Approved</div>
+                        <div id="countApproved" class="text-green-600 font-bold">0</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div class="font-semibold">Received</div>
+                        <div id="countReceived" class="text-green-700 font-bold">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="bg-gray-50 p-6 rounded-lg mb-6" id="resultsSection" style="display: none;">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">📋 Injection Results</h3>
+                <div id="resultsContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex gap-4 mb-6">
+                <button onclick="clearLog()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                    🗑 Clear Log
+                </button>
+                <button onclick="exportResults()" 
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-lg">
+                    💾 Export Results
+                </button>
+                <button onclick="stopInjection()" id="stopBtn" 
+                        class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg" style="display: none;">
+                    ⏹ Stop Injection
+                </button>
+            </div>
+
+            <!-- Log Container -->
+            <div class="bg-gray-800 rounded-lg p-4">
+                <h3 class="text-white text-lg font-semibold mb-2">🖥 Injection Console</h3>
+                <div id="logContainer" class="log-container p-4 rounded">
+                    <div class="text-green-400">AR Invoice Data Injection Tool Ready...</div>
+                    <div class="text-yellow-400">Select injection type and click start!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load injection script -->
+    <script src="inject_ar_invoice_data.js"></script>
+    
+    <script>
+        // Global variables
+        let injectionInProgress = false;
+        let shouldStop = false;
+        let currentResults = [];
+
+        // Override console methods untuk UI logging
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+
+        function logToUI(message, type = 'log') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let colorClass = 'text-green-400';
+            let prefix = '📝';
+            
+            switch(type) {
+                case 'error':
+                    colorClass = 'text-red-400';
+                    prefix = '❌';
+                    break;
+                case 'warn':
+                    colorClass = 'text-yellow-400';
+                    prefix = '⚠️';
+                    break;
+                case 'success':
+                    colorClass = 'text-green-300';
+                    prefix = '✅';
+                    break;
+                case 'info':
+                    colorClass = 'text-blue-400';
+                    prefix = '🔵';
+                    break;
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `${colorClass} mb-1`;
+            logEntry.innerHTML = `<span class="text-gray-400">[${timestamp}]</span> ${prefix} ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Also log to browser console
+            originalConsoleLog(message);
+        }
+
+        // Override console methods
+        console.log = (message) => logToUI(message, 'log');
+        console.error = (message) => logToUI(message, 'error');
+
+        // Progress tracking
+        function updateProgress(current, total, status = '') {
+            const percent = Math.round((current / total) * 100);
+            
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('progressText').textContent = 
+                status || `Processing ${current} of ${total} invoices...`;
+        }
+
+        function updateStatusCount(status, count) {
+            const elementId = 'count' + status.charAt(0).toUpperCase() + status.slice(1);
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = count;
+            }
+        }
+
+        function showProgress() {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'none';
+        }
+
+        function showResults(results) {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '';
+            
+            results.forEach(result => {
+                if (result.success) {
+                    const statusClass = 'status-' + result.status.toLowerCase();
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'bg-white p-3 rounded border-l-4 border-green-400';
+                    resultDiv.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <strong>#${result.index}</strong> ${result.cardName} 
+                                <span class="status-badge ${statusClass}">${result.status}</span>
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                DocNum: ${result.docNum}
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            StagingId: ${result.stagingId}
+                        </div>
+                    `;
+                    container.appendChild(resultDiv);
+                } else {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'bg-white p-3 rounded border-l-4 border-red-400';
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <strong>#${result.index}</strong> Failed: ${result.error}
+                        </div>
+                    `;
+                    container.appendChild(resultDiv);
+                }
+            });
+            
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        // Modified injection functions dengan progress tracking
+        async function injectWithProgress(count, completeWorkflow, isMixed = false) {
+            if (injectionInProgress) {
+                Swal.fire('Warning', 'Injection already in progress!', 'warning');
+                return;
+            }
+
+            injectionInProgress = true;
+            shouldStop = false;
+            currentResults = [];
+            
+            showProgress();
+            updateProgress(0, count, 'Starting injection...');
+            
+            // Reset counters
+            ['prepared', 'checked', 'acknowledged', 'approved', 'received'].forEach(status => {
+                updateStatusCount(status, 0);
+            });
+
+            try {
+                let results;
+                
+                if (isMixed) {
+                    results = await injectMixedStatusARInvoicesWithProgress(count);
+                } else {
+                    results = await injectMultipleARInvoicesWithProgress(count, completeWorkflow);
+                }
+                
+                currentResults = results;
+                
+                if (!shouldStop) {
+                    updateProgress(count, count, 'Injection completed successfully!');
+                    showResults(results);
+                    
+                    const successful = results.filter(r => r.success);
+                    
+                    Swal.fire({
+                        title: 'Injection Complete!',
+                        text: `Successfully injected ${successful.length}/${count} AR Invoices`,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                }
+                
+            } catch (error) {
+                logToUI(`Injection failed: ${error.message}`, 'error');
+                
+                Swal.fire({
+                    title: 'Injection Failed!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                injectionInProgress = false;
+                hideProgress();
+            }
+        }
+
+        // Modified injection functions
+        async function injectMultipleARInvoicesWithProgress(count, completeWorkflow) {
+            const results = [];
+            const statusCounts = { prepared: 0, checked: 0, acknowledged: 0, approved: 0, received: 0 };
+            
+            for (let i = 0; i < count; i++) {
+                if (shouldStop) break;
+                
+                try {
+                    updateProgress(i, count, `Creating AR Invoice #${i + 1}...`);
+                    
+                    const invoiceData = window.generateARInvoiceData(i);
+                    const stagingId = await window.createARInvoice(invoiceData, i);
+                    
+                    let finalStatus = 'Prepared';
+                    statusCounts.prepared++;
+                    updateStatusCount('prepared', statusCounts.prepared);
+                    
+                    if (stagingId && completeWorkflow) {
+                        updateProgress(i, count, `Completing workflow for AR Invoice #${i + 1}...`);
+                        await window.completeApprovalWorkflow(stagingId, i);
+                        finalStatus = 'Received';
+                        statusCounts.prepared--;
+                        statusCounts.received++;
+                        updateStatusCount('prepared', statusCounts.prepared);
+                        updateStatusCount('received', statusCounts.received);
+                    }
+                    
+                    results.push({
+                        index: i + 1,
+                        docNum: invoiceData.docNum,
+                        cardName: invoiceData.cardName,
+                        stagingId: stagingId,
+                        status: finalStatus,
+                        success: true
+                    });
+                    
+                    updateProgress(i + 1, count);
+                    
+                    // Delay antar invoice
+                    if (i < count - 1 && !shouldStop) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                } catch (error) {
+                    logToUI(`Failed to inject AR Invoice #${i + 1}: ${error.message}`, 'error');
+                    results.push({
+                        index: i + 1,
+                        error: error.message,
+                        success: false
+                    });
+                }
+            }
+            
+            return results;
+        }
+
+        async function injectMixedStatusARInvoicesWithProgress(count) {
+            const results = [];
+            const statusCounts = { prepared: 0, checked: 0, acknowledged: 0, approved: 0, received: 0 };
+            
+            for (let i = 0; i < count; i++) {
+                if (shouldStop) break;
+                
+                try {
+                    updateProgress(i, count, `Creating AR Invoice #${i + 1}...`);
+                    
+                    const invoiceData = window.generateARInvoiceData(i);
+                    const stagingId = await window.createARInvoice(invoiceData, i);
+                    
+                    if (stagingId) {
+                        const statusIndex = i % 5;
+                        let finalStatus = 'Prepared';
+                        
+                        switch (statusIndex) {
+                            case 0:
+                                finalStatus = 'Prepared';
+                                statusCounts.prepared++;
+                                break;
+                            case 1:
+                                // Update to Checked
+                                await updateSingleApprovalStatus(stagingId, 'Checked');
+                                finalStatus = 'Checked';
+                                statusCounts.checked++;
+                                break;
+                            case 2:
+                                // Update to Acknowledged
+                                await updateSingleApprovalStatus(stagingId, 'Checked');
+                                await updateSingleApprovalStatus(stagingId, 'Acknowledged');
+                                finalStatus = 'Acknowledged';
+                                statusCounts.acknowledged++;
+                                break;
+                            case 3:
+                                // Update to Approved
+                                await updateSingleApprovalStatus(stagingId, 'Checked');
+                                await updateSingleApprovalStatus(stagingId, 'Acknowledged');
+                                await updateSingleApprovalStatus(stagingId, 'Approved');
+                                finalStatus = 'Approved';
+                                statusCounts.approved++;
+                                break;
+                            case 4:
+                                // Complete workflow
+                                await window.completeApprovalWorkflow(stagingId, i);
+                                finalStatus = 'Received';
+                                statusCounts.received++;
+                                break;
+                        }
+                        
+                        updateStatusCount(finalStatus.toLowerCase(), statusCounts[finalStatus.toLowerCase()]);
+                        
+                        results.push({
+                            index: i + 1,
+                            docNum: invoiceData.docNum,
+                            cardName: invoiceData.cardName,
+                            stagingId: stagingId,
+                            status: finalStatus,
+                            success: true
+                        });
+                    }
+                    
+                    updateProgress(i + 1, count);
+                    
+                    if (i < count - 1 && !shouldStop) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                } catch (error) {
+                    logToUI(`Failed to inject AR Invoice #${i + 1}: ${error.message}`, 'error');
+                    results.push({
+                        index: i + 1,
+                        error: error.message,
+                        success: false
+                    });
+                }
+            }
+            
+            return results;
+        }
+
+        async function updateSingleApprovalStatus(stagingId, status) {
+            const userData = {
+                id: 'df1d0bd0-fed5-4854-89c9-a70e5b1eb274',
+                username: 'annisakusumawardani',
+                name: 'Annisa Kusumawardani'
+            };
+            
+            const statusField = status.toLowerCase() + 'By';
+            const statusNameField = status.toLowerCase() + 'ByName';
+            const statusDateField = status.toLowerCase() + 'Date';
+            
+            const approvalData = {
+                approvalStatus: status,
+                [statusField]: userData.id,
+                [statusNameField]: userData.username,
+                [statusDateField]: new Date().toISOString(),
+                remarks: `${status} by ${userData.name} - Mixed status injection`
+            };
+            
+            const response = await fetch(`http://localhost:5249/api/ar-invoices/approval/${stagingId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYW5uaXNha3VzdW1hd2FyZGFuaSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiZGYxZDBiZDAtZmVkNS00ODU0LTg5YzktYTcwZTViMWViMjc0IiwiZXhwIjoxNzUzNjc5NDg3LCJpc3MiOiJFeHByZXNzaXYiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo1MDAxIn0.sOpuKYs3IruUg_Pp8gUBIZtqh9qrmYL17rIH-JI7EkI'
+                },
+                body: JSON.stringify(approvalData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update to ${status}`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        // UI Event handlers
+        async function quickInject(count, completeWorkflow) {
+            logToUI(`Starting quick injection: ${count} invoices, complete workflow: ${completeWorkflow}`, 'info');
+            await injectWithProgress(count, completeWorkflow, false);
+        }
+
+        async function quickInjectMixed(count) {
+            logToUI(`Starting mixed status injection: ${count} invoices`, 'info');
+            await injectWithProgress(count, false, true);
+        }
+
+        async function customInject() {
+            const count = parseInt(document.getElementById('customCount').value);
+            const type = document.getElementById('customType').value;
+            
+            if (count < 1 || count > 50) {
+                Swal.fire('Error', 'Please enter a number between 1 and 50', 'error');
+                return;
+            }
+            
+            logToUI(`Starting custom injection: ${count} invoices, type: ${type}`, 'info');
+            
+            switch (type) {
+                case 'complete':
+                    await injectWithProgress(count, true, false);
+                    break;
+                case 'prepared':
+                    await injectWithProgress(count, false, false);
+                    break;
+                case 'mixed':
+                    await injectWithProgress(count, false, true);
+                    break;
+            }
+        }
+
+        function stopInjection() {
+            shouldStop = true;
+            logToUI('Injection stop requested...', 'warn');
+            
+            Swal.fire({
+                title: 'Stopping...',
+                text: 'Injection will stop after current invoice completes',
+                icon: 'info',
+                timer: 2000
+            });
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            logToUI('Console cleared', 'info');
+        }
+
+        function exportResults() {
+            if (currentResults.length === 0) {
+                Swal.fire('Info', 'No results to export', 'info');
+                return;
+            }
+            
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                total: currentResults.length,
+                successful: currentResults.filter(r => r.success).length,
+                failed: currentResults.filter(r => !r.success).length,
+                results: currentResults
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ar_invoice_injection_results_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            logToUI('Results exported successfully', 'success');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logToUI('🎯 AR Invoice Data Injection Tool initialized', 'info');
+            logToUI('💡 Select injection type and count, then click start!', 'info');
+        });
+    </script>
+</body>
+</html>
