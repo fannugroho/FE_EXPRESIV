@@ -5,8 +5,8 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
-// Reusable function to fetch outgoing payment documents by approval step
-async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+// Reusable function to fetch AR Invoice documents by approval step
+async function fetchARInvoiceDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
     try {
         const params = new URLSearchParams({
             step: step,
@@ -20,7 +20,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
             params.append('isRejected', 'true');
         }
 
-        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`, {
+        const response = await fetch(`${BASE_URL}/api/ar-invoices?${params.toString()}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 // Function to fetch checked documents for "Checked" tab
 async function fetchCheckedDocuments(userId) {
     // For "Checked" tab, we want documents with "Checked" status
-    const allDocuments = await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+    const allDocuments = await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
     return allDocuments.filter(doc => {
         const approval = doc.approval || {};
         const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
@@ -81,7 +81,7 @@ async function fetchCheckedDocuments(userId) {
 // Function to fetch acknowledged documents for "Acknowledged" tab
 async function fetchAcknowledgedDocuments(userId) {
     // For "Acknowledged" tab, we want all documents regardless of status
-    return await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+    return await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
 }
 
 // Helper function to get access token
@@ -159,7 +159,7 @@ async function updateCounters(userId) {
         console.log('updateCounters called with userId:', userId);
 
         // Fetch all documents using the acknowledgedBy endpoint
-        const allDocuments = await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
 
         // Count documents by status
         const checkedCount = allDocuments.filter(doc => {
@@ -369,7 +369,7 @@ async function switchTab(tabName) {
         let documents = [];
 
         // Use the acknowledgedBy endpoint as specified in the API call
-        const allDocuments = await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
         console.log(`Total documents fetched from acknowledgedBy endpoint: ${allDocuments.length}`);
 
         if (tabName === 'checked') {
@@ -610,7 +610,7 @@ function goToTotalDocs() {
 
 function detailDoc(id) {
     // Navigate to the acknowledge detail page in View_Approver/2_acknowledge
-    const detailUrl = `../View_Approver/2_acknowledge/acknowledgeOPReim.html?id=${id}&tab=${currentTab}`;
+    const detailUrl = `../View_Approver/2_acknowledge/acknowledgeARAccount.html?id=${id}&tab=${currentTab}`;
 
     console.log('=== detailDoc Debug Info ===');
     console.log('Document ID:', id);
@@ -754,7 +754,7 @@ function downloadPDF() {
     doc.text(`Total Records: ${tableData.length}`, 14, finalY + 10);
 
     // Save the PDF with current filter in the filename
-    doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`ar_invoice_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Debug function to test tab functionality
@@ -769,7 +769,7 @@ async function debugTabFunctionality() {
 
     try {
         // Get all documents using the acknowledgedBy endpoint
-        const allDocs = await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
 
         // Test Checked tab
@@ -817,7 +817,7 @@ async function showAllDocuments() {
     }
 
     try {
-        const allDocs = await fetchOutgoingPaymentDocuments('acknowledgedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('acknowledgedBy', userId, false);
         console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
         console.log('Total documents:', allDocs.length);
 

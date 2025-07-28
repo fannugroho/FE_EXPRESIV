@@ -5,8 +5,7 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 
 // Global variables
 let rowCounter = 1;
-let outgoingPaymentData = null;
-// Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
+let arInvoiceData = null;
 
 // Helper function to get logged-in user ID
 function getUserId() {

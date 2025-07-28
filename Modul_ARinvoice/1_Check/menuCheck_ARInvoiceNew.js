@@ -8,8 +8,8 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
-// Reusable function to fetch outgoing payment documents by approval step
-async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+// Reusable function to fetch AR Invoice documents by approval step
+async function fetchARInvoiceDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
     try {
         console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
 
@@ -25,7 +25,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
             params.append('isRejected', 'true');
         }
 
-        const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
+        const apiUrl = `${BASE_URL}/api/ar-invoices?${params.toString()}`;
         console.log('API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -86,7 +86,7 @@ async function fetchAllDocuments(userId) {
         const steps = ['CheckedBy', 'AcknowledgedBy', 'ApprovedBy', 'ReceivedBy'];
 
         // Make parallel API calls for all steps with onlyCurrentStep = false (historical view)
-        const promises = steps.map(step => fetchOutgoingPaymentDocuments(step, userId, false));
+        const promises = steps.map(step => fetchARInvoiceDocuments(step, userId, false));
         const results = await Promise.all(promises);
 
         // Combine all results into a single array
@@ -111,7 +111,7 @@ async function fetchCheckedDocuments(userId) {
     // For "Checked" tab, we want documents with "Checked" status only
     try {
         // Get all documents from checkedBy endpoint
-        const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('checkedBy', userId, false);
         console.log('All documents:', allDocuments);
 
         // Return all documents EXCEPT "Prepared"
@@ -145,7 +145,7 @@ async function debugAllDocuments(userId) {
 
     try {
         // Get all documents from checkedBy endpoint
-        const allDocs = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('checkedBy', userId, false);
 
         console.log('All documents:', allDocs);
 
@@ -231,7 +231,7 @@ async function fetchPreparedDocuments(userId) {
     // For "Prepared" tab, we want documents with "Prepared" status that need approval from current user
     try {
         // Get all documents and filter by status
-        const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('checkedBy', userId, false);
         console.log('All documents:', allDocuments);
 
         // Filter documents with "Prepared" status (ALL documents with Prepared status)
@@ -264,7 +264,7 @@ async function fetchDocumentsNeedingApproval(userId) {
 
     try {
         // Get all documents from checkedBy endpoint
-        const allDocs = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('checkedBy', userId, false);
 
         console.log('All documents:', allDocs);
 
@@ -350,7 +350,7 @@ async function debugTabFunctionality() {
 
     try {
         // Get all documents first using the checkedBy endpoint
-        const allDocs = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('checkedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
 
         // Log all documents with their status for debugging
@@ -488,7 +488,7 @@ async function updateCounters(userId) {
         console.log('updateCounters called with userId:', userId);
 
         // Fetch all documents using the checkedBy endpoint
-        const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('checkedBy', userId, false);
 
         // Count documents by status
         const preparedCount = allDocuments.filter(doc => {
@@ -718,7 +718,7 @@ async function switchTab(tabName) {
         let documents = [];
 
         // Use the checkedBy endpoint as specified in the API call
-        const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('checkedBy', userId, false);
         console.log(`Total documents fetched from checkedBy endpoint: ${allDocuments.length}`);
 
         if (tabName === 'prepared') {
@@ -963,7 +963,7 @@ function goToTotalDocs() {
 
 function detailDoc(id) {
     // Navigate to the check detail page in View_Approver/1_checked
-    const detailUrl = `../View_Approver/1_checked/checkedOPReim.html?id=${id}&tab=${currentTab}`;
+    const detailUrl = `../View_Approver/1_checked/checkedARAccount.html?id=${id}&tab=${currentTab}`;
 
     console.log('=== detailDoc Debug Info ===');
     console.log('Document ID:', id);
@@ -1107,7 +1107,7 @@ function downloadPDF() {
     doc.text(`Total Records: ${tableData.length}`, 14, finalY + 10);
 
     // Save the PDF with current filter in the filename
-    doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`ar_invoice_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Function to show all documents for debugging
@@ -1119,7 +1119,7 @@ async function showAllDocuments() {
     }
 
     try {
-        const allDocs = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('checkedBy', userId, false);
         console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
         console.log('Total documents:', allDocs.length);
 

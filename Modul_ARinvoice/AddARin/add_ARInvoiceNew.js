@@ -58,10 +58,10 @@ if (typeof BASE_URL === 'undefined') {
 }
 
 // Function to load attachments from API
-async function loadAttachmentsFromAPI(docId) {
+async function loadAttachmentsFromAPI(stagingId) {
     try {
-        // Use staging-outgoing-payments attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        // Use ARInvoice attachments endpoint
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/${stagingId}/attachments`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ async function loadAttachmentsFromAPI(docId) {
 
         if (!response.ok) {
             if (response.status === 404) {
-                console.warn(`No attachments found for document ${docId}`);
+                console.warn(`No attachments found for AR Invoice ${stagingId}`);
                 // Show no attachments message
                 const container = document.getElementById('attachmentsList');
                 if (container) {
@@ -252,7 +252,7 @@ async function viewAttachment(attachment) {
         }
 
         // Fetch attachment data from API - use staging AR invoice attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/${docId}/attachments`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -932,9 +932,9 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
     try {
         // Try different endpoints for reimbursement data
         const endpoints = [
-            `/api/reimbursements/${reimbursementId}`,
-            `/api/staging-outgoing-payments/headers/${reimbursementId}`,
             `/api/ar-invoices/${reimbursementId}`,
+            `/api/ar-invoices/${reimbursementId}/details`,
+            `/api/reimbursements/${reimbursementId}`,
             `/api/documents/${reimbursementId}`
         ];
 
@@ -2019,10 +2019,10 @@ async function submitDocument(isSubmit = false) {
         }
 
         const requiredFields = [
-            { field: 'CounterRef', name: 'Reimburse No' },
-            { field: 'RequesterName', name: 'Requester Name' },
-            { field: 'CardName', name: 'Pay To' },
+            { field: 'DocNum', name: 'Document Number' },
+            { field: 'CardName', name: 'Card Name' },
             { field: 'DocDate', name: 'Document Date' },
+            { field: 'DocDueDate', name: 'Due Date' },
         ];
 
         for (const reqField of requiredFields) {
@@ -2032,20 +2032,20 @@ async function submitDocument(isSubmit = false) {
             }
         }
 
-        if (!formData.lines || formData.lines.length === 0) {
+        if (!formData.arInvoiceDetails || formData.arInvoiceDetails.length === 0) {
             throw new Error('At least one line item is required. Please add account code and amount in the table.');
         }
 
-        const validLines = formData.lines.filter(line =>
+        const validLines = formData.arInvoiceDetails.filter(line =>
             line.acctCode && line.acctCode.trim() &&
-            line.sumApplied && line.sumApplied > 0
+            line.lineTotal && line.lineTotal > 0
         );
 
         if (validLines.length === 0) {
             throw new Error('At least one line item with account code and amount greater than 0 is required.');
         }
 
-        const apiUrl = '/api/staging-outgoing-payments/headers';
+        const apiUrl = '/api/ar-invoices';
         console.log('=== MAKING API CALL ===');
         console.log('API URL:', apiUrl);
         console.log('Method: POST');
@@ -2137,15 +2137,33 @@ async function submitDocument(isSubmit = false) {
             });
         }
 
-        // Update TransferOutgoing from O to M if reimbursement ID exists and this is a submit
-        if (isSubmit && reimbursementId) {
-            console.log('=== UPDATING TRANSFER OUTGOING STATUS ===');
+        // Upload attachments if any files are selected
+        if (stagingId && document.getElementById('attachment')?.files?.length > 0) {
+            console.log('=== UPLOADING ATTACHMENTS ===');
             try {
-                await updateTransferOutgoingStatus(reimbursementId, 'M');
-                console.log('TransferOutgoing status updated successfully from O to M');
-            } catch (updateError) {
-                console.error('Error updating TransferOutgoing status:', updateError);
-                // Don't fail the whole process if this update fails
+                const formData = new FormData();
+                const files = document.getElementById('attachment').files;
+
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+
+                const uploadResponse = await makeAuthenticatedRequest(`/api/ar-invoices/${stagingId}/attachments/upload`, {
+                    method: 'POST',
+                    headers: {
+                        // Don't set Content-Type for FormData, let browser set it
+                    },
+                    body: formData
+                });
+
+                if (uploadResponse.ok) {
+                    console.log('Attachments uploaded successfully');
+                } else {
+                    console.warn('Failed to upload attachments:', uploadResponse.status);
+                }
+            } catch (uploadError) {
+                console.error('Error uploading attachments:', uploadError);
+                // Don't fail the whole process if attachment upload fails
             }
         }
 
@@ -2170,14 +2188,14 @@ async function submitDocument(isSubmit = false) {
 
 // Function to collect form data according to API specification
 function collectFormData(userId, isSubmit) {
-    // Get reimbursement data from URL or localStorage first
+    // Get AR Invoice data from URL or localStorage first
     const urlParams = new URLSearchParams(window.location.search);
-    const reimbursementId = urlParams.get('reimbursement-id');
+    const arInvoiceId = urlParams.get('ar-invoice-id');
 
-    console.log('Reimbursement ID from URL:', reimbursementId);
+    console.log('AR Invoice ID from URL:', arInvoiceId);
 
     // Generate a unique staging ID for backend
-    const stagingID = `OP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const stagingID = `AR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Get consistent docNum value first
     const docNumValue = parseInt(document.getElementById("DocNum")?.value) || 0;
@@ -2249,18 +2267,33 @@ function collectFormData(userId, isSubmit) {
 
             const lineData = {
                 lineNum: index,
+                visOrder: index,
+                itemCode: acctCodeInput.value || "",
+                dscription: descriptionInput.value || "",
                 acctCode: acctCodeInput.value || "",
-                acctName: acctNameInput.value || "",
-                descrip: descriptionInput.value || "",
-                CurrencyItem: currencyItemValue, // Backend expects CurrencyItem (capital C and I)
-                sumApplied: amount,
-                category: "REIMBURSEMENT",
-                ocrCode3: "", // Backend expects OcrCode3 field
-                stagingID: stagingID,
-                docNum: docNumValue,
-                header: {
-                    stagingID: stagingID
-                }
+                quantity: 1,
+                invQty: 1,
+                priceBefDi: amount,
+                u_bsi_salprice: amount,
+                u_bsi_source: "AR",
+                vatgroup: "VAT",
+                wtLiable: "N",
+                lineTotal: amount,
+                totalFrgn: amount,
+                lineVat: 0,
+                lineVatIF: 0,
+                ocrCode3: "",
+                unitMsr: "PCS",
+                numPerMsr: 1,
+                freeTxt: "",
+                text: descriptionInput.value || "",
+                baseType: 0,
+                baseEntry: 0,
+                baseRef: "",
+                baseLine: 0,
+                cogsOcrCod: "",
+                cogsOcrCo2: "",
+                cogsOcrCo3: ""
             };
 
             console.log(`Adding line ${index}:`, lineData);
@@ -2330,120 +2363,40 @@ function collectFormData(userId, isSubmit) {
         receivedBy: receivedById
     });
 
-    // Prepare the main request data according to API specification
+    // Prepare the main request data according to ARInvoice API specification
     const requestData = {
-        stagingID: stagingID,
-        docEntry: docNumValue, // Backend expects DocEntry field
-        address: document.getElementById("Address")?.value || "",
+        docNum: docNumValue,
+        docType: document.getElementById("Doctype")?.value || "A",
+        docDate: document.getElementById("DocDate")?.value ? new Date(document.getElementById("DocDate").value).toISOString() : new Date().toISOString(),
+        docDueDate: document.getElementById("DocDueDate")?.value ? new Date(document.getElementById("DocDueDate").value).toISOString() : new Date().toISOString(),
+        cardCode: document.getElementById("CardCode")?.value || "",
         cardName: document.getElementById("CardName")?.value || "",
-        docDate: document.getElementById("DocDate")?.value ? new Date(document.getElementById("DocDate").value).toISOString() : null,
-        docDueDate: document.getElementById("DocDueDate")?.value ? new Date(document.getElementById("DocDueDate").value).toISOString() : null,
-        taxDate: document.getElementById("DocDate")?.value ? new Date(document.getElementById("DocDate").value).toISOString() : null, // Use DocDate as taxDate
-        counterRef: document.getElementById("DocNum")?.value || "", // Use DocNum value for counterRef
-        docNum: docNumValue, // Use consistent docNum value
-
-        // Use Comments field as expected by backend
+        address: document.getElementById("Address")?.value || "",
+        numAtCard: document.getElementById("NumAtCard")?.value || "",
         comments: document.getElementById("remarks")?.value || "",
-        remarks: document.getElementById("remarks")?.value || "",
-        jrnlMemo: document.getElementById("jrnlMemo")?.value || "",
-        journalRemarks: document.getElementById("journalRemarks")?.value || "",
-        doctype: document.getElementById("Doctype")?.value || "A",
-        docCurr: document.getElementById("DocCurr")?.value || "IDR",
-        diffCurr: document.getElementById("DocCurr")?.value || "IDR", // Use same as docCurr
-        trsfrDate: document.getElementById("TrsfrDate")?.value ? new Date(document.getElementById("TrsfrDate").value).toISOString() : null,
-        trsfrAcct: document.getElementById("TrsfrAcct")?.value || "",
-        trsfrSum: parseCurrency(document.getElementById("TrsfrSum")?.value) || 0,
-        expressivNo: reimbursementId || document.getElementById("CounterRef")?.value || "",
-        requesterId: userId, // Backend expects Guid, but we'll send string and let backend handle conversion
-        remittanceRequestAmount: (() => {
-            const fieldElement = document.getElementById("RemittanceRequestAmount");
-            const fieldValue = fieldElement?.value;
-            console.log('💰 RemittanceRequestAmount Debug - BEFORE PARSING:');
-            console.log('- Field element:', fieldElement);
-            console.log('- Raw field value:', fieldValue);
-            console.log('- Field value type:', typeof fieldValue);
-            console.log('- Field value length:', fieldValue?.length);
-            console.log('- Field value includes commas:', fieldValue?.includes(','));
-            console.log('- Field value includes dots:', fieldValue?.includes('.'));
-            console.log('- Field value char codes:', fieldValue?.split('').map(c => c.charCodeAt(0)));
-            console.log('- Field value JSON:', JSON.stringify(fieldValue));
-
-            const parsedValue = parseCurrency(fieldValue) || 0;
-            console.log('💰 RemittanceRequestAmount Debug - AFTER PARSING:');
-            console.log('- Parsed value:', parsedValue);
-            console.log('- Parsed value type:', typeof parsedValue);
-            console.log('- Can handle large numbers:', parsedValue > 999999999);
-            console.log('- Expected for 7,600,099,990.00:', parsedValue === 7600099990);
-            console.log('- Actual vs Expected:', parsedValue, 'vs', 7600099990);
-
-            // Test with direct parsing
-            const testCases = [
-                "7,600,099,990.00",
-                "7600099990.00",
-                "1,000,000.00",
-                "1000000",
-                "1000000.00"
-            ];
-
-            console.log('- Test parsing cases:');
-            testCases.forEach(testValue => {
-                const testParsed = parseCurrency(testValue);
-                console.log(`  "${testValue}" -> ${testParsed}`);
-            });
-
-            // Special test for the exact format that appears in HTML
-            console.log('- Special test for HTML format:');
-            const htmlFormatTest = "7600099990.00";
-            const htmlFormatResult = parseCurrency(htmlFormatTest);
-            console.log(`  HTML format "${htmlFormatTest}" -> ${htmlFormatResult}`);
-            console.log(`  Expected: 7600099990, Actual: ${htmlFormatResult}, Match: ${htmlFormatResult === 7600099990}`);
-
-            // Additional debugging for the actual field value
-            if (fieldValue === "7,600,099,990.00") {
-                console.log('🎯 EXACT MATCH TEST - WITH COMMAS:');
-                console.log('- Field value matches expected format');
-                const exactTest = parseCurrency("7,600,099,990.00");
-                console.log('- Exact test result:', exactTest);
-            }
-
-            if (fieldValue === "7600099990.00") {
-                console.log('🎯 EXACT MATCH TEST - WITHOUT COMMAS:');
-                console.log('- Field value matches HTML format');
-                const exactTest = parseCurrency("7600099990.00");
-                console.log('- Exact test result:', exactTest);
-            }
-
-            // Check if field value contains the expected large number
-            if (fieldValue && fieldValue.includes('7600099990')) {
-                console.log('🎯 PARTIAL MATCH TEST:');
-                console.log('- Field value contains expected number');
-                const exactTest = parseCurrency(fieldValue);
-                console.log('- Exact test result:', exactTest);
-            }
-
-            return parsedValue;
-        })(),
-        requesterName: document.getElementById("RequesterName")?.value || "",
-        isInterfaced: false,
-        type: "REIMBURSEMENT",
-        lines: lines,
-        approval: {
-            stagingID: stagingID,
-            approvalStatus: isSubmit ? "Prepared" : "Draft",
-            preparedBy: preparedById,
-            checkedBy: checkedById,
-            acknowledgedBy: acknowledgedById,
-            approvedBy: approvedById,
-            receivedBy: receivedById,
-            preparedDate: new Date().toISOString(),
-            rejectionRemarks: document.getElementById("rejectionRemarks")?.value || "",
-            header: {
-                stagingID: stagingID
-            }
-        },
-        header: {
-            stagingID: stagingID
-        }
+        u_BSI_Expressiv_PreparedByNIK: document.getElementById("PreparedByNIK")?.value || userId,
+        u_BSI_Expressiv_PreparedByName: document.getElementById("PreparedByName")?.value || "",
+        docCur: document.getElementById("DocCurr")?.value || "IDR",
+        docRate: parseCurrency(document.getElementById("DocRate")?.value) || 1,
+        vatSum: parseCurrency(document.getElementById("VatSum")?.value) || 0,
+        vatSumFC: parseCurrency(document.getElementById("VatSumFC")?.value) || 0,
+        wtSum: parseCurrency(document.getElementById("WTSum")?.value) || 0,
+        wtSumFC: parseCurrency(document.getElementById("WTSumFC")?.value) || 0,
+        docTotal: parseCurrency(document.getElementById("DocTotal")?.value) || 0,
+        docTotalFC: parseCurrency(document.getElementById("DocTotalFC")?.value) || 0,
+        trnspCode: parseInt(document.getElementById("TrnspCode")?.value) || 0,
+        u_BSI_ShippingType: document.getElementById("ShippingType")?.value || "",
+        groupNum: parseInt(document.getElementById("GroupNum")?.value) || 0,
+        u_BSI_PaymentGroup: document.getElementById("PaymentGroup")?.value || "",
+        u_bsi_invnum: document.getElementById("InvNum")?.value || "",
+        u_bsi_udf1: document.getElementById("UDF1")?.value || "",
+        u_bsi_udf2: document.getElementById("UDF2")?.value || "",
+        trackNo: document.getElementById("TrackNo")?.value || "",
+        u_BSI_Expressiv_IsTransfered: document.getElementById("IsTransfered")?.value || "N",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        arInvoiceDetails: lines,
+        arInvoiceAttachments: attachments
     };
 
     // Collect attachment IDs from existing attachments that were uploaded
@@ -2505,30 +2458,21 @@ function collectFormData(userId, isSubmit) {
         throw new Error('At least one line item is required. Please add account code and amount in the table.');
     }
 
-    // Validate that stagingID is not empty
-    if (!stagingID) {
-        throw new Error('Staging ID is required.');
-    }
-
     // Validate required fields
     if (!requestData.cardName || !requestData.cardName.trim()) {
-        throw new Error('Pay To field is required.');
+        throw new Error('Card Name field is required.');
     }
 
-    if (!requestData.counterRef || !requestData.counterRef.trim()) {
-        throw new Error('DocNum field is required.');
+    if (!requestData.docNum || requestData.docNum <= 0) {
+        throw new Error('Document Number field is required.');
     }
 
-    if (!requestData.jrnlMemo || !requestData.jrnlMemo.trim()) {
-        throw new Error('Journal Memo field is required.');
+    if (!requestData.docDate) {
+        throw new Error('Document Date field is required.');
     }
 
-    if (!requestData.trsfrDate) {
-        throw new Error('Transfer Date field is required.');
-    }
-
-    if (!requestData.trsfrAcct || !requestData.trsfrAcct.trim()) {
-        throw new Error('Account Bank Transfer field is required.');
+    if (!requestData.docDueDate) {
+        throw new Error('Due Date field is required.');
     }
 
     // Validate lines have required fields
@@ -2536,13 +2480,10 @@ function collectFormData(userId, isSubmit) {
         if (!line.acctCode || !line.acctCode.trim()) {
             throw new Error(`Line ${index + 1}: G/L Account is required.`);
         }
-        if (!line.acctName || !line.acctName.trim()) {
-            throw new Error(`Line ${index + 1}: Account Name is required.`);
+        if (!line.dscription || !line.dscription.trim()) {
+            throw new Error(`Line ${index + 1}: Description is required.`);
         }
-        if (!line.CurrencyItem || !line.CurrencyItem.trim()) {
-            throw new Error(`Line ${index + 1}: Currency is required.`);
-        }
-        if (!line.sumApplied || line.sumApplied <= 0) {
+        if (!line.lineTotal || line.lineTotal <= 0) {
             throw new Error(`Line ${index + 1}: Amount must be greater than 0.`);
         }
     });
@@ -2648,7 +2589,7 @@ function validateRequiredFields() {
 // Function to load document data from API
 async function loadDocumentData() {
     const urlParams = new URLSearchParams(window.location.search);
-    const docId = urlParams.get('id') || urlParams.get('reimbursement-id');
+    const docId = urlParams.get('id') || urlParams.get('ar-invoice-id');
 
     if (!docId) {
         return;
@@ -2657,7 +2598,7 @@ async function loadDocumentData() {
     try {
         Swal.fire({
             title: 'Loading...',
-            text: 'Loading document data, please wait...',
+            text: 'Loading AR Invoice data, please wait...',
             icon: 'info',
             allowOutsideClick: false,
             didOpen: () => {
@@ -2669,7 +2610,7 @@ async function loadDocumentData() {
             await initializeUserDropdowns();
         }
 
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -2678,7 +2619,7 @@ async function loadDocumentData() {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to load document: ${response.status}`);
+            throw new Error(`Failed to load AR Invoice: ${response.status}`);
         }
 
         const result = await response.json();
@@ -2700,17 +2641,17 @@ async function loadDocumentData() {
 
             Swal.fire({
                 title: 'Success',
-                text: 'Document data loaded successfully',
+                text: 'AR Invoice data loaded successfully',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
         }
 
     } catch (error) {
-        console.error("Error loading document:", error);
+        console.error("Error loading AR Invoice:", error);
         Swal.fire({
             title: 'Error',
-            text: `Failed to load document: ${error.message}`,
+            text: `Failed to load AR Invoice: ${error.message}`,
             icon: 'error',
             confirmButtonText: 'OK'
         });
@@ -2719,32 +2660,49 @@ async function loadDocumentData() {
 
 // Function to map response data back to form fields
 function mapResponseToForm(responseData) {
-    if (responseData.voucherNo) document.getElementById("CounterRef").value = responseData.voucherNo;
-    if (responseData.receivedByName) document.getElementById("RequesterName").value = responseData.receivedByName;
+    if (responseData.docNum) document.getElementById("DocNum").value = responseData.docNum;
+    if (responseData.cardName) document.getElementById("CardName").value = responseData.cardName;
+    if (responseData.cardCode) document.getElementById("CardCode").value = responseData.cardCode;
+    if (responseData.address) document.getElementById("Address").value = responseData.address;
+    if (responseData.numAtCard) document.getElementById("NumAtCard").value = responseData.numAtCard;
+    if (responseData.comments) document.getElementById("remarks").value = responseData.comments;
 
-    if (responseData.receivedDate) {
-        document.getElementById("DocDate").value = responseData.receivedDate.split('T')[0];
+    if (responseData.docDate) {
+        document.getElementById("DocDate").value = responseData.docDate.split('T')[0];
     }
     document.getElementById("DocDate").readOnly = true;
 
-    const today = new Date();
-    document.getElementById("DocDueDate").value = today.toISOString().split('T')[0];
-    document.getElementById("TrsfrDate").value = today.toISOString().split('T')[0];
+    if (responseData.docDueDate) {
+        document.getElementById("DocDueDate").value = responseData.docDueDate.split('T')[0];
+    }
 
-    if (responseData.docNum) document.getElementById("DocNum").value = responseData.docNum;
-    if (responseData.typeOfTransaction) document.getElementById("jrnlMemo").value = responseData.typeOfTransaction;
-    if (responseData.currency) document.getElementById("DocCurr").value = responseData.currency;
+    if (responseData.docType) document.getElementById("Doctype").value = responseData.docType;
+    if (responseData.docCur) document.getElementById("DocCurr").value = responseData.docCur;
+    if (responseData.docRate) document.getElementById("DocRate").value = responseData.docRate;
+    if (responseData.vatSum) document.getElementById("VatSum").value = responseData.vatSum;
+    if (responseData.vatSumFC) document.getElementById("VatSumFC").value = responseData.vatSumFC;
+    if (responseData.wtSum) document.getElementById("WTSum").value = responseData.wtSum;
+    if (responseData.wtSumFC) document.getElementById("WTSumFC").value = responseData.wtSumFC;
+    if (responseData.docTotal) document.getElementById("DocTotal").value = responseData.docTotal;
+    if (responseData.docTotalFC) document.getElementById("DocTotalFC").value = responseData.docTotalFC;
+    if (responseData.trnspCode) document.getElementById("TrnspCode").value = responseData.trnspCode;
+    if (responseData.u_BSI_ShippingType) document.getElementById("ShippingType").value = responseData.u_BSI_ShippingType;
+    if (responseData.groupNum) document.getElementById("GroupNum").value = responseData.groupNum;
+    if (responseData.u_BSI_PaymentGroup) document.getElementById("PaymentGroup").value = responseData.u_BSI_PaymentGroup;
+    if (responseData.u_bsi_invnum) document.getElementById("InvNum").value = responseData.u_bsi_invnum;
+    if (responseData.u_bsi_udf1) document.getElementById("UDF1").value = responseData.u_bsi_udf1;
+    if (responseData.u_bsi_udf2) document.getElementById("UDF2").value = responseData.u_bsi_udf2;
+    if (responseData.trackNo) document.getElementById("TrackNo").value = responseData.trackNo;
+    if (responseData.u_BSI_Expressiv_IsTransfered) document.getElementById("IsTransfered").value = responseData.u_BSI_Expressiv_IsTransfered;
 
-    document.getElementById("TrsfrAcct").value = '';
+    if (responseData.u_BSI_Expressiv_PreparedByNIK) document.getElementById("PreparedByNIK").value = responseData.u_BSI_Expressiv_PreparedByNIK;
+    if (responseData.u_BSI_Expressiv_PreparedByName) document.getElementById("PreparedByName").value = responseData.u_BSI_Expressiv_PreparedByName;
 
-    if (responseData.totalAmount) {
-        const formattedAmount = formatCurrencyValue(responseData.totalAmount);
+    if (responseData.docTotal) {
+        const formattedAmount = formatCurrencyValue(responseData.docTotal);
         document.getElementById("netTotal").value = formattedAmount;
         document.getElementById("totalTax").value = formattedAmount;
         document.getElementById("totalAmountDue").value = formattedAmount;
-        document.getElementById("TrsfrSum").value = formattedAmount;
-
-        // Set Remittance Request Amount and mark as initial value
         const remittanceField = document.getElementById("RemittanceRequestAmount");
         remittanceField.value = formattedAmount;
         remittanceField.setAttribute('data-initial-value', formattedAmount);
@@ -3360,7 +3318,7 @@ async function loadUsersIfNeeded() {
     }
 }
 
-    // Function to fetch the last serial number for AR Invoice (for display only)
+// Function to fetch the last serial number for AR Invoice (for display only)
 async function fetchAndSetLastSerialNumber() {
     try {
         const now = new Date();
@@ -3402,7 +3360,7 @@ async function fetchAndSetLastSerialNumber() {
     }
 }
 
-    // Function to fetch the next serial number for AR Invoice (for submit only)
+// Function to fetch the next serial number for AR Invoice (for submit only)
 async function fetchNextSerialNumber() {
     try {
         const response = await fetch(`${BASE_URL}/api/outgoing-payment-serial-numbers/next`, {

@@ -12,65 +12,60 @@
          * MAPPING KOLOM FORM DENGAN RESPONSE BODY API
          * ============================================
          * 
-         * API Endpoint: /api/staging-outgoing-payments/headers
+         * API Endpoint: /api/ar-invoices
          * Method: POST (Submit), GET (Load)
-         * Note: Currently using Outgoing Payment API for AR Invoice data
+         * Note: Using AR Invoice API
          * 
          * FORM FIELDS → API RESPONSE BODY MAPPING:
          * 
          * HEADER FIELDS:
-         * - CounterRef (Reimburse No) → voucherNo
-         * - RequesterName (Requester Reimbursement) → requesterName
-         * - CardName (Pay To) → payToName
-         * - Address (Pay To Address) → Not available in new API
-         * - DocDate (Document Date) → submissionDate
-         * - DocDueDate (Due Date) → Set to current date (not in API)
-         * - TaxDate (Tax Date) → Set to current date (not in API)
-         * - DocNum (DocNum) → referenceDoc
-
-         * - Comments (Comments) → remarks
-         * - JrnlMemo (Journal Memo) → jrnlMemo
-         * - DocCurr (Document Currency) → currency
-         * - TrsfrDate (Transfer Date) → Set to current date (not in API)
-         * - TrsfrAcct (Account Bank Transfer) → Not available in new API
-         * - TrsfrSum (Total Transfer) → totalAmount
+         * - DocNum (Document Number) → docNum
+         * - DocType (Document Type) → docType
+         * - DocDate (Document Date) → docDate
+         * - DocDueDate (Due Date) → docDueDate
+         * - CardCode (Card Code) → cardCode
+         * - CardName (Card Name) → cardName
+         * - Address (Address) → address
+         * - NumAtCard (Number at Card) → numAtCard
+         * - Comments (Comments) → comments
+         * - U_BSI_Expressiv_PreparedByNIK (Prepared By NIK) → u_BSI_Expressiv_PreparedByNIK
+         * - U_BSI_Expressiv_PreparedByName (Prepared By Name) → u_BSI_Expressiv_PreparedByName
+         * - DocCur (Document Currency) → docCur
+         * - DocRate (Document Rate) → docRate
+         * - VatSum (VAT Sum) → vatSum
+         * - VatSumFC (VAT Sum FC) → vatSumFC
+         * - WTSum (WT Sum) → wtSum
+         * - WTSumFC (WT Sum FC) → wtSumFC
+         * - DocTotal (Document Total) → docTotal
+         * - DocTotalFC (Document Total FC) → docTotalFC
+         * - TrnspCode (Transport Code) → trnspCode
+         * - U_BSI_ShippingType (Shipping Type) → u_BSI_ShippingType
+         * - GroupNum (Group Number) → groupNum
+         * - U_BSI_PaymentGroup (Payment Group) → u_BSI_PaymentGroup
+         * - U_bsi_invnum (Invoice Number) → u_bsi_invnum
+         * - U_bsi_udf1 (UDF1) → u_bsi_udf1
+         * - U_bsi_udf2 (UDF2) → u_bsi_udf2
+         * - TrackNo (Track Number) → trackNo
+         * - U_BSI_Expressiv_IsTransfered (Is Transfered) → u_BSI_Expressiv_IsTransfered
          * 
          * ATTACHMENT FIELDS:
-         * - attachment (File Upload) → reimbursementAttachments[]
-         * 
-         * TOTAL FIELDS:
-         * - netTotal (Net Total) → totalAmount
-         * - totalTax (Total Tax) → totalAmount
-         * - totalAmountDue (Total Amount Due) → totalAmount
-         * 
-         * REMARKS FIELDS:
-         * - remarks (Remarks) → remarks
-         * - journalRemarks (Journal Remarks) → Manual input (not mapped from API)
-         * - rejectionRemarks (Rejection Reason) → remarksRejectByChecker/remarksRejectByAcknowledger/remarksRejectByApprover/remarksRejectByReceiver
+         * - attachment (File Upload) → arInvoiceAttachments[]
          * 
          * TABLE LINES:
-         * - AcctCode (G/L Account) → reimbursementDetails[].glAccount
-         * - AcctName (Account Name) → reimbursementDetails[].accountName
-         * - description (Description) → reimbursementDetails[].description
-         * - DocTotal (Net Amount) → reimbursementDetails[].amount
-         * 
-         * APPROVAL FIELDS:
-         * - Approval.PreparedById (Proposed by) → preparedBy + preparedByName
-         * - Approval.CheckedById (Checked by) → checkedBy + checkedByName
-         * - Approval.AcknowledgedById (Acknowledged by) → acknowledgedBy + acknowledgedByName
-         * - Approval.ApprovedById (Approved by) → approvedBy + approvedByName
-         * - Approval.ReceivedById (Received by) → receivedBy + receivedByName
-         * - Approval.ClosedById (Closed by) → Not available in new API
+         * - AcctCode (G/L Account) → arInvoiceDetails[].acctCode
+         * - Dscription (Description) → arInvoiceDetails[].dscription
+         * - LineTotal (Line Total) → arInvoiceDetails[].lineTotal
          * 
          * FUNCTIONS:
-         * - submitDocument() → POST /api/reimbursements
-         * - loadDocumentData() → GET /api/reimbursements/{id}
+         * - submitDocument() → POST /api/ar-invoices
+         * - loadDocumentData() → GET /api/ar-invoices/{stagingId}
          * - mapResponseToForm() → Maps API response back to form fields
          */
         
         // Using BASE_URL from auth.js instead of hardcoded baseUrlDevAmiru
     </script>
     <script src="../js/auth.js"></script>
+    <script src="../js/arInvoiceApiService.js"></script>
     <script src="add_ARInvoiceNew.js"></script>
     
     <style>

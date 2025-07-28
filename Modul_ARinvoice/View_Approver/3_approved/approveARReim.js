@@ -1,7 +1,7 @@
-// checkedOPReim.js - JavaScript for the AR Invoice checking page
+// approveOPReim.js - JavaScript for the AR Invoice approval page
 
 // Global variables
-let outgoingPaymentReimData = null;
+let arInvoiceReimData = null;
 let uploadedFiles = [];
 let existingAttachments = [];
 let attachmentsToKeep = [];
@@ -13,8 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
 
-
-
     if (documentId) {
         // Load document details
         loadOPReimDetails(documentId);
@@ -25,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuCheckOPReim();
+            goToMenuApproveOPReim();
         });
     }
 
@@ -35,11 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Initialize button states
-    // Note: Revision functionality has been removed
+    // Event listeners can be added here if needed
 }
 
-// Load outgoing payment reimbursement details from API
+// Load AR invoice reimbursement details from API
 async function loadOPReimDetails(id) {
     try {
         // Show loading indicator
@@ -53,7 +50,7 @@ async function loadOPReimDetails(id) {
         });
 
         // Make API request to get document details
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/${id}`, {
             method: 'GET'
         });
 
@@ -63,16 +60,13 @@ async function loadOPReimDetails(id) {
 
         // Parse response data
         const data = await response.json();
-        outgoingPaymentReimData = data;
-
-        // Load users data to get names
-        await loadUsersData();
+        arInvoiceReimData = data;
 
         // Populate form with data
         populateFormFields(data);
 
-        // Check user permissions and update UI accordingly
-        checkUserPermissions(data);
+        // Hide buttons based on document status
+        hideButtonsBasedOnStatus(data);
 
         // Close loading indicator
         Swal.close();
@@ -86,224 +80,12 @@ async function loadOPReimDetails(id) {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuCheckOPReim();
+            goToMenuApproveOPReim();
         });
     }
 }
 
-// Load users data to get user names
-async function loadUsersData() {
-    try {
-        const response = await makeAuthenticatedRequest('/api/users', {
-            method: 'GET'
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to load users: ${response.status}`);
-        }
-
-        const usersData = await response.json();
-        window.usersList = usersData.data || [];
-
-    } catch (error) {
-        console.error('Error loading users:', error);
-        window.usersList = [];
-    }
-}
-
-// Get user name by ID
-function getUserNameById(userId) {
-    if (!window.usersList || !userId) return 'Unknown User';
-
-    const user = window.usersList.find(u => u.id === userId);
-    return user ? user.fullName : 'Unknown User';
-}
-
-// Check user permissions and update UI
-function checkUserPermissions(data) {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        Swal.fire({
-            title: 'Error',
-            text: 'User not authenticated. Please login again.',
-            icon: 'error'
-        }).then(() => {
-            window.location.href = getLoginPagePath();
-        });
-        return;
-    }
-
-    const approval = data.approval;
-    if (!approval) {
-        console.error('No approval data found');
-        return;
-    }
-
-    // Determine current status based on dates
-    let currentStatus = 'Prepared';
-    if (approval.checkedDate) {
-        currentStatus = 'Checked';
-    }
-    if (approval.acknowledgedDate) {
-        currentStatus = 'Acknowledged';
-    }
-    if (approval.approvedDate) {
-        currentStatus = 'Approved';
-    }
-    if (approval.receivedDate) {
-        currentStatus = 'Received';
-    }
-    if (approval.rejectedDate) {
-        currentStatus = 'Rejected';
-    }
-
-    console.log('Current status:', currentStatus);
-    console.log('Current user ID:', currentUser.userId);
-    console.log('Checked by ID:', approval.checkedBy);
-    console.log('Document ID:', documentId);
-
-    // Check if current user is the assigned checker
-    const isAssignedChecker = approval.checkedBy === currentUser.userId;
-    const isAboveChecker = isUserAboveChecker(currentUser.userId, approval.checkedBy);
-
-    console.log('Is assigned checker:', isAssignedChecker);
-    console.log('Is above checker:', isAboveChecker);
-
-    // Hide buttons based on document status
-    hideButtonsBasedOnStatus(data);
-
-    // Update button states based on user permissions
-    const approveButton = document.getElementById('approveButton');
-    const rejectButton = document.getElementById('rejectButton');
-
-    if (currentStatus === 'Prepared' && isAssignedChecker) {
-        // User is the assigned checker and document is ready for checking
-        approveButton.disabled = false;
-        approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        rejectButton.disabled = false;
-        rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-
-        console.log('Buttons enabled for checking');
-
-        // Show success message
-        Swal.fire({
-            title: 'Ready for Checking',
-            text: 'You can now check this document',
-            icon: 'info',
-            timer: 2000,
-            showConfirmButton: false
-        });
-
-    } else if (currentStatus === 'Prepared' && isAboveChecker) {
-        // User is above the checker, show waiting message
-        const checkerName = getUserNameById(approval.checkedBy);
-
-        console.log('User is above checker, waiting for:', checkerName);
-
-        Swal.fire({
-            title: 'Document Pending',
-            text: `Please wait for ${checkerName} to check this document first`,
-            icon: 'warning',
-            confirmButtonText: 'OK'
-        });
-
-        // Disable all action buttons
-        approveButton.disabled = true;
-        approveButton.classList.add('opacity-50', 'cursor-not-allowed');
-        rejectButton.disabled = true;
-        rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-
-    } else if (currentStatus !== 'Prepared') {
-        // Document has already been checked or is in a different status
-        const statusMessage = getStatusMessage(currentStatus);
-
-        console.log('Document status is:', currentStatus);
-
-        Swal.fire({
-            title: 'Document Status',
-            text: statusMessage,
-            icon: 'info',
-            confirmButtonText: 'OK'
-        });
-
-        // Disable all action buttons
-        approveButton.disabled = true;
-        approveButton.classList.add('opacity-50', 'cursor-not-allowed');
-        rejectButton.disabled = true;
-        rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-    }
-}
-
-// Hide buttons based on document status
-function hideButtonsBasedOnStatus(data) {
-    const approveButton = document.getElementById('approveButton');
-    const rejectButton = document.getElementById('rejectButton');
-
-    // Determine current status based on approval data
-    let currentStatus = 'Prepared';
-    if (data.approval) {
-        if (data.approval.checkedDate) {
-            currentStatus = 'Checked';
-        }
-        if (data.approval.acknowledgedDate) {
-            currentStatus = 'Acknowledged';
-        }
-        if (data.approval.approvedDate) {
-            currentStatus = 'Approved';
-        }
-        if (data.approval.receivedDate) {
-            currentStatus = 'Received';
-        }
-        if (data.approval.rejectedDate) {
-            currentStatus = 'Rejected';
-        }
-    }
-
-    // Hide both buttons if status is not 'Prepared'
-    if (currentStatus !== 'Prepared') {
-        if (approveButton) {
-            approveButton.style.display = 'none';
-        }
-        if (rejectButton) {
-            rejectButton.style.display = 'none';
-        }
-    } else {
-        // Show buttons if status is 'Prepared'
-        if (approveButton) {
-            approveButton.style.display = 'inline-block';
-        }
-        if (rejectButton) {
-            rejectButton.style.display = 'inline-block';
-        }
-    }
-}
-
-// Check if user is above the checker in the hierarchy
-function isUserAboveChecker(currentUserId, checkerId) {
-    // This is a simplified check - in a real system, you'd have a proper user hierarchy
-    // For now, we'll assume that if the current user is not the checker, they might be above
-    return currentUserId !== checkerId;
-}
-
-// Get status message based on current status
-function getStatusMessage(status) {
-    switch (status) {
-        case 'Checked':
-            return 'This document has already been checked.';
-        case 'Acknowledged':
-            return 'This document has been acknowledged.';
-        case 'Approved':
-            return 'This document has been approved.';
-        case 'Received':
-            return 'This document has been received.';
-        case 'Rejected':
-            return 'This document has been rejected.';
-        default:
-            return 'This document is not ready for checking.';
-    }
-}
-
-// Populate form fields with data
+// Populate form fields with data from API
 function populateFormFields(data) {
     // Helper function to safely set value
     const setValue = (id, value) => {
@@ -356,12 +138,15 @@ function populateFormFields(data) {
     // Map approval data
     if (data.approval) {
         populateApprovalInfo(data.approval);
-        // Show rejection remarks if status is rejected
+        // Show/hide rejection remarks based on status
+        const rejSec = document.getElementById('rejectionRemarksSection');
+        const rejTxt = document.getElementById('rejectionRemarks');
         if (data.approval.approvalStatus === 'Rejected') {
-            const rejSec = document.getElementById('rejectionRemarksSection');
-            const rejTxt = document.getElementById('rejectionRemarks');
             if (rejSec) rejSec.style.display = 'block';
             if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
+        } else {
+            if (rejSec) rejSec.style.display = 'none';
+            if (rejTxt) rejTxt.value = '';
         }
         // Display status
         displayApprovalStatus(data.approval);
@@ -388,6 +173,50 @@ function populateFormFields(data) {
 
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
+}
+
+// Hide buttons based on document status
+function hideButtonsBasedOnStatus(data) {
+    const approveButton = document.querySelector('button[onclick="approveOPReim()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
+
+    // Determine current status based on approval data
+    let currentStatus = 'Prepared';
+    if (data.approval) {
+        if (data.approval.checkedDate) {
+            currentStatus = 'Checked';
+        }
+        if (data.approval.acknowledgedDate) {
+            currentStatus = 'Acknowledged';
+        }
+        if (data.approval.approvedDate) {
+            currentStatus = 'Approved';
+        }
+        if (data.approval.receivedDate) {
+            currentStatus = 'Received';
+        }
+        if (data.approval.rejectedDate) {
+            currentStatus = 'Rejected';
+        }
+    }
+
+    // Hide both buttons if status is not 'Acknowledged'
+    if (currentStatus !== 'Acknowledged') {
+        if (approveButton) {
+            approveButton.style.display = 'none';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'none';
+        }
+    } else {
+        // Show buttons if status is 'Acknowledged'
+        if (approveButton) {
+            approveButton.style.display = 'inline-block';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'inline-block';
+        }
+    }
 }
 
 // Function to display approval status with select dropdown
@@ -433,6 +262,9 @@ function displayApprovalStatus(approval) {
 // Populate table rows with line items
 function populateTableRows(lines) {
     const tableBody = document.getElementById('tableBody');
+
+    if (!tableBody) return;
+
     tableBody.innerHTML = ''; // Clear existing rows
 
     if (!lines || lines.length === 0) {
@@ -460,147 +292,91 @@ function populateTableRows(lines) {
 
 // Update totals based on line items
 function updateTotals(lines) {
-    let totalAmount = 0;
+    let netTotal = 0;
 
     // Calculate sum of all line amounts
     if (lines && lines.length > 0) {
-        totalAmount = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
+        netTotal = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
     }
 
-    // Update total amount due field
-    document.getElementById('totalAmountDue').value = formatCurrency(totalAmount);
+    // Update total fields
+    const totalAmountDueElement = document.getElementById('totalAmountDue');
+    if (totalAmountDueElement) totalAmountDueElement.value = formatCurrency(netTotal);
 }
 
 // Populate approval information
 function populateApprovalInfo(approval) {
     if (!approval) return;
 
+    // Get all approval elements
+    const preparedBySearch = document.getElementById('preparedBySearch');
+    const checkedBySearch = document.getElementById('checkedBySearch');
+    const acknowledgedBySearch = document.getElementById('acknowledgedBySearch');
+    const approvedBySearch = document.getElementById('approvedBySearch');
+    const receivedBySearch = document.getElementById('receivedBySearch');
     // Set prepared by
-    if (approval.preparedBy) {
-        const preparedByName = getUserNameById(approval.preparedBy);
-        document.getElementById('preparedBySearch').value = preparedByName;
+    if (approval.preparedBy && preparedBySearch) {
+        preparedBySearch.value = approval.preparedByName || approval.preparedBy;
     }
 
     // Set checked by
-    if (approval.checkedBy) {
-        const checkedByName = getUserNameById(approval.checkedBy);
-        document.getElementById('checkedBySearch').value = checkedByName;
+    if (approval.checkedBy && checkedBySearch) {
+        checkedBySearch.value = approval.checkedByName || approval.checkedBy;
     }
 
     // Set acknowledged by
-    if (approval.acknowledgedBy) {
-        const acknowledgedByName = getUserNameById(approval.acknowledgedBy);
-        document.getElementById('acknowledgedBySearch').value = acknowledgedByName;
+    if (approval.acknowledgedBy && acknowledgedBySearch) {
+        acknowledgedBySearch.value = approval.acknowledgedByName || approval.acknowledgedBy;
     }
 
     // Set approved by
-    if (approval.approvedBy) {
-        const approvedByName = getUserNameById(approval.approvedBy);
-        document.getElementById('approvedBySearch').value = approvedByName;
+    if (approval.approvedBy && approvedBySearch) {
+        approvedBySearch.value = approval.approvedByName || approval.approvedBy;
     }
 
     // Set received by
-    if (approval.receivedBy) {
-        const receivedByName = getUserNameById(approval.receivedBy);
-        document.getElementById('receivedBySearch').value = receivedByName;
+    if (approval.receivedBy && receivedBySearch) {
+        receivedBySearch.value = approval.receivedByName || approval.receivedBy;
     }
-
-
 }
 
-
-
-// Display attachments
-function displayAttachments(attachments) {
-    console.log('Displaying attachments:', attachments);
-
-    const attachmentsList = document.getElementById('attachmentsList');
-
-    if (!attachmentsList) return;
-
-    // Clear existing attachments
-    attachmentsList.innerHTML = '';
-
-    // Store existing attachments
-    existingAttachments = [...attachments];
-    attachmentsToKeep = [...attachments.map(a => a.id)];
-
-    if (!attachments || attachments.length === 0) {
-        attachmentsList.innerHTML = '<div class="text-gray-500 text-center p-2">No attachments</div>';
+// Handle revision history
+function handleRevisionHistory(approval) {
+    if (!approval || !approval.revisionNumber || approval.revisionNumber <= 0) {
         return;
     }
 
-    // Create attachment items
-    attachments.forEach((attachment, index) => {
-        console.log(`Attachment ${index}:`, attachment);
+    // Show revision history section
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCount = document.getElementById('revisedCount');
 
-        // Get attachment ID with fallbacks
-        const attachmentId = attachment.id || attachment.attachmentId || attachment.fileId || index;
+    if (revisedRemarksSection) revisedRemarksSection.style.display = 'block';
+    if (revisedCount) revisedCount.textContent = approval.revisionNumber;
 
-        const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex justify-between items-center p-2 border-b last:border-b-0';
-        attachmentItem.dataset.id = attachmentId;
+    // Create revision history content
+    const revisionsContainer = document.createElement('div');
+    revisionsContainer.className = 'mt-2 space-y-2';
 
-        attachmentItem.innerHTML = `
-            <div class="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
-                <span class="text-sm">${attachment.fileName || attachment.name || 'Attachment'}</span>
+    // Add revision remarks if available
+    if (approval.revisionRemarks) {
+        const revisionEntry = document.createElement('div');
+        revisionEntry.className = 'p-2 bg-blue-50 border border-blue-200 rounded';
+
+        const revisionDate = approval.revisionDate ? new Date(approval.revisionDate).toLocaleString() : 'Unknown date';
+
+        revisionEntry.innerHTML = `
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs font-medium text-blue-700">Revision #${approval.revisionNumber}</span>
+                <span class="text-xs text-gray-500">${revisionDate}</span>
             </div>
-            <div>
-                <button type="button" class="text-blue-500 hover:text-blue-700 text-sm" onclick="viewAttachment('${attachmentId}')">
-                    View
-                </button>
-            </div>
+            <p class="text-sm text-gray-800">${approval.revisionRemarks}</p>
         `;
 
-        attachmentsList.appendChild(attachmentItem);
-    });
-}
-
-// View attachment
-function viewAttachment(attachmentId) {
-    console.log('Viewing attachment with ID:', attachmentId);
-    console.log('Available attachments:', existingAttachments);
-
-    // Find attachment by different possible ID fields
-    const attachment = existingAttachments.find(a =>
-        a.id === attachmentId ||
-        a.attachmentId === attachmentId ||
-        a.fileId === attachmentId ||
-        a.id === parseInt(attachmentId) ||
-        a.attachmentId === parseInt(attachmentId) ||
-        a.fileId === parseInt(attachmentId)
-    );
-
-    if (!attachment) {
-        console.error('Attachment not found for ID:', attachmentId);
-        Swal.fire({
-            title: 'Error',
-            text: 'Attachment not found',
-            icon: 'error'
-        });
-        return;
+        revisionsContainer.appendChild(revisionEntry);
     }
 
-    console.log('Found attachment:', attachment);
-
-    // Check for different possible URL field names
-    const fileUrl = attachment.fileUrl || attachment.url || attachment.downloadUrl || attachment.filePath;
-
-    if (!fileUrl) {
-        console.error('No file URL found in attachment:', attachment);
-        Swal.fire({
-            title: 'Error',
-            text: 'Attachment file URL not available',
-            icon: 'error'
-        });
-        return;
-    }
-
-    // Open attachment in new window/tab
-    window.open(fileUrl, '_blank');
+    // Append to the section
+    revisedRemarksSection.appendChild(revisionsContainer);
 }
 
 // Function to display reimbursement attachments (matching detailOPReim.js approach)
@@ -769,23 +545,36 @@ async function viewReimbursementAttachment(attachment) {
     }
 }
 
+// View attachment
+function viewAttachment(attachmentId) {
+    const attachment = existingAttachments.find(a => a.id === attachmentId);
+
+    if (!attachment || !attachment.fileUrl) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Attachment not found or cannot be viewed',
+            icon: 'error'
+        });
+        return;
+    }
+
+    // Open attachment in new window/tab
+    window.open(attachment.fileUrl, '_blank');
+}
+
 // Toggle visibility of closed by field based on transaction type
 
 
 // Format currency with Indonesian format
 function formatCurrency(number) {
-    console.log('formatCurrency input:', number, 'type:', typeof number);
     // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
-        console.log('formatCurrency: returning 0 for null/undefined/empty');
         return '0';
     }
 
     // Parse the number
     const num = parseFloat(number);
-    console.log('formatCurrency parsed number:', num);
     if (isNaN(num)) {
-        console.log('formatCurrency: returning 0 for NaN');
         return '0';
     }
 
@@ -797,19 +586,15 @@ function formatCurrency(number) {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
             const decimalPlaces = numStr.split('.')[1].length;
-            const formatted = num.toLocaleString('id-ID', {
+            return num.toLocaleString('id-ID', {
                 minimumFractionDigits: decimalPlaces,
                 maximumFractionDigits: decimalPlaces
             });
-            console.log('formatCurrency formatted result:', formatted);
-            return formatted;
         } else {
-            const formatted = num.toLocaleString('id-ID', {
+            return num.toLocaleString('id-ID', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             });
-            console.log('formatCurrency formatted result:', formatted);
-            return formatted;
         }
     } catch (e) {
         // Fallback for very large numbers
@@ -835,9 +620,7 @@ function formatCurrency(number) {
             formattedInteger += integerPart.charAt(i);
         }
 
-        const fallbackResult = sign + formattedInteger + decimalPart;
-        console.log('formatCurrency fallback result:', fallbackResult);
-        return fallbackResult;
+        return sign + formattedInteger + decimalPart;
     }
 }
 
@@ -854,18 +637,13 @@ function parseCurrency(formattedValue) {
 }
 
 // Navigate back to the menu
-function goToMenuCheckOPReim() {
-    window.location.href = '../../1_Check/menuCheck_ARInvoiceNew.html';
+function goToMenuApproveOPReim() {
+    window.location.href = '../../3_Approve/menuAppr_ARInvoiceNew.html';
 }
 
-// Approve (check) the outgoing payment reimbursement
+// Approve the AR invoice reimbursement
 async function approveOPReim() {
     try {
-        // Validate document status and user permissions
-        if (!validateDocumentStatus()) {
-            return;
-        }
-
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -883,44 +661,41 @@ async function approveOPReim() {
             throw new Error('User ID not found. Please log in again.');
         }
 
-        // Get current user info
+        // Get current user information
         const currentUser = getCurrentUser();
-        const currentUserName = currentUser ? currentUser.username : 'Unknown User';
-
-        // Get current date
         const currentDate = new Date().toISOString();
 
-        // Prepare request data according to the API specification
+        // Prepare request data based on the API structure
         const requestData = {
             stagingID: documentId,
-            createdAt: outgoingPaymentReimData.approval?.createdAt || currentDate,
+            createdAt: arInvoiceReimData.approval?.createdAt || currentDate,
             updatedAt: currentDate,
-            approvalStatus: "Checked",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || userId,
-            checkedBy: userId,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || userId,
-            approvedBy: outgoingPaymentReimData.approval?.approvedBy || userId,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || userId,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || currentDate,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || currentUserName,
-            checkedByName: currentUserName,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || currentUserName,
-            approvedByName: outgoingPaymentReimData.approval?.approvedByName || currentUserName,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || currentUserName,
-            checkedDate: currentDate,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            rejectedDate: outgoingPaymentReimData.approval?.rejectedDate || null,
-            rejectionRemarks: outgoingPaymentReimData.approval?.rejectionRemarks || "",
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            approvalStatus: "Approved",
+            preparedBy: arInvoiceReimData.approval?.preparedBy || null,
+            checkedBy: arInvoiceReimData.approval?.checkedBy || null,
+            acknowledgedBy: arInvoiceReimData.approval?.acknowledgedBy || null,
+            approvedBy: userId,
+            receivedBy: arInvoiceReimData.approval?.receivedBy || null,
+            preparedDate: arInvoiceReimData.approval?.preparedDate || null,
+            preparedByName: arInvoiceReimData.approval?.preparedByName || null,
+            checkedByName: arInvoiceReimData.approval?.checkedByName || null,
+            acknowledgedByName: arInvoiceReimData.approval?.acknowledgedByName || null,
+            approvedByName: currentUser?.username || null,
+            receivedByName: arInvoiceReimData.approval?.receivedByName || null,
+            checkedDate: arInvoiceReimData.approval?.checkedDate || null,
+            acknowledgedDate: arInvoiceReimData.approval?.acknowledgedDate || null,
+            approvedDate: currentDate,
+            receivedDate: arInvoiceReimData.approval?.receivedDate || null,
+            rejectedDate: arInvoiceReimData.approval?.rejectedDate || null,
+            rejectionRemarks: arInvoiceReimData.approval?.rejectionRemarks || "",
+            revisionNumber: arInvoiceReimData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceReimData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceReimData.approval?.revisionRemarks || null,
             header: {}
         };
 
-        // Make API request to update approval status using the correct endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+        // Make API request to update approval status using PUT method
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/approvals/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json-patch+json'
@@ -929,42 +704,48 @@ async function approveOPReim() {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `API error: ${response.status}`);
+            let errorMessage = `API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.Message || errorMessage;
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            throw new Error(errorMessage);
         }
 
-        // Parse response data
-        const responseData = await response.json();
+        // Try to parse response data if available
+        let responseData = null;
+        try {
+            responseData = await response.json();
+        } catch (e) {
+            console.log('Response does not contain JSON data');
+        }
 
         // Show success message
         Swal.fire({
             title: 'Success',
-            text: 'AR Invoice has been checked successfully',
+            text: 'AR Invoice has been approved successfully',
             icon: 'success'
         }).then(() => {
             // Redirect back to menu
-            goToMenuCheckOPReim();
+            goToMenuApproveOPReim();
         });
 
     } catch (error) {
-        console.error('Error checking document:', error);
+        console.error('Error approving document:', error);
 
         Swal.fire({
             title: 'Error',
-            text: `Failed to check document: ${error.message}`,
+            text: `Failed to approve document: ${error.message}`,
             icon: 'error'
         });
     }
 }
 
-// Reject the outgoing payment reimbursement
+// Reject the AR invoice reimbursement
 async function rejectOPReim() {
     try {
-        // Validate document status and user permissions
-        if (!validateDocumentStatus()) {
-            return;
-        }
-
         // Create custom dialog with single field
         const { value: rejectionReason } = await Swal.fire({
             title: 'Reject AR Invoice',
@@ -1026,41 +807,37 @@ async function rejectOPReim() {
         // Prepare request data for rejection
         const requestData = {
             stagingID: documentId,
-            createdAt: outgoingPaymentReimData.createdAt || new Date().toISOString(),
+            createdAt: arInvoiceReimData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             approvalStatus: "Rejected",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
-            approvedByName: outgoingPaymentReimData.approval?.approvedByName || null,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
+            preparedBy: arInvoiceReimData.approval?.preparedBy || null,
+            checkedBy: arInvoiceReimData.approval?.checkedBy || null,
+            acknowledgedBy: arInvoiceReimData.approval?.acknowledgedBy || null,
+            approvedBy: arInvoiceReimData.approval?.approvedBy || null,
+            receivedBy: arInvoiceReimData.approval?.receivedBy || null,
+            preparedDate: arInvoiceReimData.approval?.preparedDate || null,
+            preparedByName: arInvoiceReimData.approval?.preparedByName || null,
+            checkedByName: arInvoiceReimData.approval?.checkedByName || null,
+            acknowledgedByName: arInvoiceReimData.approval?.acknowledgedByName || null,
+            approvedByName: arInvoiceReimData.approval?.approvedByName || null,
+            receivedByName: arInvoiceReimData.approval?.receivedByName || null,
+            checkedDate: arInvoiceReimData.approval?.checkedDate || null,
+            acknowledgedDate: arInvoiceReimData.approval?.acknowledgedDate || null,
+            approvedDate: arInvoiceReimData.approval?.approvedDate || null,
+            receivedDate: arInvoiceReimData.approval?.receivedDate || null,
             rejectedDate: new Date().toISOString(),
             rejectionRemarks: rejectionReason,
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            revisionNumber: arInvoiceReimData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceReimData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceReimData.approval?.revisionRemarks || null,
             header: {}
         };
 
         // Also add rejectionRemarks at root level in case backend expects it there
         requestData.rejectionRemarks = rejectionReason;
 
-        // Debug: Log the request data to console
-        console.log('Rejection request data:', requestData);
-        console.log('Rejection reason:', rejectionReason);
-
         // Make API request to reject document using the approvals endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/approvals/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1080,14 +857,6 @@ async function rejectOPReim() {
             throw new Error(errorMessage);
         }
 
-        // Debug: Log the response data
-        try {
-            const responseData = await response.json();
-            console.log('Rejection response data:', responseData);
-        } catch (e) {
-            console.log('Response does not contain JSON data');
-        }
-
         // Show success message
         await Swal.fire({
             title: 'Success',
@@ -1096,7 +865,7 @@ async function rejectOPReim() {
         });
 
         // Redirect back to menu
-        goToMenuCheckOPReim();
+        goToMenuApproveOPReim();
 
     } catch (error) {
         console.error('Error rejecting document:', error);
@@ -1111,55 +880,6 @@ async function rejectOPReim() {
 }
 
 
-
-// Validate document status before allowing actions
-function validateDocumentStatus() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        Swal.fire({
-            title: 'Authentication Error',
-            text: 'User not authenticated. Please login again.',
-            icon: 'error'
-        }).then(() => {
-            window.location.href = getLoginPagePath();
-        });
-        return false;
-    }
-
-    if (!outgoingPaymentReimData || !outgoingPaymentReimData.approval) {
-        Swal.fire({
-            title: 'Error',
-            text: 'Document data is incomplete. Please refresh the page.',
-            icon: 'error'
-        });
-        return false;
-    }
-
-    const approval = outgoingPaymentReimData.approval;
-
-    // Check if document is already checked
-    if (approval.checkedDate) {
-        Swal.fire({
-            title: 'Already Checked',
-            text: 'This document has already been checked.',
-            icon: 'info'
-        });
-        return false;
-    }
-
-    // Check if current user is the assigned checker
-    if (approval.checkedBy !== currentUser.userId) {
-        const checkerName = getUserNameById(approval.checkedBy);
-        Swal.fire({
-            title: 'Not Authorized',
-            text: `Only ${checkerName} can check this document.`,
-            icon: 'warning'
-        });
-        return false;
-    }
-
-    return true;
-}
 
 // Helper function to get logged-in user ID
 function getUserId() {
@@ -1211,7 +931,7 @@ function handleRejectionInput(event) {
 function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
-    let userRole = 'Checker'; // Default role for this page
+    let userRole = 'Approver'; // Default role for this page
 
     try {
         // Get user info from getCurrentUser function in auth.js

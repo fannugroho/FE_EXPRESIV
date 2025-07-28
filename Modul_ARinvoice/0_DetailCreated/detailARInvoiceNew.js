@@ -577,8 +577,8 @@ function displayExistingAttachments(attachments) {
 
     console.log('Displaying attachments:', attachments);
 
-    // Add header for outgoing payment attachments
-    let html = '<h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>';
+    // Add header for AR Invoice attachments
+    let html = '<h4 class="text-md font-medium text-gray-700 mb-2">AR Invoice Attachments</h4>';
 
     attachments.forEach((attachment, index) => {
         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
@@ -600,7 +600,7 @@ function displayExistingAttachments(attachments) {
                     <div>
                         <div class="font-medium text-sm">${fileName}</div>
                         <div class="text-xs text-gray-500">${fileSize} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
-                        <div class="text-xs text-gray-400">Outgoing Payment Attachment • Uploaded: ${uploadDate}</div>
+                        <div class="text-xs text-gray-400">AR Invoice Attachment • Uploaded: ${uploadDate}</div>
                     </div>
                 </div>
                 <div class="flex space-x-2">
@@ -655,7 +655,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
 
         // If still no docId, try to get it from localStorage
         if (!docId) {
-            docId = localStorage.getItem('currentStagingOutgoingPaymentId');
+            docId = localStorage.getItem('currentStagingARInvoiceId');
             console.log('Document ID from localStorage:', docId);
         }
 
@@ -708,7 +708,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
 
         checkAuthFunction();
 
-        let response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        let response = await makeAuthenticatedRequest(`/api/ar-invoices/attachments/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -733,7 +733,7 @@ async function viewAttachment(attachmentOrPath, fileName) {
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying main document endpoint');
                 // Try to get attachments from the main document endpoint
-                response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                response = await makeAuthenticatedRequest(`/api/ar-invoices/${docId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -996,12 +996,11 @@ async function loadDocumentData() {
 
             // Try different endpoints if the first one fails
             const endpoints = [
-                `/api/staging-outgoing-payments/headers/${docId}`,
-                `/api/staging-outgoing-payments/headers/OP_1753597103440_hu3sspppc`, // Try exact ID
                 `/api/ar-invoices/${docId}`,
+                `/api/staging-ar-invoice/headers/${docId}`,
                 `/api/staging-ar-invoice-clone/headers/${docId}`,
                 `/api/documents/${docId}`,
-                `/api/staging-outgoing-payments/headers` // Try without ID first
+                `/api/ar-invoices` // Try without ID first
             ];
 
             let response = null;
@@ -1145,7 +1144,7 @@ async function loadAttachmentsFromAPI(docId) {
         checkAuthFunction();
 
         // Try to fetch attachments from the dedicated attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/attachments/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -1167,7 +1166,7 @@ async function loadAttachmentsFromAPI(docId) {
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
                 // Try to get attachments from the main document endpoint
-                const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                const mainResponse = await makeAuthenticatedRequest(`/api/ar-invoices/${docId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1401,7 +1400,7 @@ async function refreshAttachments() {
         });
 
         // Fetch attachments from API using the dedicated attachments endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/attachments/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -1421,7 +1420,7 @@ async function refreshAttachments() {
             if (response.status === 405) {
                 console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
                 // Try to get attachments from the main document endpoint
-                const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                const mainResponse = await makeAuthenticatedRequest(`/api/ar-invoices/${docId}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'

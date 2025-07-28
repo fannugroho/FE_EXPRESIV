@@ -1,10 +1,10 @@
-# Outgoing Payment Reimbursement Check Page
+# AR Invoice Check Page
 
-This page allows authorized users to check outgoing payment reimbursement documents.
+This page allows authorized users to check AR invoice documents.
 
 ## Features
 
-- **Document Loading**: Fetches document details from the API endpoint `/api/staging-outgoing-payments/headers/{id}`
+- **Document Loading**: Fetches document details from the API endpoint `/api/ar-invoices/{stagingId}`
 - **User Validation**: Checks if the current user is authorized to check the document
 - **Status Management**: Determines document status based on approval dates
 - **Action Buttons**: Approve, Reject, and Revision functionality
@@ -13,7 +13,7 @@ This page allows authorized users to check outgoing payment reimbursement docume
 ## API Integration
 
 ### Document Details
-- **Endpoint**: `GET /api/staging-outgoing-payments/headers/{id}`
+- **Endpoint**: `GET /api/ar-invoices/{stagingId}`
 - **Purpose**: Fetches complete document information including approval status
 
 ### Users List
@@ -21,9 +21,9 @@ This page allows authorized users to check outgoing payment reimbursement docume
 - **Purpose**: Gets user information to display names instead of IDs
 
 ### Approval Actions
-- **Approve**: `POST /api/staging-outgoing-payments/approvals/`
-- **Reject**: `POST /api/staging-outgoing-payments/reject`
-- **Revision**: `POST /api/staging-outgoing-payments/revise`
+- **Approve**: `POST /api/ar-invoices/approvals/`
+- **Reject**: `POST /api/ar-invoices/reject`
+- **Revision**: `POST /api/ar-invoices/revise`
 
 ## User Permissions
 
@@ -58,7 +58,7 @@ Document status is determined by checking the presence of approval dates:
 
 ## Usage
 
-1. Navigate to the page with a document ID parameter: `?id=OP_1752765116277_qpo8rqou5`
+1. Navigate to the page with a document ID parameter: `?id=AR_1752765116277_qpo8rqou5`
 2. The page automatically loads document details and user permissions
 3. If authorized, action buttons become available
 4. Perform checking actions as needed

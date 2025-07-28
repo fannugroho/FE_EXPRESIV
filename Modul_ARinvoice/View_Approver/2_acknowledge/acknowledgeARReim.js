@@ -1,7 +1,7 @@
-// approveOPReim.js - JavaScript for the AR Invoice approval page
+// acknowledgeOPReim.js - JavaScript for the AR Invoice acknowledgment page
 
 // Global variables
-let outgoingPaymentReimData = null;
+let arInvoiceReimData = null;
 let uploadedFiles = [];
 let existingAttachments = [];
 let attachmentsToKeep = [];
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuApproveOPReim();
+            goToMenuAcknowOPReim();
         });
     }
 
@@ -33,10 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Event listeners can be added here if needed
+    // Event listeners can be added here if needed in the future
 }
 
-// Load outgoing payment reimbursement details from API
+// Load AR invoice reimbursement details from API
 async function loadOPReimDetails(id) {
     try {
         // Show loading indicator
@@ -50,7 +50,7 @@ async function loadOPReimDetails(id) {
         });
 
         // Make API request to get document details
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/${id}`, {
             method: 'GET'
         });
 
@@ -60,7 +60,7 @@ async function loadOPReimDetails(id) {
 
         // Parse response data
         const data = await response.json();
-        outgoingPaymentReimData = data;
+        arInvoiceReimData = data;
 
         // Populate form with data
         populateFormFields(data);
@@ -80,12 +80,12 @@ async function loadOPReimDetails(id) {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuApproveOPReim();
+            goToMenuAcknowOPReim();
         });
     }
 }
 
-// Populate form fields with data from API
+// Populate form fields with data
 function populateFormFields(data) {
     // Helper function to safely set value
     const setValue = (id, value) => {
@@ -177,7 +177,7 @@ function populateFormFields(data) {
 
 // Hide buttons based on document status
 function hideButtonsBasedOnStatus(data) {
-    const approveButton = document.querySelector('button[onclick="approveOPReim()"]');
+    const acknowledgeButton = document.querySelector('button[onclick="acknowledgeOPReim()"]');
     const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
 
     // Determine current status based on approval data
@@ -200,18 +200,18 @@ function hideButtonsBasedOnStatus(data) {
         }
     }
 
-    // Hide both buttons if status is not 'Acknowledged'
-    if (currentStatus !== 'Acknowledged') {
-        if (approveButton) {
-            approveButton.style.display = 'none';
+    // Hide both buttons if status is not 'Checked'
+    if (currentStatus !== 'Checked') {
+        if (acknowledgeButton) {
+            acknowledgeButton.style.display = 'none';
         }
         if (rejectButton) {
             rejectButton.style.display = 'none';
         }
     } else {
-        // Show buttons if status is 'Acknowledged'
-        if (approveButton) {
-            approveButton.style.display = 'inline-block';
+        // Show buttons if status is 'Checked'
+        if (acknowledgeButton) {
+            acknowledgeButton.style.display = 'inline-block';
         }
         if (rejectButton) {
             rejectButton.style.display = 'inline-block';
@@ -262,8 +262,10 @@ function displayApprovalStatus(approval) {
 // Populate table rows with line items
 function populateTableRows(lines) {
     const tableBody = document.getElementById('tableBody');
-
-    if (!tableBody) return;
+    if (!tableBody) {
+        console.error('tableBody element not found');
+        return;
+    }
 
     tableBody.innerHTML = ''; // Clear existing rows
 
@@ -308,36 +310,38 @@ function updateTotals(lines) {
 function populateApprovalInfo(approval) {
     if (!approval) return;
 
-    // Get all approval elements
-    const preparedBySearch = document.getElementById('preparedBySearch');
-    const checkedBySearch = document.getElementById('checkedBySearch');
-    const acknowledgedBySearch = document.getElementById('acknowledgedBySearch');
-    const approvedBySearch = document.getElementById('approvedBySearch');
-    const receivedBySearch = document.getElementById('receivedBySearch');
     // Set prepared by
-    if (approval.preparedBy && preparedBySearch) {
-        preparedBySearch.value = approval.preparedByName || approval.preparedBy;
+    if (approval.preparedBy) {
+        const preparedBySearch = document.getElementById('preparedBySearch');
+        if (preparedBySearch) preparedBySearch.value = approval.preparedByName || approval.preparedBy;
     }
 
     // Set checked by
-    if (approval.checkedBy && checkedBySearch) {
-        checkedBySearch.value = approval.checkedByName || approval.checkedBy;
+    if (approval.checkedBy) {
+        const checkedBySearch = document.getElementById('checkedBySearch');
+        if (checkedBySearch) checkedBySearch.value = approval.checkedByName || approval.checkedBy;
     }
 
     // Set acknowledged by
-    if (approval.acknowledgedBy && acknowledgedBySearch) {
-        acknowledgedBySearch.value = approval.acknowledgedByName || approval.acknowledgedBy;
+    if (approval.acknowledgedBy) {
+        const acknowledgedBySearch = document.getElementById('acknowledgedBySearch');
+        if (acknowledgedBySearch) acknowledgedBySearch.value = approval.acknowledgedByName || approval.acknowledgedBy;
     }
 
     // Set approved by
-    if (approval.approvedBy && approvedBySearch) {
-        approvedBySearch.value = approval.approvedByName || approval.approvedBy;
+    if (approval.approvedBy) {
+        const approvedBySearch = document.getElementById('approvedBySearch');
+        if (approvedBySearch) approvedBySearch.value = approval.approvedByName || approval.approvedBy;
     }
 
     // Set received by
-    if (approval.receivedBy && receivedBySearch) {
-        receivedBySearch.value = approval.receivedByName || approval.receivedBy;
+    if (approval.receivedBy) {
+        const receivedBySearch = document.getElementById('receivedBySearch');
+        if (receivedBySearch) receivedBySearch.value = approval.receivedByName || approval.receivedBy;
     }
+
+    // Set closed by
+
 }
 
 // Handle revision history
@@ -348,9 +352,10 @@ function handleRevisionHistory(approval) {
 
     // Show revision history section
     const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCount = document.getElementById('revisedCount');
-
     if (revisedRemarksSection) revisedRemarksSection.style.display = 'block';
+
+    // Update revision count
+    const revisedCount = document.getElementById('revisedCount');
     if (revisedCount) revisedCount.textContent = approval.revisionNumber;
 
     // Create revision history content
@@ -376,7 +381,9 @@ function handleRevisionHistory(approval) {
     }
 
     // Append to the section
-    revisedRemarksSection.appendChild(revisionsContainer);
+    if (revisedRemarksSection) {
+        revisedRemarksSection.appendChild(revisionsContainer);
+    }
 }
 
 // Function to display reimbursement attachments (matching detailOPReim.js approach)
@@ -545,6 +552,48 @@ async function viewReimbursementAttachment(attachment) {
     }
 }
 
+// Display attachments
+function displayAttachments(attachments) {
+    const attachmentsList = document.getElementById('attachmentsList');
+
+    if (!attachmentsList) return;
+
+    // Clear existing attachments
+    attachmentsList.innerHTML = '';
+
+    // Store existing attachments
+    existingAttachments = [...attachments];
+    attachmentsToKeep = [...attachments.map(a => a.id)];
+
+    if (!attachments || attachments.length === 0) {
+        attachmentsList.innerHTML = '<div class="text-gray-500 text-center p-2">No attachments</div>';
+        return;
+    }
+
+    // Create attachment items
+    attachments.forEach(attachment => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex justify-between items-center p-2 border-b last:border-b-0';
+        attachmentItem.dataset.id = attachment.id;
+
+        attachmentItem.innerHTML = `
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span class="text-sm">${attachment.fileName || 'Attachment'}</span>
+            </div>
+            <div>
+                <button type="button" class="text-blue-500 hover:text-blue-700 text-sm" onclick="viewAttachment('${attachment.id}')">
+                    View
+                </button>
+            </div>
+        `;
+
+        attachmentsList.appendChild(attachmentItem);
+    });
+}
+
 // View attachment
 function viewAttachment(attachmentId) {
     const attachment = existingAttachments.find(a => a.id === attachmentId);
@@ -637,17 +686,17 @@ function parseCurrency(formattedValue) {
 }
 
 // Navigate back to the menu
-function goToMenuApproveOPReim() {
-    window.location.href = '../../3_Approve/menuAppr_ARInvoiceNew.html';
+function goToMenuAcknowOPReim() {
+    window.location.href = '../../2_Acknowledge/menuAck_ARInvoiceNew.html';
 }
 
-// Approve the outgoing payment reimbursement
-async function approveOPReim() {
+// Acknowledge the AR invoice reimbursement
+async function acknowledgeOPReim() {
     try {
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
-            text: 'Submitting approval',
+            text: 'Submitting acknowledgment',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -668,34 +717,34 @@ async function approveOPReim() {
         // Prepare request data based on the API structure
         const requestData = {
             stagingID: documentId,
-            createdAt: outgoingPaymentReimData.approval?.createdAt || currentDate,
+            createdAt: arInvoiceReimData.approval?.createdAt || currentDate,
             updatedAt: currentDate,
-            approvalStatus: "Approved",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: userId,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
-            approvedByName: currentUser?.username || null,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: currentDate,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            rejectedDate: outgoingPaymentReimData.approval?.rejectedDate || null,
-            rejectionRemarks: outgoingPaymentReimData.approval?.rejectionRemarks || "",
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            approvalStatus: "Acknowledged",
+            preparedBy: arInvoiceReimData.approval?.preparedBy || null,
+            checkedBy: arInvoiceReimData.approval?.checkedBy || null,
+            acknowledgedBy: userId,
+            approvedBy: arInvoiceReimData.approval?.approvedBy || null,
+            receivedBy: arInvoiceReimData.approval?.receivedBy || null,
+            preparedDate: arInvoiceReimData.approval?.preparedDate || null,
+            preparedByName: arInvoiceReimData.approval?.preparedByName || currentUser?.username || null,
+            checkedByName: arInvoiceReimData.approval?.checkedByName || null,
+            acknowledgedByName: currentUser?.username || null,
+            approvedByName: arInvoiceReimData.approval?.approvedByName || null,
+            receivedByName: arInvoiceReimData.approval?.receivedByName || null,
+            checkedDate: arInvoiceReimData.approval?.checkedDate || null,
+            acknowledgedDate: currentDate,
+            approvedDate: arInvoiceReimData.approval?.approvedDate || null,
+            receivedDate: arInvoiceReimData.approval?.receivedDate || null,
+            rejectedDate: arInvoiceReimData.approval?.rejectedDate || null,
+            rejectionRemarks: arInvoiceReimData.approval?.rejectionRemarks || "",
+            revisionNumber: arInvoiceReimData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceReimData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceReimData.approval?.revisionRemarks || null,
             header: {}
         };
 
         // Make API request to update approval status using PUT method
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/approvals/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json-patch+json'
@@ -725,25 +774,25 @@ async function approveOPReim() {
         // Show success message
         Swal.fire({
             title: 'Success',
-            text: 'AR Invoice has been approved successfully',
+            text: 'AR Invoice has been acknowledged successfully',
             icon: 'success'
         }).then(() => {
             // Redirect back to menu
-            goToMenuApproveOPReim();
+            goToMenuAcknowOPReim();
         });
 
     } catch (error) {
-        console.error('Error approving document:', error);
+        console.error('Error acknowledging document:', error);
 
         Swal.fire({
             title: 'Error',
-            text: `Failed to approve document: ${error.message}`,
+            text: `Failed to acknowledge document: ${error.message}`,
             icon: 'error'
         });
     }
 }
 
-// Reject the outgoing payment reimbursement
+// Reject the AR invoice reimbursement
 async function rejectOPReim() {
     try {
         // Create custom dialog with single field
@@ -807,29 +856,29 @@ async function rejectOPReim() {
         // Prepare request data for rejection
         const requestData = {
             stagingID: documentId,
-            createdAt: outgoingPaymentReimData.createdAt || new Date().toISOString(),
+            createdAt: arInvoiceReimData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             approvalStatus: "Rejected",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
-            approvedByName: outgoingPaymentReimData.approval?.approvedByName || null,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
+            preparedBy: arInvoiceReimData.approval?.preparedBy || null,
+            checkedBy: arInvoiceReimData.approval?.checkedBy || null,
+            acknowledgedBy: arInvoiceReimData.approval?.acknowledgedBy || null,
+            approvedBy: arInvoiceReimData.approval?.approvedBy || null,
+            receivedBy: arInvoiceReimData.approval?.receivedBy || null,
+            preparedDate: arInvoiceReimData.approval?.preparedDate || null,
+            preparedByName: arInvoiceReimData.approval?.preparedByName || null,
+            checkedByName: arInvoiceReimData.approval?.checkedByName || null,
+            acknowledgedByName: arInvoiceReimData.approval?.acknowledgedByName || null,
+            approvedByName: arInvoiceReimData.approval?.approvedByName || null,
+            receivedByName: arInvoiceReimData.approval?.receivedByName || null,
+            checkedDate: arInvoiceReimData.approval?.checkedDate || null,
+            acknowledgedDate: arInvoiceReimData.approval?.acknowledgedDate || null,
+            approvedDate: arInvoiceReimData.approval?.approvedDate || null,
+            receivedDate: arInvoiceReimData.approval?.receivedDate || null,
             rejectedDate: new Date().toISOString(),
             rejectionRemarks: rejectionReason,
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
+            revisionNumber: arInvoiceReimData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceReimData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceReimData.approval?.revisionRemarks || null,
             header: {}
         };
 
@@ -837,7 +886,7 @@ async function rejectOPReim() {
         requestData.rejectionRemarks = rejectionReason;
 
         // Make API request to reject document using the approvals endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
+        const response = await makeAuthenticatedRequest(`/api/ar-invoices/approvals/${documentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -865,7 +914,7 @@ async function rejectOPReim() {
         });
 
         // Redirect back to menu
-        goToMenuApproveOPReim();
+        goToMenuAcknowOPReim();
 
     } catch (error) {
         console.error('Error rejecting document:', error);
@@ -931,7 +980,7 @@ function handleRejectionInput(event) {
 function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
-    let userRole = 'Approver'; // Default role for this page
+    let userRole = 'Acknowledger'; // Default role for this page
 
     try {
         // Get user info from getCurrentUser function in auth.js

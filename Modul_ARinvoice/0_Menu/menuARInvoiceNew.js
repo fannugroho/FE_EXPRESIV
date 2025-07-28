@@ -1,6 +1,6 @@
-// Variabel untuk menyimpan dokumen reimbursement
-let reimbursementDocs = [];
-let allReimbursementDocs = []; // Menyimpan semua dokumen sebelum filtering
+// Variabel untuk menyimpan dokumen AR Invoice
+let arInvoiceDocs = [];
+let allARInvoiceDocs = []; // Menyimpan semua dokumen sebelum filtering
 
 // Global variables for document management
 let currentTab = 'all';
@@ -12,8 +12,8 @@ let allDocuments = [];
 // Global variable to store users
 let users = [];
 
-// Reusable function to fetch outgoing payment documents by approval step
-async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false) {
+// Reusable function to fetch AR Invoice documents by approval step
+async function fetchARInvoiceDocuments(step, userId, onlyCurrentStep = false) {
     try {
         const params = new URLSearchParams({
             step: step,
@@ -22,7 +22,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
             includeDetails: 'false'
         });
 
-        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`, {
+        const response = await fetch(`${BASE_URL}/api/ar-invoices?${params.toString()}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 async function fetchAllDocuments(userId) {
     try {
         // For "All Documents" tab, we want all documents regardless of status
-        return await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+        return await fetchARInvoiceDocuments('preparedBy', userId, false);
     } catch (error) {
         console.error('Error fetching all documents:', error);
         return [];
@@ -79,7 +79,7 @@ async function fetchAllDocuments(userId) {
 async function fetchPreparedDocuments(userId) {
     try {
         // For "Prepared" tab, we want only documents with status "Prepared"
-        const allDocuments = await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('preparedBy', userId, false);
         console.log(`Total documents fetched: ${allDocuments.length}`);
 
         const preparedDocuments = allDocuments.filter(doc => {
@@ -303,8 +303,8 @@ function filterReimbursementDocs() {
 function selectReimbursement(docId, voucherNo) {
     // Tampilkan dialog konfirmasi
     Swal.fire({
-        title: 'Create Outgoing Payment',
-        text: `Do you want to create a new outgoing payment based on reimbursement "${voucherNo}"?`,
+        title: 'Create AR Invoice',
+        text: `Do you want to create a new AR Invoice based on reimbursement "${voucherNo}"?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Yes, Create',
@@ -344,7 +344,7 @@ async function loadDashboard() {
         await fetchUsers();
 
         // Fetch dashboard summary data
-        const summaryResponse = await fetch(`${BASE_URL}/api/staging-outgoing-payments/dashboard/summary`);
+        const summaryResponse = await fetch(`${BASE_URL}/api/ar-invoices/dashboard/summary`);
         const summaryData = await summaryResponse.json();
 
         // Handle different response structures
@@ -901,10 +901,10 @@ function downloadExcel() {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
     // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Outgoing Payments");
+    XLSX.utils.book_append_sheet(wb, ws, "AR Invoices");
 
     // Generate Excel file and trigger download
-    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const fileName = `AR_Invoices_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }
 
@@ -921,12 +921,12 @@ function downloadPDF() {
 
     // Set document properties
     doc.setProperties({
-        title: 'Outgoing Payments Report'
+        title: 'AR Invoices Report'
     });
 
     // Add title
     doc.setFontSize(18);
-    doc.text('Outgoing Payments Report', 14, 22);
+    doc.text('AR Invoices Report', 14, 22);
 
     // Add date
     doc.setFontSize(11);
@@ -990,7 +990,7 @@ function downloadPDF() {
     });
 
     // Save PDF
-    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.pdf`;
+    const fileName = `AR_Invoices_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
 }
 

@@ -5,8 +5,8 @@ let currentSearchType = 'reimNo';
 let currentPage = 1;
 let itemsPerPage = 10;
 
-// Reusable function to fetch outgoing payment documents by approval step
-async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
+// Reusable function to fetch AR Invoice documents by approval step
+async function fetchARInvoiceDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
     try {
         console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
 
@@ -22,7 +22,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
             params.append('isRejected', 'true');
         }
 
-        const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
+        const apiUrl = `${BASE_URL}/api/ar-invoices?${params.toString()}`;
         console.log('API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -136,19 +136,19 @@ async function loadDashboard() {
         // Build URL based on current tab
         if (currentTab === 'acknowledged') {
             // For acknowledged tab, we'll use the approvedBy endpoint and filter in JavaScript
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            baseUrl = `${BASE_URL}/api/ar-invoices`;
             params.append('includeDetails', 'false');
             params.append('step', 'approvedBy');
             params.append('userId', userId);
             params.append('onlyCurrentStep', 'false');
         } else if (currentTab === 'approved') {
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            baseUrl = `${BASE_URL}/api/ar-invoices`;
             params.append('includeDetails', 'false');
             params.append('step', 'approvedBy');
             params.append('userId', userId);
             params.append('onlyCurrentStep', 'true');
         } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/staging-outgoing-payments/headers`;
+            baseUrl = `${BASE_URL}/api/ar-invoices`;
             params.append('includeDetails', 'false');
             params.append('step', 'approvedBy');
             params.append('userId', userId);
@@ -283,7 +283,7 @@ async function updateCounters(userId) {
         console.log('updateCounters called with userId:', userId);
 
         // Fetch all documents using the approvedBy endpoint
-        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('approvedBy', userId, false);
 
         // Count documents by status
         const acknowledgedCount = allDocuments.filter(doc => {
@@ -496,7 +496,7 @@ async function switchTab(tabName) {
         let documents = [];
 
         // Use the approvedBy endpoint as specified in the API call
-        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('approvedBy', userId, false);
         console.log(`Total documents fetched from approvedBy endpoint: ${allDocuments.length}`);
 
         if (tabName === 'acknowledged') {
@@ -754,7 +754,7 @@ function goToTotalDocs() {
 
 function detailDoc(id) {
     // Navigate to the approve detail page in View_Approver/3_approved
-    const detailUrl = `../View_Approver/3_approved/approveOPReim.html?id=${id}&tab=${currentTab}`;
+    const detailUrl = `../View_Approver/3_approved/approveARAccount.html?id=${id}&tab=${currentTab}`;
 
     console.log('=== detailDoc Debug Info ===');
     console.log('Document ID:', id);
@@ -898,7 +898,7 @@ function downloadPDF() {
     doc.text(`Total Records: ${tableData.length}`, 14, finalY + 10);
 
     // Save the PDF with current filter in the filename
-    doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`ar_invoice_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // Debug function to test tab functionality
@@ -913,7 +913,7 @@ async function debugTabFunctionality() {
 
     try {
         // Get all documents using the approvedBy endpoint
-        const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('approvedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
 
         // Test Acknowledged tab with specific filtering for "approvalStatus": "Acknowledged"
@@ -973,7 +973,7 @@ async function showAllDocuments() {
     }
 
     try {
-        const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const allDocs = await fetchARInvoiceDocuments('approvedBy', userId, false);
         console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
         console.log('Total documents:', allDocs.length);
 
@@ -1058,7 +1058,7 @@ async function loadAcknowledgedDocuments(userId) {
         document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
 
         // Fetch all documents using the approvedBy endpoint
-        const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
+        const allDocuments = await fetchARInvoiceDocuments('approvedBy', userId, false);
         console.log(`Total documents fetched: ${allDocuments.length}`);
 
         // Filter for acknowledged documents - only show documents with "approvalStatus": "Acknowledged"

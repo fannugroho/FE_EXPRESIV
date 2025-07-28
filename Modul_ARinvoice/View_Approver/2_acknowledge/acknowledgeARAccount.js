@@ -7,7 +7,7 @@ let attachmentsToKeep = []; // Track which existing attachments to keep
 
 // Global variables
 let rowCounter = 1;
-let outgoingPaymentData = null;
+let arInvoiceData = null;
 // Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
 
 // Helper function to get logged-in user ID
@@ -368,8 +368,8 @@ function toggleClosedByVisibility() {
 
 // Initialize when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Load outgoing payment details from API
-    loadOutgoingPaymentDetails();
+    // Load AR invoice details from API
+    loadARInvoiceDetails();
     
     initializeInputValidations();
     toggleClosedByVisibility();
@@ -429,21 +429,21 @@ window.filterUsers = function(fieldId) {
     console.log(`Filtering users for field: ${fieldId}...`);
 };
 
-// Function to navigate back to the Outgoing Payment menu
-function goToMenuOP() {
-    window.location.href = '../../../dashboard/dashboardCheck/outgoingPayment/menuOPCheck.html';
+// Function to navigate back to the AR Invoice menu
+function goToMenuAR() {
+    window.location.href = '../../../dashboard/dashboardCheck/arInvoice/menuOPCheck.html';
 }
 
-// Function to load outgoing payment details from API
-function loadOutgoingPaymentDetails() {
-    // Get the outgoing payment ID from URL parameters
+// Function to load AR invoice details from API
+function loadARInvoiceDetails() {
+    // Get the AR invoice ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const outgoingPaymentId = urlParams.get('id');
+    const arInvoiceId = urlParams.get('id');
     
-    if (!outgoingPaymentId) {
+    if (!arInvoiceId) {
         Swal.fire({
             title: 'Error',
-            text: 'Outgoing Payment ID not found in URL',
+            text: 'AR Invoice ID not found in URL',
             icon: 'error'
         });
         return;
@@ -452,15 +452,15 @@ function loadOutgoingPaymentDetails() {
     // Show loading indicator
     Swal.fire({
         title: 'Loading...',
-        text: 'Fetching outgoing payment details',
+        text: 'Fetching AR invoice details',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
         }
     });
     
-    // Fetch outgoing payment details from API
-            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`, {
+    // Fetch AR invoice details from API
+            fetch(`${BASE_URL}/api/outgoing-payments/${arInvoiceId}`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -469,13 +469,13 @@ function loadOutgoingPaymentDetails() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Failed to fetch outgoing payment details');
+            throw new Error('Failed to fetch AR invoice details');
         }
         return response.json();
     })
     .then(data => {
         // Store the data in the global variable
-        outgoingPaymentData = data;
+        arInvoiceData = data;
         
         // Populate the form fields with the retrieved data
         populateFormFields(data);
@@ -484,17 +484,17 @@ function loadOutgoingPaymentDetails() {
         Swal.close();
     })
     .catch(error => {
-        console.error('Error fetching outgoing payment details:', error);
+        console.error('Error fetching AR invoice details:', error);
         
         Swal.fire({
             title: 'Error',
-            text: 'Failed to load outgoing payment details. Please try again.',
+            text: 'Failed to load AR invoice details. Please try again.',
             icon: 'error'
         });
     });
 }
 
-// Function to populate form fields with outgoing payment data
+// Function to populate form fields with AR invoice data
 function populateFormFields(data) {
     // Populate header fields
     document.getElementById('cashAdvanceNo').value = data.docNum || '';
@@ -610,16 +610,16 @@ function populateFormFields(data) {
     toggleClosedByVisibility();
 }
 
-// Function to approve/check the outgoing payment
+// Function to approve/check the AR invoice
 function approveOP() {
-    // Get the outgoing payment ID from URL parameters
+    // Get the AR invoice ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const outgoingPaymentId = urlParams.get('id');
+    const arInvoiceId = urlParams.get('id');
     
-    if (!outgoingPaymentId) {
+    if (!arInvoiceId) {
         Swal.fire({
             title: 'Error',
-            text: 'Outgoing Payment ID not found in URL',
+            text: 'AR Invoice ID not found in URL',
             icon: 'error'
         });
         return;
@@ -639,7 +639,7 @@ function approveOP() {
     // Confirm before approving
     Swal.fire({
         title: 'Confirm Check',
-        text: 'Are you sure you want to check this outgoing payment?',
+        text: 'Are you sure you want to check this AR invoice?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Yes',
@@ -650,7 +650,7 @@ function approveOP() {
             // Show loading indicator
             Swal.fire({
                 title: 'Processing...',
-                text: 'Checking outgoing payment',
+                text: 'Checking AR invoice',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -658,7 +658,7 @@ function approveOP() {
             });
             
             // Send approval request to API
-            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/check`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${arInvoiceId}/check`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -671,7 +671,7 @@ function approveOP() {
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to check outgoing payment');
+                    throw new Error('Failed to check AR invoice');
                 }
                 return response.json();
             })
@@ -686,11 +686,11 @@ function approveOP() {
                 });
             })
             .catch(error => {
-                console.error('Error checking outgoing payment:', error);
+                console.error('Error checking AR invoice:', error);
                 
                 Swal.fire({
                     title: 'Error',
-                    text: 'Failed to check outgoing payment. Please try again.',
+                    text: 'Failed to check AR invoice. Please try again.',
                     icon: 'error'
                 });
             });
@@ -698,16 +698,16 @@ function approveOP() {
     });
 }
 
-// Function to reject the outgoing payment
-function rejectOP() {
-    // Get the outgoing payment ID from URL parameters
+// Function to reject the AR invoice
+function rejectAR() {
+    // Get the AR invoice ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const outgoingPaymentId = urlParams.get('id');
+    const arInvoiceId = urlParams.get('id');
     
-    if (!outgoingPaymentId) {
+    if (!arInvoiceId) {
         Swal.fire({
             title: 'Error',
-            text: 'Outgoing Payment ID not found in URL',
+            text: 'AR Invoice ID not found in URL',
             icon: 'error'
         });
         return;
@@ -749,7 +749,7 @@ function rejectOP() {
             // Show loading indicator
             Swal.fire({
                 title: 'Processing...',
-                text: 'Rejecting outgoing payment',
+                text: 'Rejecting AR invoice',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -757,7 +757,7 @@ function rejectOP() {
             });
             
             // Send rejection request to API
-            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
+            fetch(`${BASE_URL}/api/outgoing-payments/${arInvoiceId}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -771,7 +771,7 @@ function rejectOP() {
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to reject outgoing payment');
+                    throw new Error('Failed to reject AR invoice');
                 }
                 return response.json();
             })
@@ -786,11 +786,11 @@ function rejectOP() {
                 });
             })
             .catch(error => {
-                console.error('Error rejecting outgoing payment:', error);
+                console.error('Error rejecting AR invoice:', error);
                 
                 Swal.fire({
                     title: 'Error',
-                    text: 'Failed to reject outgoing payment. Please try again.',
+                    text: 'Failed to reject AR invoice. Please try again.',
                     icon: 'error'
                 });
             });

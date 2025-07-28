@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Outgoing Payment</title>
+    <title>Check AR Invoice</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../js/auth.js"></script>
-    <script src="approveOPVendor.js"></script>
+    <script src="checkedARVendor.js"></script>
     
     <style>
         /* Dropdown styling */
@@ -36,13 +36,13 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment </h2>
+        <button onclick="goToMenuAR()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail AR Invoice</h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Outgoing Payment No.</h3>
-                <input type="text" id="cashAdvanceNo" placeholder="Outgoing Payment no" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <h3 class="text-lg font-semibold mb-2">AR Invoice No.</h3>
+                <input type="text" id="arInvoiceNo" placeholder="AR Invoice no" class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
                 <input type="text" id="employeeId" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
@@ -267,7 +267,7 @@
                 Reject
                 </button>
                 <button onclick="approveOP()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Approve
+                Checked
                 </button>
             </div>
         </div>

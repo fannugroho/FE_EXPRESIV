@@ -1,6 +1,6 @@
 // Global variables
 // Using BASE_URL from auth.js instead of hardcoded apiBaseUrl
-let outgoingPaymentData = null;
+let arInvoiceData = null;
 let docId = null;
 
 // Helper function to get logged-in user ID
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Load document details
-    loadOutgoingPaymentDetails();
+    loadARInvoiceDetails();
 
     // Add event listeners for revision fields
     document.addEventListener('input', function (e) {
@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Function to load outgoing payment details from API
-async function loadOutgoingPaymentDetails() {
+// Function to load AR invoice details from API
+async function loadARInvoiceDetails() {
     try {
         // Show loading indicator
         Swal.fire({
@@ -137,7 +137,7 @@ async function loadOutgoingPaymentDetails() {
         });
 
         // Fetch document details from API using the new staging endpoint
-        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers/${docId}`, {
+        const response = await fetch(`${BASE_URL}/api/ar-invoices/${docId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -168,13 +168,13 @@ async function loadOutgoingPaymentDetails() {
         // Handle API response - data is returned directly
         let documentData = result;
 
-        outgoingPaymentData = documentData;
+        arInvoiceData = documentData;
 
         // Populate form fields with document data
-        populateFormFields(outgoingPaymentData);
+        populateFormFields(arInvoiceData);
 
         // Hide buttons based on document status
-        hideButtonsBasedOnStatus(outgoingPaymentData);
+        hideButtonsBasedOnStatus(arInvoiceData);
 
         // Close loading indicator
         Swal.close();
@@ -401,7 +401,7 @@ function displayApprovalStatus(approval) {
     }
 }
 
-// Function to receive outgoing payment reimbursement
+// Function to receive AR invoice reimbursement
 async function receiveOPReim() {
     try {
         // Show loading indicator
@@ -427,8 +427,8 @@ async function receiveOPReim() {
             throw new Error('Transfer date is required');
         }
 
-        // Update outgoing payment data with transfer date
-        outgoingPaymentData.trsfrDate = transferDate;
+        // Update AR invoice data with transfer date
+        arInvoiceData.trsfrDate = transferDate;
 
         // Get current user information
         const currentUser = getCurrentUser();
@@ -437,34 +437,34 @@ async function receiveOPReim() {
         // Prepare request data based on the API structure
         const requestData = {
             stagingID: docId,
-            createdAt: outgoingPaymentData.createdAt || currentDate,
+            createdAt: arInvoiceData.createdAt || currentDate,
             updatedAt: currentDate,
             approvalStatus: "Received",
-            preparedBy: outgoingPaymentData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentData.approval?.approvedBy || null,
+            preparedBy: arInvoiceData.approval?.preparedBy || null,
+            checkedBy: arInvoiceData.approval?.checkedBy || null,
+            acknowledgedBy: arInvoiceData.approval?.acknowledgedBy || null,
+            approvedBy: arInvoiceData.approval?.approvedBy || null,
             receivedBy: userId,
-            preparedDate: outgoingPaymentData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentData.approval?.acknowledgedByName || null,
-            approvedByName: outgoingPaymentData.approval?.approvedByName || null,
+            preparedDate: arInvoiceData.approval?.preparedDate || null,
+            preparedByName: arInvoiceData.approval?.preparedByName || null,
+            checkedByName: arInvoiceData.approval?.checkedByName || null,
+            acknowledgedByName: arInvoiceData.approval?.acknowledgedByName || null,
+            approvedByName: arInvoiceData.approval?.approvedByName || null,
             receivedByName: currentUser?.username || null,
-            checkedDate: outgoingPaymentData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentData.approval?.approvedDate || null,
+            checkedDate: arInvoiceData.approval?.checkedDate || null,
+            acknowledgedDate: arInvoiceData.approval?.acknowledgedDate || null,
+            approvedDate: arInvoiceData.approval?.approvedDate || null,
             receivedDate: currentDate,
-            rejectedDate: outgoingPaymentData.approval?.rejectedDate || null,
-            rejectionRemarks: outgoingPaymentData.approval?.rejectionRemarks || "",
-            revisionNumber: outgoingPaymentData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
+            rejectedDate: arInvoiceData.approval?.rejectedDate || null,
+            rejectionRemarks: arInvoiceData.approval?.rejectionRemarks || "",
+            revisionNumber: arInvoiceData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceData.approval?.revisionRemarks || null,
             header: {}
         };
 
         // Make API request to update approval status using PUT method
-        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
+        const response = await fetch(`${BASE_URL}/api/ar-invoices/approvals/${docId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json-patch+json',
@@ -567,7 +567,7 @@ function getUserInfo() {
     return { name: userName, role: userRole };
 }
 
-// Function to reject outgoing payment reimbursement
+// Function to reject AR invoice reimbursement
 async function rejectOPReim() {
     try {
         // Create custom dialog with single field
@@ -630,29 +630,29 @@ async function rejectOPReim() {
         // Prepare request data for rejection
         const requestData = {
             stagingID: docId,
-            createdAt: outgoingPaymentData.createdAt || new Date().toISOString(),
+            createdAt: arInvoiceData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             approvalStatus: "Rejected",
-            preparedBy: outgoingPaymentData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentData.approval?.approvedBy || null,
-            receivedBy: outgoingPaymentData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentData.approval?.acknowledgedByName || null,
-            approvedByName: outgoingPaymentData.approval?.approvedByName || null,
-            receivedByName: outgoingPaymentData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentData.approval?.approvedDate || null,
-            receivedDate: outgoingPaymentData.approval?.receivedDate || null,
+            preparedBy: arInvoiceData.approval?.preparedBy || null,
+            checkedBy: arInvoiceData.approval?.checkedBy || null,
+            acknowledgedBy: arInvoiceData.approval?.acknowledgedBy || null,
+            approvedBy: arInvoiceData.approval?.approvedBy || null,
+            receivedBy: arInvoiceData.approval?.receivedBy || null,
+            preparedDate: arInvoiceData.approval?.preparedDate || null,
+            preparedByName: arInvoiceData.approval?.preparedByName || null,
+            checkedByName: arInvoiceData.approval?.checkedByName || null,
+            acknowledgedByName: arInvoiceData.approval?.acknowledgedByName || null,
+            approvedByName: arInvoiceData.approval?.approvedByName || null,
+            receivedByName: arInvoiceData.approval?.receivedByName || null,
+            checkedDate: arInvoiceData.approval?.checkedDate || null,
+            acknowledgedDate: arInvoiceData.approval?.acknowledgedDate || null,
+            approvedDate: arInvoiceData.approval?.approvedDate || null,
+            receivedDate: arInvoiceData.approval?.receivedDate || null,
             rejectedDate: new Date().toISOString(),
             rejectionRemarks: result.value,
-            revisionNumber: outgoingPaymentData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
+            revisionNumber: arInvoiceData.approval?.revisionNumber || null,
+            revisionDate: arInvoiceData.approval?.revisionDate || null,
+            revisionRemarks: arInvoiceData.approval?.revisionRemarks || null,
             header: {}
         };
 
@@ -660,7 +660,7 @@ async function rejectOPReim() {
         requestData.rejectionRemarks = result.value;
 
         // Call API to reject document using the approvals endpoint
-        const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
+        const response = await fetch(`${BASE_URL}/api/ar-invoices/approvals/${docId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -705,8 +705,8 @@ async function rejectOPReim() {
 function printOPReim() {
     try {
         // Store current data in localStorage for the print page to access
-        if (outgoingPaymentData) {
-            localStorage.setItem(`opReimData_${docId}`, JSON.stringify(outgoingPaymentData));
+        if (arInvoiceData) {
+            localStorage.setItem(`opReimData_${docId}`, JSON.stringify(arInvoiceData));
         }
 
         // Open print page in new window
