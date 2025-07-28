@@ -12,21 +12,21 @@ function getBasePath() {
     if (cachedBasePath !== null) {
         return cachedBasePath;
     }
-    
+
     const currentPath = window.location.pathname;
     console.log("Current path:", currentPath);
     const pathSegments = currentPath.split('/').filter(Boolean);
     console.log("Path segments:", pathSegments);
-    
+
     // Calculate relative path depth
     let basePath = '';
     const depth = pathSegments.length - 1; // -1 because we don't count the HTML file itself
     console.log("Calculated depth:", depth);
-    
+
     if (depth > 0) {
         basePath = '../'.repeat(depth);
     }
-    
+
     console.log("Calculated basePath:", basePath);
     cachedBasePath = basePath;
     return basePath;
@@ -41,18 +41,18 @@ function navigateToPage(path) {
         console.log("Navigation - Target path:", path);
         console.log("Navigation - Base path:", basePath);
         console.log("Navigation - Full path:", fullPath);
-        
+
         // Add loading indicator
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             sidebar.style.opacity = '0.7';
         }
-        
+
         // Navigate with a small delay to show loading state
         setTimeout(() => {
             window.location.href = fullPath;
         }, 100);
-        
+
     } catch (error) {
         console.error('Navigation error:', error);
         // Fallback to direct navigation
@@ -219,23 +219,23 @@ function goToMenuInvoice() {
 }
 
 function goToAddARInvoice() {
-    navigateToPage('pages/menuInvoice.html');
+    navigateToPage('Modul_ARinvoice/AddARin/add_ARInvoiceNew.html');
 }
 
-function goToMenuCheckInvoice() {
-    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
+function goToMenuCheckARInvoice() {
+    navigateToPage('Modul_ARinvoice/1_Check/menuCheck_ARInvoiceNew.html');
 }
 
-function goToMenuAcknowInvoice() {
-    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html');
+function goToMenuAcknowARInvoice() {
+    navigateToPage('Modul_ARinvoice/2_Acknowledge/menuAck_ARInvoiceNew.html');
 }
 
-function goToMenuApprovInvoice() {
-    navigateToPage('approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html');
+function goToMenuApprovARInvoice() {
+    navigateToPage('Modul_ARinvoice/3_Approve/menuAppr_ARInvoiceNew.html');
 }
 
-function goToMenuReceiveInvoice() {
-    navigateToPage('approvalPages/dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html');
+function goToMenuReceiveARInvoice() {
+    navigateToPage('Modul_ARinvoice/4_Received/menuRec_ARInvoiceNew.html');
 }
 
 function goToAddInvoice() {
@@ -266,6 +266,29 @@ function goToProfile() {
     navigateToPage('pages/profil.html');
 }
 
+
+// AR Invoice Clone Navigation - No access verification required
+function goToMenuARInvoiceClone() {
+    navigateToPage('Modul_ARinvoice/0_Menu/menuARInvoiceNew.html');
+}
+
+function goToMenuCheckARInvoiceClone() {
+    navigateToPage('Modul_ARinvoice/1_Check/menuCheck_ARInvoiceNew.html');
+}
+
+function goToMenuAcknowARInvoiceClone() {
+    navigateToPage('Modul_ARinvoice/2_Acknowledge/menuAck_ARInvoiceNew.html');
+}
+
+function goToMenuApprovARInvoiceClone() {
+    navigateToPage('Modul_ARinvoice/3_Approve/menuAppr_ARInvoiceNew.html');
+}
+
+function goToMenuReceiveARInvoiceClone() {
+    navigateToPage('Modul_ARinvoice/4_Received/menuRec_ARInvoiceNew.html');
+}
+
+
 function logout() {
     // Clear any authentication tokens or session data
     localStorage.removeItem("accessToken");
@@ -274,10 +297,10 @@ function logout() {
     localStorage.removeItem("loggedInUserCode");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRoles");
-    
+
     // Clear cached base path
     cachedBasePath = null;
-    
+
     // Redirect to login page
     const basePath = getBasePath();
     window.location.href = `${basePath}pages/login.html`;
@@ -288,7 +311,7 @@ if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
         cachedBasePath = null;
     });
-    
+
     // Make all navigation functions available globally
     window.navigateToPage = navigateToPage;
     window.goToMenu = goToMenu;
@@ -328,15 +351,20 @@ if (typeof window !== 'undefined') {
     window.goToMenuBanking = goToMenuBanking;
     window.goToMenuInvoice = goToMenuInvoice;
     window.goToAddARInvoice = goToAddARInvoice;
-    window.goToMenuCheckInvoice = goToMenuCheckInvoice;
-    window.goToMenuAcknowInvoice = goToMenuAcknowInvoice;
-    window.goToMenuApprovInvoice = goToMenuApprovInvoice;
-    window.goToMenuReceiveInvoice = goToMenuReceiveInvoice;
+    window.goToMenuCheckARInvoice = goToMenuCheckARInvoice;
+    window.goToMenuAcknowARInvoice = goToMenuAcknowARInvoice;
+    window.goToMenuApprovARInvoice = goToMenuApprovARInvoice;
+    window.goToMenuReceiveARInvoice = goToMenuReceiveARInvoice;
     window.goToAddInvoice = goToAddInvoice;
     window.goToInvoiceList = goToInvoiceList;
     window.goToMenuRegist = goToMenuRegist;
     window.goToMenuUser = goToMenuUser;
     window.goToMenuRole = goToMenuRole;
     window.goToProfile = goToProfile;
+    window.goToMenuARInvoiceClone = goToMenuARInvoiceClone;
+    window.goToMenuCheckARInvoiceClone = goToMenuCheckARInvoiceClone;
+    window.goToMenuAcknowARInvoiceClone = goToMenuAcknowARInvoiceClone;
+    window.goToMenuApprovARInvoiceClone = goToMenuApprovARInvoiceClone;
+    window.goToMenuReceiveARInvoiceClone = goToMenuReceiveARInvoiceClone;
     window.logout = logout;
 } 

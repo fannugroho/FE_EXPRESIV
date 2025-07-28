@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acknowledge Outgoing Payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="acknowledgeOPAccount.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment </h2>
+        <br>
+        <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Outgoing Payment No.</h3>
+                <input type="text" id="outgoingPaymentNo" placeholder="Outgoing Payment no" class="w-full p-2 border rounded bg-gray-100" disabled>
+                <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
+                <input type="text" id="employeeId" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
+                <input type="text" id="employeeName" placeholder="Employee Name" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <h3 class="text-lg font-semibold mb-2">Purpose</h3>
+                <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded">    
+                <h3 class="text-lg font-semibold mb-2">Pay to</h3>
+                <div class="relative">
+                    <input type="text" id="paidToSearch" placeholder="Search business partner by code or name" class="w-full p-2 border rounded" onkeyup="window.filterBusinessPartners()" autocomplete="off">
+                    <input type="hidden" id="paidTo">
+                    <div id="paidToDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto search-dropdown"></div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <div class="relative">
+                    <input type="text" id="requesterSearch" placeholder="Search requester" class="w-full p-2 border rounded" onkeyup="window.filterRequesters()" autocomplete="off">
+                    <select id="RequesterId" class="hidden">
+                        <option value="">Select a requester</option>
+                    </select>
+                    <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto"></div>
+                </div>
+                <h3 class="text-lg font-semibold mb-2">Department</h3>
+                <div class="relative">
+                    <input type="text" id="departmentSearch" placeholder="Search department" class="w-full p-2 border rounded search-input" onkeyup="window.filterDepartments()" autocomplete="off">
+                    <input type="hidden" id="departmentId">
+                    <div id="departmentDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+                <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
+                <input type="date" id="submissionDate" class="w-full p-2 border rounded">
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <div class="relative">
+                    <input type="text" id="statusSearch" placeholder="Search status" class="w-full p-2 border rounded search-input bg-gray-100" onkeyup="window.filterStatuses()" autocomplete="off" readonly>
+                    <input type="hidden" id="status">
+                    <div id="statusDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+                <!--
+                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
+                <input type="file" id="attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                -->
+                <!-- Attachments Display Section 
+                <div class="mt-2" id="attachmentsSection">
+                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">-->
+                        <!-- Attachments will be displayed here 
+                    </div>
+                </div>-->
+                
+                <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
+                <div class="relative">
+                    <input type="text" id="transactionTypeSearch" placeholder="Search transaction type" class="w-full p-2 border rounded search-input" onkeyup="window.filterTransactionTypes()" autocomplete="off">
+                    <input type="hidden" id="transactionType">
+                    <div id="transactionTypeDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        
+        <table id="VPM2" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="AcctCode" class="p-2">G/L Account</th>
+                    <th id="AcctName" class="p-2">Account Name</th>
+                    <th id="Descrip" class="p-2">Description</th>
+                    <th id="DocTotal" class="p-2">Net Amount</th>
+                    <th id="thActions" class="p-2">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td id="tdAcctCode" class="p-2 border">
+                        <input type="number" id="AcctCode" maxlength="255" class="w-full" />
+                    </td>
+                    <td id="tdAcctName" class="p-2 border">
+                        <input type="text" id="AcctName" class="w-full currency-input" />
+                    </td>
+                    <td id="tdDescription" class="p-2 border">
+                        <input type="text" id="description" maxlength="255" class="w-full" />
+                    </td>
+                    <td id="tdDocTotal" class="p-2 border">
+                        <input type="number" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
+                    </td>
+                    <td id="tdAction" class="p-2 border text-center">
+                        <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                            🗑
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <!--Net Total-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Net Total :</label>
+            <input type="number" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+
+        <!--WTax Total-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Tax:</label>
+            <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+         <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2">
+            <label>Total Amount Due :</label>
+            <input type="number" id="totalAmountDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly>
+        </div>
+        <!-- Tombol Tambah Baris -->
+        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            + 
+        </button>
+
+            <div class="mt-4">
+              <label>Remarks</label>
+              <textarea class="w-full p-2 border rounded-md"></textarea>
+            </div>
+            <div class="mt-4">
+                <label>Journal Remarks  </label>
+                <textarea class="w-full p-2 border rounded-md"></textarea>
+            </div>
+
+            <!-- Rejection Remarks section - only visible when status is Rejected -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <label class="font-semibold text-red-600">Rejection Reason</label>
+                <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly></textarea>
+            </div>
+
+        <!-- Approval section -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" onkeyup="window.filterUsers('Approval.PreparedById')" autocomplete="off" disabled>
+                    <select id="Approval.PreparedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.CheckedById')" autocomplete="off">
+                    <select id="Approval.CheckedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.AcknowledgedById')" autocomplete="off">
+                    <select id="Approval.AcknowledgedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ApprovedById')" autocomplete="off">
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ReceivedById')" autocomplete="off">
+                    <select id="Approval.ReceivedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+            <div>
+                <!--closed by-->
+                <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="window.filterUsers('Approval.ClosedById')" autocomplete="off">
+                    <select id="Approval.ClosedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <br>
+
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="rejectOP()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Reject
+                </button>
+                <button onclick="approveOP()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                Acknowledge
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmSubmit() {
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Apakah dokumen sudah benar?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire(
+                        'Berhasil!',
+                        'Dokumen berhasil di-submit.',
+                        'success'
+                    );
+                }
+            });
+        }
+
+        // Format currency with dot as decimal separator (format: 2,000,000.00)
+        function formatCurrency(input, decimalSeparator) {
+            // Get input value and remove all non-digits and non-decimal separator
+            let value = input.value.replace(/[^\d.]/g, '');
+            
+            // Ensure only one decimal separator
+            let parts = value.split(decimalSeparator);
+            if (parts.length > 1) {
+                value = parts[0] + decimalSeparator + parts.slice(1).join('');
+            }
+            
+            // Format the whole number part with thousand separators (comma)
+            if (parts.length > 0) {
+                let wholePart = parts[0];
+                let formattedWhole = '';
+                
+                for (let i = 0; i < wholePart.length; i++) {
+                    if (i > 0 && (wholePart.length - i) % 3 === 0) {
+                        formattedWhole += ',';
+                    }
+                    formattedWhole += wholePart[i];
+                }
+                
+                // Reconstruct the value with the decimal part if it exists
+                if (parts.length > 1) {
+                    input.value = formattedWhole + decimalSeparator + parts[1];
+                } else {
+                    input.value = formattedWhole;
+                }
+            }
+        }
+
+        // Function to parse currency string back to number
+        function parseCurrencyValue(value) {
+            if (!value) return 0;
+            // Remove thousand separators and keep decimal separator as dot for calculation
+            return parseFloat(value.replace(/,/g, '')) || 0;
+        }
+
+        // Function to update Net Total and Total Amount Due
+        function updateTotals() {
+            // Get all DocTotal inputs from the table
+            const docTotalInputs = document.querySelectorAll('#tableBody input[id="DocTotal"]');
+            let total = 0;
+            
+            // Sum all values
+            docTotalInputs.forEach(input => {
+                total += parseCurrencyValue(input.value);
+            });
+            
+            // Format the total with comma as thousand separator and dot as decimal separator
+            const formattedTotal = formatNumberToCurrency(total);
+            
+            // Update Net Total and Total Amount Due fields
+            document.getElementById('netTotal').value = formattedTotal;
+            document.getElementById('totalTax').value = formattedTotal;
+            document.getElementById('totalAmountDue').value = formattedTotal;
+        }
+
+        // Format number to currency format with comma as thousand separator and dot as decimal separator
+        function formatNumberToCurrency(number) {
+            // Convert to string with 2 decimal places
+            let numStr = number.toFixed(2);
+            
+            // Split into whole and decimal parts
+            let parts = numStr.split('.');
+            let wholePart = parts[0];
+            let decimalPart = parts.length > 1 ? parts[1] : '00';
+            
+            // Add thousand separators to whole part
+            let formattedWhole = '';
+            for (let i = 0; i < wholePart.length; i++) {
+                if (i > 0 && (wholePart.length - i) % 3 === 0) {
+                    formattedWhole += ',';
+                }
+                formattedWhole += wholePart[i];
+            }
+            
+            // Return formatted number with dot as decimal separator
+            return formattedWhole + '.' + decimalPart;
+        }
+
+        // Function to add a new row to the table
+        function addRow() {
+            const tableBody = document.getElementById('tableBody');
+            const newRow = document.createElement('tr');
+            
+            newRow.innerHTML = `
+                <td class="p-2 border">
+                    <input type="text" id="AcctCode" maxlength="255" class="w-full" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="AcctName" class="w-full currency-input" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="description" maxlength="255" class="w-full" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="DocTotal" class="w-full currency-input" oninput="formatCurrency(this, '.'); updateTotals();" />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
+                        🗑
+                    </button>
+                </td>
+            `;
+            
+            tableBody.appendChild(newRow);
+        }
+
+        // Function to delete a row from the table
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotals(); // Update totals after removing a row
+        }
+
+        // Initialize currency inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all currency inputs
+            const currencyInputs = document.querySelectorAll('.currency-input');
+            currencyInputs.forEach(input => {
+                if (!input.readOnly) {
+                    input.addEventListener('input', function() {
+                        formatCurrency(this, '.');
+                    });
+                }
+            });
+            
+            toggleClosedByVisibility();
+            
+            // Fix ID for Net Total field (was using tdDocTotal which is confusing)
+            const netTotalField = document.getElementById('tdDocTotal');
+            if (netTotalField && netTotalField.tagName === 'INPUT') {
+                netTotalField.id = 'netTotal';
+            }
+            
+            // Initialize totals
+            updateTotals();
+        });
+
+        function toggleClosedByVisibility() {
+            const transactionType = document.getElementById('transactionType').value;
+            const closedByContainer = document.getElementById('closed').parentElement;
+            
+            if (transactionType === 'LOAN') {
+                closedByContainer.style.display = 'block';
+            } else {
+                closedByContainer.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

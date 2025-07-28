@@ -630,4 +630,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (isAuthenticated() && !isLoginPage()) {
     applyPermissionVisibility();
   }
-}); 
+});
+
+// Make essential functions available globally
+window.makeAuthenticatedRequest = makeAuthenticatedRequest;
+window.getAccessToken = getAccessToken;
+window.getRefreshToken = getRefreshToken;
+window.isAuthenticated = isAuthenticated;
+window.getCurrentUser = getCurrentUser;
+window.getUserId = getUserId;
+window.logoutAuth = logoutAuth;
+window.BASE_URL = BASE_URL; 

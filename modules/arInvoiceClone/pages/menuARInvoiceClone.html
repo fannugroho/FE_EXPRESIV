@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Invoice Clone - Kansai Paint Supplier</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Library untuk Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Library untuk PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../css/shared-menu.css">
+    <link rel="stylesheet" href="../css/arInvoiceClone.css">
+    <!-- Navigation Script -->
+    <style>
+        /* Override sidebar style to make it permanent */
+        #sidebar {
+            width: 256px !important; /* Fixed width */
+            transform: none !important; /* Prevent transformation */
+            margin-left: 0 !important; /* Remove any margin */
+            position: sticky;
+            top: 0;
+            z-index: 100 !important; /* Ensure sidebar stays above other elements */
+            visibility: visible !important; /* Force visibility */
+            display: block !important; /* Force display */
+            opacity: 1 !important; /* Ensure full opacity */
+            transition: none !important; /* Disable any transitions */
+        }
+        
+        /* Adjust main content for permanent sidebar */
+        .flex-1 {
+            margin-left: 0 !important;
+        }
+        
+        /* Ensure main content doesn't overlap sidebar */
+        .min-h-screen {
+            position: relative;
+        }
+        
+        /* Prevent sidebar manipulation through any class changes */
+        .sidebar-collapsed #sidebar, 
+        .sidebar-hidden #sidebar, 
+        [data-sidebar-hidden="true"] #sidebar,
+        .tab-active ~ #sidebar {
+            width: 256px !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        /* Style untuk kolom dengan scrollbar */
+        .cell-with-scroll {
+            max-width: 150px; /* Lebar maksimal untuk sel */
+            overflow-x: auto; /* Tambahkan scrollbar horizontal */
+            white-space: nowrap; /* Mencegah text wrapping */
+        }
+        
+        /* Gaya untuk scrollbar */
+        .cell-with-scroll::-webkit-scrollbar {
+            height: 6px; /* Tinggi scrollbar */
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Warna track */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb {
+            background: #888; /* Warna thumb */
+            border-radius: 3px;
+        }
+        
+        .cell-with-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555; /* Warna thumb saat hover */
+        }
+        
+        /* New scrollable cell class similar to menuPR.html */
+        .scrollable-cell {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar {
+            height: 4px; /* Reduced height from 6px to 4px */
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .scrollable-cell::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Pagination button styles */
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f3f4f6;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background-color: #e5e7eb;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Items per page dropdown styles */
+        #itemsPerPageSelect {
+            border-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        #itemsPerPageSelect:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="flex min-h-screen bg-gradient">
+        <!-- Sidebar (Permanent) -->
+        <aside id="sidebar" class="bg-white shadow-lg">
+            <!-- Sidebar content will be loaded by sidebar-loader.js -->
+        </aside>
+
+        <!-- User Avatar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-4">
+            <!-- Notification Bell with Badge -->
+            <div class="relative" style="display: none;">
+                <button id="notificationBtn" class="notification-btn relative text-white focus:outline-none p-2 rounded-full flex items-center justify-center w-10 h-10">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="notification-badge absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                </button>
+                <!-- Notification Dropdown -->
+                <div id="notificationDropdown" class="notification-dropdown hidden absolute right-0 mt-2 min-w-max w-72 max-w-xs bg-white z-20">
+                    <div class="p-4 font-bold border-b bg-gray-50 rounded-t-lg flex items-center">
+                        <i class="fas fa-bell text-blue-500 mr-2"></i>
+                        <span>Notifikasi</span>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Purchase Request document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">5 minutes ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="notification-item px-4 py-3 hover:bg-gray-100 cursor-pointer whitespace-nowrap">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-1">
+                                    <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-hand-holding-usd text-green-500"></i>
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="font-semibold">Reimbursement document</div>
+                                    <div class="text-xs text-gray-500">Requires approval</div>
+                                    <div class="text-xs text-gray-400 mt-1">1 hour ago</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="border-t p-3 text-right bg-gray-50 rounded-b-lg">
+                        <a href="#" class="text-blue-500 text-sm hover:underline flex items-center justify-center">
+                            <span>See All Notifications</span>
+                            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+        
+            <!-- User Avatar + Name -->
+            <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
+                <img id="dashboardUserIcon" src="" alt="User Avatar"
+                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
+                     onclick="goToProfile()">
+                <div>
+                    <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
+                    <span class="text-white text-opacity-70 text-xs">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8 pb-20 md:pb-6">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Dashboard AR Invoice Clone
+            </h2>
+            
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20 mb-8">
+                <h3 class="text-white text-xl font-semibold mb-4">Status Overview</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
+                        <p id="totalDocs" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Draft</h3>
+                        <p id="draftDocs" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
+                        <p id="preparedDocs" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
+                        <p id="checkedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Acknowledge</h3>
+                        <p id="acknowledgedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Approved</h3>
+                        <p id="approvedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Received</h3>
+                        <p id="receivedDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
+                        <p id="rejectedDocs" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 mt-6">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Paid</h3>
+                        <p id="paidDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card">
+                        <h3 class="text-lg font-semibold text-gray-800">Settled</h3>
+                        <p id="settledDocs" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Documents -->
+            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Recent Documents</h3>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-0">
+                        <!-- sub tab buttons -->
+                        <div class="flex border-b w-full md:w-auto">
+                                <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
+                                    <i class="fas fa-file-alt mr-2"></i>All Documents
+                                </button>
+                                <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                                    <i class="fas fa-clipboard-check mr-2"></i>Prepared
+                                </button>
+                            </div>
+
+                                <div class="relative">
+                                <!--Search by OP-->
+                                <div class="flex">
+                                <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
+                                    <option value="reimNo">Voucher No.</option>
+                                    <option value="requester">Requester</option>
+                                    <option value="requesterName">Requester Name</option>
+                                    <option value="payTo">Pay To</option>
+                                    <option value="docDate">Document Date</option>
+                                    <option value="dueDate">Document Date</option>
+                                    <option value="totalAmount">Total Amount</option>
+                                    <option value="status">Status</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    id="searchInput"
+                                    placeholder="Search..."
+                                    class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table list of documents-->
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="p-2 text-left">No.</th>
+                                    <th class="p-2 text-left">Voucher No.</th>
+                                    <th class="p-2 text-left">Requester</th>
+                                    <th class="p-2 text-left">Requester Name</th>
+                                    <th class="p-2 text-left">Pay To</th>
+                                    <th class="p-2 text-left">Document Date</th>
+                                    <th class="p-2 text-left">Document Date</th>
+                                    <th class="p-2 text-left">Total Amount</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Tools</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentDocs"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table Button -->
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="startItem">1</span>-<span id="endItem">20</span> of <span id="totalItems">0</span> items
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentPage" class="px-3 py-1">1</span>
+                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button onclick="showARInvoiceCloneModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                        <i class="fas fa-plus mr-2"></i>Copy From and Add New
+                    </button>
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>Excel
+                        </button>
+                        <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-pdf mr-2"></i>PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
+        <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-file-alt text-xl"></i>
+            <span>Total</span>
+        </button>
+
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-clipboard-check text-xl"></i>
+            <span>Prepared</span>
+        </button>
+        <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check text-xl"></i>
+            <span>Checked</span>
+        </button>
+        <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-thumbs-up text-xl"></i>
+            <span>Approved</span>
+        </button>
+        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-ban text-xl"></i>
+            <span>Reject</span>
+        </button>
+        <button onclick="goToPaidDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-money-bill-wave text-xl"></i>
+            <span>Paid</span>
+        </button>
+        <button onclick="goToSettledDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+            <i class="fas fa-check-double text-xl"></i>
+            <span>Settled</span>
+        </button>
+    </nav>
+
+    <!-- Modal untuk menampilkan daftar dokumen AR Invoice Clone -->
+    <div id="arInvoiceCloneModal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-4/5 lg:w-3/4 max-h-[80vh] overflow-hidden relative">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-semibold">List of Documents</h3>
+                <button onclick="closeARInvoiceCloneModal()" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="arInvoiceCloneSearchInput"
+                        placeholder="Search document..."
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onkeyup="filterARInvoiceCloneDocs()"
+                    />
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <div class="modal-table-container max-h-[300px] overflow-y-auto">
+                        <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
+                            <thead class="bg-gray-200 sticky top-0 z-10">
+                                <tr>
+                                    <th class="p-2 text-left">Voucher No.</th>
+                                    <th class="p-2 text-left">Requester Name</th>
+                                    <th class="p-2 text-left">Department</th>
+                                    <th class="p-2 text-left">Posting Date</th>
+                                    <th class="p-2 text-left">Document Date</th>
+                                    <th class="p-2 text-left">Pay To</th>
+                                    <th class="p-2 text-left">Total</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="arInvoiceCloneDocs">
+                                <tr>
+                                    <td colspan="9" class="p-4 text-center">Memuat data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <button onclick="closeARInvoiceCloneModal()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 mr-2">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JS -->
+    <script>
+        // Using BASE_URL from auth.js instead of hardcoded baseUrlDevAmiru
+    </script>
+    <script src="../../../js/auth.js"></script>
+    <!-- Shared Components -->
+    <script src="../../../components/shared/sidebar-loader.js"></script>
+    <script src="../../../components/shared/navigation.js"></script>
+    <script src="../js/menuARInvoiceClone.js"></script>
+    <script>
+    // Disable any sidebar toggle functionality that might be in the JS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override any toggleSidebar function if it exists
+        if (typeof toggleSidebar === 'function') {
+            window.toggleSidebar = function() {
+                // Do nothing - sidebar is now permanent
+                return false;
+            };
+        }
+        
+        // Make sure sidebar stays fixed when tabs are clicked
+        document.getElementById('allTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
+            ensureSidebarVisible();
+        });
+        
+        // Function to ensure sidebar visibility
+        function ensureSidebarVisible() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.style.width = '256px';
+                sidebar.style.transform = 'none';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.display = 'block';
+            }
+        }
+        
+        // Run immediately and also set interval to keep checking
+        ensureSidebarVisible();
+        setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        
+        // Override switchTab function if it exists to maintain sidebar
+        const originalSwitchTab = window.switchTab;
+        if (typeof originalSwitchTab === 'function') {
+            window.switchTab = function(tab) {
+                // Call the original function
+                originalSwitchTab(tab);
+                // Ensure sidebar remains visible
+                setTimeout(ensureSidebarVisible, 10);
+            };
+        }
+        
+        // Menambahkan class scrollable-cell untuk kolom yang memiliki teks lebih dari 15 karakter
+        function addScrollToLongCells() {
+            const table = document.querySelector('table');
+            if (!table) return;
+            
+            // Observer untuk tabel
+            const observer = new MutationObserver(function(mutations) {
+                const rows = document.querySelectorAll('#recentDocs tr');
+                
+                rows.forEach(row => {
+                    // Dapatkan sel yang perlu di-scroll
+                    const cells = row.cells;
+                    
+                    // Convert HTMLCollection to Array or use Array.from
+                    Array.from(cells).forEach(cell => {
+                        if (cell && cell.textContent.trim().length > 15) {
+                            cell.classList.add('scrollable-cell');
+                        }
+                    });
+                });
+            });
+            
+            // Konfigurasi observer
+            const config = { childList: true, subtree: true };
+            
+            // Mulai observe tabel
+            observer.observe(document.getElementById('recentDocs'), config);
+        }
+        
+        // Panggil fungsi setelah halaman dimuat
+        addScrollToLongCells();
+    });
+    </script>
+
+    <style>
+        /* Style untuk sel tabel dengan scrollbar horizontal */
+        .table-cell-scrollable {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: block;
+        }
+        
+        /* Style untuk sel yang memiliki konten panjang */
+        .table-cell-long {
+            max-width: 150px;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: block;
+        }
+        
+        /* Tampilkan scrollbar hanya saat hover */
+        .table-cell-scrollable::-webkit-scrollbar,
+        .table-cell-long::-webkit-scrollbar {
+            height: 5px;
+        }
+        
+        .table-cell-scrollable::-webkit-scrollbar-thumb,
+        .table-cell-long::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+        
+        .table-cell-scrollable::-webkit-scrollbar-track,
+        .table-cell-long::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+        
+        /* Style untuk modal table container dengan scrollbar */
+        .modal-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+        }
+        
+        /* Custom scrollbar untuk modal table */
+        .modal-table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .modal-table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Firefox scrollbar */
+        .modal-table-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+        
+        /* Responsive height untuk mobile */
+        @media (max-width: 768px) {
+            .modal-table-container {
+                max-height: 250px;
+            }
+        }
+        
+        /* Pagination button styles */
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f3f4f6;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background-color: #e5e7eb;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Items per page dropdown styles */
+        #itemsPerPageSelect {
+            border-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        #itemsPerPageSelect:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Modal styles to ensure it appears above sidebar */
+        #arInvoiceCloneModal {
+            z-index: 9999 !important;
+            position: fixed !important;
+        }
+        
+        #arInvoiceCloneModal .bg-white {
+            position: relative;
+            z-index: 10000 !important;
+        }
+        
+        /* Ensure modal backdrop covers everything */
+        #arInvoiceCloneModal::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+        
+        /* Additional modal positioning to avoid sidebar */
+        @media (min-width: 768px) {
+            #arInvoiceCloneModal .bg-white {
+                margin-left: 0 !important;
+                transform: none !important;
+            }
+        }
+        
+        /* SweetAlert2 z-index override to appear above modal */
+        .swal2-container {
+            z-index: 100000 !important;
+        }
+        
+        .swal2-popup {
+            z-index: 100001 !important;
+        }
+        
+        /* Ensure SweetAlert2 backdrop covers everything */
+        .swal2-backdrop-show {
+            z-index: 99999 !important;
+        }
+        
+        /* Custom SweetAlert2 classes for higher z-index */
+        .swal2-container-custom {
+            z-index: 100000 !important;
+        }
+        
+        .swal2-popup-custom {
+            z-index: 100001 !important;
+        }
+    </style>
+</body>
+</html>
