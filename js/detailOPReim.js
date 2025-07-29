@@ -19,7 +19,7 @@ function mapResponseToForm(data) {
     console.log('- RequesterName:', data.requesterName);
     console.log('- Division:', data.division);
     console.log('- CardName:', data.cardName);
-    console.log('- Lines with division data:', data.lines?.map(line => ({ lineNum: line.lineNum, division: line.division })));
+    console.log('- Lines with division data:', data.lines?.map(line => ({ lineNum: line.lineNum, division: line.division, divisionCode: line.divisionCode })));
     console.log('- Address:', data.address);
     console.log('- DocNum:', data.counterRef);
     console.log('- JrnlMemo:', data.jrnlMemo);
@@ -244,6 +244,7 @@ function populateTableLines(lines) {
             acctName: line.acctName,
             descrip: line.descrip,
             division: line.division,
+            divisionCode: line.divisionCode,
             currencyItem: line.CurrencyItem || line.currencyItem,
             sumApplied: amount
         });
@@ -252,7 +253,7 @@ function populateTableLines(lines) {
             <td class="p-2">${line.acctCode || ''}</td>
             <td class="p-2">${line.acctName || ''}</td>
             <td class="p-2">${line.descrip || ''}</td>
-            <td class="p-2">${line.division || ''}</td>
+            <td class="p-2">${line.divisionCode || ''}</td>
             <td class="p-2">${line.CurrencyItem || line.currencyItem || ''}</td>
             <td class="p-2 text-right">${formatCurrencyWithTwoDecimals(amount)}</td>
         `;

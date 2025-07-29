@@ -8,13 +8,13 @@ let attachmentsToKeep = [];
 let documentId = null;
 
 // Execute when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Get document ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
-    
 
-    
+
+
     if (documentId) {
         // Load document details
         loadOPReimDetails(documentId);
@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
             goToMenuCheckOPReim();
         });
     }
-    
+
     // Initialize event listeners
     initializeEventListeners();
 });
 
 // Initialize event listeners
 function initializeEventListeners() {
-            // Initialize button states
-        // Note: Revision functionality has been removed
+    // Initialize button states
+    // Note: Revision functionality has been removed
 }
 
 // Load outgoing payment reimbursement details from API
@@ -51,35 +51,78 @@ async function loadOPReimDetails(id) {
                 Swal.showLoading();
             }
         });
-        
+
         // Make API request to get document details
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
             method: 'GET'
         });
-        
+
         if (!response.ok) {
+            console.log('❌ API Error Response:');
+            console.log('====================');
+            console.log('Status:', response.status);
+            console.log('Status Text:', response.statusText);
+
+            try {
+                const errorData = await response.json();
+                console.log('Error Data:', JSON.stringify(errorData, null, 2));
+            } catch (e) {
+                console.log('No JSON error data available');
+            }
+            console.log('====================');
+
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         // Parse response data
         const data = await response.json();
         outgoingPaymentReimData = data;
-        
+
+        // Log the full API response
+        console.log('📋 FULL API RESPONSE:');
+        console.log('====================');
+        console.log(JSON.stringify(data, null, 2));
+        console.log('====================');
+
+        console.log('🔍 Key Fields Check:');
+        console.log('- Document ID:', data.stagingID);
+        console.log('- CounterRef:', data.counterRef);
+        console.log('- CardName:', data.cardName);
+        console.log('- RequesterName:', data.requesterName);
+        console.log('- Lines count:', data.lines ? data.lines.length : 0);
+        console.log('- Approval status:', data.approval ? data.approval.approvalStatus : 'N/A');
+        console.log('- Approval data:', data.approval);
+
+        if (data.lines && data.lines.length > 0) {
+            console.log('📊 Lines Data:');
+            data.lines.forEach((line, index) => {
+                console.log(`  Line ${index}:`, {
+                    acctCode: line.acctCode,
+                    acctName: line.acctName,
+                    descrip: line.descrip,
+                    division: line.division,
+                    divisionCode: line.divisionCode,
+                    currencyItem: line.currencyItem,
+                    sumApplied: line.sumApplied
+                });
+            });
+        }
+
         // Load users data to get names
         await loadUsersData();
-        
+
         // Populate form with data
         populateFormFields(data);
-        
+
         // Check user permissions and update UI accordingly
         checkUserPermissions(data);
-        
+
         // Close loading indicator
         Swal.close();
-        
+
     } catch (error) {
         console.error('Error loading document:', error);
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to load document: ${error.message}`,
@@ -97,14 +140,20 @@ async function loadUsersData() {
         const response = await makeAuthenticatedRequest('/api/users', {
             method: 'GET'
         });
-        
+
         if (!response.ok) {
             throw new Error(`Failed to load users: ${response.status}`);
         }
-        
+
         const usersData = await response.json();
         window.usersList = usersData.data || [];
-        
+
+        console.log('👥 Users API Response:');
+        console.log('====================');
+        console.log(JSON.stringify(usersData, null, 2));
+        console.log('====================');
+        console.log('Users count:', window.usersList.length);
+
     } catch (error) {
         console.error('Error loading users:', error);
         window.usersList = [];
@@ -114,7 +163,7 @@ async function loadUsersData() {
 // Get user name by ID
 function getUserNameById(userId) {
     if (!window.usersList || !userId) return 'Unknown User';
-    
+
     const user = window.usersList.find(u => u.id === userId);
     return user ? user.fullName : 'Unknown User';
 }
@@ -132,13 +181,13 @@ function checkUserPermissions(data) {
         });
         return;
     }
-    
+
     const approval = data.approval;
     if (!approval) {
         console.error('No approval data found');
         return;
     }
-    
+
     // Determine current status based on dates
     let currentStatus = 'Prepared';
     if (approval.checkedDate) {
@@ -156,35 +205,35 @@ function checkUserPermissions(data) {
     if (approval.rejectedDate) {
         currentStatus = 'Rejected';
     }
-    
+
     console.log('Current status:', currentStatus);
     console.log('Current user ID:', currentUser.userId);
     console.log('Checked by ID:', approval.checkedBy);
     console.log('Document ID:', documentId);
-    
+
     // Check if current user is the assigned checker
     const isAssignedChecker = approval.checkedBy === currentUser.userId;
     const isAboveChecker = isUserAboveChecker(currentUser.userId, approval.checkedBy);
-    
+
     console.log('Is assigned checker:', isAssignedChecker);
     console.log('Is above checker:', isAboveChecker);
-    
+
     // Hide buttons based on document status
     hideButtonsBasedOnStatus(data);
-    
+
     // Update button states based on user permissions
     const approveButton = document.getElementById('approveButton');
     const rejectButton = document.getElementById('rejectButton');
-    
+
     if (currentStatus === 'Prepared' && isAssignedChecker) {
         // User is the assigned checker and document is ready for checking
         approveButton.disabled = false;
         approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = false;
         rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        
+
         console.log('Buttons enabled for checking');
-        
+
         // Show success message
         Swal.fire({
             title: 'Ready for Checking',
@@ -193,39 +242,39 @@ function checkUserPermissions(data) {
             timer: 2000,
             showConfirmButton: false
         });
-        
+
     } else if (currentStatus === 'Prepared' && isAboveChecker) {
         // User is above the checker, show waiting message
         const checkerName = getUserNameById(approval.checkedBy);
-        
+
         console.log('User is above checker, waiting for:', checkerName);
-        
+
         Swal.fire({
             title: 'Document Pending',
             text: `Please wait for ${checkerName} to check this document first`,
             icon: 'warning',
             confirmButtonText: 'OK'
         });
-        
+
         // Disable all action buttons
         approveButton.disabled = true;
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = true;
         rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-        
+
     } else if (currentStatus !== 'Prepared') {
         // Document has already been checked or is in a different status
         const statusMessage = getStatusMessage(currentStatus);
-        
+
         console.log('Document status is:', currentStatus);
-        
+
         Swal.fire({
             title: 'Document Status',
             text: statusMessage,
             icon: 'info',
             confirmButtonText: 'OK'
         });
-        
+
         // Disable all action buttons
         approveButton.disabled = true;
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
@@ -238,7 +287,7 @@ function checkUserPermissions(data) {
 function hideButtonsBasedOnStatus(data) {
     const approveButton = document.getElementById('approveButton');
     const rejectButton = document.getElementById('rejectButton');
-    
+
     // Determine current status based on approval data
     let currentStatus = 'Prepared';
     if (data.approval) {
@@ -258,7 +307,7 @@ function hideButtonsBasedOnStatus(data) {
             currentStatus = 'Rejected';
         }
     }
-    
+
     // Hide both buttons if status is not 'Prepared'
     if (currentStatus !== 'Prepared') {
         if (approveButton) {
@@ -310,7 +359,7 @@ function populateFormFields(data) {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    
+
     // Map header fields
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
@@ -319,9 +368,9 @@ function populateFormFields(data) {
     setValue('DocNum', data.docNum || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
     setValue('TrsfrAcct', data.trsfrAcct || '');
-    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
-    
+
     // Map date fields
     if (data.docDate) {
         const docDate = new Date(data.docDate);
@@ -339,20 +388,36 @@ function populateFormFields(data) {
         const trsfrDate = new Date(data.trsfrDate);
         setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
-    
-    // Calculate totals from lines
-    let totalAmountDue = 0;
+
+    // Calculate totals from lines grouped by currency
+    let currencySummary = {};
+
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach(line => {
-            totalAmountDue += line.sumApplied || 0;
+            const amount = line.sumApplied || 0;
+            const currency = line.currencyItem || 'IDR';
+
+            // Group by currency
+            if (!currencySummary[currency]) {
+                currencySummary[currency] = 0;
+            }
+            currencySummary[currency] += amount;
         });
     }
-    setValue('totalAmountDue', formatCurrency(totalAmountDue));
-    
+
+    // Display currency summary
+    displayCurrencySummary(currencySummary);
+
+    // Update total outstanding transfers with currency summary
+    updateTotalOutstandingTransfers(currencySummary);
+
+    // Log currency summary for debugging
+    console.log('💰 Currency Summary:', currencySummary);
+
     // Map remarks
     setValue('remarks', data.remarks || '');
     setValue('journalRemarks', data.journalRemarks || '');
-    
+
     // Map approval data
     if (data.approval) {
         populateApprovalInfo(data.approval);
@@ -369,17 +434,17 @@ function populateFormFields(data) {
         // If no approval data, show as Prepared
         displayApprovalStatus({ approvalStatus: 'Prepared' });
     }
-    
+
     // Map table lines
     if (data.lines && data.lines.length > 0) {
         populateTableRows(data.lines);
     }
-    
+
     // Display attachments if available
     if (data.attachments && data.attachments.length > 0) {
         displayAttachments(data.attachments);
     }
-    
+
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
 }
@@ -387,14 +452,14 @@ function populateFormFields(data) {
 // Function to display approval status with select dropdown
 function displayApprovalStatus(approval) {
     const statusSelect = document.getElementById('status');
-    
+
     if (!statusSelect) {
         console.error('Status select element not found');
         return;
     }
-    
+
     let status = 'Prepared'; // Default to Prepared
-    
+
     if (approval) {
         // Determine status based on approval data
         if (approval.approvalStatus) {
@@ -413,7 +478,7 @@ function displayApprovalStatus(approval) {
             status = 'Prepared';
         }
     }
-    
+
     // Update select value - only if the status exists in the select options
     const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
     if (availableStatuses.includes(status)) {
@@ -428,7 +493,7 @@ function displayApprovalStatus(approval) {
 function populateTableRows(lines) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = ''; // Clear existing rows
-    
+
     if (!lines || lines.length === 0) {
         // Add empty row if no lines
         const emptyRow = document.createElement('tr');
@@ -438,7 +503,7 @@ function populateTableRows(lines) {
         tableBody.appendChild(emptyRow);
         return;
     }
-    
+
     // Add each line as a row
     lines.forEach((line, index) => {
         const row = document.createElement('tr');
@@ -446,59 +511,200 @@ function populateTableRows(lines) {
             <td class="p-2 border">${line.acctCode || ''}</td>
             <td class="p-2 border">${line.acctName || ''}</td>
             <td class="p-2 border">${line.descrip || ''}</td>
+            <td class="p-2 border">${line.divisionCode || ''}</td>
+            <td class="p-2 border">${line.currencyItem || ''}</td>
             <td class="p-2 border text-right">${formatCurrency(line.sumApplied) || '0'}</td>
         `;
         tableBody.appendChild(row);
+
+        // Log each row data for debugging
+        console.log(`📋 Table Row ${index}:`, {
+            acctCode: line.acctCode,
+            acctName: line.acctName,
+            descrip: line.descrip,
+            divisionCode: line.divisionCode,
+            currencyItem: line.currencyItem,
+            sumApplied: line.sumApplied
+        });
     });
 }
 
 // Update totals based on line items
 function updateTotals(lines) {
     let totalAmount = 0;
-    
+
     // Calculate sum of all line amounts
     if (lines && lines.length > 0) {
         totalAmount = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
     }
-    
+
     // Update total amount due field
     document.getElementById('totalAmountDue').value = formatCurrency(totalAmount);
+}
+
+// Function to display currency summary
+function displayCurrencySummary(currencySummary) {
+    const container = document.getElementById('currencySummaryTable');
+    if (!container) {
+        console.warn('Currency summary container not found');
+        return;
+    }
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No amounts to display</p>';
+        return;
+    }
+
+    let html = '<div class="space-y-2">';
+    html += '<div class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-300 pb-2">Total Amount Due by Currency:</div>';
+
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        const formattedAmount = formatCurrency(amount);
+        html += `
+            <div class="flex justify-between items-center p-2 bg-gray-50 rounded border">
+                <span class="font-semibold text-base">${currency}:</span>
+                <span class="text-right font-mono text-base font-bold">${formattedAmount}</span>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to update total outstanding transfers with English number words per currency
+function updateTotalOutstandingTransfers(currencySummary) {
+    const container = document.getElementById('totalOutstandingTransfers');
+    if (!container) {
+        console.warn('Total outstanding transfers container not found');
+        return;
+    }
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.textContent = 'No outstanding transfers';
+        return;
+    }
+
+    let html = '<div class="space-y-3">';
+
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        if (amount > 0) {
+            const numberInWords = numberToWords(amount);
+            html += `
+                <div class="border-b border-gray-300 pb-3 last:border-b-0">
+                    <div class="font-bold text-lg text-gray-800 mb-1">${currency}:</div>
+                    <div class="text-base text-gray-700 font-mono leading-relaxed">${numberInWords}</div>
+                </div>
+            `;
+        }
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to convert number to English words
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+    function convertLessThanOneThousand(n) {
+        if (n === 0) return '';
+
+        if (n < 10) return ones[n];
+        if (n < 20) return teens[n - 10];
+        if (n < 100) {
+            return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+        }
+        if (n < 1000) {
+            return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+        }
+    }
+
+    function convert(n) {
+        if (n === 0) return 'Zero';
+
+        const trillion = Math.floor(n / 1000000000000);
+        const billion = Math.floor((n % 1000000000000) / 1000000000);
+        const million = Math.floor((n % 1000000000) / 1000000);
+        const thousand = Math.floor((n % 1000000) / 1000);
+        const remainder = n % 1000;
+
+        let result = '';
+
+        if (trillion) {
+            result += convertLessThanOneThousand(trillion) + ' Trillion';
+        }
+
+        if (billion) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(billion) + ' Billion';
+        }
+
+        if (million) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(million) + ' Million';
+        }
+
+        if (thousand) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(thousand) + ' Thousand';
+        }
+
+        if (remainder) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(remainder);
+        }
+
+        return result;
+    }
+
+    // Handle decimal part
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
+
+    let result = convert(integerPart);
+
+    if (decimalPart > 0) {
+        result += ' and ' + convert(decimalPart) + ' Cents';
+    }
+
+    return result;
 }
 
 // Populate approval information
 function populateApprovalInfo(approval) {
     if (!approval) return;
-    
+
     // Set prepared by
     if (approval.preparedBy) {
         const preparedByName = getUserNameById(approval.preparedBy);
         document.getElementById('preparedBySearch').value = preparedByName;
     }
-    
+
     // Set checked by
     if (approval.checkedBy) {
         const checkedByName = getUserNameById(approval.checkedBy);
         document.getElementById('checkedBySearch').value = checkedByName;
     }
-    
+
     // Set acknowledged by
     if (approval.acknowledgedBy) {
         const acknowledgedByName = getUserNameById(approval.acknowledgedBy);
         document.getElementById('acknowledgedBySearch').value = acknowledgedByName;
     }
-    
+
     // Set approved by
     if (approval.approvedBy) {
         const approvedByName = getUserNameById(approval.approvedBy);
         document.getElementById('approvedBySearch').value = approvedByName;
     }
-    
+
     // Set received by
     if (approval.receivedBy) {
         const receivedByName = getUserNameById(approval.receivedBy);
         document.getElementById('receivedBySearch').value = receivedByName;
     }
-    
+
 
 }
 
@@ -507,34 +713,34 @@ function populateApprovalInfo(approval) {
 // Display attachments
 function displayAttachments(attachments) {
     console.log('Displaying attachments:', attachments);
-    
+
     const attachmentsList = document.getElementById('attachmentsList');
-    
+
     if (!attachmentsList) return;
-    
+
     // Clear existing attachments
     attachmentsList.innerHTML = '';
-    
+
     // Store existing attachments
     existingAttachments = [...attachments];
     attachmentsToKeep = [...attachments.map(a => a.id)];
-    
+
     if (!attachments || attachments.length === 0) {
         attachmentsList.innerHTML = '<div class="text-gray-500 text-center p-2">No attachments</div>';
         return;
     }
-    
+
     // Create attachment items
     attachments.forEach((attachment, index) => {
         console.log(`Attachment ${index}:`, attachment);
-        
+
         // Get attachment ID with fallbacks
         const attachmentId = attachment.id || attachment.attachmentId || attachment.fileId || index;
-        
+
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex justify-between items-center p-2 border-b last:border-b-0';
         attachmentItem.dataset.id = attachmentId;
-        
+
         attachmentItem.innerHTML = `
             <div class="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -548,7 +754,7 @@ function displayAttachments(attachments) {
                 </button>
             </div>
         `;
-        
+
         attachmentsList.appendChild(attachmentItem);
     });
 }
@@ -557,17 +763,17 @@ function displayAttachments(attachments) {
 function viewAttachment(attachmentId) {
     console.log('Viewing attachment with ID:', attachmentId);
     console.log('Available attachments:', existingAttachments);
-    
+
     // Find attachment by different possible ID fields
-    const attachment = existingAttachments.find(a => 
-        a.id === attachmentId || 
-        a.attachmentId === attachmentId || 
+    const attachment = existingAttachments.find(a =>
+        a.id === attachmentId ||
+        a.attachmentId === attachmentId ||
         a.fileId === attachmentId ||
         a.id === parseInt(attachmentId) ||
         a.attachmentId === parseInt(attachmentId) ||
         a.fileId === parseInt(attachmentId)
     );
-    
+
     if (!attachment) {
         console.error('Attachment not found for ID:', attachmentId);
         Swal.fire({
@@ -577,12 +783,12 @@ function viewAttachment(attachmentId) {
         });
         return;
     }
-    
+
     console.log('Found attachment:', attachment);
-    
+
     // Check for different possible URL field names
     const fileUrl = attachment.fileUrl || attachment.url || attachment.downloadUrl || attachment.filePath;
-    
+
     if (!fileUrl) {
         console.error('No file URL found in attachment:', attachment);
         Swal.fire({
@@ -592,7 +798,7 @@ function viewAttachment(attachmentId) {
         });
         return;
     }
-    
+
     // Open attachment in new window/tab
     window.open(fileUrl, '_blank');
 }
@@ -608,7 +814,7 @@ function formatCurrency(number) {
         console.log('formatCurrency: returning 0 for null/undefined/empty');
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     console.log('formatCurrency parsed number:', num);
@@ -616,11 +822,11 @@ function formatCurrency(number) {
         console.log('formatCurrency: returning 0 for NaN');
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -642,19 +848,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -662,7 +868,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         const fallbackResult = sign + formattedInteger + decimalPart;
         console.log('formatCurrency fallback result:', fallbackResult);
         return fallbackResult;
@@ -672,12 +878,12 @@ function formatCurrency(number) {
 // Parse currency string back to number
 function parseCurrency(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
     const numericValue = formattedValue.toString()
         .replace(/\./g, '') // Remove thousand separators (dots)
         .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
-    
+
     return parseFloat(numericValue) || 0;
 }
 
@@ -693,7 +899,7 @@ async function approveOPReim() {
         if (!validateDocumentStatus()) {
             return;
         }
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -703,21 +909,21 @@ async function approveOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
-        
+
         if (!userId) {
             throw new Error('User ID not found. Please log in again.');
         }
-        
+
         // Get current user info
         const currentUser = getCurrentUser();
         const currentUserName = currentUser ? currentUser.username : 'Unknown User';
-        
+
         // Get current date
         const currentDate = new Date().toISOString();
-        
+
         // Prepare request data according to the API specification
         const requestData = {
             stagingID: documentId,
@@ -746,7 +952,12 @@ async function approveOPReim() {
             revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
+        console.log('📤 Approval Request Data:');
+        console.log('====================');
+        console.log(JSON.stringify(requestData, null, 2));
+        console.log('====================');
+
         // Make API request to update approval status using the correct endpoint
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
             method: 'PUT',
@@ -755,15 +966,33 @@ async function approveOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
+            console.log('❌ Approval API Error Response:');
+            console.log('====================');
+            console.log('Status:', response.status);
+            console.log('Status Text:', response.statusText);
+
+            try {
+                const errorData = await response.json();
+                console.log('Error Data:', JSON.stringify(errorData, null, 2));
+            } catch (e) {
+                console.log('No JSON error data available');
+            }
+            console.log('====================');
+
             const errorData = await response.json();
             throw new Error(errorData.message || `API error: ${response.status}`);
         }
-        
+
         // Parse response data
         const responseData = await response.json();
-        
+
+        console.log('✅ Approval API Response:');
+        console.log('====================');
+        console.log(JSON.stringify(responseData, null, 2));
+        console.log('====================');
+
         // Show success message
         Swal.fire({
             title: 'Success',
@@ -773,10 +1002,10 @@ async function approveOPReim() {
             // Redirect back to menu
             goToMenuCheckOPReim();
         });
-        
+
     } catch (error) {
         console.error('Error checking document:', error);
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to check document: ${error.message}`,
@@ -792,7 +1021,7 @@ async function rejectOPReim() {
         if (!validateDocumentStatus()) {
             return;
         }
-        
+
         // Create custom dialog with single field
         const { value: rejectionReason } = await Swal.fire({
             title: 'Reject Outgoing Payment Reimbursement',
@@ -830,11 +1059,11 @@ async function rejectOPReim() {
                 return remarks;
             }
         });
-        
+
         if (!rejectionReason) {
             return; // User cancelled or didn't provide a reason
         }
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -844,13 +1073,13 @@ async function rejectOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
         if (!userId) {
             throw new Error('Unable to get user ID. Please login again.');
         }
-        
+
         // Prepare request data for rejection
         const requestData = {
             stagingID: documentId,
@@ -879,14 +1108,16 @@ async function rejectOPReim() {
             revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
         // Also add rejectionRemarks at root level in case backend expects it there
         requestData.rejectionRemarks = rejectionReason;
-        
-        // Debug: Log the request data to console
-        console.log('Rejection request data:', requestData);
+
+        console.log('📤 Rejection Request Data:');
+        console.log('====================');
+        console.log(JSON.stringify(requestData, null, 2));
+        console.log('====================');
         console.log('Rejection reason:', rejectionReason);
-        
+
         // Make API request to reject document using the approvals endpoint
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
             method: 'PUT',
@@ -895,40 +1126,52 @@ async function rejectOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
+            console.log('❌ Rejection API Error Response:');
+            console.log('====================');
+            console.log('Status:', response.status);
+            console.log('Status Text:', response.statusText);
+
             // Try to get detailed error message
             let errorMessage = `API error: ${response.status}`;
             try {
                 const errorData = await response.json();
+                console.log('Error Data:', JSON.stringify(errorData, null, 2));
                 errorMessage = errorData.message || errorData.Message || errorMessage;
             } catch (e) {
                 console.error('Could not parse error response:', e);
+                console.log('No JSON error data available');
             }
+            console.log('====================');
+
             throw new Error(errorMessage);
         }
-        
+
         // Debug: Log the response data
         try {
             const responseData = await response.json();
-            console.log('Rejection response data:', responseData);
+            console.log('❌ Rejection API Response:');
+            console.log('====================');
+            console.log(JSON.stringify(responseData, null, 2));
+            console.log('====================');
         } catch (e) {
             console.log('Response does not contain JSON data');
         }
-        
+
         // Show success message
         await Swal.fire({
             title: 'Success',
             text: 'Document has been rejected',
             icon: 'success'
         });
-        
+
         // Redirect back to menu
         goToMenuCheckOPReim();
-        
+
     } catch (error) {
         console.error('Error rejecting document:', error);
-        
+
         // Show error message
         await Swal.fire({
             title: 'Error',
@@ -953,7 +1196,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     if (!outgoingPaymentReimData || !outgoingPaymentReimData.approval) {
         Swal.fire({
             title: 'Error',
@@ -962,9 +1205,9 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     const approval = outgoingPaymentReimData.approval;
-    
+
     // Check if document is already checked
     if (approval.checkedDate) {
         Swal.fire({
@@ -974,7 +1217,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     // Check if current user is the assigned checker
     if (approval.checkedBy !== currentUser.userId) {
         const checkerName = getUserNameById(approval.checkedBy);
@@ -985,7 +1228,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     return true;
 }
 
@@ -1005,10 +1248,10 @@ function initializeWithRejectionPrefix(textarea) {
     const userInfo = getUserInfo();
     const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -1018,12 +1261,12 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // If user tries to modify content before the prefix length
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const userInfo = getUserInfo();
         const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
+
         // Only restore if the prefix is damaged
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -1040,7 +1283,7 @@ function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
     let userRole = 'Checker'; // Default role for this page
-    
+
     try {
         // Get user info from getCurrentUser function in auth.js
         const currentUser = getCurrentUser();
@@ -1050,6 +1293,6 @@ function getUserInfo() {
     } catch (e) {
         console.error('Error getting user info:', e);
     }
-    
+
     return { name: userName, role: userRole };
 } 
