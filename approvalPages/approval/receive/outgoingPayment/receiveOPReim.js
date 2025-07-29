@@ -20,17 +20,17 @@ function formatCurrency(number) {
     if (number === null || number === undefined || number === '') {
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     if (isNaN(num)) {
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -48,19 +48,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -68,7 +68,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -76,14 +76,14 @@ function formatCurrency(number) {
 // Helper function to parse Indonesian formatted currency back to number
 function parseCurrencyIDR(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     try {
         // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
         // Replace dots (thousand separators) with nothing, and comma (decimal separator) with dot
         const numericValue = formattedValue.toString()
             .replace(/\./g, '') // Remove thousand separators (dots)
             .replace(',', '.'); // Replace decimal separator (comma) with dot
-        
+
         return parseFloat(numericValue) || 0;
     } catch (e) {
         console.error('Error parsing currency:', e);
@@ -97,11 +97,11 @@ function goToMenuReceiveOPReim() {
 }
 
 // Function to load document details when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Get document ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     docId = urlParams.get('id');
-    
+
     if (!docId) {
         Swal.fire({
             icon: 'error',
@@ -112,12 +112,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return;
     }
-    
+
     // Load document details
     loadOutgoingPaymentDetails();
-    
+
     // Add event listeners for revision fields
-    document.addEventListener('input', function(e) {
+    document.addEventListener('input', function (e) {
         if (e.target.tagName === 'TEXTAREA' && e.target.closest('#revisionContainer')) {
             checkRevisionButton();
         }
@@ -135,7 +135,7 @@ async function loadOutgoingPaymentDetails() {
                 Swal.showLoading();
             }
         });
-        
+
         // Fetch document details from API using the new staging endpoint
         const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/headers/${docId}`, {
             method: 'GET',
@@ -144,16 +144,16 @@ async function loadOutgoingPaymentDetails() {
                 'Authorization': `Bearer ${getAccessToken()}`
             }
         });
-        
+
         console.log('Response status:', response.status);
         console.log('Response headers:', response.headers);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('HTTP error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
-        
+
         let result;
         try {
             result = await response.json();
@@ -164,23 +164,23 @@ async function loadOutgoingPaymentDetails() {
             console.error('Raw response:', responseText);
             throw new Error(`Invalid JSON response: ${jsonError.message}`);
         }
-        
+
         // Handle API response - data is returned directly
         let documentData = result;
-        
+
         outgoingPaymentData = documentData;
-        
+
         // Populate form fields with document data
         populateFormFields(outgoingPaymentData);
-        
+
         // Hide buttons based on document status
         hideButtonsBasedOnStatus(outgoingPaymentData);
-        
+
         // Close loading indicator
         Swal.close();
     } catch (error) {
         console.error('Error loading document details:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -194,13 +194,13 @@ async function loadOutgoingPaymentDetails() {
 // Function to populate form fields with document data
 function populateFormFields(data) {
     console.log('Populating form with data:', data);
-    
+
     // Helper function to safely set value
     const setValue = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    
+
     // Map header fields - Updated to match detailOPReim.js approach
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
@@ -209,9 +209,9 @@ function populateFormFields(data) {
     setValue('DocNum', data.counterRef || ''); // Updated to use counterRef like detailOPReim.js
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
     setValue('TrsfrAcct', data.trsfrAcct || '');
-    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
-    
+
     // Map date fields
     if (data.docDate) {
         const docDate = new Date(data.docDate);
@@ -229,24 +229,28 @@ function populateFormFields(data) {
         const trsfrDate = new Date(data.trsfrDate);
         setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
-    
-    // Calculate totals from lines
-    let totalAmountDue = 0;
+
+    // Calculate currency summary from lines
+    let currencySummary = {};
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach(line => {
-            totalAmountDue += line.sumApplied || 0;
+            const currency = line.currencyItem || 'IDR';
+            currencySummary[currency] = (currencySummary[currency] || 0) + (line.sumApplied || 0);
         });
     }
-    setValue('totalAmountDue', formatCurrency(totalAmountDue));
-    
-            // Map remarks
-        console.log('Remarks data:', data.remarks);
-        console.log('Journal Remarks data:', data.journalRemarks);
-        console.log('Comments data:', data.comments);
-        console.log('JrnlMemo data:', data.jrnlMemo);
-        setValue('remarks', data.remarks || data.comments || '');
-        setValue('journalRemarks', data.journalRemarks || data.jrnlMemo || '');
-    
+
+    // Display currency summary and total outstanding transfers
+    displayCurrencySummary(currencySummary);
+    updateTotalOutstandingTransfers(currencySummary);
+
+    // Map remarks
+    console.log('Remarks data:', data.remarks);
+    console.log('Journal Remarks data:', data.journalRemarks);
+    console.log('Comments data:', data.comments);
+    console.log('JrnlMemo data:', data.jrnlMemo);
+    setValue('remarks', data.remarks || data.comments || '');
+    setValue('journalRemarks', data.journalRemarks || data.jrnlMemo || '');
+
     // Map approval data
     if (data.approval) {
         // Show/hide rejection remarks based on status
@@ -259,21 +263,21 @@ function populateFormFields(data) {
             if (rejSec) rejSec.style.display = 'none';
             if (rejTxt) rejTxt.value = '';
         }
-        
+
         // Populate approval fields
         setValue('preparedBySearch', data.approval.preparedByName || '');
         setValue('checkedBySearch', data.approval.checkedByName || '');
         setValue('acknowledgedBySearch', data.approval.acknowledgedByName || '');
         setValue('approvedBySearch', data.approval.approvedByName || '');
         setValue('receivedBySearch', data.approval.receivedByName || '');
-        
+
         // Display status
         displayApprovalStatus(data.approval);
     } else {
         // If no approval data, show as Prepared
         displayApprovalStatus({ approvalStatus: 'Prepared' });
     }
-    
+
     // Map table lines
     if (data.lines && data.lines.length > 0) {
         const tableBody = document.getElementById('tableBody');
@@ -285,16 +289,28 @@ function populateFormFields(data) {
                     <td class="p-2 border">${line.acctCode || ''}</td>
                     <td class="p-2 border">${line.acctName || ''}</td>
                     <td class="p-2 border">${line.descrip || ''}</td>
+                    <td class="p-2 border">${line.divisionCode || ''}</td>
+                    <td class="p-2 border">${line.currencyItem || ''}</td>
                     <td class="p-2 border text-right">${formatCurrency(line.sumApplied || 0)}</td>
                 `;
                 tableBody.appendChild(row);
             });
         }
+    } else {
+        // Add empty row if no lines
+        const tableBody = document.getElementById('tableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-2 border text-center text-gray-500">No items found</td>
+                </tr>
+            `;
+        }
     }
-    
+
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
-    
+
     // Display attachments if available - Updated to match detailOPReim.js approach
     if (data.attachments && data.attachments.length > 0) {
         displayReimbursementAttachments(data.attachments);
@@ -312,7 +328,7 @@ function hideButtonsBasedOnStatus(data) {
     const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]');
     const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
     const printButton = document.getElementById('printButton');
-    
+
     // Determine current status based on approval data
     let currentStatus = 'Prepared';
     if (data.approval) {
@@ -332,7 +348,7 @@ function hideButtonsBasedOnStatus(data) {
             currentStatus = 'Rejected';
         }
     }
-    
+
     // Hide both buttons if status is not 'Approved'
     if (currentStatus !== 'Approved') {
         if (receiveButton) {
@@ -350,7 +366,7 @@ function hideButtonsBasedOnStatus(data) {
             rejectButton.style.display = 'inline-block';
         }
     }
-    
+
     // Show print button only if status is 'Received'
     if (printButton) {
         if (currentStatus === 'Received') {
@@ -364,14 +380,14 @@ function hideButtonsBasedOnStatus(data) {
 // Function to display approval status with select dropdown
 function displayApprovalStatus(approval) {
     const statusSelect = document.getElementById('status');
-    
+
     if (!statusSelect) {
         console.error('Status select element not found');
         return;
     }
-    
+
     let status = 'Prepared'; // Default to Prepared
-    
+
     if (approval) {
         // Determine status based on approval data
         if (approval.approvalStatus) {
@@ -390,7 +406,7 @@ function displayApprovalStatus(approval) {
             status = 'Prepared';
         }
     }
-    
+
     // Update select value - only if the status exists in the select options
     const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
     if (availableStatuses.includes(status)) {
@@ -413,27 +429,27 @@ async function receiveOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
-        
+
         if (!userId) {
             throw new Error('User ID not found. Please log in again.');
         }
-        
+
         // Get transfer date
         const transferDate = document.getElementById('TrsfrDate').value;
         if (!transferDate) {
             throw new Error('Transfer date is required');
         }
-        
+
         // Update outgoing payment data with transfer date
         outgoingPaymentData.trsfrDate = transferDate;
-        
+
         // Get current user information
         const currentUser = getCurrentUser();
         const currentDate = new Date().toISOString();
-        
+
         // Prepare request data based on the API structure
         const requestData = {
             stagingID: docId,
@@ -462,7 +478,7 @@ async function receiveOPReim() {
             revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
         // Make API request to update approval status using PUT method
         const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
             method: 'PUT',
@@ -472,7 +488,7 @@ async function receiveOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
             let errorMessage = `API error: ${response.status}`;
             try {
@@ -483,7 +499,7 @@ async function receiveOPReim() {
             }
             throw new Error(errorMessage);
         }
-        
+
         // Try to parse response data if available
         let responseData = null;
         try {
@@ -491,7 +507,7 @@ async function receiveOPReim() {
         } catch (e) {
             console.log('Response does not contain JSON data');
         }
-        
+
         // Show success message
         Swal.fire({
             title: 'Success',
@@ -501,10 +517,10 @@ async function receiveOPReim() {
             // Redirect back to menu
             goToMenuReceiveOPReim();
         });
-        
+
     } catch (error) {
         console.error('Error receiving document:', error);
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to receive document: ${error.message}`,
@@ -518,10 +534,10 @@ function initializeWithRejectionPrefix(textarea) {
     const userInfo = getUserInfo();
     const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -531,12 +547,12 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // If user tries to modify content before the prefix length
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const userInfo = getUserInfo();
         const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
+
         // Only restore if the prefix is damaged
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -553,7 +569,7 @@ function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
     let userRole = 'Receiver'; // Default role for this page
-    
+
     try {
         // Get user info from getCurrentUser function in auth.js
         const currentUser = getCurrentUser();
@@ -563,7 +579,7 @@ function getUserInfo() {
     } catch (e) {
         console.error('Error getting user info:', e);
     }
-    
+
     return { name: userName, role: userRole };
 }
 
@@ -607,11 +623,11 @@ async function rejectOPReim() {
                 return remarks;
             }
         });
-        
+
         if (!result.isConfirmed || !result.value) {
             return;
         }
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -620,13 +636,13 @@ async function rejectOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
         if (!userId) {
             throw new Error('User ID not found. Please log in again.');
         }
-        
+
         // Prepare request data for rejection
         const requestData = {
             stagingID: docId,
@@ -655,10 +671,10 @@ async function rejectOPReim() {
             revisionRemarks: outgoingPaymentData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
         // Also add rejectionRemarks at root level in case backend expects it there
         requestData.rejectionRemarks = result.value;
-        
+
         // Call API to reject document using the approvals endpoint
         const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${docId}`, {
             method: 'PUT',
@@ -668,7 +684,7 @@ async function rejectOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
             // Try to get detailed error message
             let errorMessage = `API error: ${response.status}`;
@@ -680,19 +696,19 @@ async function rejectOPReim() {
             }
             throw new Error(errorMessage);
         }
-        
+
         // Show success message
         await Swal.fire({
             title: 'Success',
             text: 'Document has been rejected',
             icon: 'success'
         });
-        
+
         // Redirect back to menu
         goToMenuReceiveOPReim();
     } catch (error) {
         console.error('Error rejecting document:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -708,13 +724,13 @@ function printOPReim() {
         if (outgoingPaymentData) {
             localStorage.setItem(`opReimData_${docId}`, JSON.stringify(outgoingPaymentData));
         }
-        
+
         // Open print page in new window
         const printUrl = `printOPReim.html?docId=${docId}`;
         window.open(printUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
     } catch (error) {
         console.error('Error opening print page:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -730,35 +746,35 @@ function displayReimbursementAttachments(attachments) {
         console.warn('Attachments container not found: attachmentsList');
         return;
     }
-    
+
     // Clear existing content
     container.innerHTML = '';
-    
+
     if (!attachments || attachments.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
         return;
     }
-    
+
     // Add header
     const header = document.createElement('div');
     header.className = 'mt-4 mb-2';
     header.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
     container.appendChild(header);
-    
+
     // Create attachment list
     const attachmentList = document.createElement('div');
     attachmentList.className = 'space-y-2 mb-4';
-    
+
     attachments.forEach((attachment, index) => {
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-        
+
         const fileInfo = document.createElement('div');
         fileInfo.className = 'flex items-center space-x-2';
-        
+
         // File icon based on type
         const fileIcon = getFileIcon(attachment.fileName || attachment.name);
-        
+
         fileInfo.innerHTML = `
             <span class="text-lg">${fileIcon}</span>
             <div>
@@ -767,32 +783,32 @@ function displayReimbursementAttachments(attachments) {
                 <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
             </div>
         `;
-        
+
         const actions = document.createElement('div');
         actions.className = 'flex space-x-2';
-        
+
         // View button
         const viewBtn = document.createElement('button');
         viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
         viewBtn.innerHTML = 'View';
         viewBtn.onclick = () => viewReimbursementAttachment(attachment);
-        
+
         actions.appendChild(viewBtn);
-        
+
         attachmentItem.appendChild(fileInfo);
         attachmentItem.appendChild(actions);
         attachmentList.appendChild(attachmentItem);
     });
-    
+
     container.appendChild(attachmentList);
 }
 
 // Function to get file icon based on file name
 function getFileIcon(fileName) {
     if (!fileName) return '📄';
-    
+
     const extension = fileName.toLowerCase().split('.').pop();
-    
+
     switch (extension) {
         case 'pdf':
             return '📄';
@@ -817,18 +833,18 @@ function getFileIcon(fileName) {
 // Function to format file size
 function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 // Function to format date
 function formatDate(dateString) {
     if (!dateString) return 'Unknown';
-    
+
     try {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-GB', {
@@ -862,11 +878,11 @@ async function viewReimbursementAttachment(attachment) {
         if (attachment.filePath) {
             // Close loading indicator
             Swal.close();
-            
+
             // Use the base URL from the API endpoint
             const decodedPath = decodeURIComponent(attachment.filePath);
             const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
-            
+
             // Open file in new tab
             window.open(fileUrl, '_blank');
             return;
@@ -876,10 +892,10 @@ async function viewReimbursementAttachment(attachment) {
 
     } catch (error) {
         console.error('Error viewing reimbursement attachment:', error);
-        
+
         // Close loading indicator
         Swal.close();
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to view attachment: ${error.message}`,
@@ -887,4 +903,121 @@ async function viewReimbursementAttachment(attachment) {
             confirmButtonText: 'OK'
         });
     }
+}
+
+// Function to display currency summary
+function displayCurrencySummary(currencySummary) {
+    const container = document.getElementById('currencySummaryTable');
+    if (!container) {
+        console.warn('Currency summary container not found: currencySummaryTable');
+        return;
+    }
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm">No currency data available</div>';
+        return;
+    }
+
+    let html = '<div class="space-y-2">';
+    html += '<div class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-300 pb-2">Total Amount Due by Currency:</div>';
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        const formattedAmount = formatCurrency(amount);
+        html += `
+            <div class="flex justify-between items-center p-2 bg-gray-50 rounded border">
+                <span class="font-semibold text-base">${currency}:</span>
+                <span class="text-right font-mono text-base font-bold">${formattedAmount}</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to update total outstanding transfers
+function updateTotalOutstandingTransfers(currencySummary) {
+    const container = document.getElementById('totalOutstandingTransfers');
+    if (!container) {
+        console.warn('Total outstanding transfers container not found: totalOutstandingTransfers');
+        return;
+    }
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm">No currency data available</div>';
+        return;
+    }
+
+    let html = '<div class="space-y-3">';
+    Object.entries(currencySummary).forEach(([currency, amount]) => {
+        if (amount > 0) {
+            const numberInWords = numberToWords(amount);
+            html += `
+                <div class="border-b border-gray-300 pb-3 last:border-b-0">
+                    <div class="font-bold text-lg text-gray-800 mb-1">${currency}:</div>
+                    <div class="text-base text-gray-700 font-mono leading-relaxed">${numberInWords}</div>
+                </div>
+            `;
+        }
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Function to convert number to words
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+    function convertLessThanOneThousand(n) {
+        if (n === 0) return '';
+
+        if (n < 10) return ones[n];
+        if (n < 20) return teens[n - 10];
+        if (n < 100) {
+            return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+        }
+        if (n < 1000) {
+            return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+        }
+    }
+
+    function convert(n) {
+        if (n === 0) return 'Zero';
+
+        const billion = Math.floor(n / 1000000000);
+        const million = Math.floor((n % 1000000000) / 1000000);
+        const thousand = Math.floor((n % 1000000) / 1000);
+        const remainder = n % 1000;
+
+        let result = '';
+
+        if (billion) {
+            result += convertLessThanOneThousand(billion) + ' Billion';
+        }
+        if (million) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(million) + ' Million';
+        }
+        if (thousand) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(thousand) + ' Thousand';
+        }
+        if (remainder) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(remainder);
+        }
+
+        return result;
+    }
+
+    // Handle decimal part
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
+
+    let result = convert(integerPart);
+
+    if (decimalPart > 0) {
+        result += ' and ' + convert(decimalPart) + ' Cents';
+    }
+
+    return result;
 }
