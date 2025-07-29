@@ -148,6 +148,10 @@
             border-bottom: none;
         }
         
+        /* Hidden class for dropdowns */
+        .hidden {
+            display: none !important;
+        }
 
     </style>
 </head>
@@ -268,6 +272,7 @@
                     <th id="AcctName" class="p-2">Account Name <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="Descrip" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="CurrencyItem" class="p-2">Currency <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Division" class="p-2">Division <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="DocTotal" class="p-2">Net Amount <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                 </tr>
             </thead>
@@ -275,27 +280,30 @@
                 <tr>
                     <td id="tdAcctCode" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="AcctCode" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
-                            <div id="AcctCodeDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                            <input type="text" id="AcctCode_0" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                            <div id="AcctCode_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
                         </div>
                     </td>
                     <td id="tdAcctName" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="AcctName" class="w-full search-input" autocomplete="off" onkeyup="searchAccountName(this)" onfocus="showAccountNameDropdown(this)" placeholder="Type or search Account Name..." />
-                            <div id="AcctNameDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                            <input type="text" id="AcctName_0" class="w-full search-input" autocomplete="off" onkeyup="searchAccountName(this)" onfocus="showAccountNameDropdown(this)" placeholder="Type or search Account Name..." />
+                            <div id="AcctName_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
                         </div>
                     </td>
                     <td id="tdDescription" class="p-2 border">
-                        <input type="text" id="description" maxlength="255" class="w-full" autocomplete="off" />
+                        <input type="text" id="description_0" maxlength="255" class="w-full" autocomplete="off" />
                     </td>
                     <td id="tdCurrencyItem" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="CurrencyItem" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
-                            <div id="CurrencyItemDropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+                            <input type="text" id="CurrencyItem_0" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="console.log('🔤 onkeyup triggered'); searchCurrencies(this)" onfocus="console.log('👆 onfocus triggered'); showCurrencyDropdown(this)" onclick="console.log('👆 onclick triggered'); showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
+                            <div id="CurrencyItem_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
                         </div>
                     </td>
+                    <td id="tdDivision" class="p-2 border">
+                        <input type="text" id="Division_0" maxlength="255" class="w-full" autocomplete="off" placeholder="Enter Division" />
+                    </td>
                     <td id="tdDocTotal" class="p-2 border">
-                        <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
+                        <input type="text" id="DocTotal_0" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
                     </td>
                 </tr>
             </tbody>
@@ -674,22 +682,35 @@
         function addRow() {
             const tableBody = document.getElementById('tableBody');
             const newRow = document.createElement('tr');
+            const uniqueId = Date.now(); // Generate unique ID for the new row
             
             newRow.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" id="AcctCode" maxlength="255" class="w-full" />
+                    <div class="relative">
+                        <input type="text" id="AcctCode_${uniqueId}" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                        <div id="AcctCode_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="AcctName" class="w-full currency-input" />
+                    <div class="relative">
+                        <input type="text" id="AcctName_${uniqueId}" class="w-full search-input" autocomplete="off" onkeyup="searchAccountName(this)" onfocus="showAccountNameDropdown(this)" placeholder="Type or search Account Name..." />
+                        <div id="AcctName_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="description" maxlength="255" class="w-full" />
+                    <input type="text" id="description_${uniqueId}" maxlength="255" class="w-full" autocomplete="off" />
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="CurrencyItem" maxlength="10" class="w-full" value="IDR" placeholder="IDR" />
+                    <div class="relative">
+                        <input type="text" id="CurrencyItem_${uniqueId}" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
+                        <div id="CurrencyItem_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+                    </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="DocTotal" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" />
+                    <input type="text" id="Division_${uniqueId}" maxlength="255" class="w-full" autocomplete="off" placeholder="Enter Division" />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" id="DocTotal_${uniqueId}" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
                 </td>
                 <td class="p-2 border text-center">
                     <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -701,7 +722,7 @@
             tableBody.appendChild(newRow);
             
             // Ensure the new currency item field has default value
-            const newCurrencyItemInput = newRow.querySelector('input[id="CurrencyItem"]');
+            const newCurrencyItemInput = newRow.querySelector(`input[id="CurrencyItem_${uniqueId}"]`);
             if (newCurrencyItemInput && (!newCurrencyItemInput.value || newCurrencyItemInput.value.trim() === '')) {
                 newCurrencyItemInput.value = 'IDR';
             }

@@ -997,6 +997,8 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
                         acctCode: detail.glAccount || '',
                         acctName: detail.accountName || '',
                         descrip: detail.description || '',
+                        currencyItem: detail.currencyItem || 'IDR',
+                        division: detail.division || '',
                         sumApplied: detail.amount || 0
                     };
                     addRowWithData(lineData);
@@ -1157,6 +1159,11 @@ function addRowWithData(lineData) {
             <div id="${currencyId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
         </div>
     `;
+
+    // Division field
+    const divisionCell = newRow.insertCell();
+    divisionCell.className = 'p-2 border';
+    divisionCell.innerHTML = `<input type="text" class="w-full" value="${lineData.division || ''}" maxlength="255" placeholder="Enter Division" />`;
 
     // Editable amount field
     const amountCell = newRow.insertCell();
@@ -1521,14 +1528,20 @@ function updateTotalAmountDue() {
 
 // Currency search and selection functions
 async function searchCurrencies(inputElement) {
-    console.log('searchCurrencies called with:', inputElement.value);
+    console.log('🔍 searchCurrencies called');
+    console.log('  - Input element:', inputElement);
+    console.log('  - Input value:', inputElement.value);
+    console.log('  - Input ID:', inputElement.id);
 
     const searchTerm = inputElement.value.trim();
     const dropdownId = inputElement.id + 'Dropdown';
+    console.log('  - Looking for dropdown with ID:', dropdownId);
+    
     const dropdown = document.getElementById(dropdownId);
+    console.log('  - Dropdown element found:', dropdown);
 
     if (!dropdown) {
-        console.error('Dropdown not found for ID:', dropdownId);
+        console.error('❌ Dropdown not found for ID:', dropdownId);
         return;
     }
 
@@ -1537,6 +1550,8 @@ async function searchCurrencies(inputElement) {
         if (searchTerm.length > 0) {
             url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
         }
+        console.log('  - API URL:', url);
+        console.log('  - BASE_URL:', BASE_URL);
 
         const response = await makeAuthenticatedRequest(url, {
             method: 'GET',
@@ -1544,32 +1559,50 @@ async function searchCurrencies(inputElement) {
                 'Content-Type': 'application/json'
             }
         });
+        console.log('  - Response status:', response.status);
+        console.log('  - Response ok:', response.ok);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('  - API result:', result);
+        console.log('  - Result status:', result.status);
+        console.log('  - Result data length:', result.data?.length);
 
-        if (result.success && result.data && result.data.length > 0) {
+        if (result.status && result.data && result.data.length > 0) {
+            console.log('  ✅ Displaying currency results');
             displayCurrencyResults(dropdown, result.data);
+            dropdown.style.display = 'block';
             dropdown.classList.remove('hidden');
         } else {
+            console.log('  ❌ No currencies to display or status false');
+            dropdown.style.display = 'none';
             dropdown.classList.add('hidden');
         }
     } catch (error) {
-        console.error('Error searching currencies:', error);
+        console.error('❌ Error searching currencies:', error);
         dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error loading currencies. Please try again.</div>';
+        dropdown.style.display = 'block';
         dropdown.classList.remove('hidden');
     }
 }
 
 function showCurrencyDropdown(inputElement) {
+    console.log('👆 showCurrencyDropdown called');
+    console.log('  - Input element:', inputElement);
+    console.log('  - Input ID:', inputElement?.id);
+    
     const dropdownId = inputElement.id + 'Dropdown';
     const dropdown = document.getElementById(dropdownId);
+    console.log('  - Dropdown ID:', dropdownId);
+    console.log('  - Dropdown found:', dropdown);
 
     if (dropdown) {
         searchCurrencies(inputElement);
+    } else {
+        console.error('❌ Dropdown not found in showCurrencyDropdown');
     }
 }
 
@@ -1591,9 +1624,11 @@ function displayCurrencyResults(dropdown, currencies) {
 }
 
 function selectCurrency(currency, dropdown) {
+    console.log('💰 selectCurrency called:', currency);
     const inputElement = dropdown.previousElementSibling;
     if (inputElement) {
         inputElement.value = currency.code;
+        dropdown.style.display = 'none';
         dropdown.classList.add('hidden');
 
         inputElement.style.backgroundColor = '#f0f9ff';
@@ -1617,6 +1652,7 @@ function initializeCurrencyDropdownHandlers() {
         currencyDropdowns.forEach(dropdown => {
             const inputElement = dropdown.previousElementSibling;
             if (!dropdown.contains(e.target) && !inputElement.contains(e.target)) {
+                dropdown.style.display = 'none';
                 dropdown.classList.add('hidden');
             }
         });
@@ -1761,6 +1797,7 @@ function populateFormFields(data) {
                 acctName: item.acctName || '',
                 descrip: item.descrip || '',
                 currencyItem: item.CurrencyItem || item.currencyItem || '',
+                division: item.Division || item.division || '',
                 sumApplied: item.sumApplied || 0
             };
             addRowWithData(lineData);
@@ -2092,26 +2129,30 @@ function collectFormData(userId, isSubmit) {
 
     tableRows.forEach((row, index) => {
         // Look for inputs with multiple possible selectors
-        const acctCodeInput = row.querySelector('input[id="AcctCode"]') ||
-            row.querySelector('input[id^="AcctCode_"]') ||
+        const acctCodeInput = row.querySelector('input[id^="AcctCode_"]') ||
+            row.querySelector('input[id="AcctCode"]') ||
             row.querySelector('td:first-child input');
 
-        const acctNameInput = row.querySelector('input[id="AcctName"]') ||
-            row.querySelector('input[id^="AcctName_"]') ||
+        const acctNameInput = row.querySelector('input[id^="AcctName_"]') ||
+            row.querySelector('input[id="AcctName"]') ||
             row.querySelector('td:nth-child(2) input');
 
-        const descriptionInput = row.querySelector('input[id="description"]') ||
-            row.querySelector('input[id^="description_"]') ||
+        const descriptionInput = row.querySelector('input[id^="description_"]') ||
+            row.querySelector('input[id="description"]') ||
             row.querySelector('td:nth-child(3) input');
 
-        const currencyItemInput = row.querySelector('input[id="CurrencyItem"]') ||
-            row.querySelector('input[id^="CurrencyItem_"]') ||
+        const currencyItemInput = row.querySelector('input[id^="CurrencyItem_"]') ||
+            row.querySelector('input[id="CurrencyItem"]') ||
             row.querySelector('td:nth-child(4) input');
 
-        const docTotalInput = row.querySelector('input[id="DocTotal"]') ||
-            row.querySelector('input[id^="DocTotal_"]') ||
-            row.querySelector('input.currency-input-idr') ||
+        const divisionInput = row.querySelector('input[id^="Division_"]') ||
+            row.querySelector('input[id="Division"]') ||
             row.querySelector('td:nth-child(5) input');
+
+        const docTotalInput = row.querySelector('input[id^="DocTotal_"]') ||
+            row.querySelector('input[id="DocTotal"]') ||
+            row.querySelector('input.currency-input-idr') ||
+            row.querySelector('td:nth-child(6) input');
 
         // Parse amount using IDR format if available
         let parsedAmount = 0;
@@ -2128,16 +2169,18 @@ function collectFormData(userId, isSubmit) {
             acctNameInput: acctNameInput,
             descriptionInput: descriptionInput,
             currencyItemInput: currencyItemInput,
+            divisionInput: divisionInput,
             docTotalInput: docTotalInput,
             acctCodeValue: acctCodeInput ? acctCodeInput.value : 'N/A',
             acctNameValue: acctNameInput ? acctNameInput.value : 'N/A',
             descriptionValue: descriptionInput ? descriptionInput.value : 'N/A',
             currencyItemValue: currencyItemInput ? currencyItemInput.value : 'N/A',
+            divisionValue: divisionInput ? divisionInput.value : 'N/A',
             docTotalValue: docTotalInput ? docTotalInput.value : 'N/A',
             parsedAmount: parsedAmount
         });
 
-        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && docTotalInput) {
+        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && divisionInput && docTotalInput) {
             // Parse amount using IDR format if available
             let amount = 0;
             if (typeof window.parseCurrencyIDR === 'function') {
@@ -2155,6 +2198,7 @@ function collectFormData(userId, isSubmit) {
                 acctName: acctNameInput.value || "",
                 descrip: descriptionInput.value || "",
                 CurrencyItem: currencyItemValue, // Backend expects CurrencyItem (capital C and I)
+                Division: divisionInput.value || "", // Backend expects Division field
                 sumApplied: amount,
                 category: "REIMBURSEMENT",
                 ocrCode3: "", // Backend expects OcrCode3 field
@@ -2704,6 +2748,7 @@ function mapResponseToForm(responseData) {
                 acctName: detail.accountName || '',
                 descrip: detail.description || '',
                 currencyItem: detail.currencyItem || 'IDR',
+                division: detail.division || '',
                 sumApplied: detail.amount || 0
             };
             addRowWithData(lineData);
@@ -3600,6 +3645,7 @@ document.addEventListener('click', function (event) {
     // Hide currency dropdowns
     currencyDropdowns.forEach(dropdown => {
         if (!event.target.closest('[id*="tdCurrencyItem"]') && !event.target.closest('[id*="CurrencyItemDropdown"]')) {
+            dropdown.style.display = 'none';
             dropdown.classList.add('hidden');
         }
     });
@@ -3614,6 +3660,28 @@ window.searchCurrencies = searchCurrencies;
 window.showCurrencyDropdown = showCurrencyDropdown;
 window.selectCurrency = selectCurrency;
 // Debug: Check if functions are properly loaded
+console.log('🚀 Currency dropdown functions loaded');
+console.log('  - searchCurrencies:', typeof searchCurrencies);
+console.log('  - showCurrencyDropdown:', typeof showCurrencyDropdown);
+console.log('  - selectCurrency:', typeof selectCurrency);
+
+// Test function for currency dropdown
+window.testCurrencyDropdown = function() {
+    console.log('🧪 Testing currency dropdown...');
+    
+    // Find currency input
+    const currencyInput = document.getElementById('CurrencyItem_0');
+    console.log('  - Currency input found:', currencyInput);
+    
+    if (currencyInput) {
+        console.log('  - Calling showCurrencyDropdown...');
+        showCurrencyDropdown(currencyInput);
+    } else {
+        console.error('  ❌ Currency input not found');
+    }
+};
+
+console.log('  - testCurrencyDropdown function created. You can call window.testCurrencyDropdown() from console.');
 console.log('GL Account dropdown functions loaded');
 console.log('searchGLAccount function:', typeof searchGLAccount);
 console.log('searchAccountName function:', typeof searchAccountName);
