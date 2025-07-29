@@ -1,6 +1,7 @@
 // Global variables
 let invoiceData = null;
 let currentUser = null;
+let employeesData = []; // Add this to store employee data
 
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
@@ -34,8 +35,185 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('No invoice identifier found, using default STG-001');
         loadInvoiceData('STG-001');
     }
+    
+    // Load employee data for approval dropdowns
+    loadEmployeesData();
+    
+    // Setup approval input listeners
+    setupApprovalInputListeners();
 });
 
+// Load employees data from API
+async function loadEmployeesData() {
+    try {
+        console.log('Loading employees data from API...');
+        
+        const response = await fetch(`${API_BASE_URL}/employees`, {
+            method: 'GET',
+            headers: {
+                'accept': '*/*',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Employees API response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Employees API response:', result);
+        
+        if (result.status && result.data) {
+            employeesData = result.data;
+            console.log('Employees data loaded:', employeesData);
+            
+            // Setup approval dropdowns with employee data
+            setupApprovalDropdowns();
+            
+            // If form is already populated, refresh the dropdowns
+            if (invoiceData) {
+                refreshApprovalDropdowns();
+            }
+        } else {
+            throw new Error('Invalid response format from employees API');
+        }
+        
+    } catch (error) {
+        console.error('Error loading employees data:', error);
+        // Don't show error to user as this is not critical for main functionality
+    }
+}
+
+// Setup approval dropdowns with employee data
+function setupApprovalDropdowns() {
+    // Setup dropdowns for acknowledge, check, approve, and receive (excluding prepared by)
+    const approvalFields = [
+        { inputId: 'acknowledgeByName', dropdownId: 'acknowledgeBySelectDropdown', selectId: 'acknowledgeBy' },
+        { inputId: 'checkedByName', dropdownId: 'checkedBySelectDropdown', selectId: 'checkedBy' },
+        { inputId: 'approvedByName', dropdownId: 'approvedBySelectDropdown', selectId: 'approvedBy' },
+        { inputId: 'receivedByName', dropdownId: 'receivedBySelectDropdown', selectId: 'receivedBy' }
+    ];
+    
+    approvalFields.forEach(field => {
+        setupEmployeeDropdown(field.inputId, field.dropdownId, field.selectId);
+    });
+    
+    console.log('Approval dropdowns setup completed with employee data');
+}
+
+// Setup individual employee dropdown
+function setupEmployeeDropdown(inputId, dropdownId, selectId) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const select = document.getElementById(selectId);
+    
+    if (!input || !dropdown || !select) {
+        console.warn(`Missing elements for dropdown setup: ${inputId}`);
+        return;
+    }
+    
+    // Populate select options
+    select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+    employeesData.forEach(employee => {
+        const option = document.createElement('option');
+        option.value = employee.fullName;
+        option.textContent = employee.fullName;
+        select.appendChild(option);
+    });
+    
+            // Setup input event listeners
+        input.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const filteredEmployees = employeesData.filter(employee => 
+                employee.fullName.toLowerCase().includes(searchTerm)
+            );
+        
+        displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
+    });
+    
+    input.addEventListener('focus', function() {
+        const searchTerm = this.value.toLowerCase();
+        const filteredEmployees = employeesData.filter(employee => 
+            employee.fullName.toLowerCase().includes(searchTerm)
+        );
+        
+        displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Display employee dropdown with filtered results
+function displayEmployeeDropdown(dropdown, employees, input, select) {
+    dropdown.innerHTML = '';
+    
+    if (employees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item no-results">No employees found</div>';
+    } else {
+        employees.forEach(employee => {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.innerHTML = `
+                <div class="flex items-center">
+                    <span class="font-medium">${employee.fullName}</span>
+                </div>
+            `;
+            
+            item.addEventListener('click', function() {
+                input.value = employee.fullName;
+                select.value = employee.fullName;
+                dropdown.classList.add('hidden');
+                
+                // Trigger input event to mark as modified
+                input.dispatchEvent(new Event('input'));
+            });
+            
+            dropdown.appendChild(item);
+        });
+    }
+    
+    dropdown.classList.remove('hidden');
+}
+
+// Refresh approval dropdowns when employee data is loaded after form population
+function refreshApprovalDropdowns() {
+    const approvalFields = [
+        { inputId: 'acknowledgeByName', selectId: 'acknowledgeBy' },
+        { inputId: 'checkedByName', selectId: 'checkedBy' },
+        { inputId: 'approvedByName', selectId: 'approvedBy' },
+        { inputId: 'receivedByName', selectId: 'receivedBy' }
+    ];
+    
+    approvalFields.forEach(field => {
+        const input = document.getElementById(field.inputId);
+        const select = document.getElementById(field.selectId);
+        
+        if (input && select) {
+            // Update select options with employee data
+            select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+            employeesData.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.fullName;
+                option.textContent = employee.fullName;
+                select.appendChild(option);
+            });
+            
+            // Update select value to match input value
+            if (input.value) {
+                select.value = input.value;
+            }
+        }
+    });
+    
+    console.log('Approval dropdowns refreshed with employee data');
+}
 
 // Load invoice data from API
 async function loadInvoiceData(invoiceId) {
@@ -119,6 +297,11 @@ async function loadInvoiceData(invoiceId) {
 
 // Populate form with invoice data
 function populateFormData(data) {
+    // Debug: Log the complete data structure
+    console.log('Complete invoice data:', data);
+    console.log('Track number:', data.trackNo);
+    console.log('Invoice number:', data.u_bsi_invnum);
+    
     // Populate header fields
     document.getElementById('DocEntry').value = data.stagingID || '';
     document.getElementById('DocNum').value = data.docNum || '';
@@ -137,18 +320,51 @@ function populateFormData(data) {
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
-    document.getElementById('u_BSI_Expressiv_PreparedByNIK').value = data.u_BSI_Expressiv_PreparedByNIK || '';
-    document.getElementById('u_BSI_Expressiv_PreparedByName').value = data.u_BSI_Expressiv_PreparedByName || '';
     document.getElementById('comments').value = data.comments || '';
     
-    // Populate approval fields from approval summary
+    // Populate Sales Employee field
+    const salesEmployeeField = document.getElementById('SalesEmployee');
+    const salesEmployeeValue = data.u_BSI_Expressiv_PreparedByName || '';
+    salesEmployeeField.value = salesEmployeeValue;
+    console.log('Sales Employee from API:', data.u_BSI_Expressiv_PreparedByName);
+    console.log('Sales Employee field value:', salesEmployeeField.value);
+    console.log('Sales Employee field disabled:', salesEmployeeField.disabled);
+    
+    // Populate status from approval summary
+    const status = getStatusFromInvoice(data);
+    document.getElementById('Status').value = status;
+    
+
+    
+    // Populate approval fields from approval summary - make them editable
     if (data.arInvoiceApprovalSummary) {
-        document.getElementById('preparedByName').value = data.arInvoiceApprovalSummary.preparedBy || '';
-        document.getElementById('acknowledgeByName').value = data.arInvoiceApprovalSummary.acknowledgedBy || '';
-        document.getElementById('checkedByName').value = data.arInvoiceApprovalSummary.checkedBy || '';
-        document.getElementById('approvedByName').value = data.arInvoiceApprovalSummary.approvedBy || '';
-        document.getElementById('receivedByName').value = data.arInvoiceApprovalSummary.receivedBy || '';
+        console.log('Approval summary data:', data.arInvoiceApprovalSummary);
+        
+        // Populate prepared by name (disabled as requested)
+        const preparedByNameField = document.getElementById('preparedByName');
+        const preparedByNameValue = data.arInvoiceApprovalSummary.preparedByName || '';
+        preparedByNameField.value = preparedByNameValue;
+        console.log('Prepared by name from API:', data.arInvoiceApprovalSummary.preparedByName);
+        console.log('Prepared by name field value:', preparedByNameField.value);
+        console.log('Prepared by name field disabled:', preparedByNameField.disabled);
+        
+        // Populate other approval fields (acknowledge, check, approve, receive)
+        document.getElementById('acknowledgeByName').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
+        document.getElementById('checkedByName').value = data.arInvoiceApprovalSummary.checkedByName || '';
+        document.getElementById('approvedByName').value = data.arInvoiceApprovalSummary.approvedByName || '';
+        document.getElementById('receivedByName').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        
+        // Update corresponding select elements
+        document.getElementById('acknowledgeBy').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
+        document.getElementById('checkedBy').value = data.arInvoiceApprovalSummary.checkedByName || '';
+        document.getElementById('approvedBy').value = data.arInvoiceApprovalSummary.approvedByName || '';
+        document.getElementById('receivedBy').value = data.arInvoiceApprovalSummary.receivedByName || '';
+    } else {
+        console.log('No approval summary data found');
     }
+    
+    // Try to load saved approval data from localStorage
+    loadApprovalDataFromLocalStorage();
     
     // Populate totals
     document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || '0.00';
@@ -267,6 +483,108 @@ function formatDate(dateString) {
     return `${year}-${month}-${day}`;
 }
 
+// Helper function to determine status from invoice data
+function getStatusFromInvoice(invoice) {
+    // Debug logging for arInvoiceApprovalSummary
+    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
+    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
+    
+    // Check if invoice has approval summary - if null, return Draft
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
+        return 'Draft';
+    }
+    
+    // If arInvoiceApprovalSummary exists, use approvalStatus field first
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        console.log('arInvoiceApprovalSummary properties:', summary);
+        
+        // First priority: use approvalStatus field from arInvoiceApprovalSummary
+        if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
+            console.log('Using approvalStatus from arInvoiceApprovalSummary:', summary.approvalStatus);
+            return summary.approvalStatus;
+        }
+        
+        // Fallback: check individual status flags
+        if (summary.isRejected) return 'Rejected';
+        if (summary.isApproved) return 'Approved';
+        if (summary.isAcknowledged) return 'Acknowledged';
+        if (summary.isChecked) return 'Checked';
+        if (summary.isReceived) return 'Received';
+    }
+    
+    // Check transfer status
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    
+    // Check if it's a staging document (draft)
+    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
+    
+    // Check if document has been transferred (received)
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    
+    // Check if document is in preparation stage
+    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
+    
+    // Default to Draft for new documents
+    return 'Draft';
+}
+
+
+
+// Save approval data to localStorage
+function saveApprovalDataToLocalStorage() {
+    if (!invoiceData || !invoiceData.stagingID) return;
+    
+    const approvalData = {
+        stagingID: invoiceData.stagingID,
+        acknowledgeByName: document.getElementById('acknowledgeByName').value || '',
+        checkedByName: document.getElementById('checkedByName').value || '',
+        approvedByName: document.getElementById('approvedByName').value || '',
+        receivedByName: document.getElementById('receivedByName').value || '',
+        timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem(`approval_${invoiceData.stagingID}`, JSON.stringify(approvalData));
+    console.log('Approval data saved to localStorage');
+    console.log('Saved approval data:', approvalData);
+}
+
+// Load approval data from localStorage
+function loadApprovalDataFromLocalStorage() {
+    if (!invoiceData || !invoiceData.stagingID) return;
+    
+    const savedData = localStorage.getItem(`approval_${invoiceData.stagingID}`);
+    if (savedData) {
+        try {
+            const approvalData = JSON.parse(savedData);
+            
+            // Check if data is not too old (within 24 hours)
+            const savedTime = new Date(approvalData.timestamp);
+            const now = new Date();
+            const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+            
+            if (hoursDiff < 24) {
+                document.getElementById('acknowledgeByName').value = approvalData.acknowledgeByName || '';
+                document.getElementById('checkedByName').value = approvalData.checkedByName || '';
+                document.getElementById('approvedByName').value = approvalData.approvedByName || '';
+                document.getElementById('receivedByName').value = approvalData.receivedByName || '';
+                
+                console.log('Loaded approval data from localStorage');
+                console.log('Approval data details:', approvalData);
+            } else {
+                // Remove old data
+                localStorage.removeItem(`approval_${invoiceData.stagingID}`);
+                console.log('Removed old approval data from localStorage (older than 24 hours)');
+            }
+        } catch (error) {
+            console.error('Error loading approval data from localStorage:', error);
+        }
+    } else {
+        console.log('No saved approval data found in localStorage');
+    }
+}
+
 
 
 // Navigation function
@@ -320,48 +638,127 @@ async function submitInvoiceData() {
             throw new Error('Customer name is required');
         }
         
-        // Prepare the request payload
-        const payload = prepareInvoicePayload(invoiceData);
+        // Validate approval data if modified (excluding prepared by as requested)
+        const approvalInputs = [
+            { id: 'acknowledgeByName', label: 'Acknowledge by' },
+            { id: 'checkedByName', label: 'Checked by' },
+            { id: 'approvedByName', label: 'Approved by' },
+            { id: 'receivedByName', label: 'Received by' }
+        ];
         
-        console.log('Submitting invoice data:', payload);
-        console.log('API URL:', `${API_BASE_URL}/ar-invoices`);
-        
-        // Make API call
-        const response = await fetch(`${API_BASE_URL}/ar-invoices`, {
-            method: 'POST',
-            headers: {
-                'accept': 'text/plain',
-                'Content-Type': 'application/json-patch+json'
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error response:', errorText);
-            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        for (const input of approvalInputs) {
+            const value = document.getElementById(input.id).value.trim();
+            if (value && value.length < 2) {
+                throw new Error(`${input.label} name must be at least 2 characters long`);
+            }
         }
         
-        const result = await response.text();
-        console.log('API Response:', result);
+        // Get staging ID for the API endpoint
+        const stagingID = invoiceData.stagingID;
+        if (!stagingID) {
+            throw new Error('Staging ID is required for submission');
+        }
+        
+        // Prepare the request payload for PATCH endpoint
+        const payload = prepareApprovalPayload();
+        
+        console.log('Submitting approval data:', payload);
+        console.log('API URL:', `${API_BASE_URL}/ar-invoices/approval/${stagingID}`);
+        console.log('Request body:', JSON.stringify(payload, null, 2));
+        
+        // Try different approaches - first try with wrapped data
+        let requestBody = { data: payload };
+        let success = false;
+        let apiResult = null;
+        
+        // First attempt: wrapped in data property
+        try {
+            console.log('Attempt 1: Wrapped in data property');
+            const response1 = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
+                method: 'PATCH',
+                headers: {
+                    'accept': 'text/plain',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (response1.ok) {
+                success = true;
+                apiResult = await response1.json();
+                console.log('Success with wrapped data:', apiResult);
+            } else {
+                console.log('Attempt 1 failed:', response1.status);
+            }
+        } catch (error) {
+            console.log('Attempt 1 error:', error);
+        }
+        
+        // Second attempt: direct payload
+        if (!success) {
+            try {
+                console.log('Attempt 2: Direct payload');
+                const response2 = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'accept': 'text/plain',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response2.ok) {
+                    success = true;
+                    apiResult = await response2.json();
+                    console.log('Success with direct payload:', apiResult);
+                } else {
+                    console.log('Attempt 2 failed:', response2.status);
+                    const errorText = await response2.text();
+                    console.error('API Error response:', errorText);
+                    throw new Error(`API Error: ${response2.status} - ${errorText}`);
+                }
+            } catch (error) {
+                console.log('Attempt 2 error:', error);
+                throw error;
+            }
+        }
+        
+        // If both attempts failed, throw error
+        if (!success) {
+            throw new Error('All API attempts failed');
+        }
+        
+        console.log('API Response:', apiResult);
+        console.log('Approval data successfully submitted to API');
         
         // Show success message with details
+        const approvalModified = window.approvalDataModified || false;
+        const approvalInfo = approvalModified ? '<p><strong>Approval data has been updated successfully</strong></p>' : '';
+        
+        console.log('Submission completed successfully');
+        console.log('Approval data was modified:', approvalModified);
+        
         Swal.fire({
             icon: 'success',
-            title: 'Invoice Submitted Successfully!',
+            title: 'Invoice Approval Updated Successfully!',
             html: `
                 <div class="text-left">
                     <p><strong>Invoice Number:</strong> ${invoiceData.docNum || 'N/A'}</p>
                     <p><strong>Customer:</strong> ${invoiceData.cardName || 'N/A'}</p>
-                    <p><strong>Total Amount:</strong> ${invoiceData.docTotal ? parseFloat(invoiceData.docTotal).toLocaleString('id-ID', {style: 'currency', currency: 'IDR'}) : 'N/A'}</p>
-                    <p><strong>Items Count:</strong> ${invoiceData.arInvoiceDetails ? invoiceData.arInvoiceDetails.length : 0}</p>
+                    <p><strong>Staging ID:</strong> ${stagingID}</p>
+                    <p><strong>Approval Status:</strong> ${apiResult.approvalStatus || 'Updated'}</p>
+                    ${approvalInfo}
                 </div>
             `,
             confirmButtonText: 'OK',
             confirmButtonColor: '#10b981'
         }).then(() => {
+            // Clear localStorage after successful submission
+            if (invoiceData && invoiceData.stagingID) {
+                localStorage.removeItem(`approval_${invoiceData.stagingID}`);
+                console.log('Cleared approval data from localStorage after successful submission');
+            }
+            
             // Optionally redirect or refresh
             window.location.reload();
         });
@@ -370,6 +767,7 @@ async function submitInvoiceData() {
         console.error('Error submitting invoice data:', error);
         
         // Show error message
+        console.log('Submission failed:', error.message);
         Swal.fire({
             icon: 'error',
             title: 'Submission Failed',
@@ -390,10 +788,81 @@ async function submitInvoiceData() {
 
 
 
-// Prepare invoice payload for API submission
+// Prepare approval payload for PATCH API submission
+function prepareApprovalPayload() {
+    const now = new Date().toISOString();
+    
+    // Get current approval values from form inputs
+    const preparedByName = document.getElementById('preparedByName').value || '';
+    const acknowledgeByName = document.getElementById('acknowledgeByName').value || '';
+    const checkedByName = document.getElementById('checkedByName').value || '';
+    const approvedByName = document.getElementById('approvedByName').value || '';
+    const receivedByName = document.getElementById('receivedByName').value || '';
+    
+    console.log('Preparing approval payload with values:', {
+        preparedByName,
+        acknowledgeByName,
+        checkedByName,
+        approvedByName,
+        receivedByName
+    });
+    
+    // Try sending data in the format that matches the API response structure
+    const payload = {
+        stagingID: invoiceData.stagingID || '',
+        createdAt: invoiceData.arInvoiceApprovalSummary?.createdAt || now,
+        updatedAt: now,
+        approvalStatus: invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft',
+        preparedBy: preparedByName,
+        checkedBy: checkedByName,
+        acknowledgedBy: acknowledgeByName,
+        approvedBy: approvedByName,
+        receivedBy: receivedByName,
+        preparedById: invoiceData.arInvoiceApprovalSummary?.preparedById || '',
+        preparedByName: preparedByName,
+        checkedById: invoiceData.arInvoiceApprovalSummary?.checkedById || '',
+        checkedByName: checkedByName,
+        acknowledgedById: invoiceData.arInvoiceApprovalSummary?.acknowledgedById || '',
+        acknowledgedByName: acknowledgeByName,
+        approvedById: invoiceData.arInvoiceApprovalSummary?.approvedById || '',
+        approvedByName: approvedByName,
+        receivedById: invoiceData.arInvoiceApprovalSummary?.receivedById || '',
+        receivedByName: receivedByName,
+        preparedDate: invoiceData.arInvoiceApprovalSummary?.preparedDate || now,
+        checkedDate: invoiceData.arInvoiceApprovalSummary?.checkedDate || now,
+        acknowledgedDate: invoiceData.arInvoiceApprovalSummary?.acknowledgedDate || now,
+        approvedDate: invoiceData.arInvoiceApprovalSummary?.approvedDate || now,
+        receivedDate: invoiceData.arInvoiceApprovalSummary?.receivedDate || now,
+        rejectedDate: invoiceData.arInvoiceApprovalSummary?.rejectedDate || null,
+        rejectionRemarks: invoiceData.arInvoiceApprovalSummary?.rejectionRemarks || '',
+        revisionNumber: parseInt(invoiceData.arInvoiceApprovalSummary?.revisionNumber) || 0,
+        revisionDate: invoiceData.arInvoiceApprovalSummary?.revisionDate || null,
+        revisionRemarks: invoiceData.arInvoiceApprovalSummary?.revisionRemarks || ''
+    };
+    
+    console.log('Prepared approval payload for PATCH submission:', payload);
+    return payload;
+}
+
+// Prepare invoice payload for API submission (legacy function - kept for reference)
 function prepareInvoicePayload(data) {
     const now = new Date().toISOString();
     
+    // Get current approval values from form inputs (excluding prepared by as requested)
+    const preparedByName = document.getElementById('preparedByName').value || '';
+    const acknowledgeByName = document.getElementById('acknowledgeByName').value || '';
+    const checkedByName = document.getElementById('checkedByName').value || '';
+    const approvedByName = document.getElementById('approvedByName').value || '';
+    const receivedByName = document.getElementById('receivedByName').value || '';
+    
+    console.log('Submitting approval data:', {
+        preparedByName,
+        acknowledgeByName,
+        checkedByName,
+        approvedByName,
+        receivedByName
+    });
+
     // Prepare invoice details
     const invoiceDetails = (data.arInvoiceDetails || []).map(detail => ({
         lineNum: detail.lineNum || 0,
@@ -435,31 +904,33 @@ function prepareInvoicePayload(data) {
         description: attachment.description || ''
     }));
     
-    // Prepare approval summary
-    const approvalSummary = data.arInvoiceApprovalSummary ? {
-        stagingID: data.arInvoiceApprovalSummary.stagingID || '',
-        createdAt: data.arInvoiceApprovalSummary.createdAt || now,
-        updatedAt: data.arInvoiceApprovalSummary.updatedAt || now,
-        approvalStatus: data.arInvoiceApprovalSummary.approvalStatus || '',
-        preparedBy: data.arInvoiceApprovalSummary.preparedBy || '',
-        checkedBy: data.arInvoiceApprovalSummary.checkedBy || '',
-        acknowledgedBy: data.arInvoiceApprovalSummary.acknowledgedBy || '',
-        approvedBy: data.arInvoiceApprovalSummary.approvedBy || '',
-        receivedBy: data.arInvoiceApprovalSummary.receivedBy || '',
-        preparedDate: data.arInvoiceApprovalSummary.preparedDate || now,
-        checkedDate: data.arInvoiceApprovalSummary.checkedDate || now,
-        acknowledgedDate: data.arInvoiceApprovalSummary.acknowledgedDate || now,
-        approvedDate: data.arInvoiceApprovalSummary.approvedDate || now,
-        receivedDate: data.arInvoiceApprovalSummary.receivedDate || now,
-        rejectedDate: data.arInvoiceApprovalSummary.rejectedDate || now,
-        rejectionRemarks: data.arInvoiceApprovalSummary.rejectionRemarks || '',
-        revisionNumber: parseInt(data.arInvoiceApprovalSummary.revisionNumber) || 0,
-        revisionDate: data.arInvoiceApprovalSummary.revisionDate || now,
-        revisionRemarks: data.arInvoiceApprovalSummary.revisionRemarks || ''
-    } : null;
+    // Prepare approval summary with updated values from form
+    const approvalSummary = {
+        stagingID: data.arInvoiceApprovalSummary?.stagingID || data.stagingID || '',
+        createdAt: data.arInvoiceApprovalSummary?.createdAt || now,
+        updatedAt: now,
+        approvalStatus: data.arInvoiceApprovalSummary?.approvalStatus || '',
+        preparedBy: preparedByName,
+        checkedBy: checkedByName,
+        acknowledgedBy: acknowledgeByName,
+        approvedBy: approvedByName,
+        receivedBy: receivedByName,
+        preparedDate: data.arInvoiceApprovalSummary?.preparedDate || now,
+        checkedDate: data.arInvoiceApprovalSummary?.checkedDate || now,
+        acknowledgedDate: data.arInvoiceApprovalSummary?.acknowledgedDate || now,
+        approvedDate: data.arInvoiceApprovalSummary?.approvedDate || now,
+        receivedDate: data.arInvoiceApprovalSummary?.receivedDate || now,
+        rejectedDate: data.arInvoiceApprovalSummary?.rejectedDate || now,
+        rejectionRemarks: data.arInvoiceApprovalSummary?.rejectionRemarks || '',
+        revisionNumber: parseInt(data.arInvoiceApprovalSummary?.revisionNumber) || 0,
+        revisionDate: data.arInvoiceApprovalSummary?.revisionDate || now,
+        revisionRemarks: data.arInvoiceApprovalSummary?.revisionRemarks || ''
+    };
+    
+    console.log('Prepared approval summary for submission:', approvalSummary);
     
     // Return the complete payload
-    return {
+    const payload = {
         docNum: parseInt(data.docNum) || 0,
         docType: data.docType || 's',
         docDate: data.docDate || now,
@@ -495,6 +966,9 @@ function prepareInvoicePayload(data) {
         arInvoiceAttachments: invoiceAttachments,
         arInvoiceApprovalSummary: approvalSummary
     };
+    
+    console.log('Complete payload prepared for submission:', payload);
+    return payload;
 }
 
 // Enable submit button when data is loaded
@@ -503,6 +977,132 @@ function enableSubmitButton() {
     if (submitButton) {
         submitButton.disabled = false; // Enable when data is loaded
     }
+}
+
+// Add event listeners for approval inputs to track changes
+function setupApprovalInputListeners() {
+    const approvalInputs = [
+        'acknowledgeByName', 
+        'checkedByName',
+        'approvedByName',
+        'receivedByName'
+    ];
+    
+    approvalInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', function() {
+                // Mark that approval data has been modified
+                window.approvalDataModified = true;
+                console.log(`Approval data modified: ${inputId} = ${this.value}`);
+                console.log(`Current approval data state:`, {
+                    preparedByName: document.getElementById('preparedByName').value,
+                    acknowledgeByName: document.getElementById('acknowledgeByName').value,
+                    checkedByName: document.getElementById('checkedByName').value,
+                    approvedByName: document.getElementById('approvedByName').value,
+                    receivedByName: document.getElementById('receivedByName').value
+                });
+                
+                // Save to localStorage as backup
+                saveApprovalDataToLocalStorage();
+                
+                // Show subtle notification that data has been modified
+                showApprovalModifiedNotification();
+            });
+        }
+    });
+}
+
+// Show notification when approval data is modified
+function showApprovalModifiedNotification() {
+    // Remove existing notification if any
+    const existingNotification = document.getElementById('approvalModifiedNotification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'approvalModifiedNotification';
+    notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Approval data modified</span>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// Reset approval data to original values
+function resetApprovalData() {
+    if (!invoiceData) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No invoice data available to reset'
+        });
+        return;
+    }
+    
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Reset Approval Data',
+        text: 'Are you sure you want to reset all approval fields to their original values?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, Reset',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Reset to original values from invoiceData (excluding prepared by as requested)
+            if (invoiceData.arInvoiceApprovalSummary) {
+                document.getElementById('acknowledgeByName').value = invoiceData.arInvoiceApprovalSummary.acknowledgedBy || '';
+                document.getElementById('checkedByName').value = invoiceData.arInvoiceApprovalSummary.checkedBy || '';
+                document.getElementById('approvedByName').value = invoiceData.arInvoiceApprovalSummary.approvedBy || '';
+                document.getElementById('receivedByName').value = invoiceData.arInvoiceApprovalSummary.receivedBy || '';
+                console.log('Reset approval data to original values from API');
+            } else {
+                // Clear all fields if no approval summary (excluding prepared by)
+                document.getElementById('acknowledgeByName').value = '';
+                document.getElementById('checkedByName').value = '';
+                document.getElementById('approvedByName').value = '';
+                document.getElementById('receivedByName').value = '';
+                console.log('Cleared all approval fields (no original data available)');
+            }
+            
+            // Reset modification flag
+            window.approvalDataModified = false;
+            
+            // Clear localStorage for this invoice
+            if (invoiceData && invoiceData.stagingID) {
+                localStorage.removeItem(`approval_${invoiceData.stagingID}`);
+                console.log('Cleared approval data from localStorage');
+            }
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Reset Successful',
+                text: 'Approval data has been reset to original values',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    });
 }
 
  

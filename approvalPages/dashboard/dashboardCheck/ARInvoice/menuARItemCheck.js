@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'prepared'; // Default tab
+let currentTab = 'all'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -202,38 +202,60 @@ async function loadDashboard() {
 
 // Helper function to determine invoice status based on approval data
 function getInvoiceStatus(invoice) {
-    // Default to prepared if no approval data
-    if (!invoice.arInvoiceApprovalSummary) {
-        return 'prepared';
+    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
+    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
+    
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
+        return 'Draft';
     }
     
-    // You can implement logic here to determine status based on approval data
-    // For now, we'll use a simple logic based on the approval summary
-    const approval = invoice.arInvoiceApprovalSummary;
-    
-    // Check if there's any rejection
-    if (approval && (approval.isRejected || approval.status === 'rejected')) {
-        return 'rejected';
+    // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        console.log('arInvoiceApprovalSummary properties:', summary);
+        
+        // Use the approvalStatus field from the API response
+        if (summary.approvalStatus) {
+            console.log('Using approvalStatus from API:', summary.approvalStatus);
+            return summary.approvalStatus;
+        }
+        
+        // Fallback to old logic if approvalStatus is not available
+        if (summary.isRejected) return 'Rejected';
+        if (summary.isApproved) return 'Approved';
+        if (summary.isAcknowledged) return 'Acknowledged';
+        if (summary.isChecked) return 'Checked';
+        if (summary.isReceived) return 'Received';
     }
     
-    // Check if it's been checked/approved
-    if (approval && (approval.isChecked || approval.status === 'checked' || approval.status === 'approved')) {
-        return 'checked';
-    }
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
     
-    // Default to prepared
-    return 'prepared';
+    return 'Draft';
 }
 
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
     switch (tab) {
+        case 'all':
+            return invoices;
         case 'prepared':
-            return invoices.filter(inv => inv.status === 'prepared');
+            return invoices.filter(inv => inv.status === 'Prepared');
         case 'checked':
-            return invoices.filter(inv => inv.status === 'checked');
+            return invoices.filter(inv => inv.status === 'Checked');
         case 'rejected':
-            return invoices.filter(inv => inv.status === 'rejected');
+            return invoices.filter(inv => inv.status === 'Rejected');
+        case 'draft':
+            return invoices.filter(inv => inv.status === 'Draft');
+        case 'acknowledged':
+            return invoices.filter(inv => inv.status === 'Acknowledged');
+        case 'approved':
+            return invoices.filter(inv => inv.status === 'Approved');
+        case 'received':
+            return invoices.filter(inv => inv.status === 'Received');
         default:
             return invoices;
     }
@@ -270,9 +292,9 @@ async function updateCounters() {
         
         // Calculate from actual data
         const totalCount = allInvoices.length;
-        const preparedCount = allInvoices.filter(inv => inv.status === 'prepared').length;
-        const checkedCount = allInvoices.filter(inv => inv.status === 'checked').length;
-        const rejectedCount = allInvoices.filter(inv => inv.status === 'rejected').length;
+        const preparedCount = allInvoices.filter(inv => inv.status === 'Prepared').length;
+        const checkedCount = allInvoices.filter(inv => inv.status === 'Checked').length;
+        const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
         
         // Update counter displays
         document.getElementById('totalCount').textContent = totalCount;
@@ -342,7 +364,12 @@ function updateTable(invoices) {
         // Status
         const cellStatus = row.insertCell();
         cellStatus.className = 'p-2';
-        cellStatus.innerHTML = `<span class="status-badge status-${invoice.status}">${invoice.status}</span>`;
+        
+        // Debug logging for status
+        console.log(`Invoice ${index + 1} status:`, invoice.status);
+        console.log(`Invoice ${index + 1} status class:`, `status-${invoice.status.toLowerCase()}`);
+        
+        cellStatus.innerHTML = `<span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>`;
         
         // Total Amount
         const cellAmount = row.insertCell();
@@ -428,7 +455,11 @@ function switchTab(tabName) {
         btn.classList.remove('tab-active');
     });
     
-    document.getElementById(tabName + 'TabBtn').classList.add('tab-active');
+    // Try to find the tab button and make it active
+    const tabBtn = document.getElementById(tabName + 'TabBtn');
+    if (tabBtn) {
+        tabBtn.classList.add('tab-active');
+    }
     
     // Reload dashboard with new tab
     loadDashboard();
