@@ -155,6 +155,43 @@
             overflow-y: auto !important;
         }
         
+        /* Employee dropdown styling */
+        .search-dropdown {
+            width: 100% !important;
+            max-width: 100% !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+        
+        .search-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s !important;
+        }
+        
+        .search-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .search-dropdown .dropdown-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        .search-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
+        }
+        
         .item-dropdown .dropdown-item {
             padding: 10px 12px !important;
             border-bottom: 1px solid #e5e7eb !important;
@@ -471,6 +508,10 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
+
+        
+
+        
         /* Wrap text styles for columns with long content */
         .wrap-text {
             white-space: normal !important;
@@ -692,12 +733,6 @@
                 
                 <h3 class="text-lg font-semibold mb-2">U_BSI_UDF2</h3>
                 <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">Prepared By NIK</h3>
-                <input type="text" id="u_BSI_Expressiv_PreparedByNIK" placeholder="Prepared By NIK" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">Prepared By Name</h3>
-                <input type="text" id="u_BSI_Expressiv_PreparedByName" placeholder="Prepared By Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
         </div>
         
@@ -752,9 +787,9 @@
             <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
         </div>
 
-        <!-- Comments section -->
+        <!-- Remarks section -->
         <div class="mt-4">
-            <label class="font-semibold">Comments</label>
+            <label class="font-semibold">Remarks</label>
             <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
         </div>
 
@@ -762,23 +797,53 @@
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <div class="relative">
+                    <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
+                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="preparedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
-                <input type="text" id="acknowledgeByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <div class="relative">
+                    <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
-                <input type="text" id="checkedByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <div class="relative">
+                    <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="checkedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
-                <input type="text" id="approvedByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <div class="relative">
+                    <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="approvedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
-                <input type="text" id="receivedByName" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <div class="relative">
+                    <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="receivedBy" class="hidden" autocomplete="off">
+                        <option value="" disabled selected>Choose Name</option>
+                    </select>
+                </div>
             </div>
         </div>
 

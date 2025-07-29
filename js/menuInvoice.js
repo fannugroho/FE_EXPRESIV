@@ -172,10 +172,28 @@ function updateCounters() {
 
 // Helper function to determine status from invoice data
 function getStatusFromInvoice(invoice) {
-    // Check if invoice has approval summary
+    // Debug logging for arInvoiceApprovalSummary
+    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
+    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
+    
+    // Check if invoice has approval summary - if null, return Draft
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
+        return 'Draft';
+    }
+    
+    // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
+        console.log('arInvoiceApprovalSummary properties:', summary);
         
+        // Use the approvalStatus field from the API response
+        if (summary.approvalStatus) {
+            console.log('Using approvalStatus from API:', summary.approvalStatus);
+            return summary.approvalStatus;
+        }
+        
+        // Fallback to old logic if approvalStatus is not available
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
         if (summary.isAcknowledged) return 'Acknowledged';
@@ -306,6 +324,10 @@ function displayInvoices() {
         const status = getStatusFromInvoice(invoice);
         const statusClass = getStatusClass(status);
         
+        // Debug logging for status
+        console.log(`Invoice ${index + 1} status:`, status);
+        console.log(`Invoice ${index + 1} status class:`, statusClass);
+        
         // Create row content
         const detailButtonDisabled = invoiceId === 'NO_VALID_ID';
         const detailButtonClass = detailButtonDisabled ? 'bg-gray-400 text-white px-2 py-1 rounded cursor-not-allowed' : 'bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600';
@@ -370,7 +392,11 @@ function switchTab(tab) {
         btn.classList.remove('tab-active');
     });
     
-    document.getElementById(`${tab}TabBtn`).classList.add('tab-active');
+    // Try to find the tab button and make it active
+    const tabBtn = document.getElementById(`${tab}TabBtn`);
+    if (tabBtn) {
+        tabBtn.classList.add('tab-active');
+    }
     
     // Display invoices for selected tab
     displayInvoices();
