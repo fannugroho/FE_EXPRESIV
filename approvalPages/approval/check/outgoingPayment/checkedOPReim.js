@@ -311,12 +311,12 @@ function populateFormFields(data) {
         if (el) el.value = value;
     };
     
-    // Map header fields - Updated to match detailOPReim.js approach
+    // Map header fields
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
     setValue('Address', data.address || '');
-    setValue('DocNum', data.counterRef || ''); // Updated to use counterRef like detailOPReim.js
+    setValue('DocNum', data.docNum || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
     setValue('TrsfrAcct', data.trsfrAcct || '');
@@ -375,15 +375,9 @@ function populateFormFields(data) {
         populateTableRows(data.lines);
     }
     
-    // Display attachments if available - Updated to match detailOPReim.js approach
+    // Display attachments if available
     if (data.attachments && data.attachments.length > 0) {
-        displayReimbursementAttachments(data.attachments);
-    } else {
-        // Show "No attachments found" message
-        const container = document.getElementById('attachmentsList');
-        if (container) {
-            container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-        }
+        displayAttachments(data.attachments);
     }
     
     // Display Print Out Reimbursement document
@@ -601,172 +595,6 @@ function viewAttachment(attachmentId) {
     
     // Open attachment in new window/tab
     window.open(fileUrl, '_blank');
-}
-
-// Function to display reimbursement attachments (matching detailOPReim.js approach)
-function displayReimbursementAttachments(attachments) {
-    const container = document.getElementById('attachmentsList');
-    if (!container) {
-        console.warn('Attachments container not found: attachmentsList');
-        return;
-    }
-    
-    // Clear existing content
-    container.innerHTML = '';
-    
-    if (!attachments || attachments.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-        return;
-    }
-    
-    // Add header
-    const header = document.createElement('div');
-    header.className = 'mt-4 mb-2';
-    header.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
-    container.appendChild(header);
-    
-    // Create attachment list
-    const attachmentList = document.createElement('div');
-    attachmentList.className = 'space-y-2 mb-4';
-    
-    attachments.forEach((attachment, index) => {
-        const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-        
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'flex items-center space-x-2';
-        
-        // File icon based on type
-        const fileIcon = getFileIcon(attachment.fileName || attachment.name);
-        
-        fileInfo.innerHTML = `
-            <span class="text-lg">${fileIcon}</span>
-            <div>
-                <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
-                <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
-                <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
-            </div>
-        `;
-        
-        const actions = document.createElement('div');
-        actions.className = 'flex space-x-2';
-        
-        // View button
-        const viewBtn = document.createElement('button');
-        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
-        viewBtn.innerHTML = 'View';
-        viewBtn.onclick = () => viewReimbursementAttachment(attachment);
-        
-        actions.appendChild(viewBtn);
-        
-        attachmentItem.appendChild(fileInfo);
-        attachmentItem.appendChild(actions);
-        attachmentList.appendChild(attachmentItem);
-    });
-    
-    container.appendChild(attachmentList);
-}
-
-// Function to get file icon based on file name
-function getFileIcon(fileName) {
-    if (!fileName) return '📄';
-    
-    const extension = fileName.toLowerCase().split('.').pop();
-    
-    switch (extension) {
-        case 'pdf':
-            return '📄';
-        case 'doc':
-        case 'docx':
-            return '📝';
-        case 'xls':
-        case 'xlsx':
-            return '📊';
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-            return '🖼️';
-        case 'txt':
-            return '📄';
-        default:
-            return '📄';
-    }
-}
-
-// Function to format file size
-function formatFileSize(bytes) {
-    if (!bytes || bytes === 0) return '0 B';
-    
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Function to format date
-function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
-    
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    } catch (error) {
-        return 'Unknown';
-    }
-}
-
-// Function to view reimbursement attachment
-async function viewReimbursementAttachment(attachment) {
-    try {
-        // Show loading indicator
-        Swal.fire({
-            title: 'Loading...',
-            text: 'Loading attachment, please wait...',
-            icon: 'info',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            allowEnterKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Use the filePath from the attachment
-        if (attachment.filePath) {
-            // Close loading indicator
-            Swal.close();
-            
-            // Use the base URL from the API endpoint
-            const decodedPath = decodeURIComponent(attachment.filePath);
-            const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
-            
-            // Open file in new tab
-            window.open(fileUrl, '_blank');
-            return;
-        }
-
-        throw new Error('No file path available for this attachment');
-
-    } catch (error) {
-        console.error('Error viewing reimbursement attachment:', error);
-        
-        // Close loading indicator
-        Swal.close();
-        
-        Swal.fire({
-            title: 'Error',
-            text: `Failed to view attachment: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-    }
 }
 
 // Toggle visibility of closed by field based on transaction type

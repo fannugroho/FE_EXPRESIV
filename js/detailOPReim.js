@@ -17,14 +17,25 @@ function mapResponseToForm(data) {
     console.log('📝 Header Fields Mapping:');
     console.log('- CounterRef:', data.counterRef);
     console.log('- RequesterName:', data.requesterName);
+    console.log('- Division:', data.division);
     console.log('- CardName:', data.cardName);
+    console.log('- Lines with division data:', data.lines?.map(line => ({ lineNum: line.lineNum, division: line.division })));
     console.log('- Address:', data.address);
     console.log('- DocNum:', data.counterRef);
     console.log('- JrnlMemo:', data.jrnlMemo);
     console.log('- DocCurr:', data.docCurr);
 
+    // Load division information if requester ID is available
+    if (data.requesterId) {
+        loadDivisionForRequester(data.requesterId);
+    } else if (data.requesterName) {
+        // Try to find user by name if ID is not available
+        loadDivisionForRequesterByName(data.requesterName);
+    }
+
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
+    setValue('Division', data.division || '');
     setValue('CardName', data.cardName || '');
     setValue('Address', data.address || '');
     setValue('DocNum', data.counterRef || '');
@@ -228,10 +239,20 @@ function populateTableLines(lines) {
         const row = document.createElement('tr');
         const amount = line.sumApplied || 0;
 
+        console.log(`📋 Line ${index} data:`, {
+            acctCode: line.acctCode,
+            acctName: line.acctName,
+            descrip: line.descrip,
+            division: line.division,
+            currencyItem: line.CurrencyItem || line.currencyItem,
+            sumApplied: amount
+        });
+
         row.innerHTML = `
             <td class="p-2">${line.acctCode || ''}</td>
             <td class="p-2">${line.acctName || ''}</td>
             <td class="p-2">${line.descrip || ''}</td>
+            <td class="p-2">${line.division || ''}</td>
             <td class="p-2">${line.CurrencyItem || line.currencyItem || ''}</td>
             <td class="p-2 text-right">${formatCurrencyWithTwoDecimals(amount)}</td>
         `;
@@ -1459,4 +1480,83 @@ window.displayReimbursementAttachments = displayReimbursementAttachments;
 window.viewReimbursementAttachment = viewReimbursementAttachment;
 window.displayCurrencySummary = displayCurrencySummary;
 window.updateTotalOutstandingTransfers = updateTotalOutstandingTransfers;
-window.numberToWords = numberToWords; 
+window.numberToWords = numberToWords;
+window.loadDivisionForRequester = loadDivisionForRequester;
+window.loadDivisionForRequesterByName = loadDivisionForRequesterByName;
+
+// Function to load division information for a requester
+async function loadDivisionForRequester(requesterId) {
+    try {
+        console.log('🔍 Loading division for requester ID:', requesterId);
+
+        // Make API call to get user information
+        const response = await fetch(`${BASE_URL}/api/users/${requesterId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('⚠️ Failed to load division information:', response.status, response.statusText);
+            return;
+        }
+
+        const result = await response.json();
+        const userData = result.data;
+
+        if (userData && userData.department) {
+            console.log('✅ Division loaded:', userData.department);
+            document.getElementById('Division').value = userData.department;
+        } else {
+            console.log('ℹ️ No division information available for this user');
+            document.getElementById('Division').value = 'N/A';
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading division information:', error);
+        document.getElementById('Division').value = 'Error loading division';
+    }
+}
+
+// Function to load division information for a requester by name
+async function loadDivisionForRequesterByName(requesterName) {
+    try {
+        console.log('🔍 Loading division for requester name:', requesterName);
+
+        // Get all users and find the one with matching name
+        const response = await fetch(`${BASE_URL}/api/users`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('⚠️ Failed to load users:', response.status, response.statusText);
+            return;
+        }
+
+        const result = await response.json();
+        const users = result.data || [];
+
+        // Find user by full name
+        const user = users.find(u => u.fullName === requesterName ||
+            `${u.firstName} ${u.lastName}`.trim() === requesterName ||
+            u.firstName === requesterName);
+
+        if (user && user.department) {
+            console.log('✅ Division loaded by name:', user.department);
+            document.getElementById('Division').value = user.department;
+        } else {
+            console.log('ℹ️ No division information found for requester name:', requesterName);
+            document.getElementById('Division').value = 'N/A';
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading division information by name:', error);
+        document.getElementById('Division').value = 'Error loading division';
+    }
+} 

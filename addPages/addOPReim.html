@@ -148,6 +148,46 @@
             border-bottom: none;
         }
         
+        /* Division dropdown specific styling */
+        .division-search-input {
+            transition: all 0.2s ease;
+        }
+        .division-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Ensure division dropdown stays visible */
+        [id*="Division"][id*="Dropdown"] {
+            position: absolute !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 4px !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+            min-width: 200px !important;
+        }
+        
+        /* Division dropdown items */
+        [id*="Division"][id*="Dropdown"] > div {
+            padding: 10px 12px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+        }
+        
+        [id*="Division"][id*="Dropdown"] > div:hover {
+            background-color: #f8fafc !important;
+            border-left: 3px solid #3b82f6 !important;
+        }
+        
+        [id*="Division"][id*="Dropdown"] > div:last-child {
+            border-bottom: none !important;
+        }
+        
         /* Hidden class for dropdowns */
         .hidden {
             display: none !important;
@@ -300,7 +340,13 @@
                         </div>
                     </td>
                     <td id="tdDivision" class="p-2 border">
-                        <input type="text" id="Division_0" maxlength="255" class="w-full" autocomplete="off" placeholder="Enter Division" />
+                        <div class="relative">
+                            <input type="text" id="Division_0" maxlength="255" class="w-full division-search-input" autocomplete="off" 
+                                   onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
+                                   placeholder="Enter Division" />
+                            <input type="hidden" id="DivisionCode_0" />
+                            <div id="Division_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+                        </div>
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal_0" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
@@ -707,7 +753,13 @@
                     </div>
                 </td>
                 <td class="p-2 border">
-                    <input type="text" id="Division_${uniqueId}" maxlength="255" class="w-full" autocomplete="off" placeholder="Enter Division" />
+                    <div class="relative">
+                        <input type="text" id="Division_${uniqueId}" maxlength="255" class="w-full division-search-input" autocomplete="off" 
+                               onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
+                               placeholder="Enter Division" />
+                        <input type="hidden" id="DivisionCode_${uniqueId}" />
+                        <div id="Division_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+                    </div>
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal_${uniqueId}" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />

@@ -20,6 +20,7 @@
          * HEADER FIELDS:
          * - CounterRef (Reimburse No) → counterRef
          * - RequesterName (Requester Reimbursement) → requesterId (akan di-resolve ke nama)
+         * - Division (Division) → division
          * - CardName (Pay To) → cardName
          * - Address (Pay To Address) → address
          * - DocDate (Document Date) → docDate
@@ -56,6 +57,8 @@
          * - AcctCode (G/L Account) → lines[].acctCode
          * - AcctName (Account Name) → lines[].acctName
          * - description (Description) → lines[].descrip
+         * - Division (Division) → lines[].division
+         * - CurrencyItem (Currency Item) → lines[].currencyItem
          * - DocTotal (Net Amount) → lines[].sumApplied
          * 
          * APPROVAL FIELDS:
@@ -153,6 +156,9 @@
                 <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
                 <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
+                <h3 class="text-lg font-semibold mb-2">Division</h3>
+                <input type="text" id="Division" placeholder="Division" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
@@ -205,8 +211,11 @@
                 <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
                 <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
+                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -214,8 +223,7 @@
                 <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
                 <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded bg-gray-100" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
-                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded bg-gray-100" readonly>
+
             </div>
         </div>
         
@@ -226,7 +234,8 @@
                     <th id="AcctCode" class="p-2">G/L Account</th>
                     <th id="AcctName" class="p-2">Account Name</th>
                     <th id="Descrip" class="p-2">Description</th>
-                    <th id="CurrencyItem" class="p-2">CurrencyItem</th>
+                    <th id="Division" class="p-2">Division</th>
+                    <th id="CurrencyItem" class="p-2">Currency</th>
                     <th id="DocTotal" class="p-2">Net Amount</th>
                 </tr>
             </thead>
