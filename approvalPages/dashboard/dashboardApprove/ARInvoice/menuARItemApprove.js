@@ -445,9 +445,7 @@ function updateTable(invoices) {
             <td class="p-2">${invoice.invoiceType}</td>
             <td class="p-2">
                 <div class="approval-actions">
-                    <button onclick="viewInvoiceDetails(${invoice.id})" class="tool-btn tool-btn-view">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
                 </div>
             </td>
         `;
@@ -532,9 +530,8 @@ function goToTotalDocs() {
 
 // Approval action functions
 function viewInvoiceDetails(id) {
-    console.log('View invoice details:', id);
     // Implement view details functionality
-    window.open(`../approval/approve/invoiceItem/approveInvItem.html?id=${id}`, '_blank');
+    window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
 }
 
 function approveInvoice(id) {

@@ -385,7 +385,7 @@ function updateTable(invoices) {
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
         cellTools.innerHTML = `
-            <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
     
@@ -504,8 +504,8 @@ function goToTotalDocs() {
 }
 
 window.viewInvoiceDetails = function(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+    // Navigate to invoice check page
+    window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
 };
 
 window.editInvoice = function(id) {
@@ -519,8 +519,8 @@ window.printInvoice = function(id) {
 };
 
 function viewInvoiceDetails(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+    // Navigate to invoice check page
+    window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
 }
 
 function editInvoice(id) {

@@ -391,7 +391,7 @@ function updateTable(invoices) {
             <td class="p-2">${invoice.invoiceType}</td>
             <td class="p-2 scrollable-cell">${invoice.remarks || '-'}</td>
             <td class="p-2">
-                <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
         `;
         
@@ -490,6 +490,8 @@ function goToTotalDocs() {
 // Function to view invoice details
 function viewInvoiceDetails(id) {
     console.log('View invoice details for ID:', id);
+    // Redirect to receiveInvItem.html with the staging ID as parameter
+    window.location.href = `../../../approval/receive/invoiceItem/receiveInvItem.html?stagingID=${id}`;
 }
 
 // Function to receive invoice

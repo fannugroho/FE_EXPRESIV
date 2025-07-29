@@ -117,26 +117,11 @@
                     <!-- Tab buttons for switching views -->
                     <div class="flex flex-col md:flex-row justify-between items-center mb-0">
                         <div class="flex mb-0 mt-2 md:mt-0 border-b w-full md:w-auto overflow-x-auto">
-                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-file-alt mr-2"></i>All Documents
-                            </button>
-                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-file mr-2"></i>Draft
-                            </button>
-                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
                             <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-check mr-2"></i>Checked
-                            </button>
-                            <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-thumbs-up mr-2"></i>Acknowledged
-                            </button>
-                            <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-thumbs-up mr-2"></i>Approved
-                            </button>
-                            <button id="receivedTabBtn" onclick="switchTab('received')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-check-double mr-2"></i>Received
                             </button>
                             <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-ban mr-2"></i>Rejected
@@ -216,14 +201,6 @@
 
     <!-- Mobile Navigation Bar - More comprehensive options -->
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-        <button onclick="switchTab('all')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-file-alt text-xl"></i>
-            <span>Total</span>
-        </button>
-        <button onclick="switchTab('draft')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-file text-xl"></i>
-            <span>Draft</span>
-        </button>
         <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-clipboard-check text-xl"></i>
             <span>Prepared</span>
@@ -231,18 +208,6 @@
         <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
-        </button>
-        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledged</span>
-        </button>
-        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Approved</span>
-        </button>
-        <button onclick="switchTab('received')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check-double text-xl"></i>
-            <span>Received</span>
         </button>
         <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-ban text-xl"></i>
@@ -294,8 +259,7 @@
         // Add event listeners for tab buttons to ensure sidebar visibility
         document.addEventListener('DOMContentLoaded', function() {
             const tabButtons = [
-                'allTabBtn', 'draftTabBtn', 'preparedTabBtn', 'checkedTabBtn', 
-                'acknowledgedTabBtn', 'approvedTabBtn', 'receivedTabBtn', 'rejectedTabBtn'
+                'preparedTabBtn', 'checkedTabBtn', 'rejectedTabBtn'
             ];
             
             tabButtons.forEach(btnId => {

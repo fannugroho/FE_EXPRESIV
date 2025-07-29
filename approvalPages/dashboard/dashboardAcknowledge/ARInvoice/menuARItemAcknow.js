@@ -305,6 +305,7 @@ function getMockInvoiceData() {
     const mockInvoices = [
         {
             id: 1,
+            stagingId: 'STG-C41174-001',
             invoiceNo: 'INV-2024-001',
             customerName: 'PT Maju Bersama',
             salesEmployee: 'John Doe',
@@ -316,6 +317,7 @@ function getMockInvoiceData() {
         },
         {
             id: 2,
+            stagingId: 'STG-C41174-002',
             invoiceNo: 'INV-2024-002',
             customerName: 'CV Sukses Mandiri',
             salesEmployee: 'Jane Smith',
@@ -327,6 +329,7 @@ function getMockInvoiceData() {
         },
         {
             id: 3,
+            stagingId: 'STG-C41174-003',
             invoiceNo: 'INV-2024-003',
             customerName: 'PT Global Trading',
             salesEmployee: 'Mike Johnson',
@@ -338,6 +341,7 @@ function getMockInvoiceData() {
         },
         {
             id: 4,
+            stagingId: 'STG-C41174-004',
             invoiceNo: 'INV-2024-004',
             customerName: 'PT Sejahtera Abadi',
             salesEmployee: 'Sarah Wilson',
@@ -349,6 +353,7 @@ function getMockInvoiceData() {
         },
         {
             id: 5,
+            stagingId: 'STG-C41174-005',
             invoiceNo: 'INV-2024-005',
             customerName: 'CV Berkah Jaya',
             salesEmployee: 'David Brown',
@@ -471,7 +476,7 @@ function updateTable(invoices) {
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
         cellTools.innerHTML = `
-            <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
     
@@ -589,9 +594,9 @@ function goToTotalDocs() {
     console.log('Navigate to total documents');
 }
 
-window.viewInvoiceDetails = function(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+window.viewInvoiceDetails = function(stagingId) {
+    // Navigate to acknowledge invoice item page
+    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
 };
 
 window.acknowledgeInvoice = function(id) {
@@ -619,9 +624,9 @@ window.printInvoice = function(id) {
     window.open(`../../../../pages/printInvoice.html?id=${id}`, '_blank');
 };
 
-function viewInvoiceDetails(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+function viewInvoiceDetails(stagingId) {
+    // Navigate to acknowledge invoice item page
+    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
 }
 
 function acknowledgeInvoice(id) {

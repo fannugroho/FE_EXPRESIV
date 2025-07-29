@@ -191,21 +191,6 @@
                             <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
-                            <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-check mr-2"></i>Checked
-                            </button>
-                            <button id="acknowledgedTabBtn" onclick="switchTab('acknowledged')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-thumbs-up mr-2"></i>Acknowledged
-                            </button>
-                            <button id="approvedTabBtn" onclick="switchTab('approved')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-thumbs-up mr-2"></i>Approved
-                            </button>
-                            <button id="receivedTabBtn" onclick="switchTab('received')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-check-double mr-2"></i>Received
-                            </button>
-                            <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
-                                <i class="fas fa-ban mr-2"></i>Rejected
-                            </button>
                         </div>
                         
                         <!-- Search by Invoice - kanan -->
@@ -284,26 +269,6 @@
             <i class="fas fa-clipboard-check text-xl"></i>
             <span>Prepared</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check text-xl"></i>
-            <span>Checked</span>
-        </button>
-        <button onclick="switchTab('acknowledged')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Acknowledged</span>
-        </button>
-        <button onclick="switchTab('approved')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Approved</span>
-        </button>
-        <button onclick="switchTab('received')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check-double text-xl"></i>
-            <span>Received</span>
-        </button>
-        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-ban text-xl"></i>
-            <span>Rejected</span>
-        </button>
     </nav>
 
     <!-- External JS -->
@@ -333,26 +298,6 @@
         });
         
         document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('checkedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('acknowledgedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('approvedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('receivedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('rejectedTabBtn').addEventListener('click', function(e) {
             ensureSidebarVisible();
         });
         

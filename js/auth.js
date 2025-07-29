@@ -1,7 +1,7 @@
 // Authentication utilities for handling JWT tokens and API calls
 
-// Development mode - set to true to bypass authentication for development
-const BYPASS_AUTH_FOR_DEVELOPMENT = true;
+// Development mode - set to false to enable proper authentication
+const BYPASS_AUTH_FOR_DEVELOPMENT = false;
 // Make it globally accessible
 window.BYPASS_AUTH_FOR_DEVELOPMENT = BYPASS_AUTH_FOR_DEVELOPMENT;
 

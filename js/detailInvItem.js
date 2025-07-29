@@ -120,16 +120,17 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
         const option = document.createElement('option');
         option.value = employee.fullName;
         option.textContent = employee.fullName;
+        option.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
         select.appendChild(option);
     });
     
-            // Setup input event listeners
-        input.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const filteredEmployees = employeesData.filter(employee => 
-                employee.fullName.toLowerCase().includes(searchTerm)
-            );
-        
+    // Setup input event listeners
+    input.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const filteredEmployees = employeesData.filter(employee => 
+            employee.fullName.toLowerCase().includes(searchTerm)
+        );
+    
         displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
     });
     
@@ -169,6 +170,11 @@ function displayEmployeeDropdown(dropdown, employees, input, select) {
             item.addEventListener('click', function() {
                 input.value = employee.fullName;
                 select.value = employee.fullName;
+                
+                // Store employee ID in a data attribute for later use
+                input.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
+                select.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
+                
                 dropdown.classList.add('hidden');
                 
                 // Trigger input event to mark as modified
@@ -202,17 +208,20 @@ function refreshApprovalDropdowns() {
                 const option = document.createElement('option');
                 option.value = employee.fullName;
                 option.textContent = employee.fullName;
+                option.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
                 select.appendChild(option);
             });
             
-            // Update select value to match input value
+            // If input has a value, try to find and set the corresponding employee ID
             if (input.value) {
-                select.value = input.value;
+                const selectedEmployee = employeesData.find(emp => emp.fullName === input.value);
+                if (selectedEmployee) {
+                    input.setAttribute('data-employee-id', selectedEmployee.kansaiEmployeeId || '');
+                    select.setAttribute('data-employee-id', selectedEmployee.kansaiEmployeeId || '');
+                }
             }
         }
     });
-    
-    console.log('Approval dropdowns refreshed with employee data');
 }
 
 // Load invoice data from API
@@ -315,6 +324,7 @@ function populateFormData(data) {
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
     document.getElementById('GroupNum').value = data.groupNum || '1';
     document.getElementById('TrnspCode').value = data.trnspCode || '1';
+    document.getElementById('TaxNo').value = data.trackNo || '';
     document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
     document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
@@ -334,6 +344,8 @@ function populateFormData(data) {
     const status = getStatusFromInvoice(data);
     document.getElementById('Status').value = status;
     
+    // Check if submit button should be shown based on status
+    updateSubmitButtonVisibility(status);
 
     
     // Populate approval fields from approval summary - make them editable
@@ -349,16 +361,42 @@ function populateFormData(data) {
         console.log('Prepared by name field disabled:', preparedByNameField.disabled);
         
         // Populate other approval fields (acknowledge, check, approve, receive)
-        document.getElementById('acknowledgeByName').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedByName').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedByName').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedByName').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        const acknowledgeByNameField = document.getElementById('acknowledgeByName');
+        const checkedByNameField = document.getElementById('checkedByName');
+        const approvedByNameField = document.getElementById('approvedByName');
+        const receivedByNameField = document.getElementById('receivedByName');
+        
+        acknowledgeByNameField.value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
+        checkedByNameField.value = data.arInvoiceApprovalSummary.checkedByName || '';
+        approvedByNameField.value = data.arInvoiceApprovalSummary.approvedByName || '';
+        receivedByNameField.value = data.arInvoiceApprovalSummary.receivedByName || '';
+        
+        // Store employee IDs from API data
+        acknowledgeByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.acknowledgedBy || '');
+        checkedByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.checkedBy || '');
+        approvedByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.approvedBy || '');
+        receivedByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.receivedBy || '');
+        preparedByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.preparedBy || '');
         
         // Update corresponding select elements
         document.getElementById('acknowledgeBy').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
         document.getElementById('checkedBy').value = data.arInvoiceApprovalSummary.checkedByName || '';
         document.getElementById('approvedBy').value = data.arInvoiceApprovalSummary.approvedByName || '';
         document.getElementById('receivedBy').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        
+        // Store employee IDs in select elements as well
+        document.getElementById('acknowledgeBy').setAttribute('data-employee-id', data.arInvoiceApprovalSummary.acknowledgedBy || '');
+        document.getElementById('checkedBy').setAttribute('data-employee-id', data.arInvoiceApprovalSummary.checkedBy || '');
+        document.getElementById('approvedBy').setAttribute('data-employee-id', data.arInvoiceApprovalSummary.approvedBy || '');
+        document.getElementById('receivedBy').setAttribute('data-employee-id', data.arInvoiceApprovalSummary.receivedBy || '');
+        
+        console.log('Stored employee IDs from API:', {
+            acknowledgedBy: data.arInvoiceApprovalSummary.acknowledgedBy,
+            checkedBy: data.arInvoiceApprovalSummary.checkedBy,
+            approvedBy: data.arInvoiceApprovalSummary.approvedBy,
+            receivedBy: data.arInvoiceApprovalSummary.receivedBy,
+            preparedBy: data.arInvoiceApprovalSummary.preparedBy
+        });
     } else {
         console.log('No approval summary data found');
     }
@@ -542,6 +580,10 @@ function saveApprovalDataToLocalStorage() {
         checkedByName: document.getElementById('checkedByName').value || '',
         approvedByName: document.getElementById('approvedByName').value || '',
         receivedByName: document.getElementById('receivedByName').value || '',
+        acknowledgeById: document.getElementById('acknowledgeByName').getAttribute('data-employee-id') || '',
+        checkedById: document.getElementById('checkedByName').getAttribute('data-employee-id') || '',
+        approvedById: document.getElementById('approvedByName').getAttribute('data-employee-id') || '',
+        receivedById: document.getElementById('receivedByName').getAttribute('data-employee-id') || '',
         timestamp: new Date().toISOString()
     };
     
@@ -565,10 +607,21 @@ function loadApprovalDataFromLocalStorage() {
             const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
             
             if (hoursDiff < 24) {
-                document.getElementById('acknowledgeByName').value = approvalData.acknowledgeByName || '';
-                document.getElementById('checkedByName').value = approvalData.checkedByName || '';
-                document.getElementById('approvedByName').value = approvalData.approvedByName || '';
-                document.getElementById('receivedByName').value = approvalData.receivedByName || '';
+                const acknowledgeByNameField = document.getElementById('acknowledgeByName');
+                const checkedByNameField = document.getElementById('checkedByName');
+                const approvedByNameField = document.getElementById('approvedByName');
+                const receivedByNameField = document.getElementById('receivedByName');
+                
+                acknowledgeByNameField.value = approvalData.acknowledgeByName || '';
+                checkedByNameField.value = approvalData.checkedByName || '';
+                approvedByNameField.value = approvalData.approvedByName || '';
+                receivedByNameField.value = approvalData.receivedByName || '';
+                
+                // Set employee IDs from localStorage
+                acknowledgeByNameField.setAttribute('data-employee-id', approvalData.acknowledgeById || '');
+                checkedByNameField.setAttribute('data-employee-id', approvalData.checkedById || '');
+                approvedByNameField.setAttribute('data-employee-id', approvalData.approvedById || '');
+                receivedByNameField.setAttribute('data-employee-id', approvalData.receivedById || '');
                 
                 console.log('Loaded approval data from localStorage');
                 console.log('Approval data details:', approvalData);
@@ -617,7 +670,7 @@ async function submitInvoiceData() {
         const submitSpinner = document.getElementById('submitSpinner');
         
         submitButton.disabled = true;
-        submitButtonText.textContent = 'Submitting...';
+        submitButtonText.textContent = 'Updating Status...';
         submitSpinner.classList.remove('hidden');
         
         // Get current invoice data
@@ -665,78 +718,173 @@ async function submitInvoiceData() {
         console.log('Submitting approval data:', payload);
         console.log('API URL:', `${API_BASE_URL}/ar-invoices/approval/${stagingID}`);
         console.log('Request body:', JSON.stringify(payload, null, 2));
+        console.log('Payload keys:', Object.keys(payload));
+        console.log('Payload size:', JSON.stringify(payload).length, 'characters');
         
-        // Try different approaches - first try with wrapped data
-        let requestBody = { data: payload };
+        // Log specific information about preparedDate if it's being sent
+        if (payload.preparedDate) {
+            console.log('📅 preparedDate included in payload:', payload.preparedDate);
+        } else {
+            console.log('📅 No preparedDate in payload (status not changing from Draft to Prepared)');
+        }
+        
+        // Try different approaches - first try with PUT method
         let success = false;
         let apiResult = null;
         
-        // First attempt: wrapped in data property
+        // PATCH method with payload
         try {
-            console.log('Attempt 1: Wrapped in data property');
-            const response1 = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
+            console.log('PATCH method with payload');
+            
+            console.log('Payload for PATCH:', payload);
+            
+            const response = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
                 method: 'PATCH',
                 headers: {
                     'accept': 'text/plain',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(payload)
             });
             
-            if (response1.ok) {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            if (response.ok) {
                 success = true;
-                apiResult = await response1.json();
-                console.log('Success with wrapped data:', apiResult);
+                apiResult = await response.json();
+                console.log('Success with PATCH method:', apiResult);
             } else {
-                console.log('Attempt 1 failed:', response1.status);
+                console.log('PATCH method failed:', response.status);
+                const errorText = await response.text();
+                console.error('API Error response:', errorText);
+                
+                // Try to parse error response as JSON for better error handling
+                let errorDetails = errorText;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorDetails = errorJson.message || errorJson.error || errorText;
+                    console.error('Parsed error details:', errorJson);
+                } catch (parseError) {
+                    console.error('Could not parse error response as JSON:', parseError);
+                }
+                
+                throw new Error(`API Error: ${response.status} - ${errorDetails}`);
             }
         } catch (error) {
-            console.log('Attempt 1 error:', error);
+            console.log('PATCH method error:', error);
+            throw error;
         }
         
-        // Second attempt: direct payload
+        // If PATCH attempt failed, throw error
         if (!success) {
-            try {
-                console.log('Attempt 2: Direct payload');
-                const response2 = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'accept': 'text/plain',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (response2.ok) {
-                    success = true;
-                    apiResult = await response2.json();
-                    console.log('Success with direct payload:', apiResult);
-                } else {
-                    console.log('Attempt 2 failed:', response2.status);
-                    const errorText = await response2.text();
-                    console.error('API Error response:', errorText);
-                    throw new Error(`API Error: ${response2.status} - ${errorText}`);
-                }
-            } catch (error) {
-                console.log('Attempt 2 error:', error);
-                throw error;
-            }
-        }
-        
-        // If both attempts failed, throw error
-        if (!success) {
-            throw new Error('All API attempts failed');
+            throw new Error('API attempt failed');
         }
         
         console.log('API Response:', apiResult);
         console.log('Approval data successfully submitted to API');
         
+        // Handle file uploads if there are any uploaded files
+        if (uploadedFiles.length > 0) {
+            try {
+                console.log('Uploading', uploadedFiles.length, 'files...');
+                
+                // Show loading message for file upload
+                Swal.fire({
+                    title: 'Uploading Attachments',
+                    text: 'Please wait while we upload your files...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Prepare FormData for file upload
+                const formData = new FormData();
+                
+                // Add all files to formData
+                uploadedFiles.forEach(file => {
+                    formData.append('files', file);
+                    console.log('Adding file for upload:', file.name);
+                });
+                
+                // Upload files to server using the provided API endpoint
+                const uploadResponse = await fetch(`${API_BASE_URL}/ar-invoices/${stagingID}/attachments/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'accept': '*/*'
+                        // Don't set Content-Type for FormData, let browser set it with boundary
+                    },
+                    body: formData
+                });
+                
+                console.log('Upload response status:', uploadResponse.status);
+                
+                if (uploadResponse.ok) {
+                    const uploadResult = await uploadResponse.json();
+                    console.log('File upload successful:', uploadResult);
+                    
+                    // Clear uploaded files after successful upload
+                    clearUploadedFiles();
+                    
+                    // Show success message for file upload
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Files Uploaded Successfully!',
+                        text: `${uploadedFiles.length} file(s) have been uploaded.`,
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    const uploadError = await uploadResponse.text();
+                    console.error('File upload failed:', uploadError);
+                    
+                    // Try to parse error response as JSON
+                    let errorDetails = uploadError;
+                    try {
+                        const errorJson = JSON.parse(uploadError);
+                        errorDetails = errorJson.message || errorJson.error || uploadError;
+                    } catch (parseError) {
+                        console.error('Could not parse upload error response as JSON:', parseError);
+                    }
+                    
+                    throw new Error(`File upload failed: ${uploadResponse.status} - ${errorDetails}`);
+                }
+                
+            } catch (uploadError) {
+                console.error('Error uploading files:', uploadError);
+                
+                // Show error message for file upload
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File Upload Failed',
+                    text: `Failed to upload files: ${uploadError.message}`,
+                    confirmButtonText: 'OK'
+                });
+                
+                // Don't throw error here as the approval data was already submitted successfully
+            }
+        }
+        
         // Show success message with details
         const approvalModified = window.approvalDataModified || false;
         const approvalInfo = approvalModified ? '<p><strong>Approval data has been updated successfully</strong></p>' : '';
         
+        // Check if approval status was updated from Draft to Prepared
+        const originalStatus = invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft';
+        const newStatus = apiResult.approvalStatus || 'Updated';
+        const isStatusChangedFromDraftToPrepared = originalStatus === 'Draft' && newStatus === 'Prepared';
+        const statusChangeInfo = isStatusChangedFromDraftToPrepared 
+            ? '<p><strong>✅ Approval Status Updated:</strong> Draft → Prepared</p>' 
+            : '';
+        
+        // Add preparedDate info when status changes from Draft to Prepared
+        const preparedDateInfo = isStatusChangedFromDraftToPrepared 
+            ? '<p><strong>📅 Prepared Date Set:</strong> Current timestamp has been recorded</p>' 
+            : '';
+        
         console.log('Submission completed successfully');
         console.log('Approval data was modified:', approvalModified);
+        console.log('Status change:', originalStatus, '→', newStatus);
         
         Swal.fire({
             icon: 'success',
@@ -746,7 +894,9 @@ async function submitInvoiceData() {
                     <p><strong>Invoice Number:</strong> ${invoiceData.docNum || 'N/A'}</p>
                     <p><strong>Customer:</strong> ${invoiceData.cardName || 'N/A'}</p>
                     <p><strong>Staging ID:</strong> ${stagingID}</p>
-                    <p><strong>Approval Status:</strong> ${apiResult.approvalStatus || 'Updated'}</p>
+                    <p><strong>Current Approval Status:</strong> ${newStatus}</p>
+                    ${statusChangeInfo}
+                    ${preparedDateInfo}
                     ${approvalInfo}
                 </div>
             `,
@@ -781,7 +931,7 @@ async function submitInvoiceData() {
         const submitSpinner = document.getElementById('submitSpinner');
         
         submitButton.disabled = false;
-        submitButtonText.textContent = 'Submit Invoice';
+        submitButtonText.textContent = 'Submit & Update Status';
         submitSpinner.classList.add('hidden');
     }
 }
@@ -792,55 +942,75 @@ async function submitInvoiceData() {
 function prepareApprovalPayload() {
     const now = new Date().toISOString();
     
-    // Get current approval values from form inputs
+    // Get current approval values from form inputs and their corresponding employee IDs
     const preparedByName = document.getElementById('preparedByName').value || '';
     const acknowledgeByName = document.getElementById('acknowledgeByName').value || '';
     const checkedByName = document.getElementById('checkedByName').value || '';
     const approvedByName = document.getElementById('approvedByName').value || '';
     const receivedByName = document.getElementById('receivedByName').value || '';
     
+    // Get employee IDs from data attributes
+    const preparedByElement = document.getElementById('preparedByName');
+    const acknowledgeByElement = document.getElementById('acknowledgeByName');
+    const checkedByElement = document.getElementById('checkedByName');
+    const approvedByElement = document.getElementById('approvedByName');
+    const receivedByElement = document.getElementById('receivedByName');
+    
+    const preparedById = preparedByElement ? preparedByElement.getAttribute('data-employee-id') || '' : '';
+    const acknowledgedById = acknowledgeByElement ? acknowledgeByElement.getAttribute('data-employee-id') || '' : '';
+    const checkedById = checkedByElement ? checkedByElement.getAttribute('data-employee-id') || '' : '';
+    const approvedById = approvedByElement ? approvedByElement.getAttribute('data-employee-id') || '' : '';
+    const receivedById = receivedByElement ? receivedByElement.getAttribute('data-employee-id') || '' : '';
+    
     console.log('Preparing approval payload with values:', {
         preparedByName,
         acknowledgeByName,
         checkedByName,
         approvedByName,
-        receivedByName
+        receivedByName,
+        preparedById,
+        acknowledgedById,
+        checkedById,
+        approvedById,
+        receivedById
     });
+    
+    // Determine the new approval status
+    // If current status is "Draft", automatically change to "Prepared" when submitting
+    let newApprovalStatus = invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft';
+    const isStatusChangingFromDraftToPrepared = newApprovalStatus === 'Draft';
+    
+    if (isStatusChangingFromDraftToPrepared) {
+        newApprovalStatus = 'Prepared';
+        console.log('Approval status automatically updated from Draft to Prepared');
+    }
     
     // Try sending data in the format that matches the API response structure
     const payload = {
-        stagingID: invoiceData.stagingID || '',
-        createdAt: invoiceData.arInvoiceApprovalSummary?.createdAt || now,
-        updatedAt: now,
-        approvalStatus: invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft',
-        preparedBy: preparedByName,
-        checkedBy: checkedByName,
-        acknowledgedBy: acknowledgeByName,
-        approvedBy: approvedByName,
-        receivedBy: receivedByName,
-        preparedById: invoiceData.arInvoiceApprovalSummary?.preparedById || '',
+        // Remove stagingID from payload since it's already in the URL path
+        // stagingID: invoiceData.stagingID || '',
+        approvalStatus: newApprovalStatus, // Use the updated approval status
+        preparedBy: preparedById, // Use employee ID instead of name
+        checkedBy: checkedById, // Use employee ID instead of name
+        acknowledgedBy: acknowledgedById, // Use employee ID instead of name
+        approvedBy: approvedById, // Use employee ID instead of name
+        receivedBy: receivedById, // Use employee ID instead of name
         preparedByName: preparedByName,
-        checkedById: invoiceData.arInvoiceApprovalSummary?.checkedById || '',
         checkedByName: checkedByName,
-        acknowledgedById: invoiceData.arInvoiceApprovalSummary?.acknowledgedById || '',
         acknowledgedByName: acknowledgeByName,
-        approvedById: invoiceData.arInvoiceApprovalSummary?.approvedById || '',
         approvedByName: approvedByName,
-        receivedById: invoiceData.arInvoiceApprovalSummary?.receivedById || '',
         receivedByName: receivedByName,
-        preparedDate: invoiceData.arInvoiceApprovalSummary?.preparedDate || now,
-        checkedDate: invoiceData.arInvoiceApprovalSummary?.checkedDate || now,
-        acknowledgedDate: invoiceData.arInvoiceApprovalSummary?.acknowledgedDate || now,
-        approvedDate: invoiceData.arInvoiceApprovalSummary?.approvedDate || now,
-        receivedDate: invoiceData.arInvoiceApprovalSummary?.receivedDate || now,
-        rejectedDate: invoiceData.arInvoiceApprovalSummary?.rejectedDate || null,
-        rejectionRemarks: invoiceData.arInvoiceApprovalSummary?.rejectionRemarks || '',
-        revisionNumber: parseInt(invoiceData.arInvoiceApprovalSummary?.revisionNumber) || 0,
-        revisionDate: invoiceData.arInvoiceApprovalSummary?.revisionDate || null,
-        revisionRemarks: invoiceData.arInvoiceApprovalSummary?.revisionRemarks || ''
+        updatedAt: now
     };
     
-    console.log('Prepared approval payload for PATCH submission:', payload);
+    // Add preparedDate when status changes from Draft to Prepared
+    if (isStatusChangingFromDraftToPrepared) {
+        payload.preparedDate = now;
+        console.log('Added preparedDate to payload:', now);
+    }
+    
+    console.log('Prepared simplified approval payload for submission:', payload);
+    console.log('Approval status updated to:', newApprovalStatus);
     return payload;
 }
 
@@ -971,11 +1141,33 @@ function prepareInvoicePayload(data) {
     return payload;
 }
 
-// Enable submit button when data is loaded
+// Enable submit button when data is loaded (only for Draft status)
 function enableSubmitButton() {
+    // Get current status from the Status field
+    const statusField = document.getElementById('Status');
+    const currentStatus = statusField ? statusField.value : '';
+    
+    // Use the helper function to update visibility
+    updateSubmitButtonVisibility(currentStatus);
+}
+
+// Helper function to manage submit button and status message visibility
+function updateSubmitButtonVisibility(status) {
     const submitButton = document.getElementById('submitButton');
-    if (submitButton) {
-        submitButton.disabled = false; // Enable when data is loaded
+    const submitButtonContainer = submitButton ? submitButton.closest('.text-center') : null;
+    
+    if (submitButton && submitButtonContainer) {
+        if (status === 'Draft') {
+            // Show submit button for Draft status
+            submitButtonContainer.style.display = 'block';
+            submitButton.disabled = false;
+            console.log('Submit button shown for Draft status');
+        } else {
+            // Hide submit button for non-Draft status
+            submitButtonContainer.style.display = 'none';
+            submitButton.disabled = true;
+            console.log(`Submit button hidden for status: ${status}`);
+        }
     }
 }
 
@@ -995,12 +1187,36 @@ function setupApprovalInputListeners() {
                 // Mark that approval data has been modified
                 window.approvalDataModified = true;
                 console.log(`Approval data modified: ${inputId} = ${this.value}`);
+                
+                // Try to find and update employee ID based on entered name
+                if (this.value.trim()) {
+                    const selectedEmployee = employeesData.find(emp => 
+                        emp.fullName.toLowerCase() === this.value.toLowerCase()
+                    );
+                    
+                    if (selectedEmployee) {
+                        this.setAttribute('data-employee-id', selectedEmployee.kansaiEmployeeId || '');
+                        console.log(`Updated employee ID for ${inputId}: ${selectedEmployee.kansaiEmployeeId}`);
+                    } else {
+                        // Clear employee ID if no match found
+                        this.setAttribute('data-employee-id', '');
+                        console.log(`No employee found for name: ${this.value}`);
+                    }
+                } else {
+                    // Clear employee ID if input is empty
+                    this.setAttribute('data-employee-id', '');
+                }
+                
                 console.log(`Current approval data state:`, {
                     preparedByName: document.getElementById('preparedByName').value,
                     acknowledgeByName: document.getElementById('acknowledgeByName').value,
                     checkedByName: document.getElementById('checkedByName').value,
                     approvedByName: document.getElementById('approvedByName').value,
-                    receivedByName: document.getElementById('receivedByName').value
+                    receivedByName: document.getElementById('receivedByName').value,
+                    acknowledgeById: document.getElementById('acknowledgeByName').getAttribute('data-employee-id'),
+                    checkedById: document.getElementById('checkedByName').getAttribute('data-employee-id'),
+                    approvedById: document.getElementById('approvedByName').getAttribute('data-employee-id'),
+                    receivedById: document.getElementById('receivedByName').getAttribute('data-employee-id')
                 });
                 
                 // Save to localStorage as backup
@@ -1281,4 +1497,226 @@ function adjustTextareaHeights() {
         // Ensure consistent vertical alignment
         textarea.style.verticalAlign = 'middle';
     });
+}
+
+// File upload functionality
+let uploadedFiles = [];
+
+// Function to handle file selection and validation
+function previewPDF(event) {
+    const files = event.target.files;
+    
+    // Validate all files are PDF
+    const pdfFiles = Array.from(files).filter(file => {
+        if (file.type !== 'application/pdf') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `File "${file.name}" is not a PDF. Only PDF files are allowed.`
+            });
+            return false;
+        }
+        return true;
+    });
+
+    // Add valid PDF files to the uploaded files array
+    pdfFiles.forEach(file => {
+        // Check if file with same name already exists
+        const fileExists = uploadedFiles.some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size
+        );
+        
+        // Only add if it doesn't exist
+        if (!fileExists) {
+            uploadedFiles.push(file);
+        }
+    });
+
+    displayFileList();
+    
+    // Clear the file input
+    event.target.value = '';
+}
+
+// Function to display the list of selected files
+function displayFileList() {
+    const fileListContainer = document.getElementById("fileList");
+    
+    if (!fileListContainer) {
+        console.error('File list container not found');
+        return;
+    }
+    
+    // Clear existing content
+    fileListContainer.innerHTML = "";
+    
+    // Add each file to the list
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement("div");
+        fileItem.className = "file-item";
+        fileItem.innerHTML = `
+            <div class="file-item-header">
+                <div class="flex items-center flex-1">
+                    <span class="text-sm text-gray-600 mr-2">📄</span>
+                    <span class="file-item-name">${file.name}</span>
+                    <span class="file-item-size">(${formatFileSize(file.size)})</span>
+                </div>
+                <div class="file-item-actions">
+                    <button type="button" onclick="viewFile(${index})" class="btn-view">
+                        View
+                    </button>
+                    <button type="button" onclick="removeFile(${index})" class="btn-remove">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        `;
+        fileListContainer.appendChild(fileItem);
+    });
+}
+
+// Function to view a file in a modal
+function viewFile(index) {
+    const file = uploadedFiles[index];
+    if (!file) return;
+    
+    // Create URL for the file
+    const fileURL = URL.createObjectURL(file);
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+    modal.id = 'pdfViewerModal';
+    
+    // Create modal content
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-semibold">${file.name}</h3>
+                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
+                    <span class="text-2xl">&times;</span>
+                </button>
+            </div>
+            <div class="flex-grow p-4 overflow-auto">
+                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+}
+
+// Function to close the modal
+function closeModal() {
+    const modal = document.getElementById('pdfViewerModal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+}
+
+// Function to remove a file from the list
+function removeFile(index) {
+    if (index >= 0 && index < uploadedFiles.length) {
+        uploadedFiles.splice(index, 1);
+        displayFileList();
+    }
+}
+
+// Function to get uploaded files for submission
+function getUploadedFiles() {
+    return uploadedFiles;
+}
+
+// Function to clear uploaded files
+function clearUploadedFiles() {
+    uploadedFiles = [];
+    displayFileList();
+}
+
+// Function to download an attachment
+function downloadAttachment(fileUrl, fileName) {
+    try {
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Download initiated for:', fileName);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Download Failed',
+            text: 'Failed to download the file. Please try again.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to preview an attachment
+function previewAttachment(fileUrl, fileName) {
+    try {
+        // Create modal container
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+        modal.id = 'attachmentViewerModal';
+        
+        // Create modal content
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+                <div class="flex justify-between items-center p-4 border-b">
+                    <h3 class="text-lg font-semibold">${fileName}</h3>
+                    <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeAttachmentModal()">
+                        <span class="text-2xl">&times;</span>
+                    </button>
+                </div>
+                <div class="flex-grow p-4 overflow-auto">
+                    <iframe src="${fileUrl}" class="w-full h-full" frameborder="0"></iframe>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to body
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeAttachmentModal();
+            }
+        });
+        
+        console.log('Preview opened for:', fileName);
+    } catch (error) {
+        console.error('Error previewing file:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Preview Failed',
+            text: 'Failed to preview the file. Please try again.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to close the attachment modal
+function closeAttachmentModal() {
+    const modal = document.getElementById('attachmentViewerModal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
 }
