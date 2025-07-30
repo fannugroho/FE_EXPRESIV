@@ -6,7 +6,7 @@ let allReimbursementDocs = []; // Menyimpan semua dokumen sebelum filtering
 let currentTab = 'all';
 let currentPage = 1;
 let itemsPerPage = 10;
-let filteredDocuments = [];
+window.filteredDocuments = []; // Make it global
 let allDocuments = [];
 
 // Global variable to store users
@@ -398,11 +398,15 @@ async function loadDashboard() {
 
         // Load documents for the default tab (All Documents)
         await switchTab('all');
+        
+        // Return the documents for external use
+        return window.filteredDocuments;
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
         document.getElementById("recentDocs").innerHTML =
             `<tr><td colspan="9" class="p-4 text-center text-red-500">Error loading data. Please try again later.</td></tr>`;
+        throw error; // Re-throw error for proper error handling
     }
 }
 
@@ -570,12 +574,12 @@ function updatePaginationButtons(totalItems) {
 
 // Function untuk mengubah halaman
 function changePage(direction) {
-    const totalPages = Math.ceil((filteredDocuments || []).length / itemsPerPage);
+    const totalPages = Math.ceil((window.filteredDocuments || []).length / itemsPerPage);
     const newPage = currentPage + direction;
 
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
-        displayDocuments(filteredDocuments || []);
+        displayDocuments(window.filteredDocuments || []);
     }
 }
 
@@ -637,7 +641,7 @@ async function fetchDocumentsByStatus(userId, status) {
         const allDocuments = await fetchOutgoingPaymentDocuments('preparedBy', userId, false);
         console.log(`Total documents fetched: ${allDocuments.length}`);
 
-        const filteredDocuments = allDocuments.filter(doc => {
+        const statusFilteredDocuments = allDocuments.filter(doc => {
             // Check approval status from the approval object
             const approvalStatus = doc.approval?.approvalStatus || doc.status || doc.type || doc.doctype || '';
             const isMatchingStatus = approvalStatus.toLowerCase() === status.toLowerCase();
@@ -650,8 +654,8 @@ async function fetchDocumentsByStatus(userId, status) {
             return isMatchingStatus;
         });
 
-        console.log(`Filtered to ${status} documents: ${filteredDocuments.length}`);
-        return filteredDocuments;
+        console.log(`Filtered to ${status} documents: ${statusFilteredDocuments.length}`);
+        return statusFilteredDocuments;
     } catch (error) {
         console.error(`Error fetching ${status} documents:`, error);
         return [];
@@ -725,7 +729,7 @@ async function switchTab(tab) {
         }
 
         // Update the filtered documents
-        filteredDocuments = documents;
+        window.filteredDocuments = documents;
         allDocuments = documents;
 
         // Apply search filter if there's a search term
@@ -733,10 +737,10 @@ async function switchTab(tab) {
         const searchType = document.getElementById('searchType')?.value || 'all';
 
         console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
-        console.log(`Documents before search filter: ${filteredDocuments.length}`);
+        console.log(`Documents before search filter: ${window.filteredDocuments.length}`);
 
         if (searchTerm) {
-            filteredDocuments = filteredDocuments.filter(doc => {
+            window.filteredDocuments = window.filteredDocuments.filter(doc => {
                 if (searchType === 'reimNo') {
                     return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) ||
                         (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
@@ -783,13 +787,13 @@ async function switchTab(tab) {
             });
         }
 
-        console.log(`Documents after search filter: ${filteredDocuments.length}`);
-        displayDocuments(filteredDocuments);
+        console.log(`Documents after search filter: ${window.filteredDocuments.length}`);
+        displayDocuments(window.filteredDocuments);
 
     } catch (error) {
         console.error('Error switching tab:', error);
         // Fallback to empty state
-        filteredDocuments = [];
+        window.filteredDocuments = [];
         displayDocuments([]);
     }
 }
@@ -924,140 +928,212 @@ function toggleSubMenu(menuId) {
 
 // Fungsi Download Excel
 function downloadExcel() {
+    console.log('downloadExcel called');
+    console.log('window.filteredDocuments:', window.filteredDocuments);
+    console.log('XLSX available:', typeof XLSX !== 'undefined');
+    
+    // Check if data is loaded
     if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
-        alert("No data to export!");
+        console.warn('No data to export');
+        
+        // Try to load data first
+        const userId = getUserId();
+        if (userId) {
+            console.log('Attempting to load data before export...');
+            loadDashboard().then(() => {
+                if (window.filteredDocuments && window.filteredDocuments.length > 0) {
+                    console.log('Data loaded, retrying export...');
+                    downloadExcel();
+                } else {
+                    alert("No data available to export. Please wait for data to load or try refreshing the page.");
+                }
+            }).catch(error => {
+                console.error('Error loading data for export:', error);
+                alert("Error loading data for export. Please try refreshing the page.");
+            });
+        } else {
+            alert("No data to export!");
+        }
         return;
     }
 
-    // Create a new workbook
-    const wb = XLSX.utils.book_new();
+    if (typeof XLSX === 'undefined') {
+        console.error('XLSX library not loaded');
+        alert("Excel library not loaded. Please refresh the page.");
+        return;
+    }
 
-    // Convert data to worksheet format
-    const wsData = [
-        ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
-    ];
+    try {
+        // Create a new workbook
+        const wb = XLSX.utils.book_new();
 
-    window.filteredDocuments.forEach((doc, index) => {
-        // Calculate total amount using the same logic as displayDocuments
-        let calculatedTotalAmount = 0;
-        if (doc.lines && doc.lines.length > 0) {
-            calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
-        } else if (doc.trsfrSum) {
-            calculatedTotalAmount = doc.trsfrSum;
-        } else {
-            const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
-            const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
-            calculatedTotalAmount = totalLCValue + totalFCValue;
-        }
+        // Convert data to worksheet format
+        const wsData = [
+            ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
+        ];
 
-        // Get mapped payTo name
-        const payToName = doc.cardName || '-';
+        window.filteredDocuments.forEach((doc, index) => {
+            // Calculate total amount using the same logic as displayDocuments
+            let calculatedTotalAmount = 0;
+            if (doc.lines && doc.lines.length > 0) {
+                calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+            } else if (doc.trsfrSum) {
+                calculatedTotalAmount = doc.trsfrSum;
+            } else {
+                const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+                const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+                calculatedTotalAmount = totalLCValue + totalFCValue;
+            }
 
-        wsData.push([
-            index + 1,
-            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
-            doc.requesterName || '-',
-            payToName,
-            doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
-            doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
-            calculatedTotalAmount.toLocaleString(),
-            getStatusDisplay(doc)
-        ]);
-    });
+            // Get mapped payTo name
+            const payToName = doc.cardName || '-';
 
-    // Create worksheet
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+            wsData.push([
+                index + 1,
+                doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+                doc.requesterName || '-',
+                payToName,
+                doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
+                doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
+                calculatedTotalAmount.toLocaleString(),
+                getStatusDisplay(doc)
+            ]);
+        });
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Outgoing Payments");
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Generate Excel file and trigger download
-    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Outgoing Payments");
+
+        // Generate Excel file and trigger download
+        const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        console.log('Excel file generated successfully:', fileName);
+    } catch (error) {
+        console.error('Error generating Excel file:', error);
+        alert('Error generating Excel file. Please try again.');
+    }
 }
 
 // Fungsi Download PDF
 function downloadPDF() {
+    console.log('downloadPDF called');
+    console.log('window.filteredDocuments:', window.filteredDocuments);
+    console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+    
+    // Check if data is loaded
     if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
-        alert("No data to export!");
+        console.warn('No data to export');
+        
+        // Try to load data first
+        const userId = getUserId();
+        if (userId) {
+            console.log('Attempting to load data before export...');
+            loadDashboard().then(() => {
+                if (window.filteredDocuments && window.filteredDocuments.length > 0) {
+                    console.log('Data loaded, retrying export...');
+                    downloadPDF();
+                } else {
+                    alert("No data available to export. Please wait for data to load or try refreshing the page.");
+                }
+            }).catch(error => {
+                console.error('Error loading data for export:', error);
+                alert("Error loading data for export. Please try refreshing the page.");
+            });
+        } else {
+            alert("No data to export!");
+        }
         return;
     }
 
-    // Initialize jsPDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    if (typeof window.jspdf === 'undefined') {
+        console.error('jsPDF library not loaded');
+        alert("PDF library not loaded. Please refresh the page.");
+        return;
+    }
 
-    // Set document properties
-    doc.setProperties({
-        title: 'Outgoing Payments Report'
-    });
+    try {
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-    // Add title
-    doc.setFontSize(18);
-    doc.text('Outgoing Payments Report', 14, 22);
+        // Set document properties
+        doc.setProperties({
+            title: 'Outgoing Payments Report'
+        });
 
-    // Add date
-    doc.setFontSize(11);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+        // Add title
+        doc.setFontSize(18);
+        doc.text('Outgoing Payments Report', 14, 22);
 
-    // Prepare table data
-    const tableColumn = ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"];
-    const tableRows = [];
+        // Add date
+        doc.setFontSize(11);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    window.filteredDocuments.forEach((doc, index) => {
-        // Calculate total amount using the same logic as displayDocuments
-        let calculatedTotalAmount = 0;
-        if (doc.lines && doc.lines.length > 0) {
-            calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
-        } else if (doc.trsfrSum) {
-            calculatedTotalAmount = doc.trsfrSum;
-        } else {
-            const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
-            const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
-            calculatedTotalAmount = totalLCValue + totalFCValue;
-        }
+        // Prepare table data
+        const tableColumn = ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"];
+        const tableRows = [];
 
-        // Get mapped payTo name
-        const payToName = doc.cardName || '-';
+        window.filteredDocuments.forEach((doc, index) => {
+            // Calculate total amount using the same logic as displayDocuments
+            let calculatedTotalAmount = 0;
+            if (doc.lines && doc.lines.length > 0) {
+                calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+            } else if (doc.trsfrSum) {
+                calculatedTotalAmount = doc.trsfrSum;
+            } else {
+                const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+                const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+                calculatedTotalAmount = totalLCValue + totalFCValue;
+            }
 
-        const rowData = [
-            index + 1,
-            doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
-            doc.requesterName || '-',
-            payToName,
-            doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
-            doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
-            calculatedTotalAmount.toLocaleString(),
-            getStatusDisplay(doc)
-        ];
-        tableRows.push(rowData);
-    });
+            // Get mapped payTo name
+            const payToName = doc.cardName || '-';
 
-    // Generate table
-    doc.autoTable({
-        head: [tableColumn],
-        body: tableRows,
-        startY: 35,
-        theme: 'grid',
-        styles: {
-            fontSize: 8,
-            cellPadding: 1,
-            overflow: 'linebreak',
-            halign: 'left'
-        },
-        headStyles: {
-            fillColor: [41, 128, 185],
-            textColor: 255,
-            fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-            fillColor: [240, 240, 240]
-        }
-    });
+            const rowData = [
+                index + 1,
+                doc.counterRef || doc.outgoingPaymentNo || doc.docNum || doc.reimburseNo || '-',
+                doc.requesterName || '-',
+                payToName,
+                doc.docDate ? new Date(doc.docDate).toLocaleDateString() : (doc.postingDate ? new Date(doc.postingDate).toLocaleDateString() : (doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-')),
+                doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : (doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : (doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : '-')),
+                calculatedTotalAmount.toLocaleString(),
+                getStatusDisplay(doc)
+            ];
+            tableRows.push(rowData);
+        });
 
-    // Save PDF
-    const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
+        // Generate table
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 35,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 1,
+                overflow: 'linebreak',
+                halign: 'left'
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [240, 240, 240]
+            }
+        });
+
+        // Save PDF
+        const fileName = `Outgoing_Payments_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        console.log('PDF file generated successfully:', fileName);
+    } catch (error) {
+        console.error('Error generating PDF file:', error);
+        alert('Error generating PDF file. Please try again.');
+    }
 }
 
 // Add debugging for navigation functions
@@ -1206,8 +1282,18 @@ function detailDoc(opId) {
 
 // Load dashboard using the same approach as Purchase Request
 window.onload = function () {
+    // Check if required libraries are loaded
+    console.log('Checking required libraries...');
+    console.log('XLSX available:', typeof XLSX !== 'undefined');
+    console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+    
     // Load initial data and dashboard counts
     loadDashboard();
+    
+    // Ensure filteredDocuments is available globally
+    if (!window.filteredDocuments) {
+        window.filteredDocuments = [];
+    }
 
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
