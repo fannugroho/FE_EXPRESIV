@@ -119,14 +119,15 @@ async function fetchPreparedDocuments(userId) {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
 
             // Debug logging for first few documents
             if (allDocuments.indexOf(doc) < 3) {
-                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isPrepared=${isPrepared}`);
+                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isPrepared=${isPrepared}, checkedBy="${approval.checkedBy}", currentUser="${userId}", isCheckedByCurrentUser=${isCheckedByCurrentUser}`);
             }
 
-            // Show documents with "Prepared" status that need to be checked
-            return isPrepared;
+            // Show documents with "Prepared" status that need to be checked by current user
+            return isPrepared && isCheckedByCurrentUser;
         });
 
         console.log('Filtered documents with Prepared status needing approval:', preparedDocs);
@@ -152,17 +153,19 @@ async function fetchCheckedDocuments(userId) {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            const isRejected = status.toLowerCase() === 'rejected';
 
             // Debug logging for first few documents
             if (allDocuments.indexOf(doc) < 3) {
-                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isPrepared=${isPrepared}`);
+                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isPrepared=${isPrepared}, checkedBy="${approval.checkedBy}", currentUser="${userId}", isCheckedByCurrentUser=${isCheckedByCurrentUser}, isRejected=${isRejected}`);
             }
 
-            // Return all documents EXCEPT "Prepared" (what has been executed)
-            return !isPrepared;
+            // Return documents that are NOT "Prepared" and NOT "Rejected" and checked by current user
+            return !isPrepared && !isRejected && isCheckedByCurrentUser;
         });
 
-        console.log('All documents except Prepared returned for checked tab:', checkedDocs.length);
+        console.log('All documents except Prepared and Rejected returned for checked tab:', checkedDocs.length);
 
         console.log('Filtered documents with Checked status:', checkedDocs);
         return checkedDocs;
@@ -182,22 +185,23 @@ async function fetchRejectedDocuments(userId) {
         const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
         console.log('All documents:', allDocuments);
 
-        // Filter documents that have been rejected
+        // Filter documents that have been rejected by current user
         const rejectedDocs = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId || approval.checkedBy === userId;
 
             // Debug logging for first few documents
             if (allDocuments.indexOf(doc) < 3) {
-                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}`);
+                console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}, rejectedBy="${approval.rejectedBy}", checkedBy="${approval.checkedBy}", currentUser="${userId}", isRejectedByCurrentUser=${isRejectedByCurrentUser}`);
             }
 
-            // Return documents with "Rejected" status
-            return isRejected;
+            // Return documents with "Rejected" status that were rejected by current user
+            return isRejected && isRejectedByCurrentUser;
         });
 
-        console.log('Filtered documents with Rejected status:', rejectedDocs.length);
+        console.log('Filtered documents with Rejected status by current user:', rejectedDocs.length);
         return rejectedDocs;
     } catch (error) {
         console.error('Error in fetchRejectedDocuments:', error);
@@ -408,10 +412,11 @@ async function debugTabFunctionality() {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            // Show ALL documents that are "Prepared"
-            return isPrepared;
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            // Show documents that are "Prepared" and checked by current user
+            return isPrepared && isCheckedByCurrentUser;
         });
-        console.log('All Prepared documents:', preparedFiltered.length, preparedFiltered);
+        console.log('Prepared documents by current user:', preparedFiltered.length, preparedFiltered);
 
         // Test Checked tab
         console.log('=== TESTING CHECKED TAB ===');
@@ -419,19 +424,23 @@ async function debugTabFunctionality() {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            // Show all documents EXCEPT "Prepared"
-            return !isPrepared;
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            // Show documents that are NOT "Prepared" and NOT "Rejected" and checked by current user
+            return !isPrepared && !isRejected && isCheckedByCurrentUser;
         });
-        console.log('All documents except Prepared for checked tab:', checkedFiltered.length, checkedFiltered);
+        console.log('Checked documents by current user:', checkedFiltered.length, checkedFiltered);
 
         // Test Rejected tab
         console.log('=== TESTING REJECTED TAB ===');
         const rejectedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId || approval.checkedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         });
-        console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
+        console.log('Rejected documents by current user:', rejectedFiltered.length, rejectedFiltered);
 
         console.log('=== DEBUG: Tab Functionality Test Complete ===');
 
@@ -522,28 +531,33 @@ async function updateCounters(userId) {
         // Fetch all documents using the checkedBy endpoint
         const allDocuments = await fetchOutgoingPaymentDocuments('checkedBy', userId, false);
 
-        // Count documents by status
+        // Count documents by status - only count documents where current user is checkedBy
         const preparedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            // Count documents that need to be checked (status = "Prepared")
-            return isPrepared;
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            // Count documents that need to be checked (status = "Prepared") by current user
+            return isPrepared && isCheckedByCurrentUser;
         }).length;
 
-        // For checked count, count all documents EXCEPT "Prepared" (what has been executed)
+        // For checked count, count documents that have been processed by current user (not "Prepared" and not "Rejected")
         const checkedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            return !isPrepared;
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            return !isPrepared && !isRejected && isCheckedByCurrentUser;
         }).length;
 
-        // Count rejected documents
+        // Count rejected documents by current user
         const rejectedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId || approval.checkedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         }).length;
 
         const totalCount = allDocuments.length;
@@ -1121,23 +1135,28 @@ async function showAllDocuments() {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            return isPrepared;
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            return isPrepared && isCheckedByCurrentUser;
         }).length;
 
         const checkedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const isPrepared = status.toLowerCase() === 'prepared';
-            return !isPrepared; // All documents except Prepared (what has been executed)
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isCheckedByCurrentUser = approval.checkedBy === userId;
+            return !isPrepared && !isRejected && isCheckedByCurrentUser;
         }).length;
 
         const rejectedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId || approval.checkedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         }).length;
 
-        alert(`Total Documents: ${allDocs.length}\nPrepared (needing approval): ${preparedCount}\nChecked (executed): ${checkedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
+        alert(`Total Documents: ${allDocs.length}\nPrepared (by current user): ${preparedCount}\nChecked (by current user): ${checkedCount}\nRejected (by current user): ${rejectedCount}\n\nCheck browser console for detailed information.`);
 
     } catch (error) {
         console.error('Error in showAllDocuments:', error);
