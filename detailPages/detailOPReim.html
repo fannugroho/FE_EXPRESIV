@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,19 +8,23 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- API Documentation Comment -->
     <script>
         /**
-         * MAPPING KOLOM FORM DENGAN RESPONSE BODY API
-         * ============================================
+         * =============================================
+         * DETAIL OUTGOING PAYMENT REIMBURSEMENT FORM
+         * API Mapping Documentation
+         * =============================================
          * 
          * API Endpoint: https://expressiv.idsdev.site/api/staging-outgoing-payments/headers/{id}
-         * Method: GET (Load)
+         * Method: GET (Load Document Data)
          * 
-         * FORM FIELDS → API RESPONSE BODY MAPPING:
+         * FORM FIELDS → API RESPONSE MAPPING:
          * 
-         * HEADER FIELDS:
+         * === HEADER FIELDS ===
          * - CounterRef (Reimburse No) → counterRef
-         * - RequesterName (Requester Reimbursement) → requesterId (akan di-resolve ke nama)
+         * - RequesterName (Requester Reimbursement) → requesterId (resolved to name)
          * - Division (Division) → division
          * - CardName (Pay To) → cardName
          * - Address (Pay To Address) → address
@@ -27,378 +32,660 @@
          * - DocDueDate (Due Date) → docDueDate
          * - TaxDate (Tax Date) → taxDate
          * - DocNum (DocNum) → docNum
-         * - Comments (Comments) → comments
          * - JrnlMemo (Journal Memo) → jrnlMemo
          * - DocCurr (Document Currency) → docCurr
-         * - TypeOfTransaction (Type of Transaction) → type
          * - TrsfrDate (Transfer Date) → trsfrDate
          * - TrsfrAcct (Account Bank Transfer) → trsfrAcct
          * - TrsfrSum (Total Transfer) → trsfrSum
+         * - RemittanceRequestAmount (Remittance Request Amount) → RemittanceRequestAmount|remittanceRequestAmount
          * 
-         * STATUS FIELD (NEW):
-         * - Status (Current Approval Status) → approval.approvalStatus atau approval data
-         *   Status values: Prepared, Checked, Acknowledged, Approved, Received, Rejected
+         * === STATUS MANAGEMENT ===
+         * - Status (Current Approval Status) → approval.approvalStatus
+         *   Available values: Prepared, Checked, Acknowledged, Approved, Received, Rejected
          *   Display: Select dropdown (disabled, read-only)
          * 
-         * ATTACHMENT FIELDS:
-         * - attachment (File Upload) → attachments[]
-         * 
-         * TOTAL FIELDS:
+         * === CALCULATED TOTALS ===
          * - netTotal (Net Total) → calculated from lines[].sumApplied
-         * - totalTax (Total Tax) → not available in response
+         * - totalTax (Total Tax) → static value (0)
          * - totalAmountDue (Total Amount Due) → calculated from lines[].sumApplied
          * 
-         * REMARKS FIELDS:
-         * - remarks (Remarks) → not available in response
-         * - journalRemarks (Journal Remarks) → not available in response
-         * - rejectionRemarks (Rejection Reason) → approval.rejectionRemarks
-         * 
-         * TABLE LINES:
+         * === TABLE LINES ===
          * - AcctCode (G/L Account) → lines[].acctCode
          * - AcctName (Account Name) → lines[].acctName
-         * - description (Description) → lines[].descrip
-         * - Division (Division) → lines[].division
-         * - CurrencyItem (Currency Item) → lines[].currencyItem
+         * - Descrip (Description) → lines[].descrip
+         * - Division (Division) → lines[].divisionCode
+         * - CurrencyItem (Currency Item) → lines[].CurrencyItem|currencyItem
          * - DocTotal (Net Amount) → lines[].sumApplied
          * 
-         * APPROVAL FIELDS:
-         * - Approval.PreparedById (Proposed by) → approval.preparedBy
-         * - Approval.CheckedById (Checked by) → approval.checkedBy
-         * - Approval.AcknowledgedById (Acknowledged by) → approval.acknowledgedBy
-         * - Approval.ApprovedById (Approved by) → approval.approvedBy
-         * - Approval.ReceivedById (Received by) → approval.receivedBy
-         * - Approval.ClosedById (Closed by) → not available in response
+         * === APPROVAL WORKFLOW ===
+         * - Approval.PreparedByIdSearch (Proposed by) → approval.preparedByName
+         * - Approval.CheckedByIdSearch (Checked by) → approval.checkedByName
+         * - Approval.AcknowledgedByIdSearch (Acknowledged by) → approval.acknowledgedByName
+         * - Approval.ApprovedByIdSearch (Approved by) → approval.approvedByName
+         * - Approval.ReceivedByIdSearch (Received by) → approval.receivedByName
          * 
-         * FUNCTIONS:
-         * - loadDocumentData() → GET https://expressiv.idsdev.site/api/staging-outgoing-payments/headers/{id}
-         * - mapResponseToForm() → Maps API response back to form fields
-         * - displayApprovalStatus() → Displays current approval status with badge and date
+         * === ATTACHMENT MANAGEMENT ===
+         * - attachmentsList → attachments[] array
+         * - File operations: view, download via constructed URLs
+         * 
+         * === REMARKS SECTIONS ===
+         * - remarks (Remarks) → remarks
+         * - journalRemarks (Journal Remarks) → journalRemarks
+         * - rejectionRemarks (Rejection Reason) → approval.rejectionRemarks
+         * 
+         * CORE FUNCTIONS:
+         * - loadDocumentData() → Fetches and maps API data to form
+         * - mapResponseToForm() → Maps API response to form fields
+         * - displayApprovalStatus() → Shows current approval status
+         * - populateTableLines() → Populates data table
+         * - displayExistingAttachments() → Shows attachment list
          */
-        
-        // Base URL is now defined in auth.js as BASE_URL
     </script>
+
     <script src="../js/auth.js"></script>
     <script src="../js/detailOPReim.js"></script>
-    
+
     <style>
-        /* Dropdown styling */
+        /* ===================================== */
+        /* ENHANCED STYLING FOR DETAIL FORM     */
+        /* ===================================== */
+
+        /* Dropdown and Search Styling */
         .dropdown-item {
             padding: 8px 12px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s ease;
         }
+
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
+
         .search-dropdown {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             max-height: 200px;
             overflow-y: auto;
             z-index: 50;
         }
+
         .search-input:focus {
             border-color: #3b82f6;
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
-        
-        /* Currency summary styling */
+
+        /* Currency Summary Styling */
         #currencySummaryTable {
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 12px;
-            min-width: 200px;
+            padding: 16px;
+            min-width: 220px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
-        #currencySummaryTable .space-y-1 > div {
-            padding: 4px 0;
+
+        #currencySummaryTable .space-y-2>div {
+            padding: 6px 0;
             border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.2s ease;
         }
-        
-        #currencySummaryTable .space-y-1 > div:last-child {
+
+        #currencySummaryTable .space-y-2>div:last-child {
             border-bottom: none;
         }
-        
+
+        #currencySummaryTable .space-y-2>div:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+            border-radius: 4px;
+        }
+
+        /* Total Outstanding Transfers Styling */
         #totalOutstandingTransfers {
             font-family: 'Courier New', monospace;
             font-size: 14px;
-            line-height: 1.4;
+            line-height: 1.5;
             word-wrap: break-word;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.2s ease;
         }
-        
-        #totalOutstandingTransfers .space-y-2 > div {
-            padding: 8px 0;
+
+        #totalOutstandingTransfers:hover {
+            border-color: #d1d5db;
         }
-        
+
+        #totalOutstandingTransfers .space-y-3>div {
+            padding: 10px 0;
+            border-bottom: 1px dotted #d1d5db;
+        }
+
+        #totalOutstandingTransfers .space-y-3>div:last-child {
+            border-bottom: none;
+        }
+
         #totalOutstandingTransfers .font-semibold {
             color: #374151;
             font-weight: 600;
         }
-        
-        #totalOutstandingTransfers .text-sm {
-            font-size: 13px;
-            color: #4B5563;
+
+        /* Form Input Enhancements */
+        .form-input {
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Table Enhancements */
+        #VPM2 thead th {
+            background: linear-gradient(135deg, #e9d5ff 0%, #c4b5fd 100%);
+            color: #581c87;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        #VPM2 tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        #VPM2 tbody tr:hover {
+            background-color: #faf5ff;
+        }
+
+        #VPM2 tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        /* Attachment Styling */
+        .attachment-item {
+            transition: all 0.2s ease;
+        }
+
+        .attachment-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button Enhancements */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Status Badge Styling */
+        .status-prepared {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-checked {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-acknowledged {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-approved {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-received {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            #currencySummaryTable {
+                min-width: 100%;
+                margin-top: 1rem;
+            }
+
+            .flex.justify-end {
+                justify-content: flex-start;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Print-specific styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+            }
+
+            .bg-gradient-to-r {
+                background: white !important;
+            }
         }
     </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <!-- Main Container -->
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment Reimbursement</h2>
-        <br>
-        <div id="OVPM" class="grid grid-cols-2 gap-4">
-            <div>
-                <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
-                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Requester Reimbursement</h3>
-                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Division</h3>
-                <input type="text" id="Division" placeholder="Division" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <div style="display: none;">
-                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded bg-gray-100" readonly>
-                </div>
-                
-                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
-                <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
-                <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
 
-                
-                <!-- Attachments Display Section -->
-                <div class="mt-4" id="attachmentsSection">
-                    <h3 class="text-lg font-semibold mb-2">Attachments</h3>
-                    <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
-                        <!-- Attachments will be displayed here -->
+        <!-- Header Section -->
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="goToMenuOP()" type="button"
+                class="btn-primary bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 no-print">
+                ← Back to Menu
+            </button>
+            <h2 class="text-2xl font-bold text-center text-blue-900 flex-grow">
+                Detail Outgoing Payment Reimbursement
+            </h2>
+            <div class="w-24"></div> <!-- Spacer for centering -->
+        </div>
+
+        <!-- Main Form Content -->
+        <div id="OVPM" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+            <!-- Left Column -->
+            <div class="space-y-4">
+                <!-- Reimburse No -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Reimburse No</label>
+                    <input type="text" id="CounterRef" placeholder="Reimburse No"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Requester Reimbursement -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Requester Reimbursement</label>
+                    <input type="text" id="RequesterName" placeholder="Requester Reimbursement"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Pay To -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Pay To</label>
+                    <input type="text" id="CardName" placeholder="Pay To"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Hidden Pay To Address -->
+                <div class="hidden">
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Pay To Address</label>
+                    <input type="text" id="Address" placeholder="Pay To Address"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Document Date -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Document Date</label>
+                    <input type="date" id="DocDate"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Due Date -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Due Date</label>
+                    <input type="date" id="DocDueDate"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Attachments Section -->
+                <div class="bg-gray-50 p-4 rounded-lg border">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-semibold text-gray-700">Attachments</h3>
+                        <button onclick="refreshAttachments()"
+                            class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50 no-print">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="attachmentsList" class="min-h-16">
+                        <div class="loading-shimmer h-4 rounded mb-2"></div>
+                        <div class="loading-shimmer h-4 rounded w-3/4"></div>
                     </div>
                 </div>
-                
+
                 <!-- Print Out Reimbursement Section -->
-                <div class="mb-4" id="printOutReimbursementSection">
-                    <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
-                    <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
-                        <!-- Print Receive Reimbursement document will be displayed here -->
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 class="text-md font-medium mb-3 text-blue-800">Print Out Reimbursement</h4>
+                    <div id="printOutReimbursementList" class="min-h-16">
+                        <div class="loading-shimmer h-4 rounded mb-2"></div>
+                        <div class="loading-shimmer h-4 rounded w-2/3"></div>
                     </div>
                 </div>
-                
+
+                <!-- Hidden Doctype -->
                 <input type="hidden" id="Doctype" value="A">
             </div>
-            
-            <div>
-                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
-                <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
-                    <option value="Prepared">Prepared</option>
-                    <option value="Checked">Checked</option>
-                    <option value="Acknowledged">Acknowledged</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Received">Received</option>
-                    <option value="Rejected">Rejected</option>
-                </select>
-                
-                <h3 class="text-lg font-semibold mb-2">Journal Memo</h3>
-                <input type="text" id="JrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Currency</h3>
-                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
-                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
-                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
-                <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer" class="w-full p-2 border rounded bg-gray-100" readonly>
-                
 
+            <!-- Right Column -->
+            <div class="space-y-4">
+                <!-- DocNum -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">DocNum</label>
+                    <input type="text" id="DocNum" placeholder="DocNum"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Status</label>
+                    <select id="status" class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800"
+                        disabled>
+                        <option value="Prepared">Prepared</option>
+                        <option value="Checked">Checked</option>
+                        <option value="Acknowledged">Acknowledged</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Received">Received</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <!-- Journal Memo -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Journal Memo</label>
+                    <input type="text" id="JrnlMemo" placeholder="Journal Memo"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Remittance Request Currency -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Remittance Request Currency</label>
+                    <input type="text" id="DocCurr" placeholder="Document Currency"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" value="IDR" readonly>
+                </div>
+
+                <!-- Remittance Request Amount -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Remittance Request Amount</label>
+                    <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800 font-mono" readonly>
+                </div>
+
+                <!-- Transfer Date -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Transfer Date</label>
+                    <input type="date" id="TrsfrDate"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
+
+                <!-- Account Bank Transfer -->
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Account Bank Transfer</label>
+                    <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer"
+                        class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
+                </div>
             </div>
         </div>
-        
-        <table id="VPM2" class="w-full text-left border mt-2">
-            <thead class="bg-purple-100">
-                <br>
-                <tr>
-                    <th id="AcctCode" class="p-2">G/L Account</th>
-                    <th id="AcctName" class="p-2">Account Name</th>
-                    <th id="Descrip" class="p-2">Description</th>
-                    <th id="Division" class="p-2">Division</th>
-                    <th id="CurrencyItem" class="p-2">Currency</th>
-                    <th id="DocTotal" class="p-2">Net Amount</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <!-- Table rows will be populated dynamically -->
-            </tbody>
-        </table>
-        
-        <!--Net Total-->
-        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
-            <label>Net Total :</label>
-            <input type="text" id="netTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
+
+        <!-- Data Table Section -->
+        <div class="mb-6">
+            <table id="VPM2" class="w-full text-left border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+                <thead>
+                    <tr>
+                        <th class="p-3 border-b">G/L Account</th>
+                        <th class="p-3 border-b">Account Name</th>
+                        <th class="p-3 border-b">Description</th>
+                        <th class="p-3 border-b">Division</th>
+                        <th class="p-3 border-b">Currency</th>
+                        <th class="p-3 border-b text-right">Net Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Table rows will be populated dynamically -->
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-gray-500">
+                            <div class="loading-shimmer h-4 rounded mx-auto w-1/2 mb-2"></div>
+                            <div class="loading-shimmer h-4 rounded mx-auto w-1/3"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-        <!--WTax Total-->
-        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
-            <label>Total Tax:</label>
-            <input type="text" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly value="0.00">
+        <!-- Hidden Total Fields -->
+        <div class="hidden">
+            <!-- Net Total -->
+            <div class="flex justify-end space-x-2 mb-2">
+                <label class="font-semibold">Net Total:</label>
+                <input type="text" id="netTotal"
+                    class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
+                    readonly>
+            </div>
+
+            <!-- Total Tax -->
+            <div class="flex justify-end space-x-2 mb-2">
+                <label class="font-semibold">Total Tax:</label>
+                <input type="text" id="totalTax"
+                    class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
+                    readonly value="0.00">
+            </div>
         </div>
-         <!--Total Amount Due-->
-        <!-- Hidden Total Amount Due for internal calculation -->
+
+        <!-- Total Amount Due (Hidden for calculations) -->
         <input type="hidden" id="totalAmountDue" value="0">
-        
-        <div class="mt-4 flex justify-end space-x-2 items-start">
-            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
-        </div>
-        
-        <div class="mt-4 flex justify-end space-x-2">
-            <label class="font-semibold">Total Outstanding Transfers :</label>
-            <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
+
+        <!-- Currency Summary Display -->
+        <div class="flex justify-end mb-4">
+            <div id="currencySummaryTable" class="text-sm">
+                <div class="loading-shimmer h-6 rounded mb-2"></div>
+                <div class="loading-shimmer h-4 rounded w-3/4"></div>
+            </div>
         </div>
 
-        <div class="mt-4">
-            <label>Remarks</label>
-            <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly placeholder="No remarks available"></textarea>
-        </div>
-        <div class="mt-4">
-            <label>Journal Remarks</label>
-            <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly placeholder="No journal remarks available"></textarea>
+        <!-- Total Outstanding Transfers -->
+        <div class="flex flex-col items-end mb-6">
+            <label class="text-lg font-bold text-gray-800 mb-3">Total Outstanding Transfers:</label>
+            <div id="totalOutstandingTransfers"
+                class="w-full max-w-md p-4 border rounded-lg bg-gray-50 min-h-[80px] overflow-x-auto">
+                <div class="loading-shimmer h-4 rounded mb-2"></div>
+                <div class="loading-shimmer h-4 rounded w-4/5"></div>
+            </div>
         </div>
 
-        <!-- Rejection Remarks Display Section -->
-        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+        <!-- Remarks Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-lg font-semibold mb-2 text-gray-700">Remarks</label>
+                <textarea id="remarks"
+                    class="w-full p-3 border rounded-lg bg-gray-100 text-gray-800 min-h-[80px] resize-vertical" readonly
+                    placeholder="No remarks available"></textarea>
+            </div>
+            <div>
+                <label class="block text-lg font-semibold mb-2 text-gray-700">Journal Remarks</label>
+                <textarea id="journalRemarks"
+                    class="w-full p-3 border rounded-lg bg-gray-100 text-gray-800 min-h-[80px] resize-vertical" readonly
+                    placeholder="No journal remarks available"></textarea>
+            </div>
+        </div>
+
+        <!-- Rejection Remarks Section (Hidden by default) -->
+        <div id="rejectionRemarksSection" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold mb-3 text-red-600 flex items-center">
+                <span class="mr-2">⚠️</span>
+                Rejection Remarks
+            </h3>
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                <textarea id="rejectionRemarks"
+                    class="w-full p-3 border rounded-lg bg-white text-gray-800 text-sm min-h-[80px] resize-vertical"
+                    readonly placeholder="No rejection remarks"></textarea>
             </div>
         </div>
 
-        <!-- Approval section -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
-                <label><strong>Proposed by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.PreparedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+        <!-- Approval Section -->
+        <div class="bg-gray-50 p-6 rounded-lg border">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Approval Workflow</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                <!-- Proposed by -->
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Proposed by:</label>
+                    <div class="relative">
+                        <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User"
+                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                        <select id="Approval.PreparedById" class="hidden">
+                            <option value="" disabled selected>Select User</option>
+                        </select>
+                        <div id="Approval.PreparedByIdDropdown"
+                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.CheckedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+
+                <!-- Checked by -->
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Checked by:</label>
+                    <div class="relative">
+                        <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User"
+                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                        <select id="Approval.CheckedById" class="hidden">
+                            <option value="" disabled selected>Select User</option>
+                        </select>
+                        <div id="Approval.CheckedByIdDropdown"
+                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.AcknowledgedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+
+                <!-- Acknowledged by -->
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Acknowledged by:</label>
+                    <div class="relative">
+                        <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User"
+                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                        <select id="Approval.AcknowledgedById" class="hidden">
+                            <option value="" disabled selected>Select User</option>
+                        </select>
+                        <div id="Approval.AcknowledgedByIdDropdown"
+                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.ApprovedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+
+                <!-- Approved by -->
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Approved by:</label>
+                    <div class="relative">
+                        <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User"
+                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                        <select id="Approval.ApprovedById" class="hidden">
+                            <option value="" disabled selected>Select User</option>
+                        </select>
+                        <div id="Approval.ApprovedByIdDropdown"
+                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label id="received" class="mr-1"><strong>Received by :</strong></label>
-                <div class="relative">
-                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
-                    <select id="Approval.ReceivedById" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+
+                <!-- Received by -->
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Received by:</label>
+                    <div class="relative">
+                        <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User"
+                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                        <select id="Approval.ReceivedById" class="hidden">
+                            <option value="" disabled selected>Select User</option>
+                        </select>
+                        <div id="Approval.ReceivedByIdDropdown"
+                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    </div>
                 </div>
             </div>
         </div>
-        <br>
     </div>
 
+    <!-- JavaScript for Enhanced Functionality -->
     <script>
-        // Simplified and consistent currency formatting functions
+        /**
+         * Enhanced Currency Formatting Functions
+         * Consistent with the JavaScript module
+         */
         function formatCurrencyIDR(number) {
             if (number === null || number === undefined || number === '') {
                 return '0.00';
             }
-            
+
             let num;
             try {
                 if (typeof number === 'string') {
                     const cleanedStr = number.replace(/[^\d,.]/g, '');
-                    if (cleanedStr.length > 15) {
-                        num = Number(cleanedStr.replace(/,/g, ''));
-                    } else {
-                        num = parseFloat(cleanedStr.replace(/,/g, ''));
-                    }
+                    num = cleanedStr.length > 15 ?
+                        Number(cleanedStr.replace(/,/g, '')) :
+                        parseFloat(cleanedStr.replace(/,/g, ''));
                 } else {
                     num = Number(number);
                 }
-                
-                if (isNaN(num)) {
-                    return '0.00';
-                }
+
+                if (isNaN(num)) return '0.00';
             } catch (e) {
                 console.error('Error parsing number:', e);
                 return '0.00';
             }
-            
+
             const maxAmount = 100000000000000;
-            if (num > maxAmount) {
-                num = maxAmount;
-            }
-            
-            if (num >= 1e12) {
-                let strNum = num.toString();
-                let result = '';
-                let count = 0;
-                
-                for (let i = strNum.length - 1; i >= 0; i--) {
-                    result = strNum[i] + result;
-                    count++;
-                    if (count % 3 === 0 && i > 0) {
-                        result = ',' + result;
-                    }
-                }
-                
-                return result + '.00';
+            const limitedNum = Math.min(num, maxAmount);
+
+            if (limitedNum >= 1e12) {
+                return formatLargeNumberFallback(limitedNum);
             } else {
-                return num.toLocaleString('en-US', {
+                return limitedNum.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
             }
         }
 
+        function formatLargeNumberFallback(num) {
+            const strNum = num.toString();
+            let result = '';
+            let count = 0;
+
+            for (let i = strNum.length - 1; i >= 0; i--) {
+                result = strNum[i] + result;
+                count++;
+                if (count % 3 === 0 && i > 0) {
+                    result = ',' + result;
+                }
+            }
+
+            return result + '.00';
+        }
+
         function parseCurrencyIDR(formattedValue) {
             if (!formattedValue) return 0;
-            
+
             try {
                 const numericValue = formattedValue.toString().replace(/,/g, '');
                 return parseFloat(numericValue) || 0;
@@ -408,192 +695,339 @@
             }
         }
 
-
-
-        // Initialize currency inputs
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load data from API if document ID is provided in URL
-            loadDocumentData();
-        });
-
-        // Make functions available globally
-        window.formatCurrencyIDR = formatCurrencyIDR;
-        window.parseCurrencyIDR = parseCurrencyIDR;
-        
-        // Function to display Print Out Reimbursement document
+        /**
+         * Enhanced Print Functions for Reimbursement Documents
+         */
         function displayPrintOutReimbursement(reimbursementData) {
             const container = document.getElementById('printOutReimbursementList');
             if (!container) {
-                console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
+                console.warn('Print Out Reimbursement container not found');
                 return;
             }
-            
-            // Clear existing content
+
             container.innerHTML = '';
-            
-            // Get reimbursement ID from various possible sources
-            let reimbursementId = null;
-            
-            // Try to get from URL parameters first
+
+            const reimbursementId = getReimbursementIdFromSources(reimbursementData);
+            if (!reimbursementId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm italic">Reimbursement ID not found</p>';
+                return;
+            }
+
+            const printUrl = constructPrintReimbursementUrl(reimbursementId, reimbursementData);
+            const documentElement = createPrintDocumentElement(reimbursementId, printUrl);
+
+            container.appendChild(documentElement);
+        }
+
+        function getReimbursementIdFromSources(reimbursementData) {
             const urlParams = new URLSearchParams(window.location.search);
-            reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
-            
-            // If not in URL, try to get from form data
+            let reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
+
             if (!reimbursementId) {
                 const counterRefField = document.getElementById('CounterRef');
-                if (counterRefField && counterRefField.value) {
+                if (counterRefField?.value) {
                     reimbursementId = counterRefField.value;
                 }
             }
-            
-            // If still not found, try to get from reimbursement data
-            if (!reimbursementId && reimbursementData && reimbursementData.id) {
+
+            if (!reimbursementId && reimbursementData?.id) {
                 reimbursementId = reimbursementData.id;
             }
-            
-            if (!reimbursementId) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
-                return;
-            }
-            
-            // Build the Print Receive Reimbursement URL with parameters
+
+            return reimbursementId;
+        }
+
+        function constructPrintReimbursementUrl(reimbursementId, reimbursementData) {
             const baseUrl = window.location.origin;
             const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
-            
-            // Add additional parameters if available from reimbursement data
-            let fullUrl = printReimUrl;
-            if (reimbursementData) {
-                const params = new URLSearchParams();
-                
-                // Add all available parameters from reimbursement data
-                if (reimbursementData.cardName) params.append('payTo', encodeURIComponent(reimbursementData.cardName));
-                if (reimbursementData.counterRef) params.append('voucherNo', encodeURIComponent(reimbursementData.counterRef));
-                if (reimbursementData.docDate) params.append('submissionDate', reimbursementData.docDate);
-                if (reimbursementData.requesterName) params.append('preparedBy', encodeURIComponent(reimbursementData.requesterName));
-                if (reimbursementData.totalAmountDue) params.append('totalAmount', reimbursementData.totalAmountDue);
-                if (reimbursementData.docCurr) params.append('currency', reimbursementData.docCurr);
-                if (reimbursementData.comments) params.append('remarks', encodeURIComponent(reimbursementData.comments));
-                
-                // Add details if available
-                if (reimbursementData.lines && reimbursementData.lines.length > 0) {
-                    const details = reimbursementData.lines.map(line => ({
-                        category: line.category || '',
-                        accountName: line.acctName || '',
-                        glAccount: line.acctCode || '',
-                        description: line.descrip || '',
-                        amount: line.sumApplied || 0
-                    }));
-                    params.append('details', encodeURIComponent(JSON.stringify(details)));
+
+            if (!reimbursementData) return printReimUrl;
+
+            const params = new URLSearchParams();
+
+            const paramMappings = [
+                { key: 'payTo', value: reimbursementData.cardName },
+                { key: 'voucherNo', value: reimbursementData.counterRef },
+                { key: 'submissionDate', value: reimbursementData.docDate },
+                { key: 'preparedBy', value: reimbursementData.requesterName },
+                { key: 'totalAmount', value: reimbursementData.totalAmountDue },
+                { key: 'currency', value: reimbursementData.docCurr },
+                { key: 'remarks', value: reimbursementData.comments }
+            ];
+
+            paramMappings.forEach(mapping => {
+                if (mapping.value) {
+                    params.append(mapping.key, encodeURIComponent(mapping.value));
                 }
-                
-                // If we have parameters, append them to the URL
-                if (params.toString()) {
-                    fullUrl += '&' + params.toString();
-                }
+            });
+
+            if (reimbursementData.lines?.length > 0) {
+                const details = reimbursementData.lines.map(line => ({
+                    category: line.category || '',
+                    accountName: line.acctName || '',
+                    glAccount: line.acctCode || '',
+                    description: line.descrip || '',
+                    amount: line.sumApplied || 0
+                }));
+                params.append('details', encodeURIComponent(JSON.stringify(details)));
             }
-            
-            // Create the document item
+
+            return params.toString() ? `${printReimUrl}&${params.toString()}` : printReimUrl;
+        }
+
+        function createPrintDocumentElement(reimbursementId, printUrl) {
             const documentItem = document.createElement('div');
-            documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-            
+            documentItem.className = 'attachment-item flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200';
+
             const fileInfo = document.createElement('div');
-            fileInfo.className = 'flex items-center space-x-2';
-            
-            // Use a document icon for the print reimbursement
+            fileInfo.className = 'flex items-center space-x-3';
             fileInfo.innerHTML = `
-                <span class="text-lg">📄</span>
+                <span class="text-2xl">📄</span>
                 <div>
-                    <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
-                    <div class="text-xs text-gray-500">Document • PDF</div>
-                    <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
+                    <div class="font-semibold text-sm text-blue-800">Print Receive Reimbursement</div>
+                    <div class="text-xs text-gray-600">Document • PDF Format</div>
+                    <div class="text-xs text-blue-600 font-mono">ID: ${reimbursementId}</div>
                 </div>
             `;
-            
+
             const actions = document.createElement('div');
             actions.className = 'flex space-x-2';
-            
-            // View button
-            const viewBtn = document.createElement('button');
-            viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
-            viewBtn.innerHTML = 'View';
-            viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
-            
-            // Open in new tab button
-            const openBtn = document.createElement('button');
-            openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
-            openBtn.innerHTML = 'Open';
-            openBtn.onclick = () => openPrintReimbursement(fullUrl);
-            
+
+            const viewBtn = createActionButton('View', 'blue', () => viewPrintReimbursement(printUrl));
+            const openBtn = createActionButton('Open', 'green', () => openPrintReimbursement(printUrl));
+
             actions.appendChild(viewBtn);
             actions.appendChild(openBtn);
-            
+
             documentItem.appendChild(fileInfo);
             documentItem.appendChild(actions);
-            container.appendChild(documentItem);
+
+            return documentItem;
         }
 
-        // Function to view Print Reimbursement document
+        function createActionButton(text, color, clickHandler) {
+            const button = document.createElement('button');
+            button.className = `text-${color}-600 hover:text-${color}-800 text-sm px-3 py-1 rounded border border-${color}-300 hover:bg-${color}-50 transition-all duration-200 font-medium`;
+            button.innerHTML = text;
+            button.onclick = clickHandler;
+            return button;
+        }
+
         async function viewPrintReimbursement(url) {
             try {
-                // Show loading indicator
-                Swal.fire({
-                    title: 'Loading...',
-                    text: 'Loading Print Receive Reimbursement document...',
-                    icon: 'info',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    allowEnterKey: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Open the URL in a new window/tab
-                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                
+                showLoadingDialog('Loading Print Receive Reimbursement document...');
+
+                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=yes');
+
                 if (newWindow) {
-                    // Close loading indicator
                     Swal.close();
-                    
-                    // Show success message
-                    Swal.fire({
-                        title: 'Success',
-                        text: 'Print Receive Reimbursement document opened in new window',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
+                    showSuccessDialog('Print Receive Reimbursement document opened successfully');
                 } else {
-                    throw new Error('Failed to open document window');
+                    throw new Error('Failed to open document window. Please check your popup blocker settings.');
                 }
-                
+
             } catch (error) {
                 console.error('Error viewing Print Reimbursement document:', error);
-                
-                Swal.fire({
-                    title: 'Error',
-                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
+                showErrorDialog('Error', `Failed to open Print Receive Reimbursement document: ${error.message}`);
             }
         }
 
-        // Function to open Print Reimbursement document in new tab
         function openPrintReimbursement(url) {
             try {
                 window.open(url, '_blank');
             } catch (error) {
                 console.error('Error opening Print Reimbursement document:', error);
-                
-                Swal.fire({
-                    title: 'Error',
-                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
+                showErrorDialog('Error', `Failed to open Print Receive Reimbursement document: ${error.message}`);
             }
         }
+
+        /**
+         * Enhanced Dialog Functions
+         */
+        function showLoadingDialog(message) {
+            Swal.fire({
+                title: 'Loading...',
+                text: message,
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        function showSuccessDialog(message) {
+            Swal.fire({
+                title: 'Success',
+                text: message,
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3b82f6'
+            });
+        }
+
+        function showErrorDialog(title, message) {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+
+        /**
+         * Enhanced Page Initialization with Attachment Cleanup
+         */
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🚀 Initializing Detail Outgoing Payment Reimbursement page...');
+
+            // Remove loading shimmer effects
+            removeLoadingShimmers();
+
+            // Clear any existing attachment content to prevent duplication
+            clearAttachmentContainer();
+
+            // Load document data from API
+            loadDocumentData();
+
+            // Initialize responsive handlers
+            initializeResponsiveHandlers();
+
+            console.log('✅ Page initialization completed');
+        });
+
+        function clearAttachmentContainer() {
+            const container = document.getElementById('attachmentsList');
+            if (container) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Loading attachments...</p>';
+            }
+        }
+
+        function removeLoadingShimmers() {
+            const shimmers = document.querySelectorAll('.loading-shimmer');
+            shimmers.forEach(shimmer => {
+                shimmer.classList.remove('loading-shimmer');
+            });
+        }
+
+        function initializeResponsiveHandlers() {
+            // Handle window resize for responsive layout
+            window.addEventListener('resize', debounce(() => {
+                adjustLayoutForScreenSize();
+            }, 250));
+
+            // Initial layout adjustment
+            adjustLayoutForScreenSize();
+        }
+
+        function adjustLayoutForScreenSize() {
+            const screenWidth = window.innerWidth;
+            const currencySummary = document.getElementById('currencySummaryTable');
+            const totalTransfers = document.getElementById('totalOutstandingTransfers');
+
+            if (screenWidth < 768) {
+                // Mobile adjustments
+                if (currencySummary) {
+                    currencySummary.style.width = '100%';
+                    currencySummary.style.marginTop = '1rem';
+                }
+                if (totalTransfers) {
+                    totalTransfers.style.fontSize = '12px';
+                }
+            } else {
+                // Desktop adjustments
+                if (currencySummary) {
+                    currencySummary.style.width = '';
+                    currencySummary.style.marginTop = '';
+                }
+                if (totalTransfers) {
+                    totalTransfers.style.fontSize = '14px';
+                }
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        /**
+         * Global Function Exports for Backward Compatibility
+         */
+        window.formatCurrencyIDR = formatCurrencyIDR;
+        window.parseCurrencyIDR = parseCurrencyIDR;
+        window.displayPrintOutReimbursement = displayPrintOutReimbursement;
+        window.viewPrintReimbursement = viewPrintReimbursement;
+        window.openPrintReimbursement = openPrintReimbursement;
+
+        /**
+         * Enhanced Error Handling
+         */
+        window.addEventListener('error', function (event) {
+            console.error('Global error caught:', event.error);
+            // Don't show error to user for minor issues
+            if (event.error && event.error.message) {
+                const message = event.error.message.toLowerCase();
+                if (message.includes('network') || message.includes('fetch')) {
+                    console.warn('Network-related error detected, user may need to check connection');
+                }
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            // Prevent default browser behavior
+            event.preventDefault();
+        });
+
+        /**
+         * Enhanced Accessibility Features
+         */
+        document.addEventListener('keydown', function (event) {
+            // Enhanced keyboard navigation
+            if (event.altKey && event.key === 'b') {
+                // Alt+B: Go back to menu
+                event.preventDefault();
+                goToMenuOP();
+            }
+
+            if (event.altKey && event.key === 'r') {
+                // Alt+R: Refresh attachments
+                event.preventDefault();
+                refreshAttachments();
+            }
+        });
+
+        /**
+         * Print Optimization
+         */
+        window.addEventListener('beforeprint', function () {
+            // Hide non-essential elements before printing
+            const noprint = document.querySelectorAll('.no-print');
+            noprint.forEach(element => {
+                element.style.display = 'none';
+            });
+        });
+
+        window.addEventListener('afterprint', function () {
+            // Restore elements after printing
+            const noprint = document.querySelectorAll('.no-print');
+            noprint.forEach(element => {
+                element.style.display = '';
+            });
+        });
     </script>
 </body>
-</html> 
+
+</html>

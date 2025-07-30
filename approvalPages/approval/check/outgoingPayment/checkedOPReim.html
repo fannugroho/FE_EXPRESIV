@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../../../../js/auth.js"></script>
     <script src="checkedOPReim.js"></script>
-
+    
     <style>
         /* Dropdown styling */
         .dropdown-item {
@@ -18,40 +17,37 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
-
         .search-dropdown {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             max-height: 200px;
             overflow-y: auto;
             z-index: 50;
         }
-
         .search-input:focus {
             border-color: #3b82f6;
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
-
+        
         /* Custom scrollbar styling */
         textarea::-webkit-scrollbar {
             height: 4px;
             width: 4px;
         }
-
+        
         textarea::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 10px;
         }
-
+        
         textarea::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 10px;
         }
-
+        
         textarea::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
@@ -60,36 +56,31 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuCheckOPReim()" type="button"
-            class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button onclick="goToMenuCheckOPReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Outgoing Payment Reimbursement Check</h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Document Number</h3>
-                <input type="text" id="CounterRef" placeholder="Document Number"
-                    class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                <h3 class="text-lg font-semibold mb-2">Counter Reference</h3>
+                <input type="text" id="CounterRef" placeholder="Counter Reference" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Prepared By</h3>
-                <input type="text" id="RequesterName" placeholder="Prepared By"
-                    class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                <input type="text" id="RequesterName" placeholder="Prepared By" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Card Name</h3>
-                <input type="text" id="CardName" placeholder="Card Name" class="w-full p-2 border rounded bg-gray-100"
-                    readonly>
-
+                <input type="text" id="CardName" placeholder="Card Name" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <div style="display: none;">
                     <h3 class="text-lg font-semibold mb-2">Address</h3>
-                    <input type="text" id="Address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100"
-                        readonly>
+                    <input type="text" id="Address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" readonly>
                 </div>
-
+                
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                
                 <!-- Attachments Display Section -->
                 <div class="mt-4" id="attachmentsSection">
                     <h3 class="text-lg font-semibold mb-2">Attachments</h3>
@@ -97,23 +88,22 @@
                         <!-- Attachments will be displayed here -->
                     </div>
                 </div>
-
-                <!-- Print Out AR Invoice Section -->
+                
+                <!-- Print Out Reimbursement Section -->
                 <div class="mb-4" id="printOutReimbursementSection">
-                    <h4 class="text-md font-medium mb-2 text-gray-700">Print AR Invoice</h4>
+                    <h4 class="text-md font-medium mb-2 text-gray-700">Print Outgoing Payment Reimbursement</h4>
                     <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
-                        <!-- Print AR Invoice document will be displayed here -->
+                        <!-- Print Outgoing Payment Reimbursement document will be displayed here -->
                     </div>
                 </div>
-
+                
                 <input type="hidden" id="Doctype" value="A">
             </div>
-
+            
             <div>
-                <h3 class="text-lg font-semibold mb-2">Document Number</h3>
-                <input type="text" id="DocNum" placeholder="Document Number"
-                    class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                <h3 class="text-lg font-semibold mb-2">Reimbursement Number</h3>
+                <input type="text" id="DocNum" placeholder="Reimbursement Number" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Prepared">Prepared</option>
@@ -123,27 +113,21 @@
                     <option value="Received">Received</option>
                     <option value="Rejected">Rejected</option>
                 </select>
-
+                
                 <h3 class="text-lg font-semibold mb-2">Comments</h3>
-                <input type="text" id="JrnlMemo" placeholder="Comments" class="w-full p-2 border rounded bg-gray-100"
-                    readonly>
-
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Currency</h3>
-                <input type="text" id="DocCurr" placeholder="Remittance Request Currency"
-                    class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
-                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
-                <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount"
-                    class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                <input type="text" id="JrnlMemo" placeholder="Comments" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
+                <h3 class="text-lg font-semibold mb-2">Document Currency</h3>
+                <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded bg-gray-100" value="IDR" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="TrsfrDate" class="w-full p-2 border rounded bg-gray-100" readonly>
-
+                
                 <h3 class="text-lg font-semibold mb-2">Payment Group</h3>
-                <input type="text" id="TrsfrAcct" placeholder="Payment Group"
-                    class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="TrsfrAcct" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" readonly>
             </div>
         </div>
-
+        
         <table id="VPM2" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
@@ -151,8 +135,6 @@
                     <th id="AcctCode" class="p-2">G/L Account</th>
                     <th id="AcctName" class="p-2">Item Code</th>
                     <th id="Descrip" class="p-2">Description</th>
-                    <th id="Division" class="p-2">Division</th>
-                    <th id="Currency" class="p-2">Currency</th>
                     <th id="DocTotal" class="p-2">Line Total</th>
                 </tr>
             </thead>
@@ -160,26 +142,59 @@
                 <!-- Table rows will be populated by JavaScript -->
             </tbody>
         </table>
+        
+        <!-- Hidden Total Fields -->
+        <div class="hidden">
+            <!-- Net Total -->
+            <div class="flex justify-end space-x-2 mb-2">
+                <label class="font-semibold">Net Total:</label>
+                <input type="text" id="netTotal"
+                    class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
+                    readonly>
+            </div>
 
+            <!-- Total Tax -->
+            <div class="flex justify-end space-x-2 mb-2">
+                <label class="font-semibold">Total Tax:</label>
+                <input type="text" id="totalTax"
+                    class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
+                    readonly value="0.00">
+            </div>
+        </div>
 
+        <!-- Total Amount Due (Hidden for calculations) -->
+        <input type="hidden" id="totalAmountDue" value="0">
 
-        <!-- Currency Summary -->
-        <div class="mt-4 flex justify-end space-x-2 items-start">
-            <div id="currencySummaryTable" class="ml-4 min-w-[300px] text-base"></div>
+        <!-- Currency Summary Display -->
+        <div class="flex justify-end mb-4">
+            <div id="currencySummaryTable" class="text-sm" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; min-width: 220px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                <div class="loading-shimmer h-6 rounded mb-2"></div>
+                <div class="loading-shimmer h-4 rounded w-3/4"></div>
+            </div>
         </div>
 
         <!-- Total Outstanding Transfers -->
+        <div class="flex flex-col items-end mb-6">
+            <label class="text-lg font-bold text-gray-800 mb-3">Total Outstanding Transfers:</label>
+            <div id="totalOutstandingTransfers"
+                class="w-full max-w-md p-4 border rounded-lg bg-gray-50 min-h-[80px] overflow-x-auto" 
+                style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; word-wrap: break-word; background: #f9fafb; border: 2px solid #e5e7eb; transition: border-color 0.2s ease;">
+                <div class="loading-shimmer h-4 rounded mb-2"></div>
+                <div class="loading-shimmer h-4 rounded w-4/5"></div>
+            </div>
+        </div>
+
+        <!--Document Total-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label class="text-lg font-bold text-gray-800">Total Outstanding Transfers :</label>
-            <span id="totalOutstandingTransfers"
-                class="w-96 p-3 border rounded bg-gray-50 min-h-[80px] block whitespace-nowrap overflow-x-auto text-base"></span>
+            <label>Document Total :</label>
+            <input type="text" id="TrsfrSum" placeholder="Document Total" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly>
         </div>
 
         <div class="mt-4">
             <label>Comments</label>
             <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
         </div>
-
+        
         <div class="mt-4">
             <label>Journal Remarks</label>
             <textarea id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
@@ -189,9 +204,7 @@
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks"
-                    class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
-                    readonly></textarea>
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
             </div>
         </div>
 
@@ -206,15 +219,14 @@
                 <!-- Dynamic revision content will be inserted here by JavaScript -->
             </div>
         </div>
-
+            
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div>
+            <div> 
                 <label><strong>Proposed by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User"
-                        class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
                     <select id="preparedBy" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -223,8 +235,7 @@
             <div>
                 <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User"
-                        class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
                     <select id="checkedBy" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -233,8 +244,7 @@
             <div>
                 <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User"
-                        class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
                     <select id="acknowledgedBy" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -243,8 +253,7 @@
             <div>
                 <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User"
-                        class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
                     <select id="approvedBy" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -253,8 +262,7 @@
             <div>
                 <label id="received" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User"
-                        class="w-full p-1 border rounded search-input bg-gray-100" readonly>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly>
                     <select id="receivedBy" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
@@ -266,14 +274,10 @@
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="rejectOPReim()" id="rejectButton"
-                    class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed"
-                    disabled>
+                <button onclick="rejectOPReim()" id="rejectButton" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
                     Reject
                 </button>
-                <button onclick="approveOPReim()" id="approveButton"
-                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed"
-                    disabled>
+                <button onclick="approveOPReim()" id="approveButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
                     Checked
                 </button>
             </div>
@@ -282,127 +286,125 @@
 
     <script>
         // Revision functionality has been removed
-
-        // Function to display Print AR Invoice document
-        function displayPrintOutReimbursement(arInvoiceData) {
+        
+        // Function to display Print Outgoing Payment Reimbursement document
+        function displayPrintOutReimbursement(opReimData) {
             const container = document.getElementById('printOutReimbursementList');
             if (!container) {
-                console.warn('Print AR Invoice container not found: printOutReimbursementList');
+                console.warn('Print Outgoing Payment Reimbursement container not found: printOutReimbursementList');
                 return;
             }
-
+            
             // Clear existing content
             container.innerHTML = '';
-
-            // Get AR Invoice ID from various possible sources
-            let arInvoiceId = null;
-
+            
+            // Get Outgoing Payment Reimbursement ID from various possible sources
+            let opReimId = null;
+            
             // Try to get from URL parameters first
             const urlParams = new URLSearchParams(window.location.search);
-            arInvoiceId = urlParams.get('id');
-
+            opReimId = urlParams.get('id');
+            
             // If not in URL, try to get from form data
-            if (!arInvoiceId) {
-                const documentNumberField = document.getElementById('CounterRef');
+            if (!opReimId) {
+                const documentNumberField = document.getElementById('DocNum');
                 if (documentNumberField && documentNumberField.value) {
-                    arInvoiceId = documentNumberField.value;
+                    opReimId = documentNumberField.value;
                 }
             }
-
-            // If still not found, try to get from AR Invoice data
-            if (!arInvoiceId && arInvoiceData && arInvoiceData.stagingID) {
-                arInvoiceId = arInvoiceData.stagingID;
+            
+            // If still not found, try to get from OP Reim data
+            if (!opReimId && opReimData && opReimData.stagingID) {
+                opReimId = opReimData.stagingID;
             }
-
-            if (!arInvoiceId) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">AR Invoice ID not found</p>';
+            
+            if (!opReimId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Outgoing Payment Reimbursement ID not found</p>';
                 return;
             }
-
-            // Build the Print AR Invoice URL with parameters
+            
+            // Build the Print Outgoing Payment Reimbursement URL with parameters
             const baseUrl = window.location.origin;
-            const printArInvoiceUrl = `${baseUrl}/approvalPages/approval/receive/arInvoice/printArInvoice.html?ar-invoice-id=${arInvoiceId}`;
-
-            // Add additional parameters if available from AR Invoice data
-            let fullUrl = printArInvoiceUrl;
-            if (arInvoiceData) {
+            const printOPReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html?op-reim-id=${opReimId}`;
+            
+            // Add additional parameters if available from OP Reim data
+            let fullUrl = printOPReimUrl;
+            if (opReimData) {
                 const params = new URLSearchParams();
-
-                // Add all available parameters from AR Invoice data
-                if (arInvoiceData.cardName) params.append('cardName', encodeURIComponent(arInvoiceData.cardName));
-                if (arInvoiceData.documentNumber) params.append('documentNumber', encodeURIComponent(arInvoiceData.documentNumber));
-                if (arInvoiceData.docDate) params.append('docDate', arInvoiceData.docDate);
-                if (arInvoiceData.preparedByName) params.append('preparedBy', encodeURIComponent(arInvoiceData.preparedByName));
-                if (arInvoiceData.documentTotal) params.append('documentTotal', arInvoiceData.documentTotal);
-                if (arInvoiceData.documentCurrency) params.append('currency', arInvoiceData.documentCurrency);
-                if (arInvoiceData.comments) params.append('comments', encodeURIComponent(arInvoiceData.comments));
-
-                // Add details if available
-                if (arInvoiceData.arInvoiceDetails && arInvoiceData.arInvoiceDetails.length > 0) {
-                    const details = arInvoiceData.arInvoiceDetails.map(detail => ({
-                        itemCode: detail.itemCode || '',
-                        description: detail.description || '',
-                        glAccount: detail.glAccount || '',
-                        quantity: detail.quantity || 0,
-                        unitPrice: detail.unitPrice || 0,
-                        lineTotal: detail.lineTotal || 0
+                
+                // Add all available parameters from OP Reim data
+                if (opReimData.cardName) params.append('cardName', encodeURIComponent(opReimData.cardName));
+                if (opReimData.docNum) params.append('documentNumber', encodeURIComponent(opReimData.docNum));
+                if (opReimData.docDate) params.append('docDate', opReimData.docDate);
+                if (opReimData.requesterName) params.append('preparedBy', encodeURIComponent(opReimData.requesterName));
+                if (opReimData.trsfrSum) params.append('documentTotal', opReimData.trsfrSum);
+                if (opReimData.docCurr) params.append('currency', opReimData.docCurr);
+                if (opReimData.jrnlMemo) params.append('comments', encodeURIComponent(opReimData.jrnlMemo));
+                
+                // Add line details if available
+                if (opReimData.lines && opReimData.lines.length > 0) {
+                    const details = opReimData.lines.map(line => ({
+                        acctCode: line.acctCode || '',
+                        acctName: line.acctName || '',
+                        descrip: line.descrip || '',
+                        sumApplied: line.sumApplied || 0
                     }));
                     params.append('details', encodeURIComponent(JSON.stringify(details)));
                 }
-
+                
                 // If we have parameters, append them to the URL
                 if (params.toString()) {
                     fullUrl += '&' + params.toString();
                 }
             }
-
+            
             // Create the document item
             const documentItem = document.createElement('div');
             documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-
+            
             const fileInfo = document.createElement('div');
             fileInfo.className = 'flex items-center space-x-2';
-
-            // Use a document icon for the print AR Invoice
+            
+            // Use a document icon for the print Outgoing Payment Reimbursement
             fileInfo.innerHTML = `
                 <span class="text-lg">📄</span>
                 <div>
-                    <div class="font-medium text-sm text-blue-800">Print AR Invoice</div>
+                    <div class="font-medium text-sm text-blue-800">Print Outgoing Payment Reimbursement</div>
                     <div class="text-xs text-gray-500">Document • PDF</div>
-                    <div class="text-xs text-blue-600">AR Invoice ID: ${arInvoiceId}</div>
+                    <div class="text-xs text-blue-600">OP Reim ID: ${opReimId}</div>
                 </div>
             `;
-
+            
             const actions = document.createElement('div');
             actions.className = 'flex space-x-2';
-
+            
             // View button
             const viewBtn = document.createElement('button');
             viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
             viewBtn.innerHTML = 'View';
             viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
-
+            
             // Open in new tab button
             const openBtn = document.createElement('button');
             openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
             openBtn.innerHTML = 'Open';
             openBtn.onclick = () => openPrintReimbursement(fullUrl);
-
+            
             actions.appendChild(viewBtn);
             actions.appendChild(openBtn);
-
+            
             documentItem.appendChild(fileInfo);
             documentItem.appendChild(actions);
             container.appendChild(documentItem);
         }
 
-        // Function to view Print AR Invoice document
+        // Function to view Print Outgoing Payment Reimbursement document
         async function viewPrintReimbursement(url) {
             try {
                 // Show loading indicator
                 Swal.fire({
                     title: 'Loading...',
-                    text: 'Loading Print AR Invoice document...',
+                    text: 'Loading Print Outgoing Payment Reimbursement document...',
                     icon: 'info',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
@@ -412,47 +414,47 @@
                         Swal.showLoading();
                     }
                 });
-
+                
                 // Open the URL in a new window/tab
                 const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-
+                
                 if (newWindow) {
                     // Close loading indicator
                     Swal.close();
-
+                    
                     // Show success message
                     Swal.fire({
                         title: 'Success',
-                        text: 'Print AR Invoice document opened in new window',
+                        text: 'Print Outgoing Payment Reimbursement document opened in new window',
                         icon: 'success',
                         confirmButtonText: 'OK'
                     });
                 } else {
                     throw new Error('Failed to open document window');
                 }
-
+                
             } catch (error) {
-                console.error('Error viewing Print AR Invoice document:', error);
-
+                console.error('Error viewing Print Outgoing Payment Reimbursement document:', error);
+                
                 Swal.fire({
                     title: 'Error',
-                    text: `Failed to open Print AR Invoice document: ${error.message}`,
+                    text: `Failed to open Print Outgoing Payment Reimbursement document: ${error.message}`,
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
             }
         }
 
-        // Function to open Print AR Invoice document in new tab
+        // Function to open Print Outgoing Payment Reimbursement document in new tab
         function openPrintReimbursement(url) {
             try {
                 window.open(url, '_blank');
             } catch (error) {
-                console.error('Error opening Print AR Invoice document:', error);
-
+                console.error('Error opening Print Outgoing Payment Reimbursement document:', error);
+                
                 Swal.fire({
                     title: 'Error',
-                    text: `Failed to open Print AR Invoice document: ${error.message}`,
+                    text: `Failed to open Print Outgoing Payment Reimbursement document: ${error.message}`,
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
@@ -460,5 +462,4 @@
         }
     </script>
 </body>
-
-</html>
+</html> 
