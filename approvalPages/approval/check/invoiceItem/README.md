@@ -1,155 +1,220 @@
-# Invoice Item Check Pages
+# Check Invoice Item - PATCH API Implementation
 
 ## Overview
-This directory contains the invoice item checking functionality for the approval system. The pages allow checkers to review and approve/reject invoice items with the same structure as the add invoice item page but with read-only functionality and approval workflow.
+This document describes the implementation of PATCH API functionality for the Check Invoice Item page, allowing users to check or reject invoice items with proper status management.
 
-## Files
+## Features Implemented
 
-### 1. checkInvItem.html
-**Purpose**: Main interface for checking invoice items
+### 1. Button Visibility Management
+- **Checked Button**: Only visible when document status is "Prepared"
+- **Reject Button**: Only visible when document status is "Prepared"
+- **Status Messages**: Display informative messages for non-actionable statuses
 
-**Key Features**:
-- **Read-only Display**: All form fields are disabled and display data in read-only mode
-- **Same Structure**: Uses identical column structure as `addINVItem.html`
-- **Approval Workflow**: Implements checker approval functionality similar to `checkedPR.html`
-- **Responsive Design**: Maintains responsive table layout with horizontal scrolling
-- **Text Wrapping**: Automatic text wrapping for long content in table cells
+### 2. API PATCH Implementation
+- **Endpoint**: `PATCH /api/ar-invoices/approval/{stagingID}`
+- **Status Updates**: 
+  - "Checked" when Checked button is clicked
+  - "Rejected" when Reject button is clicked
+- **Additional Data**: Includes user information, timestamps, and rejection remarks
 
-**Form Fields**:
-- **Header Information**: Invoice No., Customer Code, Customer Name, Base Ref, Currency
-- **Document Details**: Document Date, Group Number, Transport Code, Shipping Type, Payment Group, UDF fields
-- **Item Table**: Same columns as add page (No., Item Code, Item Name, Catatan, Sales Qty, Inv. Qty, Sales Price, Price, Disc, Tax Code, Total Price)
-- **Totals**: Total Before Discount, Total Tax, Total Amount
-- **Comments**: Read-only comments field
-- **Approval Info**: Prepared by, Acknowledge by, Checked by, Approved by, Received by (all read-only)
+### 3. Status Validation
+- Only documents with status "Prepared" can be checked or rejected
+- Proper error messages for invalid actions
+- Status-based UI updates
 
-**Action Buttons**:
-- **Reject**: Reject the invoice item with remarks
-- **Checked**: Approve the invoice item for checking
+### 4. Rejection Remarks Display
+- **Conditional Display**: Rejection remarks section only shows when `revisionRemarks` or `rejectionRemarks` has valid value
+- **Validation**: Checks for null, undefined, empty string, and whitespace-only values
+- **Fallback Logic**: Checks both `revisionRemarks` and `rejectionRemarks` fields from API response
+- **Default State**: Section is hidden by default in HTML
 
-### 2. checkInvItem.js
-**Purpose**: JavaScript functionality for the invoice item checking page
+## API Payload Structure
 
-**Key Functions**:
-- `initializePage()`: Initialize page and load data
-- `loadInvItemData()`: Load invoice item data from URL parameters
-- `loadInvItemFromAPI()`: Simulate API call to load invoice item data
-- `populateInvItemData()`: Populate form fields with loaded data
-- `populateItemsTable()`: Populate items table with invoice line items
-- `createItemRow()`: Create table row for each item
-- `approveInvItem()`: Handle approval action with confirmation
-- `rejectInvItem()`: Handle rejection action with remarks input
-- `updateInvItemStatus()`: Update invoice item status via API
-- `goToMenuCheckInvItem()`: Navigation back to check menu
-
-**Data Structure**:
-```javascript
+### For Checked Status
+```json
 {
-    DocEntry: "123",
-    DocNum: "INV-2024-001",
-    CardCode: "C001",
-    CardName: "PT Sample Customer",
-    NumAtCard: "EXT-REF-001",
-    DocCur: "IDR",
-    DocDate: "2024-01-15",
-    GroupNum: 1,
-    TrnspCode: 1,
-    U_BSI_ShippingType: "Standard",
-    U_BSI_PaymentGroup: "Group A",
-    U_BSI_UDF1: "Custom Field 1",
-    U_BSI_UDF2: "Custom Field 2",
-    PriceBefDi: 1000000,
-    VatSum: 100000,
-    DocTotal: 1100000,
-    Comments: "Sample invoice item for checking",
-    Items: [
-        {
-            LineNum: 0,
-            ItemCode: "ITEM001",
-            ItemName: "Sample Item 1",
-            FreeTxt: "Sample notes for item 1",
-            Quantity: 10,
-            InvQty: 10,
-            UoM: "PCS",
-            SalesPrice: 50000,
-            Price: 50000,
-            DiscPrcnt: 0,
-            TaxCode: "VAT",
-            LineTotal: 500000,
-            AccountCode: "4000",
-            BaseType: 0,
-            BaseEntry: 0,
-            BaseLine: 0,
-            LineType: 0
-        }
-    ],
-    ApprovalInfo: {
-        PreparedBy: "John Doe",
-        AcknowledgeBy: "Jane Smith",
-        CheckedBy: "",
-        ApprovedBy: "",
-        ReceivedBy: ""
-    },
-    Status: "Draft",
-    RejectionRemarks: ""
+  "approvalStatus": "Checked",
+  "checkedBy": "kansaiEmployeeId",
+  "checkedByName": "User Full Name",
+  "checkedDate": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
 }
 ```
 
-## Key Differences from Add Page
+### For Rejected Status
+```json
+{
+  "approvalStatus": "Rejected",
+  "checkedBy": "kansaiEmployeeId",
+  "checkedByName": "User Full Name",
+  "checkedDate": "2024-01-01T00:00:00.000Z",
+  "rejectionRemarks": "Reason for rejection",
+  "rejectedDate": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
 
-### 1. Read-only Mode
-- All form fields are disabled and have gray background
-- No editing capabilities for data fields
-- Table cells are read-only with disabled inputs
+## Status Flow
 
-### 2. Approval Workflow
-- **Reject Button**: Allows rejection with mandatory remarks
-- **Checked Button**: Approves the invoice item for checking
-- **No Revision**: Removed revision functionality unlike `checkedPR.html`
+### Document Statuses
+1. **Draft**: Initial status, not ready for checking
+2. **Prepared**: Ready for checking (buttons visible)
+3. **Checked**: Document has been checked
+4. **Rejected**: Document has been rejected
+5. **Approved**: Document has been approved
+6. **Received**: Document has been received
 
-### 3. Data Display
-- Shows existing approval information
-- Displays rejection remarks if document was previously rejected
-- All totals are calculated and displayed
+### Button Visibility Rules
+- **Prepared**: Both Checked and Reject buttons visible
+- **Other Statuses**: Buttons hidden, status message displayed
 
-### 4. Navigation
-- Back button navigates to invoice item check menu
-- Success actions redirect to check menu
+## Functions Implemented
+
+### `updateButtonVisibility()`
+- Controls button visibility based on document status
+- Shows appropriate status messages for non-actionable statuses
+- Updates UI dynamically when data loads
+
+### `approveInvItem()`
+- Handles Checked button click
+- Validates document status is "Prepared"
+- Shows confirmation dialog
+- Calls PATCH API with "Checked" status
+
+### `rejectInvItem()`
+- Handles Reject button click
+- Validates document status is "Prepared"
+- Shows dialog for rejection remarks
+- Calls PATCH API with "Rejected" status and remarks
+
+### `updateInvItemStatus(status, remarks)`
+- Core PATCH API implementation
+- Prepares payload based on status
+- Handles API response and error cases
+- Shows success/error messages
+- Navigates back to menu on success
+
+## User Data Management
+
+### `fetchUsers()`
+- Fetches all users from API endpoint `/api/users`
+- Stores user data including kansaiEmployeeId and fullName
+- Called during page initialization
+- Non-critical error handling (doesn't block page functionality)
+
+### `getCurrentUserKansaiEmployeeId()`
+- Finds current user in fetched user data
+- Returns kansaiEmployeeId if available
+- Falls back to userId/username if kansaiEmployeeId not found
+- Used for checkedBy field in API payload
+
+### `getCurrentUserFullName()`
+- Finds current user in fetched user data
+- Returns fullName if available
+- Falls back to username if fullName not found
+- Used for checkedByName field in API payload
+
+## Error Handling
+
+### API Errors
+- Network errors
+- Server errors (500)
+- Not found errors (404)
+- Invalid response format
+
+### Validation Errors
+- Invalid document status for action
+- Missing rejection remarks
+- No document data available
+
+## UI Components
+
+### Buttons
+- **Checked Button**: Green button for approving documents
+- **Reject Button**: Red button for rejecting documents
+- Both buttons have proper hover effects and transitions
+
+### Status Messages
+- **Checked**: Blue background with checkmark icon
+- **Rejected**: Red background with X icon
+- **Approved**: Green background with checkmark icon
+- **Draft**: Yellow background with warning icon
+- **Other**: Gray background with info icon
+
+## Development Mode
+- Bypasses authentication for development
+- Uses dummy user data
+- Enables testing without login
 
 ## Usage
 
-### Accessing the Page
-```
-URL: checkInvItem.html?docEntry=123
-```
+### Loading the Page
+1. Navigate to the check invoice item page with `stagingId` parameter
+2. Page automatically loads document data
+3. Buttons are shown/hidden based on status
+4. Status message displayed if buttons are hidden
 
-### Workflow
-1. **Load Data**: Page loads invoice item data based on `docEntry` parameter
-2. **Review**: Checker reviews all invoice item details in read-only mode
-3. **Decision**: Checker can either:
-   - **Approve**: Click "Checked" button to approve
-   - **Reject**: Click "Reject" button and provide remarks
-4. **Navigation**: After action, redirects to check menu
+### Checking a Document
+1. Ensure document status is "Prepared"
+2. Click "Checked" button
+3. Confirm action in dialog
+4. API updates status to "Checked"
+5. Success message shown
+6. Redirect to menu
 
-## Dependencies
-- `auth.js`: User authentication and current user functions
-- `sweetalert2`: For confirmation dialogs and notifications
-- `tailwindcss`: For styling and responsive design
+### Rejecting a Document
+1. Ensure document status is "Prepared"
+2. Click "Reject" button
+3. Enter rejection remarks
+4. Confirm action in dialog
+5. API updates status to "Rejected"
+6. Success message shown
+7. Redirect to menu
 
-## Integration Points
-- **API Integration**: Replace mock data with actual API calls
-- **Menu Integration**: Connect to invoice item check dashboard
-- **Authentication**: Integrate with existing auth system
-- **Database**: Connect to invoice item database tables
+## Technical Details
 
-## Styling Features
-- **Responsive Table**: Horizontal scrolling for wide tables
-- **Text Wrapping**: Automatic wrapping for long content
-- **Consistent Design**: Matches existing approval page styling
-- **Accessibility**: Proper ARIA labels and keyboard navigation
+### API Configuration
+- **Base URL**: `https://expressiv-be-sb.idsdev.site/api`
+- **Method**: PATCH
+- **Headers**: 
+  - `accept: text/plain`
+  - `Content-Type: application/json`
 
-## Security Considerations
-- **Authentication**: Requires valid user session
-- **Authorization**: Only checkers can access this page
-- **Data Validation**: Server-side validation for all inputs
-- **Audit Trail**: Log all approval/rejection actions 
+### Data Flow
+1. Load user data from API to get kansaiEmployeeId and full name
+2. Load document data from API
+3. Populate form fields
+4. Update button visibility
+5. Handle user actions
+6. Validate status
+7. Prepare API payload with kansaiEmployeeId and full name
+8. Make PATCH request
+9. Handle response
+10. Show feedback
+11. Navigate if successful
+
+### Security Considerations
+- Status validation prevents unauthorized actions
+- User information included in API calls
+- Proper error handling for all scenarios
+- Input validation for rejection remarks
+
+## Testing
+
+### Test Cases
+1. **Valid Check**: Document with "Prepared" status
+2. **Valid Reject**: Document with "Prepared" status + remarks
+3. **Invalid Status**: Try to check/reject non-Prepared documents
+4. **Network Error**: Test with invalid API endpoint
+5. **Server Error**: Test with server issues
+6. **Missing Data**: Test with incomplete document data
+
+### Test Scenarios
+- Load page with valid stagingId
+- Load page with invalid stagingId
+- Check document successfully
+- Reject document successfully
+- Try to check already checked document
+- Try to reject already rejected document
+- Test with different document statuses
+- Test error handling scenarios 

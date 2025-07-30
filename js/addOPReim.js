@@ -997,6 +997,8 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
                         acctCode: detail.glAccount || '',
                         acctName: detail.accountName || '',
                         descrip: detail.description || '',
+                        currencyItem: detail.currencyItem || 'IDR',
+                        division: detail.division || '',
                         sumApplied: detail.amount || 0
                     };
                     addRowWithData(lineData);
@@ -1158,6 +1160,22 @@ function addRowWithData(lineData) {
         </div>
     `;
 
+    // Division field with dropdown
+    const divisionCell = newRow.insertCell();
+    divisionCell.className = 'p-2 border';
+    const divisionInputId = `Division_${rowId}`;
+    const divisionCodeInputId = `DivisionCode_${rowId}`;
+    const divisionDropdownId = `Division_${rowId}Dropdown`;
+    divisionCell.innerHTML = `
+        <div class="relative">
+            <input type="text" id="${divisionInputId}" maxlength="255" class="w-full division-search-input" 
+                   autocomplete="off" onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
+                   placeholder="Enter Division" value="${lineData.division || ''}" />
+            <input type="hidden" id="${divisionCodeInputId}" value="${lineData.divisionCode || ''}" />
+            <div id="${divisionDropdownId}" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
+        </div>
+    `;
+
     // Editable amount field
     const amountCell = newRow.insertCell();
     amountCell.className = 'p-2 border';
@@ -1196,6 +1214,26 @@ function addRowWithData(lineData) {
         if (amountInput) {
             ['input', 'change', 'blur'].forEach(evt => {
                 amountInput.addEventListener(evt, updateTotalAmountDue);
+            });
+        }
+
+        // Division input
+        const divisionInput = newRow.querySelector('.division-search-input');
+        if (divisionInput) {
+            console.log('🏢 Setting up division input event listeners for:', divisionInput.id);
+            divisionInput.addEventListener('input', function () {
+                keepDivisionDropdownOpen(this);
+            });
+
+            divisionInput.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+                    e.preventDefault();
+                    const dropdownId = this.id + 'Dropdown';
+                    const dropdown = document.getElementById(dropdownId);
+                    if (dropdown && dropdown.children.length > 0) {
+                        console.log('🏢 Keyboard navigation in division dropdown');
+                    }
+                }
             });
         }
     }, 10);
@@ -1521,14 +1559,20 @@ function updateTotalAmountDue() {
 
 // Currency search and selection functions
 async function searchCurrencies(inputElement) {
-    console.log('searchCurrencies called with:', inputElement.value);
+    console.log('🔍 searchCurrencies called');
+    console.log('  - Input element:', inputElement);
+    console.log('  - Input value:', inputElement.value);
+    console.log('  - Input ID:', inputElement.id);
 
     const searchTerm = inputElement.value.trim();
     const dropdownId = inputElement.id + 'Dropdown';
+    console.log('  - Looking for dropdown with ID:', dropdownId);
+
     const dropdown = document.getElementById(dropdownId);
+    console.log('  - Dropdown element found:', dropdown);
 
     if (!dropdown) {
-        console.error('Dropdown not found for ID:', dropdownId);
+        console.error('❌ Dropdown not found for ID:', dropdownId);
         return;
     }
 
@@ -1537,6 +1581,8 @@ async function searchCurrencies(inputElement) {
         if (searchTerm.length > 0) {
             url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
         }
+        console.log('  - API URL:', url);
+        console.log('  - BASE_URL:', BASE_URL);
 
         const response = await makeAuthenticatedRequest(url, {
             method: 'GET',
@@ -1544,32 +1590,50 @@ async function searchCurrencies(inputElement) {
                 'Content-Type': 'application/json'
             }
         });
+        console.log('  - Response status:', response.status);
+        console.log('  - Response ok:', response.ok);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('  - API result:', result);
+        console.log('  - Result status:', result.status);
+        console.log('  - Result data length:', result.data?.length);
 
-        if (result.success && result.data && result.data.length > 0) {
+        if (result.status && result.data && result.data.length > 0) {
+            console.log('  ✅ Displaying currency results');
             displayCurrencyResults(dropdown, result.data);
+            dropdown.style.display = 'block';
             dropdown.classList.remove('hidden');
         } else {
+            console.log('  ❌ No currencies to display or status false');
+            dropdown.style.display = 'none';
             dropdown.classList.add('hidden');
         }
     } catch (error) {
-        console.error('Error searching currencies:', error);
+        console.error('❌ Error searching currencies:', error);
         dropdown.innerHTML = '<div class="dropdown-item text-red-500">Error loading currencies. Please try again.</div>';
+        dropdown.style.display = 'block';
         dropdown.classList.remove('hidden');
     }
 }
 
 function showCurrencyDropdown(inputElement) {
+    console.log('👆 showCurrencyDropdown called');
+    console.log('  - Input element:', inputElement);
+    console.log('  - Input ID:', inputElement?.id);
+
     const dropdownId = inputElement.id + 'Dropdown';
     const dropdown = document.getElementById(dropdownId);
+    console.log('  - Dropdown ID:', dropdownId);
+    console.log('  - Dropdown found:', dropdown);
 
     if (dropdown) {
         searchCurrencies(inputElement);
+    } else {
+        console.error('❌ Dropdown not found in showCurrencyDropdown');
     }
 }
 
@@ -1591,9 +1655,11 @@ function displayCurrencyResults(dropdown, currencies) {
 }
 
 function selectCurrency(currency, dropdown) {
+    console.log('💰 selectCurrency called:', currency);
     const inputElement = dropdown.previousElementSibling;
     if (inputElement) {
         inputElement.value = currency.code;
+        dropdown.style.display = 'none';
         dropdown.classList.add('hidden');
 
         inputElement.style.backgroundColor = '#f0f9ff';
@@ -1617,6 +1683,7 @@ function initializeCurrencyDropdownHandlers() {
         currencyDropdowns.forEach(dropdown => {
             const inputElement = dropdown.previousElementSibling;
             if (!dropdown.contains(e.target) && !inputElement.contains(e.target)) {
+                dropdown.style.display = 'none';
                 dropdown.classList.add('hidden');
             }
         });
@@ -1761,6 +1828,7 @@ function populateFormFields(data) {
                 acctName: item.acctName || '',
                 descrip: item.descrip || '',
                 currencyItem: item.CurrencyItem || item.currencyItem || '',
+                division: item.Division || item.division || '',
                 sumApplied: item.sumApplied || 0
             };
             addRowWithData(lineData);
@@ -1817,7 +1885,7 @@ async function submitDocument(isSubmit = false) {
     console.log('=== SUBMIT DOCUMENT STARTED ===');
     console.log('Is Submit:', isSubmit);
     console.log('Current URL:', window.location.href);
-    
+
     // Get reimbursement ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const reimbursementId = urlParams.get('reimbursement-id');
@@ -2092,26 +2160,34 @@ function collectFormData(userId, isSubmit) {
 
     tableRows.forEach((row, index) => {
         // Look for inputs with multiple possible selectors
-        const acctCodeInput = row.querySelector('input[id="AcctCode"]') ||
-            row.querySelector('input[id^="AcctCode_"]') ||
+        const acctCodeInput = row.querySelector('input[id^="AcctCode_"]') ||
+            row.querySelector('input[id="AcctCode"]') ||
             row.querySelector('td:first-child input');
 
-        const acctNameInput = row.querySelector('input[id="AcctName"]') ||
-            row.querySelector('input[id^="AcctName_"]') ||
+        const acctNameInput = row.querySelector('input[id^="AcctName_"]') ||
+            row.querySelector('input[id="AcctName"]') ||
             row.querySelector('td:nth-child(2) input');
 
-        const descriptionInput = row.querySelector('input[id="description"]') ||
-            row.querySelector('input[id^="description_"]') ||
+        const descriptionInput = row.querySelector('input[id^="description_"]') ||
+            row.querySelector('input[id="description"]') ||
             row.querySelector('td:nth-child(3) input');
 
-        const currencyItemInput = row.querySelector('input[id="CurrencyItem"]') ||
-            row.querySelector('input[id^="CurrencyItem_"]') ||
+        const currencyItemInput = row.querySelector('input[id^="CurrencyItem_"]') ||
+            row.querySelector('input[id="CurrencyItem"]') ||
             row.querySelector('td:nth-child(4) input');
 
-        const docTotalInput = row.querySelector('input[id="DocTotal"]') ||
-            row.querySelector('input[id^="DocTotal_"]') ||
+        const divisionInput = row.querySelector('input[id^="Division_"]') ||
+            row.querySelector('input[id="Division"]') ||
+            row.querySelector('td:nth-child(5) input[type="text"]');
+
+        const divisionCodeInput = row.querySelector('input[id^="DivisionCode_"]') ||
+            row.querySelector('input[id="DivisionCode"]') ||
+            row.querySelector('td:nth-child(5) input[type="hidden"]');
+
+        const docTotalInput = row.querySelector('input[id^="DocTotal_"]') ||
+            row.querySelector('input[id="DocTotal"]') ||
             row.querySelector('input.currency-input-idr') ||
-            row.querySelector('td:nth-child(5) input');
+            row.querySelector('td:nth-child(6) input');
 
         // Parse amount using IDR format if available
         let parsedAmount = 0;
@@ -2128,16 +2204,20 @@ function collectFormData(userId, isSubmit) {
             acctNameInput: acctNameInput,
             descriptionInput: descriptionInput,
             currencyItemInput: currencyItemInput,
+            divisionInput: divisionInput,
+            divisionCodeInput: divisionCodeInput,
             docTotalInput: docTotalInput,
             acctCodeValue: acctCodeInput ? acctCodeInput.value : 'N/A',
             acctNameValue: acctNameInput ? acctNameInput.value : 'N/A',
             descriptionValue: descriptionInput ? descriptionInput.value : 'N/A',
             currencyItemValue: currencyItemInput ? currencyItemInput.value : 'N/A',
+            divisionValue: divisionInput ? divisionInput.value : 'N/A',
+            divisionCodeValue: divisionCodeInput ? divisionCodeInput.value : 'N/A',
             docTotalValue: docTotalInput ? docTotalInput.value : 'N/A',
             parsedAmount: parsedAmount
         });
 
-        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && docTotalInput) {
+        if (acctCodeInput && acctNameInput && descriptionInput && currencyItemInput && divisionInput && docTotalInput) {
             // Parse amount using IDR format if available
             let amount = 0;
             if (typeof window.parseCurrencyIDR === 'function') {
@@ -2155,6 +2235,8 @@ function collectFormData(userId, isSubmit) {
                 acctName: acctNameInput.value || "",
                 descrip: descriptionInput.value || "",
                 CurrencyItem: currencyItemValue, // Backend expects CurrencyItem (capital C and I)
+                Division: divisionCodeInput ? divisionCodeInput.value || "" : "", // Backend expects Division field (division name from hidden input)
+                DivisionCode: divisionInput.value || "", // Backend expects DivisionCode field (division code from visible input)
                 sumApplied: amount,
                 category: "REIMBURSEMENT",
                 ocrCode3: "", // Backend expects OcrCode3 field
@@ -2704,6 +2786,8 @@ function mapResponseToForm(responseData) {
                 acctName: detail.accountName || '',
                 descrip: detail.description || '',
                 currencyItem: detail.currencyItem || 'IDR',
+                division: detail.divisionCode || detail.division || '', // Show division code in display
+                divisionCode: detail.division || '', // Store division name in hidden field
                 sumApplied: detail.amount || 0
             };
             addRowWithData(lineData);
@@ -3600,6 +3684,7 @@ document.addEventListener('click', function (event) {
     // Hide currency dropdowns
     currencyDropdowns.forEach(dropdown => {
         if (!event.target.closest('[id*="tdCurrencyItem"]') && !event.target.closest('[id*="CurrencyItemDropdown"]')) {
+            dropdown.style.display = 'none';
             dropdown.classList.add('hidden');
         }
     });
@@ -3614,6 +3699,106 @@ window.searchCurrencies = searchCurrencies;
 window.showCurrencyDropdown = showCurrencyDropdown;
 window.selectCurrency = selectCurrency;
 // Debug: Check if functions are properly loaded
+console.log('🚀 Currency dropdown functions loaded');
+console.log('  - searchCurrencies:', typeof searchCurrencies);
+console.log('  - showCurrencyDropdown:', typeof showCurrencyDropdown);
+console.log('  - selectCurrency:', typeof selectCurrency);
+
+// Test function for currency dropdown
+window.testCurrencyDropdown = function () {
+    console.log('🧪 Testing currency dropdown...');
+
+    // Find currency input
+    const currencyInput = document.getElementById('CurrencyItem_0');
+    console.log('  - Currency input found:', currencyInput);
+
+    if (currencyInput) {
+        console.log('  - Calling showCurrencyDropdown...');
+        showCurrencyDropdown(currencyInput);
+    } else {
+        console.error('  ❌ Currency input not found');
+    }
+};
+
+console.log('  - testCurrencyDropdown function created. You can call window.testCurrencyDropdown() from console.');
+
+// Test API connectivity immediately
+window.testAPIConnectivity = async function () {
+    console.log('🌐 Testing API connectivity...');
+    console.log('  - BASE_URL:', BASE_URL);
+
+    try {
+        const url = `${BASE_URL}/api/MasterCurrency/search`;
+        console.log('  - Testing URL:', url);
+
+        const response = await makeAuthenticatedRequest(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log('  - Response status:', response.status);
+        const result = await response.json();
+        console.log('  - API Response:', result);
+        console.log('  ✅ API connectivity test successful');
+        return result;
+    } catch (error) {
+        console.error('  ❌ API connectivity test failed:', error);
+        return null;
+    }
+};
+
+console.log('  - testAPIConnectivity function created. You can call window.testAPIConnectivity() from console.');
+
+// Comprehensive test for entire currency dropdown flow
+window.testCurrencyDropdownComplete = async function () {
+    console.log('🧪 Running complete currency dropdown test...');
+
+    // Step 1: Test API connectivity
+    console.log('Step 1: Testing API connectivity...');
+    const apiResult = await window.testAPIConnectivity();
+    if (!apiResult) {
+        console.error('❌ API test failed, stopping');
+        return;
+    }
+
+    // Step 2: Test DOM elements
+    console.log('Step 2: Testing DOM elements...');
+    const input = document.getElementById('CurrencyItem_0');
+    const dropdown = document.getElementById('CurrencyItem_0Dropdown');
+
+    if (!input) {
+        console.error('❌ Currency input not found');
+        return;
+    }
+    if (!dropdown) {
+        console.error('❌ Currency dropdown not found');
+        return;
+    }
+    console.log('✅ DOM elements found');
+
+    // Step 3: Test currency dropdown function
+    console.log('Step 3: Testing currency dropdown function...');
+    await window.testCurrencyDropdown();
+
+    // Step 4: Check if dropdown became visible
+    setTimeout(() => {
+        const dropdownStyle = window.getComputedStyle(dropdown);
+        const isVisible = dropdownStyle.display !== 'none' && !dropdown.classList.contains('hidden');
+
+        if (isVisible) {
+            console.log('✅ COMPLETE TEST PASSED: Currency dropdown is working!');
+        } else {
+            console.error('❌ COMPLETE TEST FAILED: Dropdown is not visible');
+            console.log('  - Display style:', dropdownStyle.display);
+            console.log('  - Has hidden class:', dropdown.classList.contains('hidden'));
+            console.log('  - Dropdown innerHTML length:', dropdown.innerHTML.length);
+        }
+    }, 2000);
+};
+
+console.log('  - testCurrencyDropdownComplete function created. Run window.testCurrencyDropdownComplete() for full test.');
 console.log('GL Account dropdown functions loaded');
 console.log('searchGLAccount function:', typeof searchGLAccount);
 console.log('searchAccountName function:', typeof searchAccountName);
@@ -3886,7 +4071,7 @@ function displayAccountNameDropdownCustom(accounts, dropdown, input, acctCodeInp
 async function updateTransferOutgoingStatus(reimbursementId, transferOutgoing) {
     try {
         console.log(`Updating TransferOutgoing status for reimbursement ${reimbursementId} to ${transferOutgoing}`);
-        
+
         const requestData = {
             Id: reimbursementId,
             TransferOutgoing: transferOutgoing
@@ -3908,7 +4093,7 @@ async function updateTransferOutgoingStatus(reimbursementId, transferOutgoing) {
 
         const result = await response.json();
         console.log('TransferOutgoing status update response:', result);
-        
+
         return result;
     } catch (error) {
         console.error('Error updating TransferOutgoing status:', error);
@@ -3960,3 +4145,550 @@ function generateGuidFromString(str) {
         hash.slice(20, 32)
     ].join('-');
 }
+// ===== DIVISION SEARCH FUNCTIONALITY - ENHANCED FIX =====
+
+// Global variables for division functionality
+let divisionSearchTimeout = null;
+let isDebugMode = true; // Set to false in production
+
+// Debug logging function
+function debugLog(message, data = null) {
+    if (isDebugMode) {
+        console.log(`🏢 [DIVISION DEBUG] ${message}`, data || '');
+    }
+}
+
+// Enhanced division search function
+async function searchDivisions(inputElement) {
+    debugLog('searchDivisions called', {
+        element: inputElement,
+        value: inputElement.value,
+        id: inputElement.id
+    });
+
+    const searchTerm = inputElement.value.trim();
+    const dropdownId = inputElement.id + 'Dropdown';
+
+    debugLog('Looking for dropdown with ID', dropdownId);
+
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) {
+        console.error('❌ Division dropdown not found for ID:', dropdownId);
+        return;
+    }
+
+    // Clear previous timeout to prevent multiple requests
+    if (divisionSearchTimeout) {
+        clearTimeout(divisionSearchTimeout);
+    }
+
+    // Show loading state immediately
+    dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">🔍 Searching divisions...</div>';
+    dropdown.style.display = 'block';
+    dropdown.classList.remove('hidden');
+
+    // Debounce the search to avoid too many API calls
+    divisionSearchTimeout = setTimeout(async () => {
+        await performDivisionSearch(inputElement, searchTerm, dropdown);
+    }, 300);
+}
+
+// Perform the actual division search API call
+async function performDivisionSearch(inputElement, searchTerm, dropdown) {
+    try {
+        debugLog('Performing division search', { searchTerm, baseUrl: BASE_URL });
+
+        // Construct API URL
+        let url = `${BASE_URL}/api/MasterDivision/search`;
+        if (searchTerm.length > 0) {
+            url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
+        }
+
+        debugLog('API URL constructed', url);
+
+        // Make authenticated request
+        const response = await makeAuthenticatedRequest(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        debugLog('API Response received', {
+            status: response.status,
+            ok: response.ok
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            debugLog('API Response data', result);
+
+            if (result.status && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                debugLog('Displaying division results', result.data.length + ' divisions found');
+                displayDivisionResults(dropdown, result.data, inputElement);
+            } else {
+                debugLog('No divisions found');
+                dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">❌ No divisions found</div>';
+            }
+        } else {
+            console.error('❌ Division API failed:', response.status);
+            const errorText = await response.text();
+            debugLog('API Error response', errorText);
+            dropdown.innerHTML = '<div class="p-3 text-red-500 text-sm">❌ Error loading divisions</div>';
+        }
+    } catch (error) {
+        console.error('❌ Division search error:', error);
+        dropdown.innerHTML = '<div class="p-3 text-red-500 text-sm">❌ Network error</div>';
+    }
+
+    // Ensure dropdown stays visible
+    dropdown.style.display = 'block';
+    dropdown.classList.remove('hidden');
+}
+
+// Show division dropdown (triggered on focus)
+function showDivisionDropdown(inputElement) {
+    debugLog('showDivisionDropdown called', inputElement.id);
+
+    const dropdownId = inputElement.id + 'Dropdown';
+    const dropdown = document.getElementById(dropdownId);
+
+    if (!dropdown) {
+        console.error('❌ Dropdown not found:', dropdownId);
+        return;
+    }
+
+    // Show dropdown with initial content
+    if (inputElement.value.trim().length > 0) {
+        // If there's already text, search immediately
+        searchDivisions(inputElement);
+    } else {
+        // Show instruction message
+        dropdown.innerHTML = '<div class="p-3 text-blue-500 text-sm">💡 Type to search divisions...</div>';
+        dropdown.style.display = 'block';
+        dropdown.classList.remove('hidden');
+
+        // Load all divisions if no search term
+        performDivisionSearch(inputElement, '', dropdown);
+    }
+}
+
+// Display division search results
+function displayDivisionResults(dropdown, divisions, inputElement) {
+    debugLog('Displaying division results', divisions.length + ' divisions');
+
+    dropdown.innerHTML = '';
+
+    divisions.forEach((division, index) => {
+        debugLog(`Division ${index}`, division);
+
+        const item = document.createElement('div');
+        item.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 transition-colors duration-150 division-dropdown-item';
+
+        // Create comprehensive display
+        item.innerHTML = `
+            <div class="font-semibold text-blue-600">${division.divisionCode || 'N/A'}</div>
+            <div class="text-sm text-gray-700">${division.divisionName || 'N/A'}</div>
+            <div class="text-xs text-gray-500">${division.description || ''}</div>
+        `;
+
+        // Add click event with proper closure
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            debugLog('Division item clicked', division);
+            selectDivision(division, dropdown, inputElement);
+        });
+
+        // Add hover effects
+        item.addEventListener('mouseenter', function () {
+            this.style.backgroundColor = '#dbeafe';
+        });
+
+        item.addEventListener('mouseleave', function () {
+            this.style.backgroundColor = '';
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    if (divisions.length === 0) {
+        dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">❌ No divisions found</div>';
+    }
+
+    debugLog('Division results displayed successfully');
+}
+
+// Select a division from the dropdown
+function selectDivision(division, dropdown, inputElement) {
+    debugLog('selectDivision called', {
+        division: division,
+        inputElement: inputElement?.id
+    });
+
+    // Find the container and related inputs
+    const container = dropdown.parentElement;
+    const textInput = container.querySelector('input[type="text"]') || inputElement;
+    const hiddenInput = container.querySelector('input[type="hidden"]');
+
+    debugLog('Division selection elements', {
+        container: container,
+        textInput: textInput?.id,
+        hiddenInput: hiddenInput?.id,
+        divisionCode: division.divisionCode,
+        divisionName: division.divisionName
+    });
+
+    if (textInput && hiddenInput) {
+        // Set values according to requirements:
+        // - Visible field shows division code
+        // - Hidden field stores division name for backend
+        textInput.value = division.divisionCode || '';
+        hiddenInput.value = division.divisionName || '';
+
+        // Hide dropdown
+        dropdown.style.display = 'none';
+        dropdown.classList.add('hidden');
+
+        // Visual feedback
+        textInput.style.backgroundColor = '#f0f9ff';
+        textInput.style.borderColor = '#3b82f6';
+
+        setTimeout(() => {
+            textInput.style.backgroundColor = '';
+            textInput.style.borderColor = '';
+        }, 2000);
+
+        // Set helpful attributes
+        textInput.title = `${division.divisionCode} - ${division.divisionName}`;
+        textInput.setAttribute('data-division-name', division.divisionName);
+        textInput.setAttribute('data-division-code', division.divisionCode);
+
+        // Trigger change events for other scripts that might be listening
+        const changeEvent = new Event('change', { bubbles: true });
+        const inputEvent = new Event('input', { bubbles: true });
+        textInput.dispatchEvent(changeEvent);
+        textInput.dispatchEvent(inputEvent);
+
+        debugLog('Division selected successfully', {
+            displayValue: division.divisionCode,
+            hiddenValue: division.divisionName,
+            title: textInput.title
+        });
+    } else {
+        console.error('❌ Required input elements not found for division selection');
+        debugLog('Missing elements', {
+            textInput: !!textInput,
+            hiddenInput: !!hiddenInput
+        });
+    }
+}
+
+// Enhanced event handler setup for division inputs
+function setupDivisionEventHandlers() {
+    debugLog('Setting up division event handlers');
+
+    // Setup for existing division inputs
+    const divisionInputs = document.querySelectorAll('input[id*="Division_"]:not([type="hidden"])');
+    debugLog('Found division inputs', divisionInputs.length);
+
+    divisionInputs.forEach((input, index) => {
+        debugLog(`Setting up handlers for input ${index}`, input.id);
+
+        // Remove existing event handlers to prevent duplicates
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+
+        // Get fresh reference
+        const freshInput = document.getElementById(newInput.id);
+
+        // Add comprehensive event handlers
+        freshInput.addEventListener('input', function (e) {
+            debugLog('Division input event', this.value);
+            searchDivisions(this);
+        });
+
+        freshInput.addEventListener('keyup', function (e) {
+            debugLog('Division keyup event', { key: e.key, value: this.value });
+            if (e.key === 'Escape') {
+                hideDivisionDropdown(this);
+            } else {
+                searchDivisions(this);
+            }
+        });
+
+        freshInput.addEventListener('focus', function (e) {
+            debugLog('Division focus event', this.id);
+            showDivisionDropdown(this);
+        });
+
+        freshInput.addEventListener('click', function (e) {
+            debugLog('Division click event', this.id);
+            showDivisionDropdown(this);
+        });
+
+        // Keyboard navigation
+        freshInput.addEventListener('keydown', function (e) {
+            const dropdownId = this.id + 'Dropdown';
+            const dropdown = document.getElementById(dropdownId);
+
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                const items = dropdown.querySelectorAll('.division-dropdown-item');
+                let currentIndex = -1;
+
+                // Find currently highlighted item
+                items.forEach((item, index) => {
+                    if (item.classList.contains('highlighted')) {
+                        currentIndex = index;
+                    }
+                });
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+                        highlightDivisionItem(items, nextIndex);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+                        highlightDivisionItem(items, prevIndex);
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (currentIndex >= 0 && items[currentIndex]) {
+                            items[currentIndex].click();
+                        }
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        hideDivisionDropdown(this);
+                        break;
+                }
+            }
+        });
+    });
+}
+
+// Helper function to highlight division items during keyboard navigation
+function highlightDivisionItem(items, index) {
+    items.forEach(item => item.classList.remove('highlighted'));
+    if (items[index]) {
+        items[index].classList.add('highlighted');
+        items[index].style.backgroundColor = '#bfdbfe';
+    }
+}
+
+// Hide division dropdown
+function hideDivisionDropdown(inputElement) {
+    const dropdownId = inputElement.id + 'Dropdown';
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+        dropdown.style.display = 'none';
+        dropdown.classList.add('hidden');
+        debugLog('Division dropdown hidden', dropdownId);
+    }
+}
+
+// Enhanced click outside handler
+function setupDivisionClickOutsideHandler() {
+    document.addEventListener('click', function (event) {
+        // Find all division dropdowns
+        const divisionDropdowns = document.querySelectorAll('[id*="Division"][id*="Dropdown"]');
+
+        divisionDropdowns.forEach(dropdown => {
+            const inputId = dropdown.id.replace('Dropdown', '');
+            const inputElement = document.getElementById(inputId);
+
+            // Check if click is outside both input and dropdown
+            const clickedOutside = !dropdown.contains(event.target) &&
+                (!inputElement || !inputElement.contains(event.target));
+
+            if (clickedOutside) {
+                dropdown.style.display = 'none';
+                dropdown.classList.add('hidden');
+                debugLog('Division dropdown hidden due to outside click', dropdown.id);
+            }
+        });
+    });
+}
+
+// Function to enhance existing division inputs in dynamically added rows
+function enhanceDivisionInput(rowElement) {
+    const divisionInput = rowElement.querySelector('input[id*="Division_"]:not([type="hidden"])');
+    if (divisionInput) {
+        debugLog('Enhancing division input in new row', divisionInput.id);
+
+        // Setup event handlers for this specific input
+        divisionInput.addEventListener('input', function () {
+            searchDivisions(this);
+        });
+
+        divisionInput.addEventListener('focus', function () {
+            showDivisionDropdown(this);
+        });
+
+        divisionInput.addEventListener('keyup', function (e) {
+            if (e.key === 'Escape') {
+                hideDivisionDropdown(this);
+            } else {
+                searchDivisions(this);
+            }
+        });
+    }
+}
+
+// Test function to verify division API connectivity
+window.testDivisionAPI = async function () {
+    debugLog('Testing division API connectivity');
+
+    try {
+        const response = await makeAuthenticatedRequest(`${BASE_URL}/api/MasterDivision/search`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        debugLog('Test API response', {
+            status: response.status,
+            ok: response.ok
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            debugLog('Test API result', result);
+
+            console.log('✅ Division API Test Results:');
+            console.log('- Status:', result.status);
+            console.log('- Data length:', result.data?.length || 0);
+
+            if (result.data && result.data.length > 0) {
+                console.log('- Sample divisions:');
+                result.data.slice(0, 3).forEach((div, index) => {
+                    console.log(`  ${index + 1}. ${div.divisionCode} - ${div.divisionName}`);
+                });
+            }
+
+            return result;
+        } else {
+            console.error('❌ Division API test failed:', response.status);
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ Division API test error:', error);
+        return null;
+    }
+};
+
+// Comprehensive test function
+window.testDivisionComplete = async function () {
+    console.log('🧪 Running comprehensive division test...');
+
+    // Test 1: API connectivity
+    console.log('1. Testing API connectivity...');
+    const apiResult = await window.testDivisionAPI();
+    if (!apiResult || !apiResult.status) {
+        console.error('❌ API test failed');
+        return;
+    }
+    console.log('✅ API test passed');
+
+    // Test 2: DOM elements
+    console.log('2. Testing DOM elements...');
+    const divisionInput = document.querySelector('input[id*="Division_"]:not([type="hidden"])');
+    if (!divisionInput) {
+        console.error('❌ No division input found');
+        return;
+    }
+    console.log('✅ Division input found:', divisionInput.id);
+
+    const dropdownId = divisionInput.id + 'Dropdown';
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) {
+        console.error('❌ No division dropdown found');
+        return;
+    }
+    console.log('✅ Division dropdown found:', dropdownId);
+
+    // Test 3: Event handlers
+    console.log('3. Testing event handlers...');
+    try {
+        divisionInput.focus();
+        divisionInput.value = 'test';
+
+        // Trigger search
+        await searchDivisions(divisionInput);
+
+        setTimeout(() => {
+            const isVisible = dropdown.style.display !== 'none' && !dropdown.classList.contains('hidden');
+            if (isVisible) {
+                console.log('✅ Division dropdown functionality test passed');
+            } else {
+                console.error('❌ Division dropdown not visible after test');
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('❌ Event handler test failed:', error);
+    }
+};
+
+// Initialize division functionality
+function initializeDivisionFunctionality() {
+    debugLog('Initializing division functionality');
+
+    // Setup event handlers for existing inputs
+    setupDivisionEventHandlers();
+
+    // Setup click outside handler
+    setupDivisionClickOutsideHandler();
+
+    // Test API connectivity
+    setTimeout(() => {
+        window.testDivisionAPI().then(result => {
+            if (result && result.status) {
+                console.log('✅ Division API connectivity verified');
+            } else {
+                console.warn('⚠️ Division API connectivity issue detected');
+            }
+        });
+    }, 1000);
+
+    debugLog('Division functionality initialization complete');
+}
+
+// Auto-initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function () {
+    initializeDivisionFunctionality();
+});
+
+// Re-initialize when new rows are added (call this from addRowWithData function)
+window.reinitializeDivisionForNewRow = function (rowElement) {
+    enhanceDivisionInput(rowElement);
+};
+
+// Make functions globally available
+window.searchDivisions = searchDivisions;
+window.showDivisionDropdown = showDivisionDropdown;
+window.selectDivision = selectDivision;
+window.setupDivisionEventHandlers = setupDivisionEventHandlers;
+window.initializeDivisionFunctionality = initializeDivisionFunctionality;
+
+// Debug helper
+window.debugDivision = function () {
+    const divisionInputs = document.querySelectorAll('input[id*="Division_"]:not([type="hidden"])');
+    console.log('🏢 Division Debug Info:');
+    console.log('- Found inputs:', divisionInputs.length);
+
+    divisionInputs.forEach((input, index) => {
+        const dropdown = document.getElementById(input.id + 'Dropdown');
+        const hiddenInput = input.parentElement.querySelector('input[type="hidden"]');
+
+        console.log(`  ${index + 1}. Input: ${input.id}`);
+        console.log(`     - Value: "${input.value}"`);
+        console.log(`     - Dropdown exists: ${!!dropdown}`);
+        console.log(`     - Hidden input exists: ${!!hiddenInput}`);
+        console.log(`     - Hidden value: "${hiddenInput?.value || 'N/A'}"`);
+    });
+};

@@ -181,14 +181,14 @@
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                         <!-- Tab buttons - kiri -->
                          <!--status button-->
-                        <div class="flex border-b w-full md:w-auto">
-                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg">
+                        <div class="flex border-b w-full md:w-auto overflow-x-auto">
+                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-file-alt mr-2"></i>All Documents
                             </button>
-                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg">
+                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-file mr-2"></i>Draft
                             </button>
-                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg">
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
                         </div>
@@ -221,7 +221,6 @@
                                     <th class="p-2 text-left">No</th>
                                     <th class="p-2 text-left">Invoice No.</th>
                                     <th class="p-2 text-left">Customer</th>
-                                    <th class="p-2 text-left">Sales Employee</th>
                                     <th class="p-2 text-left">Date</th>
                                     <th class="p-2 text-left">Due Date</th>
                                     <th class="p-2 text-left">Status</th>
@@ -268,18 +267,6 @@
         <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-clipboard-check text-xl"></i>
             <span>Prepared</span>
-        </button>
-        <button onclick="goToCheckedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-check text-xl"></i>
-            <span>Checked</span>
-        </button>
-        <button onclick="goToApprovedDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-thumbs-up text-xl"></i>
-            <span>Approved</span>
-        </button>
-        <button onclick="goToRejectDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
-            <i class="fas fa-ban text-xl"></i>
-            <span>Reject</span>
         </button>
     </nav>
 

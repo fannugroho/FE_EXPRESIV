@@ -1,10 +1,10 @@
 // Global variables
 let currentInvItemData = null;
 let currentUser = null;
-let isProcessing = false;
+let allUsers = []; // Store all users for kansaiEmployeeId lookup
 
-// Development mode - bypass authentication
-const isDevelopmentMode = true;
+// API Configuration
+const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,17 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // Initialize page functionality
 function initializePage() {
     // Get current user
-    if (isDevelopmentMode) {
-        // Use dummy user for development
-        currentUser = {
-            id: 1,
-            name: 'Development User',
-            username: 'dev.user',
-            role: 'Admin'
-        };
-        console.log('Development mode: Using dummy user');
-    } else {
-        currentUser = getCurrentUser();
+    try {
+        currentUser = window.getCurrentUser();
         if (!currentUser) {
             Swal.fire({
                 icon: 'error',
@@ -35,224 +26,284 @@ function initializePage() {
             });
             return;
         }
+    } catch (error) {
+        console.error('Authentication error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: error.message || 'Authentication system error. Please contact administrator.'
+        }).then(() => {
+            window.location.href = '../../../../pages/login.html';
+        });
+        return;
     }
 
+    // Load users from API to get kansaiEmployeeId
+    fetchUsers();
+    
     // Load invoice item data from URL parameters
     loadInvItemData();
     
     // Setup event listeners
     setupEventListeners();
+}
+
+// Function to fetch users from API
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/users`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.data) {
+            allUsers = result.data;
+            console.log('Users loaded from API:', allUsers);
+        }
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        // Don't show error to user as this is not critical for basic functionality
+    }
+}
+
+// Function to get kansaiEmployeeId for current user
+function getCurrentUserKansaiEmployeeId() {
+    if (!currentUser || !allUsers.length) {
+        console.warn('No current user or users data available');
+        return currentUser?.userId || currentUser?.username || 'unknown';
+    }
     
-    // Initialize print button visibility
-    togglePrintButton();
+    // Find the current user in the allUsers array
+    const currentUserData = allUsers.find(user => 
+        user.id === currentUser.userId || 
+        user.username === currentUser.username ||
+        user.name === currentUser.username
+    );
+    
+    if (currentUserData && currentUserData.kansaiEmployeeId) {
+        console.log('Found kansaiEmployeeId for current user:', currentUserData.kansaiEmployeeId);
+        return currentUserData.kansaiEmployeeId;
+    }
+    
+    console.warn('kansaiEmployeeId not found for current user, falling back to userId/username');
+    return currentUser.userId || currentUser.username || 'unknown';
+}
+
+// Function to get full name of the current user
+function getCurrentUserFullName() {
+    if (!currentUser || !allUsers.length) {
+        console.warn('No current user or users data available for full name');
+        return currentUser?.username || 'Unknown User';
+    }
+    
+    // Find the current user in the allUsers array
+    const currentUserData = allUsers.find(user => 
+        user.id === currentUser.userId || 
+        user.username === currentUser.username ||
+        user.name === currentUser.username
+    );
+    
+    if (currentUserData && currentUserData.fullName) {
+        console.log('Found full name for current user:', currentUserData.fullName);
+        return currentUserData.fullName;
+    }
+    
+    console.warn('Full name not found for current user, falling back to username');
+    return currentUser.username || 'Unknown User';
 }
 
 // Load invoice item data
 function loadInvItemData() {
     const urlParams = new URLSearchParams(window.location.search);
-    const docEntry = urlParams.get('docEntry');
+    const stagingId = urlParams.get('stagingID');
     
-    if (!docEntry) {
+    if (!stagingId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'No document entry provided'
+            text: 'No staging ID provided'
         }).then(() => {
             goToMenuReceiveInvItem();
         });
         return;
     }
 
-    // Load data from API or use dummy data
-    if (isDevelopmentMode) {
-        loadInvItemFromDummyData(docEntry);
-    } else {
-        loadInvItemFromAPI(docEntry);
-    }
-}
-
-// Load invoice item data from dummy data for development
-function loadInvItemFromDummyData(docEntry) {
-    const mockData = {
-        DocEntry: docEntry,
-        DocNum: "INV-2024-001",
-        CardCode: "C001",
-        CardName: "PT Sample Customer",
-        NumAtCard: "EXT-REF-001",
-        DocCur: "IDR",
-        DocDate: "2024-01-15",
-        GroupNum: 1,
-        TrnspCode: 1,
-        U_BSI_ShippingType: "Standard",
-        U_BSI_PaymentGroup: "Group A",
-        U_BSI_UDF1: "Custom Field 1",
-        U_BSI_UDF2: "Custom Field 2",
-        PriceBefDi: 1000000,
-        VatSum: 100000,
-        DocTotal: 1100000,
-        Comments: "Sample invoice item for receiving",
-        Items: [
-            {
-                LineNum: 0,
-                ItemCode: "ITEM001",
-                ItemName: "Sample Item 1",
-                FreeTxt: "Sample notes for item 1",
-                Quantity: 10,
-                InvQty: 10,
-                UoM: "PCS",
-                SalesPrice: 50000,
-                Price: 50000,
-                DiscPrcnt: 0,
-                TaxCode: "VAT",
-                LineTotal: 500000,
-                AccountCode: "4000",
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
-            },
-            {
-                LineNum: 1,
-                ItemCode: "ITEM002",
-                ItemName: "Sample Item 2",
-                FreeTxt: "Sample notes for item 2",
-                Quantity: 5,
-                InvQty: 5,
-                UoM: "PCS",
-                SalesPrice: 60000,
-                Price: 60000,
-                DiscPrcnt: 0,
-                TaxCode: "VAT",
-                LineTotal: 300000,
-                AccountCode: "4000",
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
-            }
-        ],
-        preparedBy: "John Doe",
-        acknowledgeBy: "Jane Smith",
-        checkedBy: "Bob Johnson",
-        approvedBy: "Alice Brown",
-        receivedBy: ""
-    };
-    
-    console.log('Development mode: Using dummy invoice item data');
-    populateInvItemData(mockData);
+    // Load data from API
+    loadInvItemFromAPI(stagingId);
 }
 
 // Load invoice item data from API
-function loadInvItemFromAPI(docEntry) {
-    // Simulate API call - replace with actual API endpoint
-    const mockData = {
-        DocEntry: docEntry,
-        DocNum: "INV-2024-001",
-        CardCode: "C001",
-        CardName: "PT Sample Customer",
-        NumAtCard: "EXT-REF-001",
-        DocCur: "IDR",
-        DocDate: "2024-01-15",
-        GroupNum: 1,
-        TrnspCode: 1,
-        U_BSI_ShippingType: "Standard",
-        U_BSI_PaymentGroup: "Group A",
-        U_BSI_UDF1: "Custom Field 1",
-        U_BSI_UDF2: "Custom Field 2",
-        PriceBefDi: 1000000,
-        VatSum: 100000,
-        DocTotal: 1100000,
-        Comments: "Sample invoice item for receiving",
-        Items: [
-            {
-                LineNum: 0,
-                ItemCode: "ITEM001",
-                ItemName: "Sample Item 1",
-                FreeTxt: "Sample notes for item 1",
-                Quantity: 10,
-                InvQty: 10,
-                UoM: "PCS",
-                SalesPrice: 50000,
-                Price: 50000,
-                DiscPrcnt: 0,
-                TaxCode: "VAT",
-                LineTotal: 500000,
-                AccountCode: "4000",
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
-            },
-            {
-                LineNum: 1,
-                ItemCode: "ITEM002",
-                ItemName: "Sample Item 2",
-                FreeTxt: "Sample notes for item 2",
-                Quantity: 5,
-                InvQty: 5,
-                UoM: "PCS",
-                SalesPrice: 60000,
-                Price: 60000,
-                DiscPrcnt: 0,
-                TaxCode: "VAT",
-                LineTotal: 300000,
-                AccountCode: "4000",
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+async function loadInvItemFromAPI(stagingId) {
+    try {
+        console.log('Loading invoice item data for stagingId:', stagingId);
+        
+        // Show loading indicator
+        Swal.fire({
+            title: 'Loading...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
             }
-        ],
-        preparedBy: "John Doe",
-        acknowledgeBy: "Jane Smith",
-        checkedBy: "Bob Johnson",
-        approvedBy: "Alice Brown",
-        receivedBy: ""
-    };
+        });
+        
+        // Construct API URL
+        const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/details`;
+        console.log('API URL:', apiUrl);
+        
+        // Fetch data from API
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'text/plain',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API response result:', result);
+        
+        if (result.status && result.data) {
+            currentInvItemData = result.data;
+            console.log('Invoice item data loaded from API:', currentInvItemData);
+            
+            // Populate form with data
+            populateInvItemData(currentInvItemData);
+            
+            // Update button visibility based on status
+            updateButtonVisibility();
+            
+            // Close loading indicator
+            Swal.close();
+        } else {
+            throw new Error('Invalid response format from API');
+        }
+        
+    } catch (error) {
+        console.error('Error loading invoice item data:', error);
+        
+        let errorMessage = 'Failed to load invoice item data';
+        
+        if (error.message.includes('404')) {
+            errorMessage = 'Invoice item not found. Please check the staging ID.';
+        } else if (error.message.includes('500')) {
+            errorMessage = 'Server error. Please try again later.';
+        } else if (error.message.includes('NetworkError')) {
+            errorMessage = 'Network error. Please check your connection.';
+        } else {
+            errorMessage = `Failed to load invoice item data: ${error.message}`;
+        }
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage
+        }).then(() => {
+            goToMenuReceiveInvItem();
+        });
+    }
+}
+
+// Update button visibility based on document status
+function updateButtonVisibility() {
+    if (!currentInvItemData) return;
     
-    populateInvItemData(mockData);
+    const status = getStatusFromInvoice(currentInvItemData);
+    const receiveButton = document.querySelector('button[onclick="receiveInvItem()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectInvItem()"]');
+    const printButton = document.getElementById('printButton');
+    
+    console.log('Current document status:', status);
+    
+    // Show buttons based on status
+    if (receiveButton) receiveButton.style.display = 'inline-block';
+    if (rejectButton) rejectButton.style.display = 'inline-block';
+    
+    // Show print button if status is "Received"
+    if (printButton) {
+        if (status === 'Received') {
+            printButton.style.display = 'inline-block';
+        } else {
+            printButton.style.display = 'none';
+        }
+    }
+    
+    console.log('Button visibility updated based on status');
 }
 
 // Populate invoice item data in the form
 function populateInvItemData(data) {
+    console.log('Populating invoice item data:', data);
+    
     // Populate header fields
-    document.getElementById('DocEntry').value = data.DocEntry || '';
-    document.getElementById('DocNum').value = data.DocNum || '';
-    document.getElementById('CardCode').value = data.CardCode || '';
-    document.getElementById('CardName').value = data.CardName || '';
-    document.getElementById('NumAtCard').value = data.NumAtCard || '';
-    document.getElementById('DocCur').value = data.DocCur || '';
-    document.getElementById('DocDate').value = data.DocDate || '';
-    document.getElementById('GroupNum').value = data.GroupNum || '';
-    document.getElementById('TrnspCode').value = data.TrnspCode || '';
-    document.getElementById('U_BSI_ShippingType').value = data.U_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.U_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_UDF1').value = data.U_BSI_UDF1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.U_BSI_UDF2 || '';
+    document.getElementById('DocEntry').value = data.stagingID || '';
+    document.getElementById('DocNum').value = data.docNum || '';
+    document.getElementById('CardCode').value = data.cardCode || '';
+    document.getElementById('CardName').value = data.cardName || '';
+    document.getElementById('address').value = data.address || '';
+    document.getElementById('NumAtCard').value = data.numAtCard || '';
+    document.getElementById('DocCur').value = data.docCur || '';
+    document.getElementById('docRate').value = data.docRate || '';
+    document.getElementById('DocDate').value = formatDate(data.docDate);
+    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
+    document.getElementById('GroupNum').value = data.groupNum || '';
+    document.getElementById('TrnspCode').value = data.trnspCode || '';
+    document.getElementById('TaxNo').value = data.taxNo || '';
+    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
+    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
+    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
+    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
+    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    
+
+    
+    // Populate status from approval summary
+    const status = getStatusFromInvoice(data);
+    document.getElementById('Status').value = status;
     
     // Populate totals
-    document.getElementById('PriceBefDi').value = data.PriceBefDi || 0;
-    document.getElementById('VatSum').value = data.VatSum || 0;
-    document.getElementById('DocTotal').value = data.DocTotal || 0;
+    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
+    document.getElementById('VatSum').value = data.vatSum || 0;
+    document.getElementById('DocTotal').value = data.docTotal || 0;
     
     // Populate comments
-    document.getElementById('comments').value = data.Comments || '';
+    document.getElementById('comments').value = data.comments || '';
     
-    // Populate approval info
-    document.getElementById('preparedBySearch').value = data.preparedBy || '';
-    document.getElementById('acknowledgeBySearch').value = data.acknowledgeBy || '';
-    document.getElementById('checkedBySearch').value = data.checkedBy || '';
-    document.getElementById('approvedBySearch').value = data.approvedBy || '';
-    document.getElementById('receivedBySearch').value = data.receivedBy || '';
+    // Populate approval info from approval summary
+    if (data.arInvoiceApprovalSummary) {
+        console.log('Approval summary data:', data.arInvoiceApprovalSummary);
+        
+        document.getElementById('preparedBySearch').value = data.arInvoiceApprovalSummary.preparedByName || '';
+        document.getElementById('acknowledgeBySearch').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
+        document.getElementById('checkedBySearch').value = data.arInvoiceApprovalSummary.checkedByName || '';
+        document.getElementById('approvedBySearch').value = data.arInvoiceApprovalSummary.approvedByName || '';
+        document.getElementById('receivedBySearch').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        
+        // Show rejection remarks if exists and has valid value
+        const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
+        const rejectionRemarks = data.arInvoiceApprovalSummary.rejectionRemarks;
+        
+        // Check both revisionRemarks and rejectionRemarks fields
+        const remarksToShow = revisionRemarks || rejectionRemarks;
+        
+        if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
+            document.getElementById('rejectionRemarks').value = remarksToShow;
+            document.getElementById('rejectionRemarksSection').style.display = 'block';
+            console.log('Showing rejection remarks:', remarksToShow);
+        } else {
+            document.getElementById('rejectionRemarksSection').style.display = 'none';
+            console.log('Hiding rejection remarks section - no valid remarks found');
+        }
+    }
     
     // Populate items table
-    populateItemsTable(data.Items || []);
-    
-    // Show rejection remarks if exists
-    if (data.RejectionRemarks) {
-        document.getElementById('rejectionRemarks').value = data.RejectionRemarks;
-        document.getElementById('rejectionRemarksSection').style.display = 'block';
-    }
+    populateItemsTable(data.arInvoiceDetails || []);
     
     // Apply text wrapping
     refreshTextWrapping();
@@ -261,10 +312,76 @@ function populateInvItemData(data) {
     makeAllFieldsReadOnly();
 }
 
+// Helper function to determine status from invoice data
+function getStatusFromInvoice(invoice) {
+    // Check if invoice has approval summary
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        return 'Draft';
+    }
+    
+    // If arInvoiceApprovalSummary exists, use approvalStatus field
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        
+        // First priority: use approvalStatus field from arInvoiceApprovalSummary
+        if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
+            return summary.approvalStatus;
+        }
+        
+        // Fallback: check individual status flags
+        if (summary.isRejected) return 'Rejected';
+        if (summary.isApproved) return 'Approved';
+        if (summary.isAcknowledged) return 'Acknowledged';
+        if (summary.isChecked) return 'Checked';
+        if (summary.isReceived) return 'Received';
+    }
+    
+    // Check transfer status
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    
+    // Check if it's a staging document (draft)
+    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
+    
+    // Check if document has been transferred (received)
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    
+    // Check if document is in preparation stage
+    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
+    
+    // Default to Draft for new documents
+    return 'Draft';
+}
+
+// Format date to YYYY-MM-DD
+function formatDate(dateString) {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
 // Populate items table
 function populateItemsTable(items) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
+    
+    if (items.length === 0) {
+        // Add empty row message
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="15" class="p-4 text-center text-gray-500">
+                No invoice details found
+            </td>
+        `;
+        tableBody.appendChild(emptyRow);
+        return;
+    }
     
     items.forEach((item, index) => {
         const row = createItemRow(item, index);
@@ -279,55 +396,61 @@ function createItemRow(item, index) {
     
     row.innerHTML = `
         <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.LineNum || index}" disabled autocomplete="off" />
+            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.lineNum || index + 1}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border item-code-column">
-            <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.ItemCode || ''}" disabled autocomplete="off" />
+            <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border description-column">
-            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.ItemName || ''}</textarea>
+            <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
         <td class="p-2 border description-column">
-            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.FreeTxt || ''}</textarea>
+            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.text || ''}</textarea>
+        </td>
+        <td class="p-2 border sales-employee-column">
+            <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
-            <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.Quantity || ''}</textarea>
+            <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
-            <textarea class="quantity-input item-quantity bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.InvQty || ''}</textarea>
+            <textarea class="quantity-input item-quantity bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.invQty || ''}</textarea>
         </td>
         <td class="p-2 border uom-column" style="display: none;">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="${item.UoM || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="${item.unitMsr || ''}" />
         </td>
         <td class="p-2 border h-12 price-column">
-            <textarea class="price-input item-sls-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.SalesPrice || ''}</textarea>
+            <textarea class="price-input item-sls-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.u_bsi_salprice || ''}</textarea>
         </td>
         <td class="p-2 border h-12 price-column">
-            <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.Price || ''}</textarea>
+            <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.priceBefDi || ''}</textarea>
         </td>
         <td class="p-2 border discount-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.DiscPrcnt || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.discount || ''}" />
         </td>
         <td class="p-2 border tax-code-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.TaxCode || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
+        </td>
+        <td class="p-2 border wtax-liable-column">
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
         </td>
         <td class="p-2 border h-12 line-total-column">
-            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.LineTotal || ''}</textarea>
+            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
         </td>
         <td class="p-2 border account-code-column" style="display: none;">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.AccountCode || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.acctCode || ''}" />
         </td>
         <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.BaseType || 0}" />
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseType || 0}" />
         </td>
         <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.BaseEntry || 0}" />
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseEntry || 0}" />
         </td>
         <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.BaseLine || 0}" />
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseLine || 0}" />
         </td>
         <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.LineType || 0}" />
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.lineType || 0}" />
         </td>
     `;
     
@@ -350,11 +473,6 @@ function receiveInvItem() {
         return;
     }
 
-    // Prevent double-clicking
-    if (isProcessing) {
-        return;
-    }
-
     Swal.fire({
         title: 'Confirm Receipt',
         text: 'Are you sure you want to receive this invoice item?',
@@ -366,6 +484,7 @@ function receiveInvItem() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Update status to Received
             updateInvItemStatus('Received');
         }
     });
@@ -382,57 +501,35 @@ function rejectInvItem() {
         return;
     }
 
-    // Create custom dialog with single field
     Swal.fire({
         title: 'Reject Invoice Item',
-        html: `
-            <div class="mb-4">
-                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
-                <div id="rejectionFieldsContainer">
-                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
-                </div>
-            </div>
-        `,
+        input: 'textarea',
+        inputLabel: 'Rejection Remarks',
+        inputPlaceholder: 'Enter rejection reason...',
+        inputAttributes: {
+            'aria-label': 'Enter rejection remarks',
+            'aria-describedby': 'rejection-remarks-help'
+        },
         showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        width: '600px',
-        didOpen: () => {
-            // Initialize the field with user prefix
-            const firstField = document.getElementById('rejectionField1');
-            if (firstField) {
-                initializeWithRejectionPrefix(firstField);
+        inputValidator: (value) => {
+            if (!value || value.trim() === '') {
+                return 'Please enter rejection remarks';
             }
-            
-            // Add event listener for input protection
-            const field = document.querySelector('#rejectionFieldsContainer textarea');
-            if (field) {
-                field.addEventListener('input', handleRejectionInput);
-            }
-        },
-        preConfirm: () => {
-            // Get the rejection remark
-            const field = document.querySelector('#rejectionFieldsContainer textarea');
-            const remarks = field ? field.value.trim() : '';
-            
-            if (remarks === '') {
-                Swal.showValidationMessage('Please enter a rejection reason');
-                return false;
-            }
-            
-            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            updateInvItemStatusWithRemarks('Rejected', result.value);
+            // Update status to Rejected with remarks
+            updateInvItemStatus('Rejected', result.value);
         }
     });
 }
 
-// Update invoice item status
-function updateInvItemStatus(status) {
+// Update invoice item status using PATCH API
+async function updateInvItemStatus(status, remarks = '') {
     if (!currentInvItemData) {
         Swal.fire({
             icon: 'error',
@@ -442,119 +539,146 @@ function updateInvItemStatus(status) {
         return;
     }
 
-    // Set processing flag to prevent double-clicks
-    isProcessing = true;
-
-    const userId = getUserId();
-    if (!userId) {
+    try {
+        // Show loading indicator
         Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
+            title: 'Updating Status...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
-        isProcessing = false;
-        return;
-    }
 
-    // Prepare data for API call
-    const updateData = {
-        DocEntry: currentInvItemData.DocEntry,
-        Status: status,
-        ReceivedBy: currentUser.username,
-        ReceivedDate: new Date().toISOString(),
-        Remarks: ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'Received' ? 'Receiving' : 'Processing'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
+        // Get staging ID for the API endpoint
+        const stagingID = currentInvItemData.stagingID;
+        if (!stagingID) {
+            throw new Error('Staging ID is required for submission');
         }
-    });
 
-    // Simulate API call
-    // In real implementation, this would be an actual API call
-    console.log('Updating invoice item status:', updateData);
-
-    // Simulate API delay
-    setTimeout(() => {
-        isProcessing = false;
+        // Create timestamp in ISO format
+        const now = new Date().toISOString();
+        console.log('Current timestamp for status update:', now);
         
-        // Show success message
-        Swal.fire({
-            icon: 'success',
-            title: 'Success!',
-            text: `Invoice item has been ${status.toLowerCase()} successfully`,
-            timer: 2000,
-            showConfirmButton: false
-        }).then(() => {
-            // Navigate back to menu
-            goToMenuReceiveInvItem();
-        });
-    }, 1000);
-}
+        // Prepare payload for PATCH API - preserve existing approval data
+        const payload = {
+            approvalStatus: status,
+            receivedBy: getCurrentUserKansaiEmployeeId(),
+            receivedByName: getCurrentUserFullName(),
+            updatedAt: now
+        };
 
-// Update invoice item status with remarks
-function updateInvItemStatusWithRemarks(status, remarks) {
-    if (!currentInvItemData) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No invoice item data available'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Unable to get user ID from token. Please login again.'
-        });
-        return;
-    }
-
-    // Prepare data for API call
-    const updateData = {
-        DocEntry: currentInvItemData.DocEntry,
-        Status: status,
-        ReceivedBy: currentUser.username,
-        ReceivedDate: new Date().toISOString(),
-        Remarks: remarks || ''
-    };
-
-    // Show loading
-    Swal.fire({
-        title: `${status === 'Received' ? 'Receiving' : 'Rejecting'}...`,
-        text: 'Please wait while we process your request.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
+        // Handle status-specific fields
+        if (status === 'Received') {
+            // Add receivedDate when status is "Received"
+            payload.receivedDate = now;
+            console.log('✅ Added receivedDate to payload:', now);
+            console.log('📅 receivedDate format:', typeof now, now);
+        } else if (status === 'Rejected') {
+            // Add rejectedDate when status is "Rejected"
+            payload.rejectedDate = now;
+            console.log('✅ Added rejectedDate to payload:', now);
+            console.log('📅 rejectedDate format:', typeof now, now);
+            
+            // Add rejection remarks if provided
+            if (remarks && remarks.trim() !== '') {
+                payload.rejectionRemarks = remarks.trim();
+                console.log('✅ Added rejectionRemarks to payload:', remarks.trim());
+            }
         }
-    });
 
-    // Simulate API call
-    // In real implementation, this would be an actual API call
-    console.log('Updating invoice item status with remarks:', updateData);
+        // Preserve existing approval data if available
+        if (currentInvItemData.arInvoiceApprovalSummary) {
+            const existingSummary = currentInvItemData.arInvoiceApprovalSummary;
+            
+            // Preserve existing approval data
+            if (existingSummary.preparedBy) payload.preparedBy = existingSummary.preparedBy;
+            if (existingSummary.preparedByName) payload.preparedByName = existingSummary.preparedByName;
+            if (existingSummary.preparedDate) payload.preparedDate = existingSummary.preparedDate;
+            
+            if (existingSummary.checkedBy) payload.checkedBy = existingSummary.checkedBy;
+            if (existingSummary.checkedByName) payload.checkedByName = existingSummary.checkedByName;
+            if (existingSummary.checkedDate) payload.checkedDate = existingSummary.checkedDate;
+            
+            if (existingSummary.acknowledgedBy) payload.acknowledgedBy = existingSummary.acknowledgedBy;
+            if (existingSummary.acknowledgedByName) payload.acknowledgedByName = existingSummary.acknowledgedByName;
+            if (existingSummary.acknowledgedDate) payload.acknowledgedDate = existingSummary.acknowledgedDate;
+            
+            if (existingSummary.approvedBy) payload.approvedBy = existingSummary.approvedBy;
+            if (existingSummary.approvedByName) payload.approvedByName = existingSummary.approvedByName;
+            if (existingSummary.approvedDate) payload.approvedDate = existingSummary.approvedDate;
+            
+            // Preserve existing rejection remarks if any (but don't override new ones)
+            if (existingSummary.rejectionRemarks && !payload.rejectionRemarks) {
+                payload.rejectionRemarks = existingSummary.rejectionRemarks;
+            }
+            if (existingSummary.revisionRemarks) payload.revisionRemarks = existingSummary.revisionRemarks;
+        }
 
-    // Simulate API delay
-    setTimeout(() => {
-        // Show success message
+        console.log('📤 Updating invoice item status with payload:', payload);
+        console.log('🌐 API URL:', `${API_BASE_URL}/ar-invoices/approval/${stagingID}`);
+
+        // Make PATCH API call
+        const response = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
+            method: 'PATCH',
+            headers: {
+                'accept': 'text/plain',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log('📡 Response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error response:', errorText);
+            
+            let errorDetails = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorDetails = errorJson.message || errorJson.error || errorText;
+            } catch (parseError) {
+                console.error('Could not parse error response as JSON:', parseError);
+            }
+            
+            throw new Error(`API Error: ${response.status} - ${errorDetails}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ API Response:', result);
+
+        // Show success message with confirmation
+        const actionText = status === 'Received' ? 'received' : 'rejected';
+        const dateField = status === 'Received' ? 'receivedDate' : 'rejectedDate';
+        
         Swal.fire({
             icon: 'success',
             title: 'Success!',
-            text: `Invoice item has been ${status.toLowerCase()} successfully`,
-            timer: 2000,
-            showConfirmButton: false
-        }).then(() => {
-            // Navigate back to menu
-            goToMenuReceiveInvItem();
+            text: `Invoice item has been ${actionText} successfully with ${dateField}: ${new Date(now).toLocaleString()}. Do you want to return to the menu?`,
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Return to Menu',
+            cancelButtonText: 'Stay Here',
+            timer: null,
+            timerProgressBar: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Navigate back to menu
+                goToMenuReceiveInvItem();
+            }
         });
-    }, 1000);
+
+    } catch (error) {
+        console.error('❌ Error updating invoice item status:', error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Update Failed',
+            text: error.message || 'Failed to update invoice item status. Please try again.',
+            confirmButtonText: 'OK'
+        });
+    }
 }
 
 // Print invoice item
@@ -562,28 +686,28 @@ function printInvItem() {
     try {
         console.log("Print function started");
         
-        // Get current docEntry
-        const docEntry = document.getElementById('DocEntry').value || '12345';
+        // Get current stagingID
+        const stagingID = currentInvItemData?.stagingID || 'STG-UNKNOWN';
         
         // Get all necessary data from the form
         const invData = {
-            DocEntry: docEntry,
-            DocNum: document.getElementById('DocNum').value || '',
-            CardName: document.getElementById('CardName').value || '',
-            CardCode: document.getElementById('CardCode').value || '',
-            NumAtCard: document.getElementById('NumAtCard').value || '',
-            DocDate: document.getElementById('DocDate').value || '',
-            DocCur: document.getElementById('DocCur').value || '',
-            GroupNum: document.getElementById('GroupNum').value || '',
-            TrnspCode: document.getElementById('TrnspCode').value || '',
-            U_BSI_ShippingType: document.getElementById('U_BSI_ShippingType').value || '',
-            U_BSI_PaymentGroup: document.getElementById('U_BSI_PaymentGroup').value || '',
-            U_BSI_UDF1: document.getElementById('U_BSI_UDF1').value || '',
-            U_BSI_UDF2: document.getElementById('U_BSI_UDF2').value || '',
-            PriceBefDi: parseFloat(document.getElementById('PriceBefDi').value) || 0,
-            VatSum: parseFloat(document.getElementById('VatSum').value) || 0,
-            DocTotal: parseFloat(document.getElementById('DocTotal').value) || 0,
-            Comments: document.getElementById('comments').value || '',
+            stagingID: stagingID,
+            docNum: document.getElementById('DocNum').value || '',
+            cardName: document.getElementById('CardName').value || '',
+            cardCode: document.getElementById('CardCode').value || '',
+            numAtCard: document.getElementById('NumAtCard').value || '',
+            docDate: document.getElementById('DocDate').value || '',
+            docCur: document.getElementById('DocCur').value || '',
+            groupNum: document.getElementById('GroupNum').value || '',
+            trnspCode: document.getElementById('TrnspCode').value || '',
+            u_BSI_ShippingType: document.getElementById('U_BSI_ShippingType').value || '',
+            u_BSI_PaymentGroup: document.getElementById('U_BSI_PaymentGroup').value || '',
+            u_bsi_udf1: document.getElementById('U_BSI_UDF1').value || '',
+            u_bsi_udf2: document.getElementById('U_BSI_UDF2').value || '',
+            docTotal: parseFloat(document.getElementById('DocTotal').value) || 0,
+            vatSum: parseFloat(document.getElementById('VatSum').value) || 0,
+            priceBefDi: parseFloat(document.getElementById('PriceBefDi').value) || 0,
+            comments: document.getElementById('comments').value || '',
             preparedBy: document.getElementById('preparedBySearch').value || '',
             acknowledgedBy: document.getElementById('acknowledgeBySearch').value || '',
             checkedBy: document.getElementById('checkedBySearch').value || '',
@@ -616,42 +740,42 @@ function printInvItem() {
             const lineType = row.querySelector('.item-line-type') ? parseInt(row.querySelector('.item-line-type').value) || 0 : 0;
             
             items.push({
-                LineNum: parseInt(lineNum),
-                ItemCode: itemCode,
-                ItemName: itemName,
-                FreeTxt: freeTxt,
-                Quantity: salesQty,
-                InvQty: invQty,
-                UoM: uom,
-                SalesPrice: salesPrice,
-                Price: price,
-                DiscPrcnt: discPrcnt,
-                TaxCode: taxCode,
-                LineTotal: lineTotal,
-                AccountCode: accountCode,
-                BaseType: baseType,
-                BaseEntry: baseEntry,
-                BaseLine: baseLine,
-                LineType: lineType
+                lineNum: parseInt(lineNum),
+                itemCode: itemCode,
+                dscription: itemName,
+                text: freeTxt,
+                quantity: salesQty,
+                invQty: invQty,
+                unitMsr: uom,
+                u_bsi_salprice: salesPrice,
+                priceBefDi: price,
+                discount: discPrcnt,
+                vatgroup: taxCode,
+                lineTotal: lineTotal,
+                acctCode: accountCode,
+                baseType: baseType,
+                baseEntry: baseEntry,
+                baseLine: baseLine,
+                lineType: lineType
             });
         });
         
         // Add items to invoice data
-        invData.Items = items;
+        invData.arInvoiceDetails = items;
         
         // Save data to storage
         if (typeof saveInvoiceDataToStorage === 'function') {
-            saveInvoiceDataToStorage(docEntry, invData);
+            saveInvoiceDataToStorage(stagingID, invData);
         } else {
             // Fallback: save to localStorage directly
-            localStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invData));
-            sessionStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invData));
+            localStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invData));
+            sessionStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invData));
         }
         
         console.log("Invoice data saved to storage, opening print page");
         
         // Open the print page in a new window
-        window.open(`printARItem.html?docEntry=${docEntry}`, '_blank');
+        window.open(`printARItem.html?stagingID=${stagingID}`, '_blank');
     } catch (error) {
         console.error("Error in printInvItem function:", error);
         alert("Terjadi kesalahan saat mencetak: " + error.message);
@@ -702,142 +826,64 @@ function makeAllFieldsReadOnly() {
     });
 }
 
-// Function to toggle print button visibility based on document status
-function togglePrintButton() {
-    const printButton = document.getElementById('printButton');
-    
-    // Show print button if status is "Received"
-    if (printButton) {
-        printButton.style.display = 'block';
-    }
-}
-
-// Function to initialize textarea with user prefix for rejection
-function initializeWithRejectionPrefix(textarea) {
-    const userInfo = getUserInfo();
-    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-    textarea.value = prefix;
-    
-    // Store the prefix length as a data attribute
-    textarea.dataset.prefixLength = prefix.length;
-    
-    // Set selection range after the prefix
-    textarea.setSelectionRange(prefix.length, prefix.length);
-    textarea.focus();
-}
-
-// Function to handle input and protect the prefix for rejection
-function handleRejectionInput(event) {
-    const textarea = event.target;
-    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
-    // If user tries to modify content before the prefix length
-    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
-        // Restore the prefix
-        const userInfo = getUserInfo();
-        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
-        // Only restore if the prefix is damaged
-        if (!textarea.value.startsWith(prefix)) {
-            const userText = textarea.value.substring(prefixLength);
-            textarea.value = prefix + userText;
-            
-            // Reset cursor position after the prefix
-            textarea.setSelectionRange(prefixLength, prefixLength);
-        } else {
-            // Just move cursor after prefix
-            textarea.setSelectionRange(prefixLength, prefixLength);
-        }
-    }
-}
-
-// Function to get current user information
-function getUserInfo() {
-    // Use functions from auth.js to get user information
-    let userName = 'Unknown User';
-    let userRole = 'Receiver'; // Default role for this page since we're on the receiver page
-    
-    try {
-        // Get user info from getCurrentUser function in auth.js
-        const currentUser = getCurrentUser();
-        if (currentUser && currentUser.username) {
-            userName = currentUser.username;
-        }
-        
-        // Get user role based on the current page
-        // Since we're on the receiver page, the role is Receiver
-    } catch (e) {
-        console.error('Error getting user info:', e);
-    }
-    
-    return { name: userName, role: userRole };
-}
-
 // Navigation function
 function goToMenuReceiveInvItem() {
     // Navigate to the invoice item receive menu
-    window.location.href = '../../../dashboard/dashboardReceive/invoiceItem/menuInvItemReceive.html';
+    window.location.href = '../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html';
 }
 
-// Get current user from auth.js
-function getCurrentUser() {
-    try {
-        // This function should be available from auth.js
-        if (typeof getCurrentUser === 'function') {
-            return getCurrentUser();
-        } else {
-            // Fallback for testing
-            return {
-                username: 'TestUser',
-                role: 'Receiver'
-            };
-        }
-    } catch (error) {
-        console.error('Error getting current user:', error);
-        return null;
-    }
+// Function to refresh text wrapping for all elements
+function refreshTextWrapping() {
+    setTimeout(() => {
+        applyTextWrappingToAll();
+    }, 50);
 }
 
-// Get user ID from auth.js
-function getUserId() {
-    try {
-        // This function should be available from auth.js
-        if (typeof getUserId === 'function') {
-            return getUserId();
-        } else {
-            // Fallback for testing
-            return 'test-user-id';
-        }
-    } catch (error) {
-        console.error('Error getting user ID:', error);
-        return null;
-    }
-}
-
-// Utility function to format currency
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR'
-    }).format(amount);
-}
-
-// Utility function to validate numeric input
-function validateNumericInput(input) {
-    const value = input.value;
-    const numericValue = value.replace(/[^0-9.-]/g, '');
+// Function to apply text wrapping to all relevant elements
+function applyTextWrappingToAll() {
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .sales-employee-column textarea');
     
-    if (value !== numericValue) {
-        input.value = numericValue;
+    textElements.forEach(element => {
+        handleTextWrapping(element);
+    });
+}
+
+// Function to handle text wrapping based on character length
+function handleTextWrapping(element) {
+    const text = element.value || element.textContent || '';
+    const charLength = text.length;
+    
+    // Remove existing classes
+    element.classList.remove('wrap-text', 'no-wrap', 'auto-resize');
+    
+    if (charLength > 15) {
+        // Apply wrap text styling for long content
+        element.classList.add('wrap-text', 'auto-resize');
+        
+        // Auto-adjust height for textarea elements
+        if (element.tagName === 'TEXTAREA') {
+            const lineHeight = 20; // Approximate line height
+            const lines = Math.ceil(charLength / 20); // Rough estimate of lines needed
+            const newHeight = Math.min(Math.max(40, lines * lineHeight), 80);
+            element.style.height = newHeight + 'px';
+        }
+    } else {
+        // Apply no-wrap styling for short content
+        element.classList.add('no-wrap');
+        
+        // Reset height for textarea elements
+        if (element.tagName === 'TEXTAREA') {
+            element.style.height = '40px';
+        }
     }
 }
 
 // Function to save invoice data to storage (for print functionality)
-function saveInvoiceDataToStorage(docEntry, invoiceData) {
+function saveInvoiceDataToStorage(stagingID, invoiceData) {
     try {
-        localStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
-        sessionStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
-        console.log('Invoice data saved to storage for docEntry:', docEntry);
+        localStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invoiceData));
+        sessionStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invoiceData));
+        console.log('Invoice data saved to storage for stagingID:', stagingID);
         return true;
     } catch (error) {
         console.error('Error saving invoice data to storage:', error);
@@ -846,11 +892,11 @@ function saveInvoiceDataToStorage(docEntry, invoiceData) {
 }
 
 // Function to clear invoice data from storage
-function clearInvoiceDataFromStorage(docEntry) {
+function clearInvoiceDataFromStorage(stagingID) {
     try {
-        localStorage.removeItem(`invoice_${docEntry}`);
-        sessionStorage.removeItem(`invoice_${docEntry}`);
-        console.log('Invoice data cleared from storage for docEntry:', docEntry);
+        localStorage.removeItem(`invoice_${stagingID}`);
+        sessionStorage.removeItem(`invoice_${stagingID}`);
+        console.log('Invoice data cleared from storage for stagingID:', stagingID);
         return true;
     } catch (error) {
         console.error('Error clearing invoice data from storage:', error);

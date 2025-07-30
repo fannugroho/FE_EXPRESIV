@@ -1,370 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Currency API Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .test-section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .test-button {
-            padding: 10px 15px;
-            margin: 5px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .test-button:hover {
-            background: #0056b3;
-        }
-
-        .log {
-            background: #f8f9fa;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .currency-input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #007bff;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-
-        .currency-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #007bff;
-            border-radius: 4px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .dropdown-item {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .dropdown-item:hover {
-            background-color: #f0f0f0;
-        }
-
-        .relative {
-            position: relative;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
-    <script src="../js/auth.js"></script>
+    <title>API Test</title>
 </head>
-
 <body>
-    <div class="container">
-        <h1>🌐 Currency API Test</h1>
-
-        <div class="test-section">
-            <h3>🔧 API Connection Test</h3>
-            <div id="apiStatus" class="status info">Ready to test API connection...</div>
-            <button onclick="testAPIConnection()" class="test-button">Test API Connection</button>
-            <button onclick="testSearchAPI()" class="test-button">Test Search API</button>
-            <div id="apiLog" class="log"></div>
-        </div>
-
-        <div class="test-section">
-            <h3>🔍 Currency Search Test</h3>
-            <div class="relative">
-                <input type="text" id="CurrencyItem" class="currency-input"
-                    placeholder="Type to search currencies..." />
-                <div id="CurrencyItemDropdown" class="currency-dropdown hidden"></div>
-            </div>
-            <div id="searchStatus" class="status info">Ready to test currency search...</div>
-            <button onclick="testSearch()" class="test-button">Test Search</button>
-            <button onclick="clearField()" class="test-button">Clear Field</button>
-            <div id="searchLog" class="log"></div>
-        </div>
-
-        <div class="test-section">
-            <h3>📊 API Response Examples</h3>
-            <div id="responseExamples" class="log">
-                <strong>Expected API Responses:</strong><br><br>
-                <strong>1. All Currencies (no search term):</strong><br>
-                GET /api/MasterCurrency/search<br><br>
-                <strong>2. Search for "indones":</strong><br>
-                GET /api/MasterCurrency/search?searchTerm=indones<br><br>
-                <strong>3. Search for "usd":</strong><br>
-                GET /api/MasterCurrency/search?searchTerm=usd
-            </div>
-        </div>
-    </div>
+    <h1>AR Invoice API Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
 
     <script>
-        function log(message, logId = 'apiLog') {
-            const logDiv = document.getElementById(logId);
-            const timestamp = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
-            console.log(message);
-        }
-
-        function updateStatus(message, type = 'info', statusId = 'apiStatus') {
-            const statusDiv = document.getElementById(statusId);
-            statusDiv.className = `status ${type}`;
-            statusDiv.innerHTML = message;
-        }
-
-        async function testAPIConnection() {
-            updateStatus('Testing API connection...', 'info');
-            log('=== Testing API Connection ===');
-
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing API...';
+            
             try {
-                const response = await fetch(`${BASE_URL}/api/MasterCurrency/search`, {
+                const response = await fetch('https://expressiv-be-sb.idsdev.site/api/ar-invoices/STG-001/details', {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'accept': 'text/plain',
+                        'Content-Type': 'application/json'
                     }
                 });
-
-                log(`Response status: ${response.status}`);
-                log(`Response ok: ${response.ok}`);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    log('API Response: ' + JSON.stringify(data, null, 2));
-
-                    if (data.success && data.data) {
-                        updateStatus(`✅ API Connection SUCCESS - Found ${data.data.length} currencies`, 'success');
-                        log(`✅ Found ${data.data.length} currencies in database`);
-                    } else {
-                        updateStatus('❌ API Response format incorrect', 'error');
-                        log('❌ API response does not have expected format');
-                    }
-                } else {
-                    updateStatus(`❌ API Connection FAILED - HTTP ${response.status}`, 'error');
-                    log(`❌ HTTP Error: ${response.status}`);
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } catch (error) {
-                updateStatus(`❌ API Connection FAILED - ${error.message}`, 'error');
-                log(`❌ Network Error: ${error.message}`);
-            }
-        }
-
-        async function testSearchAPI() {
-            updateStatus('Testing search API...', 'info');
-            log('=== Testing Search API ===');
-
-            const searchTerms = ['', 'indones', 'usd', 'eur'];
-
-            for (const term of searchTerms) {
-                try {
-                    let url = `${BASE_URL}/api/MasterCurrency/search`;
-                    if (term) {
-                        url += `?searchTerm=${encodeURIComponent(term)}`;
-                    }
-
-                    log(`Testing: ${url}`);
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        log(`✅ Search "${term}": Found ${data.data?.length || 0} currencies`);
-                    } else {
-                        log(`❌ Search "${term}": HTTP ${response.status}`);
-                    }
-                } catch (error) {
-                    log(`❌ Search "${term}": ${error.message}`);
-                }
-            }
-
-            updateStatus('✅ Search API test completed', 'success');
-        }
-
-        async function searchCurrencies(inputElement) {
-            log(`Searching for: "${inputElement.value}"`, 'searchLog');
-            updateStatus(`Searching for: "${inputElement.value}"`, 'info', 'searchStatus');
-
-            const searchTerm = inputElement.value.trim();
-            const dropdownId = inputElement.id + 'Dropdown';
-            const dropdown = document.getElementById(dropdownId);
-
-            if (!dropdown) {
-                log('ERROR: Dropdown not found!', 'searchLog');
-                updateStatus('ERROR: Dropdown not found!', 'error', 'searchStatus');
-                return;
-            }
-
-            try {
-                let url = `${BASE_URL}/api/MasterCurrency/search`;
-                if (searchTerm.length > 0) {
-                    url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
-                }
-
-                log(`Making API request to: ${url}`, 'searchLog');
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    log(`API Response: ${JSON.stringify(data, null, 2)}`, 'searchLog');
-
-                    if (data.success && data.data && data.data.length > 0) {
-                        displayCurrencyResults(dropdown, data.data);
-                        dropdown.classList.remove('hidden');
-                        updateStatus(`✅ Found ${data.data.length} currencies from API`, 'success', 'searchStatus');
-                        log(`✅ Displaying ${data.data.length} currencies from API`, 'searchLog');
-                    } else {
-                        dropdown.classList.add('hidden');
-                        updateStatus('❌ No currencies found from API', 'info', 'searchStatus');
-                        log('❌ No currencies found from API', 'searchLog');
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            } catch (error) {
-                log(`❌ API Error: ${error.message}`, 'searchLog');
-                updateStatus(`❌ API Error: ${error.message}`, 'error', 'searchStatus');
-                dropdown.classList.add('hidden');
-            }
-        }
-
-        function displayCurrencyResults(dropdown, currencies) {
-            log(`Displaying ${currencies.length} currencies in dropdown`, 'searchLog');
-            dropdown.innerHTML = '';
-
-            currencies.forEach(currency => {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item';
-                item.innerHTML = `
-                    <div style="font-weight: bold; color: #007bff;">${currency.code}</div>
-                    <div style="font-size: 14px;">${currency.name}</div>
-                    <div style="font-size: 12px; color: #666;">Symbol: ${currency.symbol}</div>
-                    <div style="font-size: 11px; color: #999;">${currency.description || ''}</div>
+                
+                const result = await response.json();
+                console.log('API response:', result);
+                
+                resultDiv.innerHTML = `
+                    <h3>API Test Result:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
                 `;
-                item.onclick = () => selectCurrency(currency, dropdown);
-                dropdown.appendChild(item);
-            });
-        }
-
-        function selectCurrency(currency, dropdown) {
-            log(`Selected: ${currency.code} - ${currency.name}`, 'searchLog');
-            updateStatus(`✅ Selected: ${currency.code} - ${currency.name}`, 'success', 'searchStatus');
-
-            const inputElement = dropdown.previousElementSibling;
-            if (inputElement) {
-                inputElement.value = currency.code;
-                dropdown.classList.add('hidden');
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Error:</h3>
+                    <p>${error.message}</p>
+                `;
             }
         }
-
-        function testSearch() {
-            const input = document.getElementById('CurrencyItem');
-            input.value = 'indones';
-            searchCurrencies(input);
-        }
-
-        function clearField() {
-            document.getElementById('CurrencyItem').value = '';
-            document.getElementById('CurrencyItemDropdown').classList.add('hidden');
-            updateStatus('Field cleared', 'info', 'searchStatus');
-            log('Field cleared', 'searchLog');
-        }
-
-        // Initialize event handlers
-        document.addEventListener('DOMContentLoaded', function () {
-            log('Page loaded, setting up event handlers', 'apiLog');
-
-            const input = document.getElementById('CurrencyItem');
-            if (input) {
-                input.addEventListener('keyup', function () {
-                    log(`Keyup: "${this.value}"`, 'searchLog');
-                    searchCurrencies(this);
-                });
-
-                input.addEventListener('focus', function () {
-                    log('Focus event', 'searchLog');
-                    searchCurrencies(this);
-                });
-
-                log('Event handlers attached successfully', 'apiLog');
-            }
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function (e) {
-                const dropdown = document.getElementById('CurrencyItemDropdown');
-                const input = document.getElementById('CurrencyItem');
-
-                if (!dropdown.contains(e.target) && !input.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                    log('Dropdown closed (click outside)', 'searchLog');
-                }
-            });
-        });
     </script>
 </body>
-
 </html>

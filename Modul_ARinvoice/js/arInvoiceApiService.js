@@ -5,7 +5,8 @@
 
 class ARInvoiceApiService {
     constructor() {
-        this.baseUrl = window.BASE_URL || 'http://localhost:5249';
+        //this.baseUrl = window.BASE_URL || 'http://localhost:5249';
+        this.baseUrl = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
     }
 
     /**

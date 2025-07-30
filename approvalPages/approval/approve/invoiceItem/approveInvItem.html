@@ -6,8 +6,7 @@
     <title>Approve Invoice Item</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Authentication is disabled for development -->
-    <!-- <script src="../../../../js/auth.js"></script> -->
+    <script src="../../../../js/auth.js"></script>
     
     <script src="approveInvItem.js"></script>
     <style>
@@ -132,6 +131,12 @@
             min-width: 100px !important;
         }
         
+        /* Custom width for Wtax Liable column */
+        .wtax-liable-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
         /* Custom width for Discount column */
         .discount-column {
             width: 100px !important;
@@ -193,11 +198,7 @@
             min-width: 250px !important;
         }
         
-        /* Custom width for Sales Employee column */
-        .sales-employee-column {
-            width: 200px !important;
-            min-width: 200px !important;
-        }
+
         
         /* Ensure all textarea elements in table are top-aligned */
         .item-description,
@@ -359,28 +360,37 @@
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
                 <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Sales Employee</h3>
-                <input type="text" id="SalesEmployee" placeholder="Sales Employee" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Address</h3>
+                <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">base ref</h3>
                 <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
                 <input type="text" id="DocCur" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
+                <input type="number" id="docRate" placeholder="Document Rate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Document Date</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
+                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
+                <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
                 <h3 class="text-lg font-semibold mb-2">GroupNum</h3>
                 <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">TrnspCode</h3>
                 <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Tax No</h3>
+                <input type="text" id="TaxNo" placeholder="Tax Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">U_BSI_ShippingType</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
@@ -409,7 +419,7 @@
                     <th class="p-2 item-code-column">Item Code</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 description-column">Catatan</th>
-                    <th class="p-2 sales-employee-column">Sales Employee</th>
+                    <th class="p-2 uom-column">UoM</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
@@ -417,6 +427,7 @@
                     <th class="p-2 price-column">Price</th>
                     <th class="p-2 discount-column">Disc</th>
                     <th class="p-2 tax-code-column">Tax Code</th>
+                    <th class="p-2 wtax-liable-column">Wtax Liable</th>
                     <th class="p-2 line-total-column">Total Price</th>
                     <th class="p-2 account-code-column" style="display: none;">Account Code</th>
                     <th class="p-2 base-column" style="display: none;">BaseType</th>

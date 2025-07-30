@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'approved'; // Default tab
+let currentTab = 'all'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -103,62 +103,181 @@ async function loadDashboard() {
             return;
         }
 
-        // Build base URL and params
-        let baseUrl;
-        const params = new URLSearchParams();
-        params.append('ReceiverId', userId);
-        params.append('ReceiverRole', 'receive');
-        
-        // Build URL based on current tab
-        if (currentTab === 'approved') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/receive`;
-            params.append('isReceived', 'false');
-            params.append('isApproved', 'true');
-        } else if (currentTab === 'received') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/receive`;
-            params.append('isReceived', 'true');
-        } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/rejected`;
-        }
-        
-        // Add search parameters if available
-        if (currentSearchTerm) {
-            switch (currentSearchType) {
-                case 'invoice':
-                    params.append('invoiceNo', currentSearchTerm);
-                    break;
-                case 'customer':
-                    params.append('customerName', currentSearchTerm);
-                    break;
-                case 'status':
-                    params.append('status', currentSearchTerm);
-                    break;
-                case 'date':
-                    const dateValue = new Date(currentSearchTerm);
-                    if (!isNaN(dateValue.getTime())) {
-                        params.append('invoiceDateFrom', dateValue.toISOString().split('T')[0]);
-                        params.append('invoiceDateTo', dateValue.toISOString().split('T')[0]);
-                    }
-                    break;
-            }
-        }
-        
-        const url = `${baseUrl}?${params.toString()}`;
-        console.log('Fetching data from:', url);
+        // Build API URL for AR Invoices
+        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        console.log('Fetching data from:', apiUrl);
 
-        // For development, use mock data
-        const mockData = getMockInvoiceData();
-        allInvoices = mockData;
-        filteredInvoices = mockData;
+        // Make API call
+        console.log('Making API call to:', apiUrl);
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/plain'
+            }
+        });
+
+        console.log('API Response status:', response.status);
         
-        // Update counters and table
-        updateCounters();
-        updateTable(filteredInvoices);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('API Response data:', result);
+        
+        if (result.status && result.data) {
+            console.log('Transforming API data...');
+            // Transform API data to match our expected format
+            allInvoices = result.data.map(invoice => {
+                // Map docType to display type
+                let displayType = 'Regular';
+                if (invoice.docType === 'I') {
+                    displayType = 'Item';
+                } else if (invoice.docType === 'S') {
+                    displayType = 'Services';
+                }
+                
+                const transformedInvoice = {
+                    id: invoice.stagingID,
+                    invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
+                    customerName: invoice.cardName,
+                    salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
+                    invoiceDate: invoice.docDate,
+                    dueDate: invoice.docDueDate,
+                    status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
+                    totalAmount: invoice.docTotal,
+                    invoiceType: displayType,
+                    // Additional fields from API
+                    cardCode: invoice.cardCode,
+                    address: invoice.address,
+                    comments: invoice.comments,
+                    preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
+                    currency: invoice.docCur,
+                    vatSum: invoice.vatSum,
+                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    createdAt: invoice.createdAt,
+                    updatedAt: invoice.updatedAt,
+                    approvalSummary: invoice.arInvoiceApprovalSummary,
+                    docType: invoice.docType // Keep original docType for reference
+                };
+                console.log('Transformed invoice:', transformedInvoice);
+                return transformedInvoice;
+            });
+            
+            // Filter based on current tab
+            filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
+            
+            // Apply search filter if any
+            if (currentSearchTerm) {
+                filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
+            }
+            
+            // Update counters and table
+            updateCounters();
+            updateTable(filteredInvoices);
+        } else {
+            console.error('API returned error:', result.message);
+            allInvoices = [];
+            filteredInvoices = [];
+            updateCounters();
+            updateTable([]);
+        }
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Error loading dashboard data. Please try again.');
+        
+        // Show empty state when API fails
+        allInvoices = [];
+        filteredInvoices = [];
+        updateCounters();
+        updateTable([]);
     }
+}
+
+// Helper function to determine invoice status based on approval data
+function getInvoiceStatus(invoice) {
+    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
+    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
+    
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
+        return 'Draft';
+    }
+    
+    // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        console.log('arInvoiceApprovalSummary properties:', summary);
+        
+        // Use the approvalStatus field from the API response
+        if (summary.approvalStatus) {
+            console.log('Using approvalStatus from API:', summary.approvalStatus);
+            return summary.approvalStatus;
+        }
+        
+        // Fallback to old logic if approvalStatus is not available
+        if (summary.isRejected) return 'Rejected';
+        if (summary.isApproved) return 'Approved';
+        if (summary.isAcknowledged) return 'Acknowledged';
+        if (summary.isChecked) return 'Checked';
+        if (summary.isReceived) return 'Received';
+    }
+    
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
+    
+    return 'Draft';
+}
+
+// Helper function to filter invoices by tab
+function filterInvoicesByTab(invoices, tab) {
+    switch (tab) {
+        case 'all':
+            return invoices;
+        case 'prepared':
+            return invoices.filter(inv => inv.status === 'Prepared');
+        case 'checked':
+            return invoices.filter(inv => inv.status === 'Checked');
+        case 'rejected':
+            return invoices.filter(inv => inv.status === 'Rejected');
+        case 'draft':
+            return invoices.filter(inv => inv.status === 'Draft');
+        case 'acknowledged':
+            return invoices.filter(inv => inv.status === 'Acknowledged');
+        case 'approved':
+            return invoices.filter(inv => inv.status === 'Approved');
+        case 'received':
+            return invoices.filter(inv => inv.status === 'Received');
+        default:
+            return invoices;
+    }
+}
+
+// Helper function to apply search filter
+function applySearchFilter(invoices, searchTerm, searchType) {
+    if (!searchTerm) return invoices;
+    
+    const term = searchTerm.toLowerCase();
+    
+    return invoices.filter(invoice => {
+        switch (searchType) {
+            case 'invoice':
+                return invoice.invoiceNo.toLowerCase().includes(term);
+            case 'customer':
+                return invoice.customerName.toLowerCase().includes(term);
+            case 'date':
+                return invoice.invoiceDate.includes(term);
+            case 'status':
+                return invoice.status.toLowerCase().includes(term);
+            default:
+                return invoice.invoiceNo.toLowerCase().includes(term) ||
+                       invoice.customerName.toLowerCase().includes(term);
+        }
+    });
 }
 
 // Mock data for development
@@ -215,8 +334,8 @@ function getMockInvoiceData() {
 async function updateCounters() {
     try {
         const totalCount = allInvoices.length;
-        const approvedCount = allInvoices.filter(inv => inv.isApproved && !inv.isReceived).length;
-        const receivedCount = allInvoices.filter(inv => inv.isReceived).length;
+        const approvedCount = allInvoices.filter(inv => inv.status === 'Approved').length;
+        const receivedCount = allInvoices.filter(inv => inv.status === 'Received').length;
         const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
         
         document.getElementById('totalCount').textContent = totalCount;
@@ -254,27 +373,23 @@ function updateTable(invoices) {
         
         const rowNumber = startIndex + index + 1;
         
+        // Debug logging for status
+        console.log(`Invoice ${index + 1} status:`, invoice.status);
+        console.log(`Invoice ${index + 1} status class:`, `status-${invoice.status.toLowerCase()}`);
+        
         row.innerHTML = `
             <td class="p-2">${rowNumber}</td>
             <td class="p-2 scrollable-cell">${invoice.invoiceNo}</td>
             <td class="p-2 scrollable-cell">${invoice.customerName}</td>
-            <td class="p-2 scrollable-cell">${invoice.salesEmployee}</td>
             <td class="p-2">${formatDate(invoice.invoiceDate)}</td>
             <td class="p-2">${formatDate(invoice.dueDate)}</td>
             <td class="p-2">
-                <span class="px-2 py-1 rounded-full text-xs font-semibold ${
-                    invoice.status === 'Approved' ? 'bg-yellow-100 text-yellow-800' :
-                    invoice.status === 'Received' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                }">
-                    ${invoice.status}
-                </span>
+                <span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
             </td>
             <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">${invoice.invoiceType}</td>
-            <td class="p-2 scrollable-cell">${invoice.remarks || '-'}</td>
             <td class="p-2">
-                <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
         `;
         
@@ -335,6 +450,7 @@ function switchTab(tabName) {
         btn.classList.remove('tab-active');
     });
     
+    // Try to find the tab button and make it active
     const tabBtn = document.getElementById(tabName + 'TabBtn');
     if (tabBtn) {
         tabBtn.classList.add('tab-active');
@@ -372,6 +488,8 @@ function goToTotalDocs() {
 // Function to view invoice details
 function viewInvoiceDetails(id) {
     console.log('View invoice details for ID:', id);
+    // Redirect to receiveInvItem.html with the staging ID as parameter
+    window.location.href = `../../../approval/receive/invoiceItem/receiveInvItem.html?stagingID=${id}`;
 }
 
 // Function to receive invoice

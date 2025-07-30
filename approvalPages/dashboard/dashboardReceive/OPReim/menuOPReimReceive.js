@@ -9,22 +9,22 @@ let itemsPerPage = 10;
 async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
     try {
         console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
-        
+
         const params = new URLSearchParams({
             step: step,
             userId: userId,
             onlyCurrentStep: onlyCurrentStep.toString(),
             includeDetails: 'false'
         });
-        
+
         // Add isRejected parameter if specified
         if (isRejected) {
             params.append('isRejected', 'true');
         }
-        
+
         const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
         console.log('API URL:', apiUrl);
-        
+
         const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
@@ -56,9 +56,9 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
         } else {
             documents = [];
         }
-        
+
         console.log(`Returning ${documents.length} documents for step ${step}`);
-        
+
         // Debug: Log first document structure if available
         if (documents.length > 0) {
             console.log('First document structure:', documents[0]);
@@ -69,7 +69,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
                 doctype: documents[0].doctype
             });
         }
-        
+
         return documents;
     } catch (error) {
         console.error(`Error fetching documents for step ${step}:`, error);
@@ -78,28 +78,60 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 }
 
 // Helper function to get access token
+// Fallback getUserId function if not available from auth.js
+if (typeof getUserId === 'undefined') {
+    function getUserId() {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const userInfo = JSON.parse(jsonPayload);
+                const userId = userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+                if (userId) return userId;
+            } catch (e) {
+                console.error('Error parsing JWT token:', e);
+            }
+        }
+
+        const userStr = localStorage.getItem('loggedInUser');
+        if (!userStr) return null;
+
+        try {
+            const user = JSON.parse(userStr);
+            return user.id || null;
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+            return null;
+        }
+    }
+}
+
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadDashboard();
-    
+
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let searchTimeout;
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 handleSearch();
             }, 500); // Debounce search by 500ms
         });
     }
-    
+
     // Add event listener to the search type dropdown
     const searchType = document.getElementById('searchType');
     if (searchType) {
-        searchType.addEventListener('change', function() {
+        searchType.addEventListener('change', function () {
             const searchInput = document.getElementById('searchInput');
-            
+
             // Update input type and placeholder based on search type
             if (this.value === 'docDate' || this.value === 'dueDate') {
                 searchInput.type = 'date';
@@ -108,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 searchInput.type = 'text';
                 searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
             }
-            
+
             // Clear current search and trigger new search
             searchInput.value = '';
             currentSearchTerm = '';
@@ -122,20 +154,25 @@ async function loadDashboard() {
     try {
         // Get user ID for approver ID
         const userId = getUserId();
+        console.log('User ID from getUserId():', userId);
+
         if (!userId) {
             alert("Unable to get user ID from token. Please login again.");
             return;
         }
 
         console.log('loadDashboard called with currentTab:', currentTab);
-        
+
+        // Update counters first
+        await updateCounters(userId);
+
         // Use the switchTab function to load the appropriate data
         await switchTab(currentTab);
-        
+
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Failed to load dashboard data. Please try again.');
-        
+
         // Fallback to empty state
         updateTable([]);
         updatePaginationInfo(0);
@@ -146,34 +183,66 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         console.log('updateCounters called with userId:', userId);
-        
+
         // Fetch all documents using the receivedBy endpoint
+        console.log('Fetching documents for userId:', userId);
         const allDocuments = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
-        
-        // Count documents by status
+        console.log('All documents fetched:', allDocuments.length);
+        console.log('All documents:', allDocuments);
+
+        // Debug: Log each document's approval data
+        allDocuments.forEach((doc, index) => {
+            const approval = doc.approval || {};
+            console.log(`Document ${index + 1}:`, {
+                id: doc.stagingID || doc.id,
+                counterRef: doc.counterRef,
+                approvalStatus: approval.approvalStatus,
+                receivedBy: approval.receivedBy,
+                rejectedBy: approval.rejectedBy,
+                currentUser: userId,
+                isReceivedBy: approval.receivedBy === userId,
+                isRejectedBy: approval.rejectedBy === userId
+            });
+        });
+
+        // Count documents by status - only count documents where current user is receivedBy
         const approvedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'approved';
+            const isApproved = status.toLowerCase() === 'approved';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+
+            console.log(`Document ${doc.counterRef}: status="${status}", isApproved=${isApproved}, receivedBy="${approval.receivedBy}", currentUser="${userId}", isReceivedByCurrentUser=${isReceivedByCurrentUser}`);
+
+            return isApproved && isReceivedByCurrentUser;
         }).length;
-        
-        // For received count, count all documents except Checked, Acknowledged and Approved
+
+        // For received count, count documents with "Received" status assigned to current user
         const receivedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const isChecked = status.toLowerCase() === 'checked';
-            const isAcknowledged = status.toLowerCase() === 'acknowledged';
-            const isApproved = status.toLowerCase() === 'approved';
-            return !isChecked && !isAcknowledged && !isApproved;
+            const isReceived = status.toLowerCase() === 'received';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return isReceived && isReceivedByCurrentUser;
         }).length;
-        
+
         const rejectedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         }).length;
-        
-        const totalCount = allDocuments.length;
+
+        // Total count should be documents that can be received (Approved or Received status)
+        const totalCount = allDocuments.filter(doc => {
+            const approval = doc.approval || {};
+            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+            const isApproved = status.toLowerCase() === 'approved';
+            const isReceived = status.toLowerCase() === 'received';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return (isApproved || isReceived) && isReceivedByCurrentUser;
+        }).length;
 
         console.log('Counter results:', {
             total: totalCount,
@@ -183,11 +252,25 @@ async function updateCounters(userId) {
         });
 
         // Update counters
-        document.getElementById("totalCount").textContent = totalCount;
-        document.getElementById("approvedCount").textContent = approvedCount;
-        document.getElementById("receivedCount").textContent = receivedCount;
-        document.getElementById("rejectedCount").textContent = rejectedCount;
-        
+        console.log('Updating DOM elements with counts:', {
+            total: totalCount,
+            approved: approvedCount,
+            received: receivedCount,
+            rejected: rejectedCount
+        });
+
+        const totalElement = document.getElementById("totalCount");
+        const approvedElement = document.getElementById("approvedCount");
+        const receivedElement = document.getElementById("receivedCount");
+        const rejectedElement = document.getElementById("rejectedCount");
+
+        if (totalElement) totalElement.textContent = totalCount;
+        if (approvedElement) approvedElement.textContent = approvedCount;
+        if (receivedElement) receivedElement.textContent = receivedCount;
+        if (rejectedElement) rejectedElement.textContent = rejectedCount;
+
+        console.log('DOM elements updated successfully');
+
     } catch (error) {
         console.error('Error updating counters:', error);
         // Set counters to 0 on error
@@ -204,21 +287,21 @@ function sortDocumentsByReimNo(documents) {
         // Extract running number from Reimburse No
         const getRunningNumber = (reimNo) => {
             if (!reimNo) return 0;
-            
+
             // Try to extract numeric part from Reimburse No
             const numericMatch = reimNo.toString().match(/\d+/g);
             if (numericMatch && numericMatch.length > 0) {
                 // Join all numeric parts and convert to number
                 return parseInt(numericMatch.join(''));
             }
-            
+
             // If no numeric part found, use the entire string as fallback
             return reimNo.toString().localeCompare(b.counterRef || '');
         };
-        
+
         const runningNumberA = getRunningNumber(a.counterRef);
         const runningNumberB = getRunningNumber(b.counterRef);
-        
+
         // Sort in descending order (newest/highest number first)
         return runningNumberB - runningNumberA;
     });
@@ -230,17 +313,17 @@ function formatCurrency(number) {
     if (number === null || number === undefined || number === '') {
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     if (isNaN(num)) {
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -258,19 +341,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -278,7 +361,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -287,7 +370,7 @@ function formatCurrency(number) {
 function updateTable(documents) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
-    
+
     if (documents.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-4">No documents found</td></tr>`;
     } else {
@@ -295,7 +378,7 @@ function updateTable(documents) {
             // Format dates
             const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-';
             const docDueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '-';
-            
+
             // Calculate total amount from lines
             let totalAmount = 0;
             if (doc.lines && doc.lines.length > 0) {
@@ -303,15 +386,15 @@ function updateTable(documents) {
             } else if (doc.trsfrSum) {
                 totalAmount = doc.trsfrSum;
             }
-            
+
             // Format total amount
             const formattedAmount = formatCurrency(totalAmount);
-            
+
             // Check if fields are longer than 10 characters and apply scrollable class
             const reimNoClass = doc.counterRef && doc.counterRef.length > 10 ? 'scrollable-cell' : '';
             const requesterClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
             const payToClass = doc.cardName && doc.cardName.length > 10 ? 'scrollable-cell' : '';
-            
+
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'>${index + 1}</td>
                 <td class='p-2'>
@@ -340,88 +423,96 @@ function updateTable(documents) {
 async function switchTab(tabName) {
     console.log('switchTab called with:', tabName);
     currentTab = tabName;
-    
+
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
-    
+
     const userId = getUserId();
     if (!userId) {
         console.error('User ID not found');
         return;
     }
-    
+
     try {
         let documents = [];
-        
+
         // Use the receivedBy endpoint as specified in the API call
         const allDocuments = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
         console.log(`Total documents fetched from receivedBy endpoint: ${allDocuments.length}`);
-        
+
         if (tabName === 'approved') {
             console.log('Loading approved tab...');
             document.getElementById('approvedTabBtn').classList.add('tab-active');
-            
-            // For "Approved" tab, show all documents with Approval Status "Approved"
+
+            // For "Approved" tab, show documents with Approval Status "Approved" assigned to current user
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
                 const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
                 const isApproved = status.toLowerCase() === 'approved';
-                
+                const isReceivedByCurrentUser = approval.receivedBy === userId;
+
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isApproved=${isApproved}`);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isApproved=${isApproved}, receivedBy="${approval.receivedBy}", currentUser="${userId}", isReceivedByCurrentUser=${isReceivedByCurrentUser}`);
                     console.log('Document approval data:', approval);
                 }
-                
-                return isApproved;
+
+                return isApproved && isReceivedByCurrentUser;
             });
             console.log('Approved documents loaded:', documents.length);
-            
+
         } else if (tabName === 'received') {
             console.log('Loading received tab...');
             document.getElementById('receivedTabBtn').classList.add('tab-active');
-            
-            // For "Received" tab, show all documents regardless of status except Checked, Acknowledged and Approved
+
+            // For "Received" tab, show documents with "Received" status assigned to current user
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
                 const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-                const isChecked = status.toLowerCase() === 'checked';
-                const isAcknowledged = status.toLowerCase() === 'acknowledged';
-                const isApproved = status.toLowerCase() === 'approved';
-                
+                const isReceived = status.toLowerCase() === 'received';
+                const isReceivedByCurrentUser = approval.receivedBy === userId;
+
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isChecked=${isChecked}, isAcknowledged=${isAcknowledged}, isApproved=${isApproved}`);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isReceived=${isReceived}, receivedBy="${approval.receivedBy}", currentUser="${userId}", isReceivedByCurrentUser=${isReceivedByCurrentUser}`);
                 }
-                
-                // Show all documents EXCEPT Checked, Acknowledged and Approved
-                return !isChecked && !isAcknowledged && !isApproved;
+
+                // Show documents with "Received" status assigned to current user
+                return isReceived && isReceivedByCurrentUser;
             });
-            console.log('All documents except Checked, Acknowledged and Approved loaded for received tab:', documents.length);
-            
+            console.log('Received documents loaded:', documents.length);
+
         } else if (tabName === 'rejected') {
             console.log('Loading rejected tab...');
             document.getElementById('rejectedTabBtn').classList.add('tab-active');
-            
-            // For "Rejected" tab, show all documents with Approval Status "Rejected"
+
+            // For "Rejected" tab, show documents with "Rejected" status that were rejected by current user
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
                 const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
                 const isRejected = status.toLowerCase() === 'rejected';
-                
+                const isRejectedByCurrentUser = approval.rejectedBy === userId;
+
                 // Debug logging for first few documents
                 if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}`);
+                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}, rejectedBy="${approval.rejectedBy}", currentUser="${userId}", isRejectedByCurrentUser=${isRejectedByCurrentUser}`);
                     console.log('Document structure:', doc);
                 }
-                
-                return isRejected;
+
+                return isRejected && isRejectedByCurrentUser;
             });
             console.log('Rejected documents loaded:', documents.length);
+        } else if (tabName === 'all') {
+            console.log('Loading all documents tab...');
+            document.getElementById('allTabBtn').classList.add('tab-active');
+
+            // For "All" tab, show all documents assigned to current user
+            documents = allDocuments;
+            console.log('All documents loaded:', documents.length);
         }
-        
+
         console.log('Total documents before filtering:', documents.length);
-        
+
         // Apply search filter if there's a search term
         let filteredDocuments = documents;
         if (currentSearchTerm) {
@@ -452,31 +543,31 @@ async function switchTab(tabName) {
             });
             console.log('Documents after filtering:', filteredDocuments.length);
         }
-        
+
         // Sort documents by Reimburse No (newest first)
         const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
         console.log('Documents after sorting:', sortedDocuments.length);
-        
+
         // Update the table with filtered documents
         updateTable(sortedDocuments);
-        
+
         // Update pagination info
         updatePaginationInfo(sortedDocuments.length);
-        
+
     } catch (error) {
         console.error('Error switching tab:', error);
         // Fallback to empty state
         updateTable([]);
         updatePaginationInfo(0);
     }
-    
+
     // Reset search when switching tabs
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.value = '';
         currentSearchTerm = '';
     }
-    
+
     // Reset pagination
     currentPage = 1;
 }
@@ -492,7 +583,7 @@ function handleSearch() {
 
 // Helper function to get status styling
 function getStatusClass(status) {
-    switch(status) {
+    switch (status) {
         case 'Prepared': return 'bg-yellow-100 text-yellow-800';
         case 'Draft': return 'bg-yellow-100 text-yellow-800';
         case 'Checked': return 'bg-green-100 text-green-800';
@@ -517,38 +608,38 @@ function getStatusDisplay(doc) {
         }
         return status;
     }
-    
+
     // Check if document is rejected
     if (doc.approval.rejectedDate) {
         return 'Rejected';
     }
-    
+
     // Return normal approval status
     const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-    
+
     // Map "Draft" status to "Prepared" for display consistency
     if (status.toLowerCase() === 'draft') {
         return 'Prepared';
     }
-    
+
     return status;
 }
 
 // Update pagination information
 function updatePaginationInfo(totalItems) {
     document.getElementById('totalItems').textContent = totalItems;
-    
+
     // Calculate start and end items for current page
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-    
+
     document.getElementById('startItem').textContent = startItem;
     document.getElementById('endItem').textContent = endItem;
-    
+
     // Update pagination buttons state
     const prevPageBtn = document.getElementById('prevPage');
     const nextPageBtn = document.getElementById('nextPage');
-    
+
     if (prevPageBtn) {
         if (currentPage <= 1) {
             prevPageBtn.classList.add('disabled');
@@ -556,7 +647,7 @@ function updatePaginationInfo(totalItems) {
             prevPageBtn.classList.remove('disabled');
         }
     }
-    
+
     if (nextPageBtn) {
         if (currentPage >= Math.ceil(totalItems / itemsPerPage)) {
             nextPageBtn.classList.add('disabled');
@@ -564,7 +655,7 @@ function updatePaginationInfo(totalItems) {
             nextPageBtn.classList.remove('disabled');
         }
     }
-    
+
     // Update current page display
     document.getElementById('currentPage').textContent = currentPage;
 }
@@ -573,7 +664,7 @@ function updatePaginationInfo(totalItems) {
 function changePage(direction) {
     const totalItems = parseInt(document.getElementById('totalItems').textContent);
     const maxPage = Math.ceil(totalItems / itemsPerPage);
-    
+
     if (direction === -1 && currentPage > 1) {
         currentPage--;
         loadDashboard();
@@ -604,26 +695,26 @@ function toggleSidebar() {
 function downloadExcel() {
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
-    
+
     // Get current tab name for the file name
     const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
-    
+
     // Get table data
     const tableRows = document.querySelectorAll('#recentDocs tr');
     const tableData = [];
-    
+
     // Table headers
     const headers = [
-        'No', 'Voucher No.', 'Requester', 'Pay To', 
+        'No', 'Voucher No.', 'Requester', 'Pay To',
         'Document Date', 'Due Date', 'Total Amount', 'Status'
     ];
     tableData.push(headers);
-    
+
     // Table rows
     tableRows.forEach((row, index) => {
         const rowData = [];
         const cells = row.querySelectorAll('td');
-        
+
         if (cells.length > 0) {
             rowData.push(cells[0] ? cells[0].textContent.trim() : index + 1); // No
             rowData.push(cells[1] ? cells[1].textContent.trim() : ''); // Voucher No.
@@ -633,17 +724,17 @@ function downloadExcel() {
             rowData.push(cells[5] ? cells[5].textContent.trim() : ''); // Due Date
             rowData.push(cells[6] ? cells[6].textContent.trim() : ''); // Total Amount
             rowData.push(cells[7] ? cells[7].textContent.trim() : ''); // Status
-            
+
             tableData.push(rowData);
         }
     });
-    
+
     // Create worksheet
     const worksheet = XLSX.utils.aoa_to_sheet(tableData);
-    
+
     // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'OP Reimbursement');
-    
+
     // Generate Excel file
     XLSX.writeFile(workbook, `op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
@@ -653,24 +744,24 @@ function downloadPDF() {
     // Use the jsPDF library
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
+
     // Get current tab name for the title
     const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
-    
+
     // Add title with current filter information
     doc.setFontSize(16);
     doc.text(`Outgoing Payment Reimbursement Report - ${statusText}`, 14, 15);
-    
+
     // Add timestamp
     const now = new Date();
     const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     doc.setFontSize(10);
     doc.text(timestamp, 14, 22);
-    
+
     // Get table data
     const tableRows = document.querySelectorAll('#recentDocs tr');
     const tableData = [];
-    
+
     // Table rows
     tableRows.forEach(row => {
         const cells = row.querySelectorAll('td');
@@ -688,7 +779,7 @@ function downloadPDF() {
             tableData.push(rowData);
         }
     });
-    
+
     // Add table with styling
     doc.autoTable({
         head: [['No', 'Voucher No.', 'Requester', 'Pay To', 'Document Date', 'Due Date', 'Total Amount', 'Status']],
@@ -718,12 +809,12 @@ function downloadPDF() {
             fillColor: [240, 240, 240]
         }
     });
-    
+
     // Add total count at the bottom
     const finalY = doc.lastAutoTable.finalY || 30;
     doc.setFontSize(10);
     doc.text(`Total Records: ${tableData.length}`, 14, finalY + 10);
-    
+
     // Save the PDF with current filter in the filename
     doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
@@ -735,46 +826,49 @@ async function debugTabFunctionality() {
         console.error('User ID not found for debug');
         return;
     }
-    
+
     console.log('=== DEBUG: Testing Tab Functionality ===');
-    
+
     try {
         // Get all documents using the receivedBy endpoint
         const allDocs = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
-        
+
         // Test Approved tab
         console.log('=== TESTING APPROVED TAB ===');
         const approvedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'approved';
+            const isApproved = status.toLowerCase() === 'approved';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return isApproved && isReceivedByCurrentUser;
         });
-        console.log('Approved documents:', approvedFiltered.length, approvedFiltered);
-        
+        console.log('Approved documents by current user:', approvedFiltered.length, approvedFiltered);
+
         // Test Received tab
         console.log('=== TESTING RECEIVED TAB ===');
         const receivedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const isChecked = status.toLowerCase() === 'checked';
-            const isAcknowledged = status.toLowerCase() === 'acknowledged';
-            const isApproved = status.toLowerCase() === 'approved';
-            return !isChecked && !isAcknowledged && !isApproved;
+            const isReceived = status.toLowerCase() === 'received';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return isReceived && isReceivedByCurrentUser;
         });
-        console.log('All documents except Checked, Acknowledged and Approved:', receivedFiltered.length, receivedFiltered);
-        
+        console.log('Received documents by current user:', receivedFiltered.length, receivedFiltered);
+
         // Test Rejected tab
         console.log('=== TESTING REJECTED TAB ===');
         const rejectedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         });
-        console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
-        
+        console.log('Rejected documents by current user:', rejectedFiltered.length, rejectedFiltered);
+
         console.log('=== DEBUG: Tab Functionality Test Complete ===');
-        
+
     } catch (error) {
         console.error('Error in debugTabFunctionality:', error);
     }
@@ -787,12 +881,12 @@ async function showAllDocuments() {
         console.error('User ID not found');
         return;
     }
-    
+
     try {
         const allDocs = await fetchOutgoingPaymentDocuments('receivedBy', userId, false);
         console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
         console.log('Total documents:', allDocs.length);
-        
+
         allDocs.forEach((doc, index) => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
@@ -807,31 +901,34 @@ async function showAllDocuments() {
                 isReceivedBy: approval.receivedBy === userId || approval.receivedById === userId
             });
         });
-        
+
         // Show alert with summary
         const approvedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'approved';
+            const isApproved = status.toLowerCase() === 'approved';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return isApproved && isReceivedByCurrentUser;
         }).length;
-        
+
         const receivedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const isChecked = status.toLowerCase() === 'checked';
-            const isAcknowledged = status.toLowerCase() === 'acknowledged';
-            const isApproved = status.toLowerCase() === 'approved';
-            return !isChecked && !isAcknowledged && !isApproved;
+            const isReceived = status.toLowerCase() === 'received';
+            const isReceivedByCurrentUser = approval.receivedBy === userId;
+            return isReceived && isReceivedByCurrentUser;
         }).length;
-        
+
         const rejectedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+            const isRejected = status.toLowerCase() === 'rejected';
+            const isRejectedByCurrentUser = approval.rejectedBy === userId;
+            return isRejected && isRejectedByCurrentUser;
         }).length;
-        
-        alert(`Total Documents: ${allDocs.length}\nApproved: ${approvedCount}\nReceived (all except Checked, Acknowledged, Approved): ${receivedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
-        
+
+        alert(`Total Documents: ${allDocs.length}\nApproved (assigned to current user): ${approvedCount}\nReceived (assigned to current user): ${receivedCount}\nRejected (by current user): ${rejectedCount}\n\nNote: Total shows documents that can be received (Approved or Received). Rejected only shows documents rejected by this receiver, not by others.\n\nCheck browser console for detailed information.`);
+
     } catch (error) {
         console.error('Error in showAllDocuments:', error);
         alert('Error loading documents. Check console for details.');

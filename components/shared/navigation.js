@@ -65,6 +65,27 @@ if (typeof window !== 'undefined') {
     window.navigateToPage = navigateToPage;
 }
 
+// Global toggleSubMenu function for sidebar functionality
+function toggleSubMenu(id) {
+    const submenu = document.getElementById(id);
+    const button = submenu.previousElementSibling;
+    const chevron = button.querySelector('.fa-chevron-right');
+    
+    if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+        if (chevron) {
+            chevron.style.transform = 'rotate(90deg)';
+        }
+    } else {
+        submenu.classList.add('hidden');
+        if (chevron) {
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
+window.toggleSubMenu = toggleSubMenu;
+
 // Main Dashboard - No access verification required
 function goToMenu() {
     navigateToPage('pages/dashboard.html');
@@ -219,23 +240,40 @@ function goToMenuInvoice() {
 }
 
 function goToAddARInvoice() {
-    navigateToPage('Modul_ARinvoice/AddARin/add_ARInvoiceNew.html');
+    navigateToPage('pages/menuInvoice.html');
 }
 
 function goToMenuCheckARInvoice() {
-    navigateToPage('Modul_ARinvoice/1_Check/menuCheck_ARInvoiceNew.html');
+    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
 }
 
 function goToMenuAcknowARInvoice() {
-    navigateToPage('Modul_ARinvoice/2_Acknowledge/menuAck_ARInvoiceNew.html');
+    navigateToPage('approvalPages/dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html');
 }
 
 function goToMenuApprovARInvoice() {
-    navigateToPage('Modul_ARinvoice/3_Approve/menuAppr_ARInvoiceNew.html');
+    navigateToPage('approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html');
 }
 
 function goToMenuReceiveARInvoice() {
-    navigateToPage('Modul_ARinvoice/4_Received/menuRec_ARInvoiceNew.html');
+    navigateToPage('approvalPages/dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html');
+}
+
+// Additional AR Invoice navigation functions for mobile menu
+function goToCheckedDocs() {
+    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
+}
+
+function goToApprovedDocs() {
+    navigateToPage('approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html');
+}
+
+function goToRejectDocs() {
+    navigateToPage('approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html');
+}
+
+function goToTotalDocs() {
+    navigateToPage('pages/menuInvoice.html');
 }
 
 function goToAddInvoice() {
@@ -355,6 +393,10 @@ if (typeof window !== 'undefined') {
     window.goToMenuAcknowARInvoice = goToMenuAcknowARInvoice;
     window.goToMenuApprovARInvoice = goToMenuApprovARInvoice;
     window.goToMenuReceiveARInvoice = goToMenuReceiveARInvoice;
+    window.goToCheckedDocs = goToCheckedDocs;
+    window.goToApprovedDocs = goToApprovedDocs;
+    window.goToRejectDocs = goToRejectDocs;
+    window.goToTotalDocs = goToTotalDocs;
     window.goToAddInvoice = goToAddInvoice;
     window.goToInvoiceList = goToInvoiceList;
     window.goToMenuRegist = goToMenuRegist;
@@ -367,4 +409,5 @@ if (typeof window !== 'undefined') {
     window.goToMenuApprovARInvoiceClone = goToMenuApprovARInvoiceClone;
     window.goToMenuReceiveARInvoiceClone = goToMenuReceiveARInvoiceClone;
     window.logout = logout;
+    window.toggleSubMenu = toggleSubMenu;
 } 

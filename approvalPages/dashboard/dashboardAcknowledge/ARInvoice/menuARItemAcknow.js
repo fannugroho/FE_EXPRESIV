@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'checked'; // Default tab
+let currentTab = 'all'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -123,85 +123,181 @@ async function loadDashboard() {
             return;
         }
 
-        // Build base URL and params
-        let baseUrl;
-        const params = new URLSearchParams();
-        params.append('ApproverId', userId);
-        params.append('ApproverRole', 'acknowledged');
-        
-        // Build URL based on current tab
-        if (currentTab === 'checked') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/approval`;
-            params.append('isApproved', 'false');
-        } else if (currentTab === 'acknowledged') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/approval`;
-            params.append('isApproved', 'true');
-        } else if (currentTab === 'rejected') {
-            baseUrl = `${BASE_URL}/api/invoice/dashboard/rejected`;
-        }
-        
-        // Add search parameters if available
-        if (currentSearchTerm) {
-            switch (currentSearchType) {
-                case 'invoice':
-                    params.append('invoiceNo', currentSearchTerm);
-                    break;
-                case 'customer':
-                    params.append('customerName', currentSearchTerm);
-                    break;
-                case 'status':
-                    params.append('status', currentSearchTerm);
-                    break;
-                case 'date':
-                    // For date search, try to parse and use date range
-                    const dateValue = new Date(currentSearchTerm);
-                    if (!isNaN(dateValue.getTime())) {
-                        params.append('invoiceDateFrom', dateValue.toISOString().split('T')[0]);
-                        params.append('invoiceDateTo', dateValue.toISOString().split('T')[0]);
-                    }
-                    break;
-            }
-        }
-        
-        const url = `${baseUrl}?${params.toString()}`;
-        console.log('Fetching data from:', url);
+        // Build API URL for AR Invoices
+        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        console.log('Fetching data from:', apiUrl);
 
-        // For development, use mock data
-        const mockData = getMockInvoiceData();
-        allInvoices = mockData;
-        filteredInvoices = mockData;
-        
-        // Update counters and table
-        updateCounters();
-        updateTable(filteredInvoices);
-        
-        // In production, uncomment this:
-        /*
-        const response = await fetch(url, {
+        // Make API call
+        console.log('Making API call to:', apiUrl);
+        const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAccessToken()}`
+                'Accept': 'text/plain'
             }
         });
 
+        console.log('API Response status:', response.status);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        allInvoices = data.invoices || [];
-        filteredInvoices = allInvoices;
+        const result = await response.json();
+        console.log('API Response data:', result);
         
-        // Update counters and table
-        updateCounters();
-        updateTable(filteredInvoices);
-        */
+        if (result.status && result.data) {
+            console.log('Transforming API data...');
+            // Transform API data to match our expected format
+            allInvoices = result.data.map(invoice => {
+                // Map docType to display type
+                let displayType = 'Regular';
+                if (invoice.docType === 'I') {
+                    displayType = 'Item';
+                } else if (invoice.docType === 'S') {
+                    displayType = 'Services';
+                }
+                
+                const transformedInvoice = {
+                    id: invoice.stagingID,
+                    invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
+                    customerName: invoice.cardName,
+                    salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
+                    invoiceDate: invoice.docDate,
+                    dueDate: invoice.docDueDate,
+                    status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
+                    totalAmount: invoice.docTotal,
+                    invoiceType: displayType,
+                    // Additional fields from API
+                    cardCode: invoice.cardCode,
+                    address: invoice.address,
+                    comments: invoice.comments,
+                    preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
+                    currency: invoice.docCur,
+                    vatSum: invoice.vatSum,
+                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    createdAt: invoice.createdAt,
+                    updatedAt: invoice.updatedAt,
+                    approvalSummary: invoice.arInvoiceApprovalSummary,
+                    docType: invoice.docType // Keep original docType for reference
+                };
+                console.log('Transformed invoice:', transformedInvoice);
+                return transformedInvoice;
+            });
+            
+            // Filter based on current tab
+            filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
+            
+            // Apply search filter if any
+            if (currentSearchTerm) {
+                filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
+            }
+            
+            // Update counters and table
+            updateCounters();
+            updateTable(filteredInvoices);
+        } else {
+            console.error('API returned error:', result.message);
+            allInvoices = [];
+            filteredInvoices = [];
+            updateCounters();
+            updateTable([]);
+        }
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Error loading dashboard data. Please try again.');
+        
+        // Show empty state when API fails
+        allInvoices = [];
+        filteredInvoices = [];
+        updateCounters();
+        updateTable([]);
     }
+}
+
+// Helper function to determine invoice status based on approval data
+function getInvoiceStatus(invoice) {
+    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
+    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
+    
+    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
+        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
+        return 'Draft';
+    }
+    
+    // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        console.log('arInvoiceApprovalSummary properties:', summary);
+        
+        // Use the approvalStatus field from the API response
+        if (summary.approvalStatus) {
+            console.log('Using approvalStatus from API:', summary.approvalStatus);
+            return summary.approvalStatus;
+        }
+        
+        // Fallback to old logic if approvalStatus is not available
+        if (summary.isRejected) return 'Rejected';
+        if (summary.isApproved) return 'Approved';
+        if (summary.isAcknowledged) return 'Acknowledged';
+        if (summary.isChecked) return 'Checked';
+        if (summary.isReceived) return 'Received';
+    }
+    
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
+    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
+    
+    return 'Draft';
+}
+
+// Helper function to filter invoices by tab
+function filterInvoicesByTab(invoices, tab) {
+    switch (tab) {
+        case 'all':
+            return invoices;
+        case 'prepared':
+            return invoices.filter(inv => inv.status === 'Prepared');
+        case 'checked':
+            return invoices.filter(inv => inv.status === 'Checked');
+        case 'rejected':
+            return invoices.filter(inv => inv.status === 'Rejected');
+        case 'draft':
+            return invoices.filter(inv => inv.status === 'Draft');
+        case 'acknowledged':
+            return invoices.filter(inv => inv.status === 'Acknowledged');
+        case 'approved':
+            return invoices.filter(inv => inv.status === 'Approved');
+        case 'received':
+            return invoices.filter(inv => inv.status === 'Received');
+        default:
+            return invoices;
+    }
+}
+
+// Helper function to apply search filter
+function applySearchFilter(invoices, searchTerm, searchType) {
+    if (!searchTerm) return invoices;
+    
+    const term = searchTerm.toLowerCase();
+    
+    return invoices.filter(invoice => {
+        switch (searchType) {
+            case 'invoice':
+                return invoice.invoiceNo.toLowerCase().includes(term);
+            case 'customer':
+                return invoice.customerName.toLowerCase().includes(term);
+            case 'date':
+                return invoice.invoiceDate.includes(term);
+            case 'status':
+                return invoice.status.toLowerCase().includes(term);
+            default:
+                return invoice.invoiceNo.toLowerCase().includes(term) ||
+                       invoice.customerName.toLowerCase().includes(term);
+        }
+    });
 }
 
 // Mock data for development
@@ -209,6 +305,7 @@ function getMockInvoiceData() {
     const mockInvoices = [
         {
             id: 1,
+            stagingId: 'STG-C41174-001',
             invoiceNo: 'INV-2024-001',
             customerName: 'PT Maju Bersama',
             salesEmployee: 'John Doe',
@@ -220,6 +317,7 @@ function getMockInvoiceData() {
         },
         {
             id: 2,
+            stagingId: 'STG-C41174-002',
             invoiceNo: 'INV-2024-002',
             customerName: 'CV Sukses Mandiri',
             salesEmployee: 'Jane Smith',
@@ -231,6 +329,7 @@ function getMockInvoiceData() {
         },
         {
             id: 3,
+            stagingId: 'STG-C41174-003',
             invoiceNo: 'INV-2024-003',
             customerName: 'PT Global Trading',
             salesEmployee: 'Mike Johnson',
@@ -242,6 +341,7 @@ function getMockInvoiceData() {
         },
         {
             id: 4,
+            stagingId: 'STG-C41174-004',
             invoiceNo: 'INV-2024-004',
             customerName: 'PT Sejahtera Abadi',
             salesEmployee: 'Sarah Wilson',
@@ -253,6 +353,7 @@ function getMockInvoiceData() {
         },
         {
             id: 5,
+            stagingId: 'STG-C41174-005',
             invoiceNo: 'INV-2024-005',
             customerName: 'CV Berkah Jaya',
             salesEmployee: 'David Brown',
@@ -280,34 +381,17 @@ async function updateCounters() {
     try {
         const userId = getUserId();
         
-        // For development, calculate from mock data
+        // Calculate from actual data
         const totalCount = allInvoices.length;
-        const checkedCount = allInvoices.filter(inv => inv.status === 'checked').length;
-        const acknowledgedCount = allInvoices.filter(inv => inv.status === 'acknowledged').length;
-        const rejectedCount = allInvoices.filter(inv => inv.status === 'rejected').length;
+        const checkedCount = allInvoices.filter(inv => inv.status === 'Checked').length;
+        const acknowledgedCount = allInvoices.filter(inv => inv.status === 'Acknowledged').length;
+        const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
         
         // Update counter displays
         document.getElementById('totalCount').textContent = totalCount;
         document.getElementById('checkedCount').textContent = checkedCount;
         document.getElementById('acknowledgedCount').textContent = acknowledgedCount;
         document.getElementById('rejectedCount').textContent = rejectedCount;
-        
-        // In production, uncomment this:
-        /*
-        const response = await fetch(`${BASE_URL}/api/invoice/dashboard/counters?ApproverId=${userId}`, {
-            headers: {
-                'Authorization': `Bearer ${getAccessToken()}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            document.getElementById('totalCount').textContent = data.total || 0;
-            document.getElementById('checkedCount').textContent = data.checked || 0;
-            document.getElementById('acknowledgedCount').textContent = data.acknowledged || 0;
-            document.getElementById('rejectedCount').textContent = data.rejected || 0;
-        }
-        */
         
     } catch (error) {
         console.error('Error updating counters:', error);
@@ -353,11 +437,6 @@ function updateTable(invoices) {
         cellCustomer.className = 'p-2';
         cellCustomer.innerHTML = `<div class="scrollable-cell">${invoice.customerName}</div>`;
         
-        // Sales Employee
-        const cellEmployee = row.insertCell();
-        cellEmployee.className = 'p-2';
-        cellEmployee.innerHTML = `<div class="scrollable-cell">${invoice.salesEmployee}</div>`;
-        
         // Date
         const cellDate = row.insertCell();
         cellDate.className = 'p-2';
@@ -371,7 +450,12 @@ function updateTable(invoices) {
         // Status
         const cellStatus = row.insertCell();
         cellStatus.className = 'p-2';
-        cellStatus.innerHTML = `<span class="status-badge status-${invoice.status}">${invoice.status}</span>`;
+        
+        // Debug logging for status
+        console.log(`Invoice ${index + 1} status:`, invoice.status);
+        console.log(`Invoice ${index + 1} status class:`, `status-${invoice.status.toLowerCase()}`);
+        
+        cellStatus.innerHTML = `<span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>`;
         
         // Total Amount
         const cellAmount = row.insertCell();
@@ -387,7 +471,7 @@ function updateTable(invoices) {
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
         cellTools.innerHTML = `
-            <button onclick="viewInvoiceDetails(${invoice.id})" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+            <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
     
@@ -457,7 +541,11 @@ function switchTab(tabName) {
         btn.classList.remove('tab-active');
     });
     
-    document.getElementById(tabName + 'TabBtn').classList.add('tab-active');
+    // Try to find the tab button and make it active
+    const tabBtn = document.getElementById(tabName + 'TabBtn');
+    if (tabBtn) {
+        tabBtn.classList.add('tab-active');
+    }
     
     // Reload dashboard with new tab
     loadDashboard();
@@ -501,9 +589,9 @@ function goToTotalDocs() {
     console.log('Navigate to total documents');
 }
 
-window.viewInvoiceDetails = function(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+window.viewInvoiceDetails = function(stagingId) {
+    // Navigate to acknowledge invoice item page
+    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
 };
 
 window.acknowledgeInvoice = function(id) {
@@ -531,9 +619,9 @@ window.printInvoice = function(id) {
     window.open(`../../../../pages/printInvoice.html?id=${id}`, '_blank');
 };
 
-function viewInvoiceDetails(id) {
-    // Navigate to invoice details page
-    window.location.href = `../../../../detailPages/detailInvoice.html?id=${id}`;
+function viewInvoiceDetails(stagingId) {
+    // Navigate to acknowledge invoice item page
+    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
 }
 
 function acknowledgeInvoice(id) {

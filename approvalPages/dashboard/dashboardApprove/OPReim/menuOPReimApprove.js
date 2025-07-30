@@ -9,22 +9,22 @@ let itemsPerPage = 10;
 async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false, isRejected = false) {
     try {
         console.log(`Fetching documents for step: ${step}, userId: ${userId}, onlyCurrentStep: ${onlyCurrentStep}, isRejected: ${isRejected}`);
-        
+
         const params = new URLSearchParams({
             step: step,
             userId: userId,
             onlyCurrentStep: onlyCurrentStep.toString(),
             includeDetails: 'false'
         });
-        
+
         // Add isRejected parameter if specified
         if (isRejected) {
             params.append('isRejected', 'true');
         }
-        
+
         const apiUrl = `${BASE_URL}/api/staging-outgoing-payments/headers?${params.toString()}`;
         console.log('API URL:', apiUrl);
-        
+
         const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
@@ -56,9 +56,9 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
         } else {
             documents = [];
         }
-        
+
         console.log(`Returning ${documents.length} documents for step ${step}`);
-        
+
         // Debug: Log first document structure if available
         if (documents.length > 0) {
             console.log('First document structure:', documents[0]);
@@ -69,7 +69,7 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
                 doctype: documents[0].doctype
             });
         }
-        
+
         return documents;
     } catch (error) {
         console.error(`Error fetching documents for step ${step}:`, error);
@@ -79,27 +79,27 @@ async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = fal
 
 // Helper function to get access token
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadDashboard();
-    
+
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let searchTimeout;
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 handleSearch();
             }, 500); // Debounce search by 500ms
         });
     }
-    
+
     // Add event listener to the search type dropdown
     const searchType = document.getElementById('searchType');
     if (searchType) {
-        searchType.addEventListener('change', function() {
+        searchType.addEventListener('change', function () {
             const searchInput = document.getElementById('searchInput');
-            
+
             // Update input type and placeholder based on search type
             if (this.value === 'docDate' || this.value === 'dueDate') {
                 searchInput.type = 'date';
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 searchInput.type = 'text';
                 searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
             }
-            
+
             // Clear current search and trigger new search
             searchInput.value = '';
             currentSearchTerm = '';
@@ -132,7 +132,7 @@ async function loadDashboard() {
         const params = new URLSearchParams();
         params.append('ApproverId', userId);
         params.append('ApproverRole', 'approved');
-        
+
         // Build URL based on current tab
         if (currentTab === 'acknowledged') {
             // For acknowledged tab, we'll use the approvedBy endpoint and filter in JavaScript
@@ -155,7 +155,7 @@ async function loadDashboard() {
             params.append('onlyCurrentStep', 'true');
             params.append('isRejected', 'true');
         }
-        
+
         // Add search parameters if available
         if (currentSearchTerm) {
             switch (currentSearchType) {
@@ -186,7 +186,7 @@ async function loadDashboard() {
                     break;
             }
         }
-        
+
         const url = `${baseUrl}?${params.toString()}`;
 
         console.log('Fetching dashboard data from:', url);
@@ -236,41 +236,41 @@ async function loadDashboard() {
             updatePaginationInfo(0);
             return;
         }
-        
+
         // Sort documents by Reimburse No (newest first)
         const sortedDocuments = sortDocumentsByReimNo(documents);
-        
+
         // Update counters by fetching all statuses
         await updateCounters(userId);
-        
+
         // Debug: Test tab functionality
         await debugTabFunctionality();
-        
+
         // If current tab is acknowledged, filter for acknowledged documents
         if (currentTab === 'acknowledged') {
             const acknowledgedDocuments = sortedDocuments.filter(doc => {
                 const approval = doc.approval || {};
                 const approvalStatus = approval.approvalStatus;
-                
+
                 // Filter for documents with exact "Acknowledged" status
                 return approvalStatus === 'Acknowledged';
             });
-            
+
             console.log('Filtered acknowledged documents for dashboard:', acknowledgedDocuments.length);
             updateTable(acknowledgedDocuments);
             updatePaginationInfo(acknowledgedDocuments.length);
         } else {
             // Update the table with filtered documents
             updateTable(sortedDocuments);
-            
+
             // Update pagination info
             updatePaginationInfo(sortedDocuments.length);
         }
-        
+
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Failed to load dashboard data. Please try again.');
-        
+
         // Fallback to empty state
         updateTable([]);
         updatePaginationInfo(0);
@@ -281,34 +281,47 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         console.log('updateCounters called with userId:', userId);
-        
+
         // Fetch all documents using the approvedBy endpoint
         const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
-        
-        // Count documents by status
+
+        console.log(`Total documents fetched: ${allDocuments.length}`);
+
+        // Count documents by status based on approval.approvalStatus
         const acknowledgedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const approvalStatus = approval.approvalStatus;
-            // Count documents with exact "Acknowledged" status
-            return approvalStatus === 'Acknowledged';
+
+            // Count documents that have been acknowledged but not yet approved
+            // This means they have acknowledgedDate but no approvedDate
+            const hasAcknowledgedDate = approval.acknowledgedDate !== null;
+            const hasApprovedDate = approval.approvedDate !== null;
+            const hasRejectedDate = approval.rejectedDate !== null;
+
+            return hasAcknowledgedDate && !hasApprovedDate && !hasRejectedDate;
         }).length;
-        
-        // For approved count, count all documents except Prepared, Checked, Acknowledged
+
         const approvedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            const statusLower = status.toLowerCase();
-            
-            // Exclude documents with status "Prepared", "Checked", "Acknowledged"
-            return !['prepared', 'checked', 'acknowledged'].includes(statusLower);
+
+            // Count documents that have been approved but not yet received
+            // This means they have approvedDate but no receivedDate
+            const hasApprovedDate = approval.approvedDate !== null;
+            const hasReceivedDate = approval.receivedDate !== null;
+            const hasRejectedDate = approval.rejectedDate !== null;
+
+            return hasApprovedDate && !hasReceivedDate && !hasRejectedDate;
         }).length;
-        
+
         const rejectedCount = allDocuments.filter(doc => {
             const approval = doc.approval || {};
-            const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-            return status.toLowerCase() === 'rejected';
+
+            // Count documents that have been rejected
+            const hasRejectedDate = approval.rejectedDate !== null;
+
+            return hasRejectedDate;
         }).length;
-        
+
         const totalCount = allDocuments.length;
 
         console.log('Counter results:', {
@@ -318,12 +331,27 @@ async function updateCounters(userId) {
             rejected: rejectedCount
         });
 
+        // Debug: Log some examples for verification
+        if (allDocuments.length > 0) {
+            console.log('Sample documents for debugging:');
+            allDocuments.slice(0, 3).forEach((doc, index) => {
+                const approval = doc.approval || {};
+                console.log(`Document ${index + 1} (${doc.counterRef}):`, {
+                    approvalStatus: approval.approvalStatus,
+                    acknowledgedDate: approval.acknowledgedDate,
+                    approvedDate: approval.approvedDate,
+                    receivedDate: approval.receivedDate,
+                    rejectedDate: approval.rejectedDate
+                });
+            });
+        }
+
         // Update counters
         document.getElementById("totalCount").textContent = totalCount;
         document.getElementById("acknowledgedCount").textContent = acknowledgedCount;
         document.getElementById("approvedCount").textContent = approvedCount;
         document.getElementById("rejectedCount").textContent = rejectedCount;
-        
+
     } catch (error) {
         console.error('Error updating counters:', error);
         // Set counters to 0 on error
@@ -340,21 +368,21 @@ function sortDocumentsByReimNo(documents) {
         // Extract running number from Reimburse No
         const getRunningNumber = (reimNo) => {
             if (!reimNo) return 0;
-            
+
             // Try to extract numeric part from Reimburse No
             const numericMatch = reimNo.toString().match(/\d+/g);
             if (numericMatch && numericMatch.length > 0) {
                 // Join all numeric parts and convert to number
                 return parseInt(numericMatch.join(''));
             }
-            
+
             // If no numeric part found, use the entire string as fallback
             return reimNo.toString().localeCompare(b.counterRef || '');
         };
-        
+
         const runningNumberA = getRunningNumber(a.counterRef);
         const runningNumberB = getRunningNumber(b.counterRef);
-        
+
         // Sort in descending order (newest/highest number first)
         return runningNumberB - runningNumberA;
     });
@@ -366,17 +394,17 @@ function formatCurrency(number) {
     if (number === null || number === undefined || number === '') {
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     if (isNaN(num)) {
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -394,19 +422,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -414,7 +442,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -423,7 +451,7 @@ function formatCurrency(number) {
 function updateTable(documents) {
     const tableBody = document.getElementById("recentDocs");
     tableBody.innerHTML = "";
-    
+
     if (documents.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-4">No documents found</td></tr>`;
     } else {
@@ -431,7 +459,7 @@ function updateTable(documents) {
             // Format dates
             const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-';
             const docDueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '-';
-            
+
             // Calculate total amount from lines
             let totalAmount = 0;
             if (doc.lines && doc.lines.length > 0) {
@@ -439,15 +467,15 @@ function updateTable(documents) {
             } else if (doc.trsfrSum) {
                 totalAmount = doc.trsfrSum;
             }
-            
+
             // Format total amount
             const formattedAmount = formatCurrency(totalAmount);
-            
+
             // Check if fields are longer than 10 characters and apply scrollable class
             const reimNoClass = doc.counterRef && doc.counterRef.length > 10 ? 'scrollable-cell' : '';
             const requesterClass = doc.requesterName && doc.requesterName.length > 10 ? 'scrollable-cell' : '';
             const payToClass = doc.cardName && doc.cardName.length > 10 ? 'scrollable-cell' : '';
-            
+
             const row = `<tr class='w-full border-b'>
                 <td class='p-2'>${index + 1}</td>
                 <td class='p-2'>
@@ -476,165 +504,151 @@ function updateTable(documents) {
 async function switchTab(tabName) {
     console.log('switchTab called with:', tabName);
     currentTab = tabName;
-    
+
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
-    
+
     const userId = getUserId();
     if (!userId) {
         console.error('User ID not found');
         return;
     }
-    
-    // Special handling for acknowledged tab
-    if (tabName === 'acknowledged') {
-        await loadAcknowledgedDocuments(userId);
-        return;
-    }
-    
+
     try {
         let documents = [];
-        
+
         // Use the approvedBy endpoint as specified in the API call
         const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log(`Total documents fetched from approvedBy endpoint: ${allDocuments.length}`);
-        
+
         if (tabName === 'acknowledged') {
             console.log('Loading acknowledged tab...');
             document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
-            
-            // For "Acknowledged" tab, show only documents with Approval Status "Acknowledged"
+
+            // For "Acknowledged" tab, show documents that have been acknowledged but not yet approved
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
-                const approvalStatus = approval.approvalStatus;
-                
-                // Primary check: exact match for "Acknowledged" status
-                const isAcknowledged = approvalStatus === 'Acknowledged';
-                
-                // Debug logging for first few documents
-                if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
-                    console.log('Document approval data:', approval);
-                }
-                
-                return isAcknowledged;
+
+                // Count documents that have been acknowledged but not yet approved
+                const hasAcknowledgedDate = approval.acknowledgedDate !== null;
+                const hasApprovedDate = approval.approvedDate !== null;
+                const hasRejectedDate = approval.rejectedDate !== null;
+
+                return hasAcknowledgedDate && !hasApprovedDate && !hasRejectedDate;
             });
             console.log('Acknowledged documents loaded:', documents.length);
-            
-            // If no documents found with exact "Acknowledged" status, try case-insensitive check
-            if (documents.length === 0) {
-                console.log('No documents with exact "Acknowledged" status found, trying case-insensitive check...');
-                documents = allDocuments.filter(doc => {
-                    const approval = doc.approval || {};
-                    const approvalStatus = approval.approvalStatus;
-                    
-                    // Case-insensitive check for "acknowledged" status
-                    const isAcknowledged = approvalStatus && approvalStatus.toLowerCase() === 'acknowledged';
-                    
-                    if (allDocuments.indexOf(doc) < 3) {
-                        console.log(`Case-insensitive check - Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
-                    }
-                    
-                    return isAcknowledged;
-                });
-                console.log('Acknowledged documents after case-insensitive check:', documents.length);
-            }
-            
+
         } else if (tabName === 'approved') {
             console.log('Loading approved tab...');
             document.getElementById('approvedTabBtn').classList.add('tab-active');
-            
-            // For "Approved" tab, show all documents except Prepared, Checked, Acknowledged
+
+            // For "Approved" tab, show documents that have been approved but not yet received
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
-                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-                const statusLower = status.toLowerCase();
-                
-                // Exclude documents with status "Prepared", "Checked", "Acknowledged"
-                return !['prepared', 'checked', 'acknowledged'].includes(statusLower);
+
+                // Count documents that have been approved but not yet received
+                const hasApprovedDate = approval.approvedDate !== null;
+                const hasReceivedDate = approval.receivedDate !== null;
+                const hasRejectedDate = approval.rejectedDate !== null;
+
+                return hasApprovedDate && !hasReceivedDate && !hasRejectedDate;
             });
-            console.log('Filtered documents loaded for approved tab:', documents.length);
-            
+            console.log('Approved documents loaded:', documents.length);
+
         } else if (tabName === 'rejected') {
             console.log('Loading rejected tab...');
             document.getElementById('rejectedTabBtn').classList.add('tab-active');
-            
-            // For "Rejected" tab, show all documents with Approval Status "Rejected"
+
+            // For "Rejected" tab, show documents that have been rejected
             documents = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
-                const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-                const isRejected = status.toLowerCase() === 'rejected';
-                
-                // Debug logging for first few documents
-                if (allDocuments.indexOf(doc) < 3) {
-                    console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approval.approvalStatus}", status="${status}", isRejected=${isRejected}`);
-                    console.log('Document structure:', doc);
-                }
-                
-                return isRejected;
+
+                // Count documents that have been rejected
+                const hasRejectedDate = approval.rejectedDate !== null;
+
+                return hasRejectedDate;
             });
             console.log('Rejected documents loaded:', documents.length);
         }
-        
-        console.log('Total documents before filtering:', documents.length);
-        
+
         // Apply search filter if there's a search term
-        let filteredDocuments = documents;
-        if (currentSearchTerm) {
-            console.log('Applying search filter with term:', currentSearchTerm);
-            filteredDocuments = documents.filter(doc => {
-                switch (currentSearchType) {
-                    case 'reimNo':
-                        return doc.counterRef && doc.counterRef.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'requester':
-                        return doc.requesterName && doc.requesterName.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'payTo':
-                        return doc.cardName && doc.cardName.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'totalAmount':
-                        const totalAmount = doc.trsfrSum ? doc.trsfrSum.toString() : '';
-                        return totalAmount.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'status':
-                        const status = getStatusDisplay(doc);
-                        return status.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'docDate':
-                        const docDate = doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '';
-                        return docDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    case 'dueDate':
-                        const dueDate = doc.docDueDate ? new Date(doc.docDueDate).toLocaleDateString() : '';
-                        return dueDate.toLowerCase().includes(currentSearchTerm.toLowerCase());
-                    default:
-                        return true;
+        const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+        const searchType = document.getElementById('searchType')?.value || 'all';
+
+        console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
+        console.log(`Documents before search filter: ${documents.length}`);
+
+        if (searchTerm) {
+            documents = documents.filter(doc => {
+                if (searchType === 'reimNo') {
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) ||
+                        (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                        (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
+                        (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm));
+                } else if (searchType === 'requester') {
+                    return doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'payTo') {
+                    const payToId = doc.payTo;
+                    const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
+                    return payToName.toLowerCase().includes(searchTerm);
+                } else if (searchType === 'docDate') {
+                    const docDate = doc.docDate || doc.postingDate || doc.submissionDate;
+                    return docDate && new Date(docDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                } else if (searchType === 'dueDate') {
+                    const dueDate = doc.receivedDate || doc.docDueDate || doc.dueDate;
+                    return dueDate && new Date(dueDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                } else if (searchType === 'totalAmount') {
+                    // Handle multiple possible field names for Total Amount
+                    let calculatedTotalAmount = 0;
+                    if (doc.lines && doc.lines.length > 0) {
+                        calculatedTotalAmount = doc.lines.reduce((sum, line) => sum + (line.sumApplied || 0), 0);
+                    } else if (doc.trsfrSum) {
+                        calculatedTotalAmount = doc.trsfrSum;
+                    } else {
+                        const totalLCValue = doc.totalLC || doc.docTotal || doc.totalAmount || 0;
+                        const totalFCValue = doc.totalFC || doc.docTotalFC || 0;
+                        calculatedTotalAmount = totalLCValue + totalFCValue;
+                    }
+                    const totalAmountString = calculatedTotalAmount.toString().toLowerCase();
+
+                    return totalAmountString.includes(searchTerm.toLowerCase());
+                } else if (searchType === 'status') {
+                    const status = getStatusDisplay(doc);
+                    return status.toLowerCase().includes(searchTerm);
+                } else {
+                    // Default search across multiple fields
+                    const payToId = doc.payTo;
+                    const payToName = payToId ? getUserNameById(payToId) : (doc.payToName || doc.payTo || '');
+
+                    return (doc.counterRef && doc.counterRef.toLowerCase().includes(searchTerm)) ||
+                        (doc.outgoingPaymentNo && doc.outgoingPaymentNo.toLowerCase().includes(searchTerm)) ||
+                        (doc.docNum && doc.docNum.toString().includes(searchTerm)) ||
+                        (doc.reimburseNo && doc.reimburseNo.toLowerCase().includes(searchTerm)) ||
+                        (doc.requesterName && doc.requesterName.toLowerCase().includes(searchTerm)) ||
+                        (doc.receivedByName && doc.receivedByName.toLowerCase().includes(searchTerm)) ||
+                        (doc.receivedBy && doc.receivedBy.toLowerCase().includes(searchTerm)) ||
+                        (doc.cardName && doc.cardName.toLowerCase().includes(searchTerm)) ||
+                        (doc.bpName && doc.bpName.toLowerCase().includes(searchTerm)) ||
+                        (doc.paidToName && doc.paidToName.toLowerCase().includes(searchTerm)) ||
+                        (payToName && payToName.toLowerCase().includes(searchTerm)) ||
+                        (doc.comments && doc.comments.toLowerCase().includes(searchTerm));
                 }
             });
-            console.log('Documents after filtering:', filteredDocuments.length);
         }
-        
+
+        console.log(`Documents after search filter: ${documents.length}`);
+
         // Sort documents by Reimburse No (newest first)
-        const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
-        console.log('Documents after sorting:', sortedDocuments.length);
-        
-        // Update the table with filtered documents
-        updateTable(sortedDocuments);
-        
-        // Update pagination info
-        updatePaginationInfo(sortedDocuments.length);
-        
+        documents = sortDocumentsByReimNo(documents);
+
+        // Update table with filtered documents
+        updateTable(documents);
+
     } catch (error) {
         console.error('Error switching tab:', error);
         // Fallback to empty state
         updateTable([]);
-        updatePaginationInfo(0);
     }
-    
-    // Reset search when switching tabs
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = '';
-        currentSearchTerm = '';
-    }
-    
-    // Reset pagination
-    currentPage = 1;
 }
 
 // Function to handle search input
@@ -648,7 +662,7 @@ function handleSearch() {
 
 // Helper function to get status styling
 function getStatusClass(status) {
-    switch(status) {
+    switch (status) {
         case 'Prepared': return 'bg-yellow-100 text-yellow-800';
         case 'Draft': return 'bg-yellow-100 text-yellow-800';
         case 'Checked': return 'bg-green-100 text-green-800';
@@ -674,44 +688,71 @@ function getStatusDisplay(doc) {
         }
         return status;
     }
-    
-    // Check if document is rejected
-    if (doc.approval.rejectedDate) {
+
+    const approval = doc.approval;
+
+    // Check if document is rejected first
+    if (approval.rejectedDate) {
         return 'Rejected';
     }
-    
-    // Return normal approval status
-    const status = doc.approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
-    
+
+    // Check if document is received
+    if (approval.receivedDate) {
+        return 'Received';
+    }
+
+    // Check if document is approved
+    if (approval.approvedDate) {
+        return 'Approved';
+    }
+
+    // Check if document is acknowledged
+    if (approval.acknowledgedDate) {
+        return 'Acknowledged';
+    }
+
+    // Check if document is checked
+    if (approval.checkedDate) {
+        return 'Checked';
+    }
+
+    // Check if document is prepared
+    if (approval.preparedDate) {
+        return 'Prepared';
+    }
+
+    // Fallback to approval status field
+    const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
+
     // Map "Draft" status to "Prepared" for display consistency
     if (status.toLowerCase() === 'draft') {
         return 'Prepared';
     }
-    
+
     // Normalize acknowledged status variations
     const statusLower = status.toLowerCase();
     if (statusLower === 'acknowledge' || statusLower === 'ack') {
         return 'Acknowledged';
     }
-    
+
     return status;
 }
 
 // Update pagination information
 function updatePaginationInfo(totalItems) {
     document.getElementById('totalItems').textContent = totalItems;
-    
+
     // Calculate start and end items for current page
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-    
+
     document.getElementById('startItem').textContent = startItem;
     document.getElementById('endItem').textContent = endItem;
-    
+
     // Update pagination buttons state
     const prevPageBtn = document.getElementById('prevPage');
     const nextPageBtn = document.getElementById('nextPage');
-    
+
     if (prevPageBtn) {
         if (currentPage <= 1) {
             prevPageBtn.classList.add('disabled');
@@ -719,7 +760,7 @@ function updatePaginationInfo(totalItems) {
             prevPageBtn.classList.remove('disabled');
         }
     }
-    
+
     if (nextPageBtn) {
         if (currentPage >= Math.ceil(totalItems / itemsPerPage)) {
             nextPageBtn.classList.add('disabled');
@@ -727,7 +768,7 @@ function updatePaginationInfo(totalItems) {
             nextPageBtn.classList.remove('disabled');
         }
     }
-    
+
     // Update current page display
     document.getElementById('currentPage').textContent = currentPage;
 }
@@ -736,7 +777,7 @@ function updatePaginationInfo(totalItems) {
 function changePage(direction) {
     const totalItems = parseInt(document.getElementById('totalItems').textContent);
     const maxPage = Math.ceil(totalItems / itemsPerPage);
-    
+
     if (direction === -1 && currentPage > 1) {
         currentPage--;
         loadDashboard();
@@ -767,26 +808,26 @@ function toggleSidebar() {
 function downloadExcel() {
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
-    
+
     // Get current tab name for the file name
     const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
-    
+
     // Get table data
     const tableRows = document.querySelectorAll('#recentDocs tr');
     const tableData = [];
-    
+
     // Table headers
     const headers = [
-        'No', 'Voucher No.', 'Requester', 'Pay To', 
+        'No', 'Voucher No.', 'Requester', 'Pay To',
         'Document Date', 'Due Date', 'Total Amount', 'Status'
     ];
     tableData.push(headers);
-    
+
     // Table rows
     tableRows.forEach((row, index) => {
         const rowData = [];
         const cells = row.querySelectorAll('td');
-        
+
         if (cells.length > 0) {
             rowData.push(cells[0] ? cells[0].textContent.trim() : index + 1); // No
             rowData.push(cells[1] ? cells[1].textContent.trim() : ''); // Voucher No.
@@ -796,17 +837,17 @@ function downloadExcel() {
             rowData.push(cells[5] ? cells[5].textContent.trim() : ''); // Due Date
             rowData.push(cells[6] ? cells[6].textContent.trim() : ''); // Total Amount
             rowData.push(cells[7] ? cells[7].textContent.trim() : ''); // Status
-            
+
             tableData.push(rowData);
         }
     });
-    
+
     // Create worksheet
     const worksheet = XLSX.utils.aoa_to_sheet(tableData);
-    
+
     // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'OP Reimbursement');
-    
+
     // Generate Excel file
     XLSX.writeFile(workbook, `op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
@@ -816,24 +857,24 @@ function downloadPDF() {
     // Use the jsPDF library
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
+
     // Get current tab name for the title
     const statusText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
-    
+
     // Add title with current filter information
     doc.setFontSize(16);
     doc.text(`Outgoing Payment Reimbursement Report - ${statusText}`, 14, 15);
-    
+
     // Add timestamp
     const now = new Date();
     const timestamp = `Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     doc.setFontSize(10);
     doc.text(timestamp, 14, 22);
-    
+
     // Get table data
     const tableRows = document.querySelectorAll('#recentDocs tr');
     const tableData = [];
-    
+
     // Table rows
     tableRows.forEach(row => {
         const cells = row.querySelectorAll('td');
@@ -851,7 +892,7 @@ function downloadPDF() {
             tableData.push(rowData);
         }
     });
-    
+
     // Add table with styling
     doc.autoTable({
         head: [['No', 'Voucher No.', 'Requester', 'Pay To', 'Document Date', 'Due Date', 'Total Amount', 'Status']],
@@ -881,12 +922,12 @@ function downloadPDF() {
             fillColor: [240, 240, 240]
         }
     });
-    
+
     // Add total count at the bottom
     const finalY = doc.lastAutoTable.finalY || 30;
     doc.setFontSize(10);
     doc.text(`Total Records: ${tableData.length}`, 14, finalY + 10);
-    
+
     // Save the PDF with current filter in the filename
     doc.save(`op_reimbursement_${statusText.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
@@ -898,33 +939,33 @@ async function debugTabFunctionality() {
         console.error('User ID not found for debug');
         return;
     }
-    
+
     console.log('=== DEBUG: Testing Tab Functionality ===');
-    
+
     try {
         // Get all documents using the approvedBy endpoint
         const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log('All documents fetched:', allDocs.length);
-        
+
         // Test Acknowledged tab with specific filtering for "approvalStatus": "Acknowledged"
         console.log('=== TESTING ACKNOWLEDGED TAB ===');
         const acknowledgedFiltered = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const approvalStatus = approval.approvalStatus;
-            
+
             // Primary check: exact match for "Acknowledged" status
             const isAcknowledged = approvalStatus === 'Acknowledged';
-            
+
             // Debug logging for first few documents
             if (allDocs.indexOf(doc) < 3) {
                 console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                 console.log('Document approval data:', approval);
             }
-            
+
             return isAcknowledged;
         });
         console.log('Acknowledged documents (exact "Acknowledged" status):', acknowledgedFiltered.length, acknowledgedFiltered);
-        
+
         // Test Approved tab
         console.log('=== TESTING APPROVED TAB ===');
         // Approved tab shows all documents except Prepared, Checked, Acknowledged
@@ -932,12 +973,12 @@ async function debugTabFunctionality() {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const statusLower = status.toLowerCase();
-            
+
             // Exclude documents with status "Prepared", "Checked", "Acknowledged"
             return !['prepared', 'checked', 'acknowledged'].includes(statusLower);
         });
         console.log('Filtered documents for approved tab:', approvedFiltered.length, approvedFiltered);
-        
+
         // Test Rejected tab
         console.log('=== TESTING REJECTED TAB ===');
         const rejectedFiltered = allDocs.filter(doc => {
@@ -946,9 +987,9 @@ async function debugTabFunctionality() {
             return status.toLowerCase() === 'rejected';
         });
         console.log('Rejected documents:', rejectedFiltered.length, rejectedFiltered);
-        
+
         console.log('=== DEBUG: Tab Functionality Test Complete ===');
-        
+
     } catch (error) {
         console.error('Error in debugTabFunctionality:', error);
     }
@@ -961,12 +1002,12 @@ async function showAllDocuments() {
         console.error('User ID not found');
         return;
     }
-    
+
     try {
         const allDocs = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log('=== ALL DOCUMENTS FOR DEBUGGING ===');
         console.log('Total documents:', allDocs.length);
-        
+
         allDocs.forEach((doc, index) => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
@@ -981,33 +1022,33 @@ async function showAllDocuments() {
                 isApprovedBy: approval.approvedBy === userId || approval.approvedById === userId
             });
         });
-        
+
         // Show alert with summary using specific filtering for "approvalStatus": "Acknowledged"
         const acknowledgedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const approvalStatus = approval.approvalStatus;
-            
+
             // Count documents with exact "Acknowledged" status
             return approvalStatus === 'Acknowledged';
         }).length;
-        
+
         const approvedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             const statusLower = status.toLowerCase();
-            
+
             // Exclude documents with status "Prepared", "Checked", "Acknowledged"
             return !['prepared', 'checked', 'acknowledged'].includes(statusLower);
         }).length; // Filtered documents for approved tab
-        
+
         const rejectedCount = allDocs.filter(doc => {
             const approval = doc.approval || {};
             const status = approval.approvalStatus || doc.status || doc.type || doc.doctype || 'Draft';
             return status.toLowerCase() === 'rejected';
         }).length;
-        
+
         alert(`Total Documents: ${allDocs.length}\nAcknowledged (enhanced): ${acknowledgedCount}\nApproved (all documents): ${approvedCount}\nRejected: ${rejectedCount}\n\nCheck browser console for detailed information.`);
-        
+
     } catch (error) {
         console.error('Error in showAllDocuments:', error);
         alert('Error loading documents. Check console for details.');
@@ -1021,20 +1062,20 @@ async function testAcknowledgedTab() {
         console.error('User ID not found');
         return;
     }
-    
+
     try {
         console.log('=== TESTING ACKNOWLEDGED TAB SPECIFICALLY ===');
-        
+
         // Switch to acknowledged tab
         currentTab = 'acknowledged';
         document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
         document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
-        
+
         // Load acknowledged documents
         await loadAcknowledgedDocuments(userId);
-        
+
         console.log('=== ACKNOWLEDGED TAB TEST COMPLETE ===');
-        
+
     } catch (error) {
         console.error('Error testing acknowledged tab:', error);
         alert('Error testing acknowledged tab. Check console for details.');
@@ -1046,49 +1087,49 @@ async function loadAcknowledgedDocuments(userId) {
     try {
         console.log('Loading acknowledged documents for user:', userId);
         document.getElementById('acknowledgedTabBtn').classList.add('tab-active');
-        
+
         // Fetch all documents using the approvedBy endpoint
         const allDocuments = await fetchOutgoingPaymentDocuments('approvedBy', userId, false);
         console.log(`Total documents fetched: ${allDocuments.length}`);
-        
+
         // Filter for acknowledged documents - only show documents with "approvalStatus": "Acknowledged"
         let acknowledgedDocuments = allDocuments.filter(doc => {
             const approval = doc.approval || {};
             const approvalStatus = approval.approvalStatus;
-            
+
             // Primary check: exact match for "Acknowledged" status
             const isAcknowledged = approvalStatus === 'Acknowledged';
-            
+
             // Debug logging for first few documents
             if (allDocuments.indexOf(doc) < 3) {
                 console.log(`Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                 console.log('Document approval data:', approval);
             }
-            
+
             return isAcknowledged;
         });
-        
+
         // If no documents found with exact "Acknowledged" status, try case-insensitive check
         if (acknowledgedDocuments.length === 0) {
             console.log('No documents with exact "Acknowledged" status found, trying case-insensitive check...');
             acknowledgedDocuments = allDocuments.filter(doc => {
                 const approval = doc.approval || {};
                 const approvalStatus = approval.approvalStatus;
-                
+
                 // Case-insensitive check for "acknowledged" status
                 const isAcknowledged = approvalStatus && approvalStatus.toLowerCase() === 'acknowledged';
-                
+
                 if (allDocuments.indexOf(doc) < 3) {
                     console.log(`Case-insensitive check - Document ${doc.stagingID || doc.id}: approvalStatus="${approvalStatus}", isAcknowledged=${isAcknowledged}`);
                 }
-                
+
                 return isAcknowledged;
             });
             console.log('Acknowledged documents after case-insensitive check:', acknowledgedDocuments.length);
         }
-        
+
         console.log('Acknowledged documents found:', acknowledgedDocuments.length);
-        
+
         // Apply search filter if there's a search term
         let filteredDocuments = acknowledgedDocuments;
         if (currentSearchTerm) {
@@ -1119,17 +1160,17 @@ async function loadAcknowledgedDocuments(userId) {
             });
             console.log('Documents after filtering:', filteredDocuments.length);
         }
-        
+
         // Sort documents by Reimburse No (newest first)
         const sortedDocuments = sortDocumentsByReimNo(filteredDocuments);
         console.log('Documents after sorting:', sortedDocuments.length);
-        
+
         // Update the table with filtered documents
         updateTable(sortedDocuments);
-        
+
         // Update pagination info
         updatePaginationInfo(sortedDocuments.length);
-        
+
     } catch (error) {
         console.error('Error loading acknowledged documents:', error);
         // Fallback to empty state
