@@ -332,13 +332,7 @@ function populateFormData(data) {
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
     document.getElementById('comments').value = data.comments || '';
     
-    // Populate Sales Employee field
-    const salesEmployeeField = document.getElementById('SalesEmployee');
-    const salesEmployeeValue = data.u_BSI_Expressiv_PreparedByName || '';
-    salesEmployeeField.value = salesEmployeeValue;
-    console.log('Sales Employee from API:', data.u_BSI_Expressiv_PreparedByName);
-    console.log('Sales Employee field value:', salesEmployeeField.value);
-    console.log('Sales Employee field disabled:', salesEmployeeField.disabled);
+
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
@@ -449,8 +443,8 @@ function populateInvoiceDetails(details) {
             <td class="p-2 border description-column">
                 <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.text || ''}</textarea>
             </td>
-            <td class="p-2 border sales-employee-column">
-                <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.unitMsr || ''}</textarea>
+            <td class="p-2 border uom-column">
+                <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.unitMsr || ''}</textarea>
             </td>
             <td class="p-2 border quantity-column">
                 <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-auto" maxlength="15" disabled style="resize: none;" autocomplete="off">${detail.quantity || '0'}</textarea>

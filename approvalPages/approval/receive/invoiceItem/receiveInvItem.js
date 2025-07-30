@@ -261,10 +261,7 @@ function populateInvItemData(data) {
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
     
-    // Populate Sales Employee field
-    const salesEmployeeField = document.getElementById('SalesEmployee');
-    const salesEmployeeValue = data.u_BSI_Expressiv_PreparedByName || '';
-    salesEmployeeField.value = salesEmployeeValue;
+
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
@@ -272,12 +269,8 @@ function populateInvItemData(data) {
     
     // Populate totals
     document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('DownPayment').value = data.totalDownPayment || 0;
-    document.getElementById('Freight').value = data.freight || 0;
     document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('WTaxAmount').value = data.wTaxAmount || 0;
     document.getElementById('DocTotal').value = data.docTotal || 0;
-    document.getElementById('BalanceDue').value = data.balanceDue || 0;
     
     // Populate comments
     document.getElementById('comments').value = data.comments || '';

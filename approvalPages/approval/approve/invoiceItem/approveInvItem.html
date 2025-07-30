@@ -198,11 +198,7 @@
             min-width: 250px !important;
         }
         
-        /* Custom width for Sales Employee column */
-        .sales-employee-column {
-            width: 200px !important;
-            min-width: 200px !important;
-        }
+
         
         /* Ensure all textarea elements in table are top-aligned */
         .item-description,
@@ -364,9 +360,6 @@
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
                 <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Sales Employee</h3>
-                <input type="text" id="SalesEmployee" placeholder="Sales Employee" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
@@ -426,7 +419,7 @@
                     <th class="p-2 item-code-column">Item Code</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 description-column">Catatan</th>
-                    <th class="p-2 sales-employee-column">Sales Employee</th>
+                    <th class="p-2 uom-column">UoM</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
@@ -462,34 +455,10 @@
             <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
         </div>
         
-        <!--Total Down Payment-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Down Payment :</label>
-            <input type="number" id="DownPayment" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Freight-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Freight :</label>
-            <input type="number" id="Freight" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--WTax Amount-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>WTax Amount :</label>
-            <input type="number" id="WTaxAmount" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
         <!--Total Amount-->
         <div class="mt-4 flex justify-end space-x-2">
             <label>Total Amount :</label>
             <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Balance Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Balance Due :</label>
-            <input type="number" id="BalanceDue" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
         </div>
 
         <!-- Comments section -->
