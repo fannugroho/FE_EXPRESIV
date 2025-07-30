@@ -1,4 +1,4 @@
-// approveOPReim.js - JavaScript for the Outgoing Payment Reimbursement approval page
+// checkedOPReim.js - JavaScript for the Outgoing Payment Reimbursement checking page
 
 // Global variables
 let outgoingPaymentReimData = null;
@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
 
+
+
     if (documentId) {
         // Load document details
         loadOPReimDetails(documentId);
@@ -23,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuApproveOPReim();
+            goToMenuCheckOPReim();
         });
     }
 
@@ -33,7 +35,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Event listeners can be added here if needed
+    // Initialize button states
+    // Note: Revision functionality has been removed
 }
 
 // Load outgoing payment reimbursement details from API
@@ -62,11 +65,14 @@ async function loadOPReimDetails(id) {
         const data = await response.json();
         outgoingPaymentReimData = data;
 
+        // Load users data to get names
+        await loadUsersData();
+
         // Populate form with data
         populateFormFields(data);
 
-        // Hide buttons based on document status
-        hideButtonsBasedOnStatus(data);
+        // Check user permissions and update UI accordingly
+        checkUserPermissions(data);
 
         // Close loading indicator
         Swal.close();
@@ -80,12 +86,163 @@ async function loadOPReimDetails(id) {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuApproveOPReim();
+            goToMenuCheckOPReim();
         });
     }
 }
 
-// Populate form fields with data from API
+// Load users data to get user names
+async function loadUsersData() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/users', {
+            method: 'GET'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to load users: ${response.status}`);
+        }
+
+        const usersData = await response.json();
+        window.usersList = usersData.data || [];
+
+    } catch (error) {
+        console.error('Error loading users:', error);
+        window.usersList = [];
+    }
+}
+
+// Get user name by ID
+function getUserNameById(userId) {
+    if (!window.usersList || !userId) return 'Unknown User';
+
+    const user = window.usersList.find(u => u.id === userId);
+    return user ? user.fullName : 'Unknown User';
+}
+
+// Check user permissions and update UI
+function checkUserPermissions(data) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        Swal.fire({
+            title: 'Error',
+            text: 'User not authenticated. Please login again.',
+            icon: 'error'
+        }).then(() => {
+            window.location.href = getLoginPagePath();
+        });
+        return;
+    }
+
+    const approval = data.approval;
+    if (!approval) {
+        console.error('No approval data found');
+        return;
+    }
+
+    // Determine current status based on dates
+    let currentStatus = 'Prepared';
+    if (approval.checkedDate) {
+        currentStatus = 'Checked';
+    }
+    if (approval.acknowledgedDate) {
+        currentStatus = 'Acknowledged';
+    }
+    if (approval.approvedDate) {
+        currentStatus = 'Approved';
+    }
+    if (approval.receivedDate) {
+        currentStatus = 'Received';
+    }
+    if (approval.rejectedDate) {
+        currentStatus = 'Rejected';
+    }
+
+    console.log('=== STATUS DEBUGGING ===');
+    console.log('Current status:', currentStatus);
+    console.log('Current user ID:', currentUser.userId);
+    console.log('Acknowledged by ID:', approval.acknowledgedBy);
+    console.log('Document ID:', documentId);
+    console.log('Full approval data:', approval);
+    console.log('Checked date:', approval.checkedDate);
+    console.log('Acknowledged date:', approval.acknowledgedDate);
+    console.log('Approved date:', approval.approvedDate);
+    console.log('Received date:', approval.receivedDate);
+    console.log('Rejected date:', approval.rejectedDate);
+    console.log('========================');
+
+    // Check if current user is the assigned acknowledger
+    // For acknowledge page, we need to check if document is ready for acknowledging (after checking)
+    const isAssignedAcknowledger = approval.acknowledgedBy === currentUser.userId;
+    const isReadyForAcknowledging = currentStatus === 'Checked' && !approval.acknowledgedDate;
+    const isAboveAcknowledger = isUserAboveChecker(currentUser.userId, approval.acknowledgedBy);
+
+    console.log('Is assigned acknowledger:', isAssignedAcknowledger);
+    console.log('Is ready for acknowledging:', isReadyForAcknowledging);
+    console.log('Is above acknowledger:', isAboveAcknowledger);
+
+    // Button visibility is now handled by initializeButtonVisibility function
+    // This function only handles user authentication and basic status checks
+
+    console.log('User permissions checked - buttons handled separately');
+
+    // Show appropriate message based on status
+    if (currentStatus === 'Prepared') {
+        Swal.fire({
+            title: 'Document Ready',
+            text: 'Document is ready for acknowledging',
+            icon: 'info',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } else if (currentStatus === 'Checked') {
+        Swal.fire({
+            title: 'Ready for Acknowledging',
+            text: 'Document has been checked and is ready for acknowledging',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } else if (currentStatus === 'Acknowledged' || currentStatus === 'Approved' || currentStatus === 'Received' || currentStatus === 'Rejected') {
+        const statusMessage = getStatusMessage(currentStatus);
+        Swal.fire({
+            title: 'Document Status',
+            text: statusMessage,
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+
+
+// Check if user is above the checker in the hierarchy
+function isUserAboveChecker(currentUserId, checkerId) {
+    // This is a simplified check - in a real system, you'd have a proper user hierarchy
+    // For now, we'll assume that if the current user is not the checker, they might be above
+    return currentUserId !== checkerId;
+}
+
+// Get status message based on current status
+function getStatusMessage(status) {
+    switch (status) {
+        case 'Prepared':
+            return 'This document is prepared and waiting to be checked.';
+        case 'Checked':
+            return 'This document has been checked and is ready for acknowledging.';
+        case 'Acknowledged':
+            return 'This document has been acknowledged.';
+        case 'Approved':
+            return 'This document has been approved.';
+        case 'Received':
+            return 'This document has been received.';
+        case 'Rejected':
+            return 'This document has been rejected.';
+        default:
+            return 'This document is not ready for acknowledging.';
+    }
+}
+
+// Populate form fields with data
 function populateFormFields(data) {
     // Helper function to safely set value
     const setValue = (id, value) => {
@@ -93,16 +250,17 @@ function populateFormFields(data) {
         if (el) el.value = value;
     };
 
-    // Map header fields - Updated to match detailOPReim.js approach
+    // Map header fields
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
     setValue('Address', data.address || '');
-    setValue('DocNum', data.counterRef || ''); // Updated to use counterRef like detailOPReim.js
+    // DocNum should use counterRef like in detail page
+    setValue('DocNum', data.counterRef || data.docNum || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
-    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
     setValue('TrsfrAcct', data.trsfrAcct || '');
+    setValue('RemittanceRequestAmount', formatCurrency(data.trsfrSum || 0));
 
     // Map date fields
     if (data.docDate) {
@@ -113,25 +271,37 @@ function populateFormFields(data) {
         const docDueDate = new Date(data.docDueDate);
         setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
     }
-    if (data.taxDate) {
-        const taxDate = new Date(data.taxDate);
-        setValue('TaxDate', taxDate.toISOString().split('T')[0]);
-    }
     if (data.trsfrDate) {
         const trsfrDate = new Date(data.trsfrDate);
         setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
 
-    // Calculate currency summary from lines
-    let currencySummary = {};
+    // Calculate totals from lines
+    let netTotal = 0;
+    let totalAmountDue = 0;
+    const currencySummary = {};
+
     if (data.lines && data.lines.length > 0) {
-        data.lines.forEach(line => {
-            const currency = line.currencyItem || 'IDR';
-            currencySummary[currency] = (currencySummary[currency] || 0) + (line.sumApplied || 0);
+        data.lines.forEach((line, index) => {
+            console.log(`Line ${index}:`, line);
+            const amount = line.sumApplied || 0;
+            const currency = line.CurrencyItem || line.currencyItem || 'IDR';
+
+            netTotal += amount;
+            totalAmountDue += amount;
+
+            currencySummary[currency] = (currencySummary[currency] || 0) + amount;
         });
     }
 
-    // Display currency summary and total outstanding transfers
+    console.log('Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
+
+    // Update total fields
+    setValue('netTotal', formatCurrency(netTotal));
+    setValue('totalTax', formatCurrency(0));
+    setValue('totalAmountDue', formatCurrency(totalAmountDue));
+
+    // Display currency summaries
     displayCurrencySummary(currencySummary);
     updateTotalOutstandingTransfers(currencySummary);
 
@@ -142,15 +312,12 @@ function populateFormFields(data) {
     // Map approval data
     if (data.approval) {
         populateApprovalInfo(data.approval);
-        // Show/hide rejection remarks based on status
-        const rejSec = document.getElementById('rejectionRemarksSection');
-        const rejTxt = document.getElementById('rejectionRemarks');
+        // Show rejection remarks if status is rejected
         if (data.approval.approvalStatus === 'Rejected') {
+            const rejSec = document.getElementById('rejectionRemarksSection');
+            const rejTxt = document.getElementById('rejectionRemarks');
             if (rejSec) rejSec.style.display = 'block';
             if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
-        } else {
-            if (rejSec) rejSec.style.display = 'none';
-            if (rejTxt) rejTxt.value = '';
         }
         // Display status
         displayApprovalStatus(data.approval);
@@ -164,25 +331,35 @@ function populateFormFields(data) {
         populateTableRows(data.lines);
     }
 
-    // Display attachments if available - Updated to match detailOPReim.js approach
-    if (data.attachments && data.attachments.length > 0) {
-        displayReimbursementAttachments(data.attachments);
-    } else {
-        // Show "No attachments found" message
-        const container = document.getElementById('attachmentsList');
-        if (container) {
-            container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-        }
-    }
+    // Handle attachments like detail page
+    handleAttachments(data, documentId);
 
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
+
+    // Handle reimbursement data if exists
+    handleReimbursementData(data);
+
+    // Initialize button visibility after all data is loaded
+    initializeButtonVisibility(data);
 }
 
-// Hide buttons based on document status
-function hideButtonsBasedOnStatus(data) {
-    const approveButton = document.querySelector('button[onclick="approveOPReim()"]');
+// Initialize button visibility based on document status
+function initializeButtonVisibility(data) {
+    console.log('Initializing button visibility...');
+
+    const acknowledgeButton = document.querySelector('button[onclick="acknowledgeOPReim()"]');
     const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
+
+    console.log('Button elements found:', {
+        acknowledgeButton: acknowledgeButton,
+        rejectButton: rejectButton
+    });
+
+    if (!acknowledgeButton || !rejectButton) {
+        console.error('Buttons not found in DOM');
+        return;
+    }
 
     // Determine current status based on approval data
     let currentStatus = 'Prepared';
@@ -204,22 +381,32 @@ function hideButtonsBasedOnStatus(data) {
         }
     }
 
-    // Hide both buttons if status is not 'Acknowledged'
-    if (currentStatus !== 'Acknowledged') {
-        if (approveButton) {
-            approveButton.style.display = 'none';
-        }
-        if (rejectButton) {
-            rejectButton.style.display = 'none';
-        }
+    console.log('=== BUTTON VISIBILITY DEBUGGING ===');
+    console.log('Current status for button visibility:', currentStatus);
+    console.log('Approval data for button logic:', data.approval);
+    console.log('Checked date:', data.approval?.checkedDate);
+    console.log('Acknowledged date:', data.approval?.acknowledgedDate);
+    console.log('Approved date:', data.approval?.approvedDate);
+    console.log('Received date:', data.approval?.receivedDate);
+    console.log('Rejected date:', data.approval?.rejectedDate);
+    console.log('====================================');
+
+    // Show buttons for acknowledge page - allow acknowledging when document is prepared or checked
+    // Hide buttons only when document is already processed
+    if (currentStatus === 'Acknowledged' || currentStatus === 'Approved' || currentStatus === 'Received' || currentStatus === 'Rejected') {
+        // Document already processed, hide buttons
+        acknowledgeButton.style.display = 'none';
+        rejectButton.style.display = 'none';
+        console.log('❌ Buttons HIDDEN - document already processed (status: ' + currentStatus + ')');
     } else {
-        // Show buttons if status is 'Acknowledged'
-        if (approveButton) {
-            approveButton.style.display = 'inline-block';
-        }
-        if (rejectButton) {
-            rejectButton.style.display = 'inline-block';
-        }
+        // Document is ready for acknowledging (Prepared or Checked status)
+        acknowledgeButton.style.display = 'inline-block';
+        rejectButton.style.display = 'inline-block';
+        acknowledgeButton.disabled = false;
+        rejectButton.disabled = false;
+        acknowledgeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        console.log('✅ Buttons SHOWN and ENABLED - document ready for acknowledging (status: ' + currentStatus + ')');
     }
 }
 
@@ -266,7 +453,6 @@ function displayApprovalStatus(approval) {
 // Populate table rows with line items
 function populateTableRows(lines) {
     const tableBody = document.getElementById('tableBody');
-
     if (!tableBody) return;
 
     tableBody.innerHTML = ''; // Clear existing rows
@@ -275,7 +461,10 @@ function populateTableRows(lines) {
         // Add empty row if no lines
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="6" class="p-2 border text-center text-gray-500">No items found</td>
+            <td colspan="6" class="p-8 text-center text-gray-500">
+                <div class="loading-shimmer h-4 rounded mx-auto w-1/2 mb-2"></div>
+                <div class="loading-shimmer h-4 rounded mx-auto w-1/3"></div>
+            </td>
         `;
         tableBody.appendChild(emptyRow);
         return;
@@ -283,200 +472,114 @@ function populateTableRows(lines) {
 
     // Add each line as a row
     lines.forEach((line, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="p-2 border">${line.acctCode || ''}</td>
-            <td class="p-2 border">${line.acctName || ''}</td>
-            <td class="p-2 border">${line.descrip || ''}</td>
-            <td class="p-2 border">${line.divisionCode || ''}</td>
-            <td class="p-2 border">${line.currencyItem || ''}</td>
-            <td class="p-2 border text-right">${formatCurrency(line.sumApplied) || '0'}</td>
-        `;
+        const amount = line.sumApplied || 0;
+
+        console.log(`📋 Line ${index} data:`, {
+            acctCode: line.acctCode,
+            acctName: line.acctName,
+            descrip: line.descrip,
+            division: line.division,
+            divisionCode: line.divisionCode,
+            currencyItem: line.CurrencyItem || line.currencyItem,
+            sumApplied: amount
+        });
+
+        const row = createTableRow(line, amount);
         tableBody.appendChild(row);
     });
 }
 
+/**
+ * Creates a table row element with all 6 columns
+ * @param {Object} line - Line data object
+ * @param {number} amount - Amount value
+ * @returns {HTMLElement} - Table row element
+ */
+function createTableRow(line, amount) {
+    const row = document.createElement('tr');
+    const cells = [
+        line.acctCode || '',
+        line.acctName || '',
+        line.descrip || '',
+        line.divisionCode || line.division || '',
+        line.CurrencyItem || line.currencyItem || 'IDR',
+        formatCurrencyWithTwoDecimals(amount)
+    ];
+
+    row.innerHTML = cells.map((cell, index) => {
+        const isLastCell = index === 5;
+        const cellClass = `p-3 border-b${isLastCell ? ' text-right font-mono' : ''}`;
+        return `<td class="${cellClass}">${cell}</td>`;
+    }).join('');
+
+    return row;
+}
+
 // Update totals based on line items
 function updateTotals(lines) {
-    let netTotal = 0;
+    let totalAmount = 0;
 
     // Calculate sum of all line amounts
     if (lines && lines.length > 0) {
-        netTotal = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
+        totalAmount = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
     }
 
-    // Update total fields
-    const totalAmountDueElement = document.getElementById('totalAmountDue');
-    if (totalAmountDueElement) totalAmountDueElement.value = formatCurrency(netTotal);
+    // Update total amount due field
+    document.getElementById('totalAmountDue').value = formatCurrency(totalAmount);
 }
 
 // Populate approval information
 function populateApprovalInfo(approval) {
     if (!approval) return;
 
-    // Get all approval elements
-    const preparedBySearch = document.getElementById('preparedBySearch');
-    const checkedBySearch = document.getElementById('checkedBySearch');
-    const acknowledgedBySearch = document.getElementById('acknowledgedBySearch');
-    const approvedBySearch = document.getElementById('approvedBySearch');
-    const receivedBySearch = document.getElementById('receivedBySearch');
     // Set prepared by
-    if (approval.preparedBy && preparedBySearch) {
-        preparedBySearch.value = approval.preparedByName || approval.preparedBy;
+    if (approval.preparedBy) {
+        const preparedByName = getUserNameById(approval.preparedBy);
+        document.getElementById('preparedBySearch').value = preparedByName;
     }
 
     // Set checked by
-    if (approval.checkedBy && checkedBySearch) {
-        checkedBySearch.value = approval.checkedByName || approval.checkedBy;
+    if (approval.checkedBy) {
+        const checkedByName = getUserNameById(approval.checkedBy);
+        document.getElementById('checkedBySearch').value = checkedByName;
     }
 
     // Set acknowledged by
-    if (approval.acknowledgedBy && acknowledgedBySearch) {
-        acknowledgedBySearch.value = approval.acknowledgedByName || approval.acknowledgedBy;
+    if (approval.acknowledgedBy) {
+        const acknowledgedByName = getUserNameById(approval.acknowledgedBy);
+        document.getElementById('acknowledgedBySearch').value = acknowledgedByName;
     }
 
     // Set approved by
-    if (approval.approvedBy && approvedBySearch) {
-        approvedBySearch.value = approval.approvedByName || approval.approvedBy;
+    if (approval.approvedBy) {
+        const approvedByName = getUserNameById(approval.approvedBy);
+        document.getElementById('approvedBySearch').value = approvedByName;
     }
 
     // Set received by
-    if (approval.receivedBy && receivedBySearch) {
-        receivedBySearch.value = approval.receivedByName || approval.receivedBy;
+    if (approval.receivedBy) {
+        const receivedByName = getUserNameById(approval.receivedBy);
+        document.getElementById('receivedBySearch').value = receivedByName;
     }
+
+
 }
 
-// Handle revision history
-function handleRevisionHistory(approval) {
-    if (!approval || !approval.revisionNumber || approval.revisionNumber <= 0) {
-        return;
-    }
 
-    // Show revision history section
-    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
-    const revisedCount = document.getElementById('revisedCount');
 
-    if (revisedRemarksSection) revisedRemarksSection.style.display = 'block';
-    if (revisedCount) revisedCount.textContent = approval.revisionNumber;
+// Legacy display attachments function - now redirects to enhanced version
+function displayAttachments(attachments) {
+    console.log('Legacy displayAttachments called, redirecting to displayExistingAttachments:', attachments);
 
-    // Create revision history content
-    const revisionsContainer = document.createElement('div');
-    revisionsContainer.className = 'mt-2 space-y-2';
+    // Use the enhanced display function instead
+    displayExistingAttachments(attachments);
 
-    // Add revision remarks if available
-    if (approval.revisionRemarks) {
-        const revisionEntry = document.createElement('div');
-        revisionEntry.className = 'p-2 bg-blue-50 border border-blue-200 rounded';
-
-        const revisionDate = approval.revisionDate ? new Date(approval.revisionDate).toLocaleString() : 'Unknown date';
-
-        revisionEntry.innerHTML = `
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-medium text-blue-700">Revision #${approval.revisionNumber}</span>
-                <span class="text-xs text-gray-500">${revisionDate}</span>
-            </div>
-            <p class="text-sm text-gray-800">${approval.revisionRemarks}</p>
-        `;
-
-        revisionsContainer.appendChild(revisionEntry);
-    }
-
-    // Append to the section
-    revisedRemarksSection.appendChild(revisionsContainer);
+    // Also store for backward compatibility with old viewAttachment function
+    existingAttachments = attachments ? [...attachments] : [];
+    attachmentsToKeep = attachments ? [...attachments.map(a => a.id || a.attachmentId || a.fileId)] : [];
 }
 
-// Function to display reimbursement attachments (matching detailOPReim.js approach)
-function displayReimbursementAttachments(attachments) {
-    const container = document.getElementById('attachmentsList');
-    if (!container) {
-        console.warn('Attachments container not found: attachmentsList');
-        return;
-    }
-
-    // Clear existing content
-    container.innerHTML = '';
-
-    if (!attachments || attachments.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
-        return;
-    }
-
-    // Add header
-    const header = document.createElement('div');
-    header.className = 'mt-4 mb-2';
-    header.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
-    container.appendChild(header);
-
-    // Create attachment list
-    const attachmentList = document.createElement('div');
-    attachmentList.className = 'space-y-2 mb-4';
-
-    attachments.forEach((attachment, index) => {
-        const attachmentItem = document.createElement('div');
-        attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'flex items-center space-x-2';
-
-        // File icon based on type
-        const fileIcon = getFileIcon(attachment.fileName || attachment.name);
-
-        fileInfo.innerHTML = `
-            <span class="text-lg">${fileIcon}</span>
-            <div>
-                <div class="font-medium text-sm">${attachment.fileName || attachment.name || 'Unknown File'}</div>
-                <div class="text-xs text-gray-500">${formatFileSize(attachment.fileSize || attachment.size)} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
-                <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${formatDate(attachment.uploadDate || attachment.createdAt)}</div>
-            </div>
-        `;
-
-        const actions = document.createElement('div');
-        actions.className = 'flex space-x-2';
-
-        // View button
-        const viewBtn = document.createElement('button');
-        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
-        viewBtn.innerHTML = 'View';
-        viewBtn.onclick = () => viewReimbursementAttachment(attachment);
-
-        actions.appendChild(viewBtn);
-
-        attachmentItem.appendChild(fileInfo);
-        attachmentItem.appendChild(actions);
-        attachmentList.appendChild(attachmentItem);
-    });
-
-    container.appendChild(attachmentList);
-}
-
-// Function to get file icon based on file name
-function getFileIcon(fileName) {
-    if (!fileName) return '📄';
-
-    const extension = fileName.toLowerCase().split('.').pop();
-
-    switch (extension) {
-        case 'pdf':
-            return '📄';
-        case 'doc':
-        case 'docx':
-            return '📝';
-        case 'xls':
-        case 'xlsx':
-            return '📊';
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-            return '🖼️';
-        case 'txt':
-            return '📄';
-        default:
-            return '📄';
-    }
-}
-
-// Function to format file size
+// Helper function to format file size
 function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 B';
 
@@ -484,29 +587,298 @@ function formatFileSize(bytes) {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-// Function to format date
-function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
+// Currency Summary Display Functions
+function displayCurrencySummary(currencySummary) {
+    const container = document.getElementById('currencySummaryTable');
+    if (!container) {
+        console.warn('Currency summary container not found');
+        return;
+    }
 
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No amounts to display</p>';
+        return;
+    }
+
+    const summaryEntries = Object.entries(currencySummary)
+        .map(([currency, amount]) =>
+            `<div class="text-base text-gray-700 font-mono font-semibold">
+                ${currency} ${formatCurrencyWithTwoDecimals(amount)}
+            </div>`
+        ).join('');
+
+    container.innerHTML = `
+        <div class="space-y-2">
+            <div class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-300 pb-2">
+                Total Amount Due by Currency:
+            </div>
+            ${summaryEntries}
+        </div>
+    `;
+}
+
+function updateTotalOutstandingTransfers(currencySummary) {
+    const container = document.getElementById('totalOutstandingTransfers');
+    if (!container) {
+        console.warn('Total outstanding transfers container not found');
+        return;
+    }
+
+    if (!currencySummary || Object.keys(currencySummary).length === 0) {
+        container.textContent = 'No outstanding transfers';
+        return;
+    }
+
+    const transferEntries = Object.entries(currencySummary)
+        .filter(([, amount]) => amount > 0)
+        .map(([currency, amount]) =>
+            `<div class="text-base text-gray-700 font-mono font-semibold leading-relaxed">
+                ${currency} ${numberToWords(amount)}
+            </div>`
+        ).join('');
+
+    container.innerHTML = `<div class="space-y-3">${transferEntries}</div>`;
+}
+
+// Number to Words Conversion (same as detail page)
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+    function convertLessThanOneThousand(n) {
+        if (n === 0) return '';
+        if (n < 10) return ones[n];
+        if (n < 20) return teens[n - 10];
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+        if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+    }
+
+    function convert(n) {
+        if (n === 0) return 'Zero';
+
+        const scales = [
+            { value: 1000000000000, name: 'Trillion' },
+            { value: 1000000000, name: 'Billion' },
+            { value: 1000000, name: 'Million' },
+            { value: 1000, name: 'Thousand' }
+        ];
+
+        let result = '';
+        let remaining = n;
+
+        for (const scale of scales) {
+            const count = Math.floor(remaining / scale.value);
+            if (count > 0) {
+                result += (result ? ' ' : '') + convertLessThanOneThousand(count) + ' ' + scale.name;
+                remaining %= scale.value;
+            }
+        }
+
+        if (remaining > 0) {
+            result += (result ? ' ' : '') + convertLessThanOneThousand(remaining);
+        }
+
+        return result;
+    }
+
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
+
+    let result = convert(integerPart);
+    if (decimalPart > 0) {
+        result += ' and ' + convert(decimalPart) + ' Cents';
+    }
+
+    return result;
+}
+
+// Enhanced currency formatting with two decimals
+function formatCurrencyWithTwoDecimals(number) {
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+
+    let num;
     try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+        if (typeof number === 'string') {
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            num = cleanedStr.length > 15 ?
+                Number(cleanedStr.replace(/,/g, '')) :
+                parseFloat(cleanedStr.replace(/,/g, ''));
+        } else {
+            num = Number(number);
+        }
+
+        if (isNaN(num)) return '0.00';
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+
+    const maxAmount = 100000000000000;
+    const limitedNum = Math.min(num, maxAmount);
+
+    if (limitedNum >= 1e12) {
+        return formatLargeNumberFallback(limitedNum);
+    } else {
+        return limitedNum.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
-    } catch (error) {
-        return 'Unknown';
     }
 }
 
-// Function to view reimbursement attachment
-async function viewReimbursementAttachment(attachment) {
+function formatLargeNumberFallback(num) {
+    const strNum = num.toString();
+    let result = '';
+    let count = 0;
+
+    for (let i = strNum.length - 1; i >= 0; i--) {
+        result = strNum[i] + result;
+        count++;
+        if (count % 3 === 0 && i > 0) {
+            result = ',' + result;
+        }
+    }
+
+    return result + '.00';
+}
+
+// Enhanced Attachment Handling Functions (same as detail page)
+
+// Handles attachment loading like detail page
+async function handleAttachments(result, docId) {
+    console.log('handleAttachments called with result:', result);
+    console.log('Document ID:', docId);
+    console.log('result.attachments:', result.attachments);
+    console.log('result.attachments length:', result.attachments?.length);
+
+    if (result.attachments?.length > 0) {
+        console.log('Attachments found in main response:', result.attachments);
+        displayExistingAttachments(result.attachments);
+    } else {
+        console.log('No attachments in main response, trying API endpoint');
+        await loadAttachmentsFromAPI(docId);
+    }
+}
+
+// Handle reimbursement related data
+async function handleReimbursementData(result) {
+    if (!result.expressivNo) return;
+
+    console.log('Outgoing payment created from reimbursement:', result.expressivNo);
+
     try {
-        // Show loading indicator
+        const reimResponse = await makeAuthenticatedRequest(`/api/reimbursements/${result.expressivNo}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (reimResponse.ok) {
+            const reimResult = await reimResponse.json();
+            if (reimResult?.data?.voucherNo) {
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = value;
+                };
+                setValue('CounterRef', reimResult.data.voucherNo);
+            }
+        }
+
+        await loadReimbursementAttachments(result.expressivNo);
+    } catch (err) {
+        console.warn('Could not fetch reimbursement voucherNo:', err);
+    }
+}
+
+// Enhanced attachment display like detail page
+function displayExistingAttachments(attachments) {
+    const container = document.getElementById('attachmentsList');
+    if (!container) {
+        console.error('Attachments container not found');
+        return;
+    }
+
+    console.log('displayExistingAttachments called with:', attachments);
+    console.log('Attachments is array:', Array.isArray(attachments));
+    console.log('Attachments length:', attachments?.length);
+
+    // Clear the container completely to prevent duplication
+    container.innerHTML = '';
+
+    // Enhanced debugging
+    if (!attachments) {
+        console.log('No attachments provided (null/undefined)');
+        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+        return;
+    }
+
+    if (!Array.isArray(attachments)) {
+        console.log('Attachments is not an array:', typeof attachments);
+        container.innerHTML = '<p class="text-gray-500 text-sm">Invalid attachment data</p>';
+        return;
+    }
+
+    if (attachments.length === 0) {
+        console.log('Attachments array is empty');
+        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+        return;
+    }
+
+    console.log('Displaying', attachments.length, 'attachments:', attachments);
+
+    const attachmentItems = attachments.map((attachment, index) => {
+        console.log(`Processing attachment ${index}:`, attachment);
+
+        const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
+        const fileIcon = getFileIcon(fileName);
+        const fileSize = formatFileSize(attachment.fileSize || attachment.size);
+        const uploadDate = formatDate(attachment.uploadDate || attachment.createdAt);
+
+        return createAttachmentItem(attachment, fileName, fileIcon, fileSize, uploadDate);
+    }).join('');
+
+    container.innerHTML = `
+        <h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>
+        ${attachmentItems}
+    `;
+
+    console.log('Successfully displayed attachment items in container');
+}
+
+// Creates attachment item HTML like detail page
+function createAttachmentItem(attachment, fileName, fileIcon, fileSize, uploadDate) {
+    const attachmentJson = JSON.stringify(attachment).replace(/"/g, '&quot;');
+
+    return `
+        <div class="flex items-center justify-between p-2 mb-2 bg-gray-50 rounded border">
+            <div class="flex items-center space-x-2">
+                <span class="text-lg">${fileIcon}</span>
+                <div>
+                    <div class="font-medium text-sm">${fileName}</div>
+                    <div class="text-xs text-gray-500">${fileSize} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
+                    <div class="text-xs text-gray-400">Outgoing Payment Attachment • Uploaded: ${uploadDate}</div>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="viewEnhancedAttachment(${attachmentJson})" 
+                        class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
+                    View
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Enhanced attachment viewing like detail page
+async function viewEnhancedAttachment(attachmentOrPath, fileName) {
+    try {
         Swal.fire({
             title: 'Loading...',
             text: 'Loading attachment, please wait...',
@@ -520,28 +892,22 @@ async function viewReimbursementAttachment(attachment) {
             }
         });
 
-        // Use the filePath from the attachment
+        const docId = documentId;
+        if (!docId) {
+            throw new Error('Document ID not found. Please ensure you are viewing an existing document.');
+        }
+
+        const attachment = normalizeAttachment(attachmentOrPath, fileName);
+
         if (attachment.filePath) {
-            // Close loading indicator
-            Swal.close();
-
-            // Use the base URL from the API endpoint
-            const decodedPath = decodeURIComponent(attachment.filePath);
-            const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
-
-            // Open file in new tab
-            window.open(fileUrl, '_blank');
+            await openAttachmentFile(attachment.filePath);
             return;
         }
 
-        throw new Error('No file path available for this attachment');
+        await fetchAndOpenAttachment(docId, attachment);
 
     } catch (error) {
-        console.error('Error viewing reimbursement attachment:', error);
-
-        // Close loading indicator
-        Swal.close();
-
+        console.error('Error viewing attachment:', error);
         Swal.fire({
             title: 'Error',
             text: `Failed to view attachment: ${error.message}`,
@@ -551,21 +917,530 @@ async function viewReimbursementAttachment(attachment) {
     }
 }
 
-// View attachment
-function viewAttachment(attachmentId) {
-    const attachment = existingAttachments.find(a => a.id === attachmentId);
+// File icon helper like detail page
+function getFileIcon(fileName) {
+    if (!fileName || typeof fileName !== 'string') return '📄';
 
-    if (!attachment || !attachment.fileUrl) {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    const icons = {
+        pdf: '📄',
+        doc: '📝',
+        docx: '📝',
+        xls: '📊',
+        xlsx: '📊',
+        jpg: '🖼️',
+        jpeg: '🖼️',
+        png: '🖼️'
+    };
+    return icons[extension] || '📄';
+}
+
+// Format date helper like detail page
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Invalid Date';
+    }
+}
+
+// Loads attachments from API like detail page
+async function loadAttachmentsFromAPI(docId) {
+    try {
+        console.log('Attempting to load attachments for document:', docId);
+
+        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        console.log('Attachments API response status:', response.status);
+
+        if (!response.ok) {
+            await handleAttachmentLoadError(response, docId);
+            return;
+        }
+
+        const result = await response.json();
+        console.log('Attachments API response data:', result);
+
+        if (result.data?.length > 0) {
+            displayExistingAttachments(result.data);
+        } else {
+            showNoAttachmentsMessage();
+        }
+
+    } catch (error) {
+        console.error("Error loading attachments:", error);
+        showAttachmentError();
+    }
+}
+
+// Handle attachment loading errors like detail page
+async function handleAttachmentLoadError(response, docId) {
+    if (response.status === 404) {
+        console.warn(`No attachments found for document ${docId}`);
+        showNoAttachmentsMessage();
+        return;
+    }
+
+    if (response.status === 405) {
+        console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
+
+        const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (mainResponse.ok) {
+            const mainResult = await mainResponse.json();
+            if (mainResult.attachments?.length > 0) {
+                console.log('Found attachments in main response:', mainResult.attachments);
+                displayExistingAttachments(mainResult.attachments);
+                return;
+            }
+        }
+
+        showNoAttachmentsMessage();
+        return;
+    }
+
+    console.warn(`Failed to load attachments: ${response.status}`);
+    showAttachmentError();
+}
+
+// Normalize attachment parameter like detail page
+function normalizeAttachment(attachmentOrPath, fileName) {
+    if (typeof attachmentOrPath === 'string') {
+        return { filePath: attachmentOrPath, fileName: fileName };
+    }
+    return attachmentOrPath;
+}
+
+// Open attachment file like detail page
+async function openAttachmentFile(filePath) {
+    console.log('Using direct filePath:', filePath);
+
+    Swal.close();
+
+    const fileUrl = constructFileUrl(filePath);
+    if (!fileUrl) {
+        throw new Error('Failed to construct file URL');
+    }
+
+    window.open(fileUrl, '_blank');
+    Swal.fire({
+        title: 'Success',
+        text: 'Attachment opened in new tab',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// Construct file URL like detail page (using correct BASE_URL)
+function constructFileUrl(filePath) {
+    if (!filePath) {
+        console.error('No file path provided');
+        return null;
+    }
+
+    try {
+        const decodedPath = decodeURIComponent(filePath);
+        const cleanPath = decodedPath.replace(/^\/+/, '');
+        // Use BASE_URL from auth.js instead of window.location.origin
+        const fileUrl = `${BASE_URL}/${cleanPath}`;
+
+        console.log('File URL construction:', {
+            originalPath: filePath,
+            decodedPath,
+            cleanPath,
+            baseUrl: BASE_URL,
+            finalURL: fileUrl
+        });
+
+        return fileUrl;
+    } catch (error) {
+        console.error('Error constructing file URL:', error);
+        return null;
+    }
+}
+
+// Fetch and open attachment from API like detail page
+async function fetchAndOpenAttachment(docId, attachment) {
+    console.log('Fetching attachments from API for document:', docId);
+
+    const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+        await handleAttachmentFetchError(response, docId, attachment);
+        return;
+    }
+
+    const result = await response.json();
+    const targetAttachment = findTargetAttachment(result.data, attachment);
+
+    if (!targetAttachment?.filePath) {
+        throw new Error('Attachment not found or file path not available');
+    }
+
+    await openAttachmentFile(targetAttachment.filePath);
+}
+
+// Handle attachment fetch errors like detail page
+async function handleAttachmentFetchError(response, docId, attachment) {
+    if (response.status === 404) {
+        console.warn(`No attachments found for document ${docId}`);
+        Swal.close();
+        Swal.fire({
+            title: 'No Attachments',
+            text: 'No attachments found for this document.',
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    if (response.status === 405) {
+        await tryAlternativeAttachmentFetch(docId, attachment);
+        return;
+    }
+
+    throw new Error(`Failed to fetch attachment: ${response.status}`);
+}
+
+// Try alternative attachment fetch like detail page
+async function tryAlternativeAttachmentFetch(docId, attachment) {
+    console.warn('GET method not allowed on attachments endpoint, trying main document endpoint');
+
+    const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!mainResponse.ok) {
+        throw new Error(`Failed to fetch attachment: ${mainResponse.status}`);
+    }
+
+    const mainResult = await mainResponse.json();
+    const targetAttachment = findTargetAttachment(mainResult.attachments, attachment);
+
+    if (!targetAttachment?.filePath) {
+        throw new Error('Attachment not found');
+    }
+
+    await openAttachmentFile(targetAttachment.filePath);
+}
+
+// Find target attachment like detail page
+function findTargetAttachment(attachments, target) {
+    if (!attachments?.length) return null;
+
+    return attachments.find(att =>
+        att.id === target.id ||
+        att.fileName === target.fileName ||
+        att.filePath === target.filePath
+    );
+}
+
+// Load reimbursement attachments like detail page
+async function loadReimbursementAttachments(reimbursementId) {
+    try {
+        console.log('Loading reimbursement attachments for ID:', reimbursementId);
+
+        const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            console.warn(`Failed to load reimbursement data: ${response.status}`);
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.data?.reimbursementAttachments?.length > 0) {
+            console.log('Found reimbursement attachments:', result.data.reimbursementAttachments);
+            appendReimbursementAttachmentsSection(result.data.reimbursementAttachments);
+        } else {
+            console.log('No reimbursement attachments found');
+        }
+
+    } catch (error) {
+        console.error("Error loading reimbursement attachments:", error);
+    }
+}
+
+// Append reimbursement attachments section like detail page
+function appendReimbursementAttachmentsSection(attachments) {
+    const container = document.getElementById('attachmentsList');
+    if (!container) return;
+
+    // Check if reimbursement header already exists to prevent duplication
+    const existingHeader = container.querySelector('.reimbursement-header');
+    if (!existingHeader) {
+        const reimbursementHeader = document.createElement('div');
+        reimbursementHeader.className = 'mt-4 mb-2 reimbursement-header';
+        reimbursementHeader.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
+        container.appendChild(reimbursementHeader);
+    }
+
+    displayReimbursementAttachments(attachments);
+}
+
+// Display reimbursement attachments like detail page
+function displayReimbursementAttachments(attachments) {
+    const container = document.getElementById('attachmentsList');
+    if (!container || !attachments?.length) return;
+
+    // Check if reimbursement attachment list already exists to prevent duplication
+    let attachmentList = container.querySelector('.reimbursement-attachments-list');
+    if (!attachmentList) {
+        attachmentList = document.createElement('div');
+        attachmentList.className = 'space-y-2 mb-4 reimbursement-attachments-list';
+        container.appendChild(attachmentList);
+    } else {
+        // Clear existing content if list already exists
+        attachmentList.innerHTML = '';
+    }
+
+    attachments.forEach(attachment => {
+        const attachmentItem = createReimbursementAttachmentItem(attachment);
+        attachmentList.appendChild(attachmentItem);
+    });
+}
+
+// Create reimbursement attachment item like detail page
+function createReimbursementAttachmentItem(attachment) {
+    const attachmentItem = document.createElement('div');
+    attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+
+    const fileInfo = createReimbursementFileInfo(attachment);
+    const actions = createReimbursementActions(attachment);
+
+    attachmentItem.appendChild(fileInfo);
+    attachmentItem.appendChild(actions);
+
+    return attachmentItem;
+}
+
+// Create file info for reimbursement attachment like detail page
+function createReimbursementFileInfo(attachment) {
+    const fileInfo = document.createElement('div');
+    fileInfo.className = 'flex items-center space-x-2';
+
+    const fileIcon = getFileIcon(attachment.fileName || attachment.name);
+    const fileName = attachment.fileName || attachment.name || 'Unknown File';
+    const fileSize = formatFileSize(attachment.fileSize || attachment.size);
+    const fileType = attachment.fileType || attachment.contentType || 'Unknown Type';
+    const uploadDate = formatDate(attachment.uploadDate || attachment.createdAt);
+
+    fileInfo.innerHTML = `
+        <span class="text-lg">${fileIcon}</span>
+        <div>
+            <div class="font-medium text-sm">${fileName}</div>
+            <div class="text-xs text-gray-500">${fileSize} • ${fileType}</div>
+            <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${uploadDate}</div>
+        </div>
+    `;
+
+    return fileInfo;
+}
+
+// Create actions for reimbursement attachment like detail page
+function createReimbursementActions(attachment) {
+    const actions = document.createElement('div');
+    actions.className = 'flex space-x-2';
+
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+    viewBtn.innerHTML = 'View';
+    viewBtn.onclick = () => viewReimbursementAttachment(attachment);
+
+    actions.appendChild(viewBtn);
+    return actions;
+}
+
+// View reimbursement attachment like detail page
+async function viewReimbursementAttachment(attachment) {
+    try {
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Loading attachment, please wait...',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        if (attachment.filePath) {
+            Swal.close();
+
+            const decodedPath = decodeURIComponent(attachment.filePath);
+            // Use BASE_URL from auth.js instead of window.location.origin
+            const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
+
+            console.log('Reimbursement attachment URL construction:', {
+                originalPath: attachment.filePath,
+                decodedPath,
+                baseUrl: BASE_URL,
+                finalURL: fileUrl
+            });
+
+            window.open(fileUrl, '_blank');
+            return;
+        }
+
+        throw new Error('No file path available for this attachment');
+
+    } catch (error) {
+        console.error('Error viewing reimbursement attachment:', error);
+        Swal.close();
         Swal.fire({
             title: 'Error',
-            text: 'Attachment not found or cannot be viewed',
+            text: `Failed to view attachment: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Helper functions like detail page
+function showNoAttachmentsMessage() {
+    const container = document.getElementById('attachmentsList');
+    if (container) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+    }
+}
+
+function showAttachmentError() {
+    const container = document.getElementById('attachmentsList');
+    if (container) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">Error loading attachments</p>';
+    }
+}
+
+// View attachment
+function viewAttachment(attachmentId) {
+    console.log('Viewing attachment with ID:', attachmentId);
+    console.log('Available attachments:', existingAttachments);
+
+    if (!existingAttachments || existingAttachments.length === 0) {
+        console.error('No attachments available');
+        Swal.fire({
+            title: 'Error',
+            text: 'No attachments are currently available',
             icon: 'error'
         });
         return;
     }
 
-    // Open attachment in new window/tab
-    window.open(attachment.fileUrl, '_blank');
+    // Find attachment by different possible ID fields with more comprehensive matching
+    const attachment = existingAttachments.find(a => {
+        return a.id === attachmentId ||
+            a.attachmentId === attachmentId ||
+            a.fileId === attachmentId ||
+            a.documentId === attachmentId ||
+            a.id === parseInt(attachmentId) ||
+            a.attachmentId === parseInt(attachmentId) ||
+            a.fileId === parseInt(attachmentId) ||
+            a.documentId === parseInt(attachmentId) ||
+            `attachment_${existingAttachments.indexOf(a)}` === attachmentId;
+    });
+
+    if (!attachment) {
+        console.error('Attachment not found for ID:', attachmentId);
+        console.error('Available attachment IDs:', existingAttachments.map(a => ({
+            id: a.id,
+            attachmentId: a.attachmentId,
+            fileId: a.fileId,
+            documentId: a.documentId,
+            fileName: a.fileName || a.name
+        })));
+
+        Swal.fire({
+            title: 'Error',
+            text: 'Attachment not found. Please refresh the page and try again.',
+            icon: 'error'
+        });
+        return;
+    }
+
+    console.log('Found attachment:', attachment);
+
+    // Check for different possible URL field names with comprehensive fallbacks
+    const fileUrl = attachment.fileUrl ||
+        attachment.url ||
+        attachment.downloadUrl ||
+        attachment.filePath ||
+        attachment.link ||
+        attachment.attachmentUrl ||
+        attachment.documentUrl;
+
+    if (!fileUrl) {
+        console.error('No file URL found in attachment:', attachment);
+        console.error('Available URL fields:', {
+            fileUrl: attachment.fileUrl,
+            url: attachment.url,
+            downloadUrl: attachment.downloadUrl,
+            filePath: attachment.filePath,
+            link: attachment.link,
+            attachmentUrl: attachment.attachmentUrl,
+            documentUrl: attachment.documentUrl
+        });
+
+        Swal.fire({
+            title: 'Error',
+            text: 'Attachment file URL is not available. The attachment may not be properly uploaded.',
+            icon: 'error'
+        });
+        return;
+    }
+
+    console.log('Opening attachment URL:', fileUrl);
+
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Opening Attachment',
+            text: 'Loading attachment...',
+            icon: 'info',
+            timer: 1000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+
+        // Open attachment in new window/tab
+        const newWindow = window.open(fileUrl, '_blank');
+
+        if (!newWindow) {
+            throw new Error('Pop-up blocked or failed to open');
+        }
+
+    } catch (error) {
+        console.error('Error opening attachment:', error);
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open attachment: ${error.message}`,
+            icon: 'error'
+        });
+    }
 }
 
 // Toggle visibility of closed by field based on transaction type
@@ -573,14 +1448,18 @@ function viewAttachment(attachmentId) {
 
 // Format currency with Indonesian format
 function formatCurrency(number) {
+    console.log('formatCurrency input:', number, 'type:', typeof number);
     // Handle empty or invalid input
     if (number === null || number === undefined || number === '') {
+        console.log('formatCurrency: returning 0 for null/undefined/empty');
         return '0';
     }
 
     // Parse the number
     const num = parseFloat(number);
+    console.log('formatCurrency parsed number:', num);
     if (isNaN(num)) {
+        console.log('formatCurrency: returning 0 for NaN');
         return '0';
     }
 
@@ -592,15 +1471,19 @@ function formatCurrency(number) {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
             const decimalPlaces = numStr.split('.')[1].length;
-            return num.toLocaleString('id-ID', {
+            const formatted = num.toLocaleString('id-ID', {
                 minimumFractionDigits: decimalPlaces,
                 maximumFractionDigits: decimalPlaces
             });
+            console.log('formatCurrency formatted result:', formatted);
+            return formatted;
         } else {
-            return num.toLocaleString('id-ID', {
+            const formatted = num.toLocaleString('id-ID', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             });
+            console.log('formatCurrency formatted result:', formatted);
+            return formatted;
         }
     } catch (e) {
         // Fallback for very large numbers
@@ -626,7 +1509,9 @@ function formatCurrency(number) {
             formattedInteger += integerPart.charAt(i);
         }
 
-        return sign + formattedInteger + decimalPart;
+        const fallbackResult = sign + formattedInteger + decimalPart;
+        console.log('formatCurrency fallback result:', fallbackResult);
+        return fallbackResult;
     }
 }
 
@@ -970,9 +1855,9 @@ function displayCurrencySummary(currencySummary) {
     Object.entries(currencySummary).forEach(([currency, amount]) => {
         const formattedAmount = formatCurrency(amount);
         html += `
-            <div class="flex justify-between items-center p-2 bg-gray-50 rounded border">
-                <span class="font-semibold text-base">${currency}:</span>
-                <span class="text-right font-mono text-base font-bold">${formattedAmount}</span>
+            <div class="flex items-center p-2 bg-gray-50 rounded border">
+                <span class="font-semibold text-base">${currency}</span>
+                <span class="ml-4 font-mono text-base font-bold">${formattedAmount}</span>
             </div>
         `;
     });
@@ -999,8 +1884,7 @@ function updateTotalOutstandingTransfers(currencySummary) {
             const numberInWords = numberToWords(amount);
             html += `
                 <div class="border-b border-gray-300 pb-3 last:border-b-0">
-                    <div class="font-bold text-lg text-gray-800 mb-1">${currency}:</div>
-                    <div class="text-base text-gray-700 font-mono leading-relaxed">${numberInWords}</div>
+                    <div class="text-base text-gray-700 font-mono leading-relaxed">${currency} ${numberInWords}</div>
                 </div>
             `;
         }

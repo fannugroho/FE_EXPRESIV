@@ -8,13 +8,13 @@ let attachmentsToKeep = [];
 let documentId = null;
 
 // Execute when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Get document ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
-    
 
-    
+
+
     if (documentId) {
         // Load document details
         loadOPReimDetails(documentId);
@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
             goToMenuCheckOPReim();
         });
     }
-    
+
     // Initialize event listeners
     initializeEventListeners();
 });
 
 // Initialize event listeners
 function initializeEventListeners() {
-            // Initialize button states
-        // Note: Revision functionality has been removed
+    // Initialize button states
+    // Note: Revision functionality has been removed
 }
 
 // Load outgoing payment reimbursement details from API
@@ -51,35 +51,35 @@ async function loadOPReimDetails(id) {
                 Swal.showLoading();
             }
         });
-        
+
         // Make API request to get document details
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
             method: 'GET'
         });
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         // Parse response data
         const data = await response.json();
         outgoingPaymentReimData = data;
-        
+
         // Load users data to get names
         await loadUsersData();
-        
+
         // Populate form with data
         populateFormFields(data);
-        
+
         // Check user permissions and update UI accordingly
         checkUserPermissions(data);
-        
+
         // Close loading indicator
         Swal.close();
-        
+
     } catch (error) {
         console.error('Error loading document:', error);
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to load document: ${error.message}`,
@@ -97,14 +97,14 @@ async function loadUsersData() {
         const response = await makeAuthenticatedRequest('/api/users', {
             method: 'GET'
         });
-        
+
         if (!response.ok) {
             throw new Error(`Failed to load users: ${response.status}`);
         }
-        
+
         const usersData = await response.json();
         window.usersList = usersData.data || [];
-        
+
     } catch (error) {
         console.error('Error loading users:', error);
         window.usersList = [];
@@ -114,7 +114,7 @@ async function loadUsersData() {
 // Get user name by ID
 function getUserNameById(userId) {
     if (!window.usersList || !userId) return 'Unknown User';
-    
+
     const user = window.usersList.find(u => u.id === userId);
     return user ? user.fullName : 'Unknown User';
 }
@@ -132,13 +132,13 @@ function checkUserPermissions(data) {
         });
         return;
     }
-    
+
     const approval = data.approval;
     if (!approval) {
         console.error('No approval data found');
         return;
     }
-    
+
     // Determine current status based on dates
     let currentStatus = 'Prepared';
     if (approval.checkedDate) {
@@ -156,35 +156,35 @@ function checkUserPermissions(data) {
     if (approval.rejectedDate) {
         currentStatus = 'Rejected';
     }
-    
+
     console.log('Current status:', currentStatus);
     console.log('Current user ID:', currentUser.userId);
     console.log('Checked by ID:', approval.checkedBy);
     console.log('Document ID:', documentId);
-    
+
     // Check if current user is the assigned checker
     const isAssignedChecker = approval.checkedBy === currentUser.userId;
     const isAboveChecker = isUserAboveChecker(currentUser.userId, approval.checkedBy);
-    
+
     console.log('Is assigned checker:', isAssignedChecker);
     console.log('Is above checker:', isAboveChecker);
-    
+
     // Hide buttons based on document status
     hideButtonsBasedOnStatus(data);
-    
+
     // Update button states based on user permissions
     const approveButton = document.getElementById('approveButton');
     const rejectButton = document.getElementById('rejectButton');
-    
+
     if (currentStatus === 'Prepared' && isAssignedChecker) {
         // User is the assigned checker and document is ready for checking
         approveButton.disabled = false;
         approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = false;
         rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        
+
         console.log('Buttons enabled for checking');
-        
+
         // Show success message
         Swal.fire({
             title: 'Ready for Checking',
@@ -193,39 +193,39 @@ function checkUserPermissions(data) {
             timer: 2000,
             showConfirmButton: false
         });
-        
+
     } else if (currentStatus === 'Prepared' && isAboveChecker) {
         // User is above the checker, show waiting message
         const checkerName = getUserNameById(approval.checkedBy);
-        
+
         console.log('User is above checker, waiting for:', checkerName);
-        
+
         Swal.fire({
             title: 'Document Pending',
             text: `Please wait for ${checkerName} to check this document first`,
             icon: 'warning',
             confirmButtonText: 'OK'
         });
-        
+
         // Disable all action buttons
         approveButton.disabled = true;
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
         rejectButton.disabled = true;
         rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-        
+
     } else if (currentStatus !== 'Prepared') {
         // Document has already been checked or is in a different status
         const statusMessage = getStatusMessage(currentStatus);
-        
+
         console.log('Document status is:', currentStatus);
-        
+
         Swal.fire({
             title: 'Document Status',
             text: statusMessage,
             icon: 'info',
             confirmButtonText: 'OK'
         });
-        
+
         // Disable all action buttons
         approveButton.disabled = true;
         approveButton.classList.add('opacity-50', 'cursor-not-allowed');
@@ -238,7 +238,7 @@ function checkUserPermissions(data) {
 function hideButtonsBasedOnStatus(data) {
     const approveButton = document.getElementById('approveButton');
     const rejectButton = document.getElementById('rejectButton');
-    
+
     // Determine current status based on approval data
     let currentStatus = 'Prepared';
     if (data.approval) {
@@ -258,7 +258,7 @@ function hideButtonsBasedOnStatus(data) {
             currentStatus = 'Rejected';
         }
     }
-    
+
     // Hide both buttons if status is not 'Prepared'
     if (currentStatus !== 'Prepared') {
         if (approveButton) {
@@ -310,7 +310,7 @@ function populateFormFields(data) {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    
+
     // Map header fields
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
@@ -322,7 +322,7 @@ function populateFormFields(data) {
     setValue('DocCurr', data.docCurr || 'IDR');
     setValue('TrsfrAcct', data.trsfrAcct || '');
     setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
-    
+
     // Map date fields
     if (data.docDate) {
         const docDate = new Date(data.docDate);
@@ -340,40 +340,40 @@ function populateFormFields(data) {
         const trsfrDate = new Date(data.trsfrDate);
         setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
     }
-    
+
     // Calculate totals from lines
     let netTotal = 0;
     let totalAmountDue = 0;
     const currencySummary = {};
-    
+
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach((line, index) => {
             console.log(`Line ${index}:`, line);
             const amount = line.sumApplied || 0;
             const currency = line.CurrencyItem || line.currencyItem || 'IDR';
-            
+
             netTotal += amount;
             totalAmountDue += amount;
-            
+
             currencySummary[currency] = (currencySummary[currency] || 0) + amount;
         });
     }
-    
+
     console.log('Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
-    
+
     // Update total fields
     setValue('netTotal', formatCurrency(netTotal));
     setValue('totalTax', formatCurrency(0));
     setValue('totalAmountDue', formatCurrency(totalAmountDue));
-    
+
     // Display currency summaries
     displayCurrencySummary(currencySummary);
     updateTotalOutstandingTransfers(currencySummary);
-    
+
     // Map remarks
     setValue('remarks', data.remarks || '');
     setValue('journalRemarks', data.journalRemarks || '');
-    
+
     // Map approval data
     if (data.approval) {
         populateApprovalInfo(data.approval);
@@ -390,18 +390,18 @@ function populateFormFields(data) {
         // If no approval data, show as Prepared
         displayApprovalStatus({ approvalStatus: 'Prepared' });
     }
-    
+
     // Map table lines
     if (data.lines && data.lines.length > 0) {
         populateTableRows(data.lines);
     }
-    
+
     // Handle attachments like detail page
     handleAttachments(data, documentId);
-    
+
     // Display Print Out Reimbursement document
     displayPrintOutReimbursement(data);
-    
+
     // Handle reimbursement data if exists
     handleReimbursementData(data);
 }
@@ -409,14 +409,14 @@ function populateFormFields(data) {
 // Function to display approval status with select dropdown
 function displayApprovalStatus(approval) {
     const statusSelect = document.getElementById('status');
-    
+
     if (!statusSelect) {
         console.error('Status select element not found');
         return;
     }
-    
+
     let status = 'Prepared'; // Default to Prepared
-    
+
     if (approval) {
         // Determine status based on approval data
         if (approval.approvalStatus) {
@@ -435,7 +435,7 @@ function displayApprovalStatus(approval) {
             status = 'Prepared';
         }
     }
-    
+
     // Update select value - only if the status exists in the select options
     const availableStatuses = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received', 'Rejected'];
     if (availableStatuses.includes(status)) {
@@ -449,40 +449,77 @@ function displayApprovalStatus(approval) {
 // Populate table rows with line items
 function populateTableRows(lines) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return;
+
     tableBody.innerHTML = ''; // Clear existing rows
-    
+
     if (!lines || lines.length === 0) {
         // Add empty row if no lines
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="5" class="p-2 border text-center text-gray-500">No items found</td>
+            <td colspan="6" class="p-8 text-center text-gray-500">
+                <div class="loading-shimmer h-4 rounded mx-auto w-1/2 mb-2"></div>
+                <div class="loading-shimmer h-4 rounded mx-auto w-1/3"></div>
+            </td>
         `;
         tableBody.appendChild(emptyRow);
         return;
     }
-    
+
     // Add each line as a row
     lines.forEach((line, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="p-2 border">${line.acctCode || ''}</td>
-            <td class="p-2 border">${line.acctName || ''}</td>
-            <td class="p-2 border">${line.descrip || ''}</td>
-            <td class="p-2 border text-right">${formatCurrency(line.sumApplied) || '0'}</td>
-        `;
+        const amount = line.sumApplied || 0;
+
+        console.log(`📋 Line ${index} data:`, {
+            acctCode: line.acctCode,
+            acctName: line.acctName,
+            descrip: line.descrip,
+            division: line.division,
+            divisionCode: line.divisionCode,
+            currencyItem: line.CurrencyItem || line.currencyItem,
+            sumApplied: amount
+        });
+
+        const row = createTableRow(line, amount);
         tableBody.appendChild(row);
     });
+}
+
+/**
+ * Creates a table row element with all 6 columns
+ * @param {Object} line - Line data object
+ * @param {number} amount - Amount value
+ * @returns {HTMLElement} - Table row element
+ */
+function createTableRow(line, amount) {
+    const row = document.createElement('tr');
+    const cells = [
+        line.acctCode || '',
+        line.acctName || '',
+        line.descrip || '',
+        line.divisionCode || line.division || '',
+        line.CurrencyItem || line.currencyItem || 'IDR',
+        formatCurrencyWithTwoDecimals(amount)
+    ];
+
+    row.innerHTML = cells.map((cell, index) => {
+        const isLastCell = index === 5;
+        const cellClass = `p-3 border-b${isLastCell ? ' text-right font-mono' : ''}`;
+        return `<td class="${cellClass}">${cell}</td>`;
+    }).join('');
+
+    return row;
 }
 
 // Update totals based on line items
 function updateTotals(lines) {
     let totalAmount = 0;
-    
+
     // Calculate sum of all line amounts
     if (lines && lines.length > 0) {
         totalAmount = lines.reduce((sum, line) => sum + (parseFloat(line.sumApplied) || 0), 0);
     }
-    
+
     // Update total amount due field
     document.getElementById('totalAmountDue').value = formatCurrency(totalAmount);
 }
@@ -490,37 +527,37 @@ function updateTotals(lines) {
 // Populate approval information
 function populateApprovalInfo(approval) {
     if (!approval) return;
-    
+
     // Set prepared by
     if (approval.preparedBy) {
         const preparedByName = getUserNameById(approval.preparedBy);
         document.getElementById('preparedBySearch').value = preparedByName;
     }
-    
+
     // Set checked by
     if (approval.checkedBy) {
         const checkedByName = getUserNameById(approval.checkedBy);
         document.getElementById('checkedBySearch').value = checkedByName;
     }
-    
+
     // Set acknowledged by
     if (approval.acknowledgedBy) {
         const acknowledgedByName = getUserNameById(approval.acknowledgedBy);
         document.getElementById('acknowledgedBySearch').value = acknowledgedByName;
     }
-    
+
     // Set approved by
     if (approval.approvedBy) {
         const approvedByName = getUserNameById(approval.approvedBy);
         document.getElementById('approvedBySearch').value = approvedByName;
     }
-    
+
     // Set received by
     if (approval.receivedBy) {
         const receivedByName = getUserNameById(approval.receivedBy);
         document.getElementById('receivedBySearch').value = receivedByName;
     }
-    
+
 
 }
 
@@ -529,10 +566,10 @@ function populateApprovalInfo(approval) {
 // Legacy display attachments function - now redirects to enhanced version
 function displayAttachments(attachments) {
     console.log('Legacy displayAttachments called, redirecting to displayExistingAttachments:', attachments);
-    
+
     // Use the enhanced display function instead
     displayExistingAttachments(attachments);
-    
+
     // Also store for backward compatibility with old viewAttachment function
     existingAttachments = attachments ? [...attachments] : [];
     attachmentsToKeep = attachments ? [...attachments.map(a => a.id || a.attachmentId || a.fileId)] : [];
@@ -541,11 +578,11 @@ function displayAttachments(attachments) {
 // Helper function to format file size
 function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -717,7 +754,7 @@ async function handleAttachments(result, docId) {
     console.log('Document ID:', docId);
     console.log('result.attachments:', result.attachments);
     console.log('result.attachments length:', result.attachments?.length);
-    
+
     if (result.attachments?.length > 0) {
         console.log('Attachments found in main response:', result.attachments);
         displayExistingAttachments(result.attachments);
@@ -794,7 +831,7 @@ function displayExistingAttachments(attachments) {
 
     const attachmentItems = attachments.map((attachment, index) => {
         console.log(`Processing attachment ${index}:`, attachment);
-        
+
         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
         const fileIcon = getFileIcon(fileName);
         const fileSize = formatFileSize(attachment.fileSize || attachment.size);
@@ -807,7 +844,7 @@ function displayExistingAttachments(attachments) {
         <h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>
         ${attachmentItems}
     `;
-    
+
     console.log('Successfully displayed attachment items in container');
 }
 
@@ -879,7 +916,7 @@ async function viewEnhancedAttachment(attachmentOrPath, fileName) {
 // File icon helper like detail page
 function getFileIcon(fileName) {
     if (!fileName || typeof fileName !== 'string') return '📄';
-    
+
     const extension = fileName.split('.').pop()?.toLowerCase();
     const icons = {
         pdf: '📄',
@@ -1299,7 +1336,7 @@ function showAttachmentError() {
 function viewAttachment(attachmentId) {
     console.log('Viewing attachment with ID:', attachmentId);
     console.log('Available attachments:', existingAttachments);
-    
+
     if (!existingAttachments || existingAttachments.length === 0) {
         console.error('No attachments available');
         Swal.fire({
@@ -1309,20 +1346,20 @@ function viewAttachment(attachmentId) {
         });
         return;
     }
-    
+
     // Find attachment by different possible ID fields with more comprehensive matching
     const attachment = existingAttachments.find(a => {
-        return a.id === attachmentId || 
-               a.attachmentId === attachmentId || 
-               a.fileId === attachmentId ||
-               a.documentId === attachmentId ||
-               a.id === parseInt(attachmentId) ||
-               a.attachmentId === parseInt(attachmentId) ||
-               a.fileId === parseInt(attachmentId) ||
-               a.documentId === parseInt(attachmentId) ||
-               `attachment_${existingAttachments.indexOf(a)}` === attachmentId;
+        return a.id === attachmentId ||
+            a.attachmentId === attachmentId ||
+            a.fileId === attachmentId ||
+            a.documentId === attachmentId ||
+            a.id === parseInt(attachmentId) ||
+            a.attachmentId === parseInt(attachmentId) ||
+            a.fileId === parseInt(attachmentId) ||
+            a.documentId === parseInt(attachmentId) ||
+            `attachment_${existingAttachments.indexOf(a)}` === attachmentId;
     });
-    
+
     if (!attachment) {
         console.error('Attachment not found for ID:', attachmentId);
         console.error('Available attachment IDs:', existingAttachments.map(a => ({
@@ -1332,7 +1369,7 @@ function viewAttachment(attachmentId) {
             documentId: a.documentId,
             fileName: a.fileName || a.name
         })));
-        
+
         Swal.fire({
             title: 'Error',
             text: 'Attachment not found. Please refresh the page and try again.',
@@ -1340,18 +1377,18 @@ function viewAttachment(attachmentId) {
         });
         return;
     }
-    
+
     console.log('Found attachment:', attachment);
-    
+
     // Check for different possible URL field names with comprehensive fallbacks
-    const fileUrl = attachment.fileUrl || 
-                   attachment.url || 
-                   attachment.downloadUrl || 
-                   attachment.filePath ||
-                   attachment.link ||
-                   attachment.attachmentUrl ||
-                   attachment.documentUrl;
-    
+    const fileUrl = attachment.fileUrl ||
+        attachment.url ||
+        attachment.downloadUrl ||
+        attachment.filePath ||
+        attachment.link ||
+        attachment.attachmentUrl ||
+        attachment.documentUrl;
+
     if (!fileUrl) {
         console.error('No file URL found in attachment:', attachment);
         console.error('Available URL fields:', {
@@ -1363,7 +1400,7 @@ function viewAttachment(attachmentId) {
             attachmentUrl: attachment.attachmentUrl,
             documentUrl: attachment.documentUrl
         });
-        
+
         Swal.fire({
             title: 'Error',
             text: 'Attachment file URL is not available. The attachment may not be properly uploaded.',
@@ -1371,9 +1408,9 @@ function viewAttachment(attachmentId) {
         });
         return;
     }
-    
+
     console.log('Opening attachment URL:', fileUrl);
-    
+
     try {
         // Show loading indicator
         Swal.fire({
@@ -1384,14 +1421,14 @@ function viewAttachment(attachmentId) {
             timerProgressBar: true,
             showConfirmButton: false
         });
-        
+
         // Open attachment in new window/tab
         const newWindow = window.open(fileUrl, '_blank');
-        
+
         if (!newWindow) {
             throw new Error('Pop-up blocked or failed to open');
         }
-        
+
     } catch (error) {
         console.error('Error opening attachment:', error);
         Swal.fire({
@@ -1413,7 +1450,7 @@ function formatCurrency(number) {
         console.log('formatCurrency: returning 0 for null/undefined/empty');
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     console.log('formatCurrency parsed number:', num);
@@ -1421,11 +1458,11 @@ function formatCurrency(number) {
         console.log('formatCurrency: returning 0 for NaN');
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -1447,19 +1484,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -1467,7 +1504,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         const fallbackResult = sign + formattedInteger + decimalPart;
         console.log('formatCurrency fallback result:', fallbackResult);
         return fallbackResult;
@@ -1477,12 +1514,12 @@ function formatCurrency(number) {
 // Parse currency string back to number
 function parseCurrency(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
     const numericValue = formattedValue.toString()
         .replace(/\./g, '') // Remove thousand separators (dots)
         .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
-    
+
     return parseFloat(numericValue) || 0;
 }
 
@@ -1498,7 +1535,7 @@ async function approveOPReim() {
         if (!validateDocumentStatus()) {
             return;
         }
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -1508,21 +1545,21 @@ async function approveOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
-        
+
         if (!userId) {
             throw new Error('User ID not found. Please log in again.');
         }
-        
+
         // Get current user info
         const currentUser = getCurrentUser();
         const currentUserName = currentUser ? currentUser.username : 'Unknown User';
-        
+
         // Get current date
         const currentDate = new Date().toISOString();
-        
+
         // Prepare request data according to the API specification
         const requestData = {
             stagingID: documentId,
@@ -1551,7 +1588,7 @@ async function approveOPReim() {
             revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
         // Make API request to update approval status using the correct endpoint
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
             method: 'PUT',
@@ -1560,15 +1597,15 @@ async function approveOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `API error: ${response.status}`);
         }
-        
+
         // Parse response data
         const responseData = await response.json();
-        
+
         // Show success message
         Swal.fire({
             title: 'Success',
@@ -1578,10 +1615,10 @@ async function approveOPReim() {
             // Redirect back to menu
             goToMenuCheckOPReim();
         });
-        
+
     } catch (error) {
         console.error('Error checking document:', error);
-        
+
         Swal.fire({
             title: 'Error',
             text: `Failed to check document: ${error.message}`,
@@ -1597,7 +1634,7 @@ async function rejectOPReim() {
         if (!validateDocumentStatus()) {
             return;
         }
-        
+
         // Create custom dialog with single field
         const { value: rejectionReason } = await Swal.fire({
             title: 'Reject Outgoing Payment Reimbursement',
@@ -1635,11 +1672,11 @@ async function rejectOPReim() {
                 return remarks;
             }
         });
-        
+
         if (!rejectionReason) {
             return; // User cancelled or didn't provide a reason
         }
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Processing...',
@@ -1649,13 +1686,13 @@ async function rejectOPReim() {
                 Swal.showLoading();
             }
         });
-        
+
         // Get current user ID
         const userId = getUserId();
         if (!userId) {
             throw new Error('Unable to get user ID. Please login again.');
         }
-        
+
         // Prepare request data for rejection
         const requestData = {
             stagingID: documentId,
@@ -1684,14 +1721,14 @@ async function rejectOPReim() {
             revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
             header: {}
         };
-        
+
         // Also add rejectionRemarks at root level in case backend expects it there
         requestData.rejectionRemarks = rejectionReason;
-        
+
         // Debug: Log the request data to console
         console.log('Rejection request data:', requestData);
         console.log('Rejection reason:', rejectionReason);
-        
+
         // Make API request to reject document using the approvals endpoint
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
             method: 'PUT',
@@ -1700,7 +1737,7 @@ async function rejectOPReim() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
             // Try to get detailed error message
             let errorMessage = `API error: ${response.status}`;
@@ -1712,7 +1749,7 @@ async function rejectOPReim() {
             }
             throw new Error(errorMessage);
         }
-        
+
         // Debug: Log the response data
         try {
             const responseData = await response.json();
@@ -1720,20 +1757,20 @@ async function rejectOPReim() {
         } catch (e) {
             console.log('Response does not contain JSON data');
         }
-        
+
         // Show success message
         await Swal.fire({
             title: 'Success',
             text: 'Document has been rejected',
             icon: 'success'
         });
-        
+
         // Redirect back to menu
         goToMenuCheckOPReim();
-        
+
     } catch (error) {
         console.error('Error rejecting document:', error);
-        
+
         // Show error message
         await Swal.fire({
             title: 'Error',
@@ -1758,7 +1795,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     if (!outgoingPaymentReimData || !outgoingPaymentReimData.approval) {
         Swal.fire({
             title: 'Error',
@@ -1767,9 +1804,9 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     const approval = outgoingPaymentReimData.approval;
-    
+
     // Check if document is already checked
     if (approval.checkedDate) {
         Swal.fire({
@@ -1779,7 +1816,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     // Check if current user is the assigned checker
     if (approval.checkedBy !== currentUser.userId) {
         const checkerName = getUserNameById(approval.checkedBy);
@@ -1790,7 +1827,7 @@ function validateDocumentStatus() {
         });
         return false;
     }
-    
+
     return true;
 }
 
@@ -1810,10 +1847,10 @@ function initializeWithRejectionPrefix(textarea) {
     const userInfo = getUserInfo();
     const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -1823,12 +1860,12 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // If user tries to modify content before the prefix length
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const userInfo = getUserInfo();
         const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
+
         // Only restore if the prefix is damaged
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -1845,7 +1882,7 @@ function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
     let userRole = 'Checker'; // Default role for this page
-    
+
     try {
         // Get user info from getCurrentUser function in auth.js
         const currentUser = getCurrentUser();
@@ -1855,6 +1892,6 @@ function getUserInfo() {
     } catch (e) {
         console.error('Error getting user info:', e);
     }
-    
+
     return { name: userName, role: userRole };
 } 
