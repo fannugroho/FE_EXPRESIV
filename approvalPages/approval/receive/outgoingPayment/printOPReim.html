@@ -137,8 +137,8 @@
                 padding: 5px !important;
                 box-shadow: none !important;
                 page-break-inside: avoid !important;
-                max-height: 100vh !important;
-                overflow: hidden !important;
+                max-height: none !important;
+                overflow: visible !important;
             }
         }
         
@@ -469,20 +469,47 @@
             }
         }
         
-        /* Page numbering styles */
-        .page-number {
+        /* Page numbering footer styles */
+        .page-number-footer {
             position: fixed;
-            bottom: 10px;
+            bottom: 15px;
             right: 20px;
-            font-size: 10px;
-            color: #666;
+            font-size: 12px;
+            color: #333;
             font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             display: none;
         }
         
+        .page-number-text {
+            font-family: Arial, sans-serif;
+        }
+        
+        .current-page {
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .total-pages {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
         @media print {
-            .page-number {
+            .page-number-footer {
                 display: block !important;
+                position: fixed !important;
+                bottom: 10px !important;
+                right: 15px !important;
+                font-size: 10px !important;
+                background-color: white !important;
+                border: 1px solid #000 !important;
+                box-shadow: none !important;
+                padding: 3px 8px !important;
             }
             
             /* CSS counters for page numbering */
@@ -490,7 +517,7 @@
                 counter-increment: page;
             }
             
-            .page::after {
+            .current-page::after {
                 content: counter(page);
             }
             
@@ -619,11 +646,206 @@
             border-radius: 5px;
         }
         
+        /* File Attachment Section styling */
+        #fileAttachmentSection {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        #fileAttachmentSection h3 {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        #fileAttachmentList {
+            min-height: 20px;
+            padding: 4px;
+        }
+        
+        /* List attachment styling */
+        .attachment-list-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 6px;
+            margin-bottom: 1px;
+            border-radius: 3px;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .attachment-list-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .attachment-list-item .file-icon {
+            margin-right: 6px;
+            font-size: 12px;
+        }
+        
+        .attachment-list-item .file-name {
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        /* Blue theme for outgoing payment attachments */
+        .attachment-list-item.blue-theme {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .attachment-list-item.blue-theme .file-name {
+            color: #1e40af;
+        }
+        
+        /* Green theme for reimbursement attachments */
+        .attachment-list-item.green-theme {
+            background-color: #f0fdf4;
+            border: 1px solid #86efac;
+        }
+        
+        .attachment-list-item.green-theme .file-name {
+            color: #047857;
+        }
+        
+        /* Attachment styling for print page */
+        .reimbursement-header {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reimbursement-attachments-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .reimbursement-attachments-list .flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 0.25rem;
+        }
+        
+        .reimbursement-attachments-list .space-x-2 {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .reimbursement-attachments-list .text-lg {
+            font-size: 1.125rem;
+        }
+        
+        .reimbursement-attachments-list .text-sm {
+            font-size: 0.875rem;
+        }
+        
+        .reimbursement-attachments-list .text-xs {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .reimbursement-attachments-list .text-blue-600 {
+            color: #2563eb;
+        }
+        
+        .reimbursement-attachments-list .text-blue-800 {
+            color: #1e40af;
+        }
+        
+        .reimbursement-attachments-list .text-gray-500 {
+            color: #6b7280;
+        }
+        
+        .reimbursement-attachments-list .text-green-600 {
+            color: #059669;
+        }
+        
+        .reimbursement-attachments-list .hover\:text-blue-800:hover {
+            color: #1e40af;
+        }
+        
+        .reimbursement-attachments-list .hover\:text-green-800:hover {
+            color: #047857;
+        }
+        
+        .reimbursement-attachments-list .hover\:bg-blue-50:hover {
+            background-color: #eff6ff;
+        }
+        
+        .reimbursement-attachments-list .hover\:bg-green-50:hover {
+            background-color: #f0fdf4;
+        }
+        
+        .reimbursement-attachments-list .border-blue-300 {
+            border-color: #93c5fd;
+        }
+        
+        .reimbursement-attachments-list .border-green-300 {
+            border-color: #86efac;
+        }
+        
+        .reimbursement-attachments-list .rounded {
+            border-radius: 0.25rem;
+        }
+        
+        .reimbursement-attachments-list .px-2 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        .reimbursement-attachments-list .py-1 {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+        
+        /* Print Out Reimbursement Section styling */
+        #printOutReimbursementSection {
+            margin-bottom: 0.5rem;
+        }
+        
+        #printOutReimbursementSection h4 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        #printOutReimbursementList {
+            min-height: 1rem;
+        }
+        
         .attachments-section h3 {
             font-weight: bold;
             margin-bottom: 10px;
             color: #333;
             border-bottom: 2px solid #ffc107;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .reimbursement-attachments-section {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #28a745;
+            background-color: #f8fff9;
+            border-radius: 5px;
+        }
+        
+        .reimbursement-attachments-section h3 {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #28a745;
+            border-bottom: 2px solid #28a745;
             padding-bottom: 5px;
             font-size: 14px;
         }
@@ -637,10 +859,94 @@
                 page-break-inside: avoid !important;
             }
             
+            #fileAttachmentSection {
+                margin-bottom: 8px !important;
+                padding: 8px !important;
+                background-color: white !important;
+                border: 1px solid #000 !important;
+                page-break-inside: avoid !important;
+            }
+            
+            #fileAttachmentSection h3 {
+                font-size: 12px !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 3px !important;
+            }
+            
+            #fileAttachmentList {
+                padding: 2px !important;
+                min-height: 10px !important;
+            }
+            
+            .attachment-list-item {
+                padding: 2px 4px !important;
+                margin-bottom: 2px !important;
+                font-size: 8px !important;
+            }
+            
+            .attachment-list-item .file-icon {
+                margin-right: 4px !important;
+                font-size: 8px !important;
+            }
+            
+            .attachment-list-item .file-name {
+                font-size: 8px !important;
+            }
+            
+            .reimbursement-attachments-section {
+                margin-bottom: 8px !important;
+                padding: 8px !important;
+                background-color: white !important;
+                border: 1px solid #000 !important;
+                page-break-inside: avoid !important;
+            }
+            
             .attachments-section h3 {
                 font-size: 12px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 3px !important;
+            }
+            
+            .reimbursement-attachments-section h3 {
+                font-size: 12px !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 3px !important;
+            }
+            
+            .reimbursement-header h4 {
+                font-size: 10px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .reimbursement-attachments-list {
+                gap: 2px !important;
+            }
+            
+            .reimbursement-attachments-list .flex {
+                padding: 2px 4px !important;
+                font-size: 8px !important;
+            }
+            
+            .reimbursement-attachments-list .text-sm {
+                font-size: 8px !important;
+            }
+            
+            .reimbursement-attachments-list .text-xs {
+                font-size: 7px !important;
+            }
+            
+            #printOutReimbursementSection {
+                margin-bottom: 5px !important;
+            }
+            
+            #printOutReimbursementSection h4 {
+                font-size: 10px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            #printOutReimbursementList {
+                padding: 2px !important;
+                min-height: 10px !important;
             }
         }
         
@@ -669,10 +975,100 @@
             white-space: pre-wrap;
         }
         
+        /* Attachments Table Styles */
+        .attachments-table-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            display: block !important;
+        }
+        
+        .attachments-table-section h3 {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 2px solid #17a2b8;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .attachments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+        
+        .attachments-table th,
+        .attachments-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+            font-size: 10px;
+        }
+        
+        .attachments-table th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .attachments-table td {
+            background-color: #fff;
+        }
+        
+        .attachments-table .file-name {
+            font-weight: 500;
+            color: #007bff;
+        }
+        
+        .attachments-table .file-type {
+            text-transform: uppercase;
+            font-size: 9px;
+            color: #6c757d;
+        }
+        
+        .attachments-table .file-size {
+            text-align: right;
+            font-family: monospace;
+            font-size: 9px;
+        }
+        
+        @media print {
+            .attachments-table-section {
+                margin-bottom: 8px !important;
+                padding: 8px !important;
+                background-color: white !important;
+                border: 1px solid #000 !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .attachments-table-section h3 {
+                font-size: 12px !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 3px !important;
+            }
+            
+            .attachments-table {
+                font-size: 8px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .attachments-table th,
+            .attachments-table td {
+                padding: 3px !important;
+                font-size: 8px !important;
+            }
+        }
+        
         @media print {
             .document-info,
             .approval-details,
             .attachments-section,
+            #fileAttachmentSection,
+            .reimbursement-attachments-section,
             .rejection-section {
                 background-color: white !important;
                 border: 1px solid #000 !important;
@@ -699,8 +1095,7 @@
                     </div>
                 </div>
                 <div class="voucher-details">
-                    <div>Batch No.: <span id="batchNo">-</span></div>
-                    <div>Voucher No. <span id="voucherNo">407B/03/25</span></div>
+                    <div id="voucherNoContainer" style="display: block;">Voucher No. <span id="voucherNo">407B/03/25</span></div>
                     <div>Submission Date: <span id="submissionDate">09-June-2025</span></div>
                 </div>
             </div>
@@ -781,13 +1176,24 @@
             </div>
         </div>
         
-        <!-- Attachments Section -->
-        <div class="attachments-section" id="attachmentsSection" style="display: none;">
-            <h3>Attachments</h3>
-            <div id="attachmentsList">
-                <!-- Attachments will be populated by JavaScript -->
+
+        
+        <!-- File Attachment Section -->
+        <div class="attachments-section" id="fileAttachmentSection" style="display: block;">
+            <h3>File Attachment</h3>
+            <div id="fileAttachmentList" class="min-h-8">
+                <!-- Reimbursement attachments will be populated by JavaScript -->
+                <div id="reimbursementAttachmentsList" class="mb-1" style="display: block;">
+                    <!-- Reimbursement attachments will be populated by JavaScript -->
+                </div>
+                <!-- Print Out Reimbursement document will be displayed here -->
+                <div id="printOutReimbursementList" class="min-h-4">
+                    <!-- Print Receive Reimbursement document will be displayed here -->
+                </div>
             </div>
         </div>
+        
+
         
         <!-- Rejection Remarks Section -->
         <div class="rejection-section" id="rejectionSection" style="display: none;">
@@ -847,8 +1253,10 @@
             Generated by Expressiv system
         </div>
         
-        <!-- Page numbering -->
-        <div class="page-number" id="pageNumber"></div>
+        <!-- Page numbering footer -->
+        <div class="page-number-footer" id="pageNumberFooter">
+            <span class="page-number-text">Pages <span class="current-page">1</span> of <span class="total-pages">1</span></span>
+        </div>
     </div>
 
     <script>
@@ -945,10 +1353,30 @@
         }
         
         // Function to populate voucher data
-        function populateVoucherData(data) {
+        function populateVoucherData(data, docId) {
+            console.log('=== START: populateVoucherData ===');
+            console.log('Document ID:', docId);
+            console.log('Data received:', data);
+            
             // Set basic information
             document.getElementById('paymentTo').textContent = data.cardName || 'Rizki Fajar Putra';
-            document.getElementById('voucherNo').textContent = data.docNum || '407B/03/25';
+            
+            // Check if data is from Expressiv (has specific Expressiv fields)
+            const isFromExpressiv = data.source === 'expressiv' || data.system === 'expressiv' || 
+                                   (data.docNum && data.docNum.includes('EXP')) ||
+                                   (data.counterRef && data.counterRef.includes('EXP'));
+            
+            // Show/hide voucher number based on source
+            const voucherNoContainer = document.getElementById('voucherNoContainer');
+            if (voucherNoContainer) {
+                if (isFromExpressiv) {
+                    voucherNoContainer.style.display = 'none';
+                } else {
+                    voucherNoContainer.style.display = 'block';
+                    document.getElementById('voucherNo').textContent = data.docNum || '407B/03/25';
+                }
+            }
+            
             document.getElementById('submissionDate').textContent = data.docDate ? new Date(data.docDate).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'long',
@@ -1047,7 +1475,7 @@
                     <td></td>
                     <td>${data.trsfrAcct || '1213'}</td>
                     <td>${bankAccountName}</td>
-                    <td class="amount">IDR 0.00</td>
+                    <td class="amount"></td>
                     <td class="amount">IDR ${formatCurrency(totalDebit)}</td>
                 `;
                 paymentTableBody.appendChild(creditRow);
@@ -1100,61 +1528,84 @@
             document.getElementById('acknowledgedDateBox').textContent = formatDate(data.approval?.acknowledgedDate);
             document.getElementById('approvedDateBox').textContent = formatDate(data.approval?.approvedDate);
             
-            // Display attachments if available
-            if (data.attachments && data.attachments.length > 0) {
-                const attachmentsSection = document.getElementById('attachmentsSection');
-                const attachmentsList = document.getElementById('attachmentsList');
+            // Display attachments table (always show) - Enhanced with receiveOPReim.html model
+            console.log('Starting to populate attachments table...');
+            const attachmentsTableSection = document.getElementById('attachmentsTableSection');
+            const attachmentsTableBody = document.getElementById('attachmentsTableBody');
+            
+            console.log('Attachments table section:', attachmentsTableSection);
+            console.log('Attachments table body:', attachmentsTableBody);
+            
+            if (attachmentsTableSection && attachmentsTableBody) {
+                attachmentsTableSection.style.display = 'block';
+                attachmentsTableBody.innerHTML = '';
                 
-                if (attachmentsSection && attachmentsList) {
-                    attachmentsSection.style.display = 'block';
-                    attachmentsList.innerHTML = '';
+                // Check if attachments exist
+                console.log('Data attachments:', data.attachments);
+                if (data.attachments && data.attachments.length > 0) {
+                    console.log('Found attachments:', data.attachments.length);
                     
                     data.attachments.forEach((attachment, index) => {
-                        const attachmentItem = document.createElement('div');
-                        attachmentItem.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; margin-bottom: 5px; background-color: #f9f9f9; border-radius: 4px;';
+                        const row = document.createElement('tr');
                         
-                        // Get file icon based on file type
-                        const getFileIcon = (fileName) => {
-                            const ext = fileName.split('.').pop()?.toLowerCase();
-                            if (['pdf'].includes(ext)) return '📄';
-                            if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '🖼️';
-                            if (['doc', 'docx'].includes(ext)) return '📝';
-                            if (['xls', 'xlsx'].includes(ext)) return '📊';
-                            if (['txt'].includes(ext)) return '📄';
-                            return '📎';
+                        // Format file size (same as receiveOPReim.html)
+                        const formatFileSize = (bytes) => {
+                            if (!bytes || bytes === 0) return '0 B';
+                            const k = 1024;
+                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
                         };
                         
-                        // Format file size
-                        const formatFileSize = (bytes) => {
-                            if (!bytes) return 'Unknown size';
-                            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+                        // Get file type from extension (same as receiveOPReim.html)
+                        const getFileType = (fileName) => {
+                            const ext = fileName.split('.').pop()?.toLowerCase();
+                            if (['pdf'].includes(ext)) return 'PDF';
+                            if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'Image';
+                            if (['doc', 'docx'].includes(ext)) return 'Word';
+                            if (['xls', 'xlsx'].includes(ext)) return 'Excel';
+                            if (['txt'].includes(ext)) return 'Text';
+                            return 'Unknown';
+                        };
+                        
+                        // Format upload date (same as receiveOPReim.html)
+                        const formatUploadDate = (dateString) => {
+                            if (!dateString) return '-';
+                            const date = new Date(dateString);
+                            return date.toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
                         };
                         
                         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
-                        const fileIcon = getFileIcon(fileName);
                         const fileSize = formatFileSize(attachment.fileSize || attachment.size);
-                        const fileType = attachment.fileType || attachment.contentType || 'Unknown Type';
+                        const fileType = getFileType(fileName);
+                        const uploadDate = formatUploadDate(attachment.uploadDate || attachment.createdDate || attachment.date);
                         
-                        attachmentItem.innerHTML = `
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 16px;">${fileIcon}</span>
-                                    <div>
-                                        <div style="font-weight: bold; color: #333; font-size: 12px;">${fileName}</div>
-                                        <div style="color: #666; font-size: 10px;">${fileSize} • ${fileType}</div>
-                                        <div style="color: #999; font-size: 9px;">Outgoing Payment Attachment</div>
-                                    </div>
-                                </div>
-                                <div style="color: #666; font-size: 10px;">
-                                    ID: ${attachment.id || 'N/A'}
-                                </div>
-                            </div>
+                        row.innerHTML = `
+                            <td style="text-align: center;">${index + 1}</td>
+                            <td class="file-name">${fileName}</td>
+                            <td class="file-type">${fileType}</td>
+                            <td class="file-size">${fileSize}</td>
+                            <td>${uploadDate}</td>
                         `;
-                        attachmentsList.appendChild(attachmentItem);
+                        attachmentsTableBody.appendChild(row);
                     });
+                } else {
+                    // Show "No attachments" message
+                    console.log('No attachments found');
+                    const noAttachmentsRow = document.createElement('tr');
+                    noAttachmentsRow.innerHTML = `
+                        <td colspan="5" style="text-align: center; color: #666; font-style: italic; padding: 20px;">
+                            No attachments available for this document
+                        </td>
+                    `;
+                    attachmentsTableBody.appendChild(noAttachmentsRow);
                 }
+            } else {
+                console.error('Attachments table elements not found');
             }
             
             // Display rejection remarks if available
@@ -1173,14 +1624,22 @@
             // Set amounts
             document.getElementById('amountPayment').textContent = `IDR ${formatCurrency(totalDebit)}`;
             document.getElementById('amountInWord').textContent = numberToWords(totalDebit);
+            
+            // Handle attachments like receiveOPReim.html model
+            handleAttachmentsForPrint(data, docId);
+            
+            // Display Print Out Reimbursement document
+            displayPrintOutReimbursementForPrint(data);
+            
+            console.log('=== END: populateVoucherData ===');
         }
         
         // Function to handle page numbering
         function updatePageNumbers() {
-            const pageNumberElement = document.getElementById('pageNumber');
-            if (pageNumberElement) {
-                // For print, we'll use CSS counters
-                pageNumberElement.innerHTML = 'Page <span class="page"></span> of <span class="total-pages"></span>';
+            const pageNumberFooter = document.getElementById('pageNumberFooter');
+            if (pageNumberFooter) {
+                // Show the footer
+                pageNumberFooter.style.display = 'block';
             }
         }
         
@@ -1196,7 +1655,7 @@
                     counter-increment: page;
                 }
                 
-                .page::after {
+                .current-page::after {
                     content: counter(page);
                 }
                 
@@ -1210,29 +1669,830 @@
             window.print();
         }
         
+        // Global variables
+        let documentId = null;
+        
         // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Get data from URL parameters or localStorage
-            const urlParams = new URLSearchParams(window.location.search);
-            const docId = urlParams.get('docId');
+            console.log('=== START: DOMContentLoaded ===');
             
-            if (docId) {
-                // Load data from localStorage or make API call
-                const storedData = localStorage.getItem(`opReimData_${docId}`);
-                if (storedData) {
-                    const data = JSON.parse(storedData);
-                    populateVoucherData(data);
-                } else {
-                    // If no stored data, use default values
-                    populateVoucherData({});
-                }
+            // Get data from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            documentId = urlParams.get('docId') || urlParams.get('id');
+            console.log('Document ID from URL:', documentId);
+            
+            if (documentId) {
+                console.log('Loading data from API for document ID:', documentId);
+                // Load data from API like receiveOPReim.html
+                loadOPReimDetailsForPrint(documentId);
             } else {
+                console.log('No document ID found, using default values');
                 // Use default values if no docId
-                populateVoucherData({});
+                populateVoucherData({}, null);
             }
             
             // Initialize page numbering
             updatePageNumbers();
+            
+            // Debug: Check if attachments table section exists
+            const attachmentsTableSection = document.getElementById('attachmentsTableSection');
+            console.log('Attachments table section found:', !!attachmentsTableSection);
+            if (attachmentsTableSection) {
+                attachmentsTableSection.style.display = 'block';
+                console.log('Attachments table section displayed');
+            }
+            
+            console.log('=== END: DOMContentLoaded ===');
         });
+        
+        // Load outgoing payment reimbursement details from API (similar to receiveOPReim.html)
+        async function loadOPReimDetailsForPrint(id) {
+            try {
+                console.log('=== START: loadOPReimDetailsForPrint ===');
+                console.log('Document ID:', id);
+                
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Fetching document details for print',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Make API request to get document details
+                console.log('Making API request to:', `/api/staging-outgoing-payments/headers/${id}`);
+                const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
+                    method: 'GET'
+                });
+
+                console.log('API response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                // Parse response data
+                const data = await response.json();
+                console.log('API response data:', data);
+                
+                // Load attachments from API if not in main response
+                if (!data.attachments || data.attachments.length === 0) {
+                    console.log('No attachments in main response, loading from API...');
+                    await loadAttachmentsFromAPIForPrint(id, data);
+                } else {
+                    console.log('Attachments found in main response:', data.attachments);
+                }
+
+                // Load reimbursement attachments if expressivNo is available
+                if (data.expressivNo) {
+                    console.log('ExpressivNo found, loading reimbursement attachments:', data.expressivNo);
+                    await loadReimbursementAttachmentsForPrint(data.expressivNo, data);
+                } else {
+                    console.log('No expressivNo found in data');
+                }
+
+                // Populate form with data
+                console.log('Populating voucher data...');
+                populateVoucherData(data, id);
+
+                // Close loading indicator
+                Swal.close();
+                console.log('=== END: loadOPReimDetailsForPrint ===');
+
+            } catch (error) {
+                console.error('Error loading document for print:', error);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to load document for print: ${error.message}`,
+                    icon: 'error'
+                });
+            }
+        }
+        
+        // Load attachments from API (similar to receiveOPReim.html)
+        async function loadAttachmentsFromAPIForPrint(docId, mainData) {
+            try {
+                console.log('=== START: loadAttachmentsFromAPIForPrint ===');
+                console.log('Document ID:', docId);
+
+                const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                console.log('Attachments API response status:', response.status);
+
+                if (!response.ok) {
+                    console.log('Attachments API failed, handling error...');
+                    await handleAttachmentLoadErrorForPrint(response, docId, mainData);
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Attachments API response data:', result);
+
+                if (result.data?.length > 0) {
+                    console.log('Attachments loaded from API:', result.data);
+                    // Update main data with attachments
+                    mainData.attachments = result.data;
+                    // Display attachments
+                    displayAttachmentsForPrint(result.data);
+                } else {
+                    console.log('No attachments found in API response');
+                }
+
+                console.log('=== END: loadAttachmentsFromAPIForPrint ===');
+
+            } catch (error) {
+                console.error("Error loading attachments for print:", error);
+            }
+        }
+        
+        // Load reimbursement attachments from API
+        async function loadReimbursementAttachmentsForPrint(expressivNo, mainData) {
+            try {
+                console.log('=== START: loadReimbursementAttachmentsForPrint ===');
+                console.log('ExpressivNo:', expressivNo);
+
+                const response = await makeAuthenticatedRequest(`/api/reimbursements/${expressivNo}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                console.log('Reimbursement API response status:', response.status);
+
+                if (!response.ok) {
+                    console.warn(`Failed to load reimbursement data: ${response.status}`);
+                    console.log('=== END: loadReimbursementAttachmentsForPrint (failed) ===');
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Reimbursement API response data:', result);
+
+                if (result.data?.reimbursementAttachments?.length > 0) {
+                    console.log('Reimbursement attachments loaded:', result.data.reimbursementAttachments);
+                    // Store reimbursement attachments in main data
+                    mainData.reimbursementAttachments = result.data.reimbursementAttachments;
+                    // Display reimbursement attachments
+                    displayReimbursementAttachmentsForPrint(result.data.reimbursementAttachments);
+                } else {
+                    console.log('No reimbursement attachments found');
+                }
+
+                console.log('=== END: loadReimbursementAttachmentsForPrint ===');
+
+            } catch (error) {
+                console.error("Error loading reimbursement attachments for print:", error);
+                console.log('=== END: loadReimbursementAttachmentsForPrint (error) ===');
+            }
+        }
+
+        // Handle attachment loading errors for print (similar to receiveOPReim.html)
+        async function handleAttachmentLoadErrorForPrint(response, docId, mainData) {
+            console.log('=== START: handleAttachmentLoadErrorForPrint ===');
+            console.log('Response status:', response.status);
+            console.log('Document ID:', docId);
+            
+            if (response.status === 404) {
+                console.warn(`No attachments found for document ${docId}`);
+                console.log('=== END: handleAttachmentLoadErrorForPrint (404) ===');
+                return;
+            }
+
+            if (response.status === 405) {
+                console.warn('GET method not allowed on attachments endpoint for print, trying alternative approach');
+
+                console.log('Making alternative API request to:', `/api/staging-outgoing-payments/headers/${docId}`);
+                const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                console.log('Alternative API response status:', mainResponse.status);
+
+                if (mainResponse.ok) {
+                    const mainResult = await mainResponse.json();
+                    console.log('Alternative API response data:', mainResult);
+                    
+                    if (mainResult.attachments?.length > 0) {
+                        console.log('Found attachments in main response for print:', mainResult.attachments);
+                        mainData.attachments = mainResult.attachments;
+                        displayAttachmentsForPrint(mainResult.attachments);
+                        console.log('=== END: handleAttachmentLoadErrorForPrint (405 - success) ===');
+                        return;
+                    }
+                }
+
+                console.log('No attachments found for print');
+                console.log('=== END: handleAttachmentLoadErrorForPrint (405 - no attachments) ===');
+                return;
+            }
+
+            console.warn(`Failed to load attachments for print: ${response.status}`);
+            console.log('=== END: handleAttachmentLoadErrorForPrint (other error) ===');
+        }
+        
+        // Handle attachments for print (similar to receiveOPReim.html)
+        async function handleAttachmentsForPrint(result, docId) {
+            console.log('=== START: handleAttachmentsForPrint ===');
+            console.log('Document ID:', docId);
+            console.log('result.attachments:', result.attachments);
+            console.log('result.attachments length:', result.attachments?.length);
+
+            if (result.attachments?.length > 0) {
+                console.log('Attachments found in main response for print:', result.attachments);
+                displayAttachmentsForPrint(result.attachments);
+            } else {
+                console.log('No attachments in main response for print, trying API endpoint');
+                await loadAttachmentsFromAPIForPrint(docId, result);
+            }
+            
+            console.log('=== END: handleAttachmentsForPrint ===');
+        }
+        
+        // Display attachments for print (similar to receiveOPReim.html)
+        function displayAttachmentsForPrint(attachments) {
+            const container = document.getElementById('attachmentsList');
+            if (!container) {
+                console.error('Attachments container not found');
+                return;
+            }
+
+            console.log('displayAttachmentsForPrint called with:', attachments);
+            console.log('Attachments is array:', Array.isArray(attachments));
+            console.log('Attachments length:', attachments?.length);
+
+            // Clear the container completely to prevent duplication
+            container.innerHTML = '';
+
+            // Enhanced debugging
+            if (!attachments) {
+                console.log('No attachments provided (null/undefined)');
+                container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                return;
+            }
+
+            if (!Array.isArray(attachments)) {
+                console.log('Attachments is not an array:', typeof attachments);
+                container.innerHTML = '<p class="text-gray-500 text-sm">Invalid attachment data</p>';
+                return;
+            }
+
+            if (attachments.length === 0) {
+                console.log('Attachments array is empty');
+                container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                return;
+            }
+
+            console.log('Displaying', attachments.length, 'attachments:', attachments);
+
+            const attachmentItems = attachments.map((attachment, index) => {
+                console.log(`Processing attachment ${index}:`, attachment);
+
+                const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
+                const fileIcon = getFileIconForPrint(fileName);
+                const fileType = attachment.fileType || attachment.contentType || getFileTypeFromName(fileName);
+
+                return createAttachmentItemForPrint(attachment, fileName, fileIcon, fileType, null);
+            }).join('');
+
+            container.innerHTML = `
+                <div class="space-y-1">
+                    ${attachmentItems}
+                </div>
+            `;
+
+            console.log('Successfully displayed attachment items in container');
+        }
+
+        // Display reimbursement attachments for print
+        function displayReimbursementAttachmentsForPrint(attachments) {
+            const container = document.getElementById('reimbursementAttachmentsList');
+            const section = document.getElementById('fileAttachmentSection');
+            
+            if (!container || !section) {
+                console.error('Reimbursement attachments container or section not found');
+                return;
+            }
+
+            console.log('displayReimbursementAttachmentsForPrint called with:', attachments);
+
+            // Show the section and container
+            section.style.display = 'block';
+            container.style.display = 'block';
+
+            // Clear the container
+            container.innerHTML = '';
+
+            if (!attachments || attachments.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No reimbursement attachments found</p>';
+                return;
+            }
+
+            const attachmentItems = attachments.map((attachment, index) => {
+                const fileName = attachment.fileName || `Reimbursement Attachment ${index + 1}`;
+                const fileIcon = getFileIconForPrint(fileName);
+                const fileType = attachment.fileType || getFileTypeFromName(fileName);
+                return createReimbursementAttachmentItemForPrint(attachment, fileName, fileIcon, fileType, attachment.uploadDate);
+            }).join('');
+
+            container.innerHTML = `
+                <div class="space-y-1">
+                    ${attachmentItems}
+                </div>
+            `;
+
+            console.log('Successfully displayed reimbursement attachment items in container');
+        }
+        
+        // Creates attachment item HTML for print (simplified - only document name and type)
+        function createAttachmentItemForPrint(attachment, fileName, fileIcon, fileType, uploadDate) {
+            return `
+                <div class="attachment-list-item blue-theme">
+                    <span class="file-icon">${fileIcon}</span>
+                    <span class="file-name">${fileName}</span>
+                </div>
+            `;
+        }
+
+        // Creates reimbursement attachment item HTML for print
+        function createReimbursementAttachmentItemForPrint(attachment, fileName, fileIcon, fileType, uploadDate) {
+            return `
+                <div class="attachment-list-item green-theme">
+                    <span class="file-icon">${fileIcon}</span>
+                    <span class="file-name">${fileName}</span>
+                </div>
+            `;
+        }
+        
+        // Get file icon for print (same as receiveOPReim.html)
+        function getFileIconForPrint(fileName) {
+            const ext = fileName.split('.').pop()?.toLowerCase();
+            if (['pdf'].includes(ext)) return '📄';
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '🖼️';
+            if (['doc', 'docx'].includes(ext)) return '📝';
+            if (['xls', 'xlsx'].includes(ext)) return '📊';
+            if (['txt'].includes(ext)) return '📄';
+            return '📎';
+        }
+        
+        // Get file type from file name
+        function getFileTypeFromName(fileName) {
+            const ext = fileName.split('.').pop()?.toLowerCase();
+            if (['pdf'].includes(ext)) return 'PDF Document';
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'Image File';
+            if (['doc', 'docx'].includes(ext)) return 'Word Document';
+            if (['xls', 'xlsx'].includes(ext)) return 'Excel Document';
+            if (['txt'].includes(ext)) return 'Text Document';
+            return 'Document';
+        }
+
+        // Format upload date for print
+        function formatUploadDateForPrint(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+
+        
+        // View attachment for print
+        async function viewAttachmentForPrint(attachmentOrPath, fileName) {
+            try {
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Loading attachment, please wait...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const docId = documentId;
+                if (!docId) {
+                    throw new Error('Document ID not found');
+                }
+
+                // Normalize attachment parameter
+                const attachment = normalizeAttachmentForPrint(attachmentOrPath, fileName);
+                console.log('Normalized attachment for print:', attachment);
+
+                // Try to open attachment file
+                if (attachment.filePath) {
+                    await openAttachmentFileForPrint(attachment.filePath);
+                    return;
+                }
+
+                // Try to fetch and open attachment
+                await fetchAndOpenAttachmentForPrint(docId, attachment);
+
+            } catch (error) {
+                console.error('Error viewing attachment for print:', error);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open attachment: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+        
+        // Normalize attachment parameter for print
+        function normalizeAttachmentForPrint(attachmentOrPath, fileName) {
+            if (typeof attachmentOrPath === 'string') {
+                return { filePath: attachmentOrPath, fileName: fileName };
+            }
+            return attachmentOrPath;
+        }
+        
+        // Open attachment file for print
+        async function openAttachmentFileForPrint(filePath) {
+            console.log('Using direct filePath for print:', filePath);
+
+            Swal.close();
+
+            const fileUrl = constructFileUrlForPrint(filePath);
+            if (!fileUrl) {
+                throw new Error('Failed to construct file URL');
+            }
+
+            window.open(fileUrl, '_blank');
+            Swal.fire({
+                title: 'Success',
+                text: 'Attachment opened in new tab',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+        
+        // Construct file URL for print
+        function constructFileUrlForPrint(filePath) {
+            if (!filePath) {
+                console.error('No file path provided');
+                return null;
+            }
+
+            // If it's already a full URL, return as is
+            if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+                return filePath;
+            }
+
+            // If it's a relative path, construct the full URL
+            const baseUrl = window.location.origin;
+            return `${baseUrl}/api/files/${encodeURIComponent(filePath)}`;
+        }
+        
+        // Fetch and open attachment for print
+        async function fetchAndOpenAttachmentForPrint(docId, attachment) {
+            try {
+                console.log('Fetching attachment for print:', attachment);
+
+                const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ attachmentId: attachment.id || attachment.attachmentId })
+                });
+
+                if (!response.ok) {
+                    await handleAttachmentFetchErrorForPrint(response, docId, attachment);
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                window.URL.revokeObjectURL(url);
+
+                Swal.close();
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Attachment opened in new tab',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('Error fetching attachment for print:', error);
+                throw error;
+            }
+        }
+        
+        // Handle attachment fetch error for print
+        async function handleAttachmentFetchErrorForPrint(response, docId, attachment) {
+            console.warn(`Failed to fetch attachment for print: ${response.status}`);
+
+            if (response.status === 404) {
+                throw new Error('Attachment not found');
+            }
+
+            if (response.status === 405) {
+                console.warn('POST method not allowed, trying alternative approach for print');
+                await tryAlternativeAttachmentFetchForPrint(docId, attachment);
+                return;
+            }
+
+            throw new Error(`Failed to fetch attachment: ${response.status}`);
+        }
+        
+        // Try alternative attachment fetch for print
+        async function tryAlternativeAttachmentFetchForPrint(docId, attachment) {
+            try {
+                console.log('Trying alternative attachment fetch for print');
+
+                const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Alternative fetch failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const targetAttachment = findTargetAttachmentForPrint(result.data || result, attachment);
+
+                if (targetAttachment && targetAttachment.filePath) {
+                    await openAttachmentFileForPrint(targetAttachment.filePath);
+                } else {
+                    throw new Error('Attachment file path not found');
+                }
+
+            } catch (error) {
+                console.error('Alternative attachment fetch failed for print:', error);
+                throw error;
+            }
+        }
+        
+        // Find target attachment for print
+        function findTargetAttachmentForPrint(attachments, target) {
+            return attachments.find(att => 
+                att.id === target.id || 
+                att.attachmentId === target.attachmentId ||
+                att.fileName === target.fileName
+            );
+        }
+
+        // View reimbursement attachment for print
+        async function viewReimbursementAttachmentForPrint(attachment) {
+            try {
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Loading reimbursement attachment, please wait...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Try to open attachment file directly
+                if (attachment.filePath) {
+                    await openReimbursementAttachmentFileForPrint(attachment.filePath);
+                    return;
+                }
+
+                // If no filePath, try to construct URL from filePath
+                if (attachment.filePath) {
+                    const fileUrl = constructReimbursementFileUrlForPrint(attachment.filePath);
+                    if (fileUrl) {
+                        window.open(fileUrl, '_blank');
+                        Swal.close();
+                        Swal.fire({
+                            title: 'Success',
+                            text: 'Reimbursement attachment opened in new tab',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        return;
+                    }
+                }
+
+                throw new Error('No file path available for reimbursement attachment');
+
+            } catch (error) {
+                console.error('Error viewing reimbursement attachment for print:', error);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open reimbursement attachment: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Open reimbursement attachment file for print
+        async function openReimbursementAttachmentFileForPrint(filePath) {
+            console.log('Using direct filePath for reimbursement attachment:', filePath);
+
+            Swal.close();
+
+            const fileUrl = constructReimbursementFileUrlForPrint(filePath);
+            if (!fileUrl) {
+                throw new Error('Failed to construct reimbursement file URL');
+            }
+
+            window.open(fileUrl, '_blank');
+            Swal.fire({
+                title: 'Success',
+                text: 'Reimbursement attachment opened in new tab',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
+        // Construct reimbursement file URL for print
+        function constructReimbursementFileUrlForPrint(filePath) {
+            if (!filePath) {
+                console.error('No file path provided for reimbursement attachment');
+                return null;
+            }
+
+            // If it's already a full URL, return as is
+            if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+                return filePath;
+            }
+
+            // If it's a relative path, construct the full URL
+            const baseUrl = window.location.origin;
+            return `${baseUrl}/api/files/${encodeURIComponent(filePath)}`;
+        }
+        
+        // Function to display Print Out Reimbursement document for print
+        function displayPrintOutReimbursementForPrint(reimbursementData) {
+            const container = document.getElementById('printOutReimbursementList');
+            const fileAttachmentSection = document.getElementById('fileAttachmentSection');
+            
+            if (!container) {
+                console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
+                return;
+            }
+
+            // Show the file attachment section
+            if (fileAttachmentSection) {
+                fileAttachmentSection.style.display = 'block';
+            }
+
+            // Clear existing content
+            container.innerHTML = '';
+
+            // Get reimbursement ID from various possible sources
+            let reimbursementId = null;
+
+            // Try to get from URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id') || documentId;
+
+            // If not in URL, try to get from form data
+            if (!reimbursementId) {
+                const counterRefField = document.getElementById('CounterRef');
+                if (counterRefField && counterRefField.value) {
+                    reimbursementId = counterRefField.value;
+                }
+            }
+
+            // If still not found, try to get from reimbursement data
+            if (!reimbursementId && reimbursementData && reimbursementData.id) {
+                reimbursementId = reimbursementData.id;
+            }
+
+            if (!reimbursementId) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
+                return;
+            }
+
+            // Build the Print Receive Reimbursement URL with parameters
+            const baseUrl = window.location.origin;
+            const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+
+            // Add additional parameters if available from reimbursement data
+            let fullUrl = printReimUrl;
+            if (reimbursementData) {
+                const params = new URLSearchParams();
+
+                // Add all available parameters from reimbursement data
+                if (reimbursementData.cardName) params.append('payTo', encodeURIComponent(reimbursementData.cardName));
+                if (reimbursementData.counterRef) params.append('voucherNo', encodeURIComponent(reimbursementData.counterRef));
+                if (reimbursementData.docDate) params.append('submissionDate', reimbursementData.docDate);
+                if (reimbursementData.requesterName) params.append('preparedBy', encodeURIComponent(reimbursementData.requesterName));
+                if (reimbursementData.totalAmountDue) params.append('totalAmount', reimbursementData.totalAmountDue);
+                if (reimbursementData.docCurr) params.append('currency', reimbursementData.docCurr);
+                if (reimbursementData.comments) params.append('remarks', encodeURIComponent(reimbursementData.comments));
+
+                // Add details if available
+                if (reimbursementData.lines && reimbursementData.lines.length > 0) {
+                    const details = reimbursementData.lines.map(line => ({
+                        category: line.category || '',
+                        accountName: line.acctName || '',
+                        glAccount: line.acctCode || '',
+                        description: line.descrip || '',
+                        amount: line.sumApplied || 0
+                    }));
+                    params.append('details', encodeURIComponent(JSON.stringify(details)));
+                }
+
+                // If we have parameters, append them to the URL
+                if (params.toString()) {
+                    fullUrl += '&' + params.toString();
+                }
+            }
+
+            // Create the document item
+            const documentItem = document.createElement('div');
+            documentItem.className = 'attachment-list-item blue-theme';
+
+            // Use a document icon for the print reimbursement
+            documentItem.innerHTML = `
+                <span class="file-icon">📄</span>
+                <span class="file-name">Print Receive Reimbursement.pdf</span>
+            `;
+
+            container.appendChild(documentItem);
+        }
+
+        // Function to view Print Reimbursement document for print
+        async function viewPrintReimbursementForPrint(url) {
+            try {
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Loading Print Receive Reimbursement document...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Open the URL in a new window/tab
+                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+                if (newWindow) {
+                    // Close loading indicator
+                    Swal.close();
+
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Print Receive Reimbursement document opened in new window',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    throw new Error('Failed to open document window');
+                }
+
+            } catch (error) {
+                console.error('Error viewing Print Reimbursement document:', error);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Function to open Print Reimbursement document in new tab for print
+        function openPrintReimbursementForPrint(url) {
+            try {
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error opening Print Reimbursement document:', error);
+
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
     </script>
 </body>

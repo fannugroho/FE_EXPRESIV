@@ -2,26 +2,29 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get invoice data from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
+    const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
     
-    if (docEntry) {
+    if (stagingID) {
+        loadInvoiceDataFromReceivePage(stagingID);
+    } else if (docEntry) {
         loadInvoiceDataFromReceivePage(docEntry);
     } else {
-        // Load sample data for demonstration if no docEntry provided
+        // Load sample data for demonstration if no stagingID or docEntry provided
         loadSampleData();
     }
 });
 
 // Function to load invoice data from receive page
-async function loadInvoiceDataFromReceivePage(docEntry) {
+async function loadInvoiceDataFromReceivePage(identifier) {
     try {
         // Get data from localStorage or sessionStorage that was set by receiveInvItem.html
-        const invoiceData = getInvoiceDataFromStorage(docEntry);
+        const invoiceData = getInvoiceDataFromStorage(identifier);
         
         if (invoiceData) {
             populateInvoiceData(invoiceData);
         } else {
-            console.error('No invoice data found for docEntry:', docEntry);
+            console.error('No invoice data found for identifier:', identifier);
             loadSampleData();
         }
     } catch (error) {
@@ -31,15 +34,15 @@ async function loadInvoiceDataFromReceivePage(docEntry) {
 }
 
 // Function to get invoice data from storage
-function getInvoiceDataFromStorage(docEntry) {
+function getInvoiceDataFromStorage(identifier) {
     // Try to get data from localStorage first
-    const storedData = localStorage.getItem(`invoice_${docEntry}`);
+    const storedData = localStorage.getItem(`invoice_${identifier}`);
     if (storedData) {
         return JSON.parse(storedData);
     }
     
     // Try to get data from sessionStorage
-    const sessionData = sessionStorage.getItem(`invoice_${docEntry}`);
+    const sessionData = sessionStorage.getItem(`invoice_${identifier}`);
     if (sessionData) {
         return JSON.parse(sessionData);
     }
@@ -47,35 +50,35 @@ function getInvoiceDataFromStorage(docEntry) {
     // If no stored data, try to get from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const invoiceData = {
-        DocEntry: docEntry,
-        DocNum: urlParams.get('DocNum') || 'INV-2024-001',
-        CardCode: urlParams.get('CardCode') || 'C001',
-        CardName: urlParams.get('CardName') || 'PT Sample Customer',
-        NumAtCard: urlParams.get('NumAtCard') || 'EXT-REF-001',
-        DocCur: urlParams.get('DocCur') || 'IDR',
-        DocDate: urlParams.get('DocDate') || '2024-01-15',
-        GroupNum: urlParams.get('GroupNum') || 1,
-        TrnspCode: urlParams.get('TrnspCode') || 1,
-        U_BSI_ShippingType: urlParams.get('U_BSI_ShippingType') || 'Standard',
-        U_BSI_PaymentGroup: urlParams.get('U_BSI_PaymentGroup') || 'Group A',
-        U_BSI_UDF1: urlParams.get('U_BSI_UDF1') || 'Custom Field 1',
-        U_BSI_UDF2: urlParams.get('U_BSI_UDF2') || 'Custom Field 2',
-        PriceBefDi: parseFloat(urlParams.get('PriceBefDi')) || 1000000,
-        VatSum: parseFloat(urlParams.get('VatSum')) || 100000,
-        DocTotal: parseFloat(urlParams.get('DocTotal')) || 1100000,
-        Comments: urlParams.get('Comments') || 'Sample invoice item for receiving',
-        Items: []
+        stagingID: identifier,
+        docNum: urlParams.get('docNum') || 'INV-2024-001',
+        cardCode: urlParams.get('cardCode') || 'C001',
+        cardName: urlParams.get('cardName') || 'PT Sample Customer',
+        numAtCard: urlParams.get('numAtCard') || 'EXT-REF-001',
+        docCur: urlParams.get('docCur') || 'IDR',
+        docDate: urlParams.get('docDate') || '2024-01-15',
+        groupNum: urlParams.get('groupNum') || 1,
+        trnspCode: urlParams.get('trnspCode') || 1,
+        u_BSI_ShippingType: urlParams.get('u_BSI_ShippingType') || 'Standard',
+        u_BSI_PaymentGroup: urlParams.get('u_BSI_PaymentGroup') || 'Group A',
+        u_bsi_udf1: urlParams.get('u_bsi_udf1') || 'Custom Field 1',
+        u_bsi_udf2: urlParams.get('u_bsi_udf2') || 'Custom Field 2',
+        docTotal: parseFloat(urlParams.get('docTotal')) || 1000000,
+        vatSum: parseFloat(urlParams.get('vatSum')) || 100000,
+        priceBefDi: parseFloat(urlParams.get('priceBefDi')) || 900000,
+        comments: urlParams.get('comments') || 'Sample invoice item for receiving',
+        arInvoiceDetails: []
     };
     
     return invoiceData;
 }
 
 // Function to save invoice data to storage (to be called from receiveInvItem.html)
-function saveInvoiceDataToStorage(docEntry, invoiceData) {
+function saveInvoiceDataToStorage(identifier, invoiceData) {
     try {
-        localStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
-        sessionStorage.setItem(`invoice_${docEntry}`, JSON.stringify(invoiceData));
-        console.log('Invoice data saved to storage for docEntry:', docEntry);
+        localStorage.setItem(`invoice_${identifier}`, JSON.stringify(invoiceData));
+        sessionStorage.setItem(`invoice_${identifier}`, JSON.stringify(invoiceData));
+        console.log('Invoice data saved to storage for identifier:', identifier);
         return true;
     } catch (error) {
         console.error('Error saving invoice data to storage:', error);
@@ -84,11 +87,11 @@ function saveInvoiceDataToStorage(docEntry, invoiceData) {
 }
 
 // Function to clear invoice data from storage
-function clearInvoiceDataFromStorage(docEntry) {
+function clearInvoiceDataFromStorage(identifier) {
     try {
-        localStorage.removeItem(`invoice_${docEntry}`);
-        sessionStorage.removeItem(`invoice_${docEntry}`);
-        console.log('Invoice data cleared from storage for docEntry:', docEntry);
+        localStorage.removeItem(`invoice_${identifier}`);
+        sessionStorage.removeItem(`invoice_${identifier}`);
+        console.log('Invoice data cleared from storage for identifier:', identifier);
         return true;
     } catch (error) {
         console.error('Error clearing invoice data from storage:', error);
@@ -117,15 +120,17 @@ async function loadInvoiceData(invoiceId) {
 
 // Function to populate invoice data
 function populateInvoiceData(invoice) {
+    console.log('Populating invoice data:', invoice);
+    
     // Invoice details - map from receive page structure to print page structure
-    document.getElementById('invoiceNumber').textContent = invoice.DocNum || '';
-    document.getElementById('visionInvoiceNumber').textContent = invoice.DocNum || '';
-    document.getElementById('invoiceDate').textContent = formatDate(invoice.DocDate);
+    document.getElementById('invoiceNumber').textContent = invoice.docNum || '';
+    document.getElementById('visionInvoiceNumber').textContent = invoice.docNum || '';
+    document.getElementById('invoiceDate').textContent = formatDate(invoice.docDate);
     document.getElementById('npwp').textContent = '0010000990092000'; // Default NPWP
-    document.getElementById('dueDate').textContent = formatDate(invoice.DocDate); // Use DocDate as due date
+    document.getElementById('dueDate').textContent = formatDate(invoice.docDate); // Use DocDate as due date
     
     // Recipient information
-    document.getElementById('recipientName').textContent = invoice.CardName || '';
+    document.getElementById('recipientName').textContent = invoice.cardName || '';
     document.getElementById('recipientAddress').textContent = 'JL. LAKSAMANA YOS SUDARSO, SUNTER II'; // Default address
     document.getElementById('recipientCity').textContent = 'JAKARTA UTARA 14330'; // Default city
     
@@ -133,20 +138,20 @@ function populateInvoiceData(invoice) {
     document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
     
     // Order numbers
-    document.getElementById('doNumbers').textContent = invoice.NumAtCard || '';
-    document.getElementById('poNumbers').textContent = invoice.NumAtCard || '';
+    document.getElementById('doNumbers').textContent = invoice.numAtCard || '';
+    document.getElementById('poNumbers').textContent = invoice.numAtCard || '';
     
     // Items table - convert from receive page structure to print page structure
-    const printItems = convertItemsForPrint(invoice.Items || []);
+    const printItems = convertItemsForPrint(invoice.arInvoiceDetails || []);
     populateItemsTable(printItems);
     
     // Financial summary
-    document.getElementById('totalAmount').textContent = formatCurrency(invoice.PriceBefDi || 0);
+    document.getElementById('totalAmount').textContent = formatCurrency(invoice.priceBefDi || 0);
     document.getElementById('discountAmount').textContent = formatCurrency(0); // No discount in this structure
-    document.getElementById('salesAmount').textContent = formatCurrency(invoice.PriceBefDi || 0);
-    document.getElementById('taxBase').textContent = formatCurrency((invoice.PriceBefDi || 0) - (invoice.VatSum || 0));
-    document.getElementById('vatAmount').textContent = formatCurrency(invoice.VatSum || 0);
-    document.getElementById('grandTotal').textContent = formatCurrency(invoice.DocTotal || 0);
+    document.getElementById('salesAmount').textContent = formatCurrency(invoice.priceBefDi || 0);
+    document.getElementById('taxBase').textContent = formatCurrency((invoice.priceBefDi || 0) - (invoice.vatSum || 0));
+    document.getElementById('vatAmount').textContent = formatCurrency(invoice.vatSum || 0);
+    document.getElementById('grandTotal').textContent = formatCurrency(invoice.docTotal || 0);
     
     // Signature information
     document.getElementById('signatureName').textContent = 'Atsuro Suzuki'; // Default signature
@@ -156,12 +161,12 @@ function populateInvoiceData(invoice) {
 // Function to convert items from receive page structure to print page structure
 function convertItemsForPrint(items) {
     return items.map((item, index) => ({
-        codeNo: item.ItemCode || '',
-        description: item.ItemName || '',
-        quantity: item.Quantity || 0,
-        unit: item.UoM || 'PCS',
-        unitPrice: item.Price || 0,
-        amount: item.LineTotal || 0
+        codeNo: item.itemCode || '',
+        description: item.dscription || '', // Note: this is the correct field name from receive page
+        quantity: item.invQty || item.quantity || 0, // Use invQty (invoice quantity) for print
+        unit: item.unitMsr || 'PCS',
+        unitPrice: item.priceBefDi || item.u_bsi_salprice || 0,
+        amount: item.lineTotal || 0
     }));
 }
 
@@ -480,213 +485,213 @@ function getSignatureCoordinatesForESign() {
 // Function to load sample data for demonstration
 function loadSampleData() {
     const sampleInvoice = {
-        DocEntry: '12345',
-        DocNum: 'FNC/INV/KPI/25070071',
-        CardCode: 'C001',
-        CardName: 'PT TOYOTA MOTOR MANUFACTURING INDONESIA',
-        NumAtCard: 'MKT/SJ/KPI/25070012, MKT/SJ/KPI/25070098, MKT/SJ/KPI/25070305',
-        DocCur: 'IDR',
-        DocDate: '2025-07-11',
-        GroupNum: 1,
-        TrnspCode: 1,
-        U_BSI_ShippingType: 'Standard',
-        U_BSI_PaymentGroup: 'Group A',
-        U_BSI_UDF1: 'Custom Field 1',
-        U_BSI_UDF2: 'Custom Field 2',
-        PriceBefDi: 150885965,
-        VatSum: 16611299,
-        DocTotal: 155038789,
-        Comments: 'Sample invoice item for receiving',
-        Items: [
+        stagingID: 'STG-12345',
+        docNum: 'FNC/INV/KPI/25070071',
+        cardCode: 'C001',
+        cardName: 'PT TOYOTA MOTOR MANUFACTURING INDONESIA',
+        numAtCard: 'MKT/SJ/KPI/25070012, MKT/SJ/KPI/25070098, MKT/SJ/KPI/25070305',
+        docCur: 'IDR',
+        docDate: '2025-07-11',
+        groupNum: 1,
+        trnspCode: 1,
+        u_BSI_ShippingType: 'Standard',
+        u_BSI_PaymentGroup: 'Group A',
+        u_bsi_udf1: 'Custom Field 1',
+        u_bsi_udf2: 'Custom Field 2',
+        priceBefDi: 150885965,
+        vatSum: 16611299,
+        docTotal: 155038789,
+        comments: 'Sample invoice item for receiving',
+        arInvoiceDetails: [
             {
-                LineNum: 0,
-                ItemCode: '81-526-300',
-                ItemName: 'WP505D No.8007 (IN)',
-                FreeTxt: 'Sample notes for item 1',
-                Quantity: 544.00,
-                InvQty: 544.00,
-                UoM: 'KG',
-                SalesPrice: 137939,
-                Price: 137939,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 75038816,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 0,
+                itemCode: '81-526-300',
+                dscription: 'WP505D No.8007 (IN)',
+                text: 'Sample notes for item 1',
+                quantity: 544.00,
+                invQty: 544.00,
+                unitMsr: 'KG',
+                u_bsi_salprice: 137939,
+                priceBefDi: 137939,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 75038816,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 1,
-                ItemCode: '82-198-005',
-                ItemName: 'TRP-1 GREY (TMMIN LINE 2)',
-                FreeTxt: 'Sample notes for item 2',
-                Quantity: 28.00,
-                InvQty: 28.00,
-                UoM: 'KG',
-                SalesPrice: 1366038,
-                Price: 1366038,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 38249064,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 1,
+                itemCode: '82-198-005',
+                dscription: 'TRP-1 GREY (TMMIN LINE 2)',
+                text: 'Sample notes for item 2',
+                quantity: 28.00,
+                invQty: 28.00,
+                unitMsr: 'KG',
+                u_bsi_salprice: 1366038,
+                priceBefDi: 1366038,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 38249064,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 2,
-                ItemCode: 'K12-297-012',
-                ItemName: 'MAGICRON TB-516 THINNER (202.1)',
-                FreeTxt: 'Sample notes for item 3',
-                Quantity: 20.00,
-                InvQty: 20.00,
-                UoM: 'LTR',
-                SalesPrice: 38907,
-                Price: 38907,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 778140,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 2,
+                itemCode: 'K12-297-012',
+                dscription: 'MAGICRON TB-516 THINNER (202.1)',
+                text: 'Sample notes for item 3',
+                quantity: 20.00,
+                invQty: 20.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 38907,
+                priceBefDi: 38907,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 778140,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 3,
-                ItemCode: 'K14-650-007',
-                ItemName: 'ADDITIVE X',
-                FreeTxt: 'Sample notes for item 4',
-                Quantity: 140.00,
-                InvQty: 140.00,
-                UoM: 'LTR',
-                SalesPrice: 44071,
-                Price: 44071,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 6169940,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 3,
+                itemCode: 'K14-650-007',
+                dscription: 'ADDITIVE X',
+                text: 'Sample notes for item 4',
+                quantity: 140.00,
+                invQty: 140.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 44071,
+                priceBefDi: 44071,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 6169940,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 4,
-                ItemCode: 'K6-163-902',
-                ItemName: 'T/U REPAIR SUPER WHITE # 040',
-                FreeTxt: 'Sample notes for item 5',
-                Quantity: 5.00,
-                InvQty: 5.00,
-                UoM: 'LTR',
-                SalesPrice: 130001,
-                Price: 130001,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 650005,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 4,
+                itemCode: 'K6-163-902',
+                dscription: 'T/U REPAIR SUPER WHITE # 040',
+                text: 'Sample notes for item 5',
+                quantity: 5.00,
+                invQty: 5.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 130001,
+                priceBefDi: 130001,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 650005,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 5,
-                ItemCode: 'K8-234-567',
-                ItemName: 'PRIMER COAT WHITE # 001',
-                FreeTxt: 'Sample notes for item 6',
-                Quantity: 15.00,
-                InvQty: 15.00,
-                UoM: 'LTR',
-                SalesPrice: 89000,
-                Price: 89000,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 1335000,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 5,
+                itemCode: 'K8-234-567',
+                dscription: 'PRIMER COAT WHITE # 001',
+                text: 'Sample notes for item 6',
+                quantity: 15.00,
+                invQty: 15.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 89000,
+                priceBefDi: 89000,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 1335000,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 6,
-                ItemCode: 'K9-345-678',
-                ItemName: 'CLEAR COAT GLOSS # 002',
-                FreeTxt: 'Sample notes for item 7',
-                Quantity: 25.00,
-                InvQty: 25.00,
-                UoM: 'LTR',
-                SalesPrice: 125000,
-                Price: 125000,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 3125000,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 6,
+                itemCode: 'K9-345-678',
+                dscription: 'CLEAR COAT GLOSS # 002',
+                text: 'Sample notes for item 7',
+                quantity: 25.00,
+                invQty: 25.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 125000,
+                priceBefDi: 125000,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 3125000,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 7,
-                ItemCode: 'K10-456-789',
-                ItemName: 'BASE COAT RED # 003',
-                FreeTxt: 'Sample notes for item 8',
-                Quantity: 30.00,
-                InvQty: 30.00,
-                UoM: 'LTR',
-                SalesPrice: 95000,
-                Price: 95000,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 2850000,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 7,
+                itemCode: 'K10-456-789',
+                dscription: 'BASE COAT RED # 003',
+                text: 'Sample notes for item 8',
+                quantity: 30.00,
+                invQty: 30.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 95000,
+                priceBefDi: 95000,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 2850000,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 8,
-                ItemCode: 'K11-567-890',
-                ItemName: 'METALLIC SILVER # 004',
-                FreeTxt: 'Sample notes for item 9',
-                Quantity: 12.00,
-                InvQty: 12.00,
-                UoM: 'LTR',
-                SalesPrice: 150000,
-                Price: 150000,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 1800000,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 8,
+                itemCode: 'K11-567-890',
+                dscription: 'METALLIC SILVER # 004',
+                text: 'Sample notes for item 9',
+                quantity: 12.00,
+                invQty: 12.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 150000,
+                priceBefDi: 150000,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 1800000,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             },
             {
-                LineNum: 9,
-                ItemCode: 'K12-678-901',
-                ItemName: 'PEARL WHITE # 005',
-                FreeTxt: 'Sample notes for item 10',
-                Quantity: 8.00,
-                InvQty: 8.00,
-                UoM: 'LTR',
-                SalesPrice: 180000,
-                Price: 180000,
-                DiscPrcnt: 0,
-                TaxCode: 'VAT',
-                LineTotal: 1440000,
-                AccountCode: '4000',
-                BaseType: 0,
-                BaseEntry: 0,
-                BaseLine: 0,
-                LineType: 0
+                lineNum: 9,
+                itemCode: 'K12-678-901',
+                dscription: 'PEARL WHITE # 005',
+                text: 'Sample notes for item 10',
+                quantity: 8.00,
+                invQty: 8.00,
+                unitMsr: 'LTR',
+                u_bsi_salprice: 180000,
+                priceBefDi: 180000,
+                discount: 0,
+                vatgroup: 'VAT',
+                lineTotal: 1440000,
+                acctCode: '4000',
+                baseType: 0,
+                baseEntry: 0,
+                baseLine: 0,
+                lineType: 0
             }
         ]
     };
