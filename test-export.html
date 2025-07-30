@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Test</title>
+    <!-- Library untuk Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Library untuk PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+    <h1>Export Test</h1>
+    <button onclick="testExcel()">Test Excel Export</button>
+    <button onclick="testPDF()">Test PDF Export</button>
+
+    <script>
+        // Test data
+        const testData = [
+            {
+                counterRef: 'OP001',
+                requesterName: 'John Doe',
+                cardName: 'Supplier A',
+                docDate: '2024-01-15',
+                receivedDate: '2024-01-20',
+                totalAmount: 1000000,
+                status: 'Prepared'
+            },
+            {
+                counterRef: 'OP002',
+                requesterName: 'Jane Smith',
+                cardName: 'Supplier B',
+                docDate: '2024-01-16',
+                receivedDate: '2024-01-21',
+                totalAmount: 2000000,
+                status: 'Approved'
+            }
+        ];
+
+        function testExcel() {
+            console.log('Testing Excel export...');
+            console.log('XLSX available:', typeof XLSX !== 'undefined');
+
+            if (typeof XLSX === 'undefined') {
+                alert('XLSX library not loaded!');
+                return;
+            }
+
+            try {
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+
+                // Convert data to worksheet format
+                const wsData = [
+                    ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"]
+                ];
+
+                testData.forEach((doc, index) => {
+                    wsData.push([
+                        index + 1,
+                        doc.counterRef || '-',
+                        doc.requesterName || '-',
+                        doc.cardName || '-',
+                        doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-',
+                        doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : '-',
+                        doc.totalAmount ? doc.totalAmount.toLocaleString() : '-',
+                        doc.status || '-'
+                    ]);
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, "Test Data");
+
+                // Generate Excel file and trigger download
+                const fileName = `Test_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                console.log('Excel file generated successfully:', fileName);
+                alert('Excel file generated successfully!');
+            } catch (error) {
+                console.error('Error generating Excel file:', error);
+                alert('Error generating Excel file: ' + error.message);
+            }
+        }
+
+        function testPDF() {
+            console.log('Testing PDF export...');
+            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+
+            if (typeof window.jspdf === 'undefined') {
+                alert('jsPDF library not loaded!');
+                return;
+            }
+
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Set document properties
+                doc.setProperties({
+                    title: 'Test Export Report'
+                });
+
+                // Add title
+                doc.setFontSize(18);
+                doc.text('Test Export Report', 14, 22);
+
+                // Add date
+                doc.setFontSize(11);
+                doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+
+                // Prepare table data
+                const tableColumn = ["No.", "Voucher No.", "Requester", "Pay To", "Document Date", "Due Date", "Total Amount", "Status"];
+                const tableRows = [];
+
+                testData.forEach((doc, index) => {
+                    const rowData = [
+                        index + 1,
+                        doc.counterRef || '-',
+                        doc.requesterName || '-',
+                        doc.cardName || '-',
+                        doc.docDate ? new Date(doc.docDate).toLocaleDateString() : '-',
+                        doc.receivedDate ? new Date(doc.receivedDate).toLocaleDateString() : '-',
+                        doc.totalAmount ? doc.totalAmount.toLocaleString() : '-',
+                        doc.status || '-'
+                    ];
+                    tableRows.push(rowData);
+                });
+
+                // Generate table
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 35,
+                    theme: 'grid',
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 1,
+                        overflow: 'linebreak',
+                        halign: 'left'
+                    },
+                    headStyles: {
+                        fillColor: [41, 128, 185],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [240, 240, 240]
+                    }
+                });
+
+                // Save PDF
+                const fileName = `Test_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+                console.log('PDF file generated successfully:', fileName);
+                alert('PDF file generated successfully!');
+            } catch (error) {
+                console.error('Error generating PDF file:', error);
+                alert('Error generating PDF file: ' + error.message);
+            }
+        }
+
+        // Check libraries on load
+        window.onload = function () {
+            console.log('Page loaded');
+            console.log('XLSX available:', typeof XLSX !== 'undefined');
+            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+        };
+    </script>
+</body>
+
+</html>
