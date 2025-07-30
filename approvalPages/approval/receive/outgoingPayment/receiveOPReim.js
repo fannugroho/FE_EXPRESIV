@@ -65,6 +65,12 @@ async function loadOPReimDetails(id) {
         const data = await response.json();
         outgoingPaymentReimData = data;
 
+        // Store attachments in global variable if available
+        if (data.attachments && data.attachments.length > 0) {
+            existingAttachments = data.attachments;
+            console.log('Stored attachments from main response in existingAttachments:', existingAttachments);
+        }
+
         // Load users data to get names
         await loadUsersData();
 
@@ -392,15 +398,17 @@ function hideButtonsBasedOnStatus(data) {
 function initializeButtonVisibility(data) {
     console.log('Initializing button visibility...');
 
-    const acknowledgeButton = document.querySelector('button[onclick="acknowledgeOPReim()"]');
+    const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]');
     const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
+    const printButton = document.getElementById('printButton');
 
     console.log('Button elements found:', {
-        acknowledgeButton: acknowledgeButton,
-        rejectButton: rejectButton
+        receiveButton: receiveButton,
+        rejectButton: rejectButton,
+        printButton: printButton
     });
 
-    if (!acknowledgeButton || !rejectButton) {
+    if (!receiveButton || !rejectButton) {
         console.error('Buttons not found in DOM');
         return;
     }
@@ -435,22 +443,50 @@ function initializeButtonVisibility(data) {
     console.log('Rejected date:', data.approval?.rejectedDate);
     console.log('====================================');
 
-    // Show buttons for acknowledge page - allow acknowledging when document is prepared or checked
-    // Hide buttons only when document is already processed
-    if (currentStatus === 'Acknowledged' || currentStatus === 'Approved' || currentStatus === 'Received' || currentStatus === 'Rejected') {
-        // Document already processed, hide buttons
-        acknowledgeButton.style.display = 'none';
-        rejectButton.style.display = 'none';
-        console.log('❌ Buttons HIDDEN - document already processed (status: ' + currentStatus + ')');
-    } else {
-        // Document is ready for acknowledging (Prepared or Checked status)
-        acknowledgeButton.style.display = 'inline-block';
+    // Show buttons for receive page - allow receiving when document is approved
+    // Show print button when document is approved or received
+    if (currentStatus === 'Approved') {
+        // Document is approved, show receive and reject buttons
+        receiveButton.style.display = 'inline-block';
         rejectButton.style.display = 'inline-block';
-        acknowledgeButton.disabled = false;
+        receiveButton.disabled = false;
         rejectButton.disabled = false;
-        acknowledgeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        receiveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        console.log('✅ Buttons SHOWN and ENABLED - document ready for acknowledging (status: ' + currentStatus + ')');
+        
+        // Show print button when approved
+        if (printButton) {
+            printButton.style.display = 'inline-block';
+        }
+        
+        console.log('✅ Buttons SHOWN and ENABLED - document ready for receiving (status: ' + currentStatus + ')');
+    } else if (currentStatus === 'Received') {
+        // Document already received, hide action buttons but show print button
+        receiveButton.style.display = 'none';
+        rejectButton.style.display = 'none';
+        
+        // Show print button when received
+        if (printButton) {
+            printButton.style.display = 'inline-block';
+        }
+        
+        console.log('📄 Print button SHOWN - document already received (status: ' + currentStatus + ')');
+    } else if (currentStatus === 'Rejected') {
+        // Document rejected, hide all buttons
+        receiveButton.style.display = 'none';
+        rejectButton.style.display = 'none';
+        if (printButton) {
+            printButton.style.display = 'none';
+        }
+        console.log('❌ Buttons HIDDEN - document rejected (status: ' + currentStatus + ')');
+    } else {
+        // Document not yet approved, hide all buttons
+        receiveButton.style.display = 'none';
+        rejectButton.style.display = 'none';
+        if (printButton) {
+            printButton.style.display = 'none';
+        }
+        console.log('❌ Buttons HIDDEN - document not yet approved (status: ' + currentStatus + ')');
     }
 }
 
@@ -853,6 +889,10 @@ function displayExistingAttachments(attachments) {
     console.log('Attachments is array:', Array.isArray(attachments));
     console.log('Attachments length:', attachments?.length);
 
+    // Store attachments in global variable for print functionality
+    existingAttachments = attachments || [];
+    console.log('Stored attachments in existingAttachments:', existingAttachments);
+
     // Clear the container completely to prevent duplication
     container.innerHTML = '';
 
@@ -1018,6 +1058,10 @@ async function loadAttachmentsFromAPI(docId) {
 
         if (result.data?.length > 0) {
             displayExistingAttachments(result.data);
+            
+            // Store attachments in global variable for print functionality
+            existingAttachments = result.data;
+            console.log('Stored attachments from API in existingAttachments:', existingAttachments);
         } else {
             showNoAttachmentsMessage();
         }
@@ -1049,6 +1093,10 @@ async function handleAttachmentLoadError(response, docId) {
             if (mainResult.attachments?.length > 0) {
                 console.log('Found attachments in main response:', mainResult.attachments);
                 displayExistingAttachments(mainResult.attachments);
+                
+                // Store attachments in global variable for print functionality
+                existingAttachments = mainResult.attachments;
+                console.log('Stored attachments from main response in existingAttachments:', existingAttachments);
                 return;
             }
         }
@@ -2030,4 +2078,60 @@ function numberToWords(num) {
     }
 
     return result;
+}
+
+// Function to handle print functionality
+function printOPReim() {
+    try {
+        // Get document ID
+        const docId = documentId;
+        
+        if (!docId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Document ID not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Prepare data for print page
+        const printData = {
+            ...outgoingPaymentReimData,
+            attachments: existingAttachments || []
+        };
+
+        // Store data in localStorage for print page
+        localStorage.setItem(`opReimData_${docId}`, JSON.stringify(printData));
+        
+        console.log('📄 Stored data for print:', printData);
+        console.log('📄 Attachments stored:', existingAttachments);
+
+        // Build print URL
+        const baseUrl = window.location.origin;
+        const printUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html?docId=${docId}`;
+
+        // Open print page in new window
+        const newWindow = window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+        if (newWindow) {
+            Swal.fire({
+                title: 'Success',
+                text: 'Print page opened in new window',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            throw new Error('Failed to open print window');
+        }
+
+    } catch (error) {
+        console.error('Error opening print page:', error);
+        
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open print page: ${error.message}`,
+            icon: 'error'
+        });
+    }
 } 
