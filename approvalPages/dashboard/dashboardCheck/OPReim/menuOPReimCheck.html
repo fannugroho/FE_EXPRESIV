@@ -160,6 +160,36 @@
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
+
+        /* Tools button styles */
+        .tools-button {
+            min-width: 90px;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tools-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .tools-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Tools column styling */
+        .tools-column {
+            min-width: 120px;
+            width: 120px;
+        }
     </style>
 
 </head>
@@ -280,7 +310,7 @@
                                     <th class="p-2 text-left">Due Date</th>
                                     <th class="p-2 text-left">Total Amount</th>
                                     <th class="p-2 text-left">Status</th>
-                                    <th class="p-2 text-left">Tools</th>
+                                    <th class="p-2 text-left tools-column">Tools</th>
                                 </tr>
                             </thead>
                             <tbody id="recentDocs"></tbody>

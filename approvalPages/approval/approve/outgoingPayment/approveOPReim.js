@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuCheckOPReim();
+            goToMenuApproveOPReim();
         });
     }
 
@@ -86,7 +86,7 @@ async function loadOPReimDetails(id) {
             icon: 'error'
         }).then(() => {
             // Redirect back to menu
-            goToMenuCheckOPReim();
+            goToMenuApproveOPReim();
         });
     }
 }
@@ -346,67 +346,64 @@ function populateFormFields(data) {
 
 // Initialize button visibility based on document status
 function initializeButtonVisibility(data) {
-    console.log('Initializing button visibility...');
+    console.log('Initializing button visibility for Approve page...');
 
-    const acknowledgeButton = document.querySelector('button[onclick="acknowledgeOPReim()"]');
+    const approveButton = document.querySelector('button[onclick="approveOPReim()"]');
     const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]');
 
     console.log('Button elements found:', {
-        acknowledgeButton: acknowledgeButton,
+        approveButton: approveButton,
         rejectButton: rejectButton
     });
 
-    if (!acknowledgeButton || !rejectButton) {
-        console.error('Buttons not found in DOM');
+    if (!approveButton || !rejectButton) {
+        console.error('Approve or Reject buttons not found in DOM');
         return;
     }
 
     // Determine current status based on approval data
     let currentStatus = 'Prepared';
     if (data.approval) {
-        if (data.approval.checkedDate) {
-            currentStatus = 'Checked';
-        }
-        if (data.approval.acknowledgedDate) {
-            currentStatus = 'Acknowledged';
-        }
-        if (data.approval.approvedDate) {
-            currentStatus = 'Approved';
-        }
-        if (data.approval.receivedDate) {
-            currentStatus = 'Received';
-        }
-        if (data.approval.rejectedDate) {
+        if (data.approval.approvalStatus) {
+            currentStatus = data.approval.approvalStatus;
+        } else if (data.approval.rejectedDate) {
             currentStatus = 'Rejected';
+        } else if (data.approval.receivedDate) {
+            currentStatus = 'Received';
+        } else if (data.approval.approvedDate) {
+            currentStatus = 'Approved';
+        } else if (data.approval.acknowledgedDate) {
+            currentStatus = 'Acknowledged';
+        } else if (data.approval.checkedDate) {
+            currentStatus = 'Checked';
+        } else if (data.approval.preparedDate) {
+            currentStatus = 'Prepared';
         }
     }
 
     console.log('=== BUTTON VISIBILITY DEBUGGING ===');
     console.log('Current status for button visibility:', currentStatus);
     console.log('Approval data for button logic:', data.approval);
-    console.log('Checked date:', data.approval?.checkedDate);
-    console.log('Acknowledged date:', data.approval?.acknowledgedDate);
+    console.log('Approval status:', data.approval?.approvalStatus);
     console.log('Approved date:', data.approval?.approvedDate);
-    console.log('Received date:', data.approval?.receivedDate);
     console.log('Rejected date:', data.approval?.rejectedDate);
     console.log('====================================');
 
-    // Show buttons for acknowledge page - allow acknowledging when document is prepared or checked
-    // Hide buttons only when document is already processed
-    if (currentStatus === 'Acknowledged' || currentStatus === 'Approved' || currentStatus === 'Received' || currentStatus === 'Rejected') {
-        // Document already processed, hide buttons
-        acknowledgeButton.style.display = 'none';
+    // Hide buttons if status is Approved or Rejected
+    if (currentStatus === 'Approved' || currentStatus === 'Rejected') {
+        // Document already approved or rejected, hide buttons
+        approveButton.style.display = 'none';
         rejectButton.style.display = 'none';
-        console.log('❌ Buttons HIDDEN - document already processed (status: ' + currentStatus + ')');
+        console.log('❌ Buttons HIDDEN - document already ' + currentStatus.toLowerCase());
     } else {
-        // Document is ready for acknowledging (Prepared or Checked status)
-        acknowledgeButton.style.display = 'inline-block';
+        // Document is ready for approving (Prepared, Checked, or Acknowledged status)
+        approveButton.style.display = 'inline-block';
         rejectButton.style.display = 'inline-block';
-        acknowledgeButton.disabled = false;
+        approveButton.disabled = false;
         rejectButton.disabled = false;
-        acknowledgeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        console.log('✅ Buttons SHOWN and ENABLED - document ready for acknowledging (status: ' + currentStatus + ')');
+        console.log('✅ Buttons SHOWN and ENABLED - document ready for approving (status: ' + currentStatus + ')');
     }
 }
 

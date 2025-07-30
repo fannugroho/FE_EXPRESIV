@@ -731,10 +731,12 @@ function updateTable(documents) {
                 <td class='p-2'>${docDueDate}</td>
                 <td class='p-2'>${formattedAmount}</td>
                 <td class='p-2'>${statusDisplay}</td>
-                <td class='p-2 text-center'>
-                    <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                <td class='p-2 text-center tools-column'>
+                    <div class="flex justify-center items-center">
+                        <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm font-medium tools-button transition-all duration-200">
+                            <i class="fas fa-eye mr-1"></i>Detail
+                        </button>
+                    </div>
                 </td>
             </tr>`;
 
