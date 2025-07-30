@@ -65,6 +65,14 @@ async function loadOPReimDetails(id) {
         const data = await response.json();
         outgoingPaymentReimData = data;
 
+        // Console log untuk melihat struktur data lengkap
+        console.log('=== DATA LENGKAP DARI API ===');
+        console.log('Data:', data);
+        console.log('Remittance Request Amount:', data.remittanceRequestAmount);
+        console.log('Document Currency (docCurr):', data.docCurr);
+        console.log('Transfer Sum (trsfrSum):', data.trsfrSum);
+        console.log('=== END DATA LENGKAP ===');
+
         // Load users data to get names
         await loadUsersData();
 
@@ -311,6 +319,10 @@ function populateFormFields(data) {
         if (el) el.value = value;
     };
 
+    // Console log untuk melihat data yang masuk
+    console.log('Data yang masuk ke populateFormFields:', data);
+    console.log('Remittance Request Amount:', data.remittanceRequestAmount);
+
     // Map header fields
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
@@ -320,6 +332,7 @@ function populateFormFields(data) {
     setValue('DocNum', data.counterRef || data.docNum || '');
     setValue('JrnlMemo', data.jrnlMemo || '');
     setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
     setValue('TrsfrAcct', data.trsfrAcct || '');
     setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
 
