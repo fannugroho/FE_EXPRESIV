@@ -54,100 +54,54 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     }
 }
 
-// Function to fetch CA details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     caId = urlParams.get('ca-id');
-    currentTab = urlParams.get('tab'); // Get the tab parameter
-    
-    if (caId) {
-        fetchCADetails(caId);
-    }
-    
-    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
-        hideApprovalButtons();
-    }
-    
-    // Hide revision button if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
-        hideRevisionButton();
-    }
+    currentTab = urlParams.get('tab');
+    if (caId) fetchCADetails(caId);
+    if (currentTab === 'acknowledged' || currentTab === 'rejected') hideApprovalButtons();
+    if (currentTab === 'acknowledged' || currentTab === 'rejected') hideRevisionButton();
 };
 
 function fetchCADetails(caId) {
     fetch(`${BASE_URL}/api/cash-advance/${caId}`)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(response => {
-            if (response.data) {
-                console.log(response.data);
-                populateCADetails(response.data);
-                
-                // Always fetch dropdown options
-                fetchDropdownOptions(response.data);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error fetching CA details: ' + error.message);
-        });
+        .then(response => response.ok ? response.json() : response.json().then(e => { throw new Error(e.message || `HTTP error! Status: ${response.status}`); }))
+        .then(response => { if (response.data) populateCADetails(response.data); })
+        .catch(error => { console.error('Error:', error); alert('Error fetching CA details: ' + error.message); });
 }
 
 function populateCADetails(data) {
-    // Populate basic CA information
     document.getElementById('invno').value = data.cashAdvanceNo;
-    // Store employeeId to be populated when users are fetched
-    window.currentEmployeeId = data.employeeId || '';
+    document.getElementById('Employee').value = data.employeeNIK || '';
     document.getElementById('EmployeeName').value = data.employeeName || '';
     document.getElementById('requester').value = data.requesterName;
     document.getElementById('purposed').value = data.purpose;
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || data.payToBusinessPartnerName || '';
+    document.getElementById('postingDate').value = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('remarks').value = data.remarks || '';
-
-    // Format and set dates
-    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
-    document.getElementById('postingDate').value = submissionDate;
-    
-    // Set transaction type - create option directly from backend data
     const transactionTypeSelect = document.getElementById('typeTransaction');
     if (data.transactionType && transactionTypeSelect) {
-        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        transactionTypeSelect.innerHTML = '';
         const option = document.createElement('option');
         option.value = data.transactionType;
         option.textContent = data.transactionType;
         option.selected = true;
         transactionTypeSelect.appendChild(option);
-        
-        // Call toggleClosedBy after setting transaction type
-        if (typeof toggleClosedBy === 'function') {
-            toggleClosedBy();
-        }
+        if (typeof toggleClosedBy === 'function') toggleClosedBy();
     }
-
-    // Set department - create option directly from backend data
     const departmentSelect = document.getElementById('department');
     if (data.departmentName && departmentSelect) {
-        departmentSelect.innerHTML = ''; // Clear existing options
+        departmentSelect.innerHTML = '';
         const option = document.createElement('option');
-        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.value = data.departmentName;
         option.textContent = data.departmentName;
         option.selected = true;
         departmentSelect.appendChild(option);
     }
-
-    // Set status
     if (data && data.status) {
-        console.log('Status:', data.status);
         const statusSelect = document.getElementById('docStatus');
         if (statusSelect) {
-            statusSelect.innerHTML = ''; // Clear existing options
+            statusSelect.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.status;
             option.textContent = data.status;
@@ -155,26 +109,27 @@ function populateCADetails(data) {
             statusSelect.appendChild(option);
         }
     }
-    
-    // Handle cash advance details (amount breakdown)
-    if (data.cashAdvanceDetails) {
-        populateCashAdvanceDetails(data.cashAdvanceDetails);
-    }
-    
-    // Display attachments if they exist
-    console.log('Attachments data:', data.attachments);
-    if (data.attachments) {
-        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
-        displayAttachments(data.attachments);
-    } else {
-        console.log('No attachments found in data');
-    }
-    
-    // Display revised remarks if available
+    if (data.cashAdvanceDetails) populateCashAdvanceDetails(data.cashAdvanceDetails);
+    if (data.attachments) displayAttachments(data.attachments);
+    else displayAttachments([]);
     displayRevisedRemarks(data);
-    
-    // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
+    const approvalMap = [
+      { id: 'preparedBySearch', value: data.preparedName },
+      { id: 'checkedBySearch', value: data.checkedName },
+      { id: 'acknowledgeBySearch', value: data.acknowledgedName },
+      { id: 'approvedBySearch', value: data.approvedName },
+      { id: 'receivedBySearch', value: data.receivedName },
+      { id: 'closedBySearch', value: data.closedName }
+    ];
+    approvalMap.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el) {
+        el.value = f.value || '';
+        el.readOnly = true;
+        el.classList.add('bg-gray-100');
+      }
+    });
 }
 
 function populateCashAdvanceDetails(details) {
@@ -203,7 +158,7 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="w-full bg-gray-100" readonly />
+                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -211,88 +166,37 @@ function populateCashAdvanceDetails(details) {
         `;
         tableBody.appendChild(row);
     });
+    
+    // Calculate total amount after populating all rows
+    calculateTotalAmount();
+}
+
+// Function to calculate total amount from all rows
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
+    
+    totalInputs.forEach(input => {
+        // Only add to sum if the input has a valid numeric value
+        const value = input.value.trim();
+        if (value && !isNaN(parseFloat(value))) {
+            sum += parseFloat(value);
+        }
+    });
+    
+    // Format the sum with 2 decimal places
+    const formattedSum = sum.toFixed(2);
+    
+    // Update the total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
 }
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(caData = null) {
-    fetchUsers(caData);
-}
-
-// Function to fetch users from API
-function fetchUsers(caData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateUserSelects(data.data, caData);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
-}
-
-function populateUserSelects(users, caData = null) {
-    const selects = [
-        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'knowledgeBySearch' },
-        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' },
-        { id: 'Closed', approvalKey: 'closedById', searchId: 'closedBySearch' }
-    ];
-    
-    selects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName;
-                select.appendChild(option);
-            });
-            
-            // Set the value from CA data if available and update search input
-            if (caData && caData[selectInfo.approvalKey]) {
-                select.value = caData[selectInfo.approvalKey];
-                
-                // Update the search input to display the selected user's name
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.fullName;
-                    }
-                }
-            }
-        }
-    });
-    
-    // Find and populate the employee NIK using the stored employeeId
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use NIK if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-        }
-    }
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
+    // This function is no longer needed
 }
 
 // Function to approve CA (acknowledge)
@@ -505,8 +409,14 @@ function goToMenuCash() {
 
 // Function for Back button navigation
 function goToMenuAcknowCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
+    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknowledge.html";
 }
+
+// Initialize total amount calculation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate initial total
+    calculateTotalAmount();
+});
 
 function previewPDF(event) {
     const files = event.target.files;
@@ -564,56 +474,14 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only except revision textarea
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea:not(#revision)');
-    inputFields.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn')) {
+            el.readOnly = true;
+            el.disabled = true;
+            el.classList.add('bg-gray-100');
+        }
     });
-    
-    // Make search inputs read-only but with normal styling
-    const searchInputs = document.querySelectorAll('input[id$="Search"]');
-    searchInputs.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-50');
-        // Remove the onkeyup event to prevent search triggering
-        field.removeAttribute('onkeyup');
-    });
-    
-    // Disable all select fields
-    const selectFields = document.querySelectorAll('select');
-    selectFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
-    });
-    
-    // Hide add row button
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    
-    // Disable file upload
-    const fileInput = document.getElementById('Reference');
-    if (fileInput) {
-        fileInput.disabled = true;
-        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-    }
 }
 
 // Function to hide approval buttons

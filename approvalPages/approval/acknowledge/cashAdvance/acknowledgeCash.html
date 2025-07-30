@@ -128,6 +128,14 @@
             </tbody>
         </table>
         
+        <!-- Total Amount Display -->
+        <div class="flex justify-end mt-2">
+            <div class="w-1/4 flex items-center justify-between bg-gray-100 p-2 rounded">
+                <span class="font-bold">Total Amount:</span>
+                <span id="totalAmountDisplay" class="font-bold text-xl text-blue-700">0.00</span>
+            </div>
+        </div>
+        
         <!-- Tombol Tambah Baris -->
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
@@ -167,61 +175,37 @@
             <div> 
                 <label id="preparedByLabel" class="mr-1"><strong>Proposed by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
-                    <select id="prepared" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
             <div>
                 <label id="checkedByLabel" class="mr-1"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
-                    <select id="Checked" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
             <div>
                 <label id="knowledgeByLabel" class="mr-1"><strong>Acknowledge by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="knowledgeBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('knowledgeBy')" autocomplete="off" readonly>
-                    <select id="Acknowledged" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="knowledgeByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
             <div>
                 <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
-                    <select id="Approved" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
             <div>
                 <label id="receivedByLabel" class="mr-1"><strong>Received by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
-                    <select id="Received" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
             <div id="closedBySection" style="display: none;">
                 <label id="closed" class="mr-1"><strong>Closed by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
-                    <select id="Closed" class="hidden">
-                        <option value="" disabled selected>Select User</option>
-                    </select>
-                    <div id="closedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" readonly>
                 </div>
             </div>
         </div>

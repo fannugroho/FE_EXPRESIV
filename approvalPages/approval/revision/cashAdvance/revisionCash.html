@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receive Document Cash Advance</title>
+    <title>Revision Cash Advance</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../../../../js/auth.js"></script>
@@ -34,50 +34,56 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReceiveCash()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Cash Advance Details</h2>
+        <button onclick="goToMenuRevisionCash()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Cash Advance Revision</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Cash Advance No.</h3>
-                <input type="text" id="invno" placeholder="Cash Advance no" class="w-full p-2 border rounded">
+                <input type="text" id="cashAdvanceNo" placeholder="Cash Advance no" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
-                <input type="text" id="Employee" placeholder="Employee NIK" class="w-full p-2 border rounded">
+                <input type="text" id="employeeNIK" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
+                
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
-                <input type="text" id="EmployeeName" placeholder="Employee Name" class="w-full p-2 border rounded"> 
+                <input type="text" id="employeeName" placeholder="Employee Name" class="w-full p-2 border rounded bg-gray-100" readonly> 
+                
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
                 <div class="relative">
-                    <input type="text" id="requester" placeholder="Search Requester" class="w-full p-2 border rounded search-input" onkeyup="filterRequesters()" autocomplete="off">
-                    <select id="requesterSelect" class="hidden">
+                    <input type="text" id="requesterSearch" placeholder="Search Requester" class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <select id="RequesterId" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>
                     <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
+                
                 <h3 class="text-lg font-semibold mb-2">Purpose</h3>
-                <input type="text" id="purposed" placeholder="Purpose" class="w-full p-2 border rounded">    
+                <input type="text" id="purpose" placeholder="Purpose" class="w-full p-2 border rounded">    
+                
                 <h3 class="text-lg font-semibold mb-2">Paid To</h3>
-                <input type="text" id="paidTo" placeholder="Paid to" class="w-full p-2 border rounded">        
+                <div class="relative">
+                    <input type="text" id="paidToSearch" placeholder="Search Business Partner" class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <input type="hidden" id="paidTo">
+                    <div id="paidToDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>        
             </div>
             
             <div>
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded">
-                    <option value="Production">Production</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Admninistration">Admninistration</option>
-                    <option value="QA/QC">QA/QC</option>
+                <select id="departmentId" class="w-full p-2 border rounded">
+                    <option value="" disabled>Select Department</option>
                 </select>
+                
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
-                <input type="date" id="postingDate" class="w-full p-2 border rounded">
+                <input type="date" id="submissionDate" class="w-full p-2 border rounded">
+                
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
-                <select id="docStatus" class="w-full p-2 border rounded" class="bg-gray-100">
-                    <option value="Open">Pending</option>
-                    <option value="Closed">Approved</option>
-                    <option value="Settled">Settled</option>
+                <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
+                    <option value="">Status</option>
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="Reference" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                
+                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                <input type="file" id="attachmentInput" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
                 
                 <!-- Attachments Display Section -->
                 <div class="mt-2" id="attachmentsSection">
@@ -87,20 +93,18 @@
                 </div>
                 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
-                <select id="typeTransaction" class="w-full p-2 border rounded" onchange="toggleClosedBy()">
-                    <option value="Medical">Medical</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Personal Loan">Personal Loan</option>
-                    <option value="Others">Others</option> 
+                <select id="transactionType" class="w-full p-2 border rounded" onchange="toggleClosedBy()">
+                    <option value="" disabled>Select Transaction Type</option>
                 </select>
             </div>
         </div>
         
         <table id="cashTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
-                <br>
                 <tr>
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Account Name</th>
+                    <th class="p-2">COA</th>
                     <th class="p-2">Description</th>
                     <th class="p-2">Amount</th>
                     <th class="p-2">Action</th>
@@ -110,18 +114,26 @@
                 <!-- Rows will be added by JavaScript -->
             </tbody>
         </table>
+        
+        <!-- Total Amount Display -->
+        <div class="flex justify-end mt-2">
+            <div class="w-1/4 flex items-center justify-between bg-gray-100 p-2 rounded">
+                <span class="font-bold">Total Amount:</span>
+                <span id="totalAmountDisplay" class="font-bold text-xl text-blue-700">0.00</span>
+            </div>
+        </div>
 
         <!-- Add Row button -->
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-            + 
+            + Add Row
         </button>
 
-        <!-- approval signatories -->
+        <!-- Remarks -->
         <div class="mt-4">
           <label>Remarks</label>
-          <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
+          <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
         </div>
-
+        
         <!-- Revised Remarks Display Section (Read-only) -->
         <div class="mt-4" id="revisedRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
@@ -134,15 +146,11 @@
             </div>
         </div>
         
-        <!-- Revision Remarks Section -->
-        <div class="mt-4">
-            <div class="flex justify-between items-center">
-                <label>Revision Remarks</label>
-            </div>
-            <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
-            
-            <div id="revisionContainer" class="hidden">
-                <!-- Revision fields will be added here by JavaScript -->
+        <!-- Rejection Remarks Section -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
             </div>
         </div>
 
@@ -150,69 +158,70 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
-                    <select id="prepared" class="hidden">
-                        <!-- Options will be populated by JavaScript -->
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input bg-gray-100" readonly autocomplete="off">
+                    <select id="Approval.PreparedById" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.PreparedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
-                    <select id="Acknowledged" class="hidden">
-                        <!-- Options will be populated by JavaScript -->
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
+                    <select id="Approval.AcknowledgedById" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.AcknowledgedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
-                    <select id="Checked" class="hidden">
-                        <!-- Options will be populated by JavaScript -->
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
+                    <select id="Approval.CheckedById" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.CheckedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
-                    <select id="Approved" class="hidden">
-                        <!-- Options will be populated by JavaScript -->
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.ApprovedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
-                    <select id="Received" class="hidden">
-                        <!-- Options will be populated by JavaScript -->
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
+                    <select id="Approval.ReceivedById" class="hidden">
+                        <option value="" disabled selected>Choose Name</option>
                     </select>
-                    <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.ReceivedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
             <div id="closedBySection" style="display: none;">
                 <label id="closed" class="mr-1"><strong>Closed by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="closedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('closedBy')" autocomplete="off">
-                    <select id="Closed" class="hidden">
+                    <input type="text" id="Approval.ClosedByIdSearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
+                    <select id="Approval.ClosedById" class="hidden">
                         <option value="" disabled selected>Select User</option>
                     </select>
-                    <div id="closedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                    <div id="Approval.ClosedByIdDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>
         <br>
+        
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="submitCash()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="submitRevision()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Submit
                 </button>
             </div>
@@ -223,326 +232,15 @@
     <script src="revisionCash.js"></script>
     
     <script>
-        // Global variables to track revision fields
-        let revisionFieldsByUser = new Map(); // Track which users have added fields
-        const MAX_REVISION_FIELDS = 4;
-
         // Call toggleClosedBy when the page loads to set initial state
         window.addEventListener('load', function() {
-            // Set initial state of Closed By field based on transaction type
+            // Set initial state of Closed By field based on current transaction type
             toggleClosedBy();
         });
-
-        // Toggle revision container visibility and add first field
-        function toggleRevisionField() {
-            const container = document.getElementById('revisionContainer');
-            const addBtn = document.getElementById('addRevisionBtn');
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
-            
-            // Check if user can add a field
-            if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
-                });
-                return;
-            }
-            
-            if (revisionFieldsByUser.has(currentUser.name)) {
-                // User already has a field, this shouldn't happen as button should be hidden
-                // But keep as a fallback
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Already exist',
-                    text: 'You already added a revision field. Each user can only add one field.'
-                });
-                return;
-            }
-            
-            if (container.classList.contains('hidden')) {
-                // Show container and add first field
-                container.classList.remove('hidden');
-                addRevisionField();
-            } else {
-                // Add another field
-                addRevisionField();
-            }
-            
-            // Update button visibility immediately after adding field
-            updateAddButtonState();
-        }
-
-        // Add revision field functionality
-        function addRevisionField() {
-            const container = document.getElementById('revisionContainer');
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
-            
-            // Check if maximum fields reached
-            if (currentFieldCount >= MAX_REVISION_FIELDS) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Maximum Limit',
-                    text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
-                });
-                return;
-            }
-            
-            // Check if current user already has a field
-            if (revisionFieldsByUser.has(currentUser.name)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Already exist',
-                    text: 'You already added a revision field. Each user can only add one field.'
-                });
-                return;
-            }
-            
-            // Create wrapper div for the textarea and delete button
-            const fieldWrapper = document.createElement('div');
-            fieldWrapper.className = 'flex items-center space-x-2 mt-2';
-            fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
-            
-            // Create textarea
-            const newField = document.createElement('textarea');
-            newField.className = 'w-full p-2 border rounded-md';
-            newField.placeholder = 'Enter additional revision details';
-            
-            // Add event listener for input to handle protected prefix
-            newField.addEventListener('input', handleRevisionInput);
-            
-            // Initialize with user prefix
-            initializeWithUserPrefix(newField);
-            
-            // Create delete button
-            const deleteButton = document.createElement('button');
-            deleteButton.innerHTML = '&times;'; // × symbol
-            deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
-            deleteButton.title = 'Hapus field revision ini';
-            deleteButton.onclick = function() {
-                // Remove user from tracking when field is deleted
-                const userName = fieldWrapper.dataset.userName;
-                revisionFieldsByUser.delete(userName);
-                
-                fieldWrapper.remove();
-                checkRevisionButton(); // Update button state after removing a field
-                checkRevisionContainer(); // Check if container should be hidden
-                updateAddButtonState(); // Update add button state and show it again
-            };
-            
-            // Add textarea and delete button to wrapper
-            fieldWrapper.appendChild(newField);
-            fieldWrapper.appendChild(deleteButton);
-            
-            // Add wrapper to container
-            container.appendChild(fieldWrapper);
-            
-            // Track that this user has added a field
-            revisionFieldsByUser.set(currentUser.name, true);
-            
-            // Update the revision button state and add button state
-            checkRevisionButton();
-            updateAddButtonState();
-        }
-        
-        // Check if revision container should be hidden when all fields are removed
-        function checkRevisionContainer() {
-            const container = document.getElementById('revisionContainer');
-            const addBtn = document.getElementById('addRevisionBtn');
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            if (revisionFields.length === 0) {
-                container.classList.add('hidden');
-                addBtn.textContent = '+ Add revision';
-                // Clear the tracking map when container is hidden
-                revisionFieldsByUser.clear();
-            }
-        }
-
-        // Update add button state based on current conditions
-        function updateAddButtonState() {
-            const addBtn = document.getElementById('addRevisionBtn');
-            const container = document.getElementById('revisionContainer');
-            const currentUser = getUserInfo();
-            const currentFieldCount = container.querySelectorAll('textarea').length;
-            
-            // Check if user can add more fields
-            const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
-            
-            if (canAddMore) {
-                addBtn.style.display = 'inline-block'; // Show button
-                addBtn.style.opacity = '1';
-                addBtn.style.cursor = 'pointer';
-                addBtn.style.pointerEvents = 'auto';
-                if (currentFieldCount === 0) {
-                    addBtn.textContent = '+ Add revision';
-                } else {
-                    addBtn.textContent = '+ Add more revision';
-                }
-            } else {
-                // Hide button completely when user has added their field
-                if (revisionFieldsByUser.has(currentUser.name)) {
-                    addBtn.style.display = 'none'; // Hide button completely
-                } else {
-                    // Just disable for max fields case
-                    addBtn.style.opacity = '0.5';
-                    addBtn.style.cursor = 'not-allowed';
-                    addBtn.style.pointerEvents = 'none';
-                    addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
-                }
-            }
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const revisionContainer = document.getElementById('revisionContainer');
-            
-            // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
-                if (event.target.tagName === 'TEXTAREA') {
-                    checkRevisionButton();
-                }
-            });
-            
-            // Initialize button states
-            checkRevisionButton();
-            updateAddButtonState();
-            
-            // Initialize closed by section based on current transaction type
-            toggleClosedBy();
-        });
-        
-        // Function to get current user information
-        function getUserInfo() {
-            // Use functions from auth.js to get user information
-            let userName = 'Unknown User';
-            let userRole = 'Reviser'; // Role for revision page
-            
-            try {
-                // Get user info from getCurrentUser function in auth.js
-                const currentUser = getCurrentUser();
-                if (currentUser && currentUser.username) {
-                    userName = currentUser.username;
-                }
-                
-                // Get user role based on the current page
-                // Since we're on the revision page, the role is Reviser
-            } catch (e) {
-                console.error('Error getting user info:', e);
-            }
-            
-            return { name: userName, role: userRole };
-        }
-        
-        // Function to initialize textarea with user prefix
-        function initializeWithUserPrefix(textarea) {
-            const userInfo = getUserInfo();
-            const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-            textarea.value = prefix;
-            
-            // Store the prefix length as a data attribute
-            textarea.dataset.prefixLength = prefix.length;
-            
-            // Set selection range after the prefix
-            textarea.setSelectionRange(prefix.length, prefix.length);
-            textarea.focus();
-        }
-        
-        // Function to handle input and protect the prefix
-        function handleRevisionInput(event) {
-            const textarea = event.target;
-            const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-            
-            // If user tries to modify content before the prefix length
-            if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
-                // Restore the prefix
-                const userInfo = getUserInfo();
-                const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-                
-                // Only restore if the prefix is damaged
-                if (!textarea.value.startsWith(prefix)) {
-                    const userText = textarea.value.substring(prefixLength);
-                    textarea.value = prefix + userText;
-                    
-                    // Reset cursor position after the prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                } else {
-                    // Just move cursor after prefix
-                    textarea.setSelectionRange(prefixLength, prefixLength);
-                }
-            }
-        }
-        
-        // Check if revision remarks are filled to enable/disable revision button
-        function checkRevisionButton() {
-            const revisionButton = document.getElementById('revisionButton');
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            let hasContent = false;
-            
-            // Check if there are any revision fields and if they have content
-            if (revisionFields.length > 0) {
-                revisionFields.forEach(field => {
-                    const prefixLength = parseInt(field.dataset.prefixLength || '0');
-                    // Check if there's content beyond the prefix
-                    if (field.value.trim().length > prefixLength) {
-                        hasContent = true;
-                    }
-                });
-            }
-            
-            if (hasContent) {
-                revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = false;
-            } else {
-                revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
-                revisionButton.disabled = true;
-            }
-        }
-        
-        // Revision function for Cash Advance
-        function reviseCash() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
-                });
-                return;
-            }
-            
-            // Call the existing function with the collected remarks
-            // This function should be implemented in revisionCash.js
-            updateCashStatusWithRemarks('revise', allRemarks);
-        }
         
         // Function to toggle visibility of Closed By field based on transaction type
         function toggleClosedBy() {
-            const transactionType = document.getElementById('typeTransaction').value;
+            const transactionType = document.getElementById('transactionType').value;
             const closedBySection = document.getElementById('closedBySection');
             
             // Show Closed By field only for Personal Loan
@@ -551,119 +249,9 @@
             } else {
                 closedBySection.style.display = 'none';
                 // Clear the selection when hiding
-                document.getElementById('closedBySearch').value = '';
-                document.getElementById('Closed').value = '';
+                document.getElementById('Approval.ClosedByIdSearch').value = '';
+                document.getElementById('Approval.ClosedById').value = '';
             }
-        }
-        
-        // Function to submit Cash Advance after revision
-        function submitCash() {
-            // Get the checked by user ID
-            const checkedById = document.getElementById('Checked').value;
-            
-            if (!checkedById || checkedById === "") {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Silakan pilih user Checked by terlebih dahulu'
-                });
-                return;
-            }
-            
-            // Collect revision remarks if any
-            let revisionRemarks = "";
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            revisionFields.forEach((field, index) => {
-                if (field.value.trim() !== '') {
-                    if (revisionRemarks !== '') revisionRemarks += '\n\n';
-                    revisionRemarks += field.value.trim();
-                }
-            });
-            
-            // Confirm submission
-            Swal.fire({
-                title: 'Konfirmasi Submit',
-                text: 'Apakah Anda yakin ingin submit dokumen ini? Status akan berubah menjadi "prepared" dan dokumen akan dikirim ke Checker.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Submit',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show loading
-                    Swal.fire({
-                        title: 'Memproses...',
-                        text: 'Mohon tunggu sementara permintaan Anda diproses.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
-                    // Get current user ID
-                    const userId = getUserId();
-                    if (!userId) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Authentication Error',
-                            text: 'Unable to get user ID from token. Please login again.'
-                        });
-                        return;
-                    }
-                    
-                    // Prepare request data
-                    const requestData = {
-                        id: caId,
-                        UserId: userId,
-                        CheckedById: checkedById,
-                        StatusAt: "Revise",
-                        Action: "submit",
-                        Status: "Prepared", // Set status to Prepared
-                        Remarks: revisionRemarks || ""
-                    };
-                    
-                    // Send request to API
-                    fetch(`${BASE_URL}/api/cash-advance/status`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestData)
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        } else {
-                            return response.json().then(errorData => {
-                                throw new Error(errorData.message || `Failed to submit Cash Advance. Status: ${response.status}`);
-                            });
-                        }
-                    })
-                    .then(data => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: 'Dokumen Cash Advance berhasil disubmit dan dikirim ke Checker',
-                            timer: 2000,
-                            showConfirmButton: false
-                        }).then(() => {
-                            // Navigate back to the revision dashboard
-                            window.location.href = '../../../dashboard/dashboardRevision/cashAdvance/menuCashRevision.html';
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error submitting Cash Advance: ' + error.message
-                        });
-                    });
-                }
-            });
         }
     </script>
 </body>

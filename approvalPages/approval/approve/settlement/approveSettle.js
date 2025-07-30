@@ -51,8 +51,6 @@ function fetchSettleDetails(id) {
         
         if (result.status && result.data) {
             populateSettleDetails(result.data);
-            // Fetch users to populate Employee field properly and approval dropdowns
-            fetchUsers(result.data);
         } else {
             console.error('API returned error:', result.message);
             alert('Failed to load settlement details: ' + (result.message || 'Unknown error'));
@@ -99,60 +97,21 @@ function populateSettleDetails(data) {
     document.getElementById('purpose').value = data.purpose || '';
     document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
 
-    // Set transaction type - create option directly from backend data
-    const transactionTypeSelect = document.getElementById('TransactionType');
-    if (data.transactionType && transactionTypeSelect) {
-        transactionTypeSelect.innerHTML = ''; // Clear existing options
-        const option = document.createElement('option');
-        option.value = data.transactionType;
-        option.textContent = data.transactionType;
-        option.selected = true;
-        transactionTypeSelect.appendChild(option);
+    // Populate approval fields from detail data
+    populateApprovalFieldsFromDetail(data);
+    
+    // Populate settlement details table
+    if (data.settlementDetails && data.settlementDetails.length > 0) {
+        populateSettleDetailsTable(data.settlementDetails);
     }
     
-    // Set status - create option directly from backend data
-    const statusSelect = document.getElementById('docStatus');
-    if (data.status && statusSelect) {
-        statusSelect.innerHTML = ''; // Clear existing options
-        const option = document.createElement('option');
-        option.value = data.status;
-        option.textContent = data.status;
-        option.selected = true;
-        statusSelect.appendChild(option);
-    }
-    
-    // Store approval IDs for later population when users are fetched
-    window.approvalData = {
-        preparedById: data.preparedById,
-        checkedById: data.checkedById,
-        acknowledgedById: data.acknowledgedById,
-        approvedById: data.approvedById,
-        receivedById: data.receivedById
-    };
-    
-    // Populate settlement items in table if available (settlementItems not settlementDetails)
-    if (data.settlementItems && data.settlementItems.length > 0) {
-        populateSettleDetailsTable(data.settlementItems);
-    }
-    
-    // Show remarks if exists
-    if (data.remarks) {
-        document.getElementById('remarks').value = data.remarks;
-    }
-    
-    // Display attachments if they exist
-    console.log('Attachments data:', data.attachments);
-    if (data.attachments) {
-        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+    // Display attachments if any
+    if (data.attachments && data.attachments.length > 0) {
         displayAttachments(data.attachments);
-    } else {
-        console.log('No attachments found in data');
     }
     
-    // Make all fields read-only since this is an approval page
+    // Make all fields readonly
     makeAllFieldsReadOnly();
-    
-    console.log('Settlement details populated successfully');
 }
 
 function populateSettleDetailsTable(settlementItems) {
@@ -379,187 +338,80 @@ function displayFileList() {
     // Implementation for displaying uploaded files if needed
 }
 
-// Function to fetch users from API
-function fetchUsers(settlementData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateEmployeeField(data.data, settlementData);
-            populateApprovalFields(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
-}
+// Function to populate approval fields (Prepared by, Checked by, etc.) - REMOVED
+// Now using populateApprovalFieldsFromDetail function that gets data from detail response
 
-// Function to populate department select options
-function populateDepartmentSelect(departments) {
-    const departmentSelect = document.getElementById("department");
-    if (!departmentSelect) return;
-    
-    // Clear and add new options
-    departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-    
-    // Create options for each department
-    departments.forEach(department => {
-        const option = document.createElement("option");
-        option.value = department.id;
-        option.textContent = department.name;
-        departmentSelect.appendChild(option);
-    });
-    
-    // Set the department value if we have stored department data
-    if (window.departmentData) {
-        // Try to match by ID first, then by name
-        if (window.departmentData.departmentId) {
-            departmentSelect.value = window.departmentData.departmentId;
-        } else if (window.departmentData.departmentName) {
-            // If ID doesn't work, try to find by name
-            const matchingOption = Array.from(departmentSelect.options).find(
-                option => option.textContent === window.departmentData.departmentName
-            );
-            if (matchingOption) {
-                departmentSelect.value = matchingOption.value;
-            }
+// Function to populate approval fields from detail data
+function populateApprovalFieldsFromDetail(data) {
+    // Populate approval fields with data from the detail response
+    if (data.preparedName) {
+        const preparedField = document.getElementById('prepared');
+        if (preparedField) {
+            preparedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.preparedById || '';
+            option.textContent = data.preparedName;
+            option.selected = true;
+            preparedField.appendChild(option);
+            preparedField.disabled = true;
         }
-        
-        console.log('Department set to:', departmentSelect.value, 'Display name:', window.departmentData.departmentName);
-    }
-}
-
-// Function to filter users for the search dropdown in approval section
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Use stored users or mock data if not available
-    const usersList = window.allUsers || [];
-    
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.fullName}`;
-        return userName.toLowerCase().includes(searchText);
-    });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.name || `${user.fullName}`;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
-            
-            // Get the correct select element based on fieldId
-            let selectId;
-            switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
-                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
-                case 'receivedBy': selectId = 'Received'; break;
-                default: selectId = fieldId;
-            }
-            
-            document.getElementById(selectId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
-    
-    // Display message if no results
-    if (filteredUsers.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
-        dropdown.appendChild(noResults);
     }
     
-    // Show dropdown
-    dropdown.classList.remove('hidden');
-}
-
-// Function to populate approval fields (Prepared by, Checked by, etc.)
-function populateApprovalFields(users) {
-    // Store users globally for search functionality
-    window.allUsers = users;
-    
-    const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
-        { id: 'Received', dataKey: 'receivedById', searchId: 'receivedBySearch' }
-    ];
-    
-    approvalSelects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            // Clear existing options
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
-            // Add user options
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName || user.username;
-                select.appendChild(option);
-            });
-            
-            // Set the value from settlement approval data if available
-            if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
-                select.value = window.approvalData[selectInfo.dataKey];
-                
-                // Update the search input to display the selected user's name
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.fullName}` || selectedUser.username;
-                    }
-                }
-            }
+    if (data.checkedName) {
+        const checkedField = document.getElementById('Checked');
+        if (checkedField) {
+            checkedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.checkedById || '';
+            option.textContent = data.checkedName;
+            option.selected = true;
+            checkedField.appendChild(option);
+            checkedField.disabled = true;
         }
-    });
+    }
     
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
-}
-
-// Function to populate the Employee field with kansaiEmployeeId
-function populateEmployeeField(users, settlementData = null) {
-    // Find and populate the employee NIK using the stored requester ID
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use kansaiEmployeeId if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-            
-            // Also update employee name if we have better data from users API
-            if (employee.name) {
-                document.getElementById('EmployeeName').value = employee.name;
-            }
+    if (data.acknowledgedName) {
+        const acknowledgedField = document.getElementById('Acknowledged');
+        if (acknowledgedField) {
+            acknowledgedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.acknowledgedById || '';
+            option.textContent = data.acknowledgedName;
+            option.selected = true;
+            acknowledgedField.appendChild(option);
+            acknowledgedField.disabled = true;
+        }
+    }
+    
+    if (data.approvedName) {
+        const approvedField = document.getElementById('Approved');
+        if (approvedField) {
+            approvedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.approvedById || '';
+            option.textContent = data.approvedName;
+            option.selected = true;
+            approvedField.appendChild(option);
+            approvedField.disabled = true;
+        }
+    }
+    
+    if (data.receivedName) {
+        const receivedField = document.getElementById('Received');
+        if (receivedField) {
+            receivedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.receivedById || '';
+            option.textContent = data.receivedName;
+            option.selected = true;
+            receivedField.appendChild(option);
+            receivedField.disabled = true;
         }
     }
 }
+
+// Function to populate the Employee field with kansaiEmployeeId - REMOVED
+// Now using data directly from detail response
 
 // Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {

@@ -44,7 +44,7 @@
                 <h3 class="text-lg font-semibold mb-2">Cash Advance No.</h3>
                 <input type="text" id="cashAdvanceNo" placeholder="Cash Advance no" class="w-full p-2 border rounded bg-gray-100" disabled>
                 <h3 class="text-lg font-semibold mb-2">Employee NIK</h3>
-                <input type="text" id="employeeId" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="employeeNIK" placeholder="Employee NIK" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Employee Name</h3>
                 <input type="text" id="employeeName" placeholder="Employee Name" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
@@ -142,7 +142,7 @@
                         <input type="text" class="description w-full" maxlength="200" />
                     </td>
                     <td class="p-2 border">
-                        <input type="number" class="total w-full" maxlength="10" required step="0.01"/>
+                        <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -153,6 +153,14 @@
             </tbody>
         </table>
         
+        <!-- Total Amount Display -->
+        <div class="flex justify-end mt-2">
+            <div class="w-1/4 flex items-center justify-between bg-gray-100 p-2 rounded">
+                <span class="font-bold">Total Amount:</span>
+                <span id="totalAmountDisplay" class="font-bold text-xl text-blue-700">0.00</span>
+            </div>
+        </div>
+        
         <!-- Tombol Tambah Baris -->
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
             + 
@@ -160,7 +168,7 @@
 
             <div class="mt-4">
               <label>Remarks</label>
-              <textarea class="w-full p-2 border rounded-md"></textarea>
+              <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
             </div>
 
             <!-- Rejection Remarks section - only visible when status is Rejected -->
@@ -314,6 +322,93 @@
         // Panggil fungsi saat halaman dimuat untuk mengatur status awal
         document.addEventListener('DOMContentLoaded', function() {
             toggleClosedByVisibility();
+        });
+    </script>
+
+    <script>
+        // Simple number formatting with .00 decimal places
+        function formatNumberWithDecimals(input) {
+            // Get the numeric value
+            let value = input.value.replace(/[^\d.]/g, '');
+            
+            // If empty, set to 0.00
+            if (!value) {
+                input.value = '0.00';
+                return;
+            }
+            
+            // Parse as float
+            let num = parseFloat(value);
+            if (isNaN(num)) {
+                input.value = '0.00';
+                return;
+            }
+            
+            // Format with 2 decimal places
+            input.value = num.toFixed(2);
+        }
+        
+        // Real-time formatting as user types
+        function formatNumberAsYouType(input) {
+            // Get the numeric value
+            let value = input.value.replace(/[^\d.]/g, '');
+            
+            // If empty, set to 0.00
+            if (!value) {
+                input.value = '0.00';
+                return;
+            }
+            
+            // Parse as float
+            let num = parseFloat(value);
+            if (isNaN(num)) {
+                input.value = '0.00';
+                return;
+            }
+            
+            // Check if user has typed a decimal point
+            const hasDecimal = input.value.includes('.');
+            
+            if (hasDecimal) {
+                // User is typing decimals, preserve their input
+                // Just ensure it's a valid number
+                input.value = num.toString();
+            } else {
+                // User typed a whole number, add .00
+                input.value = num.toFixed(2);
+            }
+        }
+        
+        function calculateTotalAmount() {
+            const amountInputs = document.querySelectorAll('.total');
+            let total = 0;
+            
+            amountInputs.forEach(input => {
+                const value = parseFloat(input.value.replace(/[^\d.]/g, '')) || 0;
+                total += value;
+            });
+            
+            // Display total with 2 decimal places
+            const totalDisplay = document.getElementById('totalAmountDisplay');
+            if (totalDisplay) {
+                totalDisplay.textContent = total.toFixed(2);
+            }
+        }
+        
+        // Initialize amount inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInputs = document.querySelectorAll('.total');
+            amountInputs.forEach(input => {
+                if (!input.value) {
+                    input.value = '0.00';
+                }
+                input.addEventListener('blur', function() {
+                    formatNumberWithDecimals(this);
+                });
+                input.addEventListener('input', function() {
+                    formatNumberAsYouType(this);
+                });
+            });
         });
     </script>
 </body>

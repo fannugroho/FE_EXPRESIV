@@ -77,8 +77,7 @@ function fetchSettleDetails(id) {
         
         if (result.status && result.data) {
             populateSettleDetails(result.data);
-            // Fetch users to populate Employee field properly and approval dropdowns
-            fetchUsers(result.data);
+            // Remove fetchUsers call - get user data from detail response
         } else {
             console.error('API returned error:', result.message);
             alert('Failed to load settlement details: ' + (result.message || 'Unknown error'));
@@ -95,24 +94,25 @@ function populateSettleDetails(data) {
     document.getElementById('invno').value = data.settlementNumber || '';
     document.getElementById('settlementRefNo').value = data.settlementRefNo || '';
     
-    // Store requester ID for user lookup instead of employeeId
-    window.currentEmployeeId = data.requester || '';
-    
     // Use the provided requesterName directly
     document.getElementById('Employee').value = data.requesterName || '';
     document.getElementById('EmployeeName').value = data.requesterName || '';
     document.getElementById('requester').value = data.requesterName || '';
     
-    // Store department data to be set after dropdown is populated
-    window.departmentData = {
-        departmentId: data.departmentId,
-        departmentName: data.departmentName
-    };
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
     
-
-    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber  || '';
+    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber || '';
     
-    // Handle submission date - extract date part directly to avoid timezone issues
+    // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
         const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById('SubmissionDate').value = formattedDate;
@@ -120,31 +120,35 @@ function populateSettleDetails(data) {
     
     document.getElementById('purpose').value = data.purpose || '';
     document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
-    const transactionType = document.getElementById('TransactionType');
-    var option = document.createElement('option');
-    option.value = data.transactionType;
-    option.textContent = data.transactionType;
-    transactionType.appendChild(option);
     
-    option.selected = true;
-    
-    // Set status
-    if (data.status) {
-        document.getElementById('docStatus').value = data.status;
+    // Set transaction type - create option directly from backend data
+    const transactionTypeSelect = document.getElementById('TransactionType');
+    if (data.transactionType && transactionTypeSelect) {
+        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.transactionType;
+        option.textContent = data.transactionType;
+        option.selected = true;
+        transactionTypeSelect.appendChild(option);
     }
     
-    // Store approval IDs for later population when users are fetched
-    window.approvalData = {
-        preparedById: data.preparedById,
-        checkedById: data.checkedById,
-        acknowledgedById: data.acknowledgedById,
-        approvedById: data.approvedById,
-        receivedById: data.receivedById
-    };
+    // Set status - create option directly from backend data
+    const statusSelect = document.getElementById('docStatus');
+    if (data.status && statusSelect) {
+        statusSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.status;
+        option.textContent = data.status;
+        option.selected = true;
+        statusSelect.appendChild(option);
+    }
     
-    // Populate settlement items in table if available (settlementItems not settlementDetails)
-    if (data.settlementItems && data.settlementItems.length > 0) {
-        populateSettleDetailsTable(data.settlementItems);
+    // Populate approval fields from detail data
+    populateApprovalFieldsFromDetail(data);
+    
+    // Populate settlement details table
+    if (data.settlementDetails && data.settlementDetails.length > 0) {
+        populateSettleDetailsTable(data.settlementDetails);
     }
     
     // Show remarks if exists
@@ -152,19 +156,13 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
-    // Display attachments if they exist
-    console.log('Attachments data:', data.attachments);
-    if (data.attachments) {
-        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+    // Display attachments if any
+    if (data.attachments && data.attachments.length > 0) {
         displayAttachments(data.attachments);
-    } else {
-        console.log('No attachments found in data');
     }
     
-    // Make all fields read-only since this is an approval page
+    // Make all fields readonly
     makeAllFieldsReadOnly();
-    
-    console.log('Settlement details populated successfully');
 }
 
 function populateSettleDetailsTable(settlementItems) {
@@ -389,81 +387,8 @@ function displayFileList() {
     // Implementation for displaying uploaded files if needed
 }
 
-// Function to fetch users from API
-function fetchUsers(settlementData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateEmployeeField(data.data, settlementData);
-            populateApprovalFields(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
-}
-
-// Function to populate approval fields (Prepared by, Checked by, etc.)
-function populateApprovalFields(users) {
-    // Store users globally for search functionality
-    window.allUsers = users;
-    
-    const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
-        { id: 'Received', dataKey: 'receivedById', searchId: 'receivedBySearch' }
-    ];
-    
-    approvalSelects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            console.log(select);
-            // Clear existing options
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
-            // Add user options
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName || user.username;
-                select.appendChild(option);
-            });
-            
-            // Set the value from settlement approval data if available
-            if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
-                console.log(window.approvalData[selectInfo.dataKey]);
-                select.value = window.approvalData[selectInfo.dataKey];
-                console.log(select.value);
-                
-                // Update the search input to display the selected user's name
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.fullName}` || selectedUser.username;
-                    }
-                }
-            }
-        }
-    });
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
-}
+// Function to populate approval fields (Prepared by, Checked by, etc.) - REMOVED
+// Now using populateApprovalFieldsFromDetail function that gets data from detail response
 
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
@@ -535,6 +460,75 @@ function populateEmployeeField(users, settlementData = null) {
             if (employee.name) {
                 document.getElementById('EmployeeName').value = employee.name;
             }
+        }
+    }
+}
+
+// Function to populate approval fields from detail data
+function populateApprovalFieldsFromDetail(data) {
+    // Populate approval fields with data from the detail response
+    if (data.preparedName) {
+        const preparedField = document.getElementById('prepared');
+        if (preparedField) {
+            preparedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.preparedById || '';
+            option.textContent = data.preparedName;
+            option.selected = true;
+            preparedField.appendChild(option);
+            preparedField.disabled = true;
+        }
+    }
+    
+    if (data.checkedName) {
+        const checkedField = document.getElementById('Checked');
+        if (checkedField) {
+            checkedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.checkedById || '';
+            option.textContent = data.checkedName;
+            option.selected = true;
+            checkedField.appendChild(option);
+            checkedField.disabled = true;
+        }
+    }
+    
+    if (data.acknowledgedName) {
+        const acknowledgedField = document.getElementById('Acknowledged');
+        if (acknowledgedField) {
+            acknowledgedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.acknowledgedById || '';
+            option.textContent = data.acknowledgedName;
+            option.selected = true;
+            acknowledgedField.appendChild(option);
+            acknowledgedField.disabled = true;
+        }
+    }
+    
+    if (data.approvedName) {
+        const approvedField = document.getElementById('Approved');
+        if (approvedField) {
+            approvedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.approvedById || '';
+            option.textContent = data.approvedName;
+            option.selected = true;
+            approvedField.appendChild(option);
+            approvedField.disabled = true;
+        }
+    }
+    
+    if (data.receivedName) {
+        const receivedField = document.getElementById('Received');
+        if (receivedField) {
+            receivedField.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.receivedById || '';
+            option.textContent = data.receivedName;
+            option.selected = true;
+            receivedField.appendChild(option);
+            receivedField.disabled = true;
         }
     }
 }

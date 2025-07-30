@@ -251,7 +251,7 @@
             window.location.href = "addPages/addReim.html"; 
         }
         function goToAddCash() {
-            window.location.href = "addPages/addCash.html"; 
+            window.location.href = "../addPages/addCash.html"; 
         }
         function goToAddSettle() {
             window.location.href = "addPages/addSettle.html"; 
