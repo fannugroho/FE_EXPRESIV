@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,8 @@
     <!-- Font Awesome -->
     <script src="https://kit.fontawesome.com/36105d0c62.js" crossorigin="anonymous"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <!-- Library untuk Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Library untuk PDF -->
@@ -20,70 +22,85 @@
     <link rel="stylesheet" href="menuOPReimCheck.css">
     <link rel="stylesheet" href="../../../../css/menuReim.css">
     <!-- Navigation Script -->
-    
+
     <style>
         /* Override sidebar style to make it permanent */
         #sidebar {
-            width: 256px !important; /* Fixed width */
-            transform: none !important; /* Prevent transformation */
-            margin-left: 0 !important; /* Remove any margin */
+            width: 256px !important;
+            /* Fixed width */
+            transform: none !important;
+            /* Prevent transformation */
+            margin-left: 0 !important;
+            /* Remove any margin */
             position: sticky;
             top: 0;
-            z-index: 100 !important; /* Ensure sidebar stays above other elements */
-            visibility: visible !important; /* Force visibility */
-            display: block !important; /* Force display */
-            opacity: 1 !important; /* Ensure full opacity */
-            transition: none !important; /* Disable any transitions */
+            z-index: 100 !important;
+            /* Ensure sidebar stays above other elements */
+            visibility: visible !important;
+            /* Force visibility */
+            display: block !important;
+            /* Force display */
+            opacity: 1 !important;
+            /* Ensure full opacity */
+            transition: none !important;
+            /* Disable any transitions */
         }
-        
+
         /* Adjust main content for permanent sidebar */
         .flex-1 {
             margin-left: 0 !important;
         }
-        
+
         /* Ensure main content doesn't overlap sidebar */
         .min-h-screen {
             position: relative;
         }
-        
+
         /* Prevent sidebar manipulation through any class changes */
-        .sidebar-collapsed #sidebar, 
-        .sidebar-hidden #sidebar, 
+        .sidebar-collapsed #sidebar,
+        .sidebar-hidden #sidebar,
         [data-sidebar-hidden="true"] #sidebar,
-        .tab-active ~ #sidebar {
+        .tab-active~#sidebar {
             width: 256px !important;
             transform: none !important;
             margin-left: 0 !important;
             visibility: visible !important;
             display: block !important;
         }
-        
+
         /* Style untuk kolom dengan scrollbar */
         .cell-with-scroll {
-            max-width: 150px; /* Lebar maksimal untuk sel */
-            overflow-x: auto; /* Tambahkan scrollbar horizontal */
-            white-space: nowrap; /* Mencegah text wrapping */
+            max-width: 150px;
+            /* Lebar maksimal untuk sel */
+            overflow-x: auto;
+            /* Tambahkan scrollbar horizontal */
+            white-space: nowrap;
+            /* Mencegah text wrapping */
         }
-        
+
         /* Gaya untuk scrollbar */
         .cell-with-scroll::-webkit-scrollbar {
-            height: 6px; /* Tinggi scrollbar */
+            height: 6px;
+            /* Tinggi scrollbar */
         }
-        
+
         .cell-with-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1; /* Warna track */
+            background: #f1f1f1;
+            /* Warna track */
             border-radius: 3px;
         }
-        
+
         .cell-with-scroll::-webkit-scrollbar-thumb {
-            background: #888; /* Warna thumb */
+            background: #888;
+            /* Warna thumb */
             border-radius: 3px;
         }
-        
+
         .cell-with-scroll::-webkit-scrollbar-thumb:hover {
-            background: #555; /* Warna thumb saat hover */
+            background: #555;
+            /* Warna thumb saat hover */
         }
-        
+
         /* New scrollable cell class similar to menuPR.html */
         .scrollable-cell {
             max-width: 150px;
@@ -92,21 +109,22 @@
             padding: 5px;
             scrollbar-width: thin;
         }
-        
+
         .scrollable-cell::-webkit-scrollbar {
-            height: 4px; /* Reduced height from 6px to 4px */
+            height: 4px;
+            /* Reduced height from 6px to 4px */
         }
-        
+
         .scrollable-cell::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 4px;
         }
-        
+
         .scrollable-cell::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 4px;
         }
-        
+
         .scrollable-cell::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
@@ -118,16 +136,16 @@
             background-color: #f3f4f6;
             transition: all 0.2s;
         }
-        
+
         .pagination-btn:hover:not(.disabled) {
             background-color: #e5e7eb;
         }
-        
+
         .pagination-btn.disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
         /* Items per page dropdown styles */
         #itemsPerPageSelect {
             border-color: #e5e7eb;
@@ -136,15 +154,16 @@
             font-size: 0.875rem;
             transition: all 0.2s;
         }
-        
+
         #itemsPerPageSelect:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
     </style>
-    
+
 </head>
+
 <body>
     <div class="flex min-h-screen bg-gradient">
         <!-- Sidebar (Permanent) -->
@@ -158,15 +177,15 @@
             <div id="notificationBellWrapper" class="relative">
                 <button id="notificationBell" class="focus:outline-none">
                     <i class="fas fa-bell text-white text-2xl"></i>
-                    <span id="notificationBadge" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
+                    <span id="notificationBadge"
+                        class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
                 </button>
             </div>
-        
+
             <!-- User Avatar + Name -->
             <div class="user-profile flex items-center space-x-3 px-3 py-1.5 rounded-full">
                 <img id="dashboardUserIcon" src="" alt="User Avatar"
-                     class="user-avatar w-9 h-9 rounded-full cursor-pointer"
-                     onclick="goToProfile()">
+                    class="user-avatar w-9 h-9 rounded-full cursor-pointer" onclick="goToProfile()">
                 <div>
                     <span id="userNameDisplay" class="font-semibold text-white block leading-tight"></span>
                     <span class="text-white text-opacity-70 text-xs">Online</span>
@@ -179,50 +198,61 @@
             <h2 class="text-3xl font-bold text-white mb-4 text-center md:text-left">
                 Dashboard Outgoing Payment Reimbursement Check
             </h2>
-            
+
             <!-- Status Cards - Improved responsive grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]"
+                    title="Total documents assigned to this checker">
                     <h3 class="text-lg font-semibold text-gray-800">Total Documents</h3>
                     <p id="totalCount" class="text-3xl font-bold text-blue-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]"
+                    title="Documents that need to be checked (status: Prepared)">
                     <h3 class="text-lg font-semibold text-gray-800">Prepared</h3>
                     <p id="preparedCount" class="text-3xl font-bold text-yellow-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]"
+                    title="Documents that have been processed (all status except Prepared)">
                     <h3 class="text-lg font-semibold text-gray-800">Checked</h3>
                     <p id="checkedCount" class="text-3xl font-bold text-green-600 mt-2">0</p>
                 </div>
-                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]">
+                <div class="p-6 bg-white rounded-lg shadow-lg text-center card-hover stat-card min-w-[170px]"
+                    title="Documents that have been rejected">
                     <h3 class="text-lg font-semibold text-gray-800">Rejected</h3>
                     <p id="rejectedCount" class="text-3xl font-bold text-red-600 mt-2">0</p>
                 </div>
             </div>
-            
+
             <!-- Documents List - Improved container styling -->
-            <div class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
+            <div
+                class="bg-white bg-opacity-10 p-6 rounded-xl backdrop-filter backdrop-blur-sm border border-white border-opacity-20">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h3 class="text-xl font-semibold mb-4">List Documents</h3>
-                    
+
                     <!-- Tab buttons for switching views -->
                     <div class="flex flex-col md:flex-row justify-between items-center mb-0">
                         <div class="flex mb-0 mt-2 md:mt-0 border-b w-full md:w-auto">
-                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg">
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')"
+                                class="px-4 py-2 tab-active rounded-t-lg"
+                                title="Documents that need to be checked (status: Prepared)">
                                 <i class="fas fa-file-alt mr-2"></i>Prepared
                             </button>
-                            <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg">
+                            <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg"
+                                title="Documents that have been processed (all status except Prepared)">
                                 <i class="fas fa-check mr-2"></i>Checked
                             </button>
-                            <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg">
+                            <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg"
+                                title="Documents that have been rejected">
                                 <i class="fas fa-times-circle mr-2"></i>Rejected
                             </button>
                         </div>
-                        
+
                         <!-- Search bar -->
                         <div class="relative">
                             <div class="flex">
-                                <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
+                                <select id="searchType"
+                                    class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
                                     <option value="reimNo">Voucher No.</option>
                                     <option value="requester">Requester</option>
                                     <option value="payTo">Pay To</option>
@@ -231,17 +261,13 @@
                                     <option value="totalAmount">Total Amount</option>
                                     <option value="status">Status</option>
                                 </select>
-                                <input
-                                    type="text"
-                                    id="searchInput"
-                                    placeholder="Search..."
-                                    class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
+                                <input type="text" id="searchInput" placeholder="Search..."
+                                    class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                 <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="overflow-x-auto">
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
@@ -260,11 +286,12 @@
                             <tbody id="recentDocs"></tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Pagination controls -->
                     <div class="flex justify-between items-center mt-4">
                         <div class="text-sm text-gray-600">
-                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
+                            Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span
+                                id="totalItems">0</span> items
                         </div>
                         <div class="flex space-x-2">
                             <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
@@ -277,14 +304,16 @@
                         </div>
                     </div>
                 </div>
-           
+
                 <div class="flex justify-between mt-4">
                     <div class="flex justify-end space-x-2">
-                        <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                          <i class="fas fa-file-excel mr-2"></i>Excel
+                        <button onclick="downloadExcel()"
+                            class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>Excel
                         </button>
-                        <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
-                          <i class="fas fa-file-pdf mr-2"></i>PDF
+                        <button onclick="downloadPDF()"
+                            class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-md transform hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-file-pdf mr-2"></i>PDF
                         </button>
                     </div>
                 </div>
@@ -293,28 +322,35 @@
     </div>
 
     <!-- Mobile Navigation Bar - More comprehensive options -->
-    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-        <button onclick="goToTotalDocs()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+    <nav
+        class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
+        <button onclick="goToTotalDocs()"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-alt text-xl"></i>
             <span>Total</span>
         </button>
-        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('prepared')"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file text-xl"></i>
             <span>Prepared</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('checked')"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
         </button>
-        <button onclick="switchTab('rejected')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('rejected')"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-times-circle text-xl"></i>
             <span>Rejected</span>
         </button>
-        <button onclick="downloadExcel()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-green-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="downloadExcel()"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-green-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-excel text-xl"></i>
             <span>Excel</span>
         </button>
-        <button onclick="downloadPDF()" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="downloadPDF()"
+            class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-red-500 transition-colors duration-200 focus:outline-none">
             <i class="fas fa-file-pdf text-xl"></i>
             <span>PDF</span>
         </button>
@@ -327,88 +363,89 @@
     <script src="../../../../components/shared/navigation.js"></script>
     <script src="menuOPReimCheck.js"></script>
     <script>
-    // Disable any sidebar toggle functionality that might be in the JS
-    document.addEventListener('DOMContentLoaded', function() {
-        // Override any toggleSidebar function if it exists
-        if (typeof toggleSidebar === 'function') {
-            window.toggleSidebar = function() {
-                // Do nothing - sidebar is now permanent
-                return false;
-            };
-        }
-        
-        // Make sure sidebar stays fixed when tabs are clicked
-        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('checkedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('rejectedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        // Function to ensure sidebar visibility
-        function ensureSidebarVisible() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                sidebar.style.width = '256px';
-                sidebar.style.transform = 'none';
-                sidebar.style.marginLeft = '0';
-                sidebar.style.visibility = 'visible';
-                sidebar.style.display = 'block';
+        // Disable any sidebar toggle functionality that might be in the JS
+        document.addEventListener('DOMContentLoaded', function () {
+            // Override any toggleSidebar function if it exists
+            if (typeof toggleSidebar === 'function') {
+                window.toggleSidebar = function () {
+                    // Do nothing - sidebar is now permanent
+                    return false;
+                };
             }
-        }
-        
-        // Run immediately and also set interval to keep checking
-        ensureSidebarVisible();
-        setInterval(ensureSidebarVisible, 500); // Check every 500ms
-        
-        // Override switchTab function if it exists to maintain sidebar
-        const originalSwitchTab = window.switchTab;
-        if (typeof originalSwitchTab === 'function') {
-            window.switchTab = function(tab) {
-                // Call the original function
-                originalSwitchTab(tab);
-                // Ensure sidebar remains visible
-                setTimeout(ensureSidebarVisible, 10);
-            };
-        }
-        
-        // Menambahkan class scrollable-cell untuk kolom yang memiliki teks lebih dari 15 karakter
-        function addScrollToLongCells() {
-            const table = document.querySelector('table');
-            if (!table) return;
-            
-            // Observer untuk tabel
-            const observer = new MutationObserver(function(mutations) {
-                const rows = document.querySelectorAll('#recentDocs tr');
-                
-                rows.forEach(row => {
-                    // Dapatkan sel yang perlu di-scroll
-                    const cells = row.cells;
-                    
-                    // Convert NodeList to Array to ensure forEach is available
-                    Array.from(cells).forEach(cell => {
-                        if (cell && cell.textContent.trim().length > 15) {
-                            cell.classList.add('scrollable-cell');
-                        }
+
+            // Make sure sidebar stays fixed when tabs are clicked
+            document.getElementById('preparedTabBtn').addEventListener('click', function (e) {
+                ensureSidebarVisible();
+            });
+
+            document.getElementById('checkedTabBtn').addEventListener('click', function (e) {
+                ensureSidebarVisible();
+            });
+
+            document.getElementById('rejectedTabBtn').addEventListener('click', function (e) {
+                ensureSidebarVisible();
+            });
+
+            // Function to ensure sidebar visibility
+            function ensureSidebarVisible() {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.style.width = '256px';
+                    sidebar.style.transform = 'none';
+                    sidebar.style.marginLeft = '0';
+                    sidebar.style.visibility = 'visible';
+                    sidebar.style.display = 'block';
+                }
+            }
+
+            // Run immediately and also set interval to keep checking
+            ensureSidebarVisible();
+            setInterval(ensureSidebarVisible, 500); // Check every 500ms
+
+            // Override switchTab function if it exists to maintain sidebar
+            const originalSwitchTab = window.switchTab;
+            if (typeof originalSwitchTab === 'function') {
+                window.switchTab = function (tab) {
+                    // Call the original function
+                    originalSwitchTab(tab);
+                    // Ensure sidebar remains visible
+                    setTimeout(ensureSidebarVisible, 10);
+                };
+            }
+
+            // Menambahkan class scrollable-cell untuk kolom yang memiliki teks lebih dari 15 karakter
+            function addScrollToLongCells() {
+                const table = document.querySelector('table');
+                if (!table) return;
+
+                // Observer untuk tabel
+                const observer = new MutationObserver(function (mutations) {
+                    const rows = document.querySelectorAll('#recentDocs tr');
+
+                    rows.forEach(row => {
+                        // Dapatkan sel yang perlu di-scroll
+                        const cells = row.cells;
+
+                        // Convert NodeList to Array to ensure forEach is available
+                        Array.from(cells).forEach(cell => {
+                            if (cell && cell.textContent.trim().length > 15) {
+                                cell.classList.add('scrollable-cell');
+                            }
+                        });
                     });
                 });
-            });
-            
-            // Konfigurasi observer
-            const config = { childList: true, subtree: true };
-            
-            // Mulai observe tabel
-            observer.observe(document.getElementById('recentDocs'), config);
-        }
-        
-        // Panggil fungsi setelah halaman dimuat
-        addScrollToLongCells();
-    });
+
+                // Konfigurasi observer
+                const config = { childList: true, subtree: true };
+
+                // Mulai observe tabel
+                observer.observe(document.getElementById('recentDocs'), config);
+            }
+
+            // Panggil fungsi setelah halaman dimuat
+            addScrollToLongCells();
+        });
     </script>
 </body>
-</html> 
+
+</html>
