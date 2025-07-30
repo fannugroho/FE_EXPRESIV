@@ -381,7 +381,6 @@ function updateTable(invoices) {
             <td class="p-2">${rowNumber}</td>
             <td class="p-2 scrollable-cell">${invoice.invoiceNo}</td>
             <td class="p-2 scrollable-cell">${invoice.customerName}</td>
-            <td class="p-2 scrollable-cell">${invoice.salesEmployee}</td>
             <td class="p-2">${formatDate(invoice.invoiceDate)}</td>
             <td class="p-2">${formatDate(invoice.dueDate)}</td>
             <td class="p-2">
@@ -389,7 +388,6 @@ function updateTable(invoices) {
             </td>
             <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">${invoice.invoiceType}</td>
-            <td class="p-2 scrollable-cell">${invoice.remarks || '-'}</td>
             <td class="p-2">
                 <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>

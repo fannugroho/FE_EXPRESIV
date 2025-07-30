@@ -339,7 +339,6 @@ function displayInvoices() {
             <td class="p-2 border-b">${startIndex + index + 1}</td>
             <td class="p-2 border-b scrollable-cell">${invoice.numAtCard || invoice.u_bsi_invnum || '-'}</td>
             <td class="p-2 border-b">${invoice.cardName || '-'}</td>
-            <td class="p-2 border-b">${invoice.u_BSI_Expressiv_PreparedByName || '-'}</td>
             <td class="p-2 border-b">${formattedDate}</td>
             <td class="p-2 border-b">${formattedDueDate}</td>
             <td class="p-2 border-b"><span class="px-2 py-1 rounded-full text-xs ${statusClass}">${status}</span></td>

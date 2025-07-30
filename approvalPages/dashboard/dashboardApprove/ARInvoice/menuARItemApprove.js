@@ -435,7 +435,6 @@ function updateTable(invoices) {
             <td class="p-2">${startIndex + index + 1}</td>
             <td class="p-2 scrollable-cell">${invoice.invoiceNo}</td>
             <td class="p-2 scrollable-cell">${invoice.customerName}</td>
-            <td class="p-2 scrollable-cell">${invoice.salesEmployee}</td>
             <td class="p-2">${formatDate(invoice.invoiceDate)}</td>
             <td class="p-2">${formatDate(invoice.dueDate)}</td>
             <td class="p-2">

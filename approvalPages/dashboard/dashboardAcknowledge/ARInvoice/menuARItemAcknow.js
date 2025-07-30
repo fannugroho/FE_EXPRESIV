@@ -437,11 +437,6 @@ function updateTable(invoices) {
         cellCustomer.className = 'p-2';
         cellCustomer.innerHTML = `<div class="scrollable-cell">${invoice.customerName}</div>`;
         
-        // Sales Employee
-        const cellEmployee = row.insertCell();
-        cellEmployee.className = 'p-2';
-        cellEmployee.innerHTML = `<div class="scrollable-cell">${invoice.salesEmployee}</div>`;
-        
         // Date
         const cellDate = row.insertCell();
         cellDate.className = 'p-2';
