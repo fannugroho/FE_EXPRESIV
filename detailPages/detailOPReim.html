@@ -884,6 +884,8 @@
          */
         document.addEventListener('DOMContentLoaded', function () {
             console.log('🚀 Initializing Detail Outgoing Payment Reimbursement page...');
+            console.log('📄 Page URL:', window.location.href);
+            console.log('🔍 URL Parameters:', new URLSearchParams(window.location.search).toString());
 
             // Remove loading shimmer effects
             removeLoadingShimmers();

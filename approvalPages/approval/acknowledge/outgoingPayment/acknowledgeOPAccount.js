@@ -27,17 +27,17 @@ function formatCurrency(number) {
     if (number === null || number === undefined || number === '') {
         return '0';
     }
-    
+
     // Parse the number
     const num = parseFloat(number);
     if (isNaN(num)) {
         return '0';
     }
-    
+
     // Get the string representation to check if it has decimal places
     const numStr = num.toString();
     const hasDecimal = numStr.includes('.');
-    
+
     try {
         // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
         if (hasDecimal) {
@@ -55,19 +55,19 @@ function formatCurrency(number) {
     } catch (e) {
         // Fallback for very large numbers
         console.error('Error formatting number:', e);
-        
+
         let strNum = num.toString();
         let sign = '';
-        
+
         if (strNum.startsWith('-')) {
             sign = '-';
             strNum = strNum.substring(1);
         }
-        
+
         const parts = strNum.split('.');
         const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-        
+
         let formattedInteger = '';
         for (let i = 0; i < integerPart.length; i++) {
             if (i > 0 && (integerPart.length - i) % 3 === 0) {
@@ -75,7 +75,7 @@ function formatCurrency(number) {
             }
             formattedInteger += integerPart.charAt(i);
         }
-        
+
         return sign + formattedInteger + decimalPart;
     }
 }
@@ -83,14 +83,14 @@ function formatCurrency(number) {
 // Helper function to parse formatted currency back to number, supporting very large values
 function parseCurrency(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     try {
         // Handle Indonesian format (thousand separator: '.', decimal separator: ',')
         // Replace dots (thousand separators) with nothing and commas (decimal separators) with dots
         const numericValue = formattedValue.toString()
             .replace(/\./g, '') // Remove thousand separators (dots)
             .replace(/,/g, '.'); // Replace decimal separators (commas) with dots
-        
+
         return parseFloat(numericValue) || 0;
     } catch (e) {
         console.error('Error parsing currency:', e);
@@ -104,12 +104,12 @@ function initializeInputValidations() {
     setupCurrencyInput('DocTotal');
     setupCurrencyInput('tdDocTotal');
     setupCurrencyInput('totalAmountDue');
-    
+
     // Setup text input validations (nvarchar)
     setupTextInput('description');
     setupTextInput('AcctCode');
     setupTextInput('AcctName');
-    
+
     // Add event listeners for calculating total
     document.querySelectorAll('.currency-input').forEach(input => {
         input.addEventListener('input', updateTotalAmountDue);
@@ -122,43 +122,43 @@ function setupCurrencyInput(inputId) {
     if (inputElement) {
         // Store the actual numeric value
         inputElement.numericValue = 0;
-        
+
         // Convert to text input for better formatting control
         inputElement.type = 'text';
         inputElement.classList.add('currency-input');
-        
+
         // Add input event for formatting
-        inputElement.addEventListener('input', function(e) {
+        inputElement.addEventListener('input', function (e) {
             // Get the cursor position before formatting
             const cursorPos = this.selectionStart;
             const originalLength = this.value.length;
-            
+
             // Store the raw input value
             // For Indonesian format, we need to handle both dots and commas
             let rawValue = this.value;
-            
+
             // First, remove all dots (thousand separators)
             rawValue = rawValue.replace(/\./g, '');
-            
+
             // Then, replace commas (decimal separators) with dots for parsing
             rawValue = rawValue.replace(/,/g, '.');
-            
+
             // Finally, remove any other non-numeric characters
             rawValue = rawValue.replace(/[^\d.-]/g, '');
-            
+
             // Parse the numeric value, handling potentially very large numbers
             try {
                 const numericValue = parseFloat(rawValue) || 0;
                 this.numericValue = numericValue;
-                
+
                 // Only format if there's actual input
                 if (this.value.trim() !== '') {
                     // Format the value for display, preserving original decimal places
                     const formattedValue = formatCurrency(rawValue);
-                    
+
                     // Update the input value with formatted text
                     this.value = formattedValue;
-                    
+
                     // Restore cursor position, adjusted for change in string length
                     const newLength = this.value.length;
                     const newCursorPos = cursorPos + (newLength - originalLength);
@@ -170,14 +170,14 @@ function setupCurrencyInput(inputId) {
                 this.value = rawValue;
             }
         });
-        
+
         // Add focus event to select all text when focused
-        inputElement.addEventListener('focus', function() {
+        inputElement.addEventListener('focus', function () {
             this.select();
         });
-        
+
         // Add blur event to ensure proper formatting when leaving the field
-        inputElement.addEventListener('blur', function() {
+        inputElement.addEventListener('blur', function () {
             if (this.value.trim() !== '') {
                 try {
                     // Format the value, preserving decimal places
@@ -188,7 +188,7 @@ function setupCurrencyInput(inputId) {
                 }
             }
         });
-        
+
         // Initialize with formatted value if it has a value
         if (inputElement.value && inputElement.value.trim() !== '') {
             try {
@@ -209,9 +209,9 @@ function setupTextInput(inputId) {
     if (inputElement) {
         // Set maxlength for nvarchar fields (adjust as needed)
         inputElement.maxLength = 255;
-        
+
         // Add input validation if needed
-        inputElement.addEventListener('input', function() {
+        inputElement.addEventListener('input', function () {
             // Implement any specific validation for text fields if needed
             // For example, prevent certain characters, etc.
         });
@@ -223,7 +223,7 @@ function addRow() {
     // Create a new row with a unique identifier
     const tableBody = document.getElementById('tableBody');
     const newRowId = `row_${rowCounter++}`;
-    
+
     const newRow = document.createElement('tr');
     newRow.id = newRowId;
     newRow.innerHTML = `
@@ -245,15 +245,15 @@ function addRow() {
             </button>
         </td>
     `;
-    
+
     tableBody.appendChild(newRow);
-    
+
     // Setup currency input for the new row
     setupCurrencyInput(`DocTotal_${newRowId}`);
     setupTextInput(`description_${newRowId}`);
     setupTextInput(`AcctCode_${newRowId}`);
     setupTextInput(`AcctName_${newRowId}`);
-    
+
     // Add event listener to recalculate total
     document.getElementById(`DocTotal_${newRowId}`).addEventListener('input', updateTotalAmountDue);
 }
@@ -270,19 +270,19 @@ function deleteRow(button) {
 // Function to update the total amount due
 function updateTotalAmountDue() {
     let total = 0;
-    
+
     // Get all DocTotal inputs from the table
     const docTotalInputs = document.querySelectorAll('[id^="DocTotal_"]');
     docTotalInputs.forEach(input => {
         total += parseCurrency(input.value);
     });
-    
+
     // Also include the first row if it exists
     const firstRowDocTotal = document.getElementById('DocTotal');
     if (firstRowDocTotal) {
         total += parseCurrency(firstRowDocTotal.value);
     }
-    
+
     // Update the net total
     const netTotalInput = document.getElementById('tdDocTotal');
     if (netTotalInput) {
@@ -296,7 +296,7 @@ function updateTotalAmountDue() {
         totalTaxInput.value = formatCurrency(total);
         totalTaxInput.numericValue = total;
     }
-    
+
     // Update the total amount due
     const totalAmountDueInput = document.getElementById('totalAmountDue');
     if (totalAmountDueInput) {
@@ -326,7 +326,7 @@ function confirmDelete() {
 function deleteDocument() {
     // Implementation for deleting the document
     // This would typically involve an API call
-    
+
     Swal.fire(
         'Berhasil!',
         'Dokumen berhasil dihapus.',
@@ -341,7 +341,7 @@ function deleteDocument() {
 function updateCash(isSubmit = false) {
     // Implementation for updating the document
     // This would typically involve an API call
-    
+
     Swal.fire(
         'Berhasil!',
         isSubmit ? 'Dokumen berhasil di-submit.' : 'Dokumen berhasil diperbarui.',
@@ -358,7 +358,7 @@ function updateCash(isSubmit = false) {
 function toggleClosedByVisibility() {
     const transactionType = document.getElementById('transactionType').value;
     const closedByContainer = document.getElementById('closed').parentElement;
-    
+
     if (transactionType === 'LOAN') {
         closedByContainer.style.display = 'block';
     } else {
@@ -367,19 +367,19 @@ function toggleClosedByVisibility() {
 }
 
 // Initialize when the document is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Load outgoing payment details from API
     loadOutgoingPaymentDetails();
-    
+
     initializeInputValidations();
     toggleClosedByVisibility();
-    
+
     // Add event listener for transaction type change
     const transactionTypeInput = document.getElementById('transactionType');
     if (transactionTypeInput) {
         transactionTypeInput.addEventListener('change', toggleClosedByVisibility);
     }
-    
+
     // Setup initial row
     const firstRowDocTotal = document.getElementById('DocTotal');
     if (firstRowDocTotal) {
@@ -388,42 +388,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to filter business partners
-window.filterBusinessPartners = function() {
+window.filterBusinessPartners = function () {
     // Implementation for filtering business partners
     // This would typically involve filtering a dropdown based on input
     console.log('Filtering business partners...');
 };
 
 // Function to filter requesters
-window.filterRequesters = function() {
+window.filterRequesters = function () {
     // Implementation for filtering requesters
     // This would typically involve filtering a dropdown based on input
     console.log('Filtering requesters...');
 };
 
 // Function to filter departments
-window.filterDepartments = function() {
+window.filterDepartments = function () {
     // Implementation for filtering departments
     // This would typically involve filtering a dropdown based on input
     console.log('Filtering departments...');
 };
 
 // Function to filter statuses
-window.filterStatuses = function() {
+window.filterStatuses = function () {
     // Implementation for filtering statuses
     // This would typically involve filtering a dropdown based on input
     console.log('Filtering statuses...');
 };
 
 // Function to filter transaction types
-window.filterTransactionTypes = function() {
+window.filterTransactionTypes = function () {
     // Implementation for filtering transaction types
     // This would typically involve filtering a dropdown based on input
     console.log('Filtering transaction types...');
 };
 
 // Function to filter users
-window.filterUsers = function(fieldId) {
+window.filterUsers = function (fieldId) {
     // Implementation for filtering users
     // This would typically involve filtering a dropdown based on input
     console.log(`Filtering users for field: ${fieldId}...`);
@@ -439,7 +439,12 @@ function loadOutgoingPaymentDetails() {
     // Get the outgoing payment ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const outgoingPaymentId = urlParams.get('id');
-    
+
+    console.log('🚀 Initializing Acknowledge Outgoing Payment page...');
+    console.log('📄 Page URL:', window.location.href);
+    console.log('🔍 URL Parameters:', new URLSearchParams(window.location.search).toString());
+    console.log('📋 Outgoing Payment ID:', outgoingPaymentId);
+
     if (!outgoingPaymentId) {
         Swal.fire({
             title: 'Error',
@@ -448,7 +453,7 @@ function loadOutgoingPaymentDetails() {
         });
         return;
     }
-    
+
     // Show loading indicator
     Swal.fire({
         title: 'Loading...',
@@ -458,45 +463,71 @@ function loadOutgoingPaymentDetails() {
             Swal.showLoading();
         }
     });
-    
+
+    console.log('🌐 API Request:', `GET ${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`);
+
     // Fetch outgoing payment details from API
-            fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`, {
+    fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
         }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to fetch outgoing payment details');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Store the data in the global variable
-        outgoingPaymentData = data;
-        
-        // Populate the form fields with the retrieved data
-        populateFormFields(data);
-        
-        // Close the loading indicator
-        Swal.close();
-    })
-    .catch(error => {
-        console.error('Error fetching outgoing payment details:', error);
-        
-        Swal.fire({
-            title: 'Error',
-            text: 'Failed to load outgoing payment details. Please try again.',
-            icon: 'error'
+        .then(response => {
+            console.log('📡 Response Status:', response.status, response.statusText);
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch outgoing payment details');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📋 Outgoing Payment API Response:', data);
+
+            // Store the data in the global variable
+            outgoingPaymentData = data;
+
+            // Populate the form fields with the retrieved data
+            populateFormFields(data);
+
+            // Close the loading indicator
+            Swal.close();
+
+            console.log('✅ Page initialization completed');
+        })
+        .catch(error => {
+            console.error('Error fetching outgoing payment details:', error);
+
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to load outgoing payment details. Please try again.',
+                icon: 'error'
+            });
         });
-    });
 }
 
 // Function to populate form fields with outgoing payment data
 function populateFormFields(data) {
+    console.log('🔄 Mapping API Response to Form Fields...');
+    console.log('📊 Outgoing Payment API Data received:', data);
+
     // Populate header fields
+    console.log('📝 Header Fields Mapping:');
+    console.log('- cashAdvanceNo:', data.docNum);
+    console.log('- employeeId:', data.employeeId);
+    console.log('- employeeName:', data.employeeName);
+    console.log('- purpose:', data.purpose);
+    console.log('- paidTo:', data.paidTo);
+    console.log('- paidToName:', data.paidToName);
+    console.log('- requesterId:', data.requesterId);
+    console.log('- requesterName:', data.requesterName);
+    console.log('- departmentId:', data.departmentId);
+    console.log('- departmentName:', data.departmentName);
+    console.log('- submissionDate:', data.submissionDate);
+    console.log('- status:', data.status);
+    console.log('- transactionType:', data.transactionType);
+
     document.getElementById('cashAdvanceNo').value = data.docNum || '';
     document.getElementById('employeeId').value = data.employeeId || '';
     document.getElementById('employeeName').value = data.employeeName || '';
@@ -535,8 +566,21 @@ function populateFormFields(data) {
         tableBody.deleteRow(tableBody.rows.length - 1);
     }
     
+    // Populate table data
+    console.log('📊 Items Data:', data.items);
+    console.log('📊 Items Count:', data.items?.length || 0);
+    
     // Populate the first row if it exists
     if (data.items && data.items.length > 0) {
+        data.items.forEach((item, index) => {
+            console.log(`📋 Item ${index}:`, {
+                acctCode: item.acctCode,
+                acctName: item.acctName,
+                description: item.description,
+                docTotal: item.docTotal
+            });
+        });
+
         const firstItem = data.items[0];
         document.getElementById('AcctCode').value = firstItem.acctCode || '';
         document.getElementById('AcctName').value = firstItem.acctName || '';
@@ -560,6 +604,8 @@ function populateFormFields(data) {
     updateTotalAmountDue();
     
     // Set approval information
+    console.log('👥 Approval Data:', data.approval);
+    
     if (data.approval) {
         // Prepared by
         if (data.approval.preparedBy) {
@@ -600,6 +646,7 @@ function populateFormFields(data) {
     
     // Show rejection remarks if status is Rejected
     if (data.status === 'R' && data.rejectionRemarks) {
+        console.log('⚠️ Rejection Remarks:', data.rejectionRemarks);
         document.getElementById('rejectionRemarksSection').style.display = 'block';
         document.getElementById('rejectionRemarks').value = data.rejectionRemarks;
     } else {
@@ -608,6 +655,8 @@ function populateFormFields(data) {
     
     // Toggle closed by visibility based on transaction type
     toggleClosedByVisibility();
+    
+    console.log('✅ Form mapping completed successfully!');
 }
 
 // Function to approve/check the outgoing payment
@@ -615,7 +664,7 @@ function approveOP() {
     // Get the outgoing payment ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const outgoingPaymentId = urlParams.get('id');
-    
+
     if (!outgoingPaymentId) {
         Swal.fire({
             title: 'Error',
@@ -624,7 +673,7 @@ function approveOP() {
         });
         return;
     }
-    
+
     // Get the current user ID for the checker
     const userId = getUserId();
     if (!userId) {
@@ -635,7 +684,7 @@ function approveOP() {
         });
         return;
     }
-    
+
     // Confirm before approving
     Swal.fire({
         title: 'Confirm Check',
@@ -656,7 +705,7 @@ function approveOP() {
                     Swal.showLoading();
                 }
             });
-            
+
             // Send approval request to API
             fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/check`, {
                 method: 'POST',
@@ -669,31 +718,31 @@ function approveOP() {
                     checkedDate: new Date().toISOString()
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to check outgoing payment');
-                }
-                return response.json();
-            })
-            .then(data => {
-                Swal.fire({
-                    title: 'Success',
-                    text: 'Outgoing payment has been checked successfully',
-                    icon: 'success'
-                }).then(() => {
-                    // Redirect back to menu
-                    goToMenuOP();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to check outgoing payment');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Outgoing payment has been checked successfully',
+                        icon: 'success'
+                    }).then(() => {
+                        // Redirect back to menu
+                        goToMenuOP();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error checking outgoing payment:', error);
+
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to check outgoing payment. Please try again.',
+                        icon: 'error'
+                    });
                 });
-            })
-            .catch(error => {
-                console.error('Error checking outgoing payment:', error);
-                
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to check outgoing payment. Please try again.',
-                    icon: 'error'
-                });
-            });
         }
     });
 }
@@ -703,7 +752,7 @@ function rejectOP() {
     // Get the outgoing payment ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const outgoingPaymentId = urlParams.get('id');
-    
+
     if (!outgoingPaymentId) {
         Swal.fire({
             title: 'Error',
@@ -712,7 +761,7 @@ function rejectOP() {
         });
         return;
     }
-    
+
     // Get the current user ID for the checker
     const userId = getUserId();
     if (!userId) {
@@ -723,7 +772,7 @@ function rejectOP() {
         });
         return;
     }
-    
+
     // Prompt for rejection reason
     Swal.fire({
         title: 'Rejection Reason',
@@ -745,7 +794,7 @@ function rejectOP() {
     }).then((result) => {
         if (result.isConfirmed) {
             const rejectionRemarks = result.value;
-            
+
             // Show loading indicator
             Swal.fire({
                 title: 'Processing...',
@@ -755,7 +804,7 @@ function rejectOP() {
                     Swal.showLoading();
                 }
             });
-            
+
             // Send rejection request to API
             fetch(`${BASE_URL}/api/outgoing-payments/${outgoingPaymentId}/reject`, {
                 method: 'POST',
@@ -769,31 +818,31 @@ function rejectOP() {
                     rejectionRemarks: rejectionRemarks
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to reject outgoing payment');
-                }
-                return response.json();
-            })
-            .then(data => {
-                Swal.fire({
-                    title: 'Success',
-                    text: 'Outgoing payment has been rejected',
-                    icon: 'success'
-                }).then(() => {
-                    // Redirect back to menu
-                    goToMenuOP();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to reject outgoing payment');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Outgoing payment has been rejected',
+                        icon: 'success'
+                    }).then(() => {
+                        // Redirect back to menu
+                        goToMenuOP();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error rejecting outgoing payment:', error);
+
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to reject outgoing payment. Please try again.',
+                        icon: 'error'
+                    });
                 });
-            })
-            .catch(error => {
-                console.error('Error rejecting outgoing payment:', error);
-                
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to reject outgoing payment. Please try again.',
-                    icon: 'error'
-                });
-            });
         }
     });
 }

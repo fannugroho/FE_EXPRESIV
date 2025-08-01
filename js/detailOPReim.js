@@ -44,7 +44,7 @@ const CONFIG = {
  */
 function mapResponseToForm(data) {
     console.log('🔄 Mapping API Response to Form Fields...');
-    console.log('📊 Data received:', data);
+    console.log('📊 Outgoing Payment API Data received:', data);
 
     AppState.documentData = data;
 
@@ -75,6 +75,16 @@ function mapResponseToForm(data) {
  */
 function mapHeaderFields(data) {
     console.log('📝 Header Fields Mapping:');
+    console.log('- CounterRef:', data.counterRef);
+    console.log('- RequesterName:', data.requesterName);
+    console.log('- Division:', data.division);
+    console.log('- CardName:', data.cardName);
+    console.log('- Address:', data.address);
+    console.log('- DocNum:', data.counterRef);
+    console.log('- JrnlMemo:', data.jrnlMemo);
+    console.log('- DocCurr:', data.docCurr);
+    console.log('- TrsfrAcct:', data.trsfrAcct);
+    console.log('- TrsfrSum:', data.trsfrSum);
 
     const headerMapping = [
         { id: 'CounterRef', value: data.counterRef, log: 'CounterRef' },
@@ -90,7 +100,6 @@ function mapHeaderFields(data) {
     ];
 
     headerMapping.forEach(field => {
-        console.log(`- ${field.log}:`, field.value);
         setElementValue(field.id, field.value || '');
     });
 
@@ -108,14 +117,38 @@ function mapHeaderFields(data) {
  * @param {Object} data - API response data
  */
 function mapDateFields(data) {
-    const dateFields = [
-        { id: 'DocDate', value: data.docDate },
+    console.log('📅 Date Fields Mapping:');
+    console.log('- docDate:', data.docDate);
+    console.log('- receivedDate:', data.receivedDate);
+    console.log('- submissionDate:', data.submissionDate);
+    console.log('- docDueDate:', data.docDueDate);
+    console.log('- taxDate:', data.taxDate);
+    console.log('- trsfrDate:', data.trsfrDate);
+
+    // Document Date will be set from Reimbursement API in handleReimbursementData()
+    // Only set DocDate here if no reimbursement data is available (fallback)
+    const currentDocDate = document.getElementById('DocDate')?.value;
+    if (!currentDocDate) {
+        // Fallback: Use receivedDate from Outgoing Payment API if no reimbursement data
+        if (data.receivedDate) {
+            const formattedDate = new Date(data.receivedDate).toISOString().split('T')[0];
+            setElementValue('DocDate', formattedDate);
+            console.log('⚠️ DocDate set from Outgoing Payment receivedDate (fallback):', formattedDate);
+        } else {
+            console.log('⚠️ No receivedDate available from Outgoing Payment API');
+        }
+    } else {
+        console.log('📅 DocDate already set from Reimbursement API:', currentDocDate);
+    }
+
+    // Other date fields
+    const otherDateFields = [
         { id: 'DocDueDate', value: data.docDueDate },
         { id: 'TaxDate', value: data.taxDate },
         { id: 'TrsfrDate', value: data.trsfrDate }
     ];
 
-    dateFields.forEach(field => {
+    otherDateFields.forEach(field => {
         if (field.value) {
             const formattedDate = new Date(field.value).toISOString().split('T')[0];
             setElementValue(field.id, formattedDate);
@@ -129,6 +162,7 @@ function mapDateFields(data) {
  */
 function calculateAndMapTotals(data) {
     console.log('📊 Lines Data:', data.lines);
+    console.log('📊 Lines Count:', data.lines?.length || 0);
 
     let netTotal = 0;
     let totalAmountDue = 0;
@@ -136,7 +170,15 @@ function calculateAndMapTotals(data) {
 
     if (data.lines?.length > 0) {
         data.lines.forEach((line, index) => {
-            console.log(`📋 Line ${index}:`, line);
+            console.log(`📋 Line ${index}:`, {
+                acctCode: line.acctCode,
+                acctName: line.acctName,
+                descrip: line.descrip,
+                divisionCode: line.divisionCode,
+                currencyItem: line.CurrencyItem || line.currencyItem,
+                sumApplied: line.sumApplied
+            });
+
             const amount = line.sumApplied || 0;
             const currency = line.CurrencyItem || line.currencyItem || AppState.BASE_CURRENCY;
 
@@ -161,6 +203,9 @@ function calculateAndMapTotals(data) {
     // Map remarks
     setElementValue('remarks', data.remarks || '');
     setElementValue('journalRemarks', data.journalRemarks || '');
+
+    console.log('📝 Remarks:', data.remarks);
+    console.log('📝 Journal Remarks:', data.journalRemarks);
 }
 
 /**
@@ -169,6 +214,7 @@ function calculateAndMapTotals(data) {
  */
 function mapApprovalSection(data) {
     console.log('👥 Approval Data:', data.approval);
+    console.log('👥 Approval Status:', data.approval?.approvalStatus);
 
     if (data.approval) {
         mapApprovalData(data.approval);
@@ -185,6 +231,7 @@ function mapApprovalSection(data) {
  */
 function mapTableData(data) {
     console.log('📋 Populating Table Lines...');
+    console.log('📋 Total Lines:', data.lines?.length || 0);
 
     if (data.lines?.length > 0) {
         populateTableLines(data.lines);
@@ -290,16 +337,6 @@ function populateTableLines(lines) {
 
     lines.forEach((line, index) => {
         const amount = line.sumApplied || 0;
-
-        console.log(`📋 Line ${index} data:`, {
-            acctCode: line.acctCode,
-            acctName: line.acctName,
-            descrip: line.descrip,
-            division: line.division,
-            divisionCode: line.divisionCode,
-            currencyItem: line.CurrencyItem || line.currencyItem,
-            sumApplied: amount
-        });
 
         const row = createTableRow(line, amount);
         tableBody.appendChild(row);
@@ -489,13 +526,6 @@ function constructFileUrl(filePath) {
         const cleanPath = decodedPath.replace(/^\/+/, '');
         const fileUrl = `${BASE_URL}/${cleanPath}`;
 
-        console.log('File URL construction:', {
-            originalPath: filePath,
-            decodedPath,
-            cleanPath,
-            finalURL: fileUrl
-        });
-
         return fileUrl;
     } catch (error) {
         console.error('Error constructing file URL:', error);
@@ -561,8 +591,6 @@ function displayExistingAttachments(attachments) {
         container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
         return;
     }
-
-    console.log('Displaying attachments:', attachments);
 
     const attachmentItems = attachments.map((attachment, index) => {
         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
@@ -658,8 +686,6 @@ function normalizeAttachment(attachmentOrPath, fileName) {
  * @param {string} filePath - File path
  */
 async function openAttachmentFile(filePath) {
-    console.log('Using direct filePath:', filePath);
-
     Swal.close();
 
     const fileUrl = constructFileUrl(filePath);
@@ -677,8 +703,6 @@ async function openAttachmentFile(filePath) {
  * @param {Object} attachment - Attachment object
  */
 async function fetchAndOpenAttachment(docId, attachment) {
-    console.log('Fetching attachments from API for document:', docId);
-
     const response = await makeAuthenticatedRequest(`${CONFIG.API_ENDPOINTS.ATTACHMENTS}/${docId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -815,7 +839,7 @@ async function fetchDocumentData(docId) {
     }
 
     const result = await response.json();
-    console.log('📋 API Response:', result);
+    console.log('📋 Outgoing Payment API Response:', result);
 
     return result;
 }
@@ -827,7 +851,6 @@ async function fetchDocumentData(docId) {
  */
 async function handleAttachments(result, docId) {
     if (result.attachments?.length > 0) {
-        console.log('Attachments found in main response:', result.attachments);
         displayExistingAttachments(result.attachments);
     } else {
         await loadAttachmentsFromAPI(docId);
@@ -841,7 +864,7 @@ async function handleAttachments(result, docId) {
 async function handleReimbursementData(result) {
     if (!result.expressivNo) return;
 
-    console.log('Outgoing payment created from reimbursement:', result.expressivNo);
+    console.log('🔄 Fetching reimbursement data for:', result.expressivNo);
 
     try {
         const reimResponse = await makeAuthenticatedRequest(`${CONFIG.API_ENDPOINTS.REIMBURSEMENTS}/${result.expressivNo}`, {
@@ -851,14 +874,28 @@ async function handleReimbursementData(result) {
 
         if (reimResponse.ok) {
             const reimResult = await reimResponse.json();
-            if (reimResult?.data?.voucherNo) {
-                setElementValue('CounterRef', reimResult.data.voucherNo);
+            console.log('📋 Reimbursement API Response:', reimResult);
+
+            if (reimResult?.data) {
+                // Update CounterRef from reimbursement data
+                if (reimResult.data.voucherNo) {
+                    setElementValue('CounterRef', reimResult.data.voucherNo);
+                }
+
+                // Document Date - Always use receivedDate from Reimbursement API
+                if (reimResult.data.receivedDate) {
+                    const formattedDate = new Date(reimResult.data.receivedDate).toISOString().split('T')[0];
+                    setElementValue('DocDate', formattedDate);
+                    console.log('✅ DocDate set from Reimbursement receivedDate:', formattedDate);
+                } else {
+                    console.log('⚠️ No receivedDate available from Reimbursement API');
+                }
             }
         }
 
         await loadReimbursementAttachments(result.expressivNo);
     } catch (err) {
-        console.warn('Could not fetch reimbursement voucherNo:', err);
+        console.warn('Could not fetch reimbursement data:', err);
     }
 }
 
@@ -868,14 +905,14 @@ async function handleReimbursementData(result) {
  */
 async function loadAttachmentsFromAPI(docId) {
     try {
-        console.log('Attempting to load attachments for document:', docId);
+        console.log('📎 Loading attachments for document:', docId);
 
         const response = await makeAuthenticatedRequest(`${CONFIG.API_ENDPOINTS.ATTACHMENTS}/${docId}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log('Attachments API response status:', response.status);
+        console.log('📎 Attachments API response status:', response.status);
 
         if (!response.ok) {
             await handleAttachmentLoadError(response, docId);
@@ -883,7 +920,7 @@ async function loadAttachmentsFromAPI(docId) {
         }
 
         const result = await response.json();
-        console.log('Attachments API response data:', result);
+        console.log('📎 Attachments API response data:', result);
 
         if (result.data?.length > 0) {
             displayExistingAttachments(result.data);
@@ -920,7 +957,7 @@ async function handleAttachmentLoadError(response, docId) {
         if (mainResponse.ok) {
             const mainResult = await mainResponse.json();
             if (mainResult.attachments?.length > 0) {
-                console.log('Found attachments in main response:', mainResult.attachments);
+                console.log('📎 Found attachments in main response:', mainResult.attachments);
                 displayExistingAttachments(mainResult.attachments);
                 return;
             }
@@ -940,7 +977,7 @@ async function handleAttachmentLoadError(response, docId) {
  */
 async function loadReimbursementAttachments(reimbursementId) {
     try {
-        console.log('Loading reimbursement attachments for ID:', reimbursementId);
+        console.log('📎 Loading reimbursement attachments for ID:', reimbursementId);
 
         const response = await makeAuthenticatedRequest(`${CONFIG.API_ENDPOINTS.REIMBURSEMENTS}/${reimbursementId}`, {
             method: 'GET',
@@ -955,10 +992,10 @@ async function loadReimbursementAttachments(reimbursementId) {
         const result = await response.json();
 
         if (result.data?.reimbursementAttachments?.length > 0) {
-            console.log('Found reimbursement attachments:', result.data.reimbursementAttachments);
+            console.log('📎 Found reimbursement attachments:', result.data.reimbursementAttachments);
             appendReimbursementAttachmentsSection(result.data.reimbursementAttachments);
         } else {
-            console.log('No reimbursement attachments found');
+            console.log('📎 No reimbursement attachments found');
         }
 
     } catch (error) {
@@ -1144,7 +1181,7 @@ function loadDivisionInfo(data) {
  */
 async function loadDivisionForRequester(requesterId) {
     try {
-        console.log('🔍 Loading division for requester ID:', requesterId);
+        console.log('👥 Loading division for requester ID:', requesterId);
 
         const response = await fetch(`${BASE_URL}${CONFIG.API_ENDPOINTS.USERS}/${requesterId}`, {
             method: 'GET',
@@ -1160,6 +1197,7 @@ async function loadDivisionForRequester(requesterId) {
         }
 
         const result = await response.json();
+        console.log('👥 User API Response:', result);
         const userData = result.data;
 
         if (userData?.department) {
@@ -1182,7 +1220,7 @@ async function loadDivisionForRequester(requesterId) {
  */
 async function loadDivisionForRequesterByName(requesterName) {
     try {
-        console.log('🔍 Loading division for requester name:', requesterName);
+        console.log('👥 Loading division for requester name:', requesterName);
 
         const response = await fetch(`${BASE_URL}${CONFIG.API_ENDPOINTS.USERS}`, {
             method: 'GET',
@@ -1198,6 +1236,7 @@ async function loadDivisionForRequesterByName(requesterName) {
         }
 
         const result = await response.json();
+        console.log('👥 Users API Response:', result);
         const users = result.data || [];
 
         const user = users.find(u =>

@@ -1296,19 +1296,6 @@ async function submitReimbursementUpdate() {
     formData.payTo = payToSelect ? payToSelect.value : null;
     
     console.log('Form data collected:', formData);
-    console.log('Form elements found:');
-    console.log('- requesterNameSearch:', document.getElementById('requesterNameSearch'));
-    console.log('- department:', document.getElementById('department'));
-    console.log('- currency:', document.getElementById('currency'));
-    console.log('- referenceDoc:', document.getElementById('referenceDoc'));
-    console.log('- typeOfTransaction:', document.getElementById('typeOfTransaction'));
-    console.log('- remarks:', document.getElementById('remarks'));
-    console.log('- preparedBySelect:', document.getElementById('preparedBySelect'));
-    console.log('- acknowledgeBySelect:', document.getElementById('acknowledgeBySelect'));
-    console.log('- checkedBySelect:', document.getElementById('checkedBySelect'));
-    console.log('- approvedBySelect:', document.getElementById('approvedBySelect'));
-    console.log('- receivedBySelect:', document.getElementById('receivedBySelect'));
-    console.log('- payToSelect:', payToSelect);
     
     // Validate required fields
     if (!formData.requesterName) {
@@ -1331,7 +1318,7 @@ async function submitReimbursementUpdate() {
         return;
     }
     
-    // Collect reimbursement details from table
+    // Collect reimbursement details from table with improved logic
     const detailsTable = document.getElementById('reimbursementDetails');
     const rows = detailsTable.querySelectorAll('tr');
     const existingDetails = [];
@@ -1342,13 +1329,14 @@ async function submitReimbursementUpdate() {
     rows.forEach((row, index) => {
         console.log(`--- Processing row ${index + 1} ---`);
         
-        // Get all input elements in the row
+        // Get all input elements in the row with more specific selectors
         const categoryInput = row.querySelector('.category-search');
         const accountNameInput = row.querySelector('.account-name-search');
         const glAccountInput = row.querySelector('.gl-account');
-        const descriptionInput = row.querySelector('input[type="text"]:not(.category-search):not(.account-name-search):not(.gl-account)');
-        const amountInput = row.querySelector('input[type="text"].currency-input-idr, input[type="number"]');
-        const deleteButton = row.querySelector('button');
+        // Get description input - it's the 4th td, and the input is the only input in that td
+        const descriptionInput = row.querySelector('td:nth-child(4) input[type="text"]');
+        const amountInput = row.querySelector('.currency-input-idr');
+        const deleteButton = row.querySelector('button[onclick="deleteRow(this)"]');
         const detailId = deleteButton ? deleteButton.getAttribute('data-id') : null;
         
         console.log('Row elements found:');
