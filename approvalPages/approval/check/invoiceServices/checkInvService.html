@@ -776,6 +776,7 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="checkInvService.js"></script>
     
     <script>
         // Function to handle text wrapping based on character length
@@ -962,7 +963,7 @@
         function initializeAttachments() {
             // Get stagingID from URL parameters or other source
             const urlParams = new URLSearchParams(window.location.search);
-            const stagingID = urlParams.get('stagingId') || 'STG-C41174-002'; // Default for testing
+            const stagingID = urlParams.get('stagingId') || urlParams.get('invoice-id');
             
             if (stagingID) {
                 loadAttachments(stagingID);

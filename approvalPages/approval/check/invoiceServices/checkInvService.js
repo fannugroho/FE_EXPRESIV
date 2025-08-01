@@ -119,13 +119,17 @@ function getCurrentUserFullName() {
 // Load invoice service data
 function loadInvServiceData() {
     const urlParams = new URLSearchParams(window.location.search);
-    const stagingId = urlParams.get('stagingId');
+    const stagingId = urlParams.get('stagingId') || urlParams.get('invoice-id');
+    
+    console.log('URL search params:', window.location.search);
+    console.log('All URL params:', Object.fromEntries(urlParams.entries()));
+    console.log('Staging ID from URL:', stagingId);
     
     if (!stagingId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'No staging ID provided'
+            text: 'No staging ID provided in URL parameters'
         }).then(() => {
             goToMenuCheckInvService();
         });
@@ -310,7 +314,7 @@ function updateButtonVisibility() {
 function populateInvServiceData(data) {
     console.log('Populating invoice service data:', data);
     
-    // Populate header fields
+    // Populate header fields with correct API field mapping
     document.getElementById('DocEntry').value = data.stagingID || '';
     document.getElementById('DocNum').value = data.docNum || '';
     document.getElementById('CardCode').value = data.cardCode || '';
@@ -323,18 +327,20 @@ function populateInvServiceData(data) {
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
     document.getElementById('GroupNum').value = data.groupNum || '';
     document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
+    document.getElementById('TaxNo').value = data.trackNo || ''; // Use trackNo for TaxNo field
     document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
     document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    document.getElementById('account').value = data.account || '';
+    document.getElementById('acctName').value = data.acctName || '';
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
     document.getElementById('Status').value = status;
     
-    // Populate totals
+    // Populate totals with correct calculation
     document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
     document.getElementById('VatSum').value = data.vatSum || 0;
     document.getElementById('DocTotal').value = data.docTotal || 0;
@@ -369,8 +375,8 @@ function populateInvServiceData(data) {
         }
     }
     
-    // Populate services table
-    populateServicesTable(data.arInvoiceServices || []);
+    // Populate services table using arInvoiceDetails (same as detailINVService.html)
+    populateServicesTable(data.arInvoiceDetails || []);
     
     // Apply text wrapping
     refreshTextWrapping();
@@ -440,7 +446,7 @@ function populateServicesTable(services) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
             <td colspan="8" class="p-4 text-center text-gray-500">
-                No invoice services found
+                No invoice service details found
             </td>
         `;
         tableBody.appendChild(emptyRow);
@@ -469,19 +475,19 @@ function createServiceRow(service, index) {
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${service.acctCode || ''}" />
         </td>
         <td class="p-2 border account-name-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="100" disabled autocomplete="off" value="${service.acctName || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="100" disabled autocomplete="off" value="-" />
         </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.vatgroup || ''}" />
         </td>
         <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.wtaxLiable || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.wtLiable || ''}" />
         </td>
         <td class="p-2 border h-12 total-lc-column">
             <textarea class="total-lc-input service-total-lc bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${service.lineTotal || ''}</textarea>
         </td>
         <td class="p-2 border source-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="${service.source || ''}" />
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="-" />
         </td>
     `;
     
