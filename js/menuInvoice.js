@@ -775,11 +775,35 @@ function goToAddInvoice() {
 // Function to view invoice details
 function viewInvoiceDetails(id) {
     console.log('Viewing invoice details for ID:', id);
-    // Navigate to the invoice detail page
+    
+    // Find the invoice data to determine its type
+    const invoice = allInvoices.find(inv => {
+        const invId = inv.stagingID || inv.id || inv.docNum || inv.numAtCard || inv.u_bsi_invnum;
+        return invId && invId.toString() === id.toString();
+    });
+    
+    // Determine which detail page to use based on document type
+    let detailPage = 'detailINVItem.html'; // Default to item page
+    
+    if (invoice && invoice.docType) {
+        switch (invoice.docType) {
+            case 'S':
+                detailPage = 'detailINVService.html';
+                break;
+            case 'I':
+            default:
+                detailPage = 'detailINVItem.html';
+                break;
+        }
+    }
+    
+    console.log(`Redirecting to ${detailPage} for invoice type: ${invoice?.docType || 'unknown'}`);
+    
+    // Navigate to the appropriate invoice detail page
     if (typeof navigateToPage === 'function') {
-        navigateToPage(`detailPages/detailInvoice.html?invoice-id=${id}`);
+        navigateToPage(`detailPages/${detailPage}?invoice-id=${id}`);
     } else {
-        window.location.href = `detailPages/detailInvoice.html?invoice-id=${id}`;
+        window.location.href = `detailPages/${detailPage}?invoice-id=${id}`;
     }
 }
 
