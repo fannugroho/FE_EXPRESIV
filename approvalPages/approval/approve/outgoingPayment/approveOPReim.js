@@ -9,11 +9,15 @@ let documentId = null;
 
 // Execute when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('🚀 Initializing Approve Outgoing Payment Reimbursement page...');
+    console.log('📄 Page URL:', window.location.href);
+    console.log('🔍 URL Parameters:', new URLSearchParams(window.location.search).toString());
+
     // Get document ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     documentId = urlParams.get('id');
 
-
+    console.log('📋 Document ID:', documentId);
 
     if (documentId) {
         // Load document details
@@ -31,6 +35,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize event listeners
     initializeEventListeners();
+
+    console.log('✅ Page initialization completed');
 });
 
 // Initialize event listeners
@@ -52,10 +58,14 @@ async function loadOPReimDetails(id) {
             }
         });
 
+        console.log('🌐 API Request:', `GET /api/staging-outgoing-payments/headers/${id}`);
+
         // Make API request to get document details
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
             method: 'GET'
         });
+
+        console.log('📡 Response Status:', response.status, response.statusText);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
@@ -63,6 +73,7 @@ async function loadOPReimDetails(id) {
 
         // Parse response data
         const data = await response.json();
+        console.log('📋 Outgoing Payment API Response:', data);
         outgoingPaymentReimData = data;
 
         // Load users data to get names
@@ -94,15 +105,20 @@ async function loadOPReimDetails(id) {
 // Load users data to get user names
 async function loadUsersData() {
     try {
+        console.log('👥 Loading users data...');
+
         const response = await makeAuthenticatedRequest('/api/users', {
             method: 'GET'
         });
+
+        console.log('👥 Users API Response Status:', response.status);
 
         if (!response.ok) {
             throw new Error(`Failed to load users: ${response.status}`);
         }
 
         const usersData = await response.json();
+        console.log('👥 Users API Response:', usersData);
         window.usersList = usersData.data || [];
 
     } catch (error) {
@@ -244,6 +260,9 @@ function getStatusMessage(status) {
 
 // Populate form fields with data
 function populateFormFields(data) {
+    console.log('🔄 Mapping API Response to Form Fields...');
+    console.log('📊 Outgoing Payment API Data received:', data);
+
     // Helper function to safely set value
     const setValue = (id, value) => {
         const el = document.getElementById(id);
@@ -251,6 +270,17 @@ function populateFormFields(data) {
     };
 
     // Map header fields
+    console.log('📝 Header Fields Mapping:');
+    console.log('- CounterRef:', data.counterRef);
+    console.log('- RequesterName:', data.requesterName);
+    console.log('- CardName:', data.cardName);
+    console.log('- Address:', data.address);
+    console.log('- DocNum:', data.counterRef || data.docNum);
+    console.log('- JrnlMemo:', data.jrnlMemo);
+    console.log('- DocCurr:', data.docCurr);
+    console.log('- TrsfrAcct:', data.trsfrAcct);
+    console.log('- TrsfrSum:', data.trsfrSum);
+
     setValue('CounterRef', data.counterRef || '');
     setValue('RequesterName', data.requesterName || '');
     setValue('CardName', data.cardName || '');
@@ -262,11 +292,29 @@ function populateFormFields(data) {
     setValue('TrsfrAcct', data.trsfrAcct || '');
     setValue('RemittanceRequestAmount', formatCurrency(data.trsfrSum || 0));
 
-    // Map date fields
-    if (data.docDate) {
-        const docDate = new Date(data.docDate);
-        setValue('DocDate', docDate.toISOString().split('T')[0]);
+    // Map date fields - Document Date will be set from Reimbursement API in handleReimbursementData()
+    // Only set DocDate here if no reimbursement data is available (fallback)
+    console.log('📅 Date Fields Mapping:');
+    console.log('- docDate:', data.docDate);
+    console.log('- receivedDate:', data.receivedDate);
+    console.log('- docDueDate:', data.docDueDate);
+    console.log('- trsfrDate:', data.trsfrDate);
+
+    const currentDocDate = document.getElementById('DocDate')?.value;
+    if (!currentDocDate) {
+        // Fallback: Use receivedDate from Outgoing Payment API if no reimbursement data
+        if (data.receivedDate) {
+            const docDate = new Date(data.receivedDate);
+            setValue('DocDate', docDate.toISOString().split('T')[0]);
+            console.log('⚠️ DocDate set from Outgoing Payment receivedDate (fallback):', docDate.toISOString().split('T')[0]);
+        } else {
+            console.log('⚠️ No receivedDate available from Outgoing Payment API');
+        }
+    } else {
+        console.log('📅 DocDate already set from Reimbursement API:', currentDocDate);
     }
+
+    // Other date fields
     if (data.docDueDate) {
         const docDueDate = new Date(data.docDueDate);
         setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
@@ -277,13 +325,24 @@ function populateFormFields(data) {
     }
 
     // Calculate totals from lines
+    console.log('📊 Lines Data:', data.lines);
+    console.log('📊 Lines Count:', data.lines?.length || 0);
+
     let netTotal = 0;
     let totalAmountDue = 0;
     const currencySummary = {};
 
     if (data.lines && data.lines.length > 0) {
         data.lines.forEach((line, index) => {
-            console.log(`Line ${index}:`, line);
+            console.log(`📋 Line ${index}:`, {
+                acctCode: line.acctCode,
+                acctName: line.acctName,
+                descrip: line.descrip,
+                divisionCode: line.divisionCode,
+                currencyItem: line.CurrencyItem || line.currencyItem,
+                sumApplied: line.sumApplied
+            });
+
             const amount = line.sumApplied || 0;
             const currency = line.CurrencyItem || line.currencyItem || 'IDR';
 
@@ -294,7 +353,7 @@ function populateFormFields(data) {
         });
     }
 
-    console.log('Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
+    console.log('💰 Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
 
     // Update total fields
     setValue('netTotal', formatCurrency(netTotal));
@@ -309,7 +368,13 @@ function populateFormFields(data) {
     setValue('remarks', data.remarks || '');
     setValue('journalRemarks', data.journalRemarks || '');
 
+    console.log('📝 Remarks:', data.remarks);
+    console.log('📝 Journal Remarks:', data.journalRemarks);
+
     // Map approval data
+    console.log('👥 Approval Data:', data.approval);
+    console.log('👥 Approval Status:', data.approval?.approvalStatus);
+
     if (data.approval) {
         populateApprovalInfo(data.approval);
         // Show rejection remarks if status is rejected
@@ -327,8 +392,13 @@ function populateFormFields(data) {
     }
 
     // Map table lines
+    console.log('📋 Populating Table Lines...');
+    console.log('📋 Total Lines:', data.lines?.length || 0);
+
     if (data.lines && data.lines.length > 0) {
         populateTableRows(data.lines);
+    } else {
+        console.log('⚠️ No lines data found');
     }
 
     // Handle attachments like detail page
@@ -342,6 +412,8 @@ function populateFormFields(data) {
 
     // Initialize button visibility after all data is loaded
     initializeButtonVisibility(data);
+
+    console.log('✅ Form mapping completed successfully!');
 }
 
 // Initialize button visibility based on document status
@@ -751,16 +823,16 @@ function formatLargeNumberFallback(num) {
 
 // Handles attachment loading like detail page
 async function handleAttachments(result, docId) {
-    console.log('handleAttachments called with result:', result);
-    console.log('Document ID:', docId);
-    console.log('result.attachments:', result.attachments);
-    console.log('result.attachments length:', result.attachments?.length);
+    console.log('📎 handleAttachments called with result:', result);
+    console.log('📎 Document ID:', docId);
+    console.log('📎 result.attachments:', result.attachments);
+    console.log('📎 result.attachments length:', result.attachments?.length);
 
     if (result.attachments?.length > 0) {
-        console.log('Attachments found in main response:', result.attachments);
+        console.log('📎 Attachments found in main response:', result.attachments);
         displayExistingAttachments(result.attachments);
     } else {
-        console.log('No attachments in main response, trying API endpoint');
+        console.log('📎 No attachments in main response, trying API endpoint');
         await loadAttachmentsFromAPI(docId);
     }
 }
@@ -769,7 +841,7 @@ async function handleAttachments(result, docId) {
 async function handleReimbursementData(result) {
     if (!result.expressivNo) return;
 
-    console.log('Outgoing payment created from reimbursement:', result.expressivNo);
+    console.log('🔄 Fetching reimbursement data for:', result.expressivNo);
 
     try {
         const reimResponse = await makeAuthenticatedRequest(`/api/reimbursements/${result.expressivNo}`, {
@@ -779,18 +851,36 @@ async function handleReimbursementData(result) {
 
         if (reimResponse.ok) {
             const reimResult = await reimResponse.json();
-            if (reimResult?.data?.voucherNo) {
-                const setValue = (id, value) => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = value;
-                };
-                setValue('CounterRef', reimResult.data.voucherNo);
+            console.log('📋 Reimbursement API Response:', reimResult);
+
+            if (reimResult?.data) {
+                // Update CounterRef from reimbursement data
+                if (reimResult.data.voucherNo) {
+                    const setValue = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value;
+                    };
+                    setValue('CounterRef', reimResult.data.voucherNo);
+                }
+
+                // Document Date - Always use receivedDate from Reimbursement API
+                if (reimResult.data.receivedDate) {
+                    const formattedDate = new Date(reimResult.data.receivedDate).toISOString().split('T')[0];
+                    const setValue = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value;
+                    };
+                    setValue('DocDate', formattedDate);
+                    console.log('✅ DocDate set from Reimbursement receivedDate:', formattedDate);
+                } else {
+                    console.log('⚠️ No receivedDate available from Reimbursement API');
+                }
             }
         }
 
         await loadReimbursementAttachments(result.expressivNo);
     } catch (err) {
-        console.warn('Could not fetch reimbursement voucherNo:', err);
+        console.warn('Could not fetch reimbursement data:', err);
     }
 }
 
@@ -952,14 +1042,14 @@ function formatDate(dateString) {
 // Loads attachments from API like detail page
 async function loadAttachmentsFromAPI(docId) {
     try {
-        console.log('Attempting to load attachments for document:', docId);
+        console.log('📎 Attempting to load attachments for document:', docId);
 
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log('Attachments API response status:', response.status);
+        console.log('📎 Attachments API response status:', response.status);
 
         if (!response.ok) {
             await handleAttachmentLoadError(response, docId);
@@ -967,7 +1057,7 @@ async function loadAttachmentsFromAPI(docId) {
         }
 
         const result = await response.json();
-        console.log('Attachments API response data:', result);
+        console.log('📎 Attachments API response data:', result);
 
         if (result.data?.length > 0) {
             displayExistingAttachments(result.data);
@@ -1000,7 +1090,7 @@ async function handleAttachmentLoadError(response, docId) {
         if (mainResponse.ok) {
             const mainResult = await mainResponse.json();
             if (mainResult.attachments?.length > 0) {
-                console.log('Found attachments in main response:', mainResult.attachments);
+                console.log('📎 Found attachments in main response:', mainResult.attachments);
                 displayExistingAttachments(mainResult.attachments);
                 return;
             }
@@ -1154,7 +1244,7 @@ function findTargetAttachment(attachments, target) {
 // Load reimbursement attachments like detail page
 async function loadReimbursementAttachments(reimbursementId) {
     try {
-        console.log('Loading reimbursement attachments for ID:', reimbursementId);
+        console.log('📎 Loading reimbursement attachments for ID:', reimbursementId);
 
         const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
             method: 'GET',
@@ -1169,10 +1259,10 @@ async function loadReimbursementAttachments(reimbursementId) {
         const result = await response.json();
 
         if (result.data?.reimbursementAttachments?.length > 0) {
-            console.log('Found reimbursement attachments:', result.data.reimbursementAttachments);
+            console.log('📎 Found reimbursement attachments:', result.data.reimbursementAttachments);
             appendReimbursementAttachmentsSection(result.data.reimbursementAttachments);
         } else {
-            console.log('No reimbursement attachments found');
+            console.log('📎 No reimbursement attachments found');
         }
 
     } catch (error) {

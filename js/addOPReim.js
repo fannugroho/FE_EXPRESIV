@@ -892,6 +892,16 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
         const detailedData = result.data;
         console.log('Detailed reimbursement data:', detailedData);
 
+        // Debug log untuk receivedDate
+        console.log('=== RECEIVED DATE DEBUG ===');
+        console.log('receivedDate:', detailedData.receivedDate);
+        console.log('receivedDate type:', typeof detailedData.receivedDate);
+        console.log('docDate:', detailedData.docDate);
+        console.log('docDate type:', typeof detailedData.docDate);
+        console.log('submissionDate:', detailedData.submissionDate);
+        console.log('submissionDate type:', typeof detailedData.submissionDate);
+        console.log('=== END RECEIVED DATE DEBUG ===');
+
         // Populate form fields
         document.getElementById('CounterRef').value = detailedData.voucherNo || reimbursementId || '';
         document.getElementById('RequesterName').value = detailedData.receivedByName || '';
@@ -922,8 +932,13 @@ async function loadReimbursementDataFromUrl(reimbursementId) {
 
         document.getElementById('Address').value = '';
 
-        if (detailedData.submissionDate) {
-            const docDate = new Date(detailedData.submissionDate);
+        // Document Date should come from docDate (actual document date)
+        if (detailedData.docDate) {
+            const docDate = new Date(detailedData.docDate);
+            document.getElementById('DocDate').value = docDate.toISOString().split('T')[0];
+        } else if (detailedData.receivedDate) {
+            // Fallback to receivedDate if docDate is not available
+            const docDate = new Date(detailedData.receivedDate);
             document.getElementById('DocDate').value = docDate.toISOString().split('T')[0];
         }
 
@@ -1770,14 +1785,28 @@ function loadOutgoingPaymentDetails(outgoingPaymentId) {
 
 // Function to populate form fields with outgoing payment data
 function populateFormFields(data) {
+    console.log('populateFormFields called with data:', data);
+
+    // Debug log untuk receivedDate di populateFormFields
+    console.log('=== POPULATE FORM FIELDS - DATE DEBUG ===');
+    console.log('data.receivedDate:', data.receivedDate);
+    console.log('data.receivedDate type:', typeof data.receivedDate);
+    console.log('data.docDate:', data.docDate);
+    console.log('data.docDate type:', typeof data.docDate);
+    console.log('data.submissionDate:', data.submissionDate);
+    console.log('data.submissionDate type:', typeof data.submissionDate);
+    console.log('=== END POPULATE FORM FIELDS - DATE DEBUG ===');
+
     document.getElementById('CounterRef').value = data.counterRef || '';
     document.getElementById('RequesterName').value = data.receivedByName || '';
     document.getElementById('CardName').value = data.cardName || '';
     document.getElementById('Address').value = data.address || '';
 
+    // Document Date should come from docDate (actual document date)
     if (data.docDate) {
         document.getElementById('DocDate').value = data.docDate.split('T')[0];
     } else if (data.receivedDate) {
+        // Fallback to receivedDate if docDate is not available
         document.getElementById('DocDate').value = data.receivedDate.split('T')[0];
     }
     if (data.docDueDate) {
@@ -2703,10 +2732,26 @@ async function loadDocumentData() {
 
 // Function to map response data back to form fields
 function mapResponseToForm(responseData) {
+    console.log('mapResponseToForm called with responseData:', responseData);
+
+    // Debug log untuk receivedDate di mapResponseToForm
+    console.log('=== MAP RESPONSE TO FORM - DATE DEBUG ===');
+    console.log('responseData.receivedDate:', responseData.receivedDate);
+    console.log('responseData.receivedDate type:', typeof responseData.receivedDate);
+    console.log('responseData.docDate:', responseData.docDate);
+    console.log('responseData.docDate type:', typeof responseData.docDate);
+    console.log('responseData.submissionDate:', responseData.submissionDate);
+    console.log('responseData.submissionDate type:', typeof responseData.submissionDate);
+    console.log('=== END MAP RESPONSE TO FORM - DATE DEBUG ===');
+
     if (responseData.voucherNo) document.getElementById("CounterRef").value = responseData.voucherNo;
     if (responseData.receivedByName) document.getElementById("RequesterName").value = responseData.receivedByName;
 
-    if (responseData.receivedDate) {
+    // Document Date should come from docDate (actual document date)
+    if (responseData.docDate) {
+        document.getElementById("DocDate").value = responseData.docDate.split('T')[0];
+    } else if (responseData.receivedDate) {
+        // Fallback to receivedDate if docDate is not available
         document.getElementById("DocDate").value = responseData.receivedDate.split('T')[0];
     }
     document.getElementById("DocDate").readOnly = true;

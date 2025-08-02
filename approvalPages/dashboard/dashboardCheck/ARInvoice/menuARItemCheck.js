@@ -499,8 +499,25 @@ function goToTotalDocs() {
 }
 
 window.viewInvoiceDetails = function(id) {
-    // Navigate to invoice check page
-    window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id === id);
+    
+    if (invoice) {
+        // Route based on docType
+        if (invoice.docType === 'I') {
+            // Navigate to invoice item check page
+            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+        } else if (invoice.docType === 'S') {
+            // Navigate to invoice service check page
+            window.location.href = `../../../approval/check/invoiceServices/checkInvService.html?stagingId=${id}`;
+        } else {
+            // Default fallback to invoice item page
+            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+        }
+    } else {
+        // Fallback if invoice not found
+        window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+    }
 };
 
 window.editInvoice = function(id) {
@@ -514,8 +531,25 @@ window.printInvoice = function(id) {
 };
 
 function viewInvoiceDetails(id) {
-    // Navigate to invoice check page
-    window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id === id);
+    
+    if (invoice) {
+        // Route based on docType
+        if (invoice.docType === 'I') {
+            // Navigate to invoice item check page
+            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+        } else if (invoice.docType === 'S') {
+            // Navigate to invoice service check page
+            window.location.href = `../../../approval/check/invoiceServices/checkInvService.html?stagingId=${id}`;
+        } else {
+            // Default fallback to invoice item page
+            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+        }
+    } else {
+        // Fallback if invoice not found
+        window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+    }
 }
 
 function editInvoice(id) {

@@ -1,0 +1,442 @@
+{
+  "info": {
+    "_postman_id": "addreim-mock-api-collection",
+    "name": "AddReim Mock API Collection",
+    "description": "Collection untuk testing endpoint-endpoint mock API addReim.js",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "addreim-mock-api"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Mengambil data semua users untuk dropdown selection"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "1"]
+            },
+            "description": "Mengambil detail user berdasarkan ID"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola data users"
+    },
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/department",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "department"]
+            },
+            "description": "Mengambil data semua departments"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola data departments"
+    },
+    {
+      "name": "Transaction Types",
+      "item": [
+        {
+          "name": "Get Transaction Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactiontypes/filter?category=Reimbursement",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transactiontypes", "filter"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Reimbursement",
+                  "description": "Kategori transaction type"
+                }
+              ]
+            },
+            "description": "Mengambil transaction types untuk kategori Reimbursement"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola transaction types"
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/categories?departmentId=1&menu=Reimbursement&transactionType=Travel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "categories"],
+              "query": [
+                {
+                  "key": "departmentId",
+                  "value": "1",
+                  "description": "ID department"
+                },
+                {
+                  "key": "menu",
+                  "value": "Reimbursement",
+                  "description": "Menu type"
+                },
+                {
+                  "key": "transactionType",
+                  "value": "Travel",
+                  "description": "Transaction type"
+                }
+              ]
+            },
+            "description": "Mengambil categories berdasarkan department, menu, dan transaction type"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account Names",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/account-names?category=Transportation&departmentId=1&menu=Reimbursement&transactionType=Travel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "account-names"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Transportation",
+                  "description": "Category yang dipilih"
+                },
+                {
+                  "key": "departmentId",
+                  "value": "1",
+                  "description": "ID department"
+                },
+                {
+                  "key": "menu",
+                  "value": "Reimbursement",
+                  "description": "Menu type"
+                },
+                {
+                  "key": "transactionType",
+                  "value": "Travel",
+                  "description": "Transaction type"
+                }
+              ]
+            },
+            "description": "Mengambil account names berdasarkan category, department, menu, dan transaction type"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola expenses data"
+    },
+    {
+      "name": "Employee Approvals",
+      "item": [
+        {
+          "name": "Get Superior Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee-superior-document-approvals/user/1/document-type/RE",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "employee-superior-document-approvals",
+                "user",
+                "1",
+                "document-type",
+                "RE"
+              ]
+            },
+            "description": "Mengambil superior employees untuk approval berdasarkan user dan document type"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola employee approvals"
+    },
+    {
+      "name": "Reimbursements",
+      "item": [
+        {
+          "name": "Create Reimbursement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucherNo\": \"REIM-2024-001\",\n  \"requesterName\": \"John Doe\",\n  \"department\": \"IT Department\",\n  \"payTo\": \"1\",\n  \"currency\": \"IDR\",\n  \"submissionDate\": \"2024-01-15\",\n  \"status\": \"Draft\",\n  \"referenceDoc\": \"INV-001\",\n  \"typeOfTransaction\": \"Travel\",\n  \"remarks\": \"Business trip expenses\",\n  \"preparedBy\": \"1\",\n  \"checkedBy\": \"2\",\n  \"acknowledgedBy\": \"3\",\n  \"approvedBy\": \"4\",\n  \"receivedBy\": \"5\",\n  \"reimbursementDetails\": [\n    {\n      \"category\": \"Transportation\",\n      \"accountName\": \"Taxi Fare\",\n      \"glAccount\": \"5101.001\",\n      \"description\": \"Taxi from airport to hotel\",\n      \"amount\": \"150000\"\n    },\n    {\n      \"category\": \"Accommodation\",\n      \"accountName\": \"Hotel Room\",\n      \"glAccount\": \"5101.002\",\n      \"description\": \"Hotel accommodation for 2 nights\",\n      \"amount\": \"500000\"\n    }\n  ],\n  \"isSubmit\": false,\n  \"payToNIK\": \"KAN001\",\n  \"payToName\": \"John Doe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reimbursements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reimbursements"]
+            },
+            "description": "Membuat reimbursement baru"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Attachments",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "File attachments"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reimbursements/1/attachments/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reimbursements", "1", "attachments", "upload"]
+            },
+            "description": "Upload attachments untuk reimbursement"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola reimbursements"
+    },
+    {
+      "name": "Business Partners",
+      "item": [
+        {
+          "name": "Get Employee Business Partners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/business-partners/type/employee",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "business-partners", "type", "employee"]
+            },
+            "description": "Mengambil business partners dengan tipe employee"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola business partners"
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/EMP001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employees", "EMP001"]
+            },
+            "description": "Mengambil detail employee berdasarkan employee ID"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoint untuk mengelola employee data"
+    },
+    {
+      "name": "Testing Scenarios",
+      "item": [
+        {
+          "name": "Complete Reimbursement Flow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Test complete flow: 1. Get users, 2. Get departments, 3. Get transaction types, 4. Get categories, 5. Get account names, 6. Create reimbursement"
+          },
+          "response": []
+        },
+        {
+          "name": "Travel Categories Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/categories?departmentId=1&menu=Reimbursement&transactionType=Travel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "categories"],
+              "query": [
+                {
+                  "key": "departmentId",
+                  "value": "1"
+                },
+                {
+                  "key": "menu",
+                  "value": "Reimbursement"
+                },
+                {
+                  "key": "transactionType",
+                  "value": "Travel"
+                }
+              ]
+            },
+            "description": "Test untuk mendapatkan categories Travel"
+          },
+          "response": []
+        },
+        {
+          "name": "Office Supplies Categories Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/categories?departmentId=2&menu=Reimbursement&transactionType=Office Supplies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "categories"],
+              "query": [
+                {
+                  "key": "departmentId",
+                  "value": "2"
+                },
+                {
+                  "key": "menu",
+                  "value": "Reimbursement"
+                },
+                {
+                  "key": "transactionType",
+                  "value": "Office Supplies"
+                }
+              ]
+            },
+            "description": "Test untuk mendapatkan categories Office Supplies"
+          },
+          "response": []
+        },
+        {
+          "name": "Transportation Account Names Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/account-names?category=Transportation&departmentId=1&menu=Reimbursement&transactionType=Travel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "account-names"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Transportation"
+                },
+                {
+                  "key": "departmentId",
+                  "value": "1"
+                },
+                {
+                  "key": "menu",
+                  "value": "Reimbursement"
+                },
+                {
+                  "key": "transactionType",
+                  "value": "Travel"
+                }
+              ]
+            },
+            "description": "Test untuk mendapatkan account names Transportation"
+          },
+          "response": []
+        }
+      ],
+      "description": "Testing scenarios untuk berbagai use cases"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script untuk logging",
+          "console.log('Requesting:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Test script untuk validasi response",
+          "pm.test('Status code is 200', function () {",
+          "    pm.response.to.have.status(200);",
+          "});",
+          "",
+          "pm.test('Response has required structure', function () {",
+          "    const response = pm.response.json();",
+          "    pm.expect(response).to.have.property('status');",
+          "    pm.expect(response).to.have.property('code');",
+          "    pm.expect(response).to.have.property('data');",
+          "});",
+          "",
+          "pm.test('Response time is less than 1000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL untuk mock API server"
+    }
+  ]
+}
