@@ -50,7 +50,7 @@ function populateSettlementDetails(data) {
     document.getElementById('settlementRefNo').value = data.settlementRefNo;
     document.getElementById('requesterName').value = data.requesterName;
     document.getElementById('purpose').value = data.purpose;
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || '';
     document.getElementById('cashAdvanceReferenceId').value = data.cashAdvanceNumber || '';
     document.getElementById('remarks').value = data.remarks || '';
 

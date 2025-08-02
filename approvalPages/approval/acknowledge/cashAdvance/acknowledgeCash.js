@@ -117,7 +117,7 @@ function populateCADetails(data) {
     const approvalMap = [
       { id: 'preparedBySearch', value: data.preparedName },
       { id: 'checkedBySearch', value: data.checkedName },
-      { id: 'acknowledgeBySearch', value: data.acknowledgedName },
+      { id: 'acknowledgedBySearch', value: data.acknowledgedName },
       { id: 'approvedBySearch', value: data.approvedName },
       { id: 'receivedBySearch', value: data.receivedName },
       { id: 'closedBySearch', value: data.closedName }
@@ -360,7 +360,7 @@ function updateCAStatusWithRemarks(status, remarks) {
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        title: status === 'revise' ? 'Submitting Revision...' : (status === 'approve' ? 'Approving...' : 'Rejecting...'),
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -380,7 +380,9 @@ function updateCAStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: status === 'revise'
+                    ? 'Revision submitted successfully'
+                    : `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
@@ -395,10 +397,14 @@ function updateCAStatusWithRemarks(status, remarks) {
     })
     .catch(error => {
         console.error('Error:', error);
+        let errorAction = 'processing';
+        if (status === 'approve') errorAction = 'approving';
+        else if (status === 'reject') errorAction = 'rejecting';
+        else if (status === 'revise') errorAction = 'submitting revision for';
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${errorAction} CA: ` + error.message
         });
     });
 }
@@ -615,97 +621,7 @@ function submitRevision() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Prepare revision data
-            const revisionData = {
-                id: caId,
-                UserId: userId,
-                Status: 'revise',
-                RevisionRemarks: allRemarks.trim()
-            };
-
-            // Show loading
-            Swal.fire({
-                title: 'Submitting Revision...',
-                text: 'Please wait while we process your revision request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // TODO: Replace with actual revision API endpoint when available
-            // For now, this is a dummy implementation
-            console.log('Revision data to be sent:', revisionData);
-            
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Replace this simulation with actual API call
-                /*
-                fetch(`${BASE_URL}/api/cash-advance/revision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(revisionData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
-                        });
-                    }
-                })
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted!',
-                        text: 'Your revision request has been submitted successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the dashboard
-                        window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error submitting revision: ' + error.message
-                    });
-                });
-                */
-                
-                // Dummy success response
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Revision Submitted!',
-                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
-                    timer: 3000,
-                    showConfirmButton: true
-                }).then(() => {
-                    // Clear the revision fields
-                    const revisionContainer = document.getElementById('revisionContainer');
-                    revisionContainer.innerHTML = '';
-                    revisionContainer.classList.add('hidden');
-                    
-                    // Reset add button
-                    const addBtn = document.getElementById('addRevisionBtn');
-                    addBtn.textContent = '+ Add revision';
-                    addBtn.style.display = 'block';
-                    
-                    // Disable revision button again
-                    const revisionBtn = document.getElementById('revisionBtn');
-                    revisionBtn.disabled = true;
-                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    
-                    // Optionally navigate back to dashboard
-                    // window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                });
-            }, 1500); // Simulate API delay
+            updateCAStatusWithRemarks('revise', allRemarks);
         }
     });
 }

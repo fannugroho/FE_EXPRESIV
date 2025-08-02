@@ -5,7 +5,7 @@
                 return;
             }
 
-            fetch(`${BASE_URL}/api/cash-advance/dashboard`)
+            fetch(`${BASE_URL}/api/cash-advance/dashboard?requesterId=${userId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -19,8 +19,8 @@
                         console.log("User ID:", userId);
                         console.log("Total documents from API:", documents.length);
                         
-                        // Show all documents instead of filtering by user (for now)
-                        const userDocuments = documents; // Changed: show all documents
+                        // Filter documents by requester ID
+                        const userDocuments = documents; // Already filtered by API
                         console.log("Filtered documents:", userDocuments.length);
                         
                         // Update dashboard counts

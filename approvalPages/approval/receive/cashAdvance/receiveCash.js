@@ -107,14 +107,41 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="description w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="amount w-full bg-gray-100" readonly />
+                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
+                <span class="text-gray-400">View Only</span>
             </td>
         `;
         tableBody.appendChild(row);
     });
+    
+    // Calculate total amount after populating all rows
+    calculateTotalAmount();
+}
+
+// Function to calculate total amount from all rows
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
+    
+    totalInputs.forEach(input => {
+        // Only add to sum if the input has a valid numeric value
+        const value = input.value.trim();
+        if (value && !isNaN(parseFloat(value))) {
+            sum += parseFloat(value);
+        }
+    });
+    
+    // Format the sum with 2 decimal places
+    const formattedSum = sum.toFixed(2);
+    
+    // Update the total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
 }
 
 // Function to fetch all dropdown options
@@ -526,6 +553,40 @@ function receiveCash() {
     }).then((result) => {
         if (result.isConfirmed) {
             updateCAStatus('approve');
+        }
+    });
+}
+
+// Function to revise cash advance
+function reviseCash() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
+    revisionFields.forEach((field, index) => {
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateCashStatusWithRemarks('revise', allRemarks);
         }
     });
 }

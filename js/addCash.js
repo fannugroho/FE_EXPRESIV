@@ -1562,7 +1562,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'CL' // Add Closed By level
+        'Approval.ClosedById': 'RE' // Use same level as ReceivedById
     };
     return levelMap[fieldId] || null;
 }
@@ -1759,7 +1759,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             { id: 'Approval.AcknowledgedById', level: 'AC' },
             { id: 'Approval.ApprovedById', level: 'AP' },
             { id: 'Approval.ReceivedById', level: 'RE' },
-            { id: 'Approval.ClosedById', level: 'CL' } // Add Closed By for Personal Loan
+            { id: 'Approval.ClosedById', level: 'RE' } // Use same level as ReceivedById
         ];
         
         console.log(`Will populate ${approvalFields.length} approval fields:`, approvalFields.map(f => f.id));
@@ -1856,6 +1856,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
     });
+    
+
     
     // Add event listener untuk menyembunyikan dropdown saat klik di luar
     document.addEventListener('click', function(event) {

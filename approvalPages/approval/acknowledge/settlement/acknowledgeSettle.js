@@ -183,7 +183,7 @@ function populateSettleDetails(data) {
     }
     
     document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || '';
 
     // Set transaction type - create option directly from backend data
     const transactionTypeSelect = document.getElementById('TransactionType');
@@ -610,4 +610,120 @@ function displayAttachments(attachments) {
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
     }
+}
+
+// Helper function to get logged-in user ID
+function getUserId() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    return user ? user.id : null;
+}
+
+// Function to handle revision for Settlement
+function revisionSettle() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updateSettleStatusWithRemarks('revise', allRemarks);
+}
+
+// Function to update settlement status with remarks (for revision)
+function updateSettleStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: settlementId,
+        UserId: userId,
+        StatusAt: "Acknowledge",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing Revision...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/settlements/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Settlement revision submitted successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardAcknowledge/settlement/menuSettleAcknowledge.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error submitting revision: ' + error.message
+        });
+    });
 }

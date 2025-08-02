@@ -178,6 +178,18 @@ function calculateTotalAmount() {
     }
 }
 
+// Function to toggle closedBy visibility based on transaction type
+function toggleClosedBy() {
+    const transactionType = document.getElementById('typeTransaction').value;
+    const closedBySection = document.getElementById('closedBySection');
+    
+    if (transactionType === 'Personal Loan') {
+        closedBySection.style.display = 'block';
+    } else {
+        closedBySection.style.display = 'none';
+    }
+}
+
 // Function to fetch all dropdown options
 function fetchDropdownOptions(caData = null) {
     // Remove fetchUsers, populateUserSelects, and all user dropdown/search logic

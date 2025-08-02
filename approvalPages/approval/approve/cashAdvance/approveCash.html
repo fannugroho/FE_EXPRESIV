@@ -125,6 +125,12 @@
                 </tr>
             </tbody>
         </table>
+        <div class="flex justify-end mt-2">
+          <div class="w-1/4 flex items-center justify-between bg-gray-100 p-2 rounded">
+            <span class="font-bold">Total Amount:</span>
+            <span id="totalAmountDisplay" class="font-bold text-xl text-blue-700">0.00</span>
+          </div>
+        </div>
         
         <!-- Tombol Tambah Baris 
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
@@ -492,51 +498,6 @@
                 revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
                 revisionButton.disabled = true;
             }
-        }
-        
-        // Function to handle revision for Cash Advance
-        function revisionCash() {
-            const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
-            // Check if revision button is disabled
-            if (document.getElementById('revisionButton').disabled) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            let allRemarks = '';
-            
-            revisionFields.forEach((field, index) => {
-                // Include the entire content including the prefix
-                if (field.value.trim() !== '') {
-                    if (allRemarks !== '') allRemarks += '\n\n';
-                    allRemarks += field.value.trim();
-                }
-            });
-            
-            if (revisionFields.length === 0 || allRemarks.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please add and fill revision field first'
-                });
-                return;
-            }
-            
-            // Here you can add the logic to process the revision
-            Swal.fire({
-                title: 'Revision Submitted',
-                text: 'Your revision request has been submitted successfully',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // You can add navigation logic here if needed
-                console.log('Revision remarks:', allRemarks);
-            });
         }
     </script>
 </body>

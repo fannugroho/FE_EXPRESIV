@@ -97,13 +97,13 @@ async function setupCategoryDropdown(row) {
         
         // Filter categories based on search text
         const filteredCategories = availableCategories.filter(category => 
-            category.toLowerCase().includes(searchText)
+            category && category.toLowerCase().includes(searchText)
         );
         
         // Add historical categories to filtered list if they match search
         const historicalCategories = categoryInput.historicalCategories || [];
         const filteredHistoricalCategories = historicalCategories.filter(category => 
-            category.toLowerCase().includes(searchText) && 
+            category && category.toLowerCase().includes(searchText) && 
             !filteredCategories.includes(category)
         );
         
@@ -362,7 +362,7 @@ async function ensureCategoryAvailable(categoryInput, existingCategory, departme
     const availableCategories = await getAvailableCategories(departmentId, transactionType);
     
     // Check if existing category exists in available options
-    const categoryExists = availableCategories.some(cat => cat.toLowerCase() === existingCategory.toLowerCase());
+    const categoryExists = availableCategories.some(cat => cat && existingCategory && cat.toLowerCase() === existingCategory.toLowerCase());
     
     if (!categoryExists) {
         // Add the historical category to a global list for this input
@@ -623,7 +623,7 @@ function populateUserSelects(users, approvalData = null) {
             requesterDropdown.innerHTML = '';
             
             const filteredRequesters = window.requesters.filter(r => 
-                r.fullName.toLowerCase().includes(filter)
+                r.fullName && r.fullName.toLowerCase().includes(filter)
             );
             
             filteredRequesters.forEach(requester => {
@@ -718,11 +718,11 @@ function populateUserSelects(users, approvalData = null) {
 
     // Populate approval select dropdowns with search functionality
     const approvalSelects = [
-        { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
-        { id: 'checkedDropdown', searchId: 'checkedDropdownSearch', approvalKey: 'checkedById' },
-        { id: 'approvedDropdown', searchId: 'approvedDropdownSearch', approvalKey: 'approvedById' },
-        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' },
-        { id: 'receivedDropdown', searchId: 'receivedDropdownSearch', approvalKey: 'receivedById' }
+        { id: 'Approval.PreparedById', searchId: 'Approval.PreparedByIdSearch', nameKey: 'preparedName', idKey: 'preparedById' },
+        { id: 'Approval.CheckedById', searchId: 'Approval.CheckedByIdSearch', nameKey: 'checkedName', idKey: 'checkedById' },
+        { id: 'Approval.ApprovedById', searchId: 'Approval.ApprovedByIdSearch', nameKey: 'approvedName', idKey: 'approvedById' },
+        { id: 'Approval.AcknowledgedById', searchId: 'Approval.AcknowledgedByIdSearch', nameKey: 'acknowledgedName', idKey: 'acknowledgedById' },
+        { id: 'Approval.ReceivedById', searchId: 'Approval.ReceivedByIdSearch', nameKey: 'receivedName', idKey: 'receivedById' }
     ];
     
     approvalSelects.forEach(selectInfo => {
@@ -741,30 +741,32 @@ function populateUserSelects(users, approvalData = null) {
             });
             
             // Set the value from approval data if available and update search input
-            if (approvalData && approvalData[selectInfo.approvalKey]) {
-                select.value = approvalData[selectInfo.approvalKey];
+            if (approvalData) {
+                // Set the ID value
+                if (approvalData[selectInfo.idKey]) {
+                    select.value = approvalData[selectInfo.idKey];
+                }
                 
-                // Find the user and update the search input
-                const selectedUser = users.find(user => user.id === approvalData[selectInfo.approvalKey]);
-                if (selectedUser) {
-                    searchInput.value = selectedUser.name || `${selectedUser.fullName}`;
+                // Set the name value directly from API response
+                if (approvalData[selectInfo.nameKey]) {
+                    searchInput.value = approvalData[selectInfo.nameKey];
                 }
                 
                 // Auto-select and disable for Prepared by if it matches logged in user
-                if(selectInfo.id === "preparedDropdown" && select.value == getUserId()){
+                if(selectInfo.id === "Approval.PreparedById" && select.value == getUserId()){
                     searchInput.disabled = true;
                     searchInput.classList.add('bg-gray-100');
                 }
             }
             
-            // Always disable and auto-select preparedDropdown to logged-in user
-            if(selectInfo.id === "preparedDropdown"){
+            // Always disable and auto-select Approval.PreparedById to logged-in user
+            if(selectInfo.id === "Approval.PreparedById"){
                 const loggedInUserId = getUserId();
                 if(loggedInUserId) {
                     select.value = loggedInUserId;
                     const loggedInUser = users.find(user => user.id === loggedInUserId);
                     if(loggedInUser) {
-                        searchInput.value = loggedInUser.name || `${loggedInUser.fullName}`;
+                        searchInput.value = loggedInUser.fullName;
                     }
                     searchInput.disabled = true;
                     searchInput.classList.add('bg-gray-100');
@@ -785,7 +787,7 @@ function filterUsers(fieldId) {
     
     // Filter users based on search text
     const filteredUsers = window.employees ? 
-        window.employees.filter(user => user.fullName.toLowerCase().includes(searchText)) : 
+        window.employees.filter(user => user.fullName && user.fullName.toLowerCase().includes(searchText)) : 
         [];
     
     // Show filtered results
@@ -905,7 +907,7 @@ async function fetchSettlementData(settlementId) {
 }
 
 // Populate form fields with settlement data
-function populateFormWithData(data) {
+async function populateFormWithData(data) {
     settlementData = data;
 
     console.log(data);
@@ -950,14 +952,14 @@ function populateFormWithData(data) {
     document.getElementById('purpose').value = data.purpose || '';
     
     // Handle PayTo business partner
-    if (data.payTo && data.payToBusinessPartnerName) {
+    if (data.payToCode && data.payToName) {
         // Set the search input and hidden field for PayTo
         const paidToSearchInput = document.getElementById('paidToSearch');
         const paidToHiddenInput = document.getElementById('paidTo');
         
         if (paidToSearchInput && paidToHiddenInput) {
-            paidToSearchInput.value = data.payToBusinessPartnerName;
-            paidToHiddenInput.value = data.payTo;
+            paidToSearchInput.value = data.payToName;
+            paidToHiddenInput.value = data.payToCode;
         }
     }
     
@@ -1015,11 +1017,6 @@ function populateFormWithData(data) {
     // Populate settlement items table
     populateSettlementItemsTable(data.settlementItems || []);
 
-    // Populate approval section
-    if (data) {
-        populateApprovalSection(data);
-    }
-
     // Check if status is not Draft and make fields read-only
     if (data.status && data.status.toLowerCase() !== 'draft') {
         makeAllFieldsReadOnlyForNonDraft();
@@ -1031,6 +1028,9 @@ function populateFormWithData(data) {
 
     // Fetch dropdown options with approval data
     fetchDropdownOptions(data);
+
+    // Populate superior employees with data (like detailCash.js)
+    await populateSuperiorEmployeesWithData(data);
 
     // Store and display attachments
     if (data.attachments) {
@@ -1201,35 +1201,7 @@ async function populateSettlementItemsTable(settlementItems) {
     calculateTotalAmount();
 }
 
-// Populate approval section
-function populateApprovalSection(approval) {
-    // Set approval IDs and update search inputs
-    const approvalFields = [
-        { selectId: 'preparedDropdown', searchId: 'preparedDropdownSearch', value: approval.preparedById },
-        { selectId: 'checkedDropdown', searchId: 'checkedDropdownSearch', value: approval.checkedById },
-        { selectId: 'approvedDropdown', searchId: 'approvedDropdownSearch', value: approval.approvedById },
-        { selectId: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', value: approval.acknowledgedById }
-    ];
 
-    approvalFields.forEach(field => {
-        if (field.value) {
-            const selectElement = document.getElementById(field.selectId);
-            const searchInput = document.getElementById(field.searchId);
-            
-            if (selectElement && searchInput) {
-                selectElement.value = field.value;
-                
-                // Find the user name and update search input
-                if (window.employees) {
-                    const user = window.employees.find(emp => emp.id === field.value);
-                    if (user) {
-                        searchInput.value = user.fullName;
-                    }
-                }
-            }
-        }
-    });
-}
 
 // Add empty row to table
 async function addEmptyRow() {
@@ -1764,7 +1736,7 @@ function updateSettle(isSubmit = false) {
             // Add Business Partner ID (Paid To)
             const paidToId = document.getElementById("paidTo").value;
             if (paidToId) {
-                formData.append('PayTo', paidToId);
+                formData.append('PayToCode', paidToId);
             }
             
             // Handle submission date (same as addSettle.js postingDate handling)
@@ -1773,11 +1745,11 @@ function updateSettle(isSubmit = false) {
             }
             
             // Add approval workflow users (same as addSettle.js)
-            const preparedById = document.getElementById("preparedDropdown").value;
-            const checkedById = document.getElementById("checkedDropdown").value;
-            const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
-            const approvedById = document.getElementById("approvedDropdown").value;
-            const receivedById = document.getElementById("receivedDropdown").value;
+            const preparedById = document.getElementById("Approval.PreparedById")?.value || '';
+            const checkedById = document.getElementById("Approval.CheckedById")?.value || '';
+            const acknowledgedById = document.getElementById("Approval.AcknowledgedById")?.value || '';
+            const approvedById = document.getElementById("Approval.ApprovedById")?.value || '';
+            const receivedById = document.getElementById("Approval.ReceivedById")?.value || '';
             
             if (preparedById) formData.append('PreparedById', preparedById);
             if (checkedById) formData.append('CheckedById', checkedById);
@@ -1905,9 +1877,9 @@ function updateSettle(isSubmit = false) {
                         showConfirmButton: false
                     }).then(() => {
                         // Reload the settlement data to show updated information
-                        fetchSettlementData(settlementId).then(data => {
+                        fetchSettlementData(settlementId).then(async data => {
                             if (data) {
-                                populateFormWithData(data);
+                                await populateFormWithData(data);
                             }
                         });
                         
@@ -2075,18 +2047,18 @@ function toggleEditableFields(isEditable) {
     
     // Handle approval fields
     const approvalSelects = [
-        { id: 'preparedDropdown', searchId: 'preparedDropdownSearch', approvalKey: 'preparedById' },
-        { id: 'checkedDropdown', searchId: 'checkedDropdownSearch', approvalKey: 'checkedById' },
-        { id: 'approvedDropdown', searchId: 'approvedDropdownSearch', approvalKey: 'approvedById' },
-        { id: 'acknowledgedDropdown', searchId: 'acknowledgedDropdownSearch', approvalKey: 'acknowledgedById' },
-        { id: 'receivedDropdown', searchId: 'receivedDropdownSearch', approvalKey: 'receivedById' }
+        { id: 'Approval.PreparedById', searchId: 'Approval.PreparedByIdSearch', nameKey: 'preparedName', idKey: 'preparedById' },
+        { id: 'Approval.CheckedById', searchId: 'Approval.CheckedByIdSearch', nameKey: 'checkedName', idKey: 'checkedById' },
+        { id: 'Approval.ApprovedById', searchId: 'Approval.ApprovedByIdSearch', nameKey: 'approvedName', idKey: 'approvedById' },
+        { id: 'Approval.AcknowledgedById', searchId: 'Approval.AcknowledgedByIdSearch', nameKey: 'acknowledgedName', idKey: 'acknowledgedById' },
+        { id: 'Approval.ReceivedById', searchId: 'Approval.ReceivedByIdSearch', nameKey: 'receivedName', idKey: 'receivedById' }
     ];
     
     approvalSelects.forEach(selectInfo => {
         const field = document.getElementById(selectInfo.id);
         const searchInput = document.getElementById(selectInfo.searchId);
         if (field && searchInput) {
-            if (selectInfo.id === 'preparedDropdown') {
+            if (selectInfo.id === 'Approval.PreparedById') {
                 // preparedBy is always disabled if it matches logged-in user
                 const userId = getUserId();
                 if (field.value && field.value == userId) {
@@ -2124,19 +2096,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Setup event listener untuk hide dropdown saat klik di luar
     document.addEventListener('click', function(event) {
         const dropdowns = [
-            'preparedDropdownDropdown', 
-            'checkedDropdownDropdown', 
-            'approvedDropdownDropdown', 
-            'acknowledgedDropdownDropdown',
-            'receivedDropdownDropdown'
+            'Approval.PreparedByIdDropdown', 
+            'Approval.CheckedByIdDropdown', 
+            'Approval.ApprovedByIdDropdown', 
+            'Approval.AcknowledgedByIdDropdown',
+            'Approval.ReceivedByIdDropdown'
         ];
         
         const searchInputs = [
-            'preparedDropdownSearch', 
-            'checkedDropdownSearch', 
-            'approvedDropdownSearch', 
-            'acknowledgedDropdownSearch',
-            'receivedDropdownSearch'
+            'Approval.PreparedByIdSearch', 
+            'Approval.CheckedByIdSearch', 
+            'Approval.ApprovedByIdSearch', 
+            'Approval.AcknowledgedByIdSearch',
+            'Approval.ReceivedByIdSearch'
         ];
         
         dropdowns.forEach((dropdownId, index) => {
@@ -2174,7 +2146,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Fetch and populate settlement data
     const data = await fetchSettlementData(settlementId);
     if (data) {
-        populateFormWithData(data);
+        await populateFormWithData(data);
     }
     
     // Setup category dropdowns for any existing rows after a small delay to ensure DOM is ready
@@ -2229,8 +2201,8 @@ function setupBusinessPartnerSearch(businessPartners) {
             paidToDropdown.innerHTML = '';
             
             const filteredPartners = window.businessPartners.filter(bp => 
-                bp.code.toLowerCase().includes(filter) || 
-                bp.name.toLowerCase().includes(filter)
+                (bp.code && bp.code.toLowerCase().includes(filter)) || 
+                (bp.name && bp.name.toLowerCase().includes(filter))
             );
             
             filteredPartners.forEach(partner => {
@@ -2239,7 +2211,7 @@ function setupBusinessPartnerSearch(businessPartners) {
                 option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
                 option.onclick = function() {
                     paidToSearchInput.value = `${partner.code} - ${partner.name}`;
-                    paidToHiddenInput.value = partner.id;
+                    paidToHiddenInput.value = partner.code;
                     paidToDropdown.classList.add('hidden');
                 };
                 paidToDropdown.appendChild(option);
@@ -2376,7 +2348,6 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
 // Function to map superior level to field ID
 function getSuperiorLevelForField(fieldId) {
     const levelMap = {
-        'Approval.PreparedById': 'PR',
         'Approval.CheckedById': 'CH',
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
@@ -2596,6 +2567,10 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             }
         }
         
+        // Store superior employees globally for use in filterUsers
+        window.superiorEmployees = {};
+        console.log('Initialized window.superiorEmployees as empty object');
+        
         // Now populate each field with the appropriate superiors
         const approvalFields = [
             { id: 'Approval.PreparedById', level: 'PR' },
@@ -2614,13 +2589,160 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             const levelSuperiors = superiorsWithFullNames.filter(superior => superior.superiorLevel === fieldInfo.level);
             console.log(`Found ${levelSuperiors.length} superiors for level ${fieldInfo.level}`);
             
+            // Store superiors for this level globally
+            window.superiorEmployees[fieldInfo.level] = levelSuperiors;
+            
             // Populate the dropdown
             await populateSuperiorEmployeeDropdownWithData(fieldInfo.id, levelSuperiors);
         }
         
         console.log('Finished populating all superior employee dropdowns');
+        console.log('Final window.superiorEmployees state:', window.superiorEmployees);
         
     } catch (error) {
         console.error("Error fetching superior employees:", error);
     }
-} 
+}
+
+// Function to populate superior employees with data (like detailCash.js)
+async function populateSuperiorEmployeesWithData(data) {
+    console.log('Populating superior employees with data:', data);
+    
+    // Use the comprehensive approval field handling similar to detailCash.js
+    populateApprovalFields(data);
+    
+    // Setup click handlers for approval dropdowns to show dropdown when clicked
+    const approvalFields = [
+        'Approval.PreparedById',
+        'Approval.CheckedById', 
+        'Approval.AcknowledgedById',
+        'Approval.ApprovedById',
+        'Approval.ReceivedById'
+    ];
+    
+    approvalFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId + 'Search');
+        const dropdown = document.getElementById(fieldId + 'Dropdown');
+        
+        if (searchInput && dropdown) {
+            // Show dropdown when input is clicked
+            searchInput.addEventListener('click', function() {
+                dropdown.classList.remove('hidden');
+                filterUsers(fieldId);
+            });
+            
+            // Show dropdown when input is focused
+            searchInput.addEventListener('focus', function() {
+                dropdown.classList.remove('hidden');
+                filterUsers(fieldId);
+            });
+            
+            // Show dropdown when input value changes (for backspace, typing, etc.)
+            searchInput.addEventListener('input', function() {
+                dropdown.classList.remove('hidden');
+                filterUsers(fieldId);
+            });
+            
+            // Show dropdown when key is pressed (for backspace, delete, etc.)
+            searchInput.addEventListener('keydown', function() {
+                dropdown.classList.remove('hidden');
+                filterUsers(fieldId);
+            });
+        }
+    });
+}
+
+// Comprehensive approval field handling similar to detailCash.js
+// Global variable to store approval field values from API
+window.approvalFieldValues = {};
+
+function populateApprovalFields(data) {
+    console.log('Populating approval fields with data:', data);
+    
+    // Store approval field values globally for later use
+    window.approvalFieldValues = {
+        preparedById: data.preparedById,
+        preparedName: data.preparedName,
+        checkedById: data.checkedById,
+        checkedName: data.checkedName,
+        acknowledgedById: data.acknowledgedById,
+        acknowledgedName: data.acknowledgedName,
+        approvedById: data.approvedById,
+        approvedName: data.approvedName,
+        receivedById: data.receivedById,
+        receivedName: data.receivedName
+    };
+    
+    console.log('Stored approval field values globally:', window.approvalFieldValues);
+    console.log('Available approval fields in data:', {
+        preparedById: data.preparedById,
+        preparedName: data.preparedName,
+        checkedById: data.checkedById,
+        checkedName: data.checkedName,
+        acknowledgedById: data.acknowledgedById,
+        acknowledgedName: data.acknowledgedName,
+        approvedById: data.approvedById,
+        approvedName: data.approvedName,
+        receivedById: data.receivedById,
+        receivedName: data.receivedName
+    });
+    
+    // Map of field names to API response field names - using the actual API field names from Settlement
+    const approvalFieldMapping = {
+        'preparedBy': {
+            searchInput: 'Approval.PreparedByIdSearch',
+            selectElement: 'Approval.PreparedById',
+            apiField: 'preparedName',
+            apiIdField: 'preparedById'
+        },
+        'checkedBy': {
+            searchInput: 'Approval.CheckedByIdSearch',
+            selectElement: 'Approval.CheckedById',
+            apiField: 'checkedName',
+            apiIdField: 'checkedById'
+        },
+        'acknowledgedBy': {
+            searchInput: 'Approval.AcknowledgedByIdSearch',
+            selectElement: 'Approval.AcknowledgedById',
+            apiField: 'acknowledgedName',
+            apiIdField: 'acknowledgedById'
+        },
+        'approvedBy': {
+            searchInput: 'Approval.ApprovedByIdSearch',
+            selectElement: 'Approval.ApprovedById',
+            apiField: 'approvedName',
+            apiIdField: 'approvedById'
+        },
+        'receivedBy': {
+            searchInput: 'Approval.ReceivedByIdSearch',
+            selectElement: 'Approval.ReceivedById',
+            apiField: 'receivedName',
+            apiIdField: 'receivedById'
+        }
+    };
+    
+    // Populate each approval field
+    Object.entries(approvalFieldMapping).forEach(([fieldName, fieldConfig]) => {
+        const searchInput = document.getElementById(fieldConfig.searchInput);
+        const selectElement = document.getElementById(fieldConfig.selectElement);
+        
+        if (searchInput && selectElement) {
+            const nameValue = data[fieldConfig.apiField];
+            const idValue = data[fieldConfig.apiIdField];
+            
+            console.log(`Setting ${fieldName}: name="${nameValue}", id="${idValue}"`);
+            
+            if (nameValue) {
+                searchInput.value = nameValue;
+                console.log(`Set search input ${fieldConfig.searchInput} to: ${nameValue}`);
+            }
+            
+            if (idValue) {
+                selectElement.value = idValue;
+                console.log(`Set select element ${fieldConfig.selectElement} to: ${idValue}`);
+            }
+        } else {
+            console.warn(`Missing elements for ${fieldName}: searchInput=${fieldConfig.searchInput}, selectElement=${fieldConfig.selectElement}`);
+        }
+    });
+}

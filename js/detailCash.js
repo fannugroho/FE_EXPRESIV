@@ -1322,6 +1322,10 @@ async function populateForm(data) {
     }
     if (data.transactionType) {
         document.getElementById("transactionType").value = data.transactionType;
+        // Toggle closedBy visibility after setting transaction type
+        if (typeof toggleClosedByVisibility === 'function') {
+            toggleClosedByVisibility();
+        }
     }
     
     // Handle PayTo business partner - map from API response
@@ -1414,6 +1418,11 @@ async function populateForm(data) {
         if (deleteDocumentButton) {
             deleteDocumentButton.style.display = 'none';
         }
+    }
+    
+    // Ensure closedBy visibility is set correctly after all data is populated
+    if (typeof toggleClosedByVisibility === 'function') {
+        toggleClosedByVisibility();
     }
 }
 
@@ -1612,6 +1621,8 @@ function populateApprovalFields(data) {
             console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiField}`);
         }
     });
+    
+
 }
 
 // Function to display revised remarks from API
@@ -1938,8 +1949,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         transactionTypeSelect.addEventListener('change', function() {
             removeTransactionTypeEmphasis();
             refreshAllCategoryDropdowns();
+            
+
         });
     }
+    
+
 });
 
 function updateCash(isSubmit = false) {
@@ -2930,7 +2945,8 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.CheckedById': 'CH',
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
-        'Approval.ReceivedById': 'RE'
+        'Approval.ReceivedById': 'RE',
+        'Approval.ClosedById': 'RE'
     };
     return levelMap[fieldId] || null;
 }
@@ -3238,7 +3254,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             { id: 'Approval.CheckedById', level: 'CH' },
             { id: 'Approval.AcknowledgedById', level: 'AC' },
             { id: 'Approval.ApprovedById', level: 'AP' },
-            { id: 'Approval.ReceivedById', level: 'RE' }
+            { id: 'Approval.ReceivedById', level: 'RE' },
+            { id: 'Approval.ClosedById', level: 'RE' }
         ];
         
         console.log(`Will populate ${approvalFields.length} approval fields:`, approvalFields.map(f => f.id));

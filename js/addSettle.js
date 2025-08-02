@@ -1,5 +1,113 @@
 let uploadedFiles = [];
 
+// === PATCH: Requester Search (addCash.js style) ===
+window.filterRequesters = function() {
+    const requesterSearchInput = document.getElementById('requesterSearch');
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    if (!requesterSearchInput || !requesterDropdown) return;
+    const searchText = requesterSearchInput.value.toLowerCase();
+    const filtered = window.requesters
+        ? window.requesters.filter(u => (u.fullName || '').toLowerCase().includes(searchText))
+        : [];
+    requesterDropdown.innerHTML = '';
+    filtered.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.fullName;
+        option.onclick = function() {
+            requesterSearchInput.value = user.fullName;
+            document.getElementById('RequesterId').value = user.id;
+            requesterDropdown.classList.add('hidden');
+            // Auto-fill department
+            const departmentSelect = document.getElementById('department');
+            if (departmentSelect && user.department) {
+                for (let i = 0; i < departmentSelect.options.length; i++) {
+                    if (departmentSelect.options[i].textContent === user.department) {
+                        departmentSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        };
+        requesterDropdown.appendChild(option);
+    });
+    if (filtered.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching requesters';
+        requesterDropdown.appendChild(noResults);
+    }
+    requesterDropdown.classList.remove('hidden');
+};
+
+// === PATCH: Paid To Search (addCash.js style) ===
+window.filterBusinessPartners = function() {
+    const paidToSearchInput = document.getElementById('paidToSearch');
+    const paidToDropdown = document.getElementById('paidToDropdown');
+    if (!paidToSearchInput || !paidToDropdown) return;
+    const searchText = paidToSearchInput.value.toLowerCase();
+    const filtered = window.businessPartners
+        ? window.businessPartners.filter(bp =>
+            (bp.code || '').toLowerCase().includes(searchText) ||
+            (bp.name || '').toLowerCase().includes(searchText)
+        )
+        : [];
+    paidToDropdown.innerHTML = '';
+    filtered.forEach(bp => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerHTML = `<span class="font-medium">${bp.code}</span> - ${bp.name}`;
+        option.onclick = function() {
+            paidToSearchInput.value = `${bp.code} - ${bp.name}`;
+            document.getElementById('paidTo').value = bp.code;
+            paidToDropdown.classList.add('hidden');
+        };
+        paidToDropdown.appendChild(option);
+    });
+    if (filtered.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'No matching business partners';
+        paidToDropdown.appendChild(noResults);
+    }
+    paidToDropdown.classList.remove('hidden');
+};
+
+// === PATCH: Approval Dropdown Search (addCash.js style) ===
+window.filterUsers = function(fieldId) {
+    const searchInput = document.getElementById(fieldId + 'Search');
+    const dropdown = document.getElementById(fieldId + 'Dropdown');
+    if (!searchInput || !dropdown) return;
+    const searchText = searchInput.value.toLowerCase();
+    let users = [];
+    try {
+        users = JSON.parse(searchInput.dataset.users || '[]');
+    } catch (e) {}
+    const filtered = users.filter(u => (u.name || '').toLowerCase().includes(searchText));
+    dropdown.innerHTML = '';
+    filtered.forEach(user => {
+        const option = document.createElement('div');
+        option.className = 'dropdown-item';
+        option.innerText = user.name;
+        option.onclick = function() {
+            searchInput.value = user.name;
+            const selectElement = document.getElementById(fieldId);
+            if (selectElement) {
+                selectElement.value = user.id;
+            }
+            dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(option);
+    });
+    if (filtered.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'p-2 text-gray-500';
+        noResults.innerText = 'Name Not Found';
+        dropdown.appendChild(noResults);
+    }
+    dropdown.classList.remove('hidden');
+};
+
 // Data pengguna contoh (mockup)
 const mockUsers = [
     { id: 1, name: "Ahmad Baihaki", department: "Finance" },
@@ -233,7 +341,7 @@ function populateTransactionTypeSelect(transactionTypes) {
     });
 
         // Add event listener for transaction type change
-        transactionTypeSelect.addEventListener('change', function() {
+        transactionTypeSelect.addEventListener('change', async function() {
             // Remove emphasis when transaction type is selected
             if (this.value) {
                 removeTransactionTypeEmphasis();
@@ -241,6 +349,9 @@ function populateTransactionTypeSelect(transactionTypes) {
             
             // Refresh all category dropdowns when transaction type changes
             refreshAllCategoryDropdowns();
+            
+            // Refresh approval dropdowns with new transaction type
+            await populateAllSuperiorEmployeeDropdowns(this.value);
         });
         
         // Add initial emphasis to transaction type since no value is selected by default
@@ -284,7 +395,7 @@ function setupBusinessPartnerSearch(businessPartners) {
                 option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
                 option.onclick = function() {
                     paidToSearchInput.value = `${partner.code} - ${partner.name}`;
-                    paidToHiddenInput.value = partner.id;
+                    paidToHiddenInput.value = partner.code;
                     paidToDropdown.classList.add('hidden');
                 };
                 paidToDropdown.appendChild(option);
@@ -352,18 +463,19 @@ function populateUserSelects(users) {
 
         // Function to populate dropdown with filtered requesters
         function populateRequesterDropdown(filter = '') {
-            requesterDropdown.innerHTML = '';
+            if (!requesterDropdown) return;
             
+            requesterDropdown.innerHTML = '';
             const filteredRequesters = window.requesters.filter(r => 
-                r.fullName.toLowerCase().includes(filter)
+                (r.fullName || '').toLowerCase().includes(filter)
             );
             
             filteredRequesters.forEach(requester => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
-                option.innerText = requester.fullName;
+                option.innerText = requester.fullName || 'Unknown User';
                 option.onclick = function() {
-                    requesterSearchInput.value = requester.fullName;
+                    requesterSearchInput.value = requester.fullName || 'Unknown User';
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
 
@@ -417,51 +529,15 @@ function populateUserSelects(users) {
         populateRequesterDropdown();
     }
 
-    // Populate approval dropdowns with auto-selection for prepared by
-    const approvalSelects = [
-        { id: "preparedDropdown", isPreparerField: true },
-        { id: "checkedDropdown", isPreparerField: false },
-        { id: "approvedDropdown", isPreparerField: false },
-        { id: "acknowledgedDropdown", isPreparerField: false },
-        { id: "receivedDropdown", isPreparerField: false }
-    ];
-
-    approvalSelects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.fullName;
-                select.appendChild(option);
-                // Auto-select and disable for Prepared by
-                if(selectInfo.isPreparerField && user.id == getUserId()){
-                    option.selected = true;
-                    select.disabled = true;
-                }
-            });
-        }
-    });
+    // Auto-fill preparedBy with logged-in user (like addCash.js)
+    autoFillPreparedBy(users);
     
-    // Auto-populate and disable PreparedBy search field for logged-in user
-    const loggedInUserId = getUserId();
-    if (loggedInUserId) {
-        const loggedInUser = users.find(user => user.id === loggedInUserId);
-        if (loggedInUser) {
-            const preparedSearchInput = document.getElementById('preparedDropdownSearch');
-            const preparedSelect = document.getElementById('preparedDropdown');
-            
-            if (preparedSearchInput && preparedSelect) {
-                const userName = loggedInUser.fullName;
-                preparedSearchInput.value = userName;
-                preparedSearchInput.disabled = true;
-                preparedSearchInput.classList.add('bg-gray-100');
-                preparedSelect.value = loggedInUserId;
-            }
-        }
-    }
+    // Note: Other approval dropdowns (Checked, Acknowledged, Approved, Received) 
+    // are populated using superior API in populateAllSuperiorEmployeeDropdowns
+    // This is handled separately to ensure proper superior hierarchy
     
     // Auto-populate employee fields with logged-in user data (like in addCash)
+    const loggedInUserId = getUserId();
     if(loggedInUserId && window.employees) {
         const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
         
@@ -472,6 +548,43 @@ function populateUserSelects(users) {
             document.getElementById("requester").value = employeeNIK; // Updated field ID
             document.getElementById("requesterName").value = employeeName; // Updated field ID
         }
+    }
+}
+
+// Helper function to auto-fill preparedBy with logged-in user (like addCash.js)
+function autoFillPreparedBy(users) {
+    const currentUserId = getUserId();
+    if (!currentUserId) return;
+    
+    // Find the current user in the users array
+    const currentUser = users.find(user => user.id == currentUserId);
+    if (!currentUser) return;
+    
+    // Construct full name
+    let displayName = currentUser.fullName;
+    
+    // Set the preparedBy search input value and disable it
+    const preparedBySearch = document.getElementById("Approval.PreparedByIdSearch");
+    if (preparedBySearch) {
+        preparedBySearch.value = displayName;
+        preparedBySearch.disabled = true;
+        preparedBySearch.classList.add('bg-gray-200', 'cursor-not-allowed');
+    }
+    
+    // Also set the select element value to ensure it's available for form submission
+    const preparedBySelect = document.getElementById("Approval.PreparedById");
+    if (preparedBySelect) {
+        // Clear existing options
+        preparedBySelect.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+        
+        // Add current user as an option
+        const option = document.createElement('option');
+        option.value = currentUserId;
+        option.textContent = displayName;
+        option.selected = true;
+        preparedBySelect.appendChild(option);
+        
+        console.log('Auto-filled preparedBy select with current user:', currentUserId);
     }
 }
 
@@ -565,7 +678,7 @@ async function saveDocument(isSubmit = false) {
         // Add Business Partner ID (Paid To)
         const paidToId = document.getElementById("paidTo").value;
         if (paidToId) {
-            formData.append('PayTo', paidToId);
+            formData.append('PayToCode', paidToId);
         }
         
         // Handle posting date - Updated field ID
@@ -645,11 +758,11 @@ async function saveDocument(isSubmit = false) {
         }
         
         // Add approval workflow users
-        const preparedById = document.getElementById("preparedDropdown").value;
-        const checkedById = document.getElementById("checkedDropdown").value;
-        const acknowledgedById = document.getElementById("acknowledgedDropdown").value;
-        const approvedById = document.getElementById("approvedDropdown").value;
-        const receivedById = document.getElementById("receivedDropdown").value;
+        const preparedById = document.getElementById("Approval.PreparedById")?.value || '';
+        const checkedById = document.getElementById("Approval.CheckedById")?.value || '';
+        const acknowledgedById = document.getElementById("Approval.AcknowledgedById")?.value || '';
+        const approvedById = document.getElementById("Approval.ApprovedById")?.value || '';
+        const receivedById = document.getElementById("Approval.ReceivedById")?.value || '';
         
         if (preparedById) formData.append('PreparedById', preparedById);
         if (checkedById) formData.append('CheckedById', checkedById);
@@ -943,8 +1056,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     fetchBusinessPartners();
     setDefaultDate(); // Set default date
     
-    // Initialize superior employee dropdowns
-    const transactionType = document.getElementById("transactionType")?.value || 'NRM';
+    // Initialize superior employee dropdowns with a valid transaction type
+    let transactionType = document.getElementById("transactionType")?.value;
+    if (!transactionType) {
+        // Set a default transaction type that exists in the API data
+        transactionType = 'Travelling'; // This maps to 'TR' which exists in the API response
+        console.log('No transaction type selected, using default: Travelling');
+    }
     await populateAllSuperiorEmployeeDropdowns(transactionType);
     
     // Setup initial row after a small delay to ensure DOM is ready
@@ -982,51 +1100,50 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
-    // Setup event listener untuk hide dropdown saat klik di luar
+    // === PATCH: Hide Dropdowns on Click Outside ===
     document.addEventListener('click', function(event) {
-        const dropdowns = [
-            'preparedDropdownDropdown', 
-            'checkedDropdownDropdown', 
-            'approvedDropdownDropdown', 
-            'acknowledgedDropdownDropdown',
-            'receivedDropdownDropdown'
-        ];
-        
-        const searchInputs = [
-            'preparedDropdownSearch', 
-            'checkedDropdownSearch', 
-            'approvedDropdownSearch', 
-            'acknowledgedDropdownSearch',
-            'receivedDropdownSearch'
-        ];
-        
-        dropdowns.forEach((dropdownId, index) => {
-            const dropdown = document.getElementById(dropdownId);
-            const input = document.getElementById(searchInputs[index]);
-            
-            if (dropdown && input) {
-                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
-                }
+        // Requester
+        const requesterSearchInput = document.getElementById('requesterSearch');
+        const requesterDropdown = document.getElementById('requesterDropdown');
+        if (requesterSearchInput && requesterDropdown &&
+            !requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
+            requesterDropdown.classList.add('hidden');
+        }
+        // Paid To
+        const paidToSearchInput = document.getElementById('paidToSearch');
+        const paidToDropdown = document.getElementById('paidToDropdown');
+        if (paidToSearchInput && paidToDropdown &&
+            !paidToSearchInput.contains(event.target) && !paidToDropdown.contains(event.target)) {
+            paidToDropdown.classList.add('hidden');
+        }
+        // Approval - Use correct IDs that match HTML
+        ['Approval.PreparedById', 'Approval.CheckedById', 'Approval.AcknowledgedById', 'Approval.ApprovedById', 'Approval.ReceivedById'].forEach(field => {
+            const searchInput = document.getElementById(field + 'Search');
+            const dropdown = document.getElementById(field + 'Dropdown');
+            if (searchInput && dropdown &&
+                !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
             }
         });
     });
     
-    // Trigger initial dropdown on focus for each search field
-    const searchFields = [
-        'preparedDropdownSearch',
-        'checkedDropdownSearch',
-        'approvedDropdownSearch',
-        'acknowledgedDropdownSearch',
-        'receivedDropdownSearch'
+    // Add event listeners for approval search inputs to show dropdowns on focus (like addCash.js)
+    const approvalSearchInputs = [
+        'Approval.PreparedByIdSearch', 
+        'Approval.CheckedByIdSearch', 
+        'Approval.AcknowledgedByIdSearch', 
+        'Approval.ApprovedByIdSearch', 
+        'Approval.ReceivedByIdSearch'
     ];
     
-    searchFields.forEach(fieldId => {
-        const searchInput = document.getElementById(fieldId);
+    approvalSearchInputs.forEach(inputId => {
+        const searchInput = document.getElementById(inputId);
         if (searchInput) {
+            // Show dropdown on focus
             searchInput.addEventListener('focus', function() {
-                const actualFieldId = fieldId.replace('Search', '');
-                filterUsers(actualFieldId);
+                console.log(`Approval search input focused: ${inputId}`);
+                const fieldId = inputId.replace('Search', '');
+                filterUsers(fieldId);
             });
         }
     });
@@ -1529,7 +1646,6 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
 // Function to map superior level to field ID
 function getSuperiorLevelForField(fieldId) {
     const levelMap = {
-        'Approval.PreparedById': 'PR',
         'Approval.CheckedById': 'CH',
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
@@ -1717,9 +1833,30 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         const allSuperiors = result.data;
         console.log('All superiors from API:', allSuperiors);
         
-        // Filter by transaction type (NRM for ST documents)
-        const filteredSuperiors = allSuperiors.filter(superior => superior.typeTransaction === 'NRM');
-        console.log(`Found ${filteredSuperiors.length} superiors with NRM transaction type`);
+        // Map transaction type to API transaction type
+        const transactionTypeMap = {
+            'NRM': 'NRM',
+            'Entertainment': 'EN',
+            'Golf Competition': 'GC',
+            'Medical': 'ME',
+            'Others': 'OT',
+            'Travelling': 'TR',
+            'Personal Loan': 'LO',
+            'Business Trip': 'BT'
+        };
+        
+        let apiTransactionType = transactionTypeMap[transactionType];
+        console.log(`Transaction type mapping: "${transactionType}" -> "${apiTransactionType}"`);
+        
+        if (!apiTransactionType) {
+            console.warn(`Unknown transaction type: ${transactionType}, using NRM as fallback`);
+            apiTransactionType = 'NRM';
+        }
+        
+        // Filter by transaction type
+        const filteredSuperiors = allSuperiors.filter(superior => superior.typeTransaction === apiTransactionType);
+        console.log(`Found ${filteredSuperiors.length} superiors with ${apiTransactionType} transaction type`);
+        console.log('Filtered superiors:', filteredSuperiors);
         
         // Fetch full names for all superiors
         const superiorsWithFullNames = [];
@@ -1750,8 +1887,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         }
         
         // Now populate each field with the appropriate superiors
+        // Note: Prepared By is handled by autoFillPreparedBy function, not superior API
         const approvalFields = [
-            { id: 'Approval.PreparedById', level: 'PR' },
             { id: 'Approval.CheckedById', level: 'CH' },
             { id: 'Approval.AcknowledgedById', level: 'AC' },
             { id: 'Approval.ApprovedById', level: 'AP' },

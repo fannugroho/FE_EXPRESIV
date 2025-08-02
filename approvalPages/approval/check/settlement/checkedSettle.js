@@ -119,7 +119,7 @@ function populateSettleDetails(data) {
     }
     
     document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || '';
     
     // Set transaction type - create option directly from backend data
     const transactionTypeSelect = document.getElementById('TransactionType');
@@ -143,12 +143,16 @@ function populateSettleDetails(data) {
         statusSelect.appendChild(option);
     }
     
-    // Populate approval fields from detail data
-    populateApprovalFieldsFromDetail(data);
+    // Display revision and rejection remarks
+    displayRevisionRemarks(data);
+    displayRejectionRemarks(data);
     
-    // Populate settlement details table
-    if (data.settlementDetails && data.settlementDetails.length > 0) {
-        populateSettleDetailsTable(data.settlementDetails);
+    // Populate approval fields from DTO data
+    populateApprovalFields(data);
+    
+    // Populate settlement items table
+    if (data.settlementItems && data.settlementItems.length > 0) {
+        populateSettlementItems(data.settlementItems);
     }
     
     // Show remarks if exists
@@ -162,47 +166,71 @@ function populateSettleDetails(data) {
     }
     
     // Make all fields readonly
-    makeAllFieldsReadOnly();
+    setFormReadOnly();
 }
 
-function populateSettleDetailsTable(settlementItems) {
+function populateSettlementItems(items) {
     const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = ''; // Clear existing rows
     
-    // Clear existing rows first
-    tableBody.innerHTML = '';
+    if (items.length === 0) {
+        return;
+    }
     
-    settlementItems.forEach((item, index) => {
-        addSettleDetailRow(item, index);
+    let totalAmount = 0;
+    
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="p-2 border">
+                <input type="text" value="${item.category || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.accountName || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.glAccount || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.description || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="number" value="${item.amount || 0}" class="w-full bg-gray-100 total" readonly step="0.01" />
+            </td>
+            <td class="p-2 border text-center">
+                <span class="text-gray-400">View Only</span>
+            </td>
+        `;
+        tableBody.appendChild(row);
+        
+        // Calculate total
+        totalAmount += parseFloat(item.amount || 0);
     });
+    
+    // Update total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = totalAmount.toFixed(2);
+    }
 }
 
-function addSettleDetailRow(item = null, index = 0) {
-    const tableBody = document.getElementById('tableBody');
-    const newRow = document.createElement('tr');
+// Function to calculate total amount (for any dynamic changes)
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
     
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.category || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.accountName || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.glAccount || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" class="w-full bg-gray-100" value="${item ? item.amount || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border text-center">
-            <!-- Action column - disabled in approval view -->
-            <span class="text-gray-400">View Only</span>
-        </td>
-    `;
+    totalInputs.forEach(input => {
+        const value = input.value.trim();
+        if (value && !isNaN(parseFloat(value))) {
+            sum += parseFloat(value);
+        }
+    });
     
-    tableBody.appendChild(newRow);
+    const formattedSum = sum.toFixed(2);
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
 }
 
 // Function to approve settlement
@@ -357,6 +385,80 @@ function updateSettleStatus(status, remarks) {
     });
 }
 
+// Function to update settlement status with remarks (for revision)
+function updateSettleStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: settlementId,
+        UserId: userId,
+        StatusAt: "Check",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing Revision...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/settlements/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Settlement revision submitted successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardCheck/settlement/menuSettleCheck.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error submitting revision: ' + error.message
+        });
+    });
+}
+
 // Navigation functions
 function goBack() {
     window.history.back();
@@ -387,154 +489,77 @@ function displayFileList() {
     // Implementation for displaying uploaded files if needed
 }
 
-// Function to populate approval fields (Prepared by, Checked by, etc.) - REMOVED
-// Now using populateApprovalFieldsFromDetail function that gets data from detail response
-
-// Function to filter users for the search dropdown in approval section
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+// Function to display revision remarks from API
+function displayRevisionRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
     
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Use stored users or mock data if not available
-    const usersList = window.allUsers || [];
-    
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.fullName || ''}`;
-        return userName.toLowerCase().includes(searchText);
-    });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.name || `${user.fullName || ''}`;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
+    // Check if there are revisions
+    if (data.revisions && data.revisions.length > 0) {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'block';
+            revisedRemarksSection.innerHTML = '';
             
-            // Get the correct select element based on fieldId
-            let selectId;
-            switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
-                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
-                case 'receivedBy': selectId = 'Received'; break;
-                default: selectId = fieldId;
-            }
+            const title = document.createElement('label');
+            title.className = 'font-semibold text-orange-600';
+            title.textContent = `Revision History (${data.revisions.length} revision(s))`;
+            revisedRemarksSection.appendChild(title);
             
-            document.getElementById(selectId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
-    
-    // Display message if no results
-    if (filteredUsers.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
-        dropdown.appendChild(noResults);
-    }
-    
-    // Show dropdown
-    dropdown.classList.remove('hidden');
-}
-
-// Function to populate the Employee field with kansaiEmployeeId
-function populateEmployeeField(users, settlementData = null) {
-    // Find and populate the employee NIK using the stored requester ID
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use kansaiEmployeeId if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-            
-            // Also update employee name if we have better data from users API
-            if (employee.name) {
-                document.getElementById('EmployeeName').value = employee.name;
-            }
+            data.revisions.forEach((revision, index) => {
+                const revisionDiv = document.createElement('div');
+                revisionDiv.className = 'mt-2 p-3 bg-orange-50 border border-orange-200 rounded';
+                revisionDiv.innerHTML = `
+                    <p class="text-sm text-gray-600">Revision ${index + 1}:</p>
+                    <p class="text-sm">${revision.remarks || 'No remarks'}</p>
+                `;
+                revisedRemarksSection.appendChild(revisionDiv);
+            });
+        }
+    } else {
+        if (revisedRemarksSection) {
+            revisedRemarksSection.style.display = 'none';
         }
     }
 }
 
-// Function to populate approval fields from detail data
-function populateApprovalFieldsFromDetail(data) {
-    // Populate approval fields with data from the detail response
-    if (data.preparedName) {
-        const preparedField = document.getElementById('prepared');
-        if (preparedField) {
-            preparedField.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = data.preparedById || '';
-            option.textContent = data.preparedName;
-            option.selected = true;
-            preparedField.appendChild(option);
-            preparedField.disabled = true;
-        }
-    }
+// Function to display rejection remarks
+function displayRejectionRemarks(data) {
+    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
+    const rejectionRemarks = document.getElementById('rejectionRemarks');
     
-    if (data.checkedName) {
-        const checkedField = document.getElementById('Checked');
-        if (checkedField) {
-            checkedField.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = data.checkedById || '';
-            option.textContent = data.checkedName;
-            option.selected = true;
-            checkedField.appendChild(option);
-            checkedField.disabled = true;
+    if (data.rejectedRemarks && data.rejectedRemarks.trim() !== '') {
+        if (rejectionRemarksSection) {
+            rejectionRemarksSection.style.display = 'block';
+        }
+        if (rejectionRemarks) {
+            rejectionRemarks.value = data.rejectedRemarks;
+        }
+    } else {
+        if (rejectionRemarksSection) {
+            rejectionRemarksSection.style.display = 'none';
         }
     }
+}
+
+// Function to populate approval fields from DTO data
+function populateApprovalFields(data) {
+    const approvalFields = [
+        { searchId: 'preparedBySearch', name: data.preparedName },
+        { searchId: 'checkedBySearch', name: data.checkedName },
+        { searchId: 'acknowledgedBySearch', name: data.acknowledgedName },
+        { searchId: 'approvedBySearch', name: data.approvedName },
+        { searchId: 'receivedBySearch', name: data.receivedName }
+    ];
     
-    if (data.acknowledgedName) {
-        const acknowledgedField = document.getElementById('Acknowledged');
-        if (acknowledgedField) {
-            acknowledgedField.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = data.acknowledgedById || '';
-            option.textContent = data.acknowledgedName;
-            option.selected = true;
-            acknowledgedField.appendChild(option);
-            acknowledgedField.disabled = true;
+    approvalFields.forEach(field => {
+        const searchInput = document.getElementById(field.searchId);
+        if (searchInput && field.name) {
+            searchInput.value = field.name;
         }
-    }
-    
-    if (data.approvedName) {
-        const approvedField = document.getElementById('Approved');
-        if (approvedField) {
-            approvedField.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = data.approvedById || '';
-            option.textContent = data.approvedName;
-            option.selected = true;
-            approvedField.appendChild(option);
-            approvedField.disabled = true;
-        }
-    }
-    
-    if (data.receivedName) {
-        const receivedField = document.getElementById('Received');
-        if (receivedField) {
-            receivedField.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = data.receivedById || '';
-            option.textContent = data.receivedName;
-            option.selected = true;
-            receivedField.appendChild(option);
-            receivedField.disabled = true;
-        }
-    }
+    });
 }
 
 // Function to make all fields read-only for approval view
-function makeAllFieldsReadOnly() {
+function setFormReadOnly() {
     // Make all input fields read-only including search inputs
     const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
