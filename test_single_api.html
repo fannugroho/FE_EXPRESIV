@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single API Implementation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .test-result {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        select,
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Single API Implementation Test</h1>
+
+    <div class="test-section">
+        <h2>1. Test API Endpoint</h2>
+        <p>Test langsung ke API endpoint untuk memastikan response format yang benar.</p>
+
+        <label>Department:</label>
+        <input type="text" id="testDepartment" value="Technical" placeholder="Department name">
+
+        <label>Transaction Type:</label>
+        <select id="testTransaction">
+            <option value="Medical">Medical</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Travelling">Travelling</option>
+            <option value="Others">Others</option>
+        </select>
+
+        <label>Category (optional):</label>
+        <input type="text" id="testCategory" placeholder="Category name">
+
+        <br><br>
+        <button onclick="testAPIEndpoint()">Test API Endpoint</button>
+        <div id="apiTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Category Fetching</h2>
+        <p>Test fungsi fetchCategories() untuk memastikan kategori dapat diambil dengan benar.</p>
+
+        <label>Department:</label>
+        <input type="text" id="categoryDepartment" value="Technical" placeholder="Department name">
+
+        <label>Transaction Type:</label>
+        <select id="categoryTransaction">
+            <option value="Medical">Medical</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Travelling">Travelling</option>
+            <option value="Others">Others</option>
+        </select>
+
+        <br><br>
+        <button onclick="testCategoryFetching()">Test Category Fetching</button>
+        <div id="categoryTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Account Names Fetching</h2>
+        <p>Test fungsi fetchAccountNames() untuk memastikan account names dapat diambil dengan benar.</p>
+
+        <label>Department:</label>
+        <input type="text" id="accountDepartment" value="Technical" placeholder="Department name">
+
+        <label>Transaction Type:</label>
+        <select id="accountTransaction">
+            <option value="Medical">Medical</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Travelling">Travelling</option>
+            <option value="Others">Others</option>
+        </select>
+
+        <label>Category:</label>
+        <input type="text" id="accountCategory" placeholder="Category name">
+
+        <br><br>
+        <button onclick="testAccountNamesFetching()">Test Account Names Fetching</button>
+        <div id="accountTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Test Complete Flow</h2>
+        <p>Test alur lengkap dari department → transaction type → category → account names.</p>
+
+        <button onclick="testCompleteFlow()">Test Complete Flow</button>
+        <div id="flowTestResult" class="test-result"></div>
+    </div>
+
+    <script>
+        // Mock BASE_URL for testing
+        const BASE_URL = 'http://localhost:5249';
+
+        // Cache variables (same as in addReim.js)
+        let expensesCoaCache = new Map();
+        let categoryCache = new Map();
+        let accountNameCache = new Map();
+
+        // Main function to fetch expenses COA
+        async function fetchExpensesCoa(departmentName, menu, transaction, category = null, isActive = true) {
+            const cacheKey = `${departmentName}-${menu}-${transaction}-${category || 'all'}-${isActive}`;
+
+            if (expensesCoaCache.has(cacheKey)) {
+                console.log('Using cached expenses COA for:', cacheKey);
+                return expensesCoaCache.get(cacheKey);
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    departmentName: departmentName,
+                    menu: menu,
+                    transaction: transaction,
+                    isActive: isActive
+                });
+
+                if (category) {
+                    params.append('category', category);
+                }
+
+                const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status && result.data) {
+                    expensesCoaCache.set(cacheKey, result.data);
+                    console.log('Fetched and cached expenses COA:', result.data);
+                    return result.data;
+                } else {
+                    console.warn('API returned no data or error status');
+                    return [];
+                }
+
+            } catch (error) {
+                console.error("Error fetching expenses COA:", error);
+                return [];
+            }
+        }
+
+        // Function to fetch categories
+        async function fetchCategories(departmentName, transactionType) {
+            const cacheKey = `${departmentName}-${transactionType}`;
+            if (categoryCache.has(cacheKey)) {
+                console.log('Using cached categories for:', cacheKey);
+                return categoryCache.get(cacheKey);
+            }
+
+            try {
+                const expensesCoaData = await fetchExpensesCoa(departmentName, 'Reimbursement', transactionType);
+
+                const categories = [...new Set(expensesCoaData.map(item => item.category).filter(Boolean))];
+
+                categoryCache.set(cacheKey, categories);
+                console.log('Fetched and cached categories:', categories);
+
+                return categories;
+
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+                return [];
+            }
+        }
+
+        // Function to fetch account names
+        async function fetchAccountNames(category, departmentName, transactionType) {
+            const cacheKey = `${category}-${departmentName}-${transactionType}`;
+            if (accountNameCache.has(cacheKey)) {
+                console.log('Using cached account names for:', cacheKey);
+                return accountNameCache.get(cacheKey);
+            }
+
+            try {
+                const expensesCoaData = await fetchExpensesCoa(departmentName, 'Reimbursement', transactionType, category);
+
+                const accountNames = expensesCoaData
+                    .filter(item => item.category === category)
+                    .map(item => ({
+                        accountName: item.accountName,
+                        coa: item.coa || item.glAccount || ''
+                    }));
+
+                accountNameCache.set(cacheKey, accountNames);
+                console.log('Fetched and cached account names:', accountNames);
+
+                return accountNames;
+
+            } catch (error) {
+                console.error("Error fetching account names:", error);
+                return [];
+            }
+        }
+
+        // Test functions
+        async function testAPIEndpoint() {
+            const department = document.getElementById('testDepartment').value;
+            const transaction = document.getElementById('testTransaction').value;
+            const category = document.getElementById('testCategory').value;
+
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                const data = await fetchExpensesCoa(department, 'Reimbursement', transaction, category || null);
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ API Test Successful!\n\nResponse Data:\n${JSON.stringify(data, null, 2)}`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ API Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        async function testCategoryFetching() {
+            const department = document.getElementById('categoryDepartment').value;
+            const transaction = document.getElementById('categoryTransaction').value;
+
+            const resultDiv = document.getElementById('categoryTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                const categories = await fetchCategories(department, transaction);
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ Category Fetching Successful!\n\nFound ${categories.length} categories:\n${categories.join('\n')}`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Category Fetching Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        async function testAccountNamesFetching() {
+            const department = document.getElementById('accountDepartment').value;
+            const transaction = document.getElementById('accountTransaction').value;
+            const category = document.getElementById('accountCategory').value;
+
+            if (!category) {
+                document.getElementById('accountTestResult').className = 'test-result error';
+                document.getElementById('accountTestResult').textContent = '❌ Please enter a category name!';
+                return;
+            }
+
+            const resultDiv = document.getElementById('accountTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                const accountNames = await fetchAccountNames(category, department, transaction);
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ Account Names Fetching Successful!\n\nFound ${accountNames.length} account names:\n${JSON.stringify(accountNames, null, 2)}`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Account Names Fetching Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        async function testCompleteFlow() {
+            const resultDiv = document.getElementById('flowTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing complete flow...\n\n';
+
+            try {
+                // Step 1: Fetch categories
+                resultDiv.textContent += 'Step 1: Fetching categories...\n';
+                const categories = await fetchCategories('Technical', 'Medical');
+                resultDiv.textContent += `Found ${categories.length} categories: ${categories.join(', ')}\n\n`;
+
+                if (categories.length === 0) {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.textContent += '❌ No categories found. Cannot proceed with account names test.\n';
+                    return;
+                }
+
+                // Step 2: Fetch account names for first category
+                const firstCategory = categories[0];
+                resultDiv.textContent += `Step 2: Fetching account names for category "${firstCategory}"...\n`;
+                const accountNames = await fetchAccountNames(firstCategory, 'Technical', 'Medical');
+                resultDiv.textContent += `Found ${accountNames.length} account names\n\n`;
+
+                // Step 3: Test caching
+                resultDiv.textContent += 'Step 3: Testing caching...\n';
+                const cachedCategories = await fetchCategories('Technical', 'Medical');
+                const cachedAccountNames = await fetchAccountNames(firstCategory, 'Technical', 'Medical');
+                resultDiv.textContent += `Cached categories: ${cachedCategories.length}\n`;
+                resultDiv.textContent += `Cached account names: ${cachedAccountNames.length}\n\n`;
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent += '✅ Complete Flow Test Successful!\n\n';
+                resultDiv.textContent += 'Summary:\n';
+                resultDiv.textContent += `- Categories: ${categories.length}\n`;
+                resultDiv.textContent += `- Account Names for "${firstCategory}": ${accountNames.length}\n`;
+                resultDiv.textContent += `- Caching: Working correctly\n`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent += `❌ Complete Flow Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>

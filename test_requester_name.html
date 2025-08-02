@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Requester Name</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .test-result {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .dropdown-content div {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+        }
+
+        .dropdown-content div:hover {
+            background-color: #f1f1f1;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Requester Name Functionality</h1>
+
+    <div class="test-section">
+        <h2>1. Test Users API</h2>
+        <p>Test apakah API users berfungsi dan mengembalikan data yang benar.</p>
+        <button onclick="testUsersAPI()">Test Users API</button>
+        <div id="usersAPITestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Requester Name Search</h2>
+        <p>Test fungsi search dan filter untuk Requester Name.</p>
+
+        <div class="dropdown">
+            <input type="text" id="requesterNameSearch" placeholder="Search requester name..."
+                oninput="filterUsers('requesterNameSelect')" onfocus="filterUsers('requesterNameSelect')">
+            <div id="requesterNameSelectDropdown" class="dropdown-content"></div>
+        </div>
+
+        <div id="requesterNameTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Department Auto-fill</h2>
+        <p>Test apakah department otomatis terisi ketika Requester Name dipilih.</p>
+
+        <label>Department:</label>
+        <input type="text" id="department" placeholder="Department will be auto-filled" readonly>
+
+        <div id="departmentTestResult" class="test-result"></div>
+    </div>
+
+    <script>
+        // Mock BASE_URL for testing
+        const BASE_URL = 'http://localhost:5249';
+
+        // Global variables
+        let allUsers = [];
+
+        // Test Users API
+        async function testUsersAPI() {
+            const resultDiv = document.getElementById('usersAPITestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing Users API...';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/users`);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.status || result.code !== 200) {
+                    throw new Error(result.message || 'Failed to fetch users');
+                }
+
+                allUsers = result.data;
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ Users API Test Successful!\n\nFound ${allUsers.length} users\n\nFirst 5 users:\n${allUsers.slice(0, 5).map(user => `- ${user.fullName} (ID: ${user.id})`).join('\n')}`;
+
+                // Setup requester name search after users are loaded
+                setupRequesterNameSearch();
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Users API Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        // Setup requester name search functionality
+        function setupRequesterNameSearch() {
+            const searchInput = document.getElementById('requesterNameSearch');
+            const dropdown = document.getElementById('requesterNameSelectDropdown');
+
+            if (searchInput && dropdown) {
+                // Store users data for searching
+                searchInput.dataset.users = JSON.stringify(allUsers
+                    .filter(user => user && user.fullName)
+                    .map(user => ({
+                        id: user.id,
+                        fullName: user.fullName
+                    })));
+
+                console.log('Setup requester name search with', allUsers.length, 'users');
+            }
+        }
+
+        // Filter users function (simplified version)
+        function filterUsers(fieldId) {
+            const searchInput = document.getElementById('requesterNameSearch');
+            const dropdown = document.getElementById('requesterNameSelectDropdown');
+
+            if (!searchInput || !dropdown) return;
+
+            const searchText = searchInput.value.toLowerCase();
+
+            // Clear dropdown
+            dropdown.innerHTML = '';
+
+            try {
+                const users = JSON.parse(searchInput.dataset.users || '[]');
+                const filtered = users.filter(user =>
+                    user && user.fullName &&
+                    user.fullName.toLowerCase().includes(searchText)
+                );
+
+                // Display search results
+                filtered.forEach(user => {
+                    if (!user || !user.fullName) return;
+                    const option = document.createElement('div');
+                    option.className = 'dropdown-item';
+                    option.innerText = user.fullName;
+                    option.onclick = function () {
+                        searchInput.value = user.fullName;
+                        dropdown.classList.remove('show');
+
+                        // Test department auto-fill
+                        testDepartmentAutoFill(user.fullName);
+                    };
+                    dropdown.appendChild(option);
+                });
+
+                // Show message if no results
+                if (filtered.length === 0) {
+                    const noResults = document.createElement('div');
+                    noResults.className = 'p-2 text-gray-500';
+                    noResults.innerText = 'No User Found';
+                    dropdown.appendChild(noResults);
+                }
+
+                // Show dropdown
+                dropdown.classList.add('show');
+
+            } catch (error) {
+                console.error("Error filtering users:", error);
+            }
+        }
+
+        // Test department auto-fill
+        async function testDepartmentAutoFill(requesterName) {
+            const resultDiv = document.getElementById('departmentTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = `Testing department auto-fill for: ${requesterName}`;
+
+            try {
+                // Find user by name
+                const selectedUser = allUsers.find(user => user.fullName === requesterName);
+
+                if (!selectedUser) {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.textContent = `❌ User not found for: ${requesterName}`;
+                    return;
+                }
+
+                // Get user's department
+                const departmentName = selectedUser.departmentName || selectedUser.department?.name;
+
+                if (departmentName) {
+                    document.getElementById('department').value = departmentName;
+                    resultDiv.className = 'test-result success';
+                    resultDiv.textContent = `✅ Department auto-fill successful!\n\nRequester: ${requesterName}\nDepartment: ${departmentName}`;
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.textContent = `❌ No department found for user: ${requesterName}`;
+                }
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Department auto-fill failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function (event) {
+            if (!event.target.matches('#requesterNameSearch')) {
+                const dropdowns = document.getElementsByClassName("dropdown-content");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Auto-test when page loads
+        window.onload = function () {
+            console.log('Page loaded, starting auto-test...');
+            setTimeout(testUsersAPI, 1000);
+        };
+    </script>
+</body>
+
+</html>

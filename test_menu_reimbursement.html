@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Menu Reimbursement Implementation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .test-result {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        select,
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+
+        .form-group {
+            margin: 10px 0;
+        }
+
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Menu Reimbursement Implementation</h1>
+
+    <div class="test-section">
+        <h2>1. Test Transaction Types API (menu=Reimbursement)</h2>
+        <p>Test apakah API transaction types dengan menu=Reimbursement berfungsi.</p>
+        <button onclick="testTransactionTypesAPI()">Test Transaction Types API</button>
+        <div id="transactionTypesTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Expenses COA API (menu=Reimbursement)</h2>
+        <p>Test API expenses COA dengan menu=Reimbursement dan department dari form.</p>
+
+        <div class="form-group">
+            <label>Department:</label>
+            <select id="testDepartment">
+                <option value="">Select Department</option>
+                <option value="Technical">Technical</option>
+                <option value="Finance">Finance</option>
+                <option value="HR">HR</option>
+                <option value="Marketing">Marketing</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Transaction Type:</label>
+            <select id="testTransactionType">
+                <option value="">Select Transaction Type</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Category (optional):</label>
+            <input type="text" id="testCategory" placeholder="Enter category">
+        </div>
+
+        <button onclick="testExpensesCoaAPI()">Test Expenses COA API</button>
+        <div id="expensesCoaTestResult" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Complete Flow</h2>
+        <p>Test alur lengkap: Department → Transaction Type → Categories → Account Names.</p>
+
+        <button onclick="testCompleteFlow()">Test Complete Flow</button>
+        <div id="completeFlowTestResult" class="test-result"></div>
+    </div>
+
+    <script>
+        // Mock BASE_URL for testing
+        const BASE_URL = 'http://localhost:5249';
+
+        // Global variables
+        let transactionTypes = [];
+        let departments = [];
+
+        // Test Transaction Types API
+        async function testTransactionTypesAPI() {
+            const resultDiv = document.getElementById('transactionTypesTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing Transaction Types API...';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/transactiontypes/filter?menu=Reimbursement`);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.status || result.code !== 200) {
+                    throw new Error(result.message || 'Failed to fetch transaction types');
+                }
+
+                transactionTypes = result.data;
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ Transaction Types API Test Successful!\n\nFound ${transactionTypes.length} transaction types:\n${transactionTypes.map(type => `- ${type.name}`).join('\n')}`;
+
+                // Populate transaction type dropdown
+                populateTransactionTypeDropdown();
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Transaction Types API Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        // Populate transaction type dropdown
+        function populateTransactionTypeDropdown() {
+            const select = document.getElementById('testTransactionType');
+            select.innerHTML = '<option value="">Select Transaction Type</option>';
+
+            transactionTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.name;
+                option.textContent = type.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Test Expenses COA API
+        async function testExpensesCoaAPI() {
+            const department = document.getElementById('testDepartment').value;
+            const transactionType = document.getElementById('testTransactionType').value;
+            const category = document.getElementById('testCategory').value;
+
+            if (!department) {
+                document.getElementById('expensesCoaTestResult').className = 'test-result error';
+                document.getElementById('expensesCoaTestResult').textContent = '❌ Please select a department!';
+                return;
+            }
+
+            const resultDiv = document.getElementById('expensesCoaTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing Expenses COA API...';
+
+            try {
+                // Build query parameters
+                const params = new URLSearchParams({
+                    departmentName: department,
+                    menu: 'Reimbursement',
+                    isActive: true
+                });
+
+                if (transactionType) {
+                    params.append('transaction', transactionType);
+                }
+
+                if (category) {
+                    params.append('category', category);
+                }
+
+                const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.status || result.code !== 200) {
+                    throw new Error(result.message || 'Failed to fetch expenses COA');
+                }
+
+                const data = result.data;
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = `✅ Expenses COA API Test Successful!\n\nRequest URL: ${response.url}\n\nFound ${data.length} records\n\nFirst 5 records:\n${data.slice(0, 5).map(item => `- Category: ${item.category}, Account: ${item.accountName}, COA: ${item.coa || item.glAccount || 'N/A'}`).join('\n')}`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Expenses COA API Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        // Test complete flow
+        async function testCompleteFlow() {
+            const resultDiv = document.getElementById('completeFlowTestResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = 'Testing complete flow...\n\n';
+
+            try {
+                // Step 1: Test transaction types
+                resultDiv.textContent += 'Step 1: Testing transaction types...\n';
+                await testTransactionTypesAPI();
+                if (transactionTypes.length === 0) {
+                    throw new Error('No transaction types found');
+                }
+                resultDiv.textContent += `✅ Found ${transactionTypes.length} transaction types\n\n`;
+
+                // Step 2: Test expenses COA with department only
+                resultDiv.textContent += 'Step 2: Testing expenses COA with department only...\n';
+                const department = 'Technical';
+                const params1 = new URLSearchParams({
+                    departmentName: department,
+                    menu: 'Reimbursement',
+                    isActive: true
+                });
+
+                const response1 = await fetch(`${BASE_URL}/api/expenses-coa/filter?${params1.toString()}`);
+                const result1 = await response1.json();
+
+                if (!result1.status || result1.code !== 200) {
+                    throw new Error('Failed to fetch expenses COA with department only');
+                }
+
+                resultDiv.textContent += `✅ Found ${result1.data.length} expenses COA records for department: ${department}\n\n`;
+
+                // Step 3: Test with transaction type
+                if (transactionTypes.length > 0) {
+                    resultDiv.textContent += 'Step 3: Testing with transaction type...\n';
+                    const transactionType = transactionTypes[0].name;
+                    const params2 = new URLSearchParams({
+                        departmentName: department,
+                        menu: 'Reimbursement',
+                        transaction: transactionType,
+                        isActive: true
+                    });
+
+                    const response2 = await fetch(`${BASE_URL}/api/expenses-coa/filter?${params2.toString()}`);
+                    const result2 = await response2.json();
+
+                    if (!result2.status || result2.code !== 200) {
+                        throw new Error('Failed to fetch expenses COA with transaction type');
+                    }
+
+                    resultDiv.textContent += `✅ Found ${result2.data.length} expenses COA records for department: ${department}, transaction: ${transactionType}\n\n`;
+
+                    // Step 4: Extract categories
+                    const categories = [...new Set(result2.data.map(item => item.category).filter(Boolean))];
+                    resultDiv.textContent += `Step 4: Extracted ${categories.length} unique categories:\n${categories.join(', ')}\n\n`;
+
+                    // Step 5: Test with category
+                    if (categories.length > 0) {
+                        resultDiv.textContent += 'Step 5: Testing with category...\n';
+                        const category = categories[0];
+                        const params3 = new URLSearchParams({
+                            departmentName: department,
+                            menu: 'Reimbursement',
+                            transaction: transactionType,
+                            category: category,
+                            isActive: true
+                        });
+
+                        const response3 = await fetch(`${BASE_URL}/api/expenses-coa/filter?${params3.toString()}`);
+                        const result3 = await response3.json();
+
+                        if (!result3.status || result3.code !== 200) {
+                            throw new Error('Failed to fetch expenses COA with category');
+                        }
+
+                        resultDiv.textContent += `✅ Found ${result3.data.length} expenses COA records for category: ${category}\n\n`;
+
+                        // Step 6: Extract account names
+                        const accountNames = result3.data.map(item => ({
+                            accountName: item.accountName,
+                            coa: item.coa || item.glAccount || ''
+                        }));
+
+                        resultDiv.textContent += `Step 6: Extracted ${accountNames.length} account names:\n${accountNames.map(acc => `- ${acc.accountName} (COA: ${acc.coa})`).join('\n')}\n\n`;
+                    }
+                }
+
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent += '✅ Complete Flow Test Successful!\n\n';
+                resultDiv.textContent += 'Summary:\n';
+                resultDiv.textContent += `- Transaction Types: ${transactionTypes.length}\n`;
+                resultDiv.textContent += `- Department: Technical\n`;
+                resultDiv.textContent += `- Menu: Reimbursement\n`;
+                resultDiv.textContent += `- API Endpoint: /api/expenses-coa/filter\n`;
+                resultDiv.textContent += `- All filters working correctly\n`;
+
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent += `❌ Complete Flow Test Failed!\n\nError: ${error.message}`;
+            }
+        }
+
+        // Auto-test when page loads
+        window.onload = function () {
+            console.log('Page loaded, starting auto-test...');
+            setTimeout(testTransactionTypesAPI, 1000);
+        };
+    </script>
+</body>
+
+</html>

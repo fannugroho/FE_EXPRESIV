@@ -168,11 +168,18 @@ function filterUsers(fieldId) {
                         // Trigger category fetch if transaction type is already selected
                         setTimeout(() => {
                             const transactionType = document.getElementById('typeOfTransaction').value;
-                            if (transactionType) {
-                                console.log('Transaction type already selected, triggering category fetch after department auto-fill...');
+                            const departmentName = document.getElementById('department').value;
+                            if (transactionType && departmentName) {
+                                console.log('Transaction type and department are selected, triggering category fetch after department auto-fill...');
+                                console.log('Transaction type:', transactionType);
+                                console.log('Department:', departmentName);
                                 handleDependencyChange();
+                            } else {
+                                console.log('Transaction type or department not ready yet');
+                                console.log('Transaction type:', transactionType);
+                                console.log('Department:', departmentName);
                             }
-                        }, 500);
+                        }, 1000); // Increased delay to ensure department is set
                     }
                 };
                 dropdown.appendChild(option);
@@ -206,9 +213,6 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchDepartments();
     fetchBusinessPartners(); // Added to fetch business partners
     fetchTransactionTypes(); // Added to fetch transaction types
-
-    // Preload common categories and account names for faster loading
-    preloadCommonData();
 
     // Check if department and transaction type are already selected and trigger category fetch
     setTimeout(() => {
@@ -338,39 +342,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const transactionTypeSelect = document.getElementById('typeOfTransaction');
 
     if (departmentSelect) {
-        departmentSelect.addEventListener('change', handleDependencyChange);
-        // Also trigger on focus for faster response
-        departmentSelect.addEventListener('focus', function () {
-            if (this.value && document.getElementById('typeOfTransaction').value) {
-                handleDependencyChange();
-            }
-        });
-
-        // Also trigger when department is selected and transaction type is available
-        departmentSelect.addEventListener('change', function () {
+        departmentSelect.addEventListener("change", function () {
             const transactionType = document.getElementById('typeOfTransaction').value;
             if (this.value && transactionType) {
-                console.log('Department changed and transaction type available, triggering category fetch...');
+                console.log('Department changed to:', this.value, 'for transaction type:', transactionType);
+                console.log('Triggering category fetch...');
                 handleDependencyChange();
+            } else {
+                console.log('Department or transaction type not selected yet');
+                console.log('Department:', this.value);
+                console.log('Transaction type:', transactionType);
             }
         });
     }
 
     if (transactionTypeSelect) {
-        transactionTypeSelect.addEventListener('change', handleDependencyChange);
-        // Also trigger on focus for faster response
-        transactionTypeSelect.addEventListener('focus', function () {
-            if (this.value && document.getElementById('department').value) {
-                handleDependencyChange();
-            }
-        });
-
-        // Also trigger when transaction type is selected and department is available
-        transactionTypeSelect.addEventListener('change', function () {
+        transactionTypeSelect.addEventListener("change", function () {
             const departmentName = document.getElementById('department').value;
             if (this.value && departmentName) {
-                console.log('Transaction type changed and department available, triggering category fetch...');
+                console.log('Transaction type changed to:', this.value, 'for department:', departmentName);
+                console.log('Triggering category fetch...');
                 handleDependencyChange();
+            } else {
+                console.log('Transaction type or department not selected yet');
+                console.log('Transaction type:', this.value);
+                console.log('Department:', departmentName);
             }
         });
     }
@@ -635,33 +631,30 @@ function addRow() {
         // Also check if we have account names for the first category
         if (allCategories.length > 0) {
             const firstCategory = allCategories[0];
-            // Get department ID if not already available
-            getDepartmentIdByName(departmentName).then(departmentId => {
-                if (departmentId) {
-                    const cacheKey = `${firstCategory}-${departmentId}-${transactionType}`;
-                    if (accountNameCache.has(cacheKey)) {
-                        const cachedAccountNames = accountNameCache.get(cacheKey);
-                        const accountNameSearch = newRow.querySelector('.account-name-search');
-                        if (accountNameSearch) {
-                            accountNameSearch.dataset.accountNames = JSON.stringify(cachedAccountNames);
-                            console.log('Pre-populated account names for new row from cache:', cachedAccountNames.length, 'account names');
-                        }
-                    } else {
-                        // Pre-fetch account names for the first category
-                        fetchAccountNames(firstCategory, departmentId, transactionType).then(accountNames => {
-                            const accountNameSearch = newRow.querySelector('.account-name-search');
-                            if (accountNameSearch && accountNames.length > 0) {
-                                accountNameSearch.dataset.accountNames = JSON.stringify(accountNames);
-                                console.log('Pre-fetched account names for new row:', accountNames.length, 'account names');
-                            }
-                        });
+            // Get department name directly
+            const departmentName = document.getElementById('department').value;
+            if (departmentName) {
+                const cacheKey = `${firstCategory}-${departmentName}-${transactionType}`;
+                if (accountNameCache.has(cacheKey)) {
+                    const cachedAccountNames = accountNameCache.get(cacheKey);
+                    const accountNameSearch = newRow.querySelector('.account-name-search');
+                    if (accountNameSearch) {
+                        accountNameSearch.dataset.accountNames = JSON.stringify(cachedAccountNames);
+                        console.log('Pre-populated account names for new row from cache:', cachedAccountNames.length, 'account names');
                     }
                 } else {
-                    console.log('Department ID not found for:', departmentName);
+                    // Pre-fetch account names for the first category
+                    fetchAccountNames(firstCategory, departmentName, transactionType).then(accountNames => {
+                        const accountNameSearch = newRow.querySelector('.account-name-search');
+                        if (accountNameSearch && accountNames.length > 0) {
+                            accountNameSearch.dataset.accountNames = JSON.stringify(accountNames);
+                            console.log('Pre-fetched account names for new row:', accountNames.length, 'account names');
+                        }
+                    });
                 }
-            }).catch(error => {
-                console.error('Error getting department ID for new row:', error);
-            });
+            } else {
+                console.log('Department name not found for:', departmentName);
+            }
         }
     }
 }
@@ -1071,21 +1064,70 @@ async function processDocument(isSubmit) {
     const reimbursementDetails = [];
     const tableRows = document.querySelectorAll("#tableBody tr");
 
-    tableRows.forEach(row => {
+    tableRows.forEach((row, index) => {
         // Get category from search input
         const categoryInput = row.querySelector('.category-search');
         const accountNameInput = row.querySelector('.account-name-search');
         const glAccountInput = row.querySelector('.gl-account');
-        const inputs = row.querySelectorAll("input[type='text']:not(.category-search):not(.account-name-search):not(.gl-account), input[type='number']");
+        const descriptionInput = row.querySelector('td:nth-child(4) input'); // Description input
+        const amountInput = row.querySelector('td:nth-child(5) input'); // Amount input
 
-        if (categoryInput && accountNameInput && glAccountInput && inputs.length >= 2) {
-            reimbursementDetails.push({
-                category: categoryInput.value || "",
-                accountName: accountNameInput.value || "",
-                glAccount: glAccountInput.value || "",
-                description: inputs[0].value || "", // Description input
-                amount: inputs[1].value || "" // Amount input
+        console.log(`Row ${index + 1} data:`, {
+            category: categoryInput ? categoryInput.value : 'NOT FOUND',
+            accountName: accountNameInput ? accountNameInput.value : 'NOT FOUND',
+            glAccount: glAccountInput ? glAccountInput.value : 'NOT FOUND',
+            description: descriptionInput ? descriptionInput.value : 'NOT FOUND',
+            amount: amountInput ? amountInput.value : 'NOT FOUND'
+        });
+
+        if (categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
+            const detail = {
+                category: categoryInput.value.trim() || "",
+                accountName: accountNameInput.value.trim() || "",
+                glAccount: glAccountInput.value.trim() || "",
+                description: descriptionInput.value.trim() || "",
+                amount: amountInput.value.trim() || ""
+            };
+
+            // Validate that required fields are not empty
+            if (detail.category && detail.accountName && detail.description && detail.amount) {
+                reimbursementDetails.push(detail);
+                console.log(`Row ${index + 1} added to reimbursement details:`, detail);
+            } else {
+                console.warn(`Row ${index + 1} skipped - missing required fields:`, detail);
+            }
+        } else {
+            console.error(`Row ${index + 1} - missing input elements:`, {
+                categoryInput: !!categoryInput,
+                accountNameInput: !!accountNameInput,
+                glAccountInput: !!glAccountInput,
+                descriptionInput: !!descriptionInput,
+                amountInput: !!amountInput
             });
+        }
+    });
+
+    console.log("Total reimbursement details collected:", reimbursementDetails.length);
+    console.log("Reimbursement details:", reimbursementDetails);
+
+    // Validate that we have at least one reimbursement detail
+    if (reimbursementDetails.length === 0) {
+        throw new Error("Please add at least one reimbursement detail with category, account name, description, and amount.");
+    }
+
+    // Validate each reimbursement detail
+    reimbursementDetails.forEach((detail, index) => {
+        if (!detail.category) {
+            throw new Error(`Row ${index + 1}: Category is required`);
+        }
+        if (!detail.accountName) {
+            throw new Error(`Row ${index + 1}: Account Name is required`);
+        }
+        if (!detail.description) {
+            throw new Error(`Row ${index + 1}: Description is required`);
+        }
+        if (!detail.amount || detail.amount === "0.00") {
+            throw new Error(`Row ${index + 1}: Amount must be greater than 0`);
         }
     });
 
@@ -1146,7 +1188,28 @@ async function processDocument(isSubmit) {
 
     console.log("Sending data:", JSON.stringify(reimbursementData, null, 2));
 
-    // Step 3: Send the POST request to create reimbursement
+    // Step 3: Validate form data before sending
+    console.log("=== FORM VALIDATION ===");
+    console.log("Voucher No:", reimbursementData.voucherNo);
+    console.log("Requester Name:", reimbursementData.requesterName);
+    console.log("Department:", reimbursementData.department);
+    console.log("Pay To:", reimbursementData.payTo);
+    console.log("Currency:", reimbursementData.currency);
+    console.log("Submission Date:", reimbursementData.submissionDate);
+    console.log("Status:", reimbursementData.status);
+    console.log("Reference Doc:", reimbursementData.referenceDoc);
+    console.log("Type of Transaction:", reimbursementData.typeOfTransaction);
+    console.log("Remarks:", reimbursementData.remarks);
+    console.log("Prepared By:", reimbursementData.preparedBy);
+    console.log("Checked By:", reimbursementData.checkedBy);
+    console.log("Acknowledged By:", reimbursementData.acknowledgedBy);
+    console.log("Approved By:", reimbursementData.approvedBy);
+    console.log("Received By:", reimbursementData.receivedBy);
+    console.log("Reimbursement Details Count:", reimbursementData.reimbursementDetails.length);
+    console.log("Is Submit:", reimbursementData.isSubmit);
+    console.log("=== END VALIDATION ===");
+
+    // Step 4: Send the POST request to create reimbursement
     const response = await fetch(`${BASE_URL}/api/reimbursements`, {
         method: 'POST',
         headers: {
@@ -1170,10 +1233,12 @@ async function processDocument(isSubmit) {
     }
 
     if (!response.ok) {
+        console.error("API Error Response:", errorText);
         throw new Error(errorText || `API error: ${response.status}`);
     }
 
     const result = await response.json();
+    console.log("API Success Response:", result);
 
     if (!result.status || result.code !== 200) {
         throw new Error(result.message || 'Failed to create reimbursement');
@@ -1287,29 +1352,10 @@ function populateTransactionTypesDropdown(types) {
 // let allCategories = [];
 // let allAccountNames = [];
 
-// Function to get department ID by name
-async function getDepartmentIdByName(departmentName) {
-    try {
-        const response = await fetch(`${BASE_URL}/api/department`);
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        const departments = result.data;
-
-        const department = departments.find(dept => dept.name === departmentName);
-        return department ? department.id : null;
-    } catch (error) {
-        console.error("Error fetching department ID:", error);
-        return null;
-    }
-}
-
 // Function to fetch categories based on department and transaction type
-async function fetchCategories(departmentId, transactionType) {
+async function fetchCategories(departmentName, transactionType) {
     // Check cache first
-    const cacheKey = `${departmentId}-${transactionType}`;
+    const cacheKey = `${departmentName}-${transactionType}`;
     if (categoryCache.has(cacheKey)) {
         console.log('Using cached categories for:', cacheKey);
         allCategories = categoryCache.get(cacheKey);
@@ -1318,13 +1364,26 @@ async function fetchCategories(departmentId, transactionType) {
     }
 
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        console.log('Fetching categories for department:', departmentName, 'transaction:', transactionType);
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
 
-        const categories = await response.json();
+        const result = await response.json();
+        console.log('API Response:', result);
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch categories');
+        }
+
+        if (!result.data || !Array.isArray(result.data)) {
+            throw new Error('Invalid data format from API');
+        }
+
+        // Extract unique categories from the response data
+        const categories = [...new Set(result.data.map(item => item.category).filter(category => category))];
         allCategories = categories;
 
         // Cache the result
@@ -1342,23 +1401,40 @@ async function fetchCategories(departmentId, transactionType) {
 }
 
 // Function to fetch account names based on category, department and transaction type
-async function fetchAccountNames(category, departmentId, transactionType) {
+async function fetchAccountNames(category, departmentName, transactionType) {
     // Check cache first
-    const cacheKey = `${category}-${departmentId}-${transactionType}`;
+    const cacheKey = `${category}-${departmentName}-${transactionType}`;
     if (accountNameCache.has(cacheKey)) {
         console.log('Using cached account names for:', cacheKey);
         return accountNameCache.get(cacheKey);
     }
 
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        console.log('Fetching account names for category:', category, 'department:', departmentName, 'transaction:', transactionType);
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
 
-        const accountNames = await response.json();
-        allAccountNames = accountNames;
+        const result = await response.json();
+        console.log('Account Names API Response:', result);
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch account names');
+        }
+
+        if (!result.data || !Array.isArray(result.data)) {
+            throw new Error('Invalid data format from API');
+        }
+
+        // Filter data by selected category and extract account names with COA
+        const filteredData = result.data.filter(item => item.category === category);
+        const accountNames = filteredData.map(item => ({
+            accountName: item.accountName,
+            coa: item.coa,
+            category: item.category
+        }));
 
         // Cache the result
         accountNameCache.set(cacheKey, accountNames);
@@ -1494,11 +1570,19 @@ function setupRowEventListeners(row) {
                     loadAccountNamesForRow(row).then(() => {
                         const updatedAccountNames = JSON.parse(this.dataset.accountNames || '[]');
                         if (updatedAccountNames.length > 0) {
+                            console.log('Account names loaded during input, filtering...');
                             filterAccountNames(this);
+                        } else {
+                            console.log('No account names available after fetch during input');
                         }
+                    }).catch(error => {
+                        console.error('Error loading account names during input:', error);
                     });
+                } else {
+                    console.log('No category selected, cannot load account names during input');
                 }
             } else {
+                console.log('Account names already loaded, filtering...');
                 filterAccountNames(this);
             }
         });
@@ -1515,11 +1599,19 @@ function setupRowEventListeners(row) {
                     loadAccountNamesForRow(row).then(() => {
                         const updatedAccountNames = JSON.parse(this.dataset.accountNames || '[]');
                         if (updatedAccountNames.length > 0) {
+                            console.log('Account names loaded on click, showing dropdown');
                             filterAccountNames(this);
+                        } else {
+                            console.log('No account names available after fetch');
                         }
+                    }).catch(error => {
+                        console.error('Error loading account names on click:', error);
                     });
+                } else {
+                    console.log('No category selected, cannot load account names');
                 }
             } else {
+                console.log('Account names already loaded, showing dropdown');
                 filterAccountNames(this);
             }
         });
@@ -1558,13 +1650,33 @@ function filterCategories(input) {
                 // Clear account name and GL account when category changes
                 const row = input.closest('tr');
                 const accountNameSearch = row.querySelector('.account-name-search');
+                const accountNameSelect = row.querySelector('.account-name-select');
                 const glAccount = row.querySelector('.gl-account');
-                if (accountNameSearch) accountNameSearch.value = '';
+                if (accountNameSearch) {
+                    accountNameSearch.value = '';
+                    if (accountNameSelect) accountNameSelect.value = '';
+                }
                 if (glAccount) glAccount.value = '';
+
+                console.log('Category selected:', category);
+                console.log('Category input value:', input.value);
+                console.log('Category select value:', selectElement ? selectElement.value : 'N/A');
 
                 // Trigger account names fetch immediately
                 loadAccountNamesForRow(row).then(() => {
                     console.log('Account names loaded for category:', category);
+                    // Show dropdown for account names if available
+                    if (accountNameSearch) {
+                        const accountNames = JSON.parse(accountNameSearch.dataset.accountNames || '[]');
+                        if (accountNames.length > 0) {
+                            console.log('Showing account names dropdown with', accountNames.length, 'options');
+                            filterAccountNames(accountNameSearch);
+                        } else {
+                            console.log('No account names available for category:', category);
+                        }
+                    }
+                }).catch(error => {
+                    console.error('Error loading account names for category:', category, error);
                 });
             };
             dropdown.appendChild(option);
@@ -1618,10 +1730,19 @@ function filterAccountNames(input) {
                 // Auto-fill GL Account immediately
                 const row = input.closest('tr');
                 const glAccount = row.querySelector('.gl-account');
-                if (glAccount) {
+                if (glAccount && account.coa) {
                     glAccount.value = account.coa;
-                    console.log('GL Account auto-filled:', account.coa);
+                    console.log('GL Account auto-filled:', account.coa, 'for account:', account.accountName);
+                } else {
+                    console.log('GL Account not found or COA not available');
+                    console.log('GL Account element:', glAccount);
+                    console.log('Account COA:', account.coa);
                 }
+
+                console.log('Account name selected:', account.accountName);
+                console.log('Account name input value:', input.value);
+                console.log('Account name select value:', selectElement ? selectElement.value : 'N/A');
+                console.log('GL Account value:', glAccount ? glAccount.value : 'N/A');
             };
             dropdown.appendChild(option);
         });
@@ -1662,14 +1783,8 @@ async function loadAccountNamesForRow(row) {
     }
 
     try {
-        const departmentId = await getDepartmentIdByName(departmentName);
-        if (!departmentId) {
-            console.error('Could not find department ID');
-            return;
-        }
-
         // Check if we already have account names for this combination
-        const cacheKey = `${category}-${departmentId}-${transactionType}`;
+        const cacheKey = `${category}-${departmentName}-${transactionType}`;
         if (accountNameCache.has(cacheKey)) {
             const cachedAccountNames = accountNameCache.get(cacheKey);
             accountNameInput.dataset.accountNames = JSON.stringify(cachedAccountNames);
@@ -1677,7 +1792,7 @@ async function loadAccountNamesForRow(row) {
             return;
         }
 
-        const accountNames = await fetchAccountNames(category, departmentId, transactionType);
+        const accountNames = await fetchAccountNames(category, departmentName, transactionType);
 
         // Store account names data for this row
         accountNameInput.dataset.accountNames = JSON.stringify(accountNames);
@@ -1700,39 +1815,11 @@ async function handleDependencyChange() {
     }
 
     try {
-        const departmentId = await getDepartmentIdByName(departmentName);
-        if (!departmentId) {
-            console.error('Could not find department ID');
-            return;
-        }
-
-        // Fetch new categories
-        await fetchCategories(departmentId, transactionType);
+        // Fetch new categories using department name directly
+        await fetchCategories(departmentName, transactionType);
 
     } catch (error) {
         console.error('Error handling dependency change:', error);
-    }
-}
-
-// Function to preload common data for faster loading
-async function preloadCommonData() {
-    try {
-        // Preload categories for common department-transaction type combinations
-        const commonCombinations = [
-            { departmentId: 1, transactionType: 'Travel' },
-            { departmentId: 1, transactionType: 'Office Supplies' },
-            { departmentId: 2, transactionType: 'Travel' },
-            { departmentId: 2, transactionType: 'Office Supplies' }
-        ];
-
-        console.log('Preloading common categories...');
-        for (const combo of commonCombinations) {
-            await fetchCategories(combo.departmentId, combo.transactionType);
-        }
-        console.log('Common categories preloaded');
-
-    } catch (error) {
-        console.error('Error preloading common data:', error);
     }
 }
 
