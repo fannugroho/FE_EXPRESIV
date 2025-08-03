@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,21 +9,48 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="acknowledgeReim.js"></script>
     <script src="../../../../js/auth.js"></script>
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
 
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button onclick="goToMenuReim()" type="button"
+            class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Acknowledge Document Reimbursement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
-                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100"
+                    readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="requesterName" placeholder="Requester"
+                    class="w-full p-2 border rounded bg-gray-100" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
@@ -38,12 +66,21 @@
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100"
+                    readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="payTo" placeholder="outno" class="w-full p-2 border rounded bg-gray-100" readonly>        
+                <div class="relative">
+                    <input type="text" id="payToSearch" placeholder="Search business partner..."
+                        class="w-full p-2 border rounded bg-gray-100 search-input" readonly>
+                    <div id="payToSelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <select id="payToSelect" class="hidden">
+                        <option value="" disabled selected>Choose Business Partner</option>
+                    </select>
+                </div>
             </div>
-            
+
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="submissionDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -61,11 +98,13 @@
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" disabled /> <!-- ini dari reimbursementAttachments-->
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple
+                    onchange="previewPDF(event)" disabled /> <!-- ini dari reimbursementAttachments-->
                 <div id="attachmentsList" class="mt-2"></div>
-                
+
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
-                <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="referenceDoc" placeholder="No.Invoice"
+                    class="w-full p-2 border rounded bg-gray-100" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="typeOfTransaction" class="w-full p-2 border rounded bg-gray-100" disabled>
@@ -76,7 +115,7 @@
                 </select>
             </div>
         </div>
-        
+
         <table id="reimTable" class="w-full text-left border mt-2"> <!-- ini dari reimbursementDetails-->
             <thead class="bg-gray-100">
                 <br>
@@ -93,40 +132,45 @@
                 <!-- Rows will be added dynamically -->
             </tbody>
         </table>
-        
+
         <!-- Total Amount Field -->
         <div class="flex justify-end mt-4">
             <div class="w-1/3">
                 <div class="flex items-center">
                     <label class="font-semibold text-lg mr-4">Total Amount:</label>
-                    <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                    <input type="text" id="totalAmount"
+                        class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
                 </div>
             </div>
         </div>
-        
+
         <!-- Tombol Tambah Baris -->
-        <button id="addRowBtn" onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
-            + 
+        <button id="addRowBtn" onclick="addRow()"
+            class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
+            +
         </button>
 
-            <div class="mt-4">
-              <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
-            </div>
+        <div class="mt-4">
+            <label>Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
+        </div>
 
-            <!-- Rejection Remarks Display Section -->
-            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
-                </div>
+        <!-- Rejection Remarks Display Section -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks"
+                    class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
+                    readonly></textarea>
             </div>
+        </div>
 
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
                 <!--<label class="text-red-600">Need Revision</label>-->
-                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+                <button onclick="toggleRevisionField()" id="addRevisionBtn"
+                    class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
             </div>
             <div id="revisionContainer" class="hidden">
                 <!-- Revision fields will be added here by JavaScript -->
@@ -138,7 +182,7 @@
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
+            <div>
                 <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
                 <select id="preparedBySelect" class="w-full p-1 border rounded">
                     <!-- <option value="Admin 1">Admin 1</option>
@@ -146,25 +190,25 @@
                 </select>
             </div>
             <div>
-            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Supervisor 1">Supervisor 1</option>
+                <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+                <select id="acknowledgeBySelect" class="w-full p-1 border rounded">
+                    <!-- <option value="Supervisor 1">Supervisor 1</option>
                 <option value="Supervisor 2">Supervisor 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
-            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Finance 1">Finance 1</option>
+                <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+                <select id="checkedBySelect" class="w-full p-1 border rounded">
+                    <!-- <option value="Finance 1">Finance 1</option>
                 <option value="Finance 2">Finance 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
-            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBySelect" class="w-full p-1 border rounded">
-                <!-- <option value="Manager 1">Manager 1</option>
+                <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+                <select id="approvedBySelect" class="w-full p-1 border rounded">
+                    <!-- <option value="Manager 1">Manager 1</option>
                 <option value="Manager 2">Manager 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
                 <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
@@ -178,18 +222,22 @@
         <!-- Action Buttons -->
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button id="rejectBtn" onclick="onReject()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button id="rejectBtn" onclick="onReject()"
+                    class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Reject
                 </button>
-                <button id="acknowledgeBtn" onclick="onApprove()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button id="acknowledgeBtn" onclick="onApprove()"
+                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Acknowledge
                 </button>
             </div>
-            <button onclick="revisionReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed" disabled>
+            <button onclick="revisionReim()" id="revisionButton"
+                class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed"
+                disabled>
                 Revision
             </button>
         </div>
-        </div>
+    </div>
     </div>
 
     <script>
@@ -198,7 +246,7 @@
         const MAX_REVISION_FIELDS = 4;
 
         // Check status when page loads and hide buttons if status is not "checked"
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             checkStatus();
         });
 
@@ -223,7 +271,7 @@
                 if (acknowledgeBtn) acknowledgeBtn.style.display = 'none';
                 if (revisionButton) revisionButton.style.display = 'none';
                 if (addRevisionBtn) addRevisionBtn.style.display = 'none';
-                
+
                 // Hide delete buttons in action column
                 deleteButtons.forEach(btn => {
                     btn.style.display = 'none';
@@ -235,7 +283,7 @@
                 if (acknowledgeBtn) acknowledgeBtn.style.display = 'inline-block';
                 if (revisionButton) revisionButton.style.display = 'inline-block';
                 if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
-                
+
                 // Show delete buttons in action column
                 deleteButtons.forEach(btn => {
                     btn.style.display = 'inline-block';
@@ -249,7 +297,7 @@
             const addBtn = document.getElementById('addRevisionBtn');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if user can add a field
             if (currentFieldCount >= MAX_REVISION_FIELDS) {
                 Swal.fire({
@@ -259,7 +307,7 @@
                 });
                 return;
             }
-            
+
             if (revisionFieldsByUser.has(currentUser.name)) {
                 Swal.fire({
                     icon: 'warning',
@@ -268,7 +316,7 @@
                 });
                 return;
             }
-            
+
             if (container.classList.contains('hidden')) {
                 // Show container and add first field
                 container.classList.remove('hidden');
@@ -284,7 +332,7 @@
             const container = document.getElementById('revisionContainer');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if maximum fields reached
             if (currentFieldCount >= MAX_REVISION_FIELDS) {
                 Swal.fire({
@@ -294,7 +342,7 @@
                 });
                 return;
             }
-            
+
             // Check if current user already has a field
             if (revisionFieldsByUser.has(currentUser.name)) {
                 Swal.fire({
@@ -304,60 +352,60 @@
                 });
                 return;
             }
-            
+
             // Create wrapper div for the textarea and delete button
             const fieldWrapper = document.createElement('div');
             fieldWrapper.className = 'flex items-center space-x-2 mt-2';
             fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
-            
+
             // Create textarea
             const newField = document.createElement('textarea');
             newField.className = 'w-full p-2 border rounded-md';
             newField.placeholder = 'Enter revision details';
-            
+
             // Add event listener for input to handle protected prefix
             newField.addEventListener('input', handleRevisionInput);
-            
+
             // Initialize with user prefix
             initializeWithUserPrefix(newField);
-            
+
             // Create delete button
             const deleteButton = document.createElement('button');
             deleteButton.innerHTML = '&times;'; // × symbol
             deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
             deleteButton.title = 'Hapus field revision ini';
-            deleteButton.onclick = function() {
+            deleteButton.onclick = function () {
                 // Remove user from tracking when field is deleted
                 const userName = fieldWrapper.dataset.userName;
                 revisionFieldsByUser.delete(userName);
-                
+
                 fieldWrapper.remove();
                 checkRevisionButton(); // Update button state after removing a field
                 checkRevisionContainer(); // Check if container should be hidden
                 updateAddButtonState(); // Update add button state
             };
-            
+
             // Add textarea and delete button to wrapper
             fieldWrapper.appendChild(newField);
             fieldWrapper.appendChild(deleteButton);
-            
+
             // Add wrapper to container
             container.appendChild(fieldWrapper);
-            
+
             // Track that this user has added a field
             revisionFieldsByUser.set(currentUser.name, true);
-            
+
             // Update the revision button state and add button state
             checkRevisionButton();
             updateAddButtonState();
         }
-        
+
         // Check if revision container should be hidden when all fields are removed
         function checkRevisionContainer() {
             const container = document.getElementById('revisionContainer');
             const addBtn = document.getElementById('addRevisionBtn');
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             if (revisionFields.length === 0) {
                 container.classList.add('hidden');
                 addBtn.textContent = '+ Add revision';
@@ -372,10 +420,10 @@
             const container = document.getElementById('revisionContainer');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if user can add more fields
             const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
-            
+
             if (canAddMore) {
                 addBtn.style.opacity = '1';
                 addBtn.style.cursor = 'pointer';
@@ -389,7 +437,7 @@
                 addBtn.style.opacity = '0.5';
                 addBtn.style.cursor = 'not-allowed';
                 addBtn.style.pointerEvents = 'none';
-                
+
                 if (currentFieldCount >= MAX_REVISION_FIELDS) {
                     addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
                 } else if (revisionFieldsByUser.has(currentUser.name)) {
@@ -399,27 +447,27 @@
         }
 
         // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const revisionContainer = document.getElementById('revisionContainer');
-            
+
             // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
+            revisionContainer.addEventListener('input', function (event) {
                 if (event.target.tagName === 'TEXTAREA') {
                     checkRevisionButton();
                 }
             });
-            
+
             // Initialize button states
             checkRevisionButton();
             updateAddButtonState();
         });
-        
+
         // Function to get current user information
         function getUserInfo() {
             // Use functions from auth.js to get user information
             let userName = 'Unknown User';
             let userRole = 'Acknowledger'; // Default role for this page
-            
+
             try {
                 // Get user info from getCurrentUser function in auth.js
                 const currentUser = getCurrentUser();
@@ -429,40 +477,40 @@
             } catch (e) {
                 console.error('Error getting user info:', e);
             }
-            
+
             return { name: userName, role: userRole };
         }
-        
+
         // Function to initialize textarea with user prefix
         function initializeWithUserPrefix(textarea) {
             const userInfo = getUserInfo();
             const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
             textarea.value = prefix;
-            
+
             // Store the prefix length as a data attribute
             textarea.dataset.prefixLength = prefix.length;
-            
+
             // Set selection range after the prefix
             textarea.setSelectionRange(prefix.length, prefix.length);
             textarea.focus();
         }
-        
+
         // Function to handle input and protect the prefix
         function handleRevisionInput(event) {
             const textarea = event.target;
             const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-            
+
             // If user tries to modify content before the prefix length
             if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
                 // Restore the prefix
                 const userInfo = getUserInfo();
                 const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-                
+
                 // Only restore if the prefix is damaged
                 if (!textarea.value.startsWith(prefix)) {
                     const userText = textarea.value.substring(prefixLength);
                     textarea.value = prefix + userText;
-                    
+
                     // Reset cursor position after the prefix
                     textarea.setSelectionRange(prefixLength, prefixLength);
                 } else {
@@ -471,14 +519,14 @@
                 }
             }
         }
-        
+
         // Check if revision remarks are filled to enable/disable revision button
         function checkRevisionButton() {
             const revisionButton = document.getElementById('revisionButton');
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             let hasContent = false;
-            
+
             // Check if there are any revision fields and if they have content
             if (revisionFields.length > 0) {
                 revisionFields.forEach(field => {
@@ -489,7 +537,7 @@
                     }
                 });
             }
-            
+
             if (hasContent) {
                 revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 revisionButton.disabled = false;
@@ -498,11 +546,11 @@
                 revisionButton.disabled = true;
             }
         }
-        
+
         // Function to collect all revision remarks and submit
         function revisionReim() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             // Check if revision button is disabled
             if (document.getElementById('revisionButton').disabled) {
                 Swal.fire({
@@ -512,9 +560,9 @@
                 });
                 return;
             }
-            
+
             let allRemarks = '';
-            
+
             revisionFields.forEach((field, index) => {
                 // Include the entire content including the prefix
                 if (field.value.trim() !== '') {
@@ -522,7 +570,7 @@
                     allRemarks += field.value.trim();
                 }
             });
-            
+
             if (revisionFields.length === 0 || allRemarks.trim() === '') {
                 Swal.fire({
                     icon: 'error',
@@ -531,7 +579,7 @@
                 });
                 return;
             }
-            
+
             // First show confirmation dialog
             Swal.fire({
                 title: 'Are you sure?',
@@ -550,7 +598,7 @@
                         Swal.fire('Error', 'No reimbursement ID found', 'error');
                         return;
                     }
-                    
+
                     // Get user ID from auth.js
                     const userId = getUserId();
                     if (!userId) {
@@ -569,36 +617,37 @@
                             stage: "Acknowledged"
                         })
                     })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status && result.code === 200) {
-                            Swal.fire(
-                                'Success!',
-                                'Revision remarks have been submitted successfully.',
-                                'success'
-                            ).then(() => {
-                                // Return to menu
-                                goToMenuReim();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status && result.code === 200) {
+                                Swal.fire(
+                                    'Success!',
+                                    'Revision remarks have been submitted successfully.',
+                                    'success'
+                                ).then(() => {
+                                    // Return to menu
+                                    goToMenuReim();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error',
+                                    result.message || 'Failed to submit revision',
+                                    'error'
+                                );
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error submitting revision:', error);
                             Swal.fire(
                                 'Error',
-                                result.message || 'Failed to submit revision',
+                                'An error occurred while submitting the revision',
                                 'error'
                             );
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error submitting revision:', error);
-                        Swal.fire(
-                            'Error',
-                            'An error occurred while submitting the revision',
-                            'error'
-                        );
-                    });
+                        });
                 }
             });
         }
     </script>
 </body>
+
 </html>

@@ -2,6 +2,9 @@
 let reimbursementId = '';
 let uploadedFiles = [];
 
+// Global variables for data storage
+let businessPartners = [];
+
 // Get reimbursement ID from URL
 function getReimbursementIdFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -12,7 +15,7 @@ function getReimbursementIdFromUrl() {
 function formatAmount(amount) {
     // Ensure amount is a number
     const numericValue = parseFloat(amount) || 0;
-    
+
     // Format with thousands separator and 2 decimal places
     return numericValue.toLocaleString('en-US', {
         minimumFractionDigits: 2,
@@ -24,11 +27,11 @@ function formatAmount(amount) {
 async function fetchTransactionTypes() {
     try {
         const response = await fetch(`${BASE_URL}/api/transaction-types`);
-        
+
         if (!response.ok) {
             throw new Error('Network response was not ok: ' + response.statusText);
         }
-        
+
         const data = await response.json();
         console.log("Transaction types data:", data);
         populateTransactionTypesSelect(data.data);
@@ -37,14 +40,111 @@ async function fetchTransactionTypes() {
     }
 }
 
+// Function to fetch business partners
+async function fetchBusinessPartners() {
+    try {
+        console.log('Fetching business partners...');
+        console.log('BASE_URL:', BASE_URL);
+
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+
+        businessPartners = result.data;
+        console.log('Stored', businessPartners.length, 'business partners in global cache');
+        console.log('Sample business partner:', businessPartners[0]);
+
+        // Re-populate Pay To field if reimbursement data is already loaded
+        if (window.currentReimbursementData) {
+            console.log('🔄 Re-populating Pay To field after business partners loaded...');
+            populatePayToField(window.currentReimbursementData.payTo);
+        }
+
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+    }
+}
+
+// Function to populate Pay To field (separate function for re-population)
+function populatePayToField(payToId) {
+    if (!payToId) {
+        console.log('⚠️ populatePayToField: No payToId provided');
+        return;
+    }
+
+    console.log('💰 populatePayToField called with payToId:', payToId);
+    console.log('📊 Business partners available:', businessPartners ? businessPartners.length : 'not loaded');
+
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+
+    if (!payToSearch || !payToSelect) {
+        console.log('⚠️ Pay To elements not found');
+        return;
+    }
+
+    // Find the corresponding business partner for the payTo ID
+    const matchingBP = businessPartners ? businessPartners.find(bp => bp.id.toString() === payToId.toString()) : null;
+
+    if (matchingBP) {
+        console.log('✅ Found matching business partner:', {
+            id: matchingBP.id,
+            code: matchingBP.code,
+            name: matchingBP.name
+        });
+
+        const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+        payToSearch.value = displayText;
+
+        // Find or create option with this business partner
+        let optionExists = false;
+        for (let i = 0; i < payToSelect.options.length; i++) {
+            if (payToSelect.options[i].value === payToId.toString()) {
+                payToSelect.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (!optionExists) {
+            const newOption = document.createElement('option');
+            newOption.value = matchingBP.id;
+            newOption.textContent = displayText;
+            payToSelect.appendChild(newOption);
+            payToSelect.value = matchingBP.id;
+        }
+    } else {
+        console.log('⚠️ No matching business partner found for Pay To ID:', payToId);
+        console.log('🔍 Available business partners:', businessPartners ? businessPartners.map(bp => ({ id: bp.id, code: bp.code, name: bp.name })) : 'not loaded');
+
+        // Fallback: show the ID if no business partner found
+        payToSearch.value = `Business Partner ID: ${payToId}`;
+
+        // Create a temporary option
+        const tempOption = document.createElement('option');
+        tempOption.value = payToId;
+        tempOption.textContent = `Business Partner ID: ${payToId}`;
+        payToSelect.appendChild(tempOption);
+        payToSelect.value = payToId;
+    }
+}
+
 // Helper function to populate transaction types dropdown
 function populateTransactionTypesSelect(transactionTypes) {
     const typeSelect = document.getElementById("typeOfTransaction");
     if (!typeSelect) return;
-    
+
     // Clear existing options
     typeSelect.innerHTML = '';
-    
+
     // Add transaction types as options
     if (transactionTypes && transactionTypes.length > 0) {
         transactionTypes.forEach(type => {
@@ -69,19 +169,19 @@ function populateTransactionTypesSelect(transactionTypes) {
 function updateTotalAmount() {
     const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
     let total = 0;
-    
+
     amountInputs.forEach(input => {
         // Get numeric value from data-raw-value attribute
         const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
         total += numericValue;
     });
-    
+
     // Format total with thousands separator
     const formattedTotal = total.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
-    
+
     // Update total amount field
     document.getElementById('totalAmount').value = formattedTotal;
 }
@@ -93,11 +193,11 @@ async function fetchReimbursementData() {
         console.error('No reimbursement ID found in URL');
         return;
     }
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
-        
+
         if (result.status && result.code === 200) {
             populateFormData(result.data);
         } else {
@@ -112,33 +212,33 @@ async function fetchReimbursementData() {
 async function fetchUsers() {
     try {
         const response = await fetch(`${BASE_URL}/api/users`);
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (!result.status || result.code !== 200) {
             throw new Error(result.message || 'Failed to fetch users');
         }
-        
+
         const users = result.data;
-        
+
         if (!users || users.length === 0) {
             return;
         }
-        
+
         // Store users globally for later use
         window.allUsers = users;
-        
+
         // Populate dropdowns
         populateDropdown("preparedBySelect", users);
         populateDropdown("acknowledgeBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
         populateDropdown("receivedBySelect", users);
-        
+
         // Make all dropdowns readonly by disabling them
         const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receivedBySelect"];
         dropdownIds.forEach(id => {
@@ -148,9 +248,9 @@ async function fetchUsers() {
                 dropdown.classList.add('bg-gray-200', 'cursor-not-allowed');
             }
         });
-        
+
         console.log('Successfully populated all user dropdowns');
-        
+
     } catch (error) {
         console.error("Error fetching users:", error);
     }
@@ -160,11 +260,11 @@ async function fetchUsers() {
 async function fetchDepartments() {
     try {
         const response = await fetch(`${BASE_URL}/api/department`);
-        
+
         if (!response.ok) {
             throw new Error('Network response was not ok: ' + response.statusText);
         }
-        
+
         const data = await response.json();
         console.log("Department data:", data);
         populateDepartmentSelect(data.data);
@@ -177,10 +277,10 @@ async function fetchDepartments() {
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("department");
     if (!departmentSelect) return;
-    
+
     // Clear existing options except the first one (if any)
     departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-    
+
     departments.forEach(department => {
         const option = document.createElement("option");
         option.value = department.name;
@@ -193,18 +293,18 @@ function populateDepartmentSelect(departments) {
 function setDepartmentValue(departmentName) {
     const departmentSelect = document.getElementById("department");
     if (!departmentSelect || !departmentName) return;
-    
+
     // Try to find existing option
     let optionExists = false;
     for (let i = 0; i < departmentSelect.options.length; i++) {
-        if (departmentSelect.options[i].value === departmentName || 
+        if (departmentSelect.options[i].value === departmentName ||
             departmentSelect.options[i].textContent === departmentName) {
             departmentSelect.selectedIndex = i;
             optionExists = true;
             break;
         }
     }
-    
+
     // If option doesn't exist, create and add it
     if (!optionExists) {
         const newOption = document.createElement('option');
@@ -224,7 +324,7 @@ function populateDropdown(dropdownId, users) {
 
     // Clear existing options
     dropdown.innerHTML = "";
-    
+
     // Add default option
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
@@ -232,62 +332,65 @@ function populateDropdown(dropdownId, users) {
     defaultOption.disabled = true;
     defaultOption.selected = true;
     dropdown.appendChild(defaultOption);
-    
+
     // Add users as options
     users.forEach(user => {
         const option = document.createElement("option");
         option.value = user.id;
-        
+
         // Combine names with spaces, handling empty middle/last names
         let displayName = user.fullName || '';
-        
+
         // Fallback to username if no name fields
         if (!displayName.trim()) {
             displayName = user.username || `User ${user.id}`;
         }
-        
+
         option.textContent = displayName.trim();
         dropdown.appendChild(option);
         console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
-    
+
     console.log(`Finished populating ${dropdownId}`);
 }
 
 // Populate form fields with data
 function populateFormData(data) {
+    // Store data globally for re-population
+    window.currentReimbursementData = data;
+
     // Main form fields
     if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
     if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
-    
+
     // Set department and ensure it exists in dropdown
     if (data.department) {
         setDepartmentValue(data.department);
     }
-    
+
     if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
-    
-    // Set payTo to show requester name instead of ID
-    if (document.getElementById('payTo')) {
-        document.getElementById('payTo').value = data.requesterName || '';
+
+    // Use the separate function to populate Pay To field
+    if (data.payTo) {
+        populatePayToField(data.payTo);
     }
-    
+
     // Format date for the date input (YYYY-MM-DD) with local timezone
     if (data.submissionDate && document.getElementById('submissionDate')) {
         // Buat objek Date dari string tanggal
         const date = new Date(data.submissionDate);
-        
+
         // Gunakan metode yang mempertahankan zona waktu lokal
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
         const day = String(date.getDate()).padStart(2, '0');
-        
+
         // Format tanggal dalam format YYYY-MM-DD untuk input date
         const formattedDate = `${year}-${month}-${day}`;
-        
+
         document.getElementById('submissionDate').value = formattedDate;
     }
-    
+
     if (document.getElementById('status')) {
         document.getElementById('status').value = data.status || '';
         // Call checkStatus after setting the status value to hide buttons if needed
@@ -295,13 +398,13 @@ function populateFormData(data) {
             checkStatus();
         }
     }
-    
+
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    
+
     // Set type of transaction and ensure it exists in dropdown
     if (document.getElementById('typeOfTransaction') && data.typeOfTransaction) {
         const typeSelect = document.getElementById('typeOfTransaction');
-        
+
         // Check if the value exists in the dropdown
         let typeExists = false;
         for (let i = 0; i < typeSelect.options.length; i++) {
@@ -311,7 +414,7 @@ function populateFormData(data) {
                 break;
             }
         }
-        
+
         // If type doesn't exist in dropdown, add it
         if (!typeExists && data.typeOfTransaction) {
             const newOption = document.createElement('option');
@@ -321,18 +424,18 @@ function populateFormData(data) {
             typeSelect.appendChild(newOption);
         }
     }
-    
+
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
-    
+
     // Approvers information - safely check if elements exist
     if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
     if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     if (document.getElementById('receivedBySelect')) document.getElementById('receivedBySelect').value = data.receivedBy || '';
-    
+
     // Set checkbox states based on if values exist - removed checks for elements that don't exist
-    
+
     // Handle reimbursement details (table rows)
     if (data.reimbursementDetails) {
         console.log('Populating reimbursement details:', data.reimbursementDetails);
@@ -340,27 +443,27 @@ function populateFormData(data) {
     } else {
         console.log('No reimbursement details found in data');
     }
-    
+
     // Display attachment information
     if (data.reimbursementAttachments) {
         displayAttachments(data.reimbursementAttachments);
     }
-    
+
     if (data.revisions) {
         renderRevisionHistory(data.revisions);
     } else {
         renderRevisionHistory([]);
     }
-    
+
     // Display rejection remarks if status is Rejected
     if (data.status === 'Rejected') {
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         const rejectionTextarea = document.getElementById('rejectionRemarks');
-        
+
         if (rejectionSection && rejectionTextarea) {
             // Check for various possible rejection remarks fields
             let rejectionRemarks = '';
-            
+
             // Check for specific rejection remarks by role
             if (data.remarksRejectByChecker) {
                 rejectionRemarks = data.remarksRejectByChecker;
@@ -375,7 +478,7 @@ function populateFormData(data) {
             } else if (data.remarks) {
                 rejectionRemarks = data.remarks;
             }
-            
+
             if (rejectionRemarks.trim() !== '') {
                 rejectionSection.style.display = 'block';
                 rejectionTextarea.value = rejectionRemarks;
@@ -390,7 +493,7 @@ function populateFormData(data) {
             rejectionSection.style.display = 'none';
         }
     }
-    
+
     // Check status and hide buttons after all data is loaded
     setTimeout(() => {
         if (typeof checkStatus === 'function') {
@@ -401,20 +504,20 @@ function populateFormData(data) {
 
 // Override populateReimbursementDetails to use proper amount formatting
 const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
-window.populateReimbursementDetails = function(details) {
+window.populateReimbursementDetails = function (details) {
     const tableBody = document.getElementById('reimbursementDetails');
     if (!tableBody) {
         console.error('reimbursementDetails table body not found');
         return;
     }
-    
+
     tableBody.innerHTML = ''; // Clear existing rows
-    
+
     if (details && details.length > 0) {
         details.forEach(detail => {
             // Format amount with decimal places
             const formattedAmount = formatAmount(detail.amount);
-            
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
@@ -444,19 +547,19 @@ window.populateReimbursementDetails = function(details) {
         // Add an empty row if no details
         addRow();
     }
-    
+
     // Calculate and update the total amount
     updateTotalAmount();
 };
 
 // Override addRow to use the same amount formatting
-window.addRow = function() {
+window.addRow = function () {
     const tableBody = document.getElementById('reimbursementDetails');
     if (!tableBody) {
         console.error('reimbursementDetails table body not found');
         return;
     }
-    
+
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td class="p-2 border">
@@ -481,7 +584,7 @@ window.addRow = function() {
         </td>
     `;
     tableBody.appendChild(newRow);
-    
+
     // Update total amount
     updateTotalAmount();
 };
@@ -493,9 +596,9 @@ function displayAttachments(attachments) {
         console.error('attachmentsList element not found');
         return;
     }
-    
+
     attachmentsList.innerHTML = ''; // Clear existing attachments
-    
+
     if (attachments && attachments.length > 0) {
         attachments.forEach(attachment => {
             const attachmentItem = document.createElement('div');
@@ -523,17 +626,17 @@ async function submitReimbursementUpdate() {
         Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
-    
+
     // Collect reimbursement details from table
     const detailsTable = document.getElementById('reimbursementDetails');
     const rows = detailsTable.querySelectorAll('tr');
     const reimbursementDetails = [];
-    
+
     rows.forEach(row => {
         const inputs = row.querySelectorAll('input');
         const deleteButton = row.querySelector('button');
         const detailId = deleteButton.getAttribute('data-id') || null;
-        
+
         reimbursementDetails.push({
             id: detailId,
             description: inputs[0].value,
@@ -542,19 +645,19 @@ async function submitReimbursementUpdate() {
             amount: parseFloat(inputs[3].value) || 0
         });
     });
-    
+
     // Build request data
     const requestData = {
         requesterName: document.getElementById('requesterName').value,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
-        payTo: document.getElementById('requesterName').value, // Use requesterName for payTo
+        payTo: document.getElementById('payToSelect') ? document.getElementById('payToSelect').value : null,
         referenceDoc: document.getElementById('referenceDoc').value,
         typeOfTransaction: document.getElementById('typeOfTransaction').value,
         remarks: document.getElementById('remarks').value,
         reimbursementDetails: reimbursementDetails
     };
-    
+
     // API call removed
     Swal.fire(
         'Updated!',
@@ -616,7 +719,7 @@ function onReject() {
                 Swal.fire('Error', 'No reimbursement ID found', 'error');
                 return;
             }
-            
+
             // Make API call to reject the reimbursement
             fetch(`${BASE_URL}/api/reimbursements/acknowledger/${id}/reject`, {
                 method: 'PATCH',
@@ -628,33 +731,33 @@ function onReject() {
                     remarks: result.value
                 })
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Rejected!',
-                        'The document has been rejected.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status && result.code === 200) {
+                        Swal.fire(
+                            'Rejected!',
+                            'The document has been rejected.',
+                            'success'
+                        ).then(() => {
+                            // Return to menu
+                            goToMenuReim();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            result.message || 'Failed to reject document',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error rejecting reimbursement:', error);
                     Swal.fire(
                         'Error',
-                        result.message || 'Failed to reject document',
+                        'An error occurred while rejecting the document',
                         'error'
                     );
-                }
-            })
-            .catch(error => {
-                console.error('Error rejecting reimbursement:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while rejecting the document',
-                    'error'
-                );
-            });
+                });
         }
     });
 }
@@ -677,7 +780,7 @@ function onApprove() {
                 Swal.fire('Error', 'No reimbursement ID found', 'error');
                 return;
             }
-            
+
             // Make API call to approve the reimbursement
             fetch(`${BASE_URL}/api/reimbursements/acknowledger/${id}/approve`, {
                 method: 'PATCH',
@@ -686,33 +789,33 @@ function onApprove() {
                     'Authorization': `Bearer ${getAccessToken()}`
                 }
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Approved!',
-                        'The document has been approved.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status && result.code === 200) {
+                        Swal.fire(
+                            'Approved!',
+                            'The document has been approved.',
+                            'success'
+                        ).then(() => {
+                            // Return to menu
+                            goToMenuReim();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            result.message || 'Failed to approve document',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error approving reimbursement:', error);
                     Swal.fire(
                         'Error',
-                        result.message || 'Failed to approve document',
+                        'An error occurred while approving the document',
                         'error'
                     );
-                }
-            })
-            .catch(error => {
-                console.error('Error approving reimbursement:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while approving the document',
-                    'error'
-                );
-            });
+                });
         }
     });
 }
@@ -790,11 +893,35 @@ function renderRevisionHistory(revisions) {
 }
 
 // Event listener for document type change
-document.addEventListener('DOMContentLoaded', function() {
-    // Load users, departments, and transaction types first
-    Promise.all([fetchUsers(), fetchDepartments(), fetchTransactionTypes()]).then(() => {
+document.addEventListener('DOMContentLoaded', function () {
+    // Load users, departments, business partners, and transaction types first
+    Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
         // Then load reimbursement data
         fetchReimbursementData();
+    });
+
+    // Setup event listener for Pay To search (for consistency)
+    const payToSearch = document.getElementById('payToSearch');
+    if (payToSearch) {
+        payToSearch.addEventListener('focus', function () {
+            filterPayTo();
+        });
+
+        payToSearch.addEventListener('input', function () {
+            filterPayTo();
+        });
+    }
+
+    // Setup event listener to hide dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        const dropdown = document.getElementById('payToSelectDropdown');
+        const input = document.getElementById('payToSearch');
+
+        if (dropdown && input) {
+            if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        }
     });
 });
 
@@ -803,10 +930,10 @@ function initializeWithRejectionPrefix(textarea) {
     const userInfo = getUserInfo();
     const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -816,12 +943,12 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // If user tries to modify content before the prefix length
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const userInfo = getUserInfo();
         const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
+
         // Only restore if the prefix is damaged
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -838,7 +965,7 @@ function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
     let userRole = 'Acknowledger'; // Default role for this page
-    
+
     try {
         // Get user info from getCurrentUser function in auth.js
         const currentUser = getCurrentUser();
@@ -848,8 +975,73 @@ function getUserInfo() {
     } catch (e) {
         console.error('Error getting user info:', e);
     }
-    
+
     return { name: userName, role: userRole };
 }
 
-    
+// Function to filter and display Pay To dropdown (for consistency, even though field is readonly)
+function filterPayTo() {
+    const searchInput = document.getElementById('payToSearch');
+    const dropdown = document.getElementById('payToSelectDropdown');
+
+    if (!searchInput || !dropdown) return;
+
+    const searchText = searchInput.value.toLowerCase();
+
+    // Clear dropdown
+    dropdown.innerHTML = '';
+
+    try {
+        const filtered = businessPartners.filter(bp =>
+            (bp.name && bp.name.toLowerCase().includes(searchText)) ||
+            (bp.code && bp.code.toLowerCase().includes(searchText))
+        );
+
+        // Display search results
+        filtered.forEach(bp => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.innerText = `${bp.code} - ${bp.name}`;
+            option.onclick = function () {
+                searchInput.value = `${bp.code} - ${bp.name}`;
+                const selectElement = document.getElementById('payToSelect');
+                if (selectElement) {
+                    // Find or create option with this business partner
+                    let optionExists = false;
+                    for (let i = 0; i < selectElement.options.length; i++) {
+                        if (selectElement.options[i].value === bp.id) {
+                            selectElement.selectedIndex = i;
+                            optionExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!optionExists && selectElement.options.length > 0) {
+                        const newOption = document.createElement('option');
+                        newOption.value = bp.id;
+                        newOption.textContent = `${bp.code} - ${bp.name}`;
+                        selectElement.appendChild(newOption);
+                        selectElement.value = bp.id;
+                    }
+                }
+                dropdown.classList.add('hidden');
+            };
+            dropdown.appendChild(option);
+        });
+
+        // Show message if no results
+        if (filtered.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-gray-500';
+            noResults.innerText = 'No Business Partner Found';
+            dropdown.appendChild(noResults);
+        }
+
+        // Show dropdown
+        dropdown.classList.remove('hidden');
+
+    } catch (error) {
+        console.error("Error filtering business partners:", error);
+    }
+}
+
