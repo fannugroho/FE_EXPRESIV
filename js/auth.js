@@ -101,10 +101,33 @@ function getCurrentUser() {
   if (!userInfo) return null;
 
   return {
-    username: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
     userId: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
+    username: userInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
     roles: userInfo["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || []
   };
+}
+
+// Global function to check if user has access to Outgoing Payment
+function hasOutgoingPaymentAccess() {
+  const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+  return hasAccess === 'true';
+}
+
+// Global function to check and redirect if no Outgoing Payment access
+function checkOutgoingPaymentAccessAndRedirect() {
+  if (!hasOutgoingPaymentAccess()) {
+    console.log('User does not have Outgoing Payment access, redirecting to dashboard');
+    alert('You do not have access to the Outgoing Payment feature.');
+
+    // Redirect to dashboard
+    if (typeof navigateToPage === 'function') {
+      navigateToPage('pages/dashboard.html');
+    } else {
+      window.location.href = 'pages/dashboard.html';
+    }
+    return false;
+  }
+  return true;
 }
 
 // Helper function to get just the user ID from token
@@ -640,4 +663,8 @@ window.isAuthenticated = isAuthenticated;
 window.getCurrentUser = getCurrentUser;
 window.getUserId = getUserId;
 window.logoutAuth = logoutAuth;
-window.BASE_URL = BASE_URL; 
+window.BASE_URL = BASE_URL;
+
+// Make Outgoing Payment access functions available globally
+window.hasOutgoingPaymentAccess = hasOutgoingPaymentAccess;
+window.checkOutgoingPaymentAccessAndRedirect = checkOutgoingPaymentAccessAndRedirect; 

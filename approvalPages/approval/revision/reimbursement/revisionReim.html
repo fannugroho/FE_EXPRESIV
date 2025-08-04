@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,15 +14,18 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
+
         .search-dropdown {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             max-height: 200px;
             overflow-y: auto;
             z-index: 50;
         }
+
         .search-input:focus {
             border-color: #3b82f6;
             outline: none;
@@ -32,52 +36,82 @@
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button type="button" onclick="goToMenuReim()"
+            class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32"
+            aria-label="Go back to reimbursement menu">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Revision Reimbursement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
-                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded" disabled>
+                <div class="mb-4">
+                    <label for="voucherNo" class="block text-lg font-semibold mb-2">Voucher No</label>
+                    <input type="text" id="voucherNo" name="voucherNo" placeholder="Voucher no"
+                        class="w-full p-2 border rounded" disabled aria-describedby="voucher-help">
+                    <span id="voucher-help" class="sr-only">This field is automatically generated</span>
+                </div>
 
-                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <div class="relative">
-                    <input type="text" id="requesterNameSearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="requesterNameSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="requesterNameSelect" class="hidden">
-                        <option value="" disabled selected>Choose Name</option>
+                <div class="mb-4">
+                    <label for="requesterNameSearch" class="block text-lg font-semibold mb-2">Requester Name</label>
+                    <div class="relative">
+                        <input type="text" id="requesterNameSearch" name="requesterNameSearch"
+                            placeholder="Search name..." class="w-full p-2 border rounded search-input"
+                            aria-describedby="requester-help" aria-expanded="false" aria-haspopup="listbox"
+                            role="combobox">
+                        <div id="requesterNameSelectDropdown"
+                            class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"
+                            role="listbox" aria-label="Requester name options"></div>
+                        <select id="requesterNameSelect" class="hidden" aria-hidden="true">
+                            <option value="" disabled selected>Choose Name</option>
+                        </select>
+                        <span id="requester-help" class="sr-only">Type to search for requester names</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="department" class="block text-lg font-semibold mb-2">Department</label>
+                    <select id="department" name="department" class="w-full p-2 border rounded"
+                        aria-describedby="department-help">
+                        <option value="" disabled selected>Select Department</option>
+                    </select>
+                    <span id="department-help" class="sr-only">Department will be auto-filled based on requester</span>
+                </div>
+
+                <div class="mb-4">
+                    <label for="currency" class="block text-lg font-semibold mb-2">Currency <span class="text-red-500"
+                            aria-label="required">*</span></label>
+                    <select id="currency" name="currency" class="w-full p-2 border rounded" required autocomplete="off"
+                        aria-required="true">
+                        <option value="" disabled selected>Select Currency</option>
+                        <option value="IDR">IDR - Indonesian Rupiah</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="SGD">SGD - Singapore Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
                     </select>
                 </div>
 
-                <h3 class="text-lg font-semibold mb-2">Department</h3>
-                <select id="department" class="w-full p-2 border rounded">
-                    <option value="" disabled selected>Select Department</option>
-                </select>
-
-                <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                <select id="currency" class="w-full p-2 border rounded" required autocomplete="off">
-                    <option value="" disabled selected>Select Currency</option>
-                    <option value="IDR">IDR</option>
-                    <option value="USD">USD</option>
-                    <option value="SGD">SGD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="JPY">JPY</option>
-                    <option value="GBP">GBP</option>
-                    <option value="AUD">AUD</option>
-                    <option value="CAD">CAD</option>
-                    <option value="CHF">CHF</option>
-                </select>
-
-                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <div class="relative">
-                    <input type="text" id="payToSearch" placeholder="Search business partner..." class="w-full p-2 border rounded search-input">
-                    <div id="payToSelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="payToSelect" class="hidden">
-                        <option value="" disabled selected>Choose Business Partner</option>
-                    </select>
+                <div class="mb-4">
+                    <label for="payToSearch" class="block text-lg font-semibold mb-2">Pay To <span class="text-red-500"
+                            aria-label="required">*</span></label>
+                    <div class="relative">
+                        <input type="text" id="payToSearch" name="payToSearch" placeholder="Search user..."
+                            class="w-full p-2 border rounded search-input" aria-describedby="payto-help"
+                            aria-expanded="false" aria-haspopup="listbox" role="combobox" aria-required="true">
+                        <div id="payToSelectDropdown"
+                            class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"
+                            role="listbox" aria-label="Pay to options"></div>
+                        <select id="payToSelect" class="hidden" aria-hidden="true">
+                            <option value="" disabled selected>Choose User</option>
+                        </select>
+                        <span id="payto-help" class="sr-only">Type to search for users</span>
+                    </div>
                 </div>
             </div>
-            
+
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="submissionDate" class="w-full p-2 border rounded">
@@ -96,9 +130,10 @@
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" />
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple
+                    onchange="previewPDF(event)" />
                 <div id="attachmentsList" class="mt-2"></div>
-                
+
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
                 <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded">
 
@@ -108,7 +143,7 @@
                 </select>
             </div>
         </div>
-        
+
         <table id="reimTable" class="w-full text-left border mt-2">
             <thead class="bg-gray-100">
                 <br>
@@ -125,77 +160,92 @@
                 <!-- Rows will be added dynamically -->
             </tbody>
         </table>
-        
+
         <!-- Total Amount Container -->
         <div class="total-amount-container flex justify-end mt-4">
             <div class="w-1/3">
                 <div class="flex items-center">
                     <label class="font-semibold text-lg mr-4">Total Amount:</label>
-                    <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                    <input type="text" id="totalAmount"
+                        class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
                 </div>
             </div>
         </div>
-        
-        <!-- Tombol Tambah Baris -->
-        <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-            + 
+
+        <!-- Add Row Button -->
+        <button type="button" onclick="addRow()"
+            class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+            aria-label="Add new reimbursement detail row">
+            <span aria-hidden="true">+</span> Add Row
         </button>
 
-            <div class="mt-4">
-              <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md"></textarea>
-            </div>
+        <div class="mt-4">
+            <label for="remarks" class="block text-lg font-semibold mb-2">Remarks</label>
+            <textarea id="remarks" name="remarks" class="w-full p-2 border rounded-md" rows="4"
+                placeholder="Enter any additional remarks or notes..." aria-describedby="remarks-help"></textarea>
+            <span id="remarks-help" class="sr-only">Optional field for additional comments</span>
+        </div>
 
-            <!-- Revised Remarks Display Section (Read-only) -->
-            <div class="mt-4" id="revisedRemarksSection"></div>
+        <!-- Revised Remarks Display Section (Read-only) -->
+        <div class="mt-4" id="revisedRemarksSection"></div>
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
+            <div>
                 <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <input type="text" id="preparedBySearch" placeholder="Search name..."
+                        class="w-full p-2 border rounded search-input">
+                    <div id="preparedBySelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="preparedBySelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
             </div>
             <div>
-            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+                <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..."
+                        class="w-full p-2 border rounded search-input">
+                    <div id="acknowledgeBySelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="acknowledgeBySelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
             </div>
             <div>
-            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+                <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <input type="text" id="checkedBySearch" placeholder="Search name..."
+                        class="w-full p-2 border rounded search-input">
+                    <div id="checkedBySelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="checkedBySelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
             </div>
             <div>
-            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+                <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <input type="text" id="approvedBySearch" placeholder="Search name..."
+                        class="w-full p-2 border rounded search-input">
+                    <div id="approvedBySelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="approvedBySelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
             </div>
             <div>
-            <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
+                <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input">
-                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                    <input type="text" id="receivedBySearch" placeholder="Search name..."
+                        class="w-full p-2 border rounded search-input">
+                    <div id="receivedBySelectDropdown"
+                        class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="receivedBySelect" class="hidden">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
@@ -204,13 +254,17 @@
         </div>
         <br>
         <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="submitReim()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Submit
+            <button type="button" onclick="submitReim()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all duration-200 min-w-32"
+                aria-describedby="submit-help">
+                Submit Revision
             </button>
+            <span id="submit-help" class="sr-only">Submit the revised reimbursement for approval</span>
         </div>
     </div>
-    
+
     <script src="../../../../js/auth.js"></script>
     <script src="revisionReim.js"></script>
 </body>
+
 </html>

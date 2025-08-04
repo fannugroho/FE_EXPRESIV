@@ -6,7 +6,84 @@ let allCategories = [];
 let allAccountNames = [];
 let transactionTypes = [];
 
+// Cache system for categories and account names
+const categoryCache = new Map();
+const accountNameCache = new Map();
 
+// Utility functions for better code maintainability
+const Utils = {
+    // Safely get element value
+    getElementValue(id) {
+        const element = document.getElementById(id);
+        return element ? element.value : '';
+    },
+
+    // Safely get element checked state
+    getElementChecked(id) {
+        const element = document.getElementById(id);
+        return element ? element.checked : false;
+    },
+
+    // Safely set element value
+    setElementValue(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = value || '';
+        }
+    },
+
+    // Show loading state
+    showLoading(message = 'Loading...') {
+        Swal.fire({
+            title: message,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    },
+
+    // Show success message
+    showSuccess(title, text) {
+        Swal.fire({
+            icon: 'success',
+            title: title,
+            text: text
+        });
+    },
+
+    // Show error message
+    showError(title, text) {
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text
+        });
+    },
+
+    // Format date to YYYY-MM-DD
+    formatDateForInput(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
+    // Debounce function for search inputs
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+};
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
@@ -238,13 +315,13 @@ function formatCurrencyIDR(number) {
         return '0.00';
     }
 
-    // Limit to maximum for decimal(18,2)
-    const maxAmount = 999999999999999.99; // Max for decimal(18,2)
+    // Limit to maximum 100 trillion
+    const maxAmount = 100000000000000; // 100 trillion
     if (num > maxAmount) {
         Swal.fire({
             icon: 'warning',
             title: 'Amount Exceeds Limit',
-            text: 'Amount cannot exceed 999 trillion'
+            text: 'Total amount cannot exceed 100 trillion rupiah'
         });
         num = maxAmount;
     }
@@ -338,13 +415,13 @@ function updateTotalAmount() {
         total += numericValue;
     });
 
-    // Check if total exceeds maximum decimal value
-    const maxAmount = 999999999999999.99; // Max for decimal(18,2)
+    // Check if total exceeds 100 trillion
+    const maxAmount = 100000000000000; // 100 trillion
     if (total > maxAmount) {
         Swal.fire({
             icon: 'warning',
             title: 'Amount Exceeds Limit',
-            text: 'Total amount cannot exceed 999 trillion'
+            text: 'Total amount cannot exceed 100 trillion rupiah'
         });
         total = maxAmount;
     }
@@ -390,13 +467,13 @@ function addRow() {
             <input type="text" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
         </td>
         <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full p-1 border rounded description-input ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
+            <input type="text" maxlength="200" class="w-full p-1 border rounded ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
         </td>
         <td class="p-2 border">
             <input type="text" class="w-full p-1 border rounded currency-input-idr ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} oninput="formatCurrencyInputIDR(this)" required />
         </td>
         <td class="p-2 border text-center">
-            <button type="button" onclick="deleteRow(this)" data-id="" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
                 🗑
             </button>
         </td>
@@ -435,12 +512,22 @@ async function submitDocument() {
         const result = await response.json();
 
         if (result.status && result.code === 200) {
-            // Update the button state directly but don't refresh form data
-            updateSubmitButtonState(new Date().toISOString());
-            // Don't call fetchReimbursementData() to preserve user changes
-            console.log('Document prepared successfully');
+            Swal.fire(
+                'Submitted!',
+                result.message || 'Reimbursement prepared successfully.',
+                'success'
+            ).then(() => {
+                // After successful submission, preparedDate will no longer be null
+                // Update the button state directly but don't refresh form data
+                updateSubmitButtonState(new Date().toISOString());
+                // Don't call fetchReimbursementData() to preserve user changes
+            });
         } else {
-            throw new Error(result.message || 'Failed to prepare reimbursement');
+            Swal.fire(
+                'Error',
+                result.message || 'Failed to prepare reimbursement',
+                'error'
+            );
         }
     } catch (error) {
         console.error('Error preparing reimbursement:', error);
@@ -922,6 +1009,20 @@ function controlButtonVisibility() {
 }
 
 function populateFormData(data) {
+    // Store data globally for re-population
+    window.currentReimbursementData = data;
+
+    console.log('🔄 Starting populateFormData...');
+    console.log('📋 Data received:', {
+        voucherNo: data.voucherNo,
+        requesterName: data.requesterName,
+        department: data.department,
+        currency: data.currency,
+        payTo: data.payTo,
+        status: data.status,
+        submissionDate: data.submissionDate
+    });
+
     document.getElementById('voucherNo').value = data.voucherNo || '';
 
     // Update for searchable requesterName
@@ -956,37 +1057,9 @@ function populateFormData(data) {
     setDepartmentValue(data.department);
     document.getElementById('currency').value = data.currency || '';
 
-    // Update for searchable payTo with business partners
-    const payToSearch = document.getElementById('payToSearch');
-    const payToSelect = document.getElementById('payToSelect');
-    if (payToSearch && data.payTo) {
-        // Find the corresponding business partner for the payTo ID
-        const matchingBP = businessPartners.find(bp => bp.id.toString() === data.payTo.toString());
-
-        if (matchingBP) {
-            const displayText = `${matchingBP.code} - ${matchingBP.name}`;
-            payToSearch.value = displayText;
-
-            if (payToSelect) {
-                // Find or create option with this business partner
-                let optionExists = false;
-                for (let i = 0; i < payToSelect.options.length; i++) {
-                    if (payToSelect.options[i].value === data.payTo.toString()) {
-                        payToSelect.selectedIndex = i;
-                        optionExists = true;
-                        break;
-                    }
-                }
-
-                if (!optionExists) {
-                    const newOption = document.createElement('option');
-                    newOption.value = matchingBP.id;
-                    newOption.textContent = displayText;
-                    payToSelect.appendChild(newOption);
-                    payToSelect.value = matchingBP.id;
-                }
-            }
-        }
+    // Use the separate function to populate Pay To field
+    if (data.payTo) {
+        populatePayToField(data.payTo);
     }
 
     // Format date for the date input (YYYY-MM-DD) with local timezone
@@ -1038,9 +1111,10 @@ function populateFormData(data) {
         const transactionType = document.getElementById('typeOfTransaction').value;
 
         if (departmentName && transactionType) {
+            console.log('Department and transaction type are populated, triggering category fetch...');
             handleDependencyChange();
         }
-    }, 500); // Small delay to ensure form is fully populated
+    }, 1000); // Increased delay to ensure form is fully populated
 }
 
 // Helper function to set approval values in both select and search input
@@ -1058,67 +1132,6 @@ function setApprovalValue(fieldPrefix, userId) {
             searchInput.value = selectElement.selectedOptions[0].textContent;
         }
     }
-}
-
-function populateReimbursementDetails(details) {
-    const tableBody = document.getElementById('reimbursementDetails');
-    tableBody.innerHTML = '';
-
-    // Check if status is "Prepared" to disable table inputs
-    const status = document.getElementById('status').value;
-    const isPreparedStatus = status === 'Prepared';
-
-    if (details && details.length > 0) {
-        details.forEach(detail => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-2 border">
-                    <div class="relative">
-                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
-                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
-                        <select class="hidden category-select">
-                            <option value="" disabled selected>Choose Category</option>
-                        </select>
-                    </div>
-                </td>
-                <td class="p-2 border">
-                    <div class="relative">
-                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
-                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
-                        <select class="hidden account-name-select">
-                            <option value="" disabled selected>Choose Account Name</option>
-                        </select>
-                    </div>
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded description-input ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
-                </td>
-                <td class="p-2 border">
-                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} oninput="formatCurrencyInputIDR(this)" required />
-                </td>
-                <td class="p-2 border text-center">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
-                        🗑
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-
-            // Setup event listeners for the new row
-            setupRowEventListeners(row);
-
-            // Populate categories for the new row if data is available
-            populateCategoriesForNewRow(row);
-        });
-    } else {
-        addRow();
-    }
-
-    // Calculate total amount after populating details
-    updateTotalAmount();
 }
 
 function displayAttachments(attachments) {
@@ -1231,9 +1244,6 @@ function updateReim() {
 function submitReim() {
     console.log('=== DEBUG: submitReim() called ===');
 
-    // Debug submission process
-    debugSubmissionProcess();
-
     Swal.fire({
         title: 'Are you sure?',
         text: "You are about to submit this reimbursement",
@@ -1246,54 +1256,11 @@ function submitReim() {
         console.log('User choice:', result.isConfirmed);
         if (result.isConfirmed) {
             console.log('User confirmed submission, calling submitReimbursementUpdate()');
-
-            // Show loading
-            Swal.fire({
-                title: 'Processing Revision...',
-                text: 'Please wait while we update the reimbursement',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
             submitReimbursementUpdate().then(() => {
                 console.log('submitReimbursementUpdate completed, calling submitDocument()');
-                submitDocument().then(() => {
-                    console.log('submitDocument completed, showing success message');
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Completed!',
-                        text: 'Reimbursement has been revised and submitted successfully.',
-                        showConfirmButton: true,
-                        confirmButtonText: 'Go to Menu'
-                    }).then(() => {
-                        // Redirect to menuReim.html after both operations complete
-                        window.location.href = '../../../../pages/menuReim.html';
-                    });
-                }).catch((error) => {
-                    console.error('Error in submitDocument:', error);
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Revision Updated',
-                        text: 'Reimbursement has been updated but there was an issue with the submission process.',
-                        showConfirmButton: true,
-                        confirmButtonText: 'Go to Menu'
-                    }).then(() => {
-                        // Still redirect even if submitDocument fails
-                        window.location.href = '../../../../pages/menuReim.html';
-                    });
-                });
+                submitDocument();
             }).catch((error) => {
                 console.error('Error in submitReimbursementUpdate:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Update Failed',
-                    text: 'Failed to update the reimbursement. Please try again.',
-                    confirmButtonText: 'OK'
-                });
             });
         }
     });
@@ -1354,18 +1321,11 @@ async function submitReimbursementUpdate() {
         return;
     }
 
-    // Debug detail collection first
-    debugDetailCollection();
-
-    // Collect ALL reimbursement details from table (both existing and new)
+    // Collect reimbursement details from table with improved logic
     const detailsTable = document.getElementById('reimbursementDetails');
-    if (!detailsTable) {
-        Swal.fire('Error', 'Reimbursement details table not found', 'error');
-        return;
-    }
-
     const rows = detailsTable.querySelectorAll('tr');
-    const allDetails = [];
+    const existingDetails = [];
+    const newDetails = [];
 
     console.log('Total rows found:', rows.length);
 
@@ -1376,189 +1336,107 @@ async function submitReimbursementUpdate() {
         const categoryInput = row.querySelector('.category-search');
         const accountNameInput = row.querySelector('.account-name-search');
         const glAccountInput = row.querySelector('.gl-account');
-        // Get description input using the specific class
-        const descriptionInput = row.querySelector('.description-input');
+        // Get description input - it's the 4th td, and the input is the only input in that td
+        const descriptionInput = row.querySelector('td:nth-child(4) input[type="text"]');
         const amountInput = row.querySelector('.currency-input-idr');
         const deleteButton = row.querySelector('button[onclick="deleteRow(this)"]');
         const detailId = deleteButton ? deleteButton.getAttribute('data-id') : null;
 
         console.log('Row elements found:');
-        console.log('- categoryInput:', categoryInput, 'Value:', categoryInput?.value);
-        console.log('- accountNameInput:', accountNameInput, 'Value:', accountNameInput?.value);
-        console.log('- glAccountInput:', glAccountInput, 'Value:', glAccountInput?.value);
-        console.log('- descriptionInput:', descriptionInput, 'Value:', descriptionInput?.value);
-        console.log('- amountInput:', amountInput, 'Value:', amountInput?.value);
-        console.log('- deleteButton:', deleteButton, 'Data ID:', detailId);
-
-        // Log raw attribute value for debugging
-        if (deleteButton) {
-            console.log('- Raw data-id attribute:', deleteButton.getAttribute('data-id'));
-        }
+        console.log('- categoryInput:', categoryInput);
+        console.log('- accountNameInput:', accountNameInput);
+        console.log('- glAccountInput:', glAccountInput);
+        console.log('- descriptionInput:', descriptionInput);
+        console.log('- amountInput:', amountInput);
+        console.log('- deleteButton:', deleteButton);
+        console.log('- detailId:', detailId);
 
         // Process row if it has the required inputs
         if (categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput) {
             const amountText = amountInput.value;
             const amount = parseCurrencyIDR(amountText);
 
-            // Validate amount is within SQL Server decimal(18,2) range
-            const maxDecimalValue = 999999999999999.99; // Max for decimal(18,2) 
-            if (amount > maxDecimalValue) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Amount Too Large',
-                    text: `Amount in row ${index + 1} is too large. Maximum allowed amount is ${formatCurrencyIDR(maxDecimalValue)}.`,
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            // Validate amount is positive
-            if (amount < 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Invalid Amount',
-                    text: `Amount in row ${index + 1} cannot be negative.`,
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
             const detail = {
-                Category: categoryInput.value || "",
-                AccountName: accountNameInput.value || "",
-                GLAccount: glAccountInput.value || "",
-                Description: descriptionInput.value || "",
-                Amount: amount
+                category: categoryInput.value || "",
+                accountName: accountNameInput.value || "",
+                glAccount: glAccountInput.value || "",
+                description: descriptionInput.value || "",
+                amount: amount
             };
 
-            // Include ID if it exists (for existing details)
-            if (detailId && detailId !== 'null' && detailId !== 'undefined' && detailId.trim() !== '' && detailId !== 'undefined') {
-                try {
-                    // Validate that it's a proper GUID format
-                    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-                    if (guidRegex.test(detailId)) {
-                        detail.Id = detailId;
-                        console.log('Adding existing detail with ID:', detailId);
-                    } else {
-                        console.log('Invalid GUID format, treating as new item:', detailId);
-                    }
-                } catch (e) {
-                    console.log('Error processing ID, treating as new item:', e);
-                }
+            // Separate existing and new details
+            if (detailId) {
+                detail.id = detailId;
+                existingDetails.push(detail);
+                console.log('Adding existing detail:', detail);
             } else {
-                // For new items, don't include Id property at all
-                console.log('Adding new detail without ID (will be generated by backend)');
+                newDetails.push(detail);
+                console.log('Adding new detail:', detail);
             }
-
-            allDetails.push(detail);
-            console.log('Added detail:', detail);
         } else {
             console.log('Skipping row - missing required inputs');
-            console.log('Missing inputs check:');
-            console.log('- categoryInput missing:', !categoryInput);
-            console.log('- accountNameInput missing:', !accountNameInput);
-            console.log('- glAccountInput missing:', !glAccountInput);
-            console.log('- descriptionInput missing:', !descriptionInput);
-            console.log('- amountInput missing:', !amountInput);
         }
     });
 
-    console.log('Total details to process:', allDetails.length);
+    console.log('Existing details count:', existingDetails.length);
+    console.log('New details count:', newDetails.length);
 
-    if (allDetails.length === 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'No Items Found',
-            text: 'At least one reimbursement item is required. Please add at least one item.',
-            confirmButtonText: 'OK'
-        });
+    if (existingDetails.length === 0 && newDetails.length === 0) {
+        Swal.fire('Error', 'At least one reimbursement detail is required', 'error');
         return;
     }
 
-    // Validate each detail has required fields
-    for (let i = 0; i < allDetails.length; i++) {
-        const detail = allDetails[i];
-        if (!detail.Category || !detail.AccountName || !detail.Description || !detail.Amount || detail.Amount <= 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Incomplete Item Data',
-                text: `Item ${i + 1} is missing required information. Please fill in Category, Account Name, Description, and Amount.`,
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-    }
-
     try {
-        // Send all details in a single update call
-        console.log('Sending reimbursement update with all details...');
+        // First, update existing reimbursement details
+        if (existingDetails.length > 0) {
+            console.log('Updating existing reimbursement details...');
+            const updateResponse = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    reimbursementDetails: existingDetails
+                })
+            });
 
-        const requestData = {
-            RequesterName: formData.requesterName,
-            Department: formData.department,
-            Currency: formData.currency,
-            PayTo: formData.payTo,
-            ReferenceDoc: formData.referenceDoc,
-            TypeOfTransaction: formData.typeOfTransaction,
-            Remarks: formData.remarks,
-            PreparedBy: formData.preparedBy,
-            CheckedBy: formData.checkedBy,
-            AcknowledgedBy: formData.acknowledgedBy,
-            ApprovedBy: formData.approvedBy,
-            ReceivedBy: formData.receivedBy,
-            ReimbursementDetails: allDetails
-        };
+            console.log('Update response status:', updateResponse.status);
+            const updateResult = await updateResponse.json();
+            console.log('Update response data:', updateResult);
 
-        console.log('Request data being sent:', JSON.stringify(requestData, null, 2));
-
-        const updateResponse = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        console.log('Update response status:', updateResponse.status);
-
-        const responseText = await updateResponse.text();
-        console.log('Raw response text:', responseText);
-
-        let updateResult;
-        try {
-            updateResult = JSON.parse(responseText);
-        } catch (e) {
-            console.error('Failed to parse response JSON:', e);
-            updateResult = { message: responseText };
-        }
-
-        console.log('Update response data:', updateResult);
-
-        if (!updateResponse.ok) {
-            // Handle validation errors or other bad request errors
-            let errorMessage = 'Failed to update reimbursement';
-
-            if (updateResult && updateResult.message) {
-                errorMessage = updateResult.message;
-            } else if (updateResult && updateResult.errors) {
-                // Handle validation errors
-                const validationErrors = Object.values(updateResult.errors).flat();
-                errorMessage = validationErrors.join(', ');
-            } else if (updateResult && typeof updateResult === 'string') {
-                errorMessage = updateResult;
+            if (!updateResult.status || updateResult.code !== 200) {
+                throw new Error(updateResult.message || 'Failed to update existing reimbursement details');
             }
-
-            console.error('Update failed with error:', errorMessage);
-            console.error('Full error response:', updateResult);
-            throw new Error(errorMessage);
         }
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: 'Reimbursement header and items have been updated successfully.',
-            showConfirmButton: false,
-            timer: 2000
+        // Then, add new reimbursement details if any
+        if (newDetails.length > 0) {
+            console.log('Adding new reimbursement details...');
+            const addResponse = await fetch(`${BASE_URL}/api/reimbursements/detail/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newDetails)
+            });
+
+            console.log('Add response status:', addResponse.status);
+            const addResult = await addResponse.json();
+            console.log('Add response data:', addResult);
+
+            if (!addResult.status || addResult.code !== 200) {
+                throw new Error(addResult.message || 'Failed to add new reimbursement details');
+            }
+        }
+
+        Swal.fire(
+            'Updated!',
+            'Reimbursement has been updated successfully.',
+            'success'
+        ).then(() => {
+            // Redirect to menuReimRevision.html after successful submission
+            window.location.href = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
         });
 
     } catch (error) {
@@ -1572,7 +1450,7 @@ async function submitReimbursementUpdate() {
 }
 
 function goToMenuReim() {
-    window.location.href = '../../../menu/menuReim.html';
+    window.location.href = '../../../dashboard/dashboardRevision/reimbursement/menuReimRevision.html';
 }
 
 function formatDateToDDMMYYYY(dateString) {
@@ -1638,42 +1516,62 @@ function filterUsers(fieldId) {
     // Handle payToSelect dropdown separately
     if (fieldId === 'payToSelect') {
         console.log('Processing payToSelect...');
-        console.log('businessPartners length:', businessPartners ? businessPartners.length : 'undefined');
+        console.log('users length:', businessPartners ? businessPartners.length : 'undefined');
         console.log('searchText:', searchText);
 
         try {
-            const filtered = businessPartners.filter(bp =>
-                (bp.name && bp.name.toLowerCase().includes(searchText)) ||
-                (bp.code && bp.code.toLowerCase().includes(searchText))
+            // Pastikan users tersedia
+            if (!businessPartners || businessPartners.length === 0) {
+                const loading = document.createElement('div');
+                loading.className = 'p-2 text-gray-500';
+                loading.innerText = 'Loading users...';
+                dropdown.appendChild(loading);
+                dropdown.classList.remove('hidden');
+
+                // Fetch data jika belum tersedia
+                fetchBusinessPartners().then(() => {
+                    // Re-trigger filtering setelah data tersedia
+                    setTimeout(() => {
+                        filterUsers(fieldId);
+                    }, 100);
+                });
+                return;
+            }
+
+            const filtered = businessPartners.filter(user =>
+                (user.name && user.name.toLowerCase().includes(searchText)) ||
+                (user.code && user.code.toLowerCase().includes(searchText))
             );
 
-            console.log('Filtered business partners:', filtered.length);
+            console.log('Filtered users for Pay To:', filtered.length);
 
-            // Display search results
-            filtered.forEach(bp => {
+            // Display search results dengan format yang benar
+            filtered.forEach(user => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
-                option.innerText = `${bp.code} - ${bp.name}`;
+                const displayText = `${user.code} - ${user.name}`;
+                option.innerText = displayText;
+
                 option.onclick = function () {
-                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    searchInput.value = displayText;
                     const selectElement = document.getElementById(fieldId);
                     if (selectElement) {
-                        // Find or create option with this business partner
+                        // Find or create option with this user
                         let optionExists = false;
                         for (let i = 0; i < selectElement.options.length; i++) {
-                            if (selectElement.options[i].value === bp.id) {
+                            if (selectElement.options[i].value === user.id.toString()) {
                                 selectElement.selectedIndex = i;
                                 optionExists = true;
                                 break;
                             }
                         }
 
-                        if (!optionExists && selectElement.options.length > 0) {
+                        if (!optionExists) {
                             const newOption = document.createElement('option');
-                            newOption.value = bp.id;
-                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
                             selectElement.appendChild(newOption);
-                            selectElement.value = bp.id;
+                            selectElement.value = user.id;
                         }
                     }
 
@@ -1686,7 +1584,7 @@ function filterUsers(fieldId) {
             if (filtered.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
-                noResults.innerText = 'No Business Partner Found';
+                noResults.innerText = 'No User Found';
                 dropdown.appendChild(noResults);
             }
 
@@ -1694,7 +1592,7 @@ function filterUsers(fieldId) {
             dropdown.classList.remove('hidden');
             return;
         } catch (error) {
-            console.error("Error filtering business partners:", error);
+            console.error("Error filtering users:", error);
         }
     }
 
@@ -1720,23 +1618,42 @@ function filterUsers(fieldId) {
                     if (selectElement) {
                         // For requesterName, store the name as the value 
                         if (fieldId === 'requesterNameSelect') {
-                            // Find matching option or create a new one
-                            let optionExists = false;
-                            for (let i = 0; i < selectElement.options.length; i++) {
-                                if (selectElement.options[i].textContent === user.name) {
-                                    selectElement.selectedIndex = i;
-                                    optionExists = true;
-                                    break;
+                            // Auto-fill payTo with the same user (find in users data)
+                            const payToSearch = document.getElementById('payToSearch');
+                            const payToSelect = document.getElementById('payToSelect');
+
+                            if (payToSearch && payToSelect) {
+                                // Find matching user by name
+                                const matchingUser = businessPartners.find(bp =>
+                                    bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
+                                );
+
+                                if (matchingUser) {
+                                    payToSearch.value = `${matchingUser.name}`;
+
+                                    // Set the user ID as the value in the select element
+                                    let optionExists = false;
+                                    for (let i = 0; i < payToSelect.options.length; i++) {
+                                        if (payToSelect.options[i].value === matchingUser.id.toString()) {
+                                            payToSelect.selectedIndex = i;
+                                            optionExists = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!optionExists && payToSelect.options.length > 0) {
+                                        const newOption = document.createElement('option');
+                                        newOption.value = matchingUser.id;
+                                        newOption.textContent = `${matchingUser.name}`;
+                                        payToSelect.appendChild(newOption);
+                                        payToSelect.value = matchingUser.id;
+                                    }
                                 }
                             }
 
-                            if (!optionExists && selectElement.options.length > 0) {
-                                const newOption = document.createElement('option');
-                                newOption.value = user.name; // For requesterName, value is the name itself
-                                newOption.textContent = user.name;
-                                selectElement.appendChild(newOption);
-                                selectElement.value = user.name;
-                            }
+                            // Auto-fill department based on selected user
+                            const users = JSON.parse(searchInput.dataset.users || '[]');
+                            autoFillDepartmentFromRequester(user.name, users);
                         } else {
                             // For other fields (payTo, approvals), store the ID as the value
                             let optionExists = false;
@@ -1762,23 +1679,23 @@ function filterUsers(fieldId) {
 
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
-                        // Auto-fill payTo with the same user (find in business partners)
+                        // Auto-fill payTo with the same user (find in users data)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
 
                         if (payToSearch && payToSelect) {
-                            // Find matching business partner by name
-                            const matchingBP = businessPartners.find(bp =>
+                            // Find matching user by name
+                            const matchingUser = businessPartners.find(bp =>
                                 bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
                             );
 
-                            if (matchingBP) {
-                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                            if (matchingUser) {
+                                payToSearch.value = `${matchingUser.name}`;
 
-                                // Set the business partner ID as the value in the select element
+                                // Set the user ID as the value in the select element
                                 let optionExists = false;
                                 for (let i = 0; i < payToSelect.options.length; i++) {
-                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                    if (payToSelect.options[i].value === matchingUser.id.toString()) {
                                         payToSelect.selectedIndex = i;
                                         optionExists = true;
                                         break;
@@ -1787,10 +1704,10 @@ function filterUsers(fieldId) {
 
                                 if (!optionExists && payToSelect.options.length > 0) {
                                     const newOption = document.createElement('option');
-                                    newOption.value = matchingBP.id;
-                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    newOption.value = matchingUser.id;
+                                    newOption.textContent = `${matchingUser.name}`;
                                     payToSelect.appendChild(newOption);
-                                    payToSelect.value = matchingBP.id;
+                                    payToSelect.value = matchingUser.id;
                                 }
                             }
                         }
@@ -1870,13 +1787,14 @@ function populateTransactionTypesDropdown(types) {
     });
 }
 
-// Function to fetch business partners
+// Function to fetch business partners - Updated to use users API instead of business partners
 async function fetchBusinessPartners() {
     try {
-        console.log('Fetching business partners...');
+        console.log('Fetching users for Pay To field...');
         console.log('BASE_URL:', BASE_URL);
 
-        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        // Use the same users API as Requester Name field
+        const response = await fetch(`${BASE_URL}/api/users`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
@@ -1885,15 +1803,177 @@ async function fetchBusinessPartners() {
         const result = await response.json();
 
         if (!result.status || result.code !== 200) {
-            throw new Error(result.message || 'Failed to fetch business partners');
+            throw new Error(result.message || 'Failed to fetch users for Pay To');
         }
 
-        businessPartners = result.data;
-        console.log('Stored', businessPartners.length, 'business partners in global cache');
-        console.log('Sample business partner:', businessPartners[0]);
+        const users = result.data;
+
+        // Convert users data to business partner format for compatibility
+        businessPartners = users.map(user => ({
+            id: user.id,
+            name: user.fullName || 'Unknown User'
+        }));
+
+        console.log('Stored', businessPartners.length, 'users as business partners in global cache');
+        console.log('Sample user for Pay To:', businessPartners[0]);
+
+        // Re-populate Pay To field if reimbursement data is already loaded
+        if (window.currentReimbursementData && window.currentReimbursementData.payTo) {
+            console.log('🔄 Re-populating Pay To field after users loaded...');
+            populatePayToField(window.currentReimbursementData.payTo);
+        }
 
     } catch (error) {
-        console.error("Error fetching business partners:", error);
+        console.error("Error fetching users for Pay To:", error);
+
+        // Fallback: If users API fails, use existing users data
+        console.log('Fallback: Using existing users data for Pay To field...');
+        if (window.allUsers && window.allUsers.length > 0) {
+            // Convert users data to business partner format for compatibility
+            businessPartners = window.allUsers.map(user => ({
+                id: user.id,
+                name: user.fullName || 'Unknown User'
+            }));
+            console.log('Converted', businessPartners.length, 'users to business partner format');
+        }
+    }
+}
+
+// Function to fetch individual user if not found in cache
+async function fetchIndividualBusinessPartner(userId) {
+    try {
+        console.log('Fetching individual user with ID:', userId);
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.status && result.code === 200 && result.data) {
+            const user = result.data;
+            console.log('Individual user found:', user);
+
+            // Convert user data to business partner format for compatibility
+            return {
+                id: user.id,
+                name: user.fullName || 'Unknown User'
+            };
+        } else {
+            console.log('Individual user not found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching individual user:', error);
+        return null;
+    }
+}
+
+// Function to populate Pay To field (UPDATED for users)
+function populatePayToField(payToId) {
+    if (!payToId) {
+        console.log('⚠️ populatePayToField: No payToId provided');
+        return;
+    }
+
+    console.log('💰 populatePayToField called with payToId:', payToId);
+    console.log('📊 Users available for Pay To:', businessPartners ? businessPartners.length : 'not loaded');
+
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+
+    if (!payToSearch || !payToSelect) {
+        console.log('⚠️ Pay To elements not found');
+        return;
+    }
+
+    // Jika users belum tersedia, coba fetch ulang atau tunggu
+    if (!businessPartners || businessPartners.length === 0) {
+        console.log('🔄 Users not loaded yet, trying to fetch...');
+
+        // Set temporary value sementara menunggu data
+        payToSearch.value = 'Loading...';
+
+        // Coba fetch users dan re-populate setelah data tersedia
+        fetchBusinessPartners().then(() => {
+            setTimeout(() => {
+                populatePayToField(payToId);
+            }, 500);
+        });
+        return;
+    }
+
+    // Find the corresponding user for the payTo ID
+    const matchingUser = businessPartners.find(user => user.id.toString() === payToId.toString());
+
+    if (matchingUser) {
+        console.log('✅ Found matching user for Pay To:', {
+            id: matchingUser.id,
+            name: matchingUser.name
+        });
+
+        // Format display text dengan code dan name
+        const displayText = `{matchingUser.name}`;
+        payToSearch.value = displayText;
+
+        // Populate hidden select element
+        // Pastikan ada default option terlebih dahulu
+        if (payToSelect.options.length === 0) {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Choose User";
+            defaultOption.disabled = true;
+            payToSelect.appendChild(defaultOption);
+        }
+
+        // Find or create option with this user
+        let optionExists = false;
+        for (let i = 0; i < payToSelect.options.length; i++) {
+            if (payToSelect.options[i].value === payToId.toString()) {
+                payToSelect.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (!optionExists) {
+            const newOption = document.createElement('option');
+            newOption.value = matchingUser.id;
+            newOption.textContent = displayText;
+            payToSelect.appendChild(newOption);
+            payToSelect.value = matchingUser.id;
+        }
+    } else {
+        console.log('⚠️ No matching user found for Pay To ID:', payToId);
+
+        // Jika tidak ditemukan, coba fetch individual user berdasarkan ID
+        fetchIndividualBusinessPartner(payToId).then(user => {
+            if (user) {
+                const displayText = `${user.code} - ${user.name}`;
+                payToSearch.value = displayText;
+
+                // Add to select
+                const newOption = document.createElement('option');
+                newOption.value = user.id;
+                newOption.textContent = displayText;
+                payToSelect.appendChild(newOption);
+                payToSelect.value = user.id;
+
+                // Add to global array for future reference
+                businessPartners.push(user);
+            } else {
+                // Fallback: show the ID if no user found
+                payToSearch.value = `Unknown User (ID: ${payToId})`;
+
+                // Create a temporary option
+                const tempOption = document.createElement('option');
+                tempOption.value = payToId;
+                tempOption.textContent = `Unknown User (ID: ${payToId})`;
+                payToSelect.appendChild(tempOption);
+                payToSelect.value = payToId;
+            }
+        });
     }
 }
 
@@ -1905,9 +1985,38 @@ document.addEventListener('DOMContentLoaded', function () {
     controlButtonVisibility();
 
     // Load users, departments, business partners, and transaction types first
-    Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
+    Promise.all([
+        fetchUsers(),
+        fetchDepartments(),
+        fetchTransactionTypes()
+    ]).then(() => {
+        console.log('Users, departments, and transaction types loaded');
+
+        // Load business partners, with fallback to users if needed
+        return fetchBusinessPartners();
+    }).then(() => {
         console.log('All initial data loaded');
-        // Then load reimbursement data
+
+        // If business partners is still empty, use users data as fallback
+        if (!businessPartners || businessPartners.length === 0) {
+            console.log('Business partners empty, using users data as fallback...');
+            if (window.allUsers && window.allUsers.length > 0) {
+                businessPartners = window.allUsers.map(user => ({
+                    id: user.id,
+                    name: user.fullName || 'Unknown User'
+                }));
+                console.log('Converted', businessPartners.length, 'users to business partner format');
+            }
+        }
+
+        // Tunggu sebentar untuk memastikan semua data ter-populate
+        setTimeout(() => {
+            // Then load and populate reimbursement data
+            fetchReimbursementData();
+        }, 300);
+    }).catch(error => {
+        console.error('Error loading initial data:', error);
+        // Still try to load reimbursement data even if some initial data fails
         fetchReimbursementData();
     });
 
@@ -2033,37 +2142,43 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Function to get department ID by name
-async function getDepartmentIdByName(departmentName) {
+// Function to fetch categories based on department and transaction type
+async function fetchCategories(departmentName, transactionType) {
+    // Check cache first
+    const cacheKey = `${departmentName}-${transactionType}`;
+    if (categoryCache.has(cacheKey)) {
+        console.log('Using cached categories for:', cacheKey);
+        allCategories = categoryCache.get(cacheKey);
+        updateAllCategoryDropdowns();
+        return;
+    }
+
     try {
-        const response = await fetch(`${BASE_URL}/api/department`);
+        console.log('Fetching categories for department:', departmentName, 'transaction:', transactionType);
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
 
         const result = await response.json();
-        const departments = result.data;
+        console.log('API Response:', result);
 
-        const department = departments.find(dept => dept.name === departmentName);
-        return department ? department.id : null;
-    } catch (error) {
-        console.error("Error fetching department ID:", error);
-        return null;
-    }
-}
-
-// Function to fetch categories based on department and transaction type
-async function fetchCategories(departmentId, transactionType) {
-    try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
-
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch categories');
         }
 
-        const categories = await response.json();
+        if (!result.data || !Array.isArray(result.data)) {
+            throw new Error('Invalid data format from API');
+        }
+
+        // Extract unique categories from the response data
+        const categories = [...new Set(result.data.map(item => item.category).filter(category => category))];
         allCategories = categories;
-        console.log('Fetched categories:', categories);
+
+        // Cache the result
+        categoryCache.set(cacheKey, categories);
+        console.log('Fetched and cached categories:', categories);
 
         // Update all category dropdowns in table rows
         updateAllCategoryDropdowns();
@@ -2076,17 +2191,44 @@ async function fetchCategories(departmentId, transactionType) {
 }
 
 // Function to fetch account names based on category, department and transaction type
-async function fetchAccountNames(category, departmentId, transactionType) {
+async function fetchAccountNames(category, departmentName, transactionType) {
+    // Check cache first
+    const cacheKey = `${category}-${departmentName}-${transactionType}`;
+    if (accountNameCache.has(cacheKey)) {
+        console.log('Using cached account names for:', cacheKey);
+        return accountNameCache.get(cacheKey);
+    }
+
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Reimbursement&transactionType=${encodeURIComponent(transactionType)}`);
+        console.log('Fetching account names for category:', category, 'department:', departmentName, 'transaction:', transactionType);
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
 
-        const accountNames = await response.json();
-        allAccountNames = accountNames;
-        console.log('Fetched account names:', accountNames);
+        const result = await response.json();
+        console.log('Account Names API Response:', result);
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch account names');
+        }
+
+        if (!result.data || !Array.isArray(result.data)) {
+            throw new Error('Invalid data format from API');
+        }
+
+        // Filter data by selected category and extract account names with COA
+        const filteredData = result.data.filter(item => item.category === category);
+        const accountNames = filteredData.map(item => ({
+            accountName: item.accountName,
+            coa: item.coa,
+            category: item.category
+        }));
+
+        // Cache the result
+        accountNameCache.set(cacheKey, accountNames);
+        console.log('Fetched and cached account names:', accountNames);
 
         return accountNames;
 
@@ -2283,13 +2425,7 @@ async function loadAccountNamesForRow(row) {
     }
 
     try {
-        const departmentId = await getDepartmentIdByName(departmentName);
-        if (!departmentId) {
-            console.error('Could not find department ID');
-            return;
-        }
-
-        const accountNames = await fetchAccountNames(category, departmentId, transactionType);
+        const accountNames = await fetchAccountNames(category, departmentName, transactionType);
 
         // Store account names data for this row
         accountNameInput.dataset.accountNames = JSON.stringify(accountNames);
@@ -2312,14 +2448,8 @@ async function handleDependencyChange() {
     }
 
     try {
-        const departmentId = await getDepartmentIdByName(departmentName);
-        if (!departmentId) {
-            console.error('Could not find department ID');
-            return;
-        }
-
-        // Fetch new categories
-        await fetchCategories(departmentId, transactionType);
+        // Fetch new categories directly using department name
+        await fetchCategories(departmentName, transactionType);
 
     } catch (error) {
         console.error('Error handling dependency change:', error);
@@ -2354,110 +2484,398 @@ function populateCategoriesForNewRow(row) {
     }
 }
 
-// Debug function to help identify issues with detail items
-function debugDetailCollection() {
-    console.log('=== DEBUG: Detail Collection ===');
+function populateReimbursementDetails(details) {
+    const tableBody = document.getElementById('reimbursementDetails');
+    tableBody.innerHTML = '';
 
-    const detailsTable = document.getElementById('reimbursementDetails');
-    console.log('Table element:', detailsTable);
+    // Check if status is "Prepared" to disable table inputs
+    const status = document.getElementById('status').value;
+    const isPreparedStatus = status === 'Prepared';
 
-    if (!detailsTable) {
-        console.error('Table element not found!');
+    if (details && details.length > 0) {
+        details.forEach(detail => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-2 border">
+                    <div class="relative">
+                        <input type="text" value="${detail.category || ''}" placeholder="Search category..." class="w-full p-1 border rounded search-input category-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden category-dropdown"></div>
+                        <select class="hidden category-select">
+                            <option value="" disabled selected>Choose Category</option>
+                        </select>
+                    </div>
+                </td>
+                <td class="p-2 border">
+                    <div class="relative">
+                        <input type="text" value="${detail.accountName || ''}" placeholder="Search account name..." class="w-full p-1 border rounded search-input account-name-search ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} />
+                        <div class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden account-name-dropdown"></div>
+                        <select class="hidden account-name-select">
+                            <option value="" disabled selected>Choose Account Name</option>
+                        </select>
+                    </div>
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.glAccount || ''}" class="w-full p-1 border rounded bg-gray-200 cursor-not-allowed gl-account" disabled />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${detail.description || ''}" maxlength="200" class="w-full p-1 border rounded ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} required />
+                </td>
+                <td class="p-2 border">
+                    <input type="text" value="${formatCurrencyIDR(detail.amount) || '0.00'}" class="w-full p-1 border rounded currency-input-idr ${isPreparedStatus ? 'bg-gray-100 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''} oninput="formatCurrencyInputIDR(this)" required />
+                </td>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700 ${isPreparedStatus ? 'opacity-50 cursor-not-allowed' : ''}" ${isPreparedStatus ? 'disabled' : ''}>
+                        🗑
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+
+            // Setup event listeners for the new row
+            setupRowEventListeners(row);
+
+            // Populate categories for the new row if data is available
+            populateCategoriesForNewRow(row);
+        });
+    } else {
+        addRow();
+    }
+
+    // Calculate total amount after populating details
+    updateTotalAmount();
+}
+
+
+// ===== MASALAH 1: Format Display Text dengan "undefined" =====
+
+// MASALAH: Di function populatePayToField, ada baris:
+// const displayText = `${matchingUser.code} - ${matchingUser.name}`;
+// Tapi di fetchBusinessPartners, user tidak memiliki property 'code'
+
+// SOLUSI: Perbaiki fetchBusinessPartners function
+async function fetchBusinessPartners() {
+    try {
+        console.log('Fetching users for Pay To field...');
+        console.log('BASE_URL:', BASE_URL);
+
+        const response = await fetch(`${BASE_URL}/api/users`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users for Pay To');
+        }
+
+        const users = result.data;
+
+        // FIX: Convert users data dengan format yang benar
+        businessPartners = users.map(user => ({
+            id: user.id,
+            name: user.fullName || 'Unknown User',
+            code: user.employeeId || user.id.toString() || 'EMP' // Tambahkan code yang hilang
+        }));
+
+        console.log('Stored', businessPartners.length, 'users as business partners in global cache');
+        console.log('Sample user for Pay To:', businessPartners[0]);
+
+        // Re-populate Pay To field if reimbursement data is already loaded
+        if (window.currentReimbursementData && window.currentReimbursementData.payTo) {
+            console.log('🔄 Re-populating Pay To field after users loaded...');
+            populatePayToField(window.currentReimbursementData.payTo);
+        }
+
+    } catch (error) {
+        console.error("Error fetching users for Pay To:", error);
+
+        // Fallback: If users API fails, use existing users data
+        console.log('Fallback: Using existing users data for Pay To field...');
+        if (window.allUsers && window.allUsers.length > 0) {
+            // FIX: Convert users data dengan format yang benar
+            businessPartners = window.allUsers.map(user => ({
+                id: user.id,
+                name: user.fullName || 'Unknown User',
+                code: user.employeeId || user.id.toString() || 'EMP' // Tambahkan code yang hilang
+            }));
+            console.log('Converted', businessPartners.length, 'users to business partner format');
+        }
+    }
+}
+
+// ===== MASALAH 2: Display Format yang Tidak Konsisten =====
+
+// SOLUSI: Perbaiki populatePayToField function
+function populatePayToField(payToId) {
+    if (!payToId) {
+        console.log('⚠️ populatePayToField: No payToId provided');
         return;
     }
 
-    const rows = detailsTable.querySelectorAll('tr');
-    console.log('Total rows found:', rows.length);
+    console.log('💰 populatePayToField called with payToId:', payToId);
+    console.log('📊 Users available for Pay To:', businessPartners ? businessPartners.length : 'not loaded');
 
-    rows.forEach((row, index) => {
-        console.log(`--- Row ${index + 1} ---`);
-        console.log('Row HTML:', row.outerHTML);
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
 
-        // Check each input type
-        const categoryInput = row.querySelector('.category-search');
-        const accountNameInput = row.querySelector('.account-name-search');
-        const glAccountInput = row.querySelector('.gl-account');
-        const descriptionInput = row.querySelector('.description-input');
-        const amountInput = row.querySelector('.currency-input-idr');
-        const deleteButton = row.querySelector('button[onclick="deleteRow(this)"]');
-
-        console.log('Inputs found:');
-        console.log('- categoryInput:', categoryInput, 'Value:', categoryInput?.value);
-        console.log('- accountNameInput:', accountNameInput, 'Value:', accountNameInput?.value);
-        console.log('- glAccountInput:', glAccountInput, 'Value:', glAccountInput?.value);
-        console.log('- descriptionInput:', descriptionInput, 'Value:', descriptionInput?.value);
-        console.log('- amountInput:', amountInput, 'Value:', amountInput?.value);
-        console.log('- deleteButton:', deleteButton, 'Data ID:', deleteButton?.getAttribute('data-id'));
-
-        // Check if all required inputs are present
-        const hasAllInputs = categoryInput && accountNameInput && glAccountInput && descriptionInput && amountInput;
-        console.log('Has all required inputs:', hasAllInputs);
-    });
-}
-
-// Debug function to help identify issues with submission process
-function debugSubmissionProcess() {
-    console.log('=== DEBUG: Submission Process ===');
-
-    // Check if BASE_URL is available
-    console.log('BASE_URL available:', typeof BASE_URL !== 'undefined');
-    console.log('BASE_URL value:', BASE_URL);
-
-    // Check reimbursement ID
-    const id = getReimbursementIdFromUrl();
-    console.log('Reimbursement ID from URL:', id);
-
-    // Check form elements
-    const formElements = {
-        requesterName: document.getElementById('requesterNameSearch'),
-        department: document.getElementById('department'),
-        currency: document.getElementById('currency'),
-        payTo: document.getElementById('payToSelect'),
-        typeOfTransaction: document.getElementById('typeOfTransaction'),
-        remarks: document.getElementById('remarks'),
-        preparedBy: document.getElementById('preparedBySelect'),
-        acknowledgedBy: document.getElementById('acknowledgeBySelect'),
-        checkedBy: document.getElementById('checkedBySelect'),
-        approvedBy: document.getElementById('approvedBySelect'),
-        receivedBy: document.getElementById('receivedBySelect')
-    };
-
-    console.log('Form elements found:');
-    Object.entries(formElements).forEach(([key, element]) => {
-        console.log(`- ${key}:`, element ? 'found' : 'not found', 'Value:', element?.value);
-    });
-
-    // Check table
-    const detailsTable = document.getElementById('reimbursementDetails');
-    console.log('Details table found:', !!detailsTable);
-
-    if (detailsTable) {
-        const rows = detailsTable.querySelectorAll('tr');
-        console.log('Number of detail rows:', rows.length);
-
-        rows.forEach((row, index) => {
-            const inputs = {
-                category: row.querySelector('.category-search'),
-                accountName: row.querySelector('.account-name-search'),
-                glAccount: row.querySelector('.gl-account'),
-                description: row.querySelector('.description-input'),
-                amount: row.querySelector('.currency-input-idr')
-            };
-
-            console.log(`Row ${index + 1} inputs:`, Object.entries(inputs).map(([key, input]) =>
-                `${key}: ${input ? 'found' : 'missing'} (${input?.value || 'no value'})`
-            ).join(', '));
-        });
+    if (!payToSearch || !payToSelect) {
+        console.log('⚠️ Pay To elements not found');
+        return;
     }
 
-    // Check status
-    const status = document.getElementById('status');
-    console.log('Current status:', status?.value);
+    // Jika users belum tersedia, coba fetch ulang atau tunggu
+    if (!businessPartners || businessPartners.length === 0) {
+        console.log('🔄 Users not loaded yet, trying to fetch...');
 
-    // Check if submit button is enabled
-    const submitButton = document.querySelector('button[onclick="submitReim()"]');
-    console.log('Submit button found:', !!submitButton);
-    console.log('Submit button disabled:', submitButton?.disabled);
-    console.log('Submit button display:', submitButton?.style.display);
+        // Set temporary value sementara menunggu data
+        payToSearch.value = 'Loading...';
+
+        // Coba fetch users dan re-populate setelah data tersedia
+        fetchBusinessPartners().then(() => {
+            setTimeout(() => {
+                populatePayToField(payToId);
+            }, 500);
+        });
+        return;
+    }
+
+    // Find the corresponding user for the payTo ID
+    const matchingUser = businessPartners.find(user => user.id.toString() === payToId.toString());
+
+    if (matchingUser) {
+        console.log('✅ Found matching user for Pay To:', {
+            id: matchingUser.id,
+            code: matchingUser.code,
+            name: matchingUser.name
+        });
+
+        // FIX: Format display text dengan pengecekan yang lebih baik
+        let displayText;
+        if (matchingUser.code && matchingUser.code !== 'undefined' && matchingUser.code !== matchingUser.id.toString()) {
+            displayText = `${matchingUser.code} - ${matchingUser.name}`;
+        } else {
+            // Jika tidak ada code atau code sama dengan ID, tampilkan hanya nama
+            displayText = matchingUser.name;
+        }
+        
+        payToSearch.value = displayText;
+
+        // Populate hidden select element
+        // Pastikan ada default option terlebih dahulu
+        if (payToSelect.options.length === 0) {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Choose User";
+            defaultOption.disabled = true;
+            payToSelect.appendChild(defaultOption);
+        }
+
+        // Find or create option with this user
+        let optionExists = false;
+        for (let i = 0; i < payToSelect.options.length; i++) {
+            if (payToSelect.options[i].value === payToId.toString()) {
+                payToSelect.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (!optionExists) {
+            const newOption = document.createElement('option');
+            newOption.value = matchingUser.id;
+            newOption.textContent = displayText;
+            payToSelect.appendChild(newOption);
+            payToSelect.value = matchingUser.id;
+        }
+    } else {
+        console.log('⚠️ No matching user found for Pay To ID:', payToId);
+
+        // Jika tidak ditemukan, coba fetch individual user berdasarkan ID
+        fetchIndividualBusinessPartner(payToId).then(user => {
+            if (user) {
+                // FIX: Format display text dengan pengecekan yang lebih baik
+                let displayText;
+                if (user.code && user.code !== 'undefined' && user.code !== user.id.toString()) {
+                    displayText = `${user.code} - ${user.name}`;
+                } else {
+                    displayText = user.name;
+                }
+                
+                payToSearch.value = displayText;
+
+                // Add to select
+                const newOption = document.createElement('option');
+                newOption.value = user.id;
+                newOption.textContent = displayText;
+                payToSelect.appendChild(newOption);
+                payToSelect.value = user.id;
+
+                // Add to global array for future reference
+                businessPartners.push(user);
+            } else {
+                // Fallback: show the ID if no user found
+                payToSearch.value = `Unknown User (ID: ${payToId})`;
+
+                // Create a temporary option
+                const tempOption = document.createElement('option');
+                tempOption.value = payToId;
+                tempOption.textContent = `Unknown User (ID: ${payToId})`;
+                payToSelect.appendChild(tempOption);
+                payToSelect.value = payToId;
+            }
+        });
+    }
 }
 
+// ===== MASALAH 3: filterUsers function untuk payToSelect =====
+
+// SOLUSI: Perbaiki bagian payToSelect di filterUsers function
+function filterUsers(fieldId) {
+    console.log('filterUsers called with fieldId:', fieldId);
+
+    const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) {
+        console.log('Search input not found for fieldId:', fieldId);
+        return;
+    }
+
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) {
+        console.log('Dropdown not found for fieldId:', fieldId);
+        return;
+    }
+
+    // Clear dropdown
+    dropdown.innerHTML = '';
+
+    let filteredUsers = [];
+
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        console.log('Processing payToSelect...');
+        console.log('users length:', businessPartners ? businessPartners.length : 'undefined');
+        console.log('searchText:', searchText);
+
+        try {
+            // Pastikan users tersedia
+            if (!businessPartners || businessPartners.length === 0) {
+                const loading = document.createElement('div');
+                loading.className = 'p-2 text-gray-500';
+                loading.innerText = 'Loading users...';
+                dropdown.appendChild(loading);
+                dropdown.classList.remove('hidden');
+
+                // Fetch data jika belum tersedia
+                fetchBusinessPartners().then(() => {
+                    // Re-trigger filtering setelah data tersedia
+                    setTimeout(() => {
+                        filterUsers(fieldId);
+                    }, 100);
+                });
+                return;
+            }
+
+            const filtered = businessPartners.filter(user =>
+                (user.name && user.name.toLowerCase().includes(searchText)) ||
+                (user.code && user.code.toLowerCase().includes(searchText))
+            );
+
+            console.log('Filtered users for Pay To:', filtered.length);
+
+            // FIX: Display search results dengan format yang benar
+            filtered.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                
+                // FIX: Format display text dengan pengecekan yang lebih baik
+                let displayText;
+                if (user.code && user.code !== 'undefined' && user.code !== user.id.toString()) {
+                    displayText = `${user.code} - ${user.name}`;
+                } else {
+                    displayText = user.name;
+                }
+                
+                option.innerText = displayText;
+
+                option.onclick = function () {
+                    searchInput.value = displayText;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this user
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === user.id.toString()) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+
+                        if (!optionExists) {
+                            const newOption = document.createElement('option');
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = user.id;
+                        }
+                    }
+
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+
+            // Show message if no results
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No User Found';
+                dropdown.appendChild(noResults);
+            }
+
+            // Show dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering users:", error);
+        }
+    }
+
+    // ... rest of the function remains the same for other fields
+}
+
+// ===== MASALAH 4: fetchIndividualBusinessPartner function =====
+
+// SOLUSI: Perbaiki fetchIndividualBusinessPartner function
+async function fetchIndividualBusinessPartner(userId) {
+    try {
+        console.log('Fetching individual user with ID:', userId);
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.status && result.code === 200 && result.data) {
+            const user = result.data;
+            console.log('Individual user found:', user);
+
+            // FIX: Convert user data dengan format yang benar
+            return {
+                id: user.id,
+                name: user.fullName || 'Unknown User',
+            };
+        } else {
+            console.log('Individual user not found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching individual user:', error);
+        return null;
+    }
+}

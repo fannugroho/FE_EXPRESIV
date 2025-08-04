@@ -12,6 +12,31 @@ let allDocuments = [];
 // Global variable to store users
 let users = [];
 
+// Function to check if user has access to Outgoing Payment
+function checkOutgoingPaymentAccess() {
+    console.log('=== MenuOPReim checkOutgoingPaymentAccess Start ===');
+
+    const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+    console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
+
+    if (hasAccess !== 'true') {
+        console.log('User does not have Outgoing Payment access, redirecting to dashboard');
+        alert('You do not have access to the Outgoing Payment feature.');
+
+        // Redirect to dashboard
+        if (typeof navigateToPage === 'function') {
+            navigateToPage('pages/dashboard.html');
+        } else {
+            window.location.href = 'pages/dashboard.html';
+        }
+        return false;
+    }
+
+    console.log('User has Outgoing Payment access');
+    console.log('=== MenuOPReim checkOutgoingPaymentAccess End ===');
+    return true;
+}
+
 // Reusable function to fetch outgoing payment documents by approval step
 async function fetchOutgoingPaymentDocuments(step, userId, onlyCurrentStep = false) {
     try {
@@ -398,7 +423,7 @@ async function loadDashboard() {
 
         // Load documents for the default tab (All Documents)
         await switchTab('all');
-        
+
         // Return the documents for external use
         return window.filteredDocuments;
 
@@ -931,11 +956,11 @@ function downloadExcel() {
     console.log('downloadExcel called');
     console.log('window.filteredDocuments:', window.filteredDocuments);
     console.log('XLSX available:', typeof XLSX !== 'undefined');
-    
+
     // Check if data is loaded
     if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
         console.warn('No data to export');
-        
+
         // Try to load data first
         const userId = getUserId();
         if (userId) {
@@ -1021,11 +1046,11 @@ function downloadPDF() {
     console.log('downloadPDF called');
     console.log('window.filteredDocuments:', window.filteredDocuments);
     console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
-    
+
     // Check if data is loaded
     if (!window.filteredDocuments || window.filteredDocuments.length === 0) {
         console.warn('No data to export');
-        
+
         // Try to load data first
         const userId = getUserId();
         if (userId) {
@@ -1286,10 +1311,16 @@ window.onload = function () {
     console.log('Checking required libraries...');
     console.log('XLSX available:', typeof XLSX !== 'undefined');
     console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
-    
+
+    // Check Outgoing Payment access first
+    if (!checkOutgoingPaymentAccess()) {
+        console.log('User does not have access to Outgoing Payment, stopping page load');
+        return;
+    }
+
     // Load initial data and dashboard counts
     loadDashboard();
-    
+
     // Ensure filteredDocuments is available globally
     if (!window.filteredDocuments) {
         window.filteredDocuments = [];
