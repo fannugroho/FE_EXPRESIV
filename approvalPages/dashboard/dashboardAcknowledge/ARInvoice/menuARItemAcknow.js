@@ -590,8 +590,25 @@ function goToTotalDocs() {
 }
 
 window.viewInvoiceDetails = function(stagingId) {
-    // Navigate to acknowledge invoice item page
-    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id === stagingId);
+    
+    if (invoice) {
+        // Route based on docType
+        if (invoice.docType === 'I') {
+            // Navigate to acknowledge invoice item page
+            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+        } else if (invoice.docType === 'S') {
+            // Navigate to acknowledge invoice service page
+            window.location.href = `../../../approval/acknowledge/InvoiceService/acknowInvService.html?stagingId=${stagingId}`;
+        } else {
+            // Default fallback to invoice item page
+            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+        }
+    } else {
+        // If invoice not found, default to invoice item page
+        window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+    }
 };
 
 window.acknowledgeInvoice = function(id) {
@@ -620,8 +637,25 @@ window.printInvoice = function(id) {
 };
 
 function viewInvoiceDetails(stagingId) {
-    // Navigate to acknowledge invoice item page
-    window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id === stagingId);
+    
+    if (invoice) {
+        // Route based on docType
+        if (invoice.docType === 'I') {
+            // Navigate to acknowledge invoice item page
+            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+        } else if (invoice.docType === 'S') {
+            // Navigate to acknowledge invoice service page
+            window.location.href = `../../../approval/acknowledge/InvoiceService/acknowInvService.html?stagingId=${stagingId}`;
+        } else {
+            // Default fallback to invoice item page
+            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+        }
+    } else {
+        // If invoice not found, default to invoice item page
+        window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+    }
 }
 
 function acknowledgeInvoice(id) {

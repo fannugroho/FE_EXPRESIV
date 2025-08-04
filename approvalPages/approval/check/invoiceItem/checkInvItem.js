@@ -329,6 +329,8 @@ function populateInvItemData(data) {
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    document.getElementById('account').value = data.account || '';
+    document.getElementById('acctName').value = data.acctName || '';
     
 
     
@@ -376,6 +378,11 @@ function populateInvItemData(data) {
     
     // Apply text wrapping
     refreshTextWrapping();
+    
+    // Apply currency formatting to table cells
+    setTimeout(() => {
+        applyCurrencyFormattingToTable();
+    }, 200);
 }
 
 // Helper function to determine status from invoice data
@@ -441,7 +448,7 @@ function populateItemsTable(items) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="13" class="p-4 text-center text-gray-500">
+            <td colspan="12" class="p-4 text-center text-gray-500">
                 No invoice details found
             </td>
         `;
@@ -470,11 +477,11 @@ function createItemRow(item, index) {
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
-        <td class="p-2 border description-column">
-            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.text || ''}</textarea>
+        <td class="p-2 border uom-column">
+            <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
-        <td class="p-2 border sales-employee-column">
-            <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
+        <td class="p-2 border packing-size-column">
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.packingSize || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
@@ -490,9 +497,6 @@ function createItemRow(item, index) {
         </td>
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.priceBefDi || ''}</textarea>
-        </td>
-        <td class="p-2 border discount-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.discount || ''}" />
         </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
@@ -891,7 +895,7 @@ function refreshTextWrapping() {
 
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
-    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .sales-employee-column textarea');
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
     
     textElements.forEach(element => {
         handleTextWrapping(element);
@@ -926,6 +930,169 @@ function handleTextWrapping(element) {
             element.style.height = '40px';
         }
     }
+}
+
+// Currency formatting functions
+function formatCurrencyIDR(number) {
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    let num;
+    try {
+        if (typeof number === 'string') {
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            if (cleanedStr.length > 15) {
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number);
+        }
+        
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    const maxAmount = 100000000000000;
+    if (num > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        num = maxAmount;
+    }
+    
+    if (num >= 1e12) {
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        return result + '.00';
+    } else {
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+function formatCurrencyInputIDR(input) {
+    // Change input type to text for currency formatting
+    if (input.type === 'number') {
+        input.type = 'text';
+    }
+    
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const numValue = parseCurrencyIDR(value);
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    input.value = formattedValue;
+    
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
+// Apply currency formatting to table cells
+function applyCurrencyFormattingToTable() {
+    // Format Price per UoM columns
+    const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+    pricePerUoMInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Price per Unit columns
+    const pricePerUnitInputs = document.querySelectorAll('.item-price');
+    pricePerUnitInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Amount columns
+    const amountInputs = document.querySelectorAll('.item-line-total');
+    amountInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format summary fields
+    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.add('currency-input-idr');
+            field.addEventListener('input', function() {
+                formatCurrencyInputIDR(this);
+            });
+            if (field.value) {
+                formatCurrencyInputIDR(field);
+            } else {
+                field.value = '0.00';
+            }
+        }
+    });
 }
 
 // Export functions for global access
