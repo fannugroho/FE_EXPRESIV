@@ -314,49 +314,69 @@ function updateButtonVisibility() {
 function populateInvServiceData(data) {
     console.log('Populating invoice service data:', data);
     
+    // Helper function to safely set element value
+    function safeSetValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.value = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
+    // Helper function to safely set element style
+    function safeSetStyle(elementId, styleProperty, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style[styleProperty] = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
     // Populate header fields with correct API field mapping
-    document.getElementById('DocEntry').value = data.stagingID || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('CardCode').value = data.cardCode || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
-    document.getElementById('DocCur').value = data.docCur || '';
-    document.getElementById('docRate').value = data.docRate || '';
-    document.getElementById('DocDate').value = formatDate(data.docDate);
-    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('GroupNum').value = data.groupNum || '';
-    document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.trackNo || ''; // Use trackNo for TaxNo field
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
-    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
-    document.getElementById('account').value = data.account || '';
-    document.getElementById('acctName').value = data.acctName || '';
+    safeSetValue('DocEntry', data.stagingID || '');
+    safeSetValue('DocNum', data.docNum || '');
+    safeSetValue('CardCode', data.cardCode || '');
+    safeSetValue('CardName', data.cardName || '');
+    safeSetValue('address', data.address || '');
+    safeSetValue('NumAtCard', data.numAtCard || '');
+    safeSetValue('DocCur', data.docCur || '');
+    safeSetValue('docRate', data.docRate || '');
+    safeSetValue('DocDate', formatDate(data.docDate));
+    safeSetValue('DocDueDate', formatDate(data.docDueDate));
+    safeSetValue('GroupNum', data.groupNum || '');
+    safeSetValue('TrnspCode', data.trnspCode || '');
+    safeSetValue('TaxNo', data.trackNo || ''); // Use trackNo for TaxNo field
+    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
+    safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
+    safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
+    safeSetValue('account', data.account || '');
+    safeSetValue('acctName', data.acctName || '');
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
-    document.getElementById('Status').value = status;
+    safeSetValue('Status', status);
     
     // Populate totals with correct calculation
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
+    safeSetValue('VatSum', data.vatSum || 0);
+    safeSetValue('DocTotal', data.docTotal || 0);
     
     // Populate comments
-    document.getElementById('comments').value = data.comments || '';
+    safeSetValue('comments', data.comments || '');
     
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        document.getElementById('preparedByName').value = data.arInvoiceApprovalSummary.preparedByName || '';
-        document.getElementById('acknowledgeByName').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedByName').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedByName').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedByName').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        safeSetValue('preparedByName', data.arInvoiceApprovalSummary.preparedByName || '');
+        safeSetValue('acknowledgeByName', data.arInvoiceApprovalSummary.acknowledgedByName || '');
+        safeSetValue('checkedByName', data.arInvoiceApprovalSummary.checkedByName || '');
+        safeSetValue('approvedByName', data.arInvoiceApprovalSummary.approvedByName || '');
+        safeSetValue('receivedByName', data.arInvoiceApprovalSummary.receivedByName || '');
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -366,11 +386,11 @@ function populateInvServiceData(data) {
         const remarksToShow = revisionRemarks || rejectionRemarks;
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
-            document.getElementById('rejectionRemarks').value = remarksToShow;
-            document.getElementById('rejectionRemarksSection').style.display = 'block';
+            safeSetValue('rejectionRemarks', remarksToShow);
+            safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
-            document.getElementById('rejectionRemarksSection').style.display = 'none';
+            safeSetStyle('rejectionRemarksSection', 'display', 'none');
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
@@ -439,6 +459,11 @@ function formatDate(dateString) {
 // Populate services table
 function populateServicesTable(services) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.warn('Element with id "tableBody" not found');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     if (services.length === 0) {
@@ -733,7 +758,7 @@ async function updateInvServiceStatus(status, remarks = '') {
 // Navigation function
 function goToMenuCheckInvService() {
     // Navigate to the invoice service check menu
-    window.location.href = '../../../dashboard/dashboardCheck/ARInvoice/menuARServiceCheck.html';
+    window.location.href = '../../../dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html';
 }
 
 // Utility function to format currency

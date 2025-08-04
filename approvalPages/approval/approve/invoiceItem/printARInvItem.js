@@ -1,4 +1,4 @@
-// AR Invoice Print Page JavaScript
+// AR Invoice Print Page JavaScript (Approve)
 
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const docEntry = urlParams.get('docEntry');
     const identifier = stagingID || docEntry;
     
-    // Immediately fetch and populate signature data
+    // Try to immediately populate signature data from localStorage if available
     if (identifier) {
         try {
             const storedData = localStorage.getItem(`invoice_${identifier}`);
@@ -38,23 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Check if we already have data directly passed from the parent window
-    // This will be used when the print page is opened directly from receiveInvItem.js
-    if (window.opener && window.opener.currentInvItemData) {
-        console.log('Data found from parent window, using it directly');
-        try {
-            const parentData = window.opener.currentInvItemData;
-            // Populate signature first to ensure it's displayed immediately
-            populateSignatureInformation(parentData);
-            // Then populate the rest of the invoice data
-            populateInvoiceData(parentData);
-            return;
-        } catch (error) {
-            console.error('Error using data from parent window:', error);
-            // Continue with normal loading if direct data access fails
-        }
-    }
-    
     if (stagingID) {
         loadInvoiceDataFromAPI(stagingID);
     } else if (docEntry) {
@@ -69,18 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadInvoiceDataFromAPI(identifier) {
     try {
         console.log('Fetching invoice data from API for identifier:', identifier);
-        console.log('API URL:', `${API_BASE_URL}/ar-invoices/${identifier}/details`);
-        
         const response = await fetch(`${API_BASE_URL}/ar-invoices/${identifier}/details`);
-        console.log('API Response status:', response.status);
-        console.log('API Response ok:', response.ok);
         
         if (response.ok) {
             const result = await response.json();
             console.log('API Response:', result);
             
             if (result.status && result.data) {
-                console.log('API data received successfully, populating invoice data...');
                 populateInvoiceData(result.data);
             } else {
                 console.error('API returned error:', result.message);
@@ -88,8 +66,6 @@ async function loadInvoiceDataFromAPI(identifier) {
             }
         } else {
             console.error('API request failed with status:', response.status);
-            const errorText = await response.text();
-            console.error('API Error response:', errorText);
             showErrorMessage('Failed to load invoice data. HTTP Status: ' + response.status);
         }
     } catch (error) {
@@ -113,10 +89,10 @@ function showErrorMessage(message) {
     `;
 }
 
-// Function to load invoice data from receive page (kept for backward compatibility)
-async function loadInvoiceDataFromReceivePage(identifier) {
+// Function to load invoice data from approve page (kept for backward compatibility)
+async function loadInvoiceDataFromApprovePage(identifier) {
     try {
-        // Get data from localStorage or sessionStorage that was set by receiveInvItem.html
+        // Get data from localStorage or sessionStorage that was set by approveInvItem.html
         const invoiceData = await getInvoiceDataFromStorage(identifier);
         
         if (invoiceData) {
@@ -163,7 +139,7 @@ async function getInvoiceDataFromStorage(identifier) {
     return null;
 }
 
-// Function to save invoice data to storage (to be called from receiveInvItem.html)
+// Function to save invoice data to storage (to be called from approveInvItem.html)
 function saveInvoiceDataToStorage(identifier, invoiceData) {
     try {
         localStorage.setItem(`invoice_${identifier}`, JSON.stringify(invoiceData));
@@ -212,138 +188,62 @@ async function loadInvoiceData(invoiceId) {
 function populateInvoiceData(invoice) {
     console.log('Populating invoice data:', invoice);
     
-    // Populate signature information first
+    // Invoice details - map from new API structure to print page structure
+    document.getElementById('invoiceNumber').textContent = invoice.u_bsi_invnum || invoice.docNum || '';
+    document.getElementById('visionInvoiceNumber').textContent = invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '';
+    document.getElementById('invoiceDate').textContent = formatDate(invoice.docDate);
+    document.getElementById('npwp').textContent = invoice.licTradNum || '';
+    document.getElementById('dueDate').textContent = formatDate(invoice.docDueDate || invoice.docDate);
+    
+    // Recipient information
+    document.getElementById('recipientName').textContent = invoice.cardName || '';
+    
+    // Parse address from the address field
+    if (invoice.address) {
+        const addressLines = invoice.address.split('\r\r');
+        if (addressLines.length >= 1) {
+            document.getElementById('recipientAddress').textContent = addressLines[0].trim();
+        }
+        if (addressLines.length >= 2) {
+            document.getElementById('recipientCity').textContent = addressLines[1].trim();
+        }
+    } else {
+        document.getElementById('recipientAddress').textContent = '';
+        document.getElementById('recipientCity').textContent = '';
+    }
+    
+    // Shipper information
+    document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
+    
+    // Order numbers - use numAtCard for both DO and PO numbers
+    document.getElementById('doNumbers').textContent = invoice.numAtCard || '';
+    document.getElementById('poNumbers').textContent = invoice.numAtCard || '';
+    
+    // Items table - convert from new API structure to print page structure
+    const printItems = convertItemsForPrint(invoice.arInvoiceDetails || []);
+    populateItemsTable(printItems);
+    
+    // Store invoice data for use in additional pages
+    const urlParams = new URLSearchParams(window.location.search);
+    const stagingID = urlParams.get('stagingID');
+    const docEntry = urlParams.get('docEntry');
+    const identifier = stagingID || docEntry;
+    
+    if (identifier) {
+        saveInvoiceDataToStorage(identifier, invoice);
+    }
+    
+    // Financial summary - use API fields with currency
+    populateFinancialSummary(invoice);
+    
+    // Bank account information from API data
+    populateBankInformation(invoice);
+    
+    // Signature information - populate from API data
     populateSignatureInformation(invoice);
     
-    try {
-        // Invoice details - map from new API structure to print page structure
-        const invoiceNumberElement = document.getElementById('invoiceNumber');
-        const visionInvoiceNumberElement = document.getElementById('visionInvoiceNumber');
-        const invoiceDateElement = document.getElementById('invoiceDate');
-        const npwpElement = document.getElementById('npwp');
-        const dueDateElement = document.getElementById('dueDate');
-        
-        if (invoiceNumberElement) {
-            invoiceNumberElement.textContent = invoice.u_bsi_invnum || invoice.docNum || '';
-            console.log('Invoice Number set to:', invoiceNumberElement.textContent);
-        } else {
-            console.error('Invoice Number element not found');
-        }
-        
-        if (visionInvoiceNumberElement) {
-            visionInvoiceNumberElement.textContent = invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '';
-            console.log('Vision Invoice Number set to:', visionInvoiceNumberElement.textContent);
-        } else {
-            console.error('Vision Invoice Number element not found');
-        }
-        
-        if (invoiceDateElement) {
-            invoiceDateElement.textContent = formatDate(invoice.docDate);
-            console.log('Invoice Date set to:', invoiceDateElement.textContent);
-        } else {
-            console.error('Invoice Date element not found');
-        }
-        
-        if (npwpElement) {
-            npwpElement.textContent = invoice.licTradNum || '';
-            console.log('NPWP set to:', npwpElement.textContent);
-        } else {
-            console.error('NPWP element not found');
-        }
-        
-        if (dueDateElement) {
-            dueDateElement.textContent = formatDate(invoice.docDueDate || invoice.docDate);
-            console.log('Due Date set to:', dueDateElement.textContent);
-        } else {
-            console.error('Due Date element not found');
-        }
-        
-        // Recipient information
-        const recipientNameElement = document.getElementById('recipientName');
-        const recipientAddressElement = document.getElementById('recipientAddress');
-        const recipientCityElement = document.getElementById('recipientCity');
-        
-        if (recipientNameElement) {
-            recipientNameElement.textContent = invoice.cardName || '';
-            console.log('Recipient Name set to:', recipientNameElement.textContent);
-        } else {
-            console.error('Recipient Name element not found');
-        }
-        
-        // Parse address from the address field
-        if (invoice.address) {
-            const addressLines = invoice.address.split('\r\r');
-            if (addressLines.length >= 1 && recipientAddressElement) {
-                recipientAddressElement.textContent = addressLines[0].trim();
-                console.log('Recipient Address set to:', recipientAddressElement.textContent);
-            }
-            if (addressLines.length >= 2 && recipientCityElement) {
-                recipientCityElement.textContent = addressLines[1].trim();
-                console.log('Recipient City set to:', recipientCityElement.textContent);
-            }
-        } else {
-            if (recipientAddressElement) recipientAddressElement.textContent = '';
-            if (recipientCityElement) recipientCityElement.textContent = '';
-        }
-        
-        // Shipper information
-        const shipperNameElement = document.getElementById('shipperName');
-        if (shipperNameElement) {
-            shipperNameElement.textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
-            console.log('Shipper Name set to:', shipperNameElement.textContent);
-        } else {
-            console.error('Shipper Name element not found');
-        }
-        
-        // Order numbers - use numAtCard for both DO and PO numbers
-        const doNumbersElement = document.getElementById('doNumbers');
-        const poNumbersElement = document.getElementById('poNumbers');
-        
-        if (doNumbersElement) {
-            doNumbersElement.textContent = invoice.numAtCard || '';
-            console.log('DO Numbers set to:', doNumbersElement.textContent);
-        } else {
-            console.error('DO Numbers element not found');
-        }
-        
-        if (poNumbersElement) {
-            poNumbersElement.textContent = invoice.numAtCard || '';
-            console.log('PO Numbers set to:', poNumbersElement.textContent);
-        } else {
-            console.error('PO Numbers element not found');
-        }
-        
-        // Items table - convert from new API structure to print page structure
-        const printItems = convertItemsForPrint(invoice.arInvoiceDetails || []);
-        console.log('Print items converted:', printItems);
-        populateItemsTable(printItems);
-        
-        // Store invoice data for use in additional pages
-        const urlParams = new URLSearchParams(window.location.search);
-        const stagingID = urlParams.get('stagingID');
-        const docEntry = urlParams.get('docEntry');
-        const identifier = stagingID || docEntry;
-        
-        if (identifier) {
-            saveInvoiceDataToStorage(identifier, invoice);
-        }
-        
-        // Financial summary - use API fields with currency
-        populateFinancialSummary(invoice);
-        
-        // Bank account information from API data
-        populateBankInformation(invoice);
-        
-        // Signature information - populate from API data
-        populateSignatureInformation(invoice);
-        
-        // QR Code information - populate from API data
-        populateQRCode(invoice);
-        
-        console.log('Invoice data population completed successfully');
-    } catch (error) {
-        console.error('Error in populateInvoiceData:', error);
-    }
+    // QR Code information - populate from API data
+    populateQRCode(invoice);
 }
 
 // Function to get current invoice data for use in additional pages
@@ -608,12 +508,6 @@ function populateSignatureInformation(invoice) {
         preparedPosition: invoice.arInvoiceApprovalSummary?.preparedPosition
     });
     
-    // Store the signature data for use in additional pages
-    window.signatureData = {
-        name: approvedByName,
-        position: approvedPosition
-    };
-    
     // Populate the DOM elements
     const signatureNameElement = document.getElementById('signatureName');
     const signatureTitleElement = document.getElementById('signatureTitle');
@@ -640,61 +534,174 @@ function populateSignatureInformation(invoice) {
     } else {
         console.error('Signature title element not found!');
     }
-
+    
+    // Handle signature image display for verified names
+    displaySignatureImage(approvedByName);
 }
 
+// Function to display signature image for verified names
+function displaySignatureImage(signatureName) {
+    // List of verified signature names and their corresponding image files
+    const verifiedSignatures = {
+        'Atsuro Suzuki': 'Atsuro Suzuki.jpg',
+        'Atsushi Hayashida': 'Atshushi Hayashida.jpg',
+        'Hirotoshi Nishihara': 'Hirotoshi Nishihara.jpg',
+        'Nyimas Widya': 'Nyimas Widya.jpg',
+        'Takahiro Kimura': 'Takahiro Kimura.jpg',
+        'Yuya Eguchi': 'Yuya Eguchi.jpg'
+    };
+    
+    // Check if the signature name is in the verified list
+    if (verifiedSignatures[signatureName]) {
+        const signatureSpaceElement = document.querySelector('.signature-space');
+        if (signatureSpaceElement) {
+            // Clear the signature space
+            signatureSpaceElement.innerHTML = '';
+            
+            // Create and add the signature image
+            const signatureImage = document.createElement('img');
+            signatureImage.src = `../../../../../image/${verifiedSignatures[signatureName]}`;
+            signatureImage.alt = `${signatureName} Signature`;
+            signatureImage.style.cssText = `
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            `;
+            
+            // Add error handling for image loading
+            signatureImage.onerror = function() {
+                console.error(`Failed to load signature image for: ${signatureName}`);
+                this.style.display = 'none';
+            };
+            
+            signatureImage.onload = function() {
+                console.log(`Successfully loaded signature image for: ${signatureName}`);
+            };
+            
+            signatureSpaceElement.appendChild(signatureImage);
+            console.log(`Displaying signature image for: ${signatureName}`);
+        } else {
+            console.error('Signature space element not found!');
+        }
+    } else {
+        // For non-verified names, ensure the signature space is empty (just the border)
+        const signatureSpaceElement = document.querySelector('.signature-space');
+        if (signatureSpaceElement) {
+            signatureSpaceElement.innerHTML = '';
+        }
+        console.log(`No signature image available for: ${signatureName}`);
+    }
+}
 
+// Test function to verify signature image functionality
+function testSignatureImageFunctionality() {
+    console.log('Testing signature image functionality...');
+    
+    // Test with each verified signature name
+    const testNames = [
+        'Atsuro Suzuki',
+        'Atsushi Hayashida', 
+        'Hirotoshi Nishihara',
+        'Nyimas Widya',
+        'Takahiro Kimura',
+        'Yuya Eguchi'
+    ];
+    
+    testNames.forEach((name, index) => {
+        setTimeout(() => {
+            console.log(`Testing signature image for: ${name}`);
+            displaySignatureImage(name);
+        }, index * 1000); // Test each name with 1 second delay
+    });
+}
 
-
-
-
-
-
+// Function to display signature image for specific pages (for additional pages)
+function displaySignatureImageForPage(signatureName, pageNum) {
+    // List of verified signature names and their corresponding image files
+    const verifiedSignatures = {
+        'Atsuro Suzuki': 'Atsuro Suzuki.jpg',
+        'Atsushi Hayashida': 'Atshushi Hayashida.jpg',
+        'Hirotoshi Nishihara': 'Hirotoshi Nishihara.jpg',
+        'Nyimas Widya': 'Nyimas Widya.jpg',
+        'Takahiro Kimura': 'Takahiro Kimura.jpg',
+        'Yuya Eguchi': 'Yuya Eguchi.jpg'
+    };
+    
+    // Check if the signature name is in the verified list
+    if (verifiedSignatures[signatureName]) {
+        const page = document.getElementById(`page${pageNum}`);
+        if (page) {
+            const signatureSpaceElement = page.querySelector('.signature-space');
+            if (signatureSpaceElement) {
+                // Clear the signature space
+                signatureSpaceElement.innerHTML = '';
+                
+                // Create and add the signature image
+                const signatureImage = document.createElement('img');
+                signatureImage.src = `../../../../../image/${verifiedSignatures[signatureName]}`;
+                signatureImage.alt = `${signatureName} Signature`;
+                signatureImage.style.cssText = `
+                    max-width: 100%;
+                    max-height: 100%;
+                    width: auto;
+                    height: auto;
+                    display: block;
+                    margin: 0 auto;
+                `;
+                
+                // Add error handling for image loading
+                signatureImage.onerror = function() {
+                    console.error(`Failed to load signature image for: ${signatureName} on page ${pageNum}`);
+                    this.style.display = 'none';
+                };
+                
+                signatureImage.onload = function() {
+                    console.log(`Successfully loaded signature image for: ${signatureName} on page ${pageNum}`);
+                };
+                
+                signatureSpaceElement.appendChild(signatureImage);
+                console.log(`Displaying signature image for: ${signatureName} on page ${pageNum}`);
+            } else {
+                console.error(`Signature space element not found on page ${pageNum}!`);
+            }
+        } else {
+            console.error(`Page ${pageNum} not found!`);
+        }
+    } else {
+        // For non-verified names, ensure the signature space is empty (just the border)
+        const page = document.getElementById(`page${pageNum}`);
+        if (page) {
+            const signatureSpaceElement = page.querySelector('.signature-space');
+            if (signatureSpaceElement) {
+                signatureSpaceElement.innerHTML = '';
+            }
+        }
+        console.log(`No signature image available for: ${signatureName} on page ${pageNum}`);
+    }
+}
 
 // Function to get signature data from invoice (for additional pages)
 function getSignatureDataFromInvoice(invoice) {
-    // First check if we have signature data stored from the main page
-    if (window.signatureData) {
-        console.log('Using stored signature data:', window.signatureData);
-        return window.signatureData;
-    }
-    
     if (!invoice) {
-        return { name: 'Authorized Signatory', position: 'Finance Department' };
+        return { name: '', position: '' };
     }
-    
-    console.log('Getting signature data from invoice for additional page:', invoice);
     
     let approvedByName = '';
     let approvedPosition = '';
     
-    // Get signature data from multiple possible sources - same logic as populateSignatureInformation
+    // Get signature data ONLY from approval summary's approvedByName field
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvedByName) {
-        console.log('Using approvedByName from approval summary for additional page:', invoice.arInvoiceApprovalSummary.approvedByName);
         approvedByName = invoice.arInvoiceApprovalSummary.approvedByName;
         approvedPosition = invoice.arInvoiceApprovalSummary.approvedPosition || '';
-    } else if (invoice.approvedByName) {
-        console.log('Using direct approvedByName for additional page:', invoice.approvedByName);
-        approvedByName = invoice.approvedByName;
-        approvedPosition = invoice.approvedPosition || '';
-    } else if (invoice.receivedByName) {
-        console.log('Using receivedByName as fallback for additional page:', invoice.receivedByName);
-        approvedByName = invoice.receivedByName;
-        approvedPosition = 'Receiver';
-    } else {
-        // Use default values if no data is available
-        approvedByName = 'Authorized Signatory';
-        approvedPosition = 'Finance Department';
-        console.log('Using default signature data for additional page');
     }
     
-    const result = {
+    return {
         name: approvedByName,
         position: approvedPosition
     };
-    
-    console.log('Final signature data for additional page:', result);
-    return result;
 }
 
 // Function to populate QR Code from API data
@@ -711,34 +718,20 @@ function populateQRCode(invoice) {
     if (invoice.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log('QR Code source found:', invoice.qrCodeSrc);
         
-        // Use qrCodeSrc data directly with API
-        generateQRCodeFromSrc(invoice.qrCodeSrc, qrCodeElement);
-    } else {
-        // Generate QR code from invoice data
-        console.log('No QR code source found, generating QR code from invoice data');
-        generateQRCodeFromInvoiceData(invoice, qrCodeElement);
-    }
-}
-
-// Function to generate QR code from qrCodeSrc data
-function generateQRCodeFromSrc(qrCodeSrc, qrCodeElement) {
-    try {
-        console.log('Generating QR code from qrCodeSrc:', qrCodeSrc);
-        
         // Use external QR code API with qrCodeSrc data
         const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
         const params = new URLSearchParams({
             size: '200x200',
-            data: qrCodeSrc,
+            data: invoice.qrCodeSrc,
             format: 'png',
-            margin: '2',
+            margin: '0',
             error_correction: 'M'
         });
         
         const fullUrl = apiUrl + '?' + params.toString();
         console.log('QR Code API URL with qrCodeSrc:', fullUrl);
         
-        // Create image element
+        // Create QR code image
         const qrImage = document.createElement('img');
         qrImage.src = fullUrl;
         qrImage.alt = 'QR Code';
@@ -752,13 +745,6 @@ function generateQRCodeFromSrc(qrCodeSrc, qrCodeElement) {
         
         // Show QR code element
         qrCodeElement.style.display = 'flex';
-        
-        // Add click event to show QR code data
-        qrCodeElement.style.cursor = 'pointer';
-        qrCodeElement.title = 'Click to view QR code data';
-        qrCodeElement.onclick = function() {
-            showQRCodeData({ qrCodeSrc: qrCodeSrc }, 'QR Code from API');
-        };
         
         // Handle image load error
         qrImage.onerror = function() {
@@ -770,242 +756,49 @@ function generateQRCodeFromSrc(qrCodeSrc, qrCodeElement) {
         // Handle image load success
         qrImage.onload = function() {
             console.log('QR Code generated successfully from qrCodeSrc');
+            // Ensure the QR code is visible
+            qrCodeElement.style.display = 'flex';
         };
         
-    } catch (error) {
-        console.error('Error generating QR code from qrCodeSrc:', error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
-    }
-}
-
-// Function to generate QR code from invoice data
-function generateQRCodeFromInvoiceData(invoice, qrCodeElement) {
-    try {
-        // Use Indonesian invoice format for QR code
-        const qrCodeData = generateIndonesianInvoiceQRCode(invoice);
-        
-        if (!qrCodeData) {
-            throw new Error('Failed to generate QR code data');
+        console.log('QR Code image set successfully');
+    } else {
+        // Generate a default QR code with invoice number if available
+        if (invoice.u_bsi_invnum || invoice.docNum) {
+            const invoiceNumber = invoice.u_bsi_invnum || invoice.docNum;
+            console.log('Generating default QR code with invoice number:', invoiceNumber);
+            
+            // Use external QR code API with invoice number
+            const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
+            const params = new URLSearchParams({
+                size: '200x200',
+                data: `Invoice: ${invoiceNumber}`,
+                format: 'png',
+                margin: '0',
+                error_correction: 'M'
+            });
+            
+            const fullUrl = apiUrl + '?' + params.toString();
+            
+            // Create QR code image
+            const qrImage = document.createElement('img');
+            qrImage.src = fullUrl;
+            qrImage.alt = 'QR Code';
+            qrImage.style.width = '100%';
+            qrImage.style.height = '100%';
+            qrImage.style.objectFit = 'contain';
+            
+            // Clear existing content and add image
+            qrCodeElement.innerHTML = '';
+            qrCodeElement.appendChild(qrImage);
+            
+            // Show QR code element
+            qrCodeElement.style.display = 'flex';
+        } else {
+            // Hide QR code element if no data is available
+            console.log('No QR code data available, hiding QR code element');
+        qrCodeElement.style.display = 'none';
         }
-        
-        console.log('QR Code data object:', qrCodeData);
-        
-        // Convert to JSON string for QR code
-        const qrCodeString = JSON.stringify(qrCodeData);
-        console.log('QR Code string:', qrCodeString);
-        
-        // Generate QR code using external API
-        generateQRCodeWithAPI(qrCodeString, qrCodeElement, qrCodeData);
-        
-    } catch (error) {
-        console.error('Error in generateQRCodeFromInvoiceData:', error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
     }
-}
-
-// Function to generate QR code using external API
-function generateQRCodeWithAPI(qrCodeString, qrCodeElement, qrCodeData) {
-    try {
-        // Check if data is too long for API
-        if (qrCodeString.length > 2000) {
-            console.warn(`QR Code data too long (${qrCodeString.length} chars), using simplified data`);
-            // Use simplified data
-            const simplifiedData = createSimplifiedQRData(qrCodeData, false);
-            qrCodeString = JSON.stringify(simplifiedData);
-        }
-        
-        // Use external QR code API
-        const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
-        const params = new URLSearchParams({
-            size: '200x200',
-            data: qrCodeString,
-            format: 'png',
-            margin: '2',
-            error_correction: 'M'
-        });
-        
-        const fullUrl = apiUrl + '?' + params.toString();
-        console.log('QR Code API URL:', fullUrl);
-        
-        // Check URL length
-        if (fullUrl.length > 2048) {
-            console.error(`QR Code URL too long (${fullUrl.length} chars), using fallback`);
-            throw new Error('URL too long for API');
-        }
-        
-        // Create image element
-        const qrImage = document.createElement('img');
-        qrImage.src = fullUrl;
-        qrImage.alt = 'QR Code';
-        qrImage.style.width = '200px';
-        qrImage.style.height = '200px';
-        qrImage.style.objectFit = 'contain';
-        
-        // Clear existing content and add image
-        qrCodeElement.innerHTML = '';
-        qrCodeElement.appendChild(qrImage);
-        
-        // Show QR code element
-        qrCodeElement.style.display = 'flex';
-        
-        // Add click event to show QR code data
-        qrCodeElement.style.cursor = 'pointer';
-        qrCodeElement.title = 'Click to view QR code data';
-        qrCodeElement.onclick = function() {
-            showQRCodeData(qrCodeData);
-        };
-        
-        // Handle image load error
-        qrImage.onerror = function() {
-            console.error('Error loading QR code image from API');
-            // Try with even more simplified data
-            try {
-                const minimalData = createSimplifiedQRData(qrCodeData, false);
-                const minimalUrl = apiUrl + '?' + new URLSearchParams({
-                    size: '200x200',
-                    data: JSON.stringify(minimalData),
-                    format: 'png',
-                    margin: '2',
-                    error_correction: 'M'
-                }).toString();
-                
-                qrImage.src = minimalUrl;
-                qrImage.onerror = function() {
-                    qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-                    qrCodeElement.style.display = 'flex';
-                };
-            } catch (fallbackError) {
-                qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-                qrCodeElement.style.display = 'flex';
-            }
-        };
-        
-        // Handle image load success
-        qrImage.onload = function() {
-            console.log('QR Code generated successfully using API');
-        };
-        
-    } catch (error) {
-        console.error('Error generating QR code with API:', error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
-    }
-}
-
-// Function to extract bank name from account name
-function extractBankName(acctName) {
-    if (!acctName) return 'MUFG Bank, Ltd., Jakarta Branch';
-    
-    const lines = acctName.split(',').map(line => line.trim());
-    return lines[0] || 'MUFG Bank, Ltd., Jakarta Branch';
-}
-
-// Function to show QR code data in a modal
-function showQRCodeData(qrCodeData) {
-    // Format the data for better display
-    const formattedData = formatQRCodeDataForDisplay(qrCodeData);
-    
-    Swal.fire({
-        title: 'QR Code Data - Invoice Information',
-        html: formattedData,
-        width: '700px',
-        confirmButtonText: 'Close',
-        showCloseButton: true,
-        customClass: {
-            popup: 'qr-code-modal'
-        }
-    });
-}
-
-// Function to format QR code data for display
-function formatQRCodeDataForDisplay(qrCodeData) {
-    let html = '<div style="text-align: left; font-size: 11px; max-height: 400px; overflow-y: auto;">';
-    
-    // Invoice Information
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #1e40af; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">📄 Invoice Information</h3>';
-    html += '<div><strong>Invoice Number:</strong> ' + (qrCodeData.invoiceNumber || 'N/A') + '</div>';
-    html += '<div><strong>Vision Invoice:</strong> ' + (qrCodeData.visionInvoiceNumber || 'N/A') + '</div>';
-    html += '<div><strong>Invoice Date:</strong> ' + (qrCodeData.invoiceDate || 'N/A') + '</div>';
-    html += '<div><strong>Due Date:</strong> ' + (qrCodeData.dueDate || 'N/A') + '</div>';
-    html += '</div>';
-    
-    // Customer Information
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #059669; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">👤 Customer Information</h3>';
-    html += '<div><strong>Customer Name:</strong> ' + (qrCodeData.customerName || 'N/A') + '</div>';
-    html += '<div><strong>NPWP:</strong> ' + (qrCodeData.customerNPWP || 'N/A') + '</div>';
-    if (qrCodeData.customerAddress) {
-        html += '<div><strong>Address:</strong> ' + qrCodeData.customerAddress + '</div>';
-    }
-    html += '</div>';
-    
-    // Financial Information
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #dc2626; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">💰 Financial Information</h3>';
-    html += '<div><strong>Subtotal:</strong> ' + formatCurrencyWithCurrency(qrCodeData.subtotal || 0, qrCodeData.currency || 'IDR') + '</div>';
-    html += '<div><strong>Discount:</strong> ' + formatCurrencyWithCurrency(qrCodeData.discount || 0, qrCodeData.currency || 'IDR') + '</div>';
-    html += '<div><strong>Tax Base:</strong> ' + formatCurrencyWithCurrency(qrCodeData.taxBase || 0, qrCodeData.currency || 'IDR') + '</div>';
-    html += '<div><strong>VAT Amount:</strong> ' + formatCurrencyWithCurrency(qrCodeData.vatAmount || 0, qrCodeData.currency || 'IDR') + '</div>';
-    html += '<div><strong>Grand Total:</strong> ' + formatCurrencyWithCurrency(qrCodeData.grandTotal || 0, qrCodeData.currency || 'IDR') + '</div>';
-    html += '</div>';
-    
-    // Bank Information
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #7c3aed; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">🏦 Bank Information</h3>';
-    html += '<div><strong>Bank Name:</strong> ' + (qrCodeData.bankName || 'N/A') + '</div>';
-    html += '<div><strong>Account Number:</strong> ' + (qrCodeData.accountNumber || 'N/A') + '</div>';
-    html += '<div><strong>Account Name:</strong> ' + (qrCodeData.accountName || 'N/A') + '</div>';
-    html += '</div>';
-    
-    // Company Information
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #ea580c; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">🏢 Company Information</h3>';
-    html += '<div><strong>Company Name:</strong> ' + (qrCodeData.companyName || 'N/A') + '</div>';
-    html += '<div><strong>Address:</strong> ' + (qrCodeData.companyAddress || 'N/A') + '</div>';
-    if (qrCodeData.companyPhone) {
-        html += '<div><strong>Phone:</strong> ' + qrCodeData.companyPhone + '</div>';
-    }
-    if (qrCodeData.companyFax) {
-        html += '<div><strong>Fax:</strong> ' + qrCodeData.companyFax + '</div>';
-    }
-    html += '</div>';
-    
-    // Approval Information
-    if (qrCodeData.approvedByName) {
-        html += '<div style="margin-bottom: 15px;">';
-        html += '<h3 style="color: #059669; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">✍️ Approval Information</h3>';
-        html += '<div><strong>Approved By:</strong> ' + qrCodeData.approvedByName + '</div>';
-        if (qrCodeData.approvedByPosition) {
-            html += '<div><strong>Position:</strong> ' + qrCodeData.approvedByPosition + '</div>';
-        }
-        html += '</div>';
-    }
-    
-    // Page Information (for multi-page documents)
-    if (qrCodeData.pageNumber) {
-        html += '<div style="margin-bottom: 15px;">';
-        html += '<h3 style="color: #6b7280; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">📄 Page Information</h3>';
-        html += '<div><strong>Page:</strong> ' + qrCodeData.pageNumber + ' of ' + (qrCodeData.totalPages || 'N/A') + '</div>';
-        html += '</div>';
-    }
-    
-    // Metadata
-    html += '<div style="margin-bottom: 15px;">';
-    html += '<h3 style="color: #6b7280; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">🔧 Metadata</h3>';
-    html += '<div><strong>Generated At:</strong> ' + new Date(qrCodeData.generatedAt).toLocaleString('id-ID') + '</div>';
-    html += '<div><strong>System:</strong> ' + (qrCodeData.system || 'Expressiv') + '</div>';
-    html += '<div><strong>Version:</strong> ' + (qrCodeData.version || '1.0') + '</div>';
-    html += '</div>';
-    
-    html += '</div>';
-    
-    return html;
 }
 
 // Function to populate QR Code for additional pages
@@ -1018,37 +811,15 @@ function populateQRCodeForPage(invoice, pageNum) {
         return;
     }
     
-    // First check if main page has a QR code source that we can reuse
-    const mainInvoice = getCurrentInvoiceData();
-    if (mainInvoice?.qrCodeSrc && mainInvoice.qrCodeSrc !== null && mainInvoice.qrCodeSrc.trim() !== '') {
-        console.log(`Using QR Code source from main page for page ${pageNum}:`, mainInvoice.qrCodeSrc);
-        generateQRCodeFromSrcForPage(mainInvoice.qrCodeSrc, qrCodeElement, pageNum);
-        return;
-    }
-    
-    // If no QR code in main page, check this invoice
+    // Check if qrCodeSrc is available and not null from API
     if (invoice?.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log(`QR Code source found for page ${pageNum}:`, invoice.qrCodeSrc);
         
-        // Use qrCodeSrc data directly with API - ONLY THIS METHOD
-        generateQRCodeFromSrcForPage(invoice.qrCodeSrc, qrCodeElement, pageNum);
-    } else {
-        // Generate QR code from invoice data for additional pages
-        console.log(`No QR code source found for page ${pageNum}, generating QR code from invoice data`);
-        generateQRCodeFromInvoiceDataForPage(invoice, qrCodeElement, pageNum);
-    }
-}
-
-// Function to generate QR code from qrCodeSrc data for additional pages
-function generateQRCodeFromSrcForPage(qrCodeSrc, qrCodeElement, pageNum) {
-    try {
-        console.log(`Generating QR code from qrCodeSrc for page ${pageNum}:`, qrCodeSrc);
-        
-        // Use external QR code API with qrCodeSrc data
+        // Use external QR code API with qrCodeSrc data - ONLY THIS METHOD
         const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
         const params = new URLSearchParams({
             size: '200x200',
-            data: qrCodeSrc,
+            data: invoice.qrCodeSrc,
             format: 'png',
             margin: '2',
             error_correction: 'M'
@@ -1057,7 +828,7 @@ function generateQRCodeFromSrcForPage(qrCodeSrc, qrCodeElement, pageNum) {
         const fullUrl = apiUrl + '?' + params.toString();
         console.log(`QR Code API URL with qrCodeSrc for page ${pageNum}:`, fullUrl);
         
-        // Create image element
+        // Create QR code image
         const qrImage = document.createElement('img');
         qrImage.src = fullUrl;
         qrImage.alt = 'QR Code';
@@ -1071,13 +842,6 @@ function generateQRCodeFromSrcForPage(qrCodeSrc, qrCodeElement, pageNum) {
         
         // Show QR code element
         qrCodeElement.style.display = 'flex';
-        
-        // Add click event to show QR code data
-        qrCodeElement.style.cursor = 'pointer';
-        qrCodeElement.title = 'Click to view QR code data';
-        qrCodeElement.onclick = function() {
-            showQRCodeData({ qrCodeSrc: qrCodeSrc }, 'QR Code from API');
-        };
         
         // Handle image load error
         qrImage.onerror = function() {
@@ -1089,142 +853,48 @@ function generateQRCodeFromSrcForPage(qrCodeSrc, qrCodeElement, pageNum) {
         // Handle image load success
         qrImage.onload = function() {
             console.log(`QR Code generated successfully from qrCodeSrc for page ${pageNum}`);
+            // Ensure the QR code is visible
+            qrCodeElement.style.display = 'flex';
         };
         
-    } catch (error) {
-        console.error(`Error generating QR code from qrCodeSrc for page ${pageNum}:`, error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
-    }
-}
-
-// Function to generate QR code from invoice data for additional pages
-function generateQRCodeFromInvoiceDataForPage(invoice, qrCodeElement, pageNum) {
-    try {
-        // For additional pages, we should use the same qrCodeSrc as the main page
-        // Only generate new data if qrCodeSrc is not available
-        if (invoice?.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
-            console.log(`Using existing qrCodeSrc for page ${pageNum}:`, invoice.qrCodeSrc);
-            generateQRCodeFromSrcForPage(invoice.qrCodeSrc, qrCodeElement, pageNum);
-            return;
+        console.log(`QR Code image set successfully for page ${pageNum}`);
+    } else {
+        // Generate a default QR code with invoice number if available
+        if (invoice?.u_bsi_invnum || invoice?.docNum) {
+            const invoiceNumber = invoice.u_bsi_invnum || invoice.docNum;
+            console.log(`Generating default QR code with invoice number for page ${pageNum}:`, invoiceNumber);
+            
+            // Use external QR code API with invoice number
+            const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
+            const params = new URLSearchParams({
+                size: '200x200',
+                data: `Invoice: ${invoiceNumber}`,
+                format: 'png',
+                margin: '0',
+                error_correction: 'M'
+            });
+            
+            const fullUrl = apiUrl + '?' + params.toString();
+            
+            // Create QR code image
+            const qrImage = document.createElement('img');
+            qrImage.src = fullUrl;
+            qrImage.alt = 'QR Code';
+            qrImage.style.width = '100%';
+            qrImage.style.height = '100%';
+            qrImage.style.objectFit = 'contain';
+            
+            // Clear existing content and add image
+            qrCodeElement.innerHTML = '';
+            qrCodeElement.appendChild(qrImage);
+            
+            // Show QR code element
+            qrCodeElement.style.display = 'flex';
+        } else {
+            // Hide QR code element if no data is available
+            console.log(`No QR code data available for page ${pageNum}, hiding QR code element`);
+        qrCodeElement.style.display = 'none';
         }
-        
-        // Use Indonesian invoice format for QR code with page information
-        const qrCodeData = generateIndonesianInvoiceQRCode(invoice);
-        
-        if (!qrCodeData) {
-            throw new Error('Failed to generate QR code data');
-        }
-        
-        // Add page information to the QR code data
-        qrCodeData.pageNumber = pageNum;
-        qrCodeData.totalPages = window.totalPages || getTotalPages();
-        
-        console.log(`QR Code data object for page ${pageNum}:`, qrCodeData);
-        
-        // Convert to JSON string for QR code
-        const qrCodeString = JSON.stringify(qrCodeData);
-        console.log(`QR Code string for page ${pageNum}:`, qrCodeString);
-        
-        // Generate QR code using external API
-        generateQRCodeWithAPIForPage(qrCodeString, qrCodeElement, qrCodeData, pageNum);
-        
-    } catch (error) {
-        console.error(`Error in generateQRCodeFromInvoiceDataForPage for page ${pageNum}:`, error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
-    }
-}
-
-// Function to generate QR code using external API for additional pages
-function generateQRCodeWithAPIForPage(qrCodeString, qrCodeElement, qrCodeData, pageNum) {
-    try {
-        // Check if data is too long for API
-        if (qrCodeString.length > 2000) {
-            console.warn(`QR Code data too long (${qrCodeString.length} chars), using simplified data for page ${pageNum}`);
-            // Use simplified data
-            const simplifiedData = createSimplifiedQRData(qrCodeData, true);
-            qrCodeString = JSON.stringify(simplifiedData);
-        }
-        
-        // Use external QR code API
-        const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
-        const params = new URLSearchParams({
-            size: '200x200',
-            data: qrCodeString,
-            format: 'png',
-            margin: '2',
-            error_correction: 'M'
-        });
-        
-        const fullUrl = apiUrl + '?' + params.toString();
-        console.log(`QR Code API URL for page ${pageNum}:`, fullUrl);
-        
-        // Check URL length
-        if (fullUrl.length > 2048) {
-            console.error(`QR Code URL too long (${fullUrl.length} chars) for page ${pageNum}, using fallback`);
-            throw new Error('URL too long for API');
-        }
-        
-        // Create image element
-        const qrImage = document.createElement('img');
-        qrImage.src = fullUrl;
-        qrImage.alt = 'QR Code';
-        qrImage.style.width = '200px';
-        qrImage.style.height = '200px';
-        qrImage.style.objectFit = 'contain';
-        
-        // Clear existing content and add image
-        qrCodeElement.innerHTML = '';
-        qrCodeElement.appendChild(qrImage);
-        
-        // Show QR code element
-        qrCodeElement.style.display = 'flex';
-        
-        // Add click event to show QR code data
-        qrCodeElement.style.cursor = 'pointer';
-        qrCodeElement.title = 'Click to view QR code data';
-        qrCodeElement.onclick = function() {
-            showQRCodeData(qrCodeData);
-        };
-        
-        // Handle image load error
-        qrImage.onerror = function() {
-            console.error(`Error loading QR code image from API for page ${pageNum}`);
-            // Try with even more simplified data
-            try {
-                const minimalData = createSimplifiedQRData(qrCodeData, true);
-                const minimalUrl = apiUrl + '?' + new URLSearchParams({
-                    size: '200x200',
-                    data: JSON.stringify(minimalData),
-                    format: 'png',
-                    margin: '2',
-                    error_correction: 'M'
-                }).toString();
-                
-                qrImage.src = minimalUrl;
-                qrImage.onerror = function() {
-                    qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-                    qrCodeElement.style.display = 'flex';
-                };
-            } catch (fallbackError) {
-                qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-                qrCodeElement.style.display = 'flex';
-            }
-        };
-        
-        // Handle image load success
-        qrImage.onload = function() {
-            console.log(`QR Code generated successfully using API for page ${pageNum}`);
-        };
-        
-    } catch (error) {
-        console.error(`Error generating QR code with API for page ${pageNum}:`, error);
-        // Fallback to text display
-        qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
-        qrCodeElement.style.display = 'flex';
     }
 }
 
@@ -1250,32 +920,16 @@ function convertItemsForPrint(items) {
 
 // Function to populate items table with pagination
 function populateItemsTable(items) {
-    console.log('Populating items table with items:', items);
-    console.log('Number of items:', items.length);
-    
     const ITEMS_PER_PAGE = 16;
     const totalItems = items.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    
-    console.log('Total pages needed:', totalPages);
     
     // Clear existing pages except the first one
     const pagesContainer = document.getElementById('pagesContainer');
     const firstPage = document.getElementById('page1');
     
-    if (!pagesContainer) {
-        console.error('Pages container not found!');
-        return;
-    }
-    
-    if (!firstPage) {
-        console.error('First page not found!');
-        return;
-    }
-    
     // Remove additional pages if they exist
     const existingPages = pagesContainer.querySelectorAll('.page-container:not(#page1)');
-    console.log('Removing existing pages:', existingPages.length);
     existingPages.forEach(page => page.remove());
     
     // Hide footer and payment summary on first page if there are multiple pages
@@ -1283,19 +937,18 @@ function populateItemsTable(items) {
     const paymentSummary = document.getElementById('paymentSummary');
     
     if (totalPages > 1) {
-        if (footer) footer.style.display = 'none';
+        footer.style.display = 'none';
         if (paymentSummary) {
             paymentSummary.style.display = 'none';
         }
     } else {
-        if (footer) footer.style.display = 'flex';
+        footer.style.display = 'flex';
         if (paymentSummary) {
             paymentSummary.style.display = 'flex';
         }
     }
     
     // Populate first page
-    console.log('Populating first page with items:', items.slice(0, ITEMS_PER_PAGE));
     populatePageItems(items.slice(0, ITEMS_PER_PAGE), 1, 0);
     
     // Create additional pages if needed
@@ -1304,18 +957,11 @@ function populateItemsTable(items) {
         const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
         const pageItems = items.slice(startIndex, endIndex);
         
-        console.log(`Creating page ${pageNum} with items:`, pageItems);
         createAdditionalPage(pageItems, pageNum, startIndex, pageNum === totalPages);
     }
     
     // Update page info
-    const pageInfoElement = document.getElementById('pageInfo');
-    if (pageInfoElement) {
-        pageInfoElement.textContent = `Page 1 of ${totalPages}`;
-        console.log('Updated page info:', pageInfoElement.textContent);
-    } else {
-        console.error('Page info element not found!');
-    }
+    document.getElementById('pageInfo').textContent = `Page 1 of ${totalPages}`;
     
     // Store total pages for use in additional pages
     window.totalPages = totalPages;
@@ -1336,8 +982,6 @@ function populateItemsTable(items) {
     
     // Update page info for all pages
     updatePageInfoForAllPages(totalPages);
-    
-    console.log('Items table population completed');
 }
 
 // Function to update page info for all pages
@@ -1366,20 +1010,10 @@ function updatePageInfoForAllPages(totalPages) {
 
 // Function to populate items for a specific page
 function populatePageItems(items, pageNum, startIndex) {
-    console.log(`Populating page ${pageNum} items:`, items);
-    console.log(`Start index: ${startIndex}`);
-    
     const tbody = document.getElementById('itemsTableBody');
-    if (!tbody) {
-        console.error('Items table body not found!');
-        return;
-    }
-    
     tbody.innerHTML = '';
-    console.log('Cleared table body');
     
     items.forEach((item, index) => {
-        console.log(`Adding item ${index + 1}:`, item);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="number-col">${startIndex + index + 1}</td>
@@ -1392,8 +1026,6 @@ function populatePageItems(items, pageNum, startIndex) {
         `;
         tbody.appendChild(row);
     });
-    
-    console.log(`Added ${items.length} items to page ${pageNum}`);
 }
 
 // Function to create additional pages
@@ -1546,7 +1178,16 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
         tbody.appendChild(row);
     });
     
-
+    // Handle signature image for additional pages if it's the last page
+    if (isLastPage) {
+        const currentInvoiceData = getCurrentInvoiceData();
+        const signatureData = getSignatureDataFromInvoice(currentInvoiceData);
+        
+        // Call signature image display for additional pages
+        setTimeout(() => {
+            displaySignatureImageForPage(signatureData.name, pageNum);
+        }, 100);
+    }
 }
 
 // Function to get total pages
@@ -1782,6 +1423,15 @@ function printInvoice() {
     // Optimize layout for printing
     optimizeForPrint();
     
+    // Make sure QR code is visible if available
+    const qrCodeElements = document.querySelectorAll('.qr-code');
+    qrCodeElements.forEach(qrCode => {
+        // If QR code has content (image child), make sure it's visible
+        if (qrCode.querySelector('img')) {
+            qrCode.style.display = 'flex';
+        }
+    });
+    
     // Add a small delay to ensure DOM updates are complete
     setTimeout(() => {
         window.print();
@@ -1815,198 +1465,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Function to generate QR code with Indonesian invoice format
+// Function to generate QR code (placeholder)
 function generateQRCode(data) {
     // This is a placeholder for QR code generation
     // You can integrate with a QR code library like qrcode.js
     console.log('QR Code data:', data);
-}
-
-// Function to generate QR code in Indonesian invoice format (SP2D format)
-function generateIndonesianInvoiceQRCode(invoice) {
-    try {
-        // Format sesuai standar Indonesia untuk QR Code Invoice
-        const qrCodeData = {
-            // Informasi Invoice
-            invoiceNumber: invoice.u_bsi_invnum || invoice.docNum || '',
-            visionInvoiceNumber: invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '',
-            invoiceDate: formatDateForQR(invoice.docDate),
-            dueDate: formatDateForQR(invoice.docDueDate || invoice.docDate),
-            
-            // Informasi Customer
-            customerName: invoice.cardName || '',
-            customerNPWP: invoice.licTradNum || '',
-            customerAddress: parseAddressForQR(invoice.address),
-            
-            // Informasi Keuangan
-            subtotal: invoice.docTotal || 0,
-            discount: invoice.discSum || 0,
-            taxBase: invoice.docTax || 0,
-            vatAmount: invoice.vatSum || 0,
-            grandTotal: invoice.grandTotal || invoice.docTotal || 0,
-            currency: invoice.docCur || 'IDR',
-            
-            // Informasi Bank
-            bankName: extractBankName(invoice.acctName),
-            accountNumber: invoice.account || '',
-            accountName: 'PT. KANSAI PAINT INDONESIA',
-            
-            // Informasi Perusahaan
-            companyName: 'PT. KANSAI PAINT INDONESIA',
-            companyAddress: 'BLOK DD-7 & DD-6 KAWASAN INDUSTRI MM2100, DANAU INDAH, CIKARANG BARAT, KAB. BEKASI, JAWA BARAT, 17847',
-            companyPhone: '+62 21 89982370',
-            companyFax: '+62 21 8998 3868',
-            
-            // Informasi Approval
-            approvedByName: getSignatureDataFromInvoice(invoice).name,
-            approvedByPosition: getSignatureDataFromInvoice(invoice).position,
-            
-            // Metadata
-            generatedAt: new Date().toISOString(),
-            system: 'Expressiv',
-            version: '1.0'
-        };
-        
-        return qrCodeData;
-    } catch (error) {
-        console.error('Error generating Indonesian invoice QR code data:', error);
-        return null;
-    }
-}
-
-// Function to create simplified QR code data for API limitations
-function createSimplifiedQRData(qrCodeData, includePageInfo = false) {
-    try {
-        const simplifiedData = {
-            inv: qrCodeData.invoiceNumber,
-            amt: qrCodeData.grandTotal,
-            cur: qrCodeData.currency,
-            cust: qrCodeData.customerName?.substring(0, 50) || '',
-            date: qrCodeData.invoiceDate
-        };
-        
-        if (includePageInfo && qrCodeData.pageNumber) {
-            simplifiedData.p = qrCodeData.pageNumber;
-            simplifiedData.tp = qrCodeData.totalPages;
-        }
-        
-        return simplifiedData;
-    } catch (error) {
-        console.error('Error creating simplified QR data:', error);
-        return {
-            inv: qrCodeData.invoiceNumber || 'N/A',
-            amt: qrCodeData.grandTotal || 0,
-            cur: qrCodeData.currency || 'IDR'
-        };
-    }
-}
-
-// Function to validate QR code source URL
-function isValidQRCodeSource(qrCodeSrc) {
-    if (!qrCodeSrc || typeof qrCodeSrc !== 'string') {
-        return false;
-    }
-    
-    try {
-        const url = new URL(qrCodeSrc);
-        // Only allow data URLs, HTTPS, and HTTP protocols
-        return url.protocol === 'data:' || url.protocol === 'https:' || url.protocol === 'http:';
-    } catch (error) {
-        console.error('Invalid QR code source URL:', error);
-        return false;
-    }
-}
-
-// Function to safely load QR code image with fallback
-function loadQRCodeImage(qrCodeSrc, qrCodeElement, fallbackFunction, pageNum = null) {
-    try {
-        if (!isValidQRCodeSource(qrCodeSrc)) {
-            console.warn('Invalid QR code source, using fallback');
-            fallbackFunction();
-            return;
-        }
-        
-        const qrImage = document.createElement('img');
-        qrImage.src = qrCodeSrc;
-        qrImage.alt = 'QR Code';
-        qrImage.style.width = pageNum ? '100%' : '200px';
-        qrImage.style.height = pageNum ? '100%' : '200px';
-        qrImage.style.objectFit = 'contain';
-        
-        // Clear existing content and add image
-        qrCodeElement.innerHTML = '';
-        qrCodeElement.appendChild(qrImage);
-        
-        // Show QR code element
-        qrCodeElement.style.display = 'flex';
-        
-        // Handle image load error
-        qrImage.onerror = function() {
-            console.error(`Error loading QR code image from source${pageNum ? ` for page ${pageNum}` : ''}`);
-            fallbackFunction();
-        };
-        
-        // Handle image load success
-        qrImage.onload = function() {
-            console.log(`QR Code image loaded successfully${pageNum ? ` for page ${pageNum}` : ''}`);
-        };
-        
-    } catch (error) {
-        console.error(`Error loading QR code image${pageNum ? ` for page ${pageNum}` : ''}:`, error);
-        fallbackFunction();
-    }
-}
-
-// Function to format date for QR code
-function formatDateForQR(dateString) {
-    if (!dateString) return '';
-    
-    try {
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    } catch (error) {
-        console.error('Error formatting date for QR code:', error);
-        return '';
-    }
-}
-
-// Function to parse address for QR code
-function parseAddressForQR(address) {
-    if (!address) return '';
-    
-    try {
-        const addressLines = address.split('\r\r');
-        return addressLines.map(line => line.trim()).filter(line => line.length > 0).join(', ');
-    } catch (error) {
-        console.error('Error parsing address for QR code:', error);
-        return address || '';
-    }
-}
-
-// Function to generate QR code with custom format
-function generateCustomQRCode(invoice, format = 'indonesian') {
-    let qrCodeData;
-    
-    switch (format) {
-        case 'indonesian':
-            qrCodeData = generateIndonesianInvoiceQRCode(invoice);
-            break;
-        case 'simple':
-            qrCodeData = {
-                invoiceNumber: invoice.u_bsi_invnum || invoice.docNum || '',
-                totalAmount: invoice.grandTotal || invoice.docTotal || 0,
-                currency: invoice.docCur || 'IDR',
-                dueDate: formatDateForQR(invoice.docDueDate || invoice.docDate)
-            };
-            break;
-        case 'detailed':
-            qrCodeData = generateQRCodeFromInvoiceData(invoice);
-            break;
-        default:
-            qrCodeData = generateIndonesianInvoiceQRCode(invoice);
-    }
-    
-    return qrCodeData;
 }
 
 // Function to export as PDF (placeholder)
@@ -2038,40 +1501,4 @@ function loadSavedInvoiceData() {
         console.log('Loaded saved invoice data:', data);
         // Implement loading logic
     }
-}
-
-// Debug function to test data loading
-function debugDataLoading() {
-    console.log('=== DEBUG: Data Loading Test ===');
-    
-    // Check URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const stagingID = urlParams.get('stagingID');
-    const docEntry = urlParams.get('docEntry');
-    
-    console.log('URL Parameters:', { stagingID, docEntry });
-    
-    // Check if elements exist
-    const elements = [
-        'invoiceNumber', 'visionInvoiceNumber', 'invoiceDate', 'npwp', 'dueDate',
-        'recipientName', 'recipientAddress', 'recipientCity', 'shipperName',
-        'doNumbers', 'poNumbers', 'itemsTableBody', 'paymentSummary', 'footer'
-    ];
-    
-    console.log('Checking if elements exist:');
-    elements.forEach(id => {
-        const element = document.getElementById(id);
-        console.log(`${id}: ${element ? 'FOUND' : 'NOT FOUND'}`);
-    });
-    
-    // Check localStorage
-    console.log('LocalStorage keys:', Object.keys(localStorage));
-    
-    // Check sessionStorage
-    console.log('SessionStorage keys:', Object.keys(sessionStorage));
-    
-    console.log('=== END DEBUG ===');
-}
-
-// Make debug function available globally
-window.debugDataLoading = debugDataLoading; 
+} 

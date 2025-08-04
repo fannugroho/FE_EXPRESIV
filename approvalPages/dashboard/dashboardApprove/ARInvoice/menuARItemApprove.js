@@ -529,8 +529,27 @@ function goToTotalDocs() {
 
 // Approval action functions
 function viewInvoiceDetails(id) {
-    // Implement view details functionality
-    window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id == id);
+    
+    if (!invoice) {
+        console.error('Invoice not found with ID:', id);
+        alert('Invoice not found. Please try again.');
+        return;
+    }
+    
+    // Route based on docType
+    if (invoice.docType === 'I') {
+        // Route to Invoice Item approval page
+        window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+    } else if (invoice.docType === 'S') {
+        // Route to Invoice Service approval page
+        window.open(`../../../../approvalPages/approval/approve/invoiceService/approveInvService.html?stagingId=${id}`, '_blank');
+    } else {
+        // Default fallback to Invoice Item page
+        console.warn('Unknown docType:', invoice.docType, 'Defaulting to Invoice Item page');
+        window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+    }
 }
 
 function approveInvoice(id) {

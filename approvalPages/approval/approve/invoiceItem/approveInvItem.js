@@ -230,49 +230,71 @@ function updateButtonVisibility() {
 function populateInvItemData(data) {
     console.log('Populating invoice item data:', data);
     
+    // Helper function to safely set element value
+    function safeSetValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.value = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
+    // Helper function to safely set element style
+    function safeSetStyle(elementId, styleProperty, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style[styleProperty] = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
     // Populate header fields
-    document.getElementById('DocEntry').value = data.stagingID || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('CardCode').value = data.cardCode || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
-    document.getElementById('DocCur').value = data.docCur || '';
-    document.getElementById('docRate').value = data.docRate || '';
-    document.getElementById('DocDate').value = formatDate(data.docDate);
-    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('GroupNum').value = data.groupNum || '';
-    document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
-    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    safeSetValue('DocEntry', data.stagingID || '');
+    safeSetValue('DocNum', data.docNum || '');
+    safeSetValue('CardCode', data.cardCode || '');
+    safeSetValue('CardName', data.cardName || '');
+    safeSetValue('address', data.address || '');
+    safeSetValue('NumAtCard', data.numAtCard || '');
+    safeSetValue('DocCur', data.docCur || '');
+    safeSetValue('docRate', data.docRate || '');
+    safeSetValue('DocDate', formatDate(data.docDate));
+    safeSetValue('DocDueDate', formatDate(data.docDueDate));
+    safeSetValue('GroupNum', data.groupNum || '');
+    safeSetValue('TrnspCode', data.trnspCode || '');
+    safeSetValue('TaxNo', data.taxNo || '');
+    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
+    safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
+    safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
+    safeSetValue('account', data.account || '');
+    safeSetValue('acctName', data.acctName || '');
     
 
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
-    document.getElementById('Status').value = status;
+    safeSetValue('Status', status);
     
     // Populate totals
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
+    safeSetValue('VatSum', data.vatSum || 0);
+    safeSetValue('DocTotal', data.docTotal || 0);
     
     // Populate comments
-    document.getElementById('comments').value = data.comments || '';
+    safeSetValue('comments', data.comments || '');
     
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        document.getElementById('preparedBySearch').value = data.arInvoiceApprovalSummary.preparedByName || '';
-        document.getElementById('acknowledgeBySearch').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedBySearch').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedBySearch').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedBySearch').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        safeSetValue('preparedBySearch', data.arInvoiceApprovalSummary.preparedByName || '');
+        safeSetValue('acknowledgeBySearch', data.arInvoiceApprovalSummary.acknowledgedByName || '');
+        safeSetValue('checkedBySearch', data.arInvoiceApprovalSummary.checkedByName || '');
+        safeSetValue('approvedBySearch', data.arInvoiceApprovalSummary.approvedByName || '');
+        safeSetValue('receivedBySearch', data.arInvoiceApprovalSummary.receivedByName || '');
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -282,11 +304,11 @@ function populateInvItemData(data) {
         const remarksToShow = revisionRemarks || rejectionRemarks;
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
-            document.getElementById('rejectionRemarks').value = remarksToShow;
-            document.getElementById('rejectionRemarksSection').style.display = 'block';
+            safeSetValue('rejectionRemarks', remarksToShow);
+            safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
-            document.getElementById('rejectionRemarksSection').style.display = 'none';
+            safeSetStyle('rejectionRemarksSection', 'display', 'none');
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
@@ -355,6 +377,11 @@ function formatDate(dateString) {
 // Populate items table
 function populateItemsTable(items) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.warn('Element with id "tableBody" not found');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     if (items.length === 0) {
@@ -713,7 +740,53 @@ function handleTextWrapping(element) {
     }
 }
 
+// Function to print invoice
+function printInvoice() {
+    if (!currentInvItemData) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No Data Available',
+            text: 'Please load invoice data first before printing.'
+        });
+        return;
+    }
+    
+    // Get the identifier (stagingID or docEntry)
+    const identifier = currentInvItemData.stagingID || currentInvItemData.docEntry;
+    
+    if (!identifier) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Missing Identifier',
+            text: 'Cannot print invoice: missing stagingID or docEntry.'
+        });
+        return;
+    }
+    
+    // Save current invoice data to storage for the print page
+    try {
+        localStorage.setItem(`invoice_${identifier}`, JSON.stringify(currentInvItemData));
+        sessionStorage.setItem(`invoice_${identifier}`, JSON.stringify(currentInvItemData));
+        console.log('Invoice data saved to storage for printing:', identifier);
+    } catch (error) {
+        console.error('Error saving invoice data to storage:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Storage Error',
+            text: 'Failed to save invoice data for printing.'
+        });
+        return;
+    }
+    
+    // Open print page in new window/tab
+    const printUrl = `printARInvItem.html?stagingID=${identifier}`;
+    window.open(printUrl, '_blank');
+    
+    console.log('Opening print page with identifier:', identifier);
+}
+
 // Export functions for global access
 window.approveInvItem = approveInvItem;
 window.rejectInvItem = rejectInvItem;
-window.goToMenuApproveInvItem = goToMenuApproveInvItem; 
+window.goToMenuApproveInvItem = goToMenuApproveInvItem;
+window.printInvoice = printInvoice; 

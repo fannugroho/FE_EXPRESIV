@@ -3,19 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Invoice - Print</title>
+    <title>AR Invoice - Print (Approve)</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="printARItem.js"></script>
+    <script src="printARInvItem.js"></script>
     <style>
-        /* QR Code specific styling */
-        .qr-code img {
-            max-width: none !important;
-            width: 200px !important;
-            height: 200px !important;
-            object-fit: contain !important;
-        }
-        
         @media print {
             body {
                 margin: 0 !important;
@@ -96,16 +88,8 @@
             
             /* Ensure images print properly */
             img {
-                max-width: none !important;
+                max-width: 100% !important;
                 height: auto !important;
-            }
-            
-            /* QR Code specific styling for print */
-            .qr-code img {
-                max-width: none !important;
-                width: 200px !important;
-                height: 200px !important;
-                object-fit: contain !important;
             }
             
             /* Optimize text for print */
@@ -167,14 +151,24 @@
             
             /* QR code positioning for print */
             .qr-code {
-                width: 80px !important;
-                height: 80px !important;
+                width: 200px !important;
+                height: 200px !important;
                 font-size: 10px !important;
                 position: absolute !important;
-                top: 20px !important;
-                right: -100px !important;
-                /* Initially hidden, will be shown if QR code data is available */
-                display: none !important;
+                top: -30px !important;
+                right: -180px !important;
+                background-color: transparent !important;
+                border: none !important;
+                /* Display QR code when printing if it has content */
+                display: flex !important;
+            }
+            
+            /* QR Code specific styling for print */
+            .qr-code img {
+                max-width: none !important;
+                width: 200px !important;
+                height: 200px !important;
+                object-fit: contain !important;
             }
             
             .signature-stamp {
@@ -190,6 +184,12 @@
                 flex-direction: column !important;
                 align-items: flex-start !important;
                 padding-left: 0 !important;
+            }
+            
+            .company-name-footer {
+                font-weight: bold !important;
+                font-size: 10px !important;
+                margin-bottom: 10px !important;
             }
             
             .system-info {
@@ -477,23 +477,36 @@
             align-items: flex-start;
             padding-left: 0;
         }
-
-        .qr-code {
-            width: 80px;
-            height: 80px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        
+        .company-name-footer {
+            font-weight: bold;
             font-size: 10px;
-            color: #666;
-            position: absolute;
-            top: 20px;
-            right: -100px;
-            /* Initially hidden, will be shown if QR code data is available */
-            display: none;
+            margin-bottom: 10px;
         }
+
+            .qr-code {
+        width: 200px;
+        height: 200px;
+        background-color: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #666;
+        position: absolute;
+        top: -30px;
+        right: -180px;
+        /* Will be shown if QR code data is available */
+    }
+    
+    /* QR Code specific styling */
+    .qr-code img {
+        max-width: none !important;
+        width: 200px !important;
+        height: 200px !important;
+        object-fit: contain !important;
+    }
 
         .signature-name {
             font-weight: bold;
@@ -626,7 +639,7 @@
                         <div class="invoice-field">No. Vision Inv : <span id="visionInvoiceNumber"></span></div>
                     </div>
                     <div class="invoice-center">
-                        <div class="invoice-title" style="text-align: center;">INVOICE</div>
+                        <div class="invoice-title">INVOICE</div>
                     </div>
                     <div class="invoice-right">
                         <div class="invoice-field">DATE: <span id="invoiceDate"></span></div>
@@ -641,9 +654,9 @@
                         <div class="section-title">FOR ACCOUNT OF MESSRS:</div>
                         <div id="recipientName"></div>
                         <div id="recipientAddress"></div>
-                        <div id="recipientCity"></div><br><!--
+                        <div id="recipientCity"></div>
                     </div>
-                    <div class="shipper">-->
+                    <div class="shipper">
                         <div class="section-title">SHIPPED FROM:</div>
                         <div id="shipperName">PT. KANSAI PAINT INDONESIA</div>
                     </div>
@@ -723,6 +736,7 @@
                 <div class="signature-section">
                     <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
                     <div class="qr-code">QR CODE</div>
+                    <div class="company-name-footer">PT. KANSAI PAINT INDONESIA</div>
                     <div class="signature-space"></div>
                     <div class="signature-name" id="signatureName"></div>
                     <div class="signature-title" id="signatureTitle"></div>
@@ -737,4 +751,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html>

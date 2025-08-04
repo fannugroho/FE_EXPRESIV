@@ -134,8 +134,8 @@
             min-width: 100px !important;
         }
         
-        /* Custom width for Discount column */
-        .discount-column {
+        /* Custom width for Packing Size column */
+        .packing-size-column {
             width: 100px !important;
             min-width: 100px !important;
         }
@@ -276,7 +276,7 @@
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
-            min-width: 1200px;
+            min-width: 1100px;
             table-layout: fixed;
         }
         
@@ -393,8 +393,8 @@
             text-align: center !important;
         }
         
-        /* Discount column - center aligned */
-        .discount-column input {
+        /* Packing Size column - center aligned */
+        .packing-size-column textarea {
             text-align: center !important;
         }
         
@@ -457,6 +457,11 @@
             .description-column {
                 width: 200px !important;
                 min-width: 200px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
             }
             
             .price-column {
@@ -757,26 +762,103 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Full screen professional styling */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8fafc;
+            padding: 0;
+        }
+        
+        .content-wrapper {
+            max-width: none;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+        
+        .header-section {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .table-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .submit-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
-        <button onclick="goToMenuARInv()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail AR Invoice</h2>
-        
-
-        
-        <br>
-        <div class="grid grid-cols-2 gap-4">
+<body>
+    <div class="main-container">
+        <div class="content-wrapper">
+            <!-- Header Section -->
+            <div class="header-section">
+                <div class="flex justify-between items-center">
+                    <button onclick="goToMenuARInv()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <h2 class="text-3xl font-bold text-gray-800">Detail AR Invoice</h2>
+                    <div></div> <!-- Spacer for centering -->
+                </div>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="form-section">
+                <div class="grid grid-cols-2 gap-8">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
                 
-                <h3 class="text-lg font-semibold mb-2">Invoice No.</h3>
-                <input type="text" id="DocNum" placeholder="Invoice No." class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Invoice SAP Doc Entry Number</h3>
+                <input type="text" id="DocNum" placeholder="Invoice SAP Doc Entry Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">CardCode</h3>
+                <h3 class="text-lg font-semibold mb-2">Customer Code</h3>
                 <input type="text" id="CardCode" placeholder="Customer Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
 
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
@@ -788,8 +870,8 @@
                 <h3 class="text-lg font-semibold mb-2">Address</h3>
                 <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">base ref</h3>
-                <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">KPIN Invoice Number</h3>
+                <input type="text" id="NumAtCard" placeholder="KPIN Invoice Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
                 <input type="text" id="DocCur" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
@@ -819,34 +901,37 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">GroupNum</h3>
-                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Tax Invoice Number</h3>
+                <input type="text" id="TaxNo" placeholder="Tax Invoice Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">TrnspCode</h3>
-                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">Tax No</h3>
-                <input type="text" id="TaxNo" placeholder="Tax Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">U_BSI_ShippingType</h3>
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_PaymentGroup</h3>
+                <h3 class="text-lg font-semibold mb-2">Payment Terms</h3>
                 <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">U_BSI_Expressiv_IsTransfered</h3>
                 <input type="text" id="U_BSI_Expressiv_IsTransfered" placeholder="Is Transfered" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF1</h3>
+                <h3 class="text-lg font-semibold mb-2">No Surat Jalan</h3>
                 <input type="text" id="U_BSI_UDF1" placeholder="UDF1" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF2</h3>
+                <h3 class="text-lg font-semibold mb-2">P/O No</h3>
                 <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account</h3>
+                <input type="text" id="account" placeholder="Account" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account Name</h3>
+                <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
-        </div>
-        
-        <!-- Table for Item details -->
-        <div class="table-container">
+                </div>
+            </div>
+            
+            <!-- Table Section -->
+            <div class="table-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Item Details</h3>
+                <div class="table-container">
             <table id="arInvTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
@@ -854,17 +939,16 @@
                     <th class="p-2 no-column">No.</th>
                     <th class="p-2 item-code-column">Item Code</th>
                     <th class="p-2 description-column">Item Name</th>
-                    <th class="p-2 description-column">Catatan</th>
                     <th class="p-2 uom-column">UoM</th>
+                    <th class="p-2 packing-size-column">Packing Size</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
-                    <th class="p-2 price-column">Sales Price</th>
-                    <th class="p-2 price-column">Price</th>
-                    <th class="p-2 discount-column">Disc</th>
-                    <th class="p-2 tax-code-column">Tax Code</th>
-                    <th class="p-2 wtax-liable-column">Wtax Liable</th>
-                    <th class="p-2 line-total-column">Total Price</th>
+                    <th class="p-2 price-column">Price per UoM</th>
+                    <th class="p-2 price-column">Price per Unit</th>
+                    <th class="p-2 tax-code-column">VAT Code</th><!--
+                    <th class="p-2 wtax-liable-column">Wtax Liable</th>-->
+                    <th class="p-2 line-total-column">Amount</th>
                     <th class="p-2 account-code-column" style="display: none;">Account Code</th>
                     <th class="p-2 base-column" style="display: none;">BaseType</th>
                     <th class="p-2 base-column" style="display: none;">BaseEntry</th>
@@ -876,113 +960,120 @@
                 <!-- Table rows will be populated by JavaScript -->
             </tbody>
         </table>
-        </div>
+                </div>
+            </div>
 
-        <!-- Footer totals section -->
-        <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Before Discount :</label>
-            <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Tax-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax :</label>
-            <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Amount-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount :</label>
-            <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
+            <!-- Footer Totals Section -->
+            <div class="footer-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
+                                <!--Total Amount Due-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Before Discount :</label>
+                    <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
+                
+                <!--Total Tax-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Tax :</label>
+                    <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
+                
+                <!--Total Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Amount :</label>
+                    <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
 
-        <!-- Remarks section -->
-        <div class="mt-4">
-            <label class="font-semibold">Remarks</label>
-            <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
-        </div>
+                <!-- Remarks section -->
+                <div class="mt-6">
+                    <label class="font-semibold text-gray-700">Remarks</label>
+                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                </div>
+            </div>
 
-        <!-- Approval -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
-                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="preparedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="checkedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="approvedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="receivedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="mt-6 flex justify-center">
-            <div class="text-center">
-                <!-- 
-                    Note: When submitting a document with "Draft" status, 
-                    the system will automatically:
-                    1. Change status from "Draft" to "Prepared"
-                    2. Set preparedDate to current timestamp
-                    3. Send both values to the API
-                -->
-                <button 
-                    id="submitButton" 
-                    onclick="submitInvoiceData()" 
-                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-                    disabled
-                >
-                    <span id="submitButtonText">Submit & Update Status</span>
-                    <div id="submitSpinner" class="hidden inline-block ml-2">
-                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <!-- Approval Section -->
+            <div class="approval-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                                <div> 
+                        <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
+                            <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="preparedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
                     </div>
-                </button>
-                <p class="text-sm text-gray-600 mt-2">Click to submit this invoice data and update approval status from Draft to Prepared</p>
+                    <div>
+                        <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="checkedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="approvedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="receivedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+        </div>
+
+            </div>
+
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <div class="text-center">
+                    <!-- 
+                        Note: When submitting a document with "Draft" status, 
+                        the system will automatically:
+                        1. Change status from "Draft" to "Prepared"
+                        2. Set preparedDate to current timestamp
+                        3. Send both values to the API
+                    -->
+                    <button 
+                        id="submitButton" 
+                        onclick="submitInvoiceData()" 
+                        class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                        disabled
+                    >
+                        <span id="submitButtonText">Submit & Update Status</span>
+                        <div id="submitSpinner" class="hidden inline-block ml-2">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        </div>
+                    </button>
+                    <p class="text-sm text-gray-600 mt-2">Click to submit this invoice data and update approval status from Draft to Prepared</p>
+                </div>
             </div>
         </div>
-        
-
     </div>
     
     <script src="../js/detailInvItem.js"></script>
@@ -1024,7 +1115,7 @@
         
         // Function to apply text wrapping to all relevant elements
         function applyTextWrappingToAll() {
-            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
                 handleTextWrapping(element);
@@ -1037,6 +1128,176 @@
             setTimeout(() => {
                 applyTextWrappingToAll();
             }, 500);
+        });
+
+        // Currency formatting functions
+        function formatCurrencyIDR(number) {
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    if (cleanedStr.length > 15) {
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            const maxAmount = 100000000000000;
+            if (num > maxAmount) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Amount Exceeds Limit',
+                        text: 'Total amount must not exceed 100 trillion rupiah'
+                    });
+                } else {
+                    alert('Total amount must not exceed 100 trillion rupiah');
+                }
+                num = maxAmount;
+            }
+            
+            if (num >= 1e12) {
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                return result + '.00';
+            } else {
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        function formatCurrencyInputIDR(input) {
+            // Change input type to text for currency formatting
+            if (input.type === 'number') {
+                input.type = 'text';
+            }
+            
+            const cursorPos = input.selectionStart;
+            const originalLength = input.value.length;
+            
+            let value = input.value.replace(/[^\d,.]/g, '');
+            
+            let parts = value.split('.');
+            if (parts.length > 1) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            const numValue = parseCurrencyIDR(value);
+            const formattedValue = formatCurrencyIDR(numValue);
+            
+            input.value = formattedValue;
+            
+            const newLength = input.value.length;
+            const newCursorPos = cursorPos + (newLength - originalLength);
+            input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+        }
+
+        // Apply currency formatting to table cells
+        function applyCurrencyFormatting() {
+            // Format Price per UoM columns
+            const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+            pricePerUoMInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Price per Unit columns
+            const pricePerUnitInputs = document.querySelectorAll('.item-price');
+            pricePerUnitInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Amount columns
+            const amountInputs = document.querySelectorAll('.item-line-total');
+            amountInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format summary fields
+            const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+            summaryFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.classList.add('currency-input-idr');
+                    field.addEventListener('input', function() {
+                        formatCurrencyInputIDR(this);
+                    });
+                    if (field.value) {
+                        formatCurrencyInputIDR(field);
+                    } else {
+                        field.value = '0.00';
+                    }
+                }
+            });
+        }
+
+        // Initialize currency formatting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                applyCurrencyFormatting();
+            }, 1000);
         });
     </script>
 </body>

@@ -883,7 +883,7 @@ async function updateInvServiceStatus(status) {
 
 // Function to navigate back to menu
 function goToMenuAcknowInvService() {
-    window.location.href = '../../dashboard/dashboardAcknowledge/ARInvoice/menuARInvoiceAcknowledge.html';
+    window.location.href = '../../../../dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html';
 }
 
 // Function to format currency

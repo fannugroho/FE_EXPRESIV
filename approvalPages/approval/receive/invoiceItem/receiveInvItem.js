@@ -241,49 +241,71 @@ function updateButtonVisibility() {
 function populateInvItemData(data) {
     console.log('Populating invoice item data:', data);
     
+    // Helper function to safely set element value
+    function safeSetValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.value = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
+    // Helper function to safely set element style
+    function safeSetStyle(elementId, styleProperty, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style[styleProperty] = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
     // Populate header fields
-    document.getElementById('DocEntry').value = data.stagingID || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('CardCode').value = data.cardCode || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
-    document.getElementById('DocCur').value = data.docCur || '';
-    document.getElementById('docRate').value = data.docRate || '';
-    document.getElementById('DocDate').value = formatDate(data.docDate);
-    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('GroupNum').value = data.groupNum || '';
-    document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
-    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    safeSetValue('DocEntry', data.stagingID || '');
+    safeSetValue('DocNum', data.docNum || '');
+    safeSetValue('CardCode', data.cardCode || '');
+    safeSetValue('CardName', data.cardName || '');
+    safeSetValue('address', data.address || '');
+    safeSetValue('NumAtCard', data.numAtCard || '');
+    safeSetValue('DocCur', data.docCur || '');
+    safeSetValue('docRate', data.docRate || '');
+    safeSetValue('DocDate', formatDate(data.docDate));
+    safeSetValue('DocDueDate', formatDate(data.docDueDate));
+    safeSetValue('GroupNum', data.groupNum || '');
+    safeSetValue('TrnspCode', data.trnspCode || '');
+    safeSetValue('TaxNo', data.taxNo || '');
+    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
+    safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
+    safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
+    safeSetValue('account', data.account || '');
+    safeSetValue('acctName', data.acctName || '');
     
 
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
-    document.getElementById('Status').value = status;
+    safeSetValue('Status', status);
     
     // Populate totals
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
+    safeSetValue('VatSum', data.vatSum || 0);
+    safeSetValue('DocTotal', data.docTotal || 0);
     
     // Populate comments
-    document.getElementById('comments').value = data.comments || '';
+    safeSetValue('comments', data.comments || '');
     
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        document.getElementById('preparedBySearch').value = data.arInvoiceApprovalSummary.preparedByName || '';
-        document.getElementById('acknowledgeBySearch').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedBySearch').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedBySearch').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedBySearch').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        safeSetValue('preparedBySearch', data.arInvoiceApprovalSummary.preparedByName || '');
+        safeSetValue('acknowledgeBySearch', data.arInvoiceApprovalSummary.acknowledgedByName || '');
+        safeSetValue('checkedBySearch', data.arInvoiceApprovalSummary.checkedByName || '');
+        safeSetValue('approvedBySearch', data.arInvoiceApprovalSummary.approvedByName || '');
+        safeSetValue('receivedBySearch', data.arInvoiceApprovalSummary.receivedByName || '');
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -293,11 +315,11 @@ function populateInvItemData(data) {
         const remarksToShow = revisionRemarks || rejectionRemarks;
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
-            document.getElementById('rejectionRemarks').value = remarksToShow;
-            document.getElementById('rejectionRemarksSection').style.display = 'block';
+            safeSetValue('rejectionRemarks', remarksToShow);
+            safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
-            document.getElementById('rejectionRemarksSection').style.display = 'none';
+            safeSetStyle('rejectionRemarksSection', 'display', 'none');
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
@@ -308,8 +330,18 @@ function populateInvItemData(data) {
     // Apply text wrapping
     refreshTextWrapping();
     
+    // Apply currency formatting to table cells
+    setTimeout(() => {
+        applyCurrencyFormattingToTable();
+    }, 200);
+    
     // Make all fields read-only since this is a receive page
     makeAllFieldsReadOnly();
+    
+    // Save data to storage for print functionality
+    if (data.stagingID) {
+        saveInvoiceDataToStorage(data.stagingID, data);
+    }
 }
 
 // Helper function to determine status from invoice data
@@ -369,6 +401,11 @@ function formatDate(dateString) {
 // Populate items table
 function populateItemsTable(items) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.warn('Element with id "tableBody" not found');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     if (items.length === 0) {
@@ -404,11 +441,11 @@ function createItemRow(item, index) {
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
-        <td class="p-2 border description-column">
-            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.text || ''}</textarea>
+        <td class="p-2 border uom-column">
+            <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
-        <td class="p-2 border sales-employee-column">
-            <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
+        <td class="p-2 border packing-size-column">
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.packingSize || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
@@ -416,17 +453,11 @@ function createItemRow(item, index) {
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-quantity bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.invQty || ''}</textarea>
         </td>
-        <td class="p-2 border uom-column" style="display: none;">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="${item.unitMsr || ''}" />
-        </td>
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-sls-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.u_bsi_salprice || ''}</textarea>
         </td>
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.priceBefDi || ''}</textarea>
-        </td>
-        <td class="p-2 border discount-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.discount || ''}" />
         </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
@@ -436,21 +467,6 @@ function createItemRow(item, index) {
         </td>
         <td class="p-2 border h-12 line-total-column">
             <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
-        </td>
-        <td class="p-2 border account-code-column" style="display: none;">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.acctCode || ''}" />
-        </td>
-        <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseType || 0}" />
-        </td>
-        <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseEntry || 0}" />
-        </td>
-        <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseLine || 0}" />
-        </td>
-        <td class="p-2 border base-column" style="display: none;">
-            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.lineType || 0}" />
         </td>
     `;
     
@@ -686,58 +702,105 @@ function printInvItem() {
     try {
         console.log("Print function started");
         
+        // Helper function to safely get element value
+        function safeGetValue(elementId, defaultValue = '') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                return element.value || defaultValue;
+            } else {
+                console.warn(`Element with id '${elementId}' not found`);
+                return defaultValue;
+            }
+        }
+        
+        // Helper function to safely get element value as number
+        function safeGetNumber(elementId, defaultValue = 0) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                return parseFloat(element.value) || defaultValue;
+            } else {
+                console.warn(`Element with id '${elementId}' not found`);
+                return defaultValue;
+            }
+        }
+        
         // Get current stagingID
         const stagingID = currentInvItemData?.stagingID || 'STG-UNKNOWN';
         
         // Get all necessary data from the form
         const invData = {
             stagingID: stagingID,
-            docNum: document.getElementById('DocNum').value || '',
-            cardName: document.getElementById('CardName').value || '',
-            cardCode: document.getElementById('CardCode').value || '',
-            numAtCard: document.getElementById('NumAtCard').value || '',
-            docDate: document.getElementById('DocDate').value || '',
-            docCur: document.getElementById('DocCur').value || '',
-            groupNum: document.getElementById('GroupNum').value || '',
-            trnspCode: document.getElementById('TrnspCode').value || '',
-            u_BSI_ShippingType: document.getElementById('U_BSI_ShippingType').value || '',
-            u_BSI_PaymentGroup: document.getElementById('U_BSI_PaymentGroup').value || '',
-            u_bsi_udf1: document.getElementById('U_BSI_UDF1').value || '',
-            u_bsi_udf2: document.getElementById('U_BSI_UDF2').value || '',
-            docTotal: parseFloat(document.getElementById('DocTotal').value) || 0,
-            vatSum: parseFloat(document.getElementById('VatSum').value) || 0,
-            priceBefDi: parseFloat(document.getElementById('PriceBefDi').value) || 0,
-            comments: document.getElementById('comments').value || '',
-            preparedBy: document.getElementById('preparedBySearch').value || '',
-            acknowledgedBy: document.getElementById('acknowledgeBySearch').value || '',
-            checkedBy: document.getElementById('checkedBySearch').value || '',
-            approvedBy: document.getElementById('approvedBySearch').value || '',
-            receivedBy: document.getElementById('receivedBySearch').value || '',
+            docNum: safeGetValue('DocNum'),
+            cardName: safeGetValue('CardName'),
+            cardCode: safeGetValue('CardCode'),
+            numAtCard: safeGetValue('NumAtCard'),
+            docDate: safeGetValue('DocDate'),
+            docCur: safeGetValue('DocCur'),
+            groupNum: safeGetValue('GroupNum'),
+            trnspCode: safeGetValue('TrnspCode'),
+            u_BSI_ShippingType: safeGetValue('U_BSI_ShippingType'),
+            u_BSI_PaymentGroup: safeGetValue('U_BSI_PaymentGroup'),
+            u_bsi_udf1: safeGetValue('U_BSI_UDF1'),
+            u_bsi_udf2: safeGetValue('U_BSI_UDF2'),
+            account: safeGetValue('account'),
+            acctName: safeGetValue('acctName'),
+            docTotal: safeGetNumber('DocTotal'),
+            vatSum: safeGetNumber('VatSum'),
+            priceBefDi: safeGetNumber('PriceBefDi'),
+            comments: safeGetValue('comments'),
+            preparedBy: safeGetValue('preparedBySearch'),
+            acknowledgedBy: safeGetValue('acknowledgeBySearch'),
+            checkedBy: safeGetValue('checkedBySearch'),
+            approvedBy: safeGetValue('approvedBySearch'),
+            receivedBy: safeGetValue('receivedBySearch'),
         };
         
         // Get items from the table
         const items = [];
-        const rows = document.querySelectorAll('#tableBody tr');
+        const tableBody = document.getElementById('tableBody');
         
-        rows.forEach((row, index) => {
-            // Extract data from each row
-            const lineNum = row.querySelector('.line-num-input') ? row.querySelector('.line-num-input').value || index : index;
-            const itemCode = row.querySelector('.item-code-input') ? row.querySelector('.item-code-input').value || '' : '';
-            const itemName = row.querySelector('.item-description') ? row.querySelector('.item-description').value || '' : '';
-            const freeTxt = row.querySelector('.item-free-txt') ? row.querySelector('.item-free-txt').value || '' : '';
-            const salesQty = row.querySelector('.item-sls-qty') ? parseFloat(row.querySelector('.item-sls-qty').value) || 0 : 0;
-            const invQty = row.querySelector('.item-quantity') ? parseFloat(row.querySelector('.item-quantity').value) || 0 : 0;
-            const uom = row.querySelector('.item-uom') ? row.querySelector('.item-uom').value || 'PCS' : 'PCS';
-            const salesPrice = row.querySelector('.item-sls-price') ? parseFloat(row.querySelector('.item-sls-price').value) || 0 : 0;
-            const price = row.querySelector('.item-price') ? parseFloat(row.querySelector('.item-price').value) || 0 : 0;
-            const discPrcnt = row.querySelector('.item-discount') ? parseFloat(row.querySelector('.item-discount').value) || 0 : 0;
-            const taxCode = row.querySelector('.item-tax-code') ? row.querySelector('.item-tax-code').value || 'VAT' : 'VAT';
-            const lineTotal = row.querySelector('.item-line-total') ? parseFloat(row.querySelector('.item-line-total').value) || 0 : 0;
-            const accountCode = row.querySelector('.item-account-code') ? row.querySelector('.item-account-code').value || '4000' : '4000';
-            const baseType = row.querySelector('.item-base-type') ? parseInt(row.querySelector('.item-base-type').value) || 0 : 0;
-            const baseEntry = row.querySelector('.item-base-entry') ? parseInt(row.querySelector('.item-base-entry').value) || 0 : 0;
-            const baseLine = row.querySelector('.item-base-line') ? parseInt(row.querySelector('.item-base-line').value) || 0 : 0;
-            const lineType = row.querySelector('.item-line-type') ? parseInt(row.querySelector('.item-line-type').value) || 0 : 0;
+        if (!tableBody) {
+            console.warn('Table body not found, skipping item extraction');
+        } else {
+            const rows = tableBody.querySelectorAll('tr');
+            
+            rows.forEach((row, index) => {
+                // Helper function to safely get element value from row
+                function safeGetRowValue(selector, defaultValue = '') {
+                    const element = row.querySelector(selector);
+                    return element ? (element.value || defaultValue) : defaultValue;
+                }
+                
+                // Helper function to safely get element value as number from row
+                function safeGetRowNumber(selector, defaultValue = 0) {
+                    const element = row.querySelector(selector);
+                    return element ? (parseFloat(element.value) || defaultValue) : defaultValue;
+                }
+                
+                // Helper function to safely get element value as integer from row
+                function safeGetRowInt(selector, defaultValue = 0) {
+                    const element = row.querySelector(selector);
+                    return element ? (parseInt(element.value) || defaultValue) : defaultValue;
+                }
+                
+                // Extract data from each row
+                const lineNum = safeGetRowNumber('.line-num-input', index);
+                const itemCode = safeGetRowValue('.item-code-input');
+                const itemName = safeGetRowValue('.item-description');
+                const freeTxt = safeGetRowValue('.item-free-txt');
+                const salesQty = safeGetRowNumber('.item-sls-qty');
+                const invQty = safeGetRowNumber('.item-quantity');
+                const uom = safeGetRowValue('.item-uom', 'PCS');
+                const salesPrice = safeGetRowNumber('.item-sls-price');
+                const price = safeGetRowNumber('.item-price');
+                const discPrcnt = safeGetRowNumber('.item-discount');
+                const taxCode = safeGetRowValue('.item-tax-code', 'VAT');
+                const lineTotal = safeGetRowNumber('.item-line-total');
+                const accountCode = safeGetRowValue('.item-account-code', '4000');
+                const baseType = safeGetRowInt('.item-base-type');
+                const baseEntry = safeGetRowInt('.item-base-entry');
+                const baseLine = safeGetRowInt('.item-base-line');
+                const lineType = safeGetRowInt('.item-line-type');
             
             items.push({
                 lineNum: parseInt(lineNum),
@@ -758,7 +821,8 @@ function printInvItem() {
                 baseLine: baseLine,
                 lineType: lineType
             });
-        });
+            });
+        }
         
         // Add items to invoice data
         invData.arInvoiceDetails = items;
@@ -774,8 +838,25 @@ function printInvItem() {
         
         console.log("Invoice data saved to storage, opening print page");
         
-        // Open the print page in a new window
-        window.open(`printARItem.html?stagingID=${stagingID}`, '_blank');
+        // First load the data directly into the print page
+        const printWindow = window.open(`printARItem.html?stagingID=${stagingID}`, '_blank');
+        
+        // Ensure data is loaded in the new window
+        if (printWindow) {
+            printWindow.onload = function() {
+                try {
+                    // Pass the invoice data directly to the print page
+                    if (printWindow.populateInvoiceData) {
+                        console.log("Directly populating invoice data in print window");
+                        printWindow.populateInvoiceData(invData);
+                    } else {
+                        console.log("Print window loaded but populateInvoiceData function not available yet");
+                    }
+                } catch (e) {
+                    console.error("Error passing data to print window:", e);
+                }
+            };
+        }
     } catch (error) {
         console.error("Error in printInvItem function:", error);
         alert("Terjadi kesalahan saat mencetak: " + error.message);
@@ -841,7 +922,7 @@ function refreshTextWrapping() {
 
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
-    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .sales-employee-column textarea');
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
     
     textElements.forEach(element => {
         handleTextWrapping(element);
@@ -902,6 +983,169 @@ function clearInvoiceDataFromStorage(stagingID) {
         console.error('Error clearing invoice data from storage:', error);
         return false;
     }
+}
+
+// Currency formatting functions
+function formatCurrencyIDR(number) {
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    let num;
+    try {
+        if (typeof number === 'string') {
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            if (cleanedStr.length > 15) {
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number);
+        }
+        
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    const maxAmount = 100000000000000;
+    if (num > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        num = maxAmount;
+    }
+    
+    if (num >= 1e12) {
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        return result + '.00';
+    } else {
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+function formatCurrencyInputIDR(input) {
+    // Change input type to text for currency formatting
+    if (input.type === 'number') {
+        input.type = 'text';
+    }
+    
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const numValue = parseCurrencyIDR(value);
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    input.value = formattedValue;
+    
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
+// Apply currency formatting to table cells
+function applyCurrencyFormattingToTable() {
+    // Format Price per UoM columns
+    const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+    pricePerUoMInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Price per Unit columns
+    const pricePerUnitInputs = document.querySelectorAll('.item-price');
+    pricePerUnitInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Amount columns
+    const amountInputs = document.querySelectorAll('.item-line-total');
+    amountInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format summary fields
+    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.add('currency-input-idr');
+            field.addEventListener('input', function() {
+                formatCurrencyInputIDR(this);
+            });
+            if (field.value) {
+                formatCurrencyInputIDR(field);
+            } else {
+                field.value = '0.00';
+            }
+        }
+    });
 }
 
 // Export functions for global access
