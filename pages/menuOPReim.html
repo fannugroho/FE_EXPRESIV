@@ -538,6 +538,37 @@
         // Using BASE_URL from auth.js instead of hardcoded baseUrlDevAmiru
     </script>
     <script src="../js/auth.js"></script>
+
+    <!-- Check Outgoing Payment access before loading other scripts -->
+    <script>
+        // Check if user has access to Outgoing Payment
+        function checkOutgoingPaymentAccessOnLoad() {
+            console.log('=== MenuOPReim HTML checkOutgoingPaymentAccessOnLoad Start ===');
+
+            const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+            console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
+
+            if (hasAccess !== 'true') {
+                console.log('User does not have Outgoing Payment access, redirecting to dashboard');
+                alert('You do not have access to the Outgoing Payment feature.');
+
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+
+            console.log('User has Outgoing Payment access');
+            console.log('=== MenuOPReim HTML checkOutgoingPaymentAccessOnLoad End ===');
+            return true;
+        }
+
+        // Check access immediately when script loads
+        if (!checkOutgoingPaymentAccessOnLoad()) {
+            // Stop loading other scripts if no access
+            throw new Error('Access denied to Outgoing Payment feature');
+        }
+    </script>
+
     <!-- Shared Components -->
     <script src="../components/shared/sidebar-loader.js"></script>
     <script src="../components/shared/navigation.js"></script>

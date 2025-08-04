@@ -85,6 +85,37 @@ async function fetchUsers() {
     }
 }
 
+// Function to fetch business partners from API
+async function fetchBusinessPartners() {
+    try {
+        console.log('Fetching business partners from API...');
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Business partners API response:', result);
+        
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+        
+        const businessPartners = result.data;
+        console.log('Business partners data:', businessPartners);
+        
+        // Store business partners globally for later use
+        window.allBusinessPartners = businessPartners;
+        
+        console.log('Successfully fetched business partners');
+        
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+        // Don't throw error, just log it as business partners might not be critical
+    }
+}
+
 // Function to fetch departments from API
 async function fetchDepartments() {
     try {
@@ -187,6 +218,56 @@ function populateDropdown(dropdownId, users) {
     console.log(`Finished populating ${dropdownId}`);
 }
 
+// NEW FUNCTION: Populate PayTo field with proper name translation
+function populatePayToField(payToId) {
+    if (!payToId) return;
+
+    const payToField = document.getElementById('payTo');
+    if (!payToField) return;
+
+    console.log('Translating payTo ID:', payToId);
+
+    // Try business partners first
+    const businessPartners = window.allBusinessPartners || [];
+    const matchingBP = businessPartners.find(bp => 
+        bp.id.toString() === payToId.toString()
+    );
+
+    if (matchingBP) {
+        const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+        payToField.value = displayText;
+        console.log('Found business partner:', displayText);
+        return;
+    }
+
+    // Try users if business partner not found
+    const users = window.allUsers || [];
+    const matchingUser = users.find(user => 
+        user.id.toString() === payToId.toString()
+    );
+
+    if (matchingUser) {
+        // Create display text with employee ID and name
+        let displayText = '';
+        
+        if (matchingUser.kansaiEmployeeId) {
+            displayText = `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName || matchingUser.username}`;
+        } else if (matchingUser.employeeId) {
+            displayText = `${matchingUser.employeeId} - ${matchingUser.fullName || matchingUser.username}`;
+        } else {
+            displayText = matchingUser.fullName || matchingUser.username || `User ${matchingUser.id}`;
+        }
+        
+        payToField.value = displayText;
+        console.log('Found user:', displayText);
+        return;
+    }
+
+    // Fallback if no match found
+    payToField.value = `ID: ${payToId}`;
+    console.log('No match found for payTo ID, using fallback:', payToId);
+}
+
 // Populate form fields with data
 function populateFormData(data) {
     // Store users globally for search functionality (mock data if needed)
@@ -203,9 +284,14 @@ function populateFormData(data) {
     
     if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
     
-    // Set payTo to show requester name instead of ID
-    if (document.getElementById('payTo')) {
-        document.getElementById('payTo').value = data.requesterName || '';
+    // FIXED: Use the new payTo population function instead of just showing requester name
+    if (data.payTo) {
+        populatePayToField(data.payTo);
+    } else if (data.requesterName) {
+        // Fallback to requester name if payTo is not available
+        if (document.getElementById('payTo')) {
+            document.getElementById('payTo').value = data.requesterName;
+        }
     }
     
     // Format date for the date input (YYYY-MM-DD) with local timezone
@@ -226,7 +312,6 @@ function populateFormData(data) {
     
     if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
-    //if (document.getElementById('typeOfTransaction')) document.getElementById('typeOfTransaction').value = data.typeOfTransaction || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
     
     // Approvers information - safely check if elements exist
@@ -235,8 +320,6 @@ function populateFormData(data) {
     if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
     if (document.getElementById('receiveBySelect')) document.getElementById('receiveBySelect').value = data.receivedBy || '';
-    
-    // Set checkbox states based on if values exist - removed checks for elements that don't exist
     
     // Handle reimbursement details (table rows)
     if (data.reimbursementDetails) {

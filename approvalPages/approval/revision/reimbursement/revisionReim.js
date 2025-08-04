@@ -6,9 +6,84 @@ let allCategories = [];
 let allAccountNames = [];
 let transactionTypes = [];
 
-// Cache system for categories and account names (same as addReim.js)
+// Cache system for categories and account names
 const categoryCache = new Map();
 const accountNameCache = new Map();
+
+// Utility functions for better code maintainability
+const Utils = {
+    // Safely get element value
+    getElementValue(id) {
+        const element = document.getElementById(id);
+        return element ? element.value : '';
+    },
+
+    // Safely get element checked state
+    getElementChecked(id) {
+        const element = document.getElementById(id);
+        return element ? element.checked : false;
+    },
+
+    // Safely set element value
+    setElementValue(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = value || '';
+        }
+    },
+
+    // Show loading state
+    showLoading(message = 'Loading...') {
+        Swal.fire({
+            title: message,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    },
+
+    // Show success message
+    showSuccess(title, text) {
+        Swal.fire({
+            icon: 'success',
+            title: title,
+            text: text
+        });
+    },
+
+    // Show error message
+    showError(title, text) {
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text
+        });
+    },
+
+    // Format date to YYYY-MM-DD
+    formatDateForInput(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
+    // Debounce function for search inputs
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+};
 
 function saveDocument() {
     let documents = JSON.parse(localStorage.getItem("documentsReim")) || [];
@@ -1441,42 +1516,62 @@ function filterUsers(fieldId) {
     // Handle payToSelect dropdown separately
     if (fieldId === 'payToSelect') {
         console.log('Processing payToSelect...');
-        console.log('businessPartners length:', businessPartners ? businessPartners.length : 'undefined');
+        console.log('users length:', businessPartners ? businessPartners.length : 'undefined');
         console.log('searchText:', searchText);
 
         try {
-            const filtered = businessPartners.filter(bp =>
-                (bp.name && bp.name.toLowerCase().includes(searchText)) ||
-                (bp.code && bp.code.toLowerCase().includes(searchText))
+            // Pastikan users tersedia
+            if (!businessPartners || businessPartners.length === 0) {
+                const loading = document.createElement('div');
+                loading.className = 'p-2 text-gray-500';
+                loading.innerText = 'Loading users...';
+                dropdown.appendChild(loading);
+                dropdown.classList.remove('hidden');
+
+                // Fetch data jika belum tersedia
+                fetchBusinessPartners().then(() => {
+                    // Re-trigger filtering setelah data tersedia
+                    setTimeout(() => {
+                        filterUsers(fieldId);
+                    }, 100);
+                });
+                return;
+            }
+
+            const filtered = businessPartners.filter(user =>
+                (user.name && user.name.toLowerCase().includes(searchText)) ||
+                (user.code && user.code.toLowerCase().includes(searchText))
             );
 
-            console.log('Filtered business partners:', filtered.length);
+            console.log('Filtered users for Pay To:', filtered.length);
 
-            // Display search results
-            filtered.forEach(bp => {
+            // Display search results dengan format yang benar
+            filtered.forEach(user => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-item';
-                option.innerText = `${bp.code} - ${bp.name}`;
+                const displayText = `${user.code} - ${user.name}`;
+                option.innerText = displayText;
+
                 option.onclick = function () {
-                    searchInput.value = `${bp.code} - ${bp.name}`;
+                    searchInput.value = displayText;
                     const selectElement = document.getElementById(fieldId);
                     if (selectElement) {
-                        // Find or create option with this business partner
+                        // Find or create option with this user
                         let optionExists = false;
                         for (let i = 0; i < selectElement.options.length; i++) {
-                            if (selectElement.options[i].value === bp.id) {
+                            if (selectElement.options[i].value === user.id.toString()) {
                                 selectElement.selectedIndex = i;
                                 optionExists = true;
                                 break;
                             }
                         }
 
-                        if (!optionExists && selectElement.options.length > 0) {
+                        if (!optionExists) {
                             const newOption = document.createElement('option');
-                            newOption.value = bp.id;
-                            newOption.textContent = `${bp.code} - ${bp.name}`;
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
                             selectElement.appendChild(newOption);
-                            selectElement.value = bp.id;
+                            selectElement.value = user.id;
                         }
                     }
 
@@ -1489,7 +1584,7 @@ function filterUsers(fieldId) {
             if (filtered.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
-                noResults.innerText = 'No Business Partner Found';
+                noResults.innerText = 'No User Found';
                 dropdown.appendChild(noResults);
             }
 
@@ -1497,7 +1592,7 @@ function filterUsers(fieldId) {
             dropdown.classList.remove('hidden');
             return;
         } catch (error) {
-            console.error("Error filtering business partners:", error);
+            console.error("Error filtering users:", error);
         }
     }
 
@@ -1523,23 +1618,42 @@ function filterUsers(fieldId) {
                     if (selectElement) {
                         // For requesterName, store the name as the value 
                         if (fieldId === 'requesterNameSelect') {
-                            // Find matching option or create a new one
-                            let optionExists = false;
-                            for (let i = 0; i < selectElement.options.length; i++) {
-                                if (selectElement.options[i].textContent === user.name) {
-                                    selectElement.selectedIndex = i;
-                                    optionExists = true;
-                                    break;
+                            // Auto-fill payTo with the same user (find in users data)
+                            const payToSearch = document.getElementById('payToSearch');
+                            const payToSelect = document.getElementById('payToSelect');
+
+                            if (payToSearch && payToSelect) {
+                                // Find matching user by name
+                                const matchingUser = businessPartners.find(bp =>
+                                    bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
+                                );
+
+                                if (matchingUser) {
+                                    payToSearch.value = `${matchingUser.name}`;
+
+                                    // Set the user ID as the value in the select element
+                                    let optionExists = false;
+                                    for (let i = 0; i < payToSelect.options.length; i++) {
+                                        if (payToSelect.options[i].value === matchingUser.id.toString()) {
+                                            payToSelect.selectedIndex = i;
+                                            optionExists = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!optionExists && payToSelect.options.length > 0) {
+                                        const newOption = document.createElement('option');
+                                        newOption.value = matchingUser.id;
+                                        newOption.textContent = `${matchingUser.name}`;
+                                        payToSelect.appendChild(newOption);
+                                        payToSelect.value = matchingUser.id;
+                                    }
                                 }
                             }
 
-                            if (!optionExists && selectElement.options.length > 0) {
-                                const newOption = document.createElement('option');
-                                newOption.value = user.name; // For requesterName, value is the name itself
-                                newOption.textContent = user.name;
-                                selectElement.appendChild(newOption);
-                                selectElement.value = user.name;
-                            }
+                            // Auto-fill department based on selected user
+                            const users = JSON.parse(searchInput.dataset.users || '[]');
+                            autoFillDepartmentFromRequester(user.name, users);
                         } else {
                             // For other fields (payTo, approvals), store the ID as the value
                             let optionExists = false;
@@ -1565,23 +1679,23 @@ function filterUsers(fieldId) {
 
                     // Auto-fill payToSelect and department when requesterName is selected
                     if (fieldId === 'requesterNameSelect') {
-                        // Auto-fill payTo with the same user (find in business partners)
+                        // Auto-fill payTo with the same user (find in users data)
                         const payToSearch = document.getElementById('payToSearch');
                         const payToSelect = document.getElementById('payToSelect');
 
                         if (payToSearch && payToSelect) {
-                            // Find matching business partner by name
-                            const matchingBP = businessPartners.find(bp =>
+                            // Find matching user by name
+                            const matchingUser = businessPartners.find(bp =>
                                 bp.name && user.name && bp.name.toLowerCase() === user.name.toLowerCase()
                             );
 
-                            if (matchingBP) {
-                                payToSearch.value = `${matchingBP.code} - ${matchingBP.name}`;
+                            if (matchingUser) {
+                                payToSearch.value = `${matchingUser.name}`;
 
-                                // Set the business partner ID as the value in the select element
+                                // Set the user ID as the value in the select element
                                 let optionExists = false;
                                 for (let i = 0; i < payToSelect.options.length; i++) {
-                                    if (payToSelect.options[i].value === matchingBP.id.toString()) {
+                                    if (payToSelect.options[i].value === matchingUser.id.toString()) {
                                         payToSelect.selectedIndex = i;
                                         optionExists = true;
                                         break;
@@ -1590,10 +1704,10 @@ function filterUsers(fieldId) {
 
                                 if (!optionExists && payToSelect.options.length > 0) {
                                     const newOption = document.createElement('option');
-                                    newOption.value = matchingBP.id;
-                                    newOption.textContent = `${matchingBP.code} - ${matchingBP.name}`;
+                                    newOption.value = matchingUser.id;
+                                    newOption.textContent = `${matchingUser.name}`;
                                     payToSelect.appendChild(newOption);
-                                    payToSelect.value = matchingBP.id;
+                                    payToSelect.value = matchingUser.id;
                                 }
                             }
                         }
@@ -1673,13 +1787,14 @@ function populateTransactionTypesDropdown(types) {
     });
 }
 
-// Function to fetch business partners
+// Function to fetch business partners - Updated to use users API instead of business partners
 async function fetchBusinessPartners() {
     try {
-        console.log('Fetching business partners...');
+        console.log('Fetching users for Pay To field...');
         console.log('BASE_URL:', BASE_URL);
 
-        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        // Use the same users API as Requester Name field
+        const response = await fetch(`${BASE_URL}/api/users`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
@@ -1688,21 +1803,177 @@ async function fetchBusinessPartners() {
         const result = await response.json();
 
         if (!result.status || result.code !== 200) {
-            throw new Error(result.message || 'Failed to fetch business partners');
+            throw new Error(result.message || 'Failed to fetch users for Pay To');
         }
 
-        businessPartners = result.data;
-        console.log('Stored', businessPartners.length, 'business partners in global cache');
-        console.log('Sample business partner:', businessPartners[0]);
+        const users = result.data;
+
+        // Convert users data to business partner format for compatibility
+        businessPartners = users.map(user => ({
+            id: user.id,
+            name: user.fullName || 'Unknown User'
+        }));
+
+        console.log('Stored', businessPartners.length, 'users as business partners in global cache');
+        console.log('Sample user for Pay To:', businessPartners[0]);
 
         // Re-populate Pay To field if reimbursement data is already loaded
-        if (window.currentReimbursementData) {
-            console.log('🔄 Re-populating Pay To field after business partners loaded...');
+        if (window.currentReimbursementData && window.currentReimbursementData.payTo) {
+            console.log('🔄 Re-populating Pay To field after users loaded...');
             populatePayToField(window.currentReimbursementData.payTo);
         }
 
     } catch (error) {
-        console.error("Error fetching business partners:", error);
+        console.error("Error fetching users for Pay To:", error);
+
+        // Fallback: If users API fails, use existing users data
+        console.log('Fallback: Using existing users data for Pay To field...');
+        if (window.allUsers && window.allUsers.length > 0) {
+            // Convert users data to business partner format for compatibility
+            businessPartners = window.allUsers.map(user => ({
+                id: user.id,
+                name: user.fullName || 'Unknown User'
+            }));
+            console.log('Converted', businessPartners.length, 'users to business partner format');
+        }
+    }
+}
+
+// Function to fetch individual user if not found in cache
+async function fetchIndividualBusinessPartner(userId) {
+    try {
+        console.log('Fetching individual user with ID:', userId);
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.status && result.code === 200 && result.data) {
+            const user = result.data;
+            console.log('Individual user found:', user);
+
+            // Convert user data to business partner format for compatibility
+            return {
+                id: user.id,
+                name: user.fullName || 'Unknown User'
+            };
+        } else {
+            console.log('Individual user not found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching individual user:', error);
+        return null;
+    }
+}
+
+// Function to populate Pay To field (UPDATED for users)
+function populatePayToField(payToId) {
+    if (!payToId) {
+        console.log('⚠️ populatePayToField: No payToId provided');
+        return;
+    }
+
+    console.log('💰 populatePayToField called with payToId:', payToId);
+    console.log('📊 Users available for Pay To:', businessPartners ? businessPartners.length : 'not loaded');
+
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+
+    if (!payToSearch || !payToSelect) {
+        console.log('⚠️ Pay To elements not found');
+        return;
+    }
+
+    // Jika users belum tersedia, coba fetch ulang atau tunggu
+    if (!businessPartners || businessPartners.length === 0) {
+        console.log('🔄 Users not loaded yet, trying to fetch...');
+
+        // Set temporary value sementara menunggu data
+        payToSearch.value = 'Loading...';
+
+        // Coba fetch users dan re-populate setelah data tersedia
+        fetchBusinessPartners().then(() => {
+            setTimeout(() => {
+                populatePayToField(payToId);
+            }, 500);
+        });
+        return;
+    }
+
+    // Find the corresponding user for the payTo ID
+    const matchingUser = businessPartners.find(user => user.id.toString() === payToId.toString());
+
+    if (matchingUser) {
+        console.log('✅ Found matching user for Pay To:', {
+            id: matchingUser.id,
+            name: matchingUser.name
+        });
+
+        // Format display text dengan code dan name
+        const displayText = `{matchingUser.name}`;
+        payToSearch.value = displayText;
+
+        // Populate hidden select element
+        // Pastikan ada default option terlebih dahulu
+        if (payToSelect.options.length === 0) {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Choose User";
+            defaultOption.disabled = true;
+            payToSelect.appendChild(defaultOption);
+        }
+
+        // Find or create option with this user
+        let optionExists = false;
+        for (let i = 0; i < payToSelect.options.length; i++) {
+            if (payToSelect.options[i].value === payToId.toString()) {
+                payToSelect.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (!optionExists) {
+            const newOption = document.createElement('option');
+            newOption.value = matchingUser.id;
+            newOption.textContent = displayText;
+            payToSelect.appendChild(newOption);
+            payToSelect.value = matchingUser.id;
+        }
+    } else {
+        console.log('⚠️ No matching user found for Pay To ID:', payToId);
+
+        // Jika tidak ditemukan, coba fetch individual user berdasarkan ID
+        fetchIndividualBusinessPartner(payToId).then(user => {
+            if (user) {
+                const displayText = `${user.code} - ${user.name}`;
+                payToSearch.value = displayText;
+
+                // Add to select
+                const newOption = document.createElement('option');
+                newOption.value = user.id;
+                newOption.textContent = displayText;
+                payToSelect.appendChild(newOption);
+                payToSelect.value = user.id;
+
+                // Add to global array for future reference
+                businessPartners.push(user);
+            } else {
+                // Fallback: show the ID if no user found
+                payToSearch.value = `Unknown User (ID: ${payToId})`;
+
+                // Create a temporary option
+                const tempOption = document.createElement('option');
+                tempOption.value = payToId;
+                tempOption.textContent = `Unknown User (ID: ${payToId})`;
+                payToSelect.appendChild(tempOption);
+                payToSelect.value = payToId;
+            }
+        });
     }
 }
 
@@ -1714,9 +1985,38 @@ document.addEventListener('DOMContentLoaded', function () {
     controlButtonVisibility();
 
     // Load users, departments, business partners, and transaction types first
-    Promise.all([fetchUsers(), fetchDepartments(), fetchBusinessPartners(), fetchTransactionTypes()]).then(() => {
+    Promise.all([
+        fetchUsers(),
+        fetchDepartments(),
+        fetchTransactionTypes()
+    ]).then(() => {
+        console.log('Users, departments, and transaction types loaded');
+
+        // Load business partners, with fallback to users if needed
+        return fetchBusinessPartners();
+    }).then(() => {
         console.log('All initial data loaded');
-        // Then load reimbursement data
+
+        // If business partners is still empty, use users data as fallback
+        if (!businessPartners || businessPartners.length === 0) {
+            console.log('Business partners empty, using users data as fallback...');
+            if (window.allUsers && window.allUsers.length > 0) {
+                businessPartners = window.allUsers.map(user => ({
+                    id: user.id,
+                    name: user.fullName || 'Unknown User'
+                }));
+                console.log('Converted', businessPartners.length, 'users to business partner format');
+            }
+        }
+
+        // Tunggu sebentar untuk memastikan semua data ter-populate
+        setTimeout(() => {
+            // Then load and populate reimbursement data
+            fetchReimbursementData();
+        }, 300);
+    }).catch(error => {
+        console.error('Error loading initial data:', error);
+        // Still try to load reimbursement data even if some initial data fails
         fetchReimbursementData();
     });
 
@@ -1841,8 +2141,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
-
-// Function to get department ID by name - REMOVED (no longer needed)
 
 // Function to fetch categories based on department and transaction type
 async function fetchCategories(departmentName, transactionType) {
@@ -2186,70 +2484,6 @@ function populateCategoriesForNewRow(row) {
     }
 }
 
-// Function to populate Pay To field (separate function for re-population)
-function populatePayToField(payToId) {
-    if (!payToId) {
-        console.log('⚠️ populatePayToField: No payToId provided');
-        return;
-    }
-
-    console.log('💰 populatePayToField called with payToId:', payToId);
-    console.log('📊 Business partners available:', businessPartners ? businessPartners.length : 'not loaded');
-
-    const payToSearch = document.getElementById('payToSearch');
-    const payToSelect = document.getElementById('payToSelect');
-
-    if (!payToSearch || !payToSelect) {
-        console.log('⚠️ Pay To elements not found');
-        return;
-    }
-
-    // Find the corresponding business partner for the payTo ID
-    const matchingBP = businessPartners ? businessPartners.find(bp => bp.id.toString() === payToId.toString()) : null;
-
-    if (matchingBP) {
-        console.log('✅ Found matching business partner:', {
-            id: matchingBP.id,
-            code: matchingBP.code,
-            name: matchingBP.name
-        });
-
-        const displayText = `${matchingBP.code} - ${matchingBP.name}`;
-        payToSearch.value = displayText;
-
-        // Find or create option with this business partner
-        let optionExists = false;
-        for (let i = 0; i < payToSelect.options.length; i++) {
-            if (payToSelect.options[i].value === payToId.toString()) {
-                payToSelect.selectedIndex = i;
-                optionExists = true;
-                break;
-            }
-        }
-
-        if (!optionExists) {
-            const newOption = document.createElement('option');
-            newOption.value = matchingBP.id;
-            newOption.textContent = displayText;
-            payToSelect.appendChild(newOption);
-            payToSelect.value = matchingBP.id;
-        }
-    } else {
-        console.log('⚠️ No matching business partner found for Pay To ID:', payToId);
-        console.log('🔍 Available business partners:', businessPartners ? businessPartners.map(bp => ({ id: bp.id, code: bp.code, name: bp.name })) : 'not loaded');
-
-        // Fallback: show the ID if no business partner found
-        payToSearch.value = `Business Partner ID: ${payToId}`;
-
-        // Create a temporary option
-        const tempOption = document.createElement('option');
-        tempOption.value = payToId;
-        tempOption.textContent = `Business Partner ID: ${payToId}`;
-        payToSelect.appendChild(tempOption);
-        payToSelect.value = payToId;
-    }
-}
-
 function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
     tableBody.innerHTML = '';
@@ -2311,3 +2545,337 @@ function populateReimbursementDetails(details) {
     updateTotalAmount();
 }
 
+
+// ===== MASALAH 1: Format Display Text dengan "undefined" =====
+
+// MASALAH: Di function populatePayToField, ada baris:
+// const displayText = `${matchingUser.code} - ${matchingUser.name}`;
+// Tapi di fetchBusinessPartners, user tidak memiliki property 'code'
+
+// SOLUSI: Perbaiki fetchBusinessPartners function
+async function fetchBusinessPartners() {
+    try {
+        console.log('Fetching users for Pay To field...');
+        console.log('BASE_URL:', BASE_URL);
+
+        const response = await fetch(`${BASE_URL}/api/users`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch users for Pay To');
+        }
+
+        const users = result.data;
+
+        // FIX: Convert users data dengan format yang benar
+        businessPartners = users.map(user => ({
+            id: user.id,
+            name: user.fullName || 'Unknown User',
+            code: user.employeeId || user.id.toString() || 'EMP' // Tambahkan code yang hilang
+        }));
+
+        console.log('Stored', businessPartners.length, 'users as business partners in global cache');
+        console.log('Sample user for Pay To:', businessPartners[0]);
+
+        // Re-populate Pay To field if reimbursement data is already loaded
+        if (window.currentReimbursementData && window.currentReimbursementData.payTo) {
+            console.log('🔄 Re-populating Pay To field after users loaded...');
+            populatePayToField(window.currentReimbursementData.payTo);
+        }
+
+    } catch (error) {
+        console.error("Error fetching users for Pay To:", error);
+
+        // Fallback: If users API fails, use existing users data
+        console.log('Fallback: Using existing users data for Pay To field...');
+        if (window.allUsers && window.allUsers.length > 0) {
+            // FIX: Convert users data dengan format yang benar
+            businessPartners = window.allUsers.map(user => ({
+                id: user.id,
+                name: user.fullName || 'Unknown User',
+                code: user.employeeId || user.id.toString() || 'EMP' // Tambahkan code yang hilang
+            }));
+            console.log('Converted', businessPartners.length, 'users to business partner format');
+        }
+    }
+}
+
+// ===== MASALAH 2: Display Format yang Tidak Konsisten =====
+
+// SOLUSI: Perbaiki populatePayToField function
+function populatePayToField(payToId) {
+    if (!payToId) {
+        console.log('⚠️ populatePayToField: No payToId provided');
+        return;
+    }
+
+    console.log('💰 populatePayToField called with payToId:', payToId);
+    console.log('📊 Users available for Pay To:', businessPartners ? businessPartners.length : 'not loaded');
+
+    const payToSearch = document.getElementById('payToSearch');
+    const payToSelect = document.getElementById('payToSelect');
+
+    if (!payToSearch || !payToSelect) {
+        console.log('⚠️ Pay To elements not found');
+        return;
+    }
+
+    // Jika users belum tersedia, coba fetch ulang atau tunggu
+    if (!businessPartners || businessPartners.length === 0) {
+        console.log('🔄 Users not loaded yet, trying to fetch...');
+
+        // Set temporary value sementara menunggu data
+        payToSearch.value = 'Loading...';
+
+        // Coba fetch users dan re-populate setelah data tersedia
+        fetchBusinessPartners().then(() => {
+            setTimeout(() => {
+                populatePayToField(payToId);
+            }, 500);
+        });
+        return;
+    }
+
+    // Find the corresponding user for the payTo ID
+    const matchingUser = businessPartners.find(user => user.id.toString() === payToId.toString());
+
+    if (matchingUser) {
+        console.log('✅ Found matching user for Pay To:', {
+            id: matchingUser.id,
+            code: matchingUser.code,
+            name: matchingUser.name
+        });
+
+        // FIX: Format display text dengan pengecekan yang lebih baik
+        let displayText;
+        if (matchingUser.code && matchingUser.code !== 'undefined' && matchingUser.code !== matchingUser.id.toString()) {
+            displayText = `${matchingUser.code} - ${matchingUser.name}`;
+        } else {
+            // Jika tidak ada code atau code sama dengan ID, tampilkan hanya nama
+            displayText = matchingUser.name;
+        }
+        
+        payToSearch.value = displayText;
+
+        // Populate hidden select element
+        // Pastikan ada default option terlebih dahulu
+        if (payToSelect.options.length === 0) {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Choose User";
+            defaultOption.disabled = true;
+            payToSelect.appendChild(defaultOption);
+        }
+
+        // Find or create option with this user
+        let optionExists = false;
+        for (let i = 0; i < payToSelect.options.length; i++) {
+            if (payToSelect.options[i].value === payToId.toString()) {
+                payToSelect.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (!optionExists) {
+            const newOption = document.createElement('option');
+            newOption.value = matchingUser.id;
+            newOption.textContent = displayText;
+            payToSelect.appendChild(newOption);
+            payToSelect.value = matchingUser.id;
+        }
+    } else {
+        console.log('⚠️ No matching user found for Pay To ID:', payToId);
+
+        // Jika tidak ditemukan, coba fetch individual user berdasarkan ID
+        fetchIndividualBusinessPartner(payToId).then(user => {
+            if (user) {
+                // FIX: Format display text dengan pengecekan yang lebih baik
+                let displayText;
+                if (user.code && user.code !== 'undefined' && user.code !== user.id.toString()) {
+                    displayText = `${user.code} - ${user.name}`;
+                } else {
+                    displayText = user.name;
+                }
+                
+                payToSearch.value = displayText;
+
+                // Add to select
+                const newOption = document.createElement('option');
+                newOption.value = user.id;
+                newOption.textContent = displayText;
+                payToSelect.appendChild(newOption);
+                payToSelect.value = user.id;
+
+                // Add to global array for future reference
+                businessPartners.push(user);
+            } else {
+                // Fallback: show the ID if no user found
+                payToSearch.value = `Unknown User (ID: ${payToId})`;
+
+                // Create a temporary option
+                const tempOption = document.createElement('option');
+                tempOption.value = payToId;
+                tempOption.textContent = `Unknown User (ID: ${payToId})`;
+                payToSelect.appendChild(tempOption);
+                payToSelect.value = payToId;
+            }
+        });
+    }
+}
+
+// ===== MASALAH 3: filterUsers function untuk payToSelect =====
+
+// SOLUSI: Perbaiki bagian payToSelect di filterUsers function
+function filterUsers(fieldId) {
+    console.log('filterUsers called with fieldId:', fieldId);
+
+    const searchInput = document.getElementById(`${fieldId.replace('Select', '')}Search`);
+    if (!searchInput) {
+        console.log('Search input not found for fieldId:', fieldId);
+        return;
+    }
+
+    const searchText = searchInput.value.toLowerCase();
+    const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    if (!dropdown) {
+        console.log('Dropdown not found for fieldId:', fieldId);
+        return;
+    }
+
+    // Clear dropdown
+    dropdown.innerHTML = '';
+
+    let filteredUsers = [];
+
+    // Handle payToSelect dropdown separately
+    if (fieldId === 'payToSelect') {
+        console.log('Processing payToSelect...');
+        console.log('users length:', businessPartners ? businessPartners.length : 'undefined');
+        console.log('searchText:', searchText);
+
+        try {
+            // Pastikan users tersedia
+            if (!businessPartners || businessPartners.length === 0) {
+                const loading = document.createElement('div');
+                loading.className = 'p-2 text-gray-500';
+                loading.innerText = 'Loading users...';
+                dropdown.appendChild(loading);
+                dropdown.classList.remove('hidden');
+
+                // Fetch data jika belum tersedia
+                fetchBusinessPartners().then(() => {
+                    // Re-trigger filtering setelah data tersedia
+                    setTimeout(() => {
+                        filterUsers(fieldId);
+                    }, 100);
+                });
+                return;
+            }
+
+            const filtered = businessPartners.filter(user =>
+                (user.name && user.name.toLowerCase().includes(searchText)) ||
+                (user.code && user.code.toLowerCase().includes(searchText))
+            );
+
+            console.log('Filtered users for Pay To:', filtered.length);
+
+            // FIX: Display search results dengan format yang benar
+            filtered.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                
+                // FIX: Format display text dengan pengecekan yang lebih baik
+                let displayText;
+                if (user.code && user.code !== 'undefined' && user.code !== user.id.toString()) {
+                    displayText = `${user.code} - ${user.name}`;
+                } else {
+                    displayText = user.name;
+                }
+                
+                option.innerText = displayText;
+
+                option.onclick = function () {
+                    searchInput.value = displayText;
+                    const selectElement = document.getElementById(fieldId);
+                    if (selectElement) {
+                        // Find or create option with this user
+                        let optionExists = false;
+                        for (let i = 0; i < selectElement.options.length; i++) {
+                            if (selectElement.options[i].value === user.id.toString()) {
+                                selectElement.selectedIndex = i;
+                                optionExists = true;
+                                break;
+                            }
+                        }
+
+                        if (!optionExists) {
+                            const newOption = document.createElement('option');
+                            newOption.value = user.id;
+                            newOption.textContent = displayText;
+                            selectElement.appendChild(newOption);
+                            selectElement.value = user.id;
+                        }
+                    }
+
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(option);
+            });
+
+            // Show message if no results
+            if (filtered.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'p-2 text-gray-500';
+                noResults.innerText = 'No User Found';
+                dropdown.appendChild(noResults);
+            }
+
+            // Show dropdown
+            dropdown.classList.remove('hidden');
+            return;
+        } catch (error) {
+            console.error("Error filtering users:", error);
+        }
+    }
+
+    // ... rest of the function remains the same for other fields
+}
+
+// ===== MASALAH 4: fetchIndividualBusinessPartner function =====
+
+// SOLUSI: Perbaiki fetchIndividualBusinessPartner function
+async function fetchIndividualBusinessPartner(userId) {
+    try {
+        console.log('Fetching individual user with ID:', userId);
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.status && result.code === 200 && result.data) {
+            const user = result.data;
+            console.log('Individual user found:', user);
+
+            // FIX: Convert user data dengan format yang benar
+            return {
+                id: user.id,
+                name: user.fullName || 'Unknown User',
+            };
+        } else {
+            console.log('Individual user not found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching individual user:', error);
+        return null;
+    }
+}
