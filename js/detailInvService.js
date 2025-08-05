@@ -344,7 +344,7 @@ function populateFormData(data) {
     document.getElementById('docRate').value = data.docRate || '1';
     document.getElementById('DocDate').value = formatDate(data.docDate);
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('TaxNo').value = data.trackNo || '';
+    document.getElementById('TaxNo').value = data.licTradNum || '';
     document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
     document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';

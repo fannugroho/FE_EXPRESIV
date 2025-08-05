@@ -142,6 +142,47 @@
                 font-size: 10px !important;
                 margin-top: 5px !important;
             }
+
+            .invoice-title-section {
+                text-align: center !important;
+                margin: 15px 0 !important;
+            }
+
+            .invoice-title {
+                font-size: 20px !important;
+            }
+
+            .shipper-right {
+                text-align: right !important;
+                margin-left: auto !important;
+            }
+
+            .field-label {
+                font-weight: bold !important;
+                margin-bottom: 2px !important;
+                font-size: 10px !important;
+            }
+
+            .field-value {
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                margin-bottom: 8px !important;
+            }
+
+            .field-value.multiple {
+                margin-bottom: 4px !important;
+            }
+
+            .field-value .data-item {
+                margin-bottom: 2px !important;
+                padding: 1px 0 !important;
+            }
+
+            .company-name-footer {
+                font-weight: bold !important;
+                font-size: 10px !important;
+                margin-bottom: 10px !important;
+            }
             
             .signature-space {
                 height: 60px !important;
@@ -308,10 +349,15 @@
         }
 
         .invoice-title {
-            font-size: 10px;
+            font-size: 20px;
             font-weight: bold;
             text-decoration: underline;
             margin-bottom: 5px;
+        }
+
+        .invoice-title-section {
+            text-align: center;
+            margin: 15px 0;
         }
 
         .invoice-right {
@@ -334,6 +380,32 @@
         .recipient, .shipper {
             width: 48%;
             font-size: 10px;
+        }
+
+        .shipper-right {
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .field-label {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+
+        .field-value {
+            font-size: 10px;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .field-value.multiple {
+            margin-bottom: 4px;
+        }
+
+        .field-value .data-item {
+            margin-bottom: 2px;
+            padding: 1px 0;
         }
 
         .section-title {
@@ -478,6 +550,12 @@
             padding-left: 0;
         }
 
+        .company-name-footer {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+
         .qr-code {
             width: 80px;
             height: 80px;
@@ -619,19 +697,19 @@
                     </div>
                 </div>
 
+                <!-- Invoice Title -->
+                <div class="invoice-title-section">
+                    <div class="invoice-title">INVOICE</div>
+                </div>
+
                 <!-- Invoice Details -->
                 <div class="invoice-details">
                     <div class="invoice-left">
                         <div class="invoice-field">No. Inv : <span id="invoiceNumber"></span></div>
                         <div class="invoice-field">No. Vision Inv : <span id="visionInvoiceNumber"></span></div>
                     </div>
-                    <div class="invoice-center">
-                        <div class="invoice-title" style="text-align: center;">INVOICE</div>
-                    </div>
                     <div class="invoice-right">
-                        <div class="invoice-field">DATE: <span id="invoiceDate"></span></div>
-                        <div class="invoice-field">NPWP : <span id="npwp"></span></div>
-                        <div class="invoice-field">Due Date <span id="dueDate"></span></div>
+                        <div class="invoice-field">Date: <span id="invoiceDate"></span></div>
                     </div>
                 </div>
 
@@ -641,23 +719,30 @@
                         <div class="section-title">FOR ACCOUNT OF MESSRS:</div>
                         <div id="recipientName"></div>
                         <div id="recipientAddress"></div>
-                        <div id="recipientCity"></div><br><!--
-                    </div>
-                    <div class="shipper">-->
+                        <div id="recipientCity"></div>
+                        <br>
                         <div class="section-title">SHIPPED FROM:</div>
                         <div id="shipperName">PT. KANSAI PAINT INDONESIA</div>
+                    </div>
+                    <div class="shipper">
+                        <div class="invoice-field shipper-right">
+                            <div class="field-label">NPWP :</div>
+                            <div class="field-value" id="npwp"></div>
+                        </div>
+                        <div class="invoice-field shipper-right">
+                            <div class="field-label">Due Date :</div>
+                            <div class="field-value" id="dueDate"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Order Numbers -->
                 <div class="order-numbers">
                     <div class="order-row">
-                        <div class="order-label">DO No:</div>
+                        <div class="order-label">DO No.:</div>
                         <div class="order-value" id="doNumbers"></div>
-                    </div>
-                    <div class="order-row">
-                        <div class="order-label">P/O NO.:</div>
-                        <div class="order-value" id="poNumbers"></div>
+                        <div class="order-label" style="margin-left: 50px;">P/O No.:</div>
+                        <div class="field-value" id="poNumbers"></div>
                     </div>
                 </div>
 
@@ -723,6 +808,7 @@
                 <div class="signature-section">
                     <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
                     <div class="qr-code">QR CODE</div>
+                    <div class="company-name-footer">PT. KANSAI PAINT INDONESIA</div>
                     <div class="signature-space"></div>
                     <div class="signature-name" id="signatureName"></div>
                     <div class="signature-title" id="signatureTitle"></div>
@@ -732,7 +818,7 @@
                 </div>
             </div>
             <div class="generated-by">
-                <div>Generated by Expressiv</div>
+                <div>Generated by Expressiv System</div>
             </div>
         </div>
     </div>

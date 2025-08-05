@@ -74,12 +74,12 @@
         
         /* Custom width for line total column */
         .line-total-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .line-total-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -97,6 +97,16 @@
         
         .item-code-input {
             width: 120px !important;
+        }
+        
+        /* Custom width for BP Catalog column */
+        .bp-catalog-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .bp-catalog-input {
+            width: 100px !important;
         }
         
         /* Custom width for No. column */
@@ -128,11 +138,7 @@
             min-width: 100px !important;
         }
         
-        /* Custom width for Wtax Liable column */
-        .wtax-liable-column {
-            width: 100px !important;
-            min-width: 100px !important;
-        }
+
         
         /* Custom width for Packing Size column */
         .packing-size-column {
@@ -270,14 +276,72 @@
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-height: 400px;
-            overflow-y: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+        
+        /* Responsive table wrapper */
+        .table-responsive {
+            position: relative;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Table scroll indicator */
+        .table-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(to right, transparent, rgba(0,0,0,0.1));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .table-container:hover::after {
+            opacity: 1;
         }
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
             min-width: 1100px;
             table-layout: fixed;
+            border-collapse: collapse;
+        }
+        
+        /* Responsive table improvements */
+        @media (max-width: 1200px) {
+            #arInvTable {
+                min-width: 1000px;
+            }
+        }
+        
+        @media (max-width: 991px) {
+            #arInvTable {
+                min-width: 900px;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            #arInvTable {
+                min-width: 800px;
+            }
+        }
+        
+        @media (max-width: 575px) {
+            #arInvTable {
+                min-width: 700px;
+            }
+        }
+        
+        @media (max-width: 375px) {
+            #arInvTable {
+                min-width: 600px;
+            }
         }
         
         /* Custom scrollbar for table container */
@@ -300,12 +364,10 @@
             background: #a8a8a8;
         }
         
-        /* Sticky header for better UX */
+        /* Table header styling */
         #arInvTable thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background: #f3f4f6;
+            z-index: 10;
         }
         
         /* Ensure textarea in table cells have proper scrollbar */
@@ -363,6 +425,11 @@
         
         /* Item Code column - left aligned */
         .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
             text-align: left !important;
         }
         
@@ -459,6 +526,11 @@
                 min-width: 200px !important;
             }
             
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
             .packing-size-column {
                 width: 80px !important;
                 min-width: 80px !important;
@@ -470,8 +542,509 @@
             }
             
             .line-total-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+        }
+
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Large Desktop (1200px and up) */
+        @media (min-width: 1200px) {
+            .content-wrapper {
+                padding: 2rem 3rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+            
+            .header-section h2 {
+                font-size: 2.5rem;
+            }
+        }
+        
+        /* Desktop (992px to 1199px) */
+        @media (max-width: 1199px) and (min-width: 992px) {
+            .content-wrapper {
+                padding: 1.5rem 2rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+            }
+            
+            .header-section h2 {
+                font-size: 2rem;
+            }
+            
+            /* Adjust table column widths */
+            .description-column {
+                width: 180px !important;
+                min-width: 180px !important;
+            }
+            
+            .item-code-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .price-column {
                 width: 100px !important;
                 min-width: 100px !important;
+            }
+            
+            .line-total-column {
+                width: 140px !important;
+                min-width: 140px !important;
+            }
+        }
+        
+        /* Tablet (768px to 991px) */
+        @media (max-width: 991px) and (min-width: 768px) {
+            .content-wrapper {
+                padding: 1rem 1.5rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .header-section {
+                padding: 1rem 1.5rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.75rem;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 1.5rem;
+            }
+            
+            /* Adjust table for tablet */
+            #arInvTable {
+                min-width: 900px;
+            }
+            
+            .description-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .item-code-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .line-total-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            /* Adjust summary fields */
+            .footer-section input[type="text"] {
+                width: 200px !important;
+            }
+        }
+        
+        /* Mobile Large (576px to 767px) */
+        @media (max-width: 767px) and (min-width: 576px) {
+            .content-wrapper {
+                padding: 0.75rem 1rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .header-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            /* Stack header buttons vertically on mobile */
+            .header-section .flex {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .header-section .flex button {
+                width: 100%;
+                text-align: center;
+            }
+            
+            /* Adjust table for mobile large */
+            #arInvTable {
+                min-width: 800px;
+            }
+            
+            .description-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .item-code-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .price-column {
+                width: 70px !important;
+                min-width: 70px !important;
+            }
+            
+            .line-total-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            /* Adjust summary fields */
+            .footer-section input[type="text"] {
+                width: 150px !important;
+            }
+            
+            /* Make approval section single column */
+            .approval-section .grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+        
+        /* Mobile Small (up to 575px) */
+        @media (max-width: 575px) {
+            .content-wrapper {
+                padding: 0.5rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .header-section {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.25rem;
+                text-align: center;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Stack header buttons vertically on mobile */
+            .header-section .flex {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+            
+            .header-section .flex button {
+                width: 100%;
+                text-align: center;
+                padding: 0.75rem;
+            }
+            
+            /* Adjust table for mobile small */
+            #arInvTable {
+                min-width: 700px;
+                font-size: 12px;
+            }
+            
+            .description-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .item-code-column {
+                width: 70px !important;
+                min-width: 70px !important;
+            }
+            
+            .price-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .line-total-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            /* Adjust summary fields */
+            .footer-section input[type="text"] {
+                width: 120px !important;
+            }
+            
+            .footer-section .flex {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .footer-section .flex label {
+                text-align: left;
+            }
+            
+            .footer-section .flex input {
+                width: 100% !important;
+            }
+            
+            /* Make approval section single column */
+            .approval-section .grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            /* Adjust attachment section */
+            .attachment-container {
+                padding: 0.5rem;
+            }
+            
+            .attachment-item {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .attachment-actions {
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .btn-download,
+            .btn-preview {
+                padding: 0.5rem 1rem;
+                font-size: 0.75rem;
+            }
+            
+            /* Adjust submit button */
+            .submit-section button {
+                width: 100%;
+                padding: 1rem;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Extra Small Mobile (up to 375px) */
+        @media (max-width: 375px) {
+            .content-wrapper {
+                padding: 0.25rem;
+            }
+            
+            .header-section {
+                padding: 0.5rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.125rem;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 0.5rem;
+            }
+            
+            /* Further reduce table size */
+            #arInvTable {
+                min-width: 600px;
+                font-size: 11px;
+            }
+            
+            .description-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .item-code-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .price-column {
+                width: 50px !important;
+                min-width: 50px !important;
+            }
+            
+            .line-total-column {
+                width: 70px !important;
+                min-width: 70px !important;
+            }
+            
+            /* Adjust summary fields */
+            .footer-section input[type="text"] {
+                width: 100px !important;
+            }
+        }
+        
+        /* Landscape orientation adjustments for mobile */
+        @media (max-width: 767px) and (orientation: landscape) {
+            .header-section {
+                padding: 0.5rem 1rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.25rem;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 0.75rem;
+            }
+            
+            /* Adjust table for landscape */
+            #arInvTable {
+                min-width: 900px;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            .header-section .flex button,
+            .submit-section,
+            .attachment-actions {
+                display: none !important;
+            }
+            
+            .content-wrapper {
+                padding: 0;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section {
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+        }
+        
+        /* Touch-friendly improvements for mobile */
+        @media (max-width: 767px) {
+            /* Increase touch targets */
+            button, 
+            .btn-download, 
+            .btn-preview,
+            input[type="file"] {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* Better spacing for mobile */
+            .form-field {
+                margin-bottom: 1.5rem;
+            }
+            
+            /* Improve table scrolling on mobile */
+            .table-container {
+                border-radius: 4px;
+                margin: 0 -0.5rem;
+                padding: 0 0.5rem;
+            }
+            
+            /* Better button styling for mobile */
+            .submit-section button {
+                min-height: 48px;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+            
+            /* Improve attachment buttons on mobile */
+            .attachment-actions button {
+                min-height: 40px;
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .table-container {
+                border-width: 0.5px;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                border-width: 0.5px;
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Focus improvements for keyboard navigation */
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        /* Dark mode support (if needed in future) */
+        @media (prefers-color-scheme: dark) {
+            /* Dark mode styles can be added here if needed */
+        }
+        
+        /* Reduced motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            .attachment-item:hover {
+                transform: none;
+            }
+            
+            .submit-section button:hover {
+                transform: none;
             }
         }
         
@@ -510,6 +1083,30 @@
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Responsive form field improvements */
+        @media (max-width: 767px) {
+            .form-field input,
+            .form-field select,
+            .form-field textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 0.75rem;
+            }
+            
+            .form-field label {
+                font-size: 0.875rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+        
+        @media (max-width: 575px) {
+            .form-field input,
+            .form-field select,
+            .form-field textarea {
+                padding: 0.5rem;
+                font-size: 14px;
+            }
         }
         
         /* File upload section styling */
@@ -772,6 +1369,11 @@
             min-height: 100vh;
         }
         
+        /* Disable autocomplete for all inputs and textareas */
+        input, textarea, select {
+            autocomplete: off !important;
+        }
+        
         .main-container {
             min-height: 100vh;
             background-color: #f8fafc;
@@ -850,7 +1452,7 @@
             
             <!-- Form Section -->
             <div class="form-section">
-                <div class="grid grid-cols-2 gap-8">
+                <div class="form-grid">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
@@ -892,6 +1494,8 @@
                         <!-- Selected files will be displayed here -->
                     </div>
                 </div>
+                
+
             </div>
             
             <div>
@@ -901,8 +1505,8 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Invoice Number</h3>
-                <input type="text" id="TaxNo" placeholder="Tax Invoice Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Tax Identification Number (NPWP)</h3>
+                <input type="text" id="TaxNo" placeholder="Tax Identification Number (NPWP)" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
@@ -938,6 +1542,7 @@
                 <tr>
                     <th class="p-2 no-column">No.</th>
                     <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 bp-catalog-column">Part Number</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 uom-column">UoM</th>
                     <th class="p-2 packing-size-column">Packing Size</th>
@@ -966,22 +1571,53 @@
             <!-- Footer Totals Section -->
             <div class="footer-section">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
-                                <!--Total Amount Due-->
-                <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Before Discount :</label>
-                    <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-                </div>
-                
-                <!--Total Tax-->
-                <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Tax :</label>
-                    <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-                </div>
                 
                 <!--Total Amount-->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Amount :</label>
-                    <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Total :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="docTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off">
+                    </div>
+                </div>
+                
+                <!--Discounted Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Discounted :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="discSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off">
+                    </div>
+                </div>
+                
+                <!--Sales Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Sales Amount :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="netPriceAfterDiscount" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off">
+                    </div>
+                </div>
+                
+                <!--Tax Base Other Value-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="dpp1112" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off">
+                    </div>
+                </div>
+                
+                <!--VAT 12%-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">VAT 12% :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="vatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off">
+                    </div>
+                </div>
+                
+                <!--GRAND TOTAL-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="grandTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr font-bold" readonly autocomplete="off">
+                    </div>
                 </div>
 
                 <!-- Remarks section -->
@@ -1065,7 +1701,7 @@
                         class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                         disabled
                     >
-                        <span id="submitButtonText">Submit & Update Status</span>
+                        <span id="submitButtonText">Submit</span>
                         <div id="submitSpinner" class="hidden inline-block ml-2">
                             <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         </div>
@@ -1115,7 +1751,7 @@
         
         // Function to apply text wrapping to all relevant elements
         function applyTextWrappingToAll() {
-            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
                 handleTextWrapping(element);
@@ -1298,7 +1934,18 @@
             setTimeout(() => {
                 applyCurrencyFormatting();
             }, 1000);
+            
+            // Disable autocomplete for all inputs and textareas
+            disableAutocompleteForAll();
         });
+        
+        // Function to disable autocomplete for all form elements
+        function disableAutocompleteForAll() {
+            const allInputs = document.querySelectorAll('input, textarea, select');
+            allInputs.forEach(element => {
+                element.setAttribute('autocomplete', 'off');
+            });
+        }
     </script>
 </body>
 </html>

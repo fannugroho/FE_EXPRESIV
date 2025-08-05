@@ -347,9 +347,9 @@ function populateInvServiceData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-    safeSetValue('TaxNo', data.trackNo || ''); // Use trackNo for TaxNo field
-    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+            safeSetValue('TaxNo', data.licTradNum || '');
+        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');

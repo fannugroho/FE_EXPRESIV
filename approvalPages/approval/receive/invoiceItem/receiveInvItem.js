@@ -11,6 +11,18 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePage();
 });
 
+// Function to initialize summary fields with default values
+function initializeSummaryFields() {
+    const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = '0.00';
+            field.classList.add('currency-input-idr');
+        }
+    });
+}
+
 // Initialize page functionality
 function initializePage() {
     // Get current user
@@ -46,6 +58,12 @@ function initializePage() {
     
     // Setup event listeners
     setupEventListeners();
+    
+    // Initialize summary fields with default values
+    initializeSummaryFields();
+    
+    // Initially hide attachment section until status is determined
+    toggleAttachmentSectionVisibility('Draft'); // Hide by default
 }
 
 // Function to fetch users from API
@@ -104,9 +122,8 @@ function getCurrentUserFullName() {
         user.name === currentUser.username
     );
     
-    if (currentUserData && currentUserData.fullName) {
-        console.log('Found full name for current user:', currentUserData.fullName);
-        return currentUserData.fullName;
+    if (currentUserData && currentUserData.name) {
+        return currentUserData.name;
     }
     
     console.warn('Full name not found for current user, falling back to username');
@@ -221,9 +238,15 @@ function updateButtonVisibility() {
     
     console.log('Current document status:', status);
     
-    // Show buttons based on status
-    if (receiveButton) receiveButton.style.display = 'inline-block';
-    if (rejectButton) rejectButton.style.display = 'inline-block';
+    // Hide Reject and Receive buttons if status is "Received"
+    if (status === 'Received') {
+        if (receiveButton) receiveButton.style.display = 'none';
+        if (rejectButton) rejectButton.style.display = 'none';
+    } else {
+        // Show buttons for other statuses
+        if (receiveButton) receiveButton.style.display = 'inline-block';
+        if (rejectButton) rejectButton.style.display = 'inline-block';
+    }
     
     // Show print button if status is "Received"
     if (printButton) {
@@ -274,9 +297,9 @@ function populateInvItemData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-    safeSetValue('TaxNo', data.taxNo || '');
-    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+            safeSetValue('TaxNo', data.licTradNum || '');
+        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
@@ -289,10 +312,48 @@ function populateInvItemData(data) {
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
     
-    // Populate totals
-    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
-    safeSetValue('VatSum', data.vatSum || 0);
-    safeSetValue('DocTotal', data.docTotal || 0);
+    // Toggle attachment section visibility based on approval status
+    toggleAttachmentSectionVisibility(status);
+    
+    // Populate summary fields with currency formatting
+    const docCur = data.docCur || 'IDR';
+    
+    // Total Amount (docTotal) - API Field: "docCur" "docTotal"
+    const docTotal = data.docTotal || 0;
+    safeSetValue('docTotal', formatCurrencyIDR(docTotal));
+    
+    // Discounted Amount (discSum) - API Field: "docCur" "discSum"
+    const discSum = data.discSum || 0;
+    safeSetValue('discSum', formatCurrencyIDR(discSum));
+    
+    // Sales Amount (netPriceAfterDiscount) - API Field: "docCur" "netPriceAfterDiscount"
+    // Use netPriceAfterDiscount if available, otherwise use netPrice, fallback to docTotal
+    const netPriceAfterDiscount = data.netPriceAfterDiscount !== null && data.netPriceAfterDiscount !== undefined 
+        ? data.netPriceAfterDiscount 
+        : (data.netPrice || data.docTotal || 0);
+    safeSetValue('netPriceAfterDiscount', formatCurrencyIDR(netPriceAfterDiscount));
+    
+    console.log('Summary fields populated:', {
+        docTotal: data.docTotal,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        netPrice: data.netPrice,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
+    });
+    
+    // Tax Base Other Value (dpp1112) - API Field: "docCur" "dpp1112"
+    const dpp1112 = data.dpp1112 || 0;
+    safeSetValue('dpp1112', formatCurrencyIDR(dpp1112));
+    
+    // VAT 12% (vatSum) - API Field: "docCur" "vatSum"
+    const vatSum = data.vatSum || 0;
+    safeSetValue('vatSum', formatCurrencyIDR(vatSum));
+    
+    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
+    const grandTotal = data.grandTotal || data.docTotal || 0;
+    safeSetValue('grandTotal', formatCurrencyIDR(grandTotal));
     
     // Populate comments
     safeSetValue('comments', data.comments || '');
@@ -330,9 +391,21 @@ function populateInvItemData(data) {
     // Apply text wrapping
     refreshTextWrapping();
     
-    // Apply currency formatting to table cells
+    // Apply currency formatting to table cells and summary fields
     setTimeout(() => {
         applyCurrencyFormattingToTable();
+        
+        // Apply currency formatting to summary fields
+        const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+        summaryFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.add('currency-input-idr');
+                if (field.value && field.value !== '0.00') {
+                    formatCurrencyInputIDR(field);
+                }
+            }
+        });
     }, 200);
     
     // Make all fields read-only since this is a receive page
@@ -341,6 +414,24 @@ function populateInvItemData(data) {
     // Save data to storage for print functionality
     if (data.stagingID) {
         saveInvoiceDataToStorage(data.stagingID, data);
+    }
+}
+
+// Function to control attachment section visibility based on approval status
+function toggleAttachmentSectionVisibility(approvalStatus) {
+    console.log('toggleAttachmentSectionVisibility called with status:', approvalStatus);
+    
+    const attachmentSection = document.querySelector('.attachment-section');
+    if (attachmentSection) {
+        if (approvalStatus === 'Received') {
+            attachmentSection.style.display = 'block';
+            console.log('✅ Showing attachment section - Status is Received');
+        } else {
+            attachmentSection.style.display = 'none';
+            console.log('❌ Hiding attachment section - Status is:', approvalStatus);
+        }
+    } else {
+        console.warn('⚠️ Attachment section not found in DOM');
     }
 }
 
@@ -412,7 +503,7 @@ function populateItemsTable(items) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="15" class="p-4 text-center text-gray-500">
+            <td colspan="13" class="p-4 text-center text-gray-500">
                 No invoice details found
             </td>
         `;
@@ -420,23 +511,28 @@ function populateItemsTable(items) {
         return;
     }
     
+    // Populate table with sequential numbering starting from 1
     items.forEach((item, index) => {
         const row = createItemRow(item, index);
         tableBody.appendChild(row);
     });
 }
 
-// Create item row
+// Create item row with sequential numbering
 function createItemRow(item, index) {
     const row = document.createElement('tr');
     row.className = 'border-b';
     
     row.innerHTML = `
         <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.lineNum || index + 1}" disabled autocomplete="off" />
+            <!-- Sequential numbering starting from 1 -->
+            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100 cursor-not-allowed" value="${index + 1}" disabled autocomplete="off" readonly />
         </td>
         <td class="p-2 border item-code-column">
             <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
+        </td>
+        <td class="p-2 border bp-catalog-column">
+            <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.bpCatalog || ''}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
@@ -445,13 +541,16 @@ function createItemRow(item, index) {
             <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
         <td class="p-2 border packing-size-column">
-            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.packingSize || ''}</textarea>
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr2 || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-quantity bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.invQty || ''}</textarea>
+        </td>
+        <td class="p-2 border uom-column" style="display: none;">
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="${item.unitMsr || ''}" />
         </td>
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-sls-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.u_bsi_salprice || ''}</textarea>
@@ -462,11 +561,23 @@ function createItemRow(item, index) {
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
         </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
-        </td>
         <td class="p-2 border h-12 line-total-column">
             <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
+        </td>
+        <td class="p-2 border account-code-column" style="display: none;">
+            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.acctCode || ''}" />
+        </td>
+        <td class="p-2 border base-column" style="display: none;">
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseType || 0}" />
+        </td>
+        <td class="p-2 border base-column" style="display: none;">
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseEntry || 0}" />
+        </td>
+        <td class="p-2 border base-column" style="display: none;">
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.baseLine || 0}" />
+        </td>
+        <td class="p-2 border base-column" style="display: none;">
+            <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.lineType || 0}" />
         </td>
     `;
     
@@ -662,6 +773,26 @@ async function updateInvItemStatus(status, remarks = '') {
 
         const result = await response.json();
         console.log('✅ API Response:', result);
+
+        // Update the current data with the new status
+        if (currentInvItemData && currentInvItemData.arInvoiceApprovalSummary) {
+            currentInvItemData.arInvoiceApprovalSummary.approvalStatus = status;
+            if (status === 'Received') {
+                currentInvItemData.arInvoiceApprovalSummary.receivedBy = getCurrentUserKansaiEmployeeId();
+                currentInvItemData.arInvoiceApprovalSummary.receivedByName = getCurrentUserFullName();
+                currentInvItemData.arInvoiceApprovalSummary.receivedDate = now;
+            } else if (status === 'Rejected') {
+                currentInvItemData.arInvoiceApprovalSummary.rejectedBy = getCurrentUserKansaiEmployeeId();
+                currentInvItemData.arInvoiceApprovalSummary.rejectedByName = getCurrentUserFullName();
+                currentInvItemData.arInvoiceApprovalSummary.rejectedDate = now;
+                if (remarks && remarks.trim() !== '') {
+                    currentInvItemData.arInvoiceApprovalSummary.rejectionRemarks = remarks.trim();
+                }
+            }
+        }
+
+        // Update button visibility based on new status
+        updateButtonVisibility();
 
         // Show success message with confirmation
         const actionText = status === 'Received' ? 'received' : 'rejected';
