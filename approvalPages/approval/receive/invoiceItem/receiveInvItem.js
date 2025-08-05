@@ -238,9 +238,15 @@ function updateButtonVisibility() {
     
     console.log('Current document status:', status);
     
-    // Show buttons based on status
-    if (receiveButton) receiveButton.style.display = 'inline-block';
-    if (rejectButton) rejectButton.style.display = 'inline-block';
+    // Hide Reject and Receive buttons if status is "Received"
+    if (status === 'Received') {
+        if (receiveButton) receiveButton.style.display = 'none';
+        if (rejectButton) rejectButton.style.display = 'none';
+    } else {
+        // Show buttons for other statuses
+        if (receiveButton) receiveButton.style.display = 'inline-block';
+        if (rejectButton) rejectButton.style.display = 'inline-block';
+    }
     
     // Show print button if status is "Received"
     if (printButton) {
@@ -767,6 +773,26 @@ async function updateInvItemStatus(status, remarks = '') {
 
         const result = await response.json();
         console.log('✅ API Response:', result);
+
+        // Update the current data with the new status
+        if (currentInvItemData && currentInvItemData.arInvoiceApprovalSummary) {
+            currentInvItemData.arInvoiceApprovalSummary.approvalStatus = status;
+            if (status === 'Received') {
+                currentInvItemData.arInvoiceApprovalSummary.receivedBy = getCurrentUserKansaiEmployeeId();
+                currentInvItemData.arInvoiceApprovalSummary.receivedByName = getCurrentUserFullName();
+                currentInvItemData.arInvoiceApprovalSummary.receivedDate = now;
+            } else if (status === 'Rejected') {
+                currentInvItemData.arInvoiceApprovalSummary.rejectedBy = getCurrentUserKansaiEmployeeId();
+                currentInvItemData.arInvoiceApprovalSummary.rejectedByName = getCurrentUserFullName();
+                currentInvItemData.arInvoiceApprovalSummary.rejectedDate = now;
+                if (remarks && remarks.trim() !== '') {
+                    currentInvItemData.arInvoiceApprovalSummary.rejectionRemarks = remarks.trim();
+                }
+            }
+        }
+
+        // Update button visibility based on new status
+        updateButtonVisibility();
 
         // Show success message with confirmation
         const actionText = status === 'Received' ? 'received' : 'rejected';
