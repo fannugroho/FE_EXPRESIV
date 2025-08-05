@@ -234,7 +234,7 @@ function updateButtonVisibility() {
     const status = getStatusFromInvoice(currentInvItemData);
     const receiveButton = document.querySelector('button[onclick="receiveInvItem()"]');
     const rejectButton = document.querySelector('button[onclick="rejectInvItem()"]');
-    const printButton = document.getElementById('printButton');
+    const eSignButton = document.getElementById('eSignButton');
     
     console.log('Current document status:', status);
     
@@ -248,12 +248,15 @@ function updateButtonVisibility() {
         if (rejectButton) rejectButton.style.display = 'inline-block';
     }
     
-    // Show print button if status is "Received"
-    if (printButton) {
+    // Print button has been removed from main submit section
+    // Print functionality is now only available in the E-Signing section
+    
+    // Show E-Sign button if status is "Received"
+    if (eSignButton) {
         if (status === 'Received') {
-            printButton.style.display = 'inline-block';
+            eSignButton.style.display = 'inline-block';
         } else {
-            printButton.style.display = 'none';
+            eSignButton.style.display = 'none';
         }
     }
     
