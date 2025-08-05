@@ -1281,6 +1281,7 @@ async function submitReimbursementUpdate() {
 
     // Collect all form data first
     const formData = {
+        voucherNo: document.getElementById('voucherNo').value,
         requesterName: document.getElementById('requesterNameSearch').value,
         department: document.getElementById('department').value,
         currency: document.getElementById('currency').value,
@@ -1387,27 +1388,25 @@ async function submitReimbursementUpdate() {
     }
 
     try {
-        // First, update existing reimbursement details
-        if (existingDetails.length > 0) {
-            console.log('Updating existing reimbursement details...');
-            const updateResponse = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    reimbursementDetails: existingDetails
-                })
-            });
+        // First, update the main reimbursement data and existing details
+        console.log('Updating reimbursement...');
+        const updateResponse = await fetch(`${BASE_URL}/api/reimbursements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...formData,
+                reimbursementDetails: existingDetails
+            })
+        });
 
-            console.log('Update response status:', updateResponse.status);
-            const updateResult = await updateResponse.json();
-            console.log('Update response data:', updateResult);
+        console.log('Update response status:', updateResponse.status);
+        const updateResult = await updateResponse.json();
+        console.log('Update response data:', updateResult);
 
-            if (!updateResult.status || updateResult.code !== 200) {
-                throw new Error(updateResult.message || 'Failed to update existing reimbursement details');
-            }
+        if (!updateResult.status || updateResult.code !== 200) {
+            throw new Error(updateResult.message || 'Failed to update reimbursement');
         }
 
         // Then, add new reimbursement details if any
