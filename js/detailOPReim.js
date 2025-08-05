@@ -857,8 +857,9 @@ async function handleAttachments(result, docId) {
     }
 }
 
+
 /**
- * Handles reimbursement related data
+ * Fixed version for reimbursement data handling
  * @param {Object} result - Document data
  */
 async function handleReimbursementData(result) {
@@ -882,11 +883,11 @@ async function handleReimbursementData(result) {
                     setElementValue('CounterRef', reimResult.data.voucherNo);
                 }
 
-                // Document Date - Always use receivedDate from Reimbursement API
+                // Document Date - Use original method (this was working correctly before)
                 if (reimResult.data.receivedDate) {
                     const formattedDate = new Date(reimResult.data.receivedDate).toISOString().split('T')[0];
                     setElementValue('DocDate', formattedDate);
-                    console.log('✅ DocDate set from Reimbursement receivedDate:', formattedDate);
+                    console.log('✅ DocDate set from Reimbursement receivedDate (original method):', reimResult.data.receivedDate, '→', formattedDate);
                 } else {
                     console.log('⚠️ No receivedDate available from Reimbursement API');
                 }
@@ -898,6 +899,130 @@ async function handleReimbursementData(result) {
         console.warn('Could not fetch reimbursement data:', err);
     }
 }
+
+/**
+ * Safely formats date without timezone issues
+ * @param {string|Date} dateValue - Date value from API
+ * @returns {string} - Formatted date string (YYYY-MM-DD)
+ */
+function formatDateSafely(dateValue) {
+    if (!dateValue) return '';
+    
+    try {
+        let date;
+        
+        // Handle different date formats
+        if (typeof dateValue === 'string') {
+            // If the date already contains time info, parse it carefully
+            if (dateValue.includes('T') || dateValue.includes(' ')) {
+                date = new Date(dateValue);
+            } else {
+                // If it's just a date string (YYYY-MM-DD), treat it as local date
+                const parts = dateValue.split('-');
+                if (parts.length === 3) {
+                    // Create date in local timezone to avoid timezone shift
+                    date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                } else {
+                    date = new Date(dateValue);
+                }
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return '';
+        }
+        
+        // Format safely without timezone conversion
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+        
+    } catch (error) {
+        console.error('Error formatting date:', error, 'Original value:', dateValue);
+        return '';
+    }
+}
+
+/**
+ * Alternative method using local date parts
+ * @param {string|Date} dateValue - Date value from API
+ * @returns {string} - Formatted date string (YYYY-MM-DD)
+ */
+function formatDateLocal(dateValue) {
+    if (!dateValue) return '';
+    
+    try {
+        const date = new Date(dateValue);
+        
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return '';
+        }
+        
+        // Use local date methods to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+        
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '';
+    }
+}
+
+/**
+ * Maps date fields from API response (FIXED VERSION)
+ * @param {Object} data - API response data
+ */
+function mapDateFields(data) {
+    console.log('📅 Date Fields Mapping (Fixed Version):');
+    console.log('- docDate (raw):', data.docDate);
+    console.log('- receivedDate (raw):', data.receivedDate);
+    console.log('- submissionDate (raw):', data.submissionDate);
+    console.log('- docDueDate (raw):', data.docDueDate);
+    console.log('- taxDate (raw):', data.taxDate);
+    console.log('- trsfrDate (raw):', data.trsfrDate);
+
+    // Document Date - Keep the original behavior (don't use formatDateSafely for this field)
+    // It will be handled properly by handleReimbursementData() or use original method
+    const currentDocDate = document.getElementById('DocDate')?.value;
+    if (!currentDocDate) {
+        // Fallback: Use receivedDate from Outgoing Payment API (original method)
+        if (data.receivedDate) {
+            const formattedDate = new Date(data.receivedDate).toISOString().split('T')[0];
+            setElementValue('DocDate', formattedDate);
+            console.log('⚠️ DocDate set from Outgoing Payment receivedDate (fallback):', formattedDate);
+        } else {
+            console.log('⚠️ No receivedDate available from Outgoing Payment API');
+        }
+    } else {
+        console.log('📅 DocDate already set from Reimbursement API:', currentDocDate);
+    }
+
+    // Other date fields using safe formatting (these were problematic before)
+    const dateFields = [
+        { id: 'DocDueDate', value: data.docDueDate, label: 'Due Date' },
+        { id: 'TaxDate', value: data.taxDate, label: 'Tax Date' },
+        { id: 'TrsfrDate', value: data.trsfrDate, label: 'Transfer Date' }
+    ];
+
+    dateFields.forEach(field => {
+        if (field.value) {
+            const formattedDate = formatDateSafely(field.value);
+            setElementValue(field.id, formattedDate);
+            console.log(`✅ ${field.label} formatted:`, field.value, '→', formattedDate);
+        }
+    });
+}
+
 
 /**
  * Loads attachments from API

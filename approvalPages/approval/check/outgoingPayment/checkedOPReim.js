@@ -327,170 +327,6 @@ function getStatusMessage(status) {
     }
 }
 
-// Populate form fields with data
-function populateFormFields(data) {
-    console.log('🔄 Mapping API Response to Form Fields...');
-    console.log('📊 Outgoing Payment API Data received:', data);
-
-    // Helper function to safely set value
-    const setValue = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) el.value = value;
-    };
-
-    // Console log untuk melihat data yang masuk
-    console.log('Data yang masuk ke populateFormFields:', data);
-    console.log('Remittance Request Amount:', data.remittanceRequestAmount);
-
-    // Map header fields
-    console.log('📝 Header Fields Mapping:');
-    console.log('- CounterRef:', data.counterRef);
-    console.log('- RequesterName:', data.requesterName);
-    console.log('- CardName:', data.cardName);
-    console.log('- Address:', data.address);
-    console.log('- DocNum:', data.counterRef || data.docNum);
-    console.log('- JrnlMemo:', data.jrnlMemo);
-    console.log('- DocCurr:', data.docCurr);
-    console.log('- TrsfrAcct:', data.trsfrAcct);
-    console.log('- TrsfrSum:', data.trsfrSum);
-
-    setValue('CounterRef', data.counterRef || '');
-    setValue('RequesterName', data.requesterName || '');
-    setValue('CardName', data.cardName || '');
-    setValue('Address', data.address || '');
-    // DocNum should use counterRef like in detail page
-    setValue('DocNum', data.counterRef || data.docNum || '');
-    setValue('JrnlMemo', data.jrnlMemo || '');
-    setValue('DocCurr', data.docCurr || 'IDR');
-    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
-    setValue('TrsfrAcct', data.trsfrAcct || '');
-    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
-
-    // Map date fields - Document Date will be set from Reimbursement API in handleReimbursementData()
-    // Only set DocDate here if no reimbursement data is available (fallback)
-    console.log('📅 Date Fields Mapping:');
-    console.log('- docDate:', data.docDate);
-    console.log('- receivedDate:', data.receivedDate);
-    console.log('- docDueDate:', data.docDueDate);
-    console.log('- taxDate:', data.taxDate);
-    console.log('- trsfrDate:', data.trsfrDate);
-
-    const currentDocDate = document.getElementById('DocDate')?.value;
-    if (!currentDocDate) {
-        // Fallback: Use receivedDate from Outgoing Payment API if no reimbursement data
-        if (data.receivedDate) {
-            const docDate = new Date(data.receivedDate);
-            setValue('DocDate', docDate.toISOString().split('T')[0]);
-            console.log('⚠️ DocDate set from Outgoing Payment receivedDate (fallback):', docDate.toISOString().split('T')[0]);
-        } else {
-            console.log('⚠️ No receivedDate available from Outgoing Payment API');
-        }
-    } else {
-        console.log('📅 DocDate already set from Reimbursement API:', currentDocDate);
-    }
-
-    // Other date fields
-    if (data.docDueDate) {
-        const docDueDate = new Date(data.docDueDate);
-        setValue('DocDueDate', docDueDate.toISOString().split('T')[0]);
-    }
-    if (data.taxDate) {
-        const taxDate = new Date(data.taxDate);
-        setValue('TaxDate', taxDate.toISOString().split('T')[0]);
-    }
-    if (data.trsfrDate) {
-        const trsfrDate = new Date(data.trsfrDate);
-        setValue('TrsfrDate', trsfrDate.toISOString().split('T')[0]);
-    }
-
-    // Calculate totals from lines
-    console.log('📊 Lines Data:', data.lines);
-    console.log('📊 Lines Count:', data.lines?.length || 0);
-
-    let netTotal = 0;
-    let totalAmountDue = 0;
-    const currencySummary = {};
-
-    if (data.lines && data.lines.length > 0) {
-        data.lines.forEach((line, index) => {
-            console.log(`📋 Line ${index}:`, {
-                acctCode: line.acctCode,
-                acctName: line.acctName,
-                descrip: line.descrip,
-                divisionCode: line.divisionCode,
-                currencyItem: line.CurrencyItem || line.currencyItem,
-                sumApplied: line.sumApplied
-            });
-
-            const amount = line.sumApplied || 0;
-            const currency = line.CurrencyItem || line.currencyItem || 'IDR';
-
-            netTotal += amount;
-            totalAmountDue += amount;
-
-            currencySummary[currency] = (currencySummary[currency] || 0) + amount;
-        });
-    }
-
-    console.log('💰 Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
-
-    // Update total fields
-    setValue('netTotal', formatCurrency(netTotal));
-    setValue('totalTax', formatCurrency(0));
-    setValue('totalAmountDue', formatCurrency(totalAmountDue));
-
-    // Display currency summaries
-    displayCurrencySummary(currencySummary);
-    updateTotalOutstandingTransfers(currencySummary);
-
-    // Map remarks
-    setValue('remarks', data.remarks || '');
-    setValue('journalRemarks', data.journalRemarks || '');
-
-    console.log('📝 Remarks:', data.remarks);
-    console.log('📝 Journal Remarks:', data.journalRemarks);
-
-    // Map approval data
-    console.log('👥 Approval Data:', data.approval);
-    console.log('👥 Approval Status:', data.approval?.approvalStatus);
-
-    if (data.approval) {
-        populateApprovalInfo(data.approval);
-        // Show rejection remarks if status is rejected
-        if (data.approval.approvalStatus === 'Rejected') {
-            const rejSec = document.getElementById('rejectionRemarksSection');
-            const rejTxt = document.getElementById('rejectionRemarks');
-            if (rejSec) rejSec.style.display = 'block';
-            if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
-        }
-        // Display status
-        displayApprovalStatus(data.approval);
-    } else {
-        // If no approval data, show as Prepared
-        displayApprovalStatus({ approvalStatus: 'Prepared' });
-    }
-
-    // Map table lines
-    console.log('📋 Populating Table Lines...');
-    console.log('📋 Total Lines:', data.lines?.length || 0);
-
-    if (data.lines && data.lines.length > 0) {
-        populateTableRows(data.lines);
-    } else {
-        console.log('⚠️ No lines data found');
-    }
-
-    // Handle attachments like detail page
-    handleAttachments(data, documentId);
-
-    // Display Print Out Reimbursement document
-    displayPrintOutReimbursement(data);
-
-    // Handle reimbursement data if exists
-    handleReimbursementData(data);
-
-    console.log('✅ Form mapping completed successfully!');
-}
 
 // Function to display approval status with select dropdown
 function displayApprovalStatus(approval) {
@@ -847,53 +683,6 @@ async function handleAttachments(result, docId) {
     } else {
         console.log('📎 No attachments in main response, trying API endpoint');
         await loadAttachmentsFromAPI(docId);
-    }
-}
-
-// Handle reimbursement related data
-async function handleReimbursementData(result) {
-    if (!result.expressivNo) return;
-
-    console.log('🔄 Fetching reimbursement data for:', result.expressivNo);
-
-    try {
-        const reimResponse = await makeAuthenticatedRequest(`/api/reimbursements/${result.expressivNo}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (reimResponse.ok) {
-            const reimResult = await reimResponse.json();
-            console.log('📋 Reimbursement API Response:', reimResult);
-
-            if (reimResult?.data) {
-                // Update CounterRef from reimbursement data
-                if (reimResult.data.voucherNo) {
-                    const setValue = (id, value) => {
-                        const el = document.getElementById(id);
-                        if (el) el.value = value;
-                    };
-                    setValue('CounterRef', reimResult.data.voucherNo);
-                }
-
-                // Document Date - Always use receivedDate from Reimbursement API
-                if (reimResult.data.receivedDate) {
-                    const formattedDate = new Date(reimResult.data.receivedDate).toISOString().split('T')[0];
-                    const setValue = (id, value) => {
-                        const el = document.getElementById(id);
-                        if (el) el.value = value;
-                    };
-                    setValue('DocDate', formattedDate);
-                    console.log('✅ DocDate set from Reimbursement receivedDate:', formattedDate);
-                } else {
-                    console.log('⚠️ No receivedDate available from Reimbursement API');
-                }
-            }
-        }
-
-        await loadReimbursementAttachments(result.expressivNo);
-    } catch (err) {
-        console.warn('Could not fetch reimbursement data:', err);
     }
 }
 
@@ -1999,3 +1788,268 @@ function getUserInfo() {
 
     return { name: userName, role: userRole };
 } 
+
+
+/**
+ * Safely formats date without timezone issues - FOR CHECKED OPREIM
+ * @param {string|Date} dateValue - Date value from API
+ * @returns {string} - Formatted date string (YYYY-MM-DD)
+ */
+function formatDateSafely(dateValue) {
+    if (!dateValue) return '';
+    
+    try {
+        let date;
+        
+        // Handle different date formats
+        if (typeof dateValue === 'string') {
+            // If the date already contains time info, parse it carefully
+            if (dateValue.includes('T') || dateValue.includes(' ')) {
+                date = new Date(dateValue);
+            } else {
+                // If it's just a date string (YYYY-MM-DD), treat it as local date
+                const parts = dateValue.split('-');
+                if (parts.length === 3) {
+                    // Create date in local timezone to avoid timezone shift
+                    date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                } else {
+                    date = new Date(dateValue);
+                }
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return '';
+        }
+        
+        // Format safely without timezone conversion
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+        
+    } catch (error) {
+        console.error('Error formatting date:', error, 'Original value:', dateValue);
+        return '';
+    }
+}
+
+// Populate form fields with data - FIXED VERSION
+function populateFormFields(data) {
+    console.log('🔄 Mapping API Response to Form Fields...');
+    console.log('📊 Outgoing Payment API Data received:', data);
+
+    // Helper function to safely set value
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    // Console log untuk melihat data yang masuk
+    console.log('Data yang masuk ke populateFormFields:', data);
+    console.log('Remittance Request Amount:', data.remittanceRequestAmount);
+
+    // Map header fields
+    console.log('📝 Header Fields Mapping:');
+    console.log('- CounterRef:', data.counterRef);
+    console.log('- RequesterName:', data.requesterName);
+    console.log('- CardName:', data.cardName);
+    console.log('- Address:', data.address);
+    console.log('- DocNum:', data.counterRef || data.docNum);
+    console.log('- JrnlMemo:', data.jrnlMemo);
+    console.log('- DocCurr:', data.docCurr);
+    console.log('- TrsfrAcct:', data.trsfrAcct);
+    console.log('- TrsfrSum:', data.trsfrSum);
+
+    setValue('CounterRef', data.counterRef || '');
+    setValue('RequesterName', data.requesterName || '');
+    setValue('CardName', data.cardName || '');
+    setValue('Address', data.address || '');
+    // DocNum should use counterRef like in detail page
+    setValue('DocNum', data.counterRef || data.docNum || '');
+    setValue('JrnlMemo', data.jrnlMemo || '');
+    setValue('DocCurr', data.docCurr || 'IDR');
+    setValue('RemittanceRequestAmount', formatCurrency(data.remittanceRequestAmount || 0));
+    setValue('TrsfrAcct', data.trsfrAcct || '');
+    setValue('TrsfrSum', formatCurrency(data.trsfrSum || 0));
+
+    // Map date fields - FIXED VERSION
+    console.log('📅 Date Fields Mapping (Fixed Version):');
+    console.log('- docDate (raw):', data.docDate);
+    console.log('- receivedDate (raw):', data.receivedDate);
+    console.log('- docDueDate (raw):', data.docDueDate);
+    console.log('- taxDate (raw):', data.taxDate);
+    console.log('- trsfrDate (raw):', data.trsfrDate);
+
+    // Document Date - Keep original behavior (will be handled by handleReimbursementData)
+    const currentDocDate = document.getElementById('DocDate')?.value;
+    if (!currentDocDate) {
+        // Fallback: Use receivedDate from Outgoing Payment API (original method for this field)
+        if (data.receivedDate) {
+            const docDate = new Date(data.receivedDate);
+            setValue('DocDate', docDate.toISOString().split('T')[0]);
+            console.log('⚠️ DocDate set from Outgoing Payment receivedDate (fallback):', docDate.toISOString().split('T')[0]);
+        } else {
+            console.log('⚠️ No receivedDate available from Outgoing Payment API');
+        }
+    } else {
+        console.log('📅 DocDate already set from Reimbursement API:', currentDocDate);
+    }
+
+    // Other date fields - USE SAFE FORMATTING
+    if (data.docDueDate) {
+        const formattedDate = formatDateSafely(data.docDueDate);
+        setValue('DocDueDate', formattedDate);
+        console.log('✅ DocDueDate formatted:', data.docDueDate, '→', formattedDate);
+    }
+    if (data.taxDate) {
+        const formattedDate = formatDateSafely(data.taxDate);
+        setValue('TaxDate', formattedDate);
+        console.log('✅ TaxDate formatted:', data.taxDate, '→', formattedDate);
+    }
+    if (data.trsfrDate) {
+        const formattedDate = formatDateSafely(data.trsfrDate);
+        setValue('TrsfrDate', formattedDate);
+        console.log('✅ TrsfrDate formatted:', data.trsfrDate, '→', formattedDate);
+    }
+
+    // Calculate totals from lines
+    console.log('📊 Lines Data:', data.lines);
+    console.log('📊 Lines Count:', data.lines?.length || 0);
+
+    let netTotal = 0;
+    let totalAmountDue = 0;
+    const currencySummary = {};
+
+    if (data.lines && data.lines.length > 0) {
+        data.lines.forEach((line, index) => {
+            console.log(`📋 Line ${index}:`, {
+                acctCode: line.acctCode,
+                acctName: line.acctName,
+                descrip: line.descrip,
+                divisionCode: line.divisionCode,
+                currencyItem: line.CurrencyItem || line.currencyItem,
+                sumApplied: line.sumApplied
+            });
+
+            const amount = line.sumApplied || 0;
+            const currency = line.CurrencyItem || line.currencyItem || 'IDR';
+
+            netTotal += amount;
+            totalAmountDue += amount;
+
+            currencySummary[currency] = (currencySummary[currency] || 0) + amount;
+        });
+    }
+
+    console.log('💰 Totals Calculation:', { netTotal, totalAmountDue, currencySummary });
+
+    // Update total fields
+    setValue('netTotal', formatCurrency(netTotal));
+    setValue('totalTax', formatCurrency(0));
+    setValue('totalAmountDue', formatCurrency(totalAmountDue));
+
+    // Display currency summaries
+    displayCurrencySummary(currencySummary);
+    updateTotalOutstandingTransfers(currencySummary);
+
+    // Map remarks
+    setValue('remarks', data.remarks || '');
+    setValue('journalRemarks', data.journalRemarks || '');
+
+    console.log('📝 Remarks:', data.remarks);
+    console.log('📝 Journal Remarks:', data.journalRemarks);
+
+    // Map approval data
+    console.log('👥 Approval Data:', data.approval);
+    console.log('👥 Approval Status:', data.approval?.approvalStatus);
+
+    if (data.approval) {
+        populateApprovalInfo(data.approval);
+        // Show rejection remarks if status is rejected
+        if (data.approval.approvalStatus === 'Rejected') {
+            const rejSec = document.getElementById('rejectionRemarksSection');
+            const rejTxt = document.getElementById('rejectionRemarks');
+            if (rejSec) rejSec.style.display = 'block';
+            if (rejTxt) rejTxt.value = data.approval.rejectionRemarks || '';
+        }
+        // Display status
+        displayApprovalStatus(data.approval);
+    } else {
+        // If no approval data, show as Prepared
+        displayApprovalStatus({ approvalStatus: 'Prepared' });
+    }
+
+    // Map table lines
+    console.log('📋 Populating Table Lines...');
+    console.log('📋 Total Lines:', data.lines?.length || 0);
+
+    if (data.lines && data.lines.length > 0) {
+        populateTableRows(data.lines);
+    } else {
+        console.log('⚠️ No lines data found');
+    }
+
+    // Handle attachments like detail page
+    handleAttachments(data, documentId);
+
+    // Display Print Out Reimbursement document
+    displayPrintOutReimbursement(data);
+
+    // Handle reimbursement data if exists
+    handleReimbursementData(data);
+
+    console.log('✅ Form mapping completed successfully!');
+}
+
+// Handle reimbursement related data - FIXED VERSION
+async function handleReimbursementData(result) {
+    if (!result.expressivNo) return;
+
+    console.log('🔄 Fetching reimbursement data for:', result.expressivNo);
+
+    try {
+        const reimResponse = await makeAuthenticatedRequest(`/api/reimbursements/${result.expressivNo}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (reimResponse.ok) {
+            const reimResult = await reimResponse.json();
+            console.log('📋 Reimbursement API Response:', reimResult);
+
+            if (reimResult?.data) {
+                // Update CounterRef from reimbursement data
+                if (reimResult.data.voucherNo) {
+                    const setValue = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value;
+                    };
+                    setValue('CounterRef', reimResult.data.voucherNo);
+                }
+
+                // Document Date - Use original method (this was working correctly before)
+                if (reimResult.data.receivedDate) {
+                    const formattedDate = new Date(reimResult.data.receivedDate).toISOString().split('T')[0];
+                    const setValue = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value;
+                    };
+                    setValue('DocDate', formattedDate);
+                    console.log('✅ DocDate set from Reimbursement receivedDate (original method):', formattedDate);
+                } else {
+                    console.log('⚠️ No receivedDate available from Reimbursement API');
+                }
+            }
+        }
+
+        await loadReimbursementAttachments(result.expressivNo);
+    } catch (err) {
+        console.warn('Could not fetch reimbursement data:', err);
+    }
+}
