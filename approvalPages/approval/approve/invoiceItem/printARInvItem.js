@@ -190,10 +190,45 @@ function populateInvoiceData(invoice) {
     
     // Invoice details - map from new API structure to print page structure
     document.getElementById('invoiceNumber').textContent = invoice.u_bsi_invnum || invoice.docNum || '';
-    document.getElementById('visionInvoiceNumber').textContent = invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '';
+    // Handle Vision Invoice Number - hide if visInv is null/empty
+    const visionInvoiceElement = document.getElementById('visionInvoiceNumber');
+    const visInvValue = invoice.visInv;
+    
+    if (visInvValue && visInvValue.trim() !== '') {
+        // Show the field and populate with visInv value
+        visionInvoiceElement.textContent = visInvValue;
+        visionInvoiceElement.closest('.invoice-field').style.display = 'block';
+    } else {
+        // Hide the entire field if visInv is null/empty/whitespace
+        visionInvoiceElement.closest('.invoice-field').style.display = 'none';
+    }
     document.getElementById('invoiceDate').textContent = formatDate(invoice.docDate);
-    document.getElementById('npwp').textContent = invoice.licTradNum || '';
-    document.getElementById('dueDate').textContent = formatDate(invoice.docDueDate || invoice.docDate);
+    // Handle NPWP with multiple values
+    const npwpElement = document.getElementById('npwp');
+    if (invoice.licTradNum) {
+        const npwpValues = Array.isArray(invoice.licTradNum) ? invoice.licTradNum : [invoice.licTradNum];
+        if (npwpValues.length > 1) {
+            npwpElement.className = 'field-value multiple';
+            npwpElement.innerHTML = npwpValues.map(npwp => `<div class="data-item">${npwp}</div>`).join('');
+        } else {
+            npwpElement.className = 'field-value';
+            npwpElement.textContent = npwpValues[0];
+        }
+    } else {
+        npwpElement.className = 'field-value';
+        npwpElement.textContent = '';
+    }
+
+    // Handle Due Date with multiple values
+    const dueDateElement = document.getElementById('dueDate');
+    const dueDateValue = formatDate(invoice.docDueDate || invoice.docDate);
+    if (dueDateValue) {
+        dueDateElement.className = 'field-value';
+        dueDateElement.textContent = dueDateValue;
+    } else {
+        dueDateElement.className = 'field-value';
+        dueDateElement.textContent = '';
+    }
     
     // Recipient information
     document.getElementById('recipientName').textContent = invoice.cardName || '';
@@ -215,9 +250,53 @@ function populateInvoiceData(invoice) {
     // Shipper information
     document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
     
-    // Order numbers - use numAtCard for both DO and PO numbers
-    document.getElementById('doNumbers').textContent = invoice.numAtCard || '';
-    document.getElementById('poNumbers').textContent = invoice.numAtCard || '';
+    // Order numbers - use specific fields for DO and PO numbers
+    const doNumbersElement = document.getElementById('doNumbers');
+    if (invoice.u_bsi_udf1) {
+        const doValues = Array.isArray(invoice.u_bsi_udf1) ? invoice.u_bsi_udf1 : [invoice.u_bsi_udf1];
+        if (doValues.length > 1) {
+            doNumbersElement.className = 'field-value multiple';
+            // Group values into rows of 3 with proper formatting
+            const rows = [];
+            for (let i = 0; i < doValues.length; i += 3) {
+                const row = doValues.slice(i, i + 3);
+                const isLastRow = i + 3 >= doValues.length;
+                const separator = isLastRow ? '.' : ',';
+                rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
+            }
+            doNumbersElement.innerHTML = rows.join('');
+        } else {
+            doNumbersElement.className = 'field-value';
+            doNumbersElement.textContent = doValues[0] + '.';
+        }
+    } else {
+        doNumbersElement.className = 'field-value';
+        doNumbersElement.textContent = '';
+    }
+    
+    // Handle P/O NO with multiple values
+    const poNumbersElement = document.getElementById('poNumbers');
+    if (invoice.u_bsi_udf2) {
+        const poValues = Array.isArray(invoice.u_bsi_udf2) ? invoice.u_bsi_udf2 : [invoice.u_bsi_udf2];
+        if (poValues.length > 1) {
+            poNumbersElement.className = 'field-value multiple';
+            // Group values into rows of 3 with proper formatting
+            const rows = [];
+            for (let i = 0; i < poValues.length; i += 3) {
+                const row = poValues.slice(i, i + 3);
+                const isLastRow = i + 3 >= poValues.length;
+                const separator = isLastRow ? '.' : ',';
+                rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
+            }
+            poNumbersElement.innerHTML = rows.join('');
+        } else {
+            poNumbersElement.className = 'field-value';
+            poNumbersElement.textContent = poValues[0] + '.';
+        }
+    } else {
+        poNumbersElement.className = 'field-value';
+        poNumbersElement.textContent = '';
+    }
     
     // Items table - convert from new API structure to print page structure
     const printItems = convertItemsForPrint(invoice.arInvoiceDetails || []);
@@ -714,7 +793,7 @@ function populateQRCode(invoice) {
         return;
     }
     
-    // Check if qrCodeSrc is available and not null from API
+    // Check if qrCodeSrc is available and not null/empty from API
     if (invoice.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log('QR Code source found:', invoice.qrCodeSrc);
         
@@ -762,42 +841,9 @@ function populateQRCode(invoice) {
         
         console.log('QR Code image set successfully');
     } else {
-        // Generate a default QR code with invoice number if available
-        if (invoice.u_bsi_invnum || invoice.docNum) {
-            const invoiceNumber = invoice.u_bsi_invnum || invoice.docNum;
-            console.log('Generating default QR code with invoice number:', invoiceNumber);
-            
-            // Use external QR code API with invoice number
-            const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
-            const params = new URLSearchParams({
-                size: '200x200',
-                data: `Invoice: ${invoiceNumber}`,
-                format: 'png',
-                margin: '0',
-                error_correction: 'M'
-            });
-            
-            const fullUrl = apiUrl + '?' + params.toString();
-            
-            // Create QR code image
-            const qrImage = document.createElement('img');
-            qrImage.src = fullUrl;
-            qrImage.alt = 'QR Code';
-            qrImage.style.width = '100%';
-            qrImage.style.height = '100%';
-            qrImage.style.objectFit = 'contain';
-            
-            // Clear existing content and add image
-            qrCodeElement.innerHTML = '';
-            qrCodeElement.appendChild(qrImage);
-            
-            // Show QR code element
-            qrCodeElement.style.display = 'flex';
-        } else {
-            // Hide QR code element if no data is available
-            console.log('No QR code data available, hiding QR code element');
+        // Hide QR code element if qrCodeSrc is null/empty
+        console.log('QR Code source is null/empty, hiding QR code element');
         qrCodeElement.style.display = 'none';
-        }
     }
 }
 
@@ -811,7 +857,7 @@ function populateQRCodeForPage(invoice, pageNum) {
         return;
     }
     
-    // Check if qrCodeSrc is available and not null from API
+    // Check if qrCodeSrc is available and not null/empty from API
     if (invoice?.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log(`QR Code source found for page ${pageNum}:`, invoice.qrCodeSrc);
         
@@ -859,42 +905,9 @@ function populateQRCodeForPage(invoice, pageNum) {
         
         console.log(`QR Code image set successfully for page ${pageNum}`);
     } else {
-        // Generate a default QR code with invoice number if available
-        if (invoice?.u_bsi_invnum || invoice?.docNum) {
-            const invoiceNumber = invoice.u_bsi_invnum || invoice.docNum;
-            console.log(`Generating default QR code with invoice number for page ${pageNum}:`, invoiceNumber);
-            
-            // Use external QR code API with invoice number
-            const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
-            const params = new URLSearchParams({
-                size: '200x200',
-                data: `Invoice: ${invoiceNumber}`,
-                format: 'png',
-                margin: '0',
-                error_correction: 'M'
-            });
-            
-            const fullUrl = apiUrl + '?' + params.toString();
-            
-            // Create QR code image
-            const qrImage = document.createElement('img');
-            qrImage.src = fullUrl;
-            qrImage.alt = 'QR Code';
-            qrImage.style.width = '100%';
-            qrImage.style.height = '100%';
-            qrImage.style.objectFit = 'contain';
-            
-            // Clear existing content and add image
-            qrCodeElement.innerHTML = '';
-            qrCodeElement.appendChild(qrImage);
-            
-            // Show QR code element
-            qrCodeElement.style.display = 'flex';
-        } else {
-            // Hide QR code element if no data is available
-            console.log(`No QR code data available for page ${pageNum}, hiding QR code element`);
+        // Hide QR code element if qrCodeSrc is null/empty
+        console.log(`QR Code source is null/empty for page ${pageNum}, hiding QR code element`);
         qrCodeElement.style.display = 'none';
-        }
     }
 }
 
@@ -1143,7 +1156,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 </div>
             </div>
             <div class="generated-by">
-                <div>Generated by Expressiv</div>
+                <div>Generated by Expressiv System</div>
             </div>
         `;
     }

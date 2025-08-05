@@ -212,18 +212,74 @@ async function loadInvItemFromAPI(stagingId) {
 
 // Update button visibility based on document status
 function updateButtonVisibility() {
-    if (!currentInvItemData) return;
+    if (!currentInvItemData) {
+        console.log('No current invoice data available for button visibility update');
+        return;
+    }
     
     const status = getStatusFromInvoice(currentInvItemData);
-    const approveButton = document.querySelector('button[onclick="approveInvItem()"]');
-    const rejectButton = document.querySelector('button[onclick="rejectInvItem()"]');
+    const actionButtonsContainer = document.getElementById('actionButtonsContainer');
+    const approveButton = document.getElementById('approveButton');
+    const rejectButton = document.getElementById('rejectButton');
+    const printButton = document.getElementById('printButton');
     
     console.log('Current document status:', status);
+    console.log('Available buttons:', {
+        actionButtonsContainer: !!actionButtonsContainer,
+        approveButton: !!approveButton,
+        rejectButton: !!rejectButton,
+        printButton: !!printButton
+    });
     
-    // Always show buttons regardless of status
-    if (approveButton) approveButton.style.display = 'inline-block';
-    if (rejectButton) rejectButton.style.display = 'inline-block';
-    console.log('Buttons always shown regardless of status');
+    // Show the action buttons container
+    if (actionButtonsContainer) {
+        actionButtonsContainer.style.display = 'flex';
+        console.log('Action buttons container displayed');
+    }
+    
+    // Hide all buttons first
+    if (approveButton) approveButton.style.display = 'none';
+    if (rejectButton) rejectButton.style.display = 'none';
+    if (printButton) printButton.style.display = 'none';
+    console.log('All buttons hidden initially');
+    
+    // Show buttons based on status
+    if (status === 'Approved' || status === 'Received') {
+        // For approved/received documents, only show print button
+        if (printButton) {
+            printButton.style.display = 'inline-block';
+            console.log('Print button shown for approved/received document (status:', status, ')');
+        } else {
+            console.warn('Print button not found in DOM');
+        }
+        console.log('Approve and Reject buttons hidden for approved/received document');
+    } else if (status === 'Rejected') {
+        // For rejected documents, show print button and reject button (for re-rejection)
+        if (printButton) {
+            printButton.style.display = 'inline-block';
+            console.log('Print button shown for rejected document (status:', status, ')');
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'inline-block';
+            console.log('Reject button shown for rejected document (status:', status, ')');
+        }
+        console.log('Approve button hidden for rejected document');
+    } else {
+        // For other statuses (Draft, Prepared, Acknowledged, Checked), show approve and reject buttons, hide print button
+        if (approveButton) {
+            approveButton.style.display = 'inline-block';
+            console.log('Approve button shown for non-approved/received document (status:', status, ')');
+        } else {
+            console.warn('Approve button not found in DOM');
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'inline-block';
+            console.log('Reject button shown for non-approved/received document (status:', status, ')');
+        } else {
+            console.warn('Reject button not found in DOM');
+        }
+        console.log('Print button hidden for non-approved/received document');
+    }
 }
 
 // Populate invoice item data in the form
@@ -263,9 +319,9 @@ function populateInvItemData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-    safeSetValue('TaxNo', data.taxNo || '');
-    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+            safeSetValue('TaxNo', data.licTradNum || '');
+        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
@@ -278,10 +334,45 @@ function populateInvItemData(data) {
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
     
-    // Populate totals
-    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
-    safeSetValue('VatSum', data.vatSum || 0);
-    safeSetValue('DocTotal', data.docTotal || 0);
+    // Populate summary fields with currency formatting
+    const docCur = data.docCur || 'IDR';
+    
+    // Total Amount (docTotal) - API Field: "docCur" "docTotal"
+    const docTotal = data.docTotal || 0;
+    safeSetValue('docTotal', formatCurrencyIDR(docTotal));
+    
+    // Discounted Amount (discSum) - API Field: "docCur" "discSum"
+    const discSum = data.discSum || 0;
+    safeSetValue('discSum', formatCurrencyIDR(discSum));
+    
+    // Sales Amount (netPriceAfterDiscount) - API Field: "docCur" "netPriceAfterDiscount"
+    // Use netPriceAfterDiscount if available, otherwise use netPrice, fallback to docTotal
+    const netPriceAfterDiscount = data.netPriceAfterDiscount !== null && data.netPriceAfterDiscount !== undefined 
+        ? data.netPriceAfterDiscount 
+        : (data.netPrice || data.docTotal || 0);
+    safeSetValue('netPriceAfterDiscount', formatCurrencyIDR(netPriceAfterDiscount));
+    
+    console.log('Summary fields populated:', {
+        docTotal: data.docTotal,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        netPrice: data.netPrice,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
+    });
+    
+    // Tax Base Other Value (dpp1112) - API Field: "docCur" "dpp1112"
+    const dpp1112 = data.dpp1112 || 0;
+    safeSetValue('dpp1112', formatCurrencyIDR(dpp1112));
+    
+    // VAT 12% (vatSum) - API Field: "docCur" "vatSum"
+    const vatSum = data.vatSum || 0;
+    safeSetValue('vatSum', formatCurrencyIDR(vatSum));
+    
+    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
+    const grandTotal = data.grandTotal || data.docTotal || 0;
+    safeSetValue('grandTotal', formatCurrencyIDR(grandTotal));
     
     // Populate comments
     safeSetValue('comments', data.comments || '');
@@ -290,11 +381,11 @@ function populateInvItemData(data) {
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        safeSetValue('preparedBySearch', data.arInvoiceApprovalSummary.preparedByName || '');
-        safeSetValue('acknowledgeBySearch', data.arInvoiceApprovalSummary.acknowledgedByName || '');
-        safeSetValue('checkedBySearch', data.arInvoiceApprovalSummary.checkedByName || '');
-        safeSetValue('approvedBySearch', data.arInvoiceApprovalSummary.approvedByName || '');
-        safeSetValue('receivedBySearch', data.arInvoiceApprovalSummary.receivedByName || '');
+        safeSetValue('preparedByName', data.arInvoiceApprovalSummary.preparedByName || '');
+        safeSetValue('acknowledgeByName', data.arInvoiceApprovalSummary.acknowledgedByName || '');
+        safeSetValue('checkedByName', data.arInvoiceApprovalSummary.checkedByName || '');
+        safeSetValue('approvedByName', data.arInvoiceApprovalSummary.approvedByName || '');
+        safeSetValue('receivedByName', data.arInvoiceApprovalSummary.receivedByName || '');
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -318,6 +409,23 @@ function populateInvItemData(data) {
     
     // Apply text wrapping
     refreshTextWrapping();
+    
+    // Apply currency formatting to table cells and summary fields
+    setTimeout(() => {
+        applyCurrencyFormattingToTable();
+        
+        // Apply currency formatting to summary fields
+        const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+        summaryFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.add('currency-input-idr');
+                if (field.value && field.value !== '0.00') {
+                    formatCurrencyInputIDR(field);
+                }
+            }
+        });
+    }, 200);
 }
 
 // Helper function to determine status from invoice data
@@ -409,19 +517,22 @@ function createItemRow(item, index) {
     
     row.innerHTML = `
         <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.lineNum || index + 1}" disabled autocomplete="off" />
+            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${index + 1}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border item-code-column">
             <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
         </td>
+        <td class="p-2 border bp-catalog-column">
+            <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.bpCatalog || ''}" disabled autocomplete="off" />
+        </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
-        <td class="p-2 border description-column">
-            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.text || ''}</textarea>
+        <td class="p-2 border uom-column">
+            <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
-        <td class="p-2 border sales-employee-column">
-            <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
+        <td class="p-2 border packing-size-column">
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr2 || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
@@ -438,14 +549,8 @@ function createItemRow(item, index) {
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.priceBefDi || ''}</textarea>
         </td>
-        <td class="p-2 border discount-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.discount || ''}" />
-        </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
-        </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
         </td>
         <td class="p-2 border h-12 line-total-column">
             <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
@@ -703,7 +808,7 @@ function refreshTextWrapping() {
 
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
-    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .sales-employee-column textarea');
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
     
     textElements.forEach(element => {
         handleTextWrapping(element);
@@ -783,6 +888,169 @@ function printInvoice() {
     window.open(printUrl, '_blank');
     
     console.log('Opening print page with identifier:', identifier);
+}
+
+// Currency formatting functions
+function formatCurrencyIDR(number) {
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    let num;
+    try {
+        if (typeof number === 'string') {
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            if (cleanedStr.length > 15) {
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number);
+        }
+        
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    const maxAmount = 100000000000000;
+    if (num > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        num = maxAmount;
+    }
+    
+    if (num >= 1e12) {
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        return result + '.00';
+    } else {
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+function formatCurrencyInputIDR(input) {
+    // Change input type to text for currency formatting
+    if (input.type === 'number') {
+        input.type = 'text';
+    }
+    
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const numValue = parseCurrencyIDR(value);
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    input.value = formattedValue;
+    
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
+// Apply currency formatting to table cells
+function applyCurrencyFormattingToTable() {
+    // Format Price per UoM columns
+    const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+    pricePerUoMInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Price per Unit columns
+    const pricePerUnitInputs = document.querySelectorAll('.item-price');
+    pricePerUnitInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Amount columns
+    const amountInputs = document.querySelectorAll('.item-line-total');
+    amountInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format summary fields
+    const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.add('currency-input-idr');
+            field.addEventListener('input', function() {
+                formatCurrencyInputIDR(this);
+            });
+            if (field.value) {
+                formatCurrencyInputIDR(field);
+            } else {
+                field.value = '0.00';
+            }
+        }
+    });
 }
 
 // Export functions for global access

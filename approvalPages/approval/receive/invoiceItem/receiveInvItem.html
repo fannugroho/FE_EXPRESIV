@@ -67,23 +67,23 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
         /* Custom width for line total column */
         .line-total-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .line-total-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -97,6 +97,11 @@
         .account-code-column {
             width: 120px !important;
             min-width: 120px !important;
+        }
+        
+        /* Account Code column - left aligned */
+        .account-code-column input {
+            text-align: left !important;
         }
         
         /* Custom width for Account Name column */
@@ -131,6 +136,17 @@
         .no-input {
             width: 50px !important;
             text-align: center;
+            font-weight: 500 !important;
+            color: #374151 !important;
+        }
+        
+        /* Line number input styling */
+        .line-num-input {
+            text-align: center !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
+            background-color: #f9fafb !important;
+            border: 1px solid #d1d5db !important;
         }
         
         /* Custom width for Item Code column */
@@ -141,6 +157,21 @@
         
         .item-code-input {
             width: 120px !important;
+        }
+        
+        /* Custom width for BP Catalog column */
+        .bp-catalog-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .bp-catalog-input {
+            width: 100px !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
+            text-align: left !important;
         }
         
         /* Custom width for UoM column */
@@ -155,16 +186,15 @@
             min-width: 80px !important;
         }
         
-        /* Custom width for Tax Code column */
-        .tax-code-column {
-            width: 100px !important;
-            min-width: 100px !important;
+        /* Base columns - center aligned */
+        .base-column input {
+            text-align: center !important;
         }
         
-        /* Custom width for Wtax Liable column */
-        .wtax-liable-column {
-            width: 100px !important;
-            min-width: 100px !important;
+        /* Custom width for Tax Code column */
+        .tax-code-column {
+            width: 80px !important;
+            min-width: 80px !important;
         }
         
         /* Custom width for Discount column */
@@ -261,18 +291,19 @@
         }
         
         /* Table container with horizontal scroll for better responsiveness */
+        /* Note: Removed height restrictions to display all documents without scrollbar */
         .table-container {
             overflow-x: auto;
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-height: 400px;
-            overflow-y: auto;
+            overflow-y: visible;
+            max-height: none !important;
         }
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
-            min-width: 1000px;
+            min-width: 1100px;
             table-layout: fixed;
         }
         
@@ -296,12 +327,17 @@
             background: #a8a8a8;
         }
         
-        /* Sticky header for better UX */
+        /* Table header styling */
         #arInvTable thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background: #f3f4f6;
+            z-index: 10;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
         }
         
         /* Better spacing for table cells */
@@ -314,6 +350,36 @@
             vertical-align: middle !important;
         }
         
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity and price textarea */
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .item-price,
+        .item-line-total {
+            text-align: right !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+        
         /* Ensure textarea content is properly displayed */
         .table-container textarea {
             white-space: pre-wrap;
@@ -324,25 +390,103 @@
             vertical-align: middle;
         }
         
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
         /* Text alignment for different column types */
         /* No. column - center aligned */
         .no-column input {
             text-align: center !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
         }
         
-        /* Description column - left aligned */
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
         .description-column textarea {
             text-align: left !important;
         }
         
-        /* Account Code column - left aligned */
-        .account-code-column input {
-            text-align: left !important;
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
         }
         
-        /* Account Name column - left aligned */
-        .account-name-column input {
-            text-align: left !important;
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+        
+        /* Conditional scrollbar for price and amount columns */
+        .price-column textarea.has-scroll,
+        .line-total-column textarea.has-scroll {
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+        }
+        
+        /* Custom scrollbar styling for price and amount columns */
+        .price-column textarea::-webkit-scrollbar,
+        .line-total-column textarea::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-track,
+        .line-total-column textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-thumb,
+        .line-total-column textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-thumb:hover,
+        .line-total-column textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         /* Tax code column - center aligned */
@@ -350,19 +494,25 @@
             text-align: center !important;
         }
         
-        /* WTax Liable column - center aligned */
-        .wtax-liable-column input {
+        /* Packing Size column - center aligned */
+        .packing-size-column textarea {
             text-align: center !important;
         }
         
-        /* Total LC column - right aligned */
-        .total-lc-column input {
-            text-align: right !important;
+        /* Custom width for Packing Size column */
+        .packing-size-column {
+            width: 100px !important;
+            min-width: 100px !important;
         }
         
-        /* Source column - center aligned */
-        .source-column input {
-            text-align: center !important;
+        .packing-size-input {
+            width: 80px !important;
+            text-align: center;
+        }
+        
+        /* Add visual indicator for scrollable content */
+        .table-container textarea.has-scroll {
+            border-right: 2px solid #3b82f6;
         }
         
         /* Improve table row appearance */
@@ -399,11 +549,65 @@
             max-height: 60px !important;
         }
         
+        /* Consistent input and textarea styling */
+        #arInvTable input,
+        #arInvTable textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            vertical-align: middle;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Remove any conflicting styles */
+        .item-description,
+        .item-free-txt,
+        .item-sales-employee,
+        .item-sls-qty,
+        .item-quantity,
+        .item-sls-price,
+        .item-price,
+        .item-line-total {
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 1400px) {
             .description-column {
                 width: 200px !important;
                 min-width: 200px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .price-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .line-total-column {
+                width: 150px !important;
+                min-width: 150px !important;
             }
             
             .account-name-column {
@@ -415,6 +619,313 @@
                 width: 100px !important;
                 min-width: 100px !important;
             }
+        }
+        
+        /* Attachment section styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-container:hover {
+            border-color: #d1d5db;
+            background-color: #f3f4f6;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-icon {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        
+        .file-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+        
+        .attachment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-download {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-preview {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Loading state styles */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #10b981;
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        .notification.warning {
+            background-color: #f59e0b;
+        }
+        
+        .notification.info {
+            background-color: #3b82f6;
+        }
+        
+        /* Focus management styles */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        .focus-visible:focus {
+            outline: none;
+        }
+        
+        /* Attachment list container styling */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .loading-spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        /* Ensure attachment items have proper spacing */
+        .attachment-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Improve button styling for attachment actions */
+        .attachment-actions .btn-download,
+        .attachment-actions .btn-preview {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .attachment-actions .btn-download {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .attachment-actions .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .attachment-actions .btn-preview {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .attachment-actions .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .attachment-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .attachment-header {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .attachment-header svg {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .timer-display {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #92400e;
+            font-weight: 600;
+        }
+        
+        .progress-container {
+            background: #f1f5f9;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
         
         /* Form field improvements */
@@ -454,6 +965,43 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
+        /* Currency formatting styles */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+        }
+        
+        /* Currency formatting for summary fields */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Enhanced currency formatting */
+        .currency-input-idr:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        .currency-input-idr:hover {
+            border-color: #d1d5db !important;
+        }
+        
+        /* Summary field styling */
+        .summary-field {
+            background-color: #f8fafc !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.75rem !important;
+            font-weight: 600 !important;
+        }
+        
+        .summary-field:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
         /* Wrap text styles for columns with long content */
         .wrap-text {
             white-space: normal !important;
@@ -473,9 +1021,10 @@
         
         /* Specific column styles for better text handling */
         .description-column textarea,
-        .account-code-column input,
-        .account-name-column input,
-        .total-lc-column input {
+        .item-code-column input,
+        .bp-catalog-column input,
+        .quantity-column textarea,
+        .price-column textarea {
             transition: all 0.3s ease;
         }
         
@@ -484,15 +1033,763 @@
             resize: none;
             overflow-y: auto;
         }
+        
+        /* Full screen professional styling */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8fafc;
+            padding: 0;
+        }
+        
+        .content-wrapper {
+            max-width: none;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+        
+        .header-section {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .table-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section h3 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .approval-section .grid {
+            gap: 1.5rem;
+        }
+        
+        .approval-section label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .approval-section input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .approval-section input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .approval-section input:disabled {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        .submit-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Extra Small Devices (phones, 320px and up) */
+        @media (max-width: 575.98px) {
+            /* Main container adjustments */
+            .main-container {
+                padding: 0;
+            }
+            
+            .content-wrapper {
+                padding: 1rem;
+            }
+            
+            /* Header section adjustments */
+            .header-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.5rem !important;
+                text-align: center;
+            }
+            
+            .header-section button {
+                font-size: 0.875rem !important;
+                padding: 0.5rem 1rem !important;
+            }
+            
+            /* Form section adjustments */
+            .form-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .form-section h3 {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Table section adjustments */
+            .table-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .table-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Table responsive adjustments */
+            .table-container {
+                overflow-x: auto;
+                overflow-y: visible;
+                font-size: 0.75rem !important;
+                max-height: none !important;
+            }
+            
+            #arInvTable {
+                min-width: 800px !important;
+                font-size: 0.75rem !important;
+            }
+            
+            #arInvTable th,
+            #arInvTable td {
+                padding: 0.25rem !important;
+                font-size: 0.75rem !important;
+            }
+            
+            /* Column width adjustments for mobile */
+            .no-column {
+                width: 45px !important;
+                min-width: 45px !important;
+            }
+            
+            .item-code-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .description-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .uom-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .quantity-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .price-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .tax-code-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .line-total-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            /* Input and textarea adjustments */
+            #arInvTable input,
+            #arInvTable textarea {
+                font-size: 0.75rem !important;
+                padding: 0.25rem !important;
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .footer-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Summary fields adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.5rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section label {
+                font-size: 0.875rem !important;
+                text-align: left !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .approval-section label {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .approval-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Submit section adjustments */
+            .submit-section {
+                padding: 1rem;
+            }
+            
+            .submit-section .flex {
+                flex-direction: column !important;
+                gap: 1rem;
+            }
+            
+            .submit-section button {
+                font-size: 1rem !important;
+                padding: 0.75rem 1.5rem !important;
+                width: 100% !important;
+            }
+            
+            /* Attachment section adjustments */
+            .attachment-section {
+                min-height: 80px;
+            }
+            
+            .attachment-item {
+                padding: 0.5rem;
+            }
+            
+            /* Dropdown adjustments */
+            .search-dropdown {
+                max-height: 150px !important;
+                font-size: 0.875rem !important;
+            }
+            
+            .search-dropdown .dropdown-item {
+                padding: 0.5rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+        
+        /* Small Devices (landscape phones, 576px and up) */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 900px !important;
+                font-size: 0.875rem !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .line-total-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.75rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Medium Devices (tablets, 768px and up) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 1000px !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 220px !important;
+                min-width: 220px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 160px !important;
+                min-width: 160px !important;
+            }
+            
+            .line-total-column {
+                width: 160px !important;
+                min-width: 160px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: row !important;
+                gap: 1rem;
+                align-items: center !important;
+            }
+            
+            .footer-section input {
+                width: 300px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+        }
+        
+        /* Large Devices (desktops, 992px and up) */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 1100px !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 250px !important;
+                min-width: 250px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .price-column {
+                width: 180px !important;
+                min-width: 180px !important;
+            }
+            
+            .line-total-column {
+                width: 180px !important;
+                min-width: 180px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section input {
+                width: 350px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+        }
+        
+        /* Extra Large Devices (large desktops, 1200px and up) */
+        @media (min-width: 1200px) {
+            /* Full desktop layout */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+            
+            #arInvTable {
+                min-width: 1200px !important;
+            }
+            
+            .description-column {
+                width: 280px !important;
+                min-width: 280px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .price-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .line-total-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .footer-section input {
+                width: 400px !important;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            /* Reduce padding for landscape mobile */
+            .content-wrapper {
+                padding: 0.5rem;
+            }
+            
+            .header-section,
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Reduce table row height */
+            #arInvTable td {
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+            }
+            
+            #arInvTable input,
+            #arInvTable textarea {
+                height: 40px !important;
+                min-height: 40px !important;
+                max-height: 40px !important;
+            }
+        }
+        
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            /* Ensure crisp text on high DPI displays */
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            .header-section button,
+            .submit-section,
+            .file-upload-section {
+                display: none !important;
+            }
+            
+            .content-wrapper {
+                padding: 0 !important;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .table-container {
+                overflow: visible !important;
+                overflow-y: hidden !important;
+            }
+            
+            #arInvTable {
+                min-width: auto !important;
+                font-size: 0.75rem !important;
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            /* Add dark mode styles if needed */
+            .bg-white {
+                background-color: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            .text-gray-800 {
+                color: #f9fafb !important;
+            }
+            
+            .bg-gray-100 {
+                background-color: #374151 !important;
+                color: #f9fafb !important;
+            }
+            
+            .border {
+                border-color: #4b5563 !important;
+            }
+        }
+        
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            /* Increase touch targets for mobile devices */
+            button, input, select, textarea {
+                min-height: 44px !important;
+            }
+            
+            .dropdown-item {
+                min-height: 44px !important;
+                padding: 12px !important;
+            }
+            
+            /* Increase spacing for better touch interaction */
+            .form-section .grid {
+                gap: 1.5rem;
+            }
+            
+            .approval-section .grid {
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Focus management for better accessibility */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        /* Mobile navigation improvements */
+        .mobile-nav-toggle {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-nav-toggle {
+                display: block;
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1000;
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 0.375rem;
+                padding: 0.5rem;
+                cursor: pointer;
+            }
+        }
+        
+        /* Enhanced table responsiveness */
+        @media (max-width: 1024px) {
+            .table-container {
+                position: relative;
+                overflow-y: visible;
+                max-height: none !important;
+            }
+            
+            .table-container::after {
+                content: '← Scroll →';
+                position: absolute;
+                bottom: -20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #3b82f6;
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 0.25rem;
+                font-size: 0.75rem;
+                opacity: 0.8;
+            }
+        }
+        
+        /* Loading state improvements for mobile */
+        @media (max-width: 768px) {
+            .loading-spinner {
+                width: 1rem;
+                height: 1rem;
+            }
+            
+            .loading-content {
+                padding: 1rem;
+                max-width: 90vw;
+            }
+            
+            .loading-text {
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Notification improvements for mobile */
+        @media (max-width: 768px) {
+            .notification {
+                top: 0.5rem;
+                right: 0.5rem;
+                left: 0.5rem;
+                font-size: 0.875rem;
+                padding: 0.75rem;
+            }
+        }
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
-        <button onclick="goToMenuReceiveInvItem()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Receive Invoice Item</h2>
-        <br>
-        <div class="grid grid-cols-2 gap-4">
+<body>
+
+    <div class="main-container">
+        <div class="content-wrapper" id="main-content">
+            <!-- Header Section -->
+            <div class="header-section">
+                <div class="flex justify-between items-center">
+                    <button onclick="goToMenuReceiveInvItem()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <h2 class="text-3xl font-bold text-gray-800">Receive Invoice Item</h2>
+                    <div></div> <!-- Spacer for centering -->
+                </div>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="form-section">
+                <div class="grid grid-cols-2 gap-8">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
@@ -529,8 +1826,8 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Tax Invoice Number</h3>
-                <input type="text" id="TaxNo" placeholder="Tax Invoice Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Tax Identification Number (NPWP)</h3>
+                <input type="text" id="TaxNo" placeholder="Tax Identification Number (NPWP)" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
@@ -552,133 +1849,255 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Account Name</h3>
                 <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <!-- Attachment List Section -->
+                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                <div class="attachment-container">
+                    <div id="attachmentList" class="attachment-list-container">
+                        <!-- Attachments will be loaded here -->
+                        <div class="loading-spinner-container text-center py-4">
+                            <div class="loading-spinner"></div>
+                            <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
+                        </div>
+                    </div>
+                    <div id="noAttachments" class="text-center py-4 hidden">
+                        <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
+                    </div>
+                </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Table for Item details -->
-        <div class="table-container">
+            
+            <!-- Table Section -->
+            <div class="table-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Item Details</h3>
+                <div class="table-container">
             <table id="arInvTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
                 <tr>
                     <th class="p-2 no-column">No.</th>
                     <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 bp-catalog-column">Part Number</th>
                     <th class="p-2 description-column">Item Name</th>
                     <th class="p-2 uom-column">UoM</th>
                     <th class="p-2 packing-size-column">Packing Size</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
+                    <th class="p-2 uom-column" style="display: none;">UoM</th>
                     <th class="p-2 price-column">Price per UoM</th>
                     <th class="p-2 price-column">Price per Unit</th>
                     <th class="p-2 tax-code-column">VAT Code</th>
-                    <th class="p-2 wtax-liable-column">Wtax Liable</th>
                     <th class="p-2 line-total-column">Amount</th>
+                    <th class="p-2 account-code-column" style="display: none;">Account Code</th>
+                    <th class="p-2 base-column" style="display: none;">BaseType</th>
+                    <th class="p-2 base-column" style="display: none;">BaseEntry</th>
+                    <th class="p-2 base-column" style="display: none;">BaseLine</th>
+                    <th class="p-2 base-column" style="display: none;">LineType</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <!-- Table rows will be populated by JavaScript -->
+                <!-- Item rows will be populated by JavaScript -->
             </tbody>
         </table>
-        </div>
-        
-        <!-- Footer totals section -->
-        <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Before Discount :</label>
-            <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Tax-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax :</label>
-            <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Amount-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount :</label>
-            <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
+                </div>
+            </div>
 
-        <!-- Comments section -->
-        <div class="mt-4">
-            <label class="font-semibold">Comments</label>
-            <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
-        </div>
+            <!-- Footer Totals Section -->
+            <div class="footer-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
+                
+                <!--Total Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="docTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Discounted Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Discounted :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="discSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Sales Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Sales Amount :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="netPriceAfterDiscount" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Tax Base Other Value-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="dpp1112" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--VAT 12%-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">VAT 12% :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="vatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--GRAND TOTAL-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="grandTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr font-bold" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
 
-        <!-- Rejection Remarks Display Section -->
-        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                <!-- Remarks section -->
+                <div class="mt-6">
+                    <label class="font-semibold text-gray-700">Remarks</label>
+                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                </div>
             </div>
-        </div>
 
-        <!-- Approval -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="preparedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+            <!-- Rejection Remarks Display Section -->
+            <div class="approval-section" id="rejectionRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
                 </div>
             </div>
-            <div>
-                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+
+            <!-- Approval Section -->
+            <div class="approval-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                    <div> 
+                        <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="preparedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="checkedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="approvedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="receivedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="checkedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+        
+            <!-- Attachment Section (Only visible when approvalStatus = 'Received') -->
+            <div class="approval-section">
+                <div class="attachment-header">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                    </svg>
+                    Document Attachments
+                </div>
+            
+            <!-- File Upload Section -->
+            <div class="file-upload-area mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Attach Documents</label>
+                <div class="flex items-center space-x-2">
+                    <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" 
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <button onclick="attachFiles()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                        Attach
+                    </button>
                 </div>
             </div>
-            <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="approvedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+            
+            <!-- Attachment List -->
+            <div class="mb-4">
+                <h4 class="text-md font-medium text-gray-700 mb-2">Attached Documents</h4>
+                <div id="attachmentList" class="space-y-2">
+                    <!-- Attachments will be listed here -->
                 </div>
             </div>
-            <div>
-                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="receivedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+            
+            <!-- Upload and Download Controls -->
+            <div class="flex items-center space-x-4 mb-4">
+                <button id="sendToVidaBtn" onclick="sendToVida()" disabled 
+                        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                    Send to VIDA
+                </button>
+                <button id="downloadBtn" onclick="downloadFiles()" disabled 
+                        class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                    Download Files
+                </button>
+                <div id="timerDisplay" class="timer-display" style="display: none;">
+                    Time remaining: <span id="timer">02:30</span>
                 </div>
+            </div>
+            
+            <!-- Upload Progress -->
+            <div id="uploadProgress" class="hidden">
+                <div class="progress-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="text-sm text-gray-600 mt-1" id="progressText">Uploading... 0%</div>
             </div>
         </div>
         
-        <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="rejectInvItem()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Reject
-            </button>
-            <button onclick="receiveInvItem()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Receive
-            </button>
-            <button onclick="printInvItem()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32" style="display: none;">
-                Print
-            </button>
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <div id="actionButtonsContainer" class="flex justify-center space-x-8">
+                    <button onclick="rejectInvItem()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 text-lg">
+                        Reject
+                    </button>
+                    <button onclick="receiveInvItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                        Receive
+                    </button>
+                    <button onclick="printInvItem()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 text-lg" style="display: none;">
+                        Print
+                    </button>
+                </div>
+                
+                <!-- Status Message -->
+                <div id="statusMessage" class="mt-4 p-4 rounded-lg hidden">
+                    <div id="statusMessageContent" class="text-center"></div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -710,35 +2129,57 @@
                 
                 // Reset height for textarea elements
                 if (element.tagName === 'TEXTAREA') {
-                    element.style.height = '40px';
+                    element.style.height = '50px';
                 }
+            }
+        }
+        
+        // Function to handle conditional scrollbars for price and amount columns
+        function handleConditionalScrollbars(element) {
+            const text = element.value || element.textContent || '';
+            const charLength = text.length;
+            
+            // Remove existing scroll classes
+            element.classList.remove('has-scroll');
+            
+            // Check if element is in price or line-total columns
+            const isPriceColumn = element.closest('.price-column') !== null;
+            const isLineTotalColumn = element.closest('.line-total-column') !== null;
+            
+            if ((isPriceColumn || isLineTotalColumn) && charLength > 15) {
+                // Add scroll class for long content in price/amount columns
+                element.classList.add('has-scroll');
             }
         }
         
         // Function to apply text wrapping to all relevant elements
         function applyTextWrappingToAll() {
-            const textElements = document.querySelectorAll('.description-column textarea, .account-code-column input, .account-name-column input, .total-lc-column input');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .line-total-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
                 handleTextWrapping(element);
+                handleConditionalScrollbars(element);
             });
         }
         
         // Function to handle input events for dynamic wrapping
         function setupTextWrapping() {
-            const textElements = document.querySelectorAll('.description-column textarea, .account-code-column input, .account-name-column input, .total-lc-column input');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .line-total-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
-                // Apply initial wrapping
+                // Apply initial wrapping and scrollbars
                 handleTextWrapping(element);
+                handleConditionalScrollbars(element);
                 
                 // Add event listeners for dynamic updates
                 element.addEventListener('input', function() {
                     handleTextWrapping(this);
+                    handleConditionalScrollbars(this);
                 });
                 
                 element.addEventListener('blur', function() {
                     handleTextWrapping(this);
+                    handleConditionalScrollbars(this);
                 });
             });
         }
@@ -906,7 +2347,7 @@
             });
 
             // Format summary fields
-            const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+            const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
             summaryFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
@@ -927,7 +2368,915 @@
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 applyCurrencyFormatting();
+                
+                // Apply currency formatting to summary fields
+                const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+                summaryFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.classList.add('currency-input-idr');
+                        if (field.value && field.value !== '0.00') {
+                            formatCurrencyInputIDR(field);
+                        }
+                    }
+                });
             }, 1000);
+        });
+        
+        // Initialize text wrapping when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply text wrapping after data is loaded
+            setTimeout(() => {
+                applyTextWrappingToAll();
+            }, 500);
+        });
+        
+        // Enhanced error handling
+        function showErrorNotification(message, title = 'Error') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showSuccessNotification(message, title = 'Success') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showWarningNotification(message, title = 'Warning') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        // Performance optimization functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Debounced version of text wrapping
+        const debouncedApplyTextWrapping = debounce(applyTextWrappingToAll, 300);
+        
+        // Memory management
+        function cleanupEventListeners() {
+            // Remove any existing event listeners to prevent memory leaks
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                const newInput = input.cloneNode(true);
+                input.parentNode.replaceChild(newInput, input);
+            });
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            cleanupEventListeners();
+        });
+        
+        // Accessibility improvements
+        function setupAccessibility() {
+            // Add ARIA labels to form elements
+            const formElements = document.querySelectorAll('input, textarea, select');
+            formElements.forEach(element => {
+                if (!element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby')) {
+                    const label = element.previousElementSibling;
+                    if (label && label.tagName === 'LABEL') {
+                        element.setAttribute('aria-label', label.textContent);
+                    }
+                }
+            });
+            
+            // Add keyboard navigation support
+            const focusableElements = document.querySelectorAll('input, textarea, select, button, a');
+            focusableElements.forEach(element => {
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && element.tagName === 'INPUT') {
+                        e.preventDefault();
+                        const nextElement = element.nextElementSibling;
+                        if (nextElement && (nextElement.tagName === 'INPUT' || nextElement.tagName === 'TEXTAREA' || nextElement.tagName === 'SELECT')) {
+                            nextElement.focus();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize accessibility features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAccessibility();
+        });
+        
+        // Enhanced validation functions
+        function validateNumericInput(input) {
+            const value = input.value;
+            const numericValue = value.replace(/[^\d,.]/g, '');
+            
+            if (numericValue !== value) {
+                input.value = numericValue;
+            }
+            
+            return numericValue;
+        }
+        
+        function validateCurrencyInput(input) {
+            const value = input.value;
+            const cleanedValue = value.replace(/[^\d,.]/g, '');
+            
+            if (cleanedValue !== value) {
+                input.value = cleanedValue;
+            }
+            
+            return cleanedValue;
+        }
+        
+        function validateRequiredField(field, fieldName) {
+            if (!field.value || field.value.trim() === '') {
+                showErrorNotification(`${fieldName} is required.`);
+                field.focus();
+                return false;
+            }
+            return true;
+        }
+        
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function validateFileSize(file, maxSizeMB = 10) {
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
+            return file.size <= maxSizeBytes;
+        }
+        
+        function validateFileType(file, allowedTypes = ['application/pdf']) {
+            return allowedTypes.includes(file.type);
+        }
+        
+        // Data sanitization functions
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') {
+                return input;
+            }
+            
+            // Remove potentially dangerous characters
+            return input
+                .replace(/[<>]/g, '') // Remove < and >
+                .replace(/javascript:/gi, '') // Remove javascript: protocol
+                .replace(/on\w+=/gi, '') // Remove event handlers
+                .trim();
+        }
+        
+        function sanitizeFormData(formData) {
+            const sanitizedData = {};
+            
+            for (const [key, value] of Object.entries(formData)) {
+                if (typeof value === 'string') {
+                    sanitizedData[key] = sanitizeInput(value);
+                } else {
+                    sanitizedData[key] = value;
+                }
+            }
+            
+            return sanitizedData;
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Error boundary and recovery
+        function setupErrorBoundary() {
+            window.addEventListener('error', function(event) {
+                console.error('Global error caught:', event.error);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+            
+            window.addEventListener('unhandledrejection', function(event) {
+                console.error('Unhandled promise rejection:', event.reason);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+        }
+        
+        // Initialize error boundary
+        document.addEventListener('DOMContentLoaded', function() {
+            setupErrorBoundary();
+        });
+        
+        // Recovery functions
+        function recoverFromError() {
+            try {
+                // Attempt to reload data
+                if (typeof loadInvItemData === 'function') {
+                    loadInvItemData();
+                }
+                
+                showSuccessNotification('Page recovered successfully.');
+            } catch (error) {
+                console.error('Recovery failed:', error);
+                showErrorNotification('Recovery failed. Please refresh the page.');
+            }
+        }
+        
+        // User experience improvements
+        function showLoadingIndicator(message = 'Loading...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+        }
+        
+        function hideLoadingIndicator() {
+            if (typeof Swal !== 'undefined') {
+                Swal.close();
+            }
+        }
+        
+        function showProgressIndicator(progress, message = 'Processing...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    html: `<div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>`,
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+            }
+        }
+        
+        function showConfirmationDialog(message, title = 'Confirm') {
+            return new Promise((resolve) => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        resolve(result.isConfirmed);
+                    });
+                } else {
+                    resolve(confirm(message));
+                }
+            });
+        }
+        
+        // Network error handling
+        function handleNetworkError(error) {
+            console.error('Network error:', error);
+            
+            let errorMessage = 'Network error occurred.';
+            
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Unable to connect to server. Please check your internet connection.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Resource not found. Please check the URL and try again.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Server error occurred. Please try again later.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'Access denied. Please check your permissions.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Authentication required. Please login again.';
+            }
+            
+            showErrorNotification(errorMessage, 'Network Error');
+        }
+        
+        function isOnline() {
+            return navigator.onLine;
+        }
+        
+        function setupNetworkMonitoring() {
+            window.addEventListener('online', function() {
+                showSuccessNotification('Internet connection restored.', 'Connection Restored');
+            });
+            
+            window.addEventListener('offline', function() {
+                showWarningNotification('Internet connection lost. Some features may not work properly.', 'Connection Lost');
+            });
+        }
+        
+        // Initialize network monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNetworkMonitoring();
+        });
+        
+        // Responsive design enhancements
+        function setupResponsiveFeatures() {
+            // Handle window resize for responsive adjustments
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    adjustLayoutForScreenSize();
+                }, 250);
+            });
+            
+            // Initial layout adjustment
+            adjustLayoutForScreenSize();
+            
+            // Setup mobile-specific features
+            if (window.innerWidth <= 768) {
+                setupMobileFeatures();
+            }
+        }
+        
+        function adjustLayoutForScreenSize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Adjust table container for different screen sizes
+            // Note: Removed height restrictions to display all documents without scrollbar
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                if (width <= 575.98) {
+                    // Mobile phones
+                    tableContainer.style.fontSize = '0.75rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else if (width <= 767.98) {
+                    // Small tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else if (width <= 991.98) {
+                    // Tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else {
+                    // Desktop
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                }
+            }
+            
+            // Adjust form layout
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                const grid = formSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+            
+            // Adjust approval section layout
+            const approvalSection = document.querySelector('.approval-section');
+            if (approvalSection) {
+                const grid = approvalSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+        }
+        
+        function setupMobileFeatures() {
+            // Add mobile-specific event listeners
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                // Add touch scroll indicators
+                let isScrolling = false;
+                let scrollTimeout;
+                
+                tableContainer.addEventListener('scroll', function() {
+                    isScrolling = true;
+                    clearTimeout(scrollTimeout);
+                    
+                    scrollTimeout = setTimeout(function() {
+                        isScrolling = false;
+                    }, 150);
+                });
+            }
+            
+            // Optimize form inputs for mobile
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                // Prevent zoom on iOS
+                if (input.type === 'text' || input.type === 'email' || input.type === 'tel') {
+                    input.style.fontSize = '16px';
+                }
+                
+                // Add mobile-friendly focus styles
+                input.addEventListener('focus', function() {
+                    this.style.outline = '2px solid #3b82f6';
+                    this.style.outlineOffset = '2px';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.outline = '';
+                    this.style.outlineOffset = '';
+                });
+            });
+            
+            // Add mobile-friendly button styles
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.style.minHeight = '44px';
+                button.style.touchAction = 'manipulation';
+            });
+        }
+        
+        // Mobile-friendly form validation
+        function setupMobileFormValidation() {
+            const formElements = document.querySelectorAll('input, textarea, select');
+            
+            formElements.forEach(element => {
+                element.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+                    
+                    // Show mobile-friendly error message
+                    if (window.innerWidth <= 768) {
+                        showMobileErrorNotification(this.validationMessage);
+                    }
+                });
+            });
+        }
+        
+        function showMobileErrorNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'mobile-error-notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ef4444;
+                color: white;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                z-index: 10000;
+                max-width: 90vw;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Performance optimizations for mobile
+        function setupMobilePerformanceOptimizations() {
+            if (window.innerWidth <= 768) {
+                // Reduce animation complexity on mobile
+                const style = document.createElement('style');
+                style.textContent = `
+                    @media (max-width: 768px) {
+                        * {
+                            animation-duration: 0.2s !important;
+                            transition-duration: 0.2s !important;
+                        }
+                        
+                        .loading-spinner {
+                            animation-duration: 0.8s !important;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Optimize scroll performance
+                const scrollableElements = document.querySelectorAll('.table-container, .attachment-list-container');
+                scrollableElements.forEach(element => {
+                    element.style.webkitOverflowScrolling = 'touch';
+                });
+            }
+        }
+        
+        // Initialize responsive features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupResponsiveFeatures();
+            setupMobileFormValidation();
+            setupMobilePerformanceOptimizations();
+            
+            // Re-adjust layout when data is loaded
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+            }, 1000);
+        });
+        
+        // Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+                if (window.innerWidth <= 768) {
+                    setupMobileFeatures();
+                }
+            }, 500);
+        });
+        
+        // Attachment functionality
+        let attachedFiles = [];
+        let uploadedFiles = [];
+        let timer = null;
+        let timeRemaining = 150; // 2 minutes 30 seconds in seconds
+        
+        // Function to attach files
+        function attachFiles() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Files Selected',
+                    text: 'Please select files to attach.'
+                });
+                return;
+            }
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Check if file already exists
+                const existingFile = attachedFiles.find(f => f.name === file.name);
+                if (existingFile) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'File Already Attached',
+                        text: `File "${file.name}" is already attached.`
+                    });
+                    continue;
+                }
+                
+                // Add file to attached files list
+                attachedFiles.push({
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    id: Date.now() + i
+                });
+            }
+            
+            // Update attachment list
+            updateAttachmentList();
+            
+            // Enable Send to VIDA button if there are attachments
+            document.getElementById('sendToVidaBtn').disabled = attachedFiles.length === 0;
+            
+            // Clear file input
+            fileInput.value = '';
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Files Attached',
+                text: `${files.length} file(s) have been attached successfully.`
+            });
+        }
+        
+        // Function to update attachment list display
+        function updateAttachmentList() {
+            const attachmentList = document.getElementById('attachmentList');
+            attachmentList.innerHTML = '';
+            
+            attachedFiles.forEach((fileData, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'attachment-item flex items-center justify-between';
+                fileItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">${fileData.name}</div>
+                            <div class="text-sm text-gray-500">${formatFileSize(fileData.size)}</div>
+                        </div>
+                    </div>
+                    <button onclick="removeAttachment(${index})" class="text-red-600 hover:text-red-800 transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                `;
+                attachmentList.appendChild(fileItem);
+            });
+        }
+        
+        // Function to remove attachment
+        function removeAttachment(index) {
+            attachedFiles.splice(index, 1);
+            updateAttachmentList();
+            
+            // Disable Send to VIDA button if no attachments
+            document.getElementById('sendToVidaBtn').disabled = attachedFiles.length === 0;
+        }
+        
+        // Function to format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Function to send files to VIDA
+        async function sendToVida() {
+            if (attachedFiles.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Files to Upload',
+                    text: 'Please attach files before uploading to VIDA.'
+                });
+                return;
+            }
+            
+            // Show upload progress
+            document.getElementById('uploadProgress').classList.remove('hidden');
+            document.getElementById('sendToVidaBtn').disabled = true;
+            
+            try {
+                const formData = new FormData();
+                attachedFiles.forEach((fileData, index) => {
+                    formData.append('files', fileData.file);
+                });
+                
+                // Add document information
+                const docEntry = document.getElementById('DocEntry').value;
+                const docNum = document.getElementById('DocNum').value;
+                formData.append('docEntry', docEntry);
+                formData.append('docNum', docNum);
+                formData.append('documentType', 'InvoiceItem');
+                formData.append('userId', currentUser?.userId || 'unknown');
+                
+                // Simulate upload progress
+                let progress = 0;
+                const progressInterval = setInterval(async () => {
+                    progress += Math.random() * 15;
+                    if (progress > 100) progress = 100;
+                    
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressText').textContent = `Uploading... ${Math.round(progress)}%`;
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        
+                        // Make actual API call to upload files
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/upload-documents`, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                // Move files from attached to uploaded
+                                uploadedFiles = [...attachedFiles];
+                                attachedFiles = [];
+                                
+                                // Update UI
+                                updateAttachmentList();
+                                document.getElementById('uploadProgress').classList.add('hidden');
+                                document.getElementById('sendToVidaBtn').disabled = true;
+                                document.getElementById('downloadBtn').disabled = false;
+                                document.getElementById('timerDisplay').style.display = 'block';
+                                
+                                // Start timer
+                                startTimer();
+                                
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Upload Successful',
+                                    text: 'Files have been uploaded to VIDA successfully. You can now download them.'
+                                });
+                            } else {
+                                throw new Error(result.message || 'Upload failed');
+                            }
+                            
+                        } catch (apiError) {
+                            console.error('API Upload error:', apiError);
+                            document.getElementById('uploadProgress').classList.add('hidden');
+                            document.getElementById('sendToVidaBtn').disabled = false;
+                            
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Upload Failed',
+                                text: 'Failed to upload files to VIDA. Please try again.'
+                            });
+                        }
+                    }
+                }, 200);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                document.getElementById('uploadProgress').classList.add('hidden');
+                document.getElementById('sendToVidaBtn').disabled = false;
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Failed',
+                    text: 'Failed to upload files to VIDA. Please try again.'
+                });
+            }
+        }
+        
+        // Function to start countdown timer
+        function startTimer() {
+            timeRemaining = 150; // Reset to 2 minutes 30 seconds
+            updateTimerDisplay();
+            
+            timer = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    document.getElementById('downloadBtn').disabled = true;
+                    document.getElementById('timerDisplay').style.display = 'none';
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Download Time Expired',
+                        text: 'The download time has expired. Please upload files again to download.'
+                    });
+                }
+            }, 1000);
+        }
+        
+        // Function to update timer display
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Function to download files
+        async function downloadFiles() {
+            if (uploadedFiles.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Files to Download',
+                    text: 'No files are available for download.'
+                });
+                return;
+            }
+            
+            // Show download progress
+            Swal.fire({
+                icon: 'info',
+                title: 'Downloading Files',
+                text: 'Preparing files for download...',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            
+            try {
+                // Get document information for API call
+                const docEntry = document.getElementById('DocEntry').value;
+                const docNum = document.getElementById('DocNum').value;
+                
+                // Make API call to get download URLs
+                const response = await fetch(`${API_BASE_URL}/download-documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify({
+                        docEntry: docEntry,
+                        docNum: docNum,
+                        documentType: 'InvoiceItem',
+                        userId: currentUser?.userId || 'unknown'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.downloadUrls) {
+                    // Download each file
+                    for (let i = 0; i < result.downloadUrls.length; i++) {
+                        const downloadUrl = result.downloadUrls[i];
+                        const fileName = uploadedFiles[i]?.name || `file_${i + 1}`;
+                        
+                        // Create download link
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = fileName;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // Small delay between downloads
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Complete',
+                        text: `${uploadedFiles.length} file(s) have been downloaded successfully.`
+                    });
+                } else {
+                    throw new Error(result.message || 'Download failed');
+                }
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                
+                // Fallback to local file download if API fails
+                try {
+                    uploadedFiles.forEach((fileData, index) => {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(fileData.file);
+                        link.download = fileData.name;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Download Complete',
+                        text: `${uploadedFiles.length} file(s) have been downloaded successfully.`
+                    });
+                } catch (fallbackError) {
+                    console.error('Fallback download error:', fallbackError);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Download Failed',
+                        text: 'Failed to download files. Please try again.'
+                    });
+                }
+            }
+        }
+        
+        // Initialize attachment functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize attachment controls
+            document.getElementById('sendToVidaBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
         });
     </script>
 </body>

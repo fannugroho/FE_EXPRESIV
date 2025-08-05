@@ -295,19 +295,60 @@ function populateInvoiceData(invoice) {
             console.error('Shipper Name element not found');
         }
         
-        // Order numbers - use numAtCard for both DO and PO numbers
+        // Order numbers - use specific fields for DO and PO numbers
         const doNumbersElement = document.getElementById('doNumbers');
         const poNumbersElement = document.getElementById('poNumbers');
         
         if (doNumbersElement) {
-            doNumbersElement.textContent = invoice.numAtCard || '';
+            if (invoice.u_bsi_udf1) {
+                const doValues = Array.isArray(invoice.u_bsi_udf1) ? invoice.u_bsi_udf1 : [invoice.u_bsi_udf1];
+                if (doValues.length > 1) {
+                    doNumbersElement.className = 'field-value multiple';
+                    // Group values into rows of 3 with proper formatting
+                    const rows = [];
+                    for (let i = 0; i < doValues.length; i += 3) {
+                        const row = doValues.slice(i, i + 3);
+                        const isLastRow = i + 3 >= doValues.length;
+                        const separator = isLastRow ? '.' : ',';
+                        rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
+                    }
+                    doNumbersElement.innerHTML = rows.join('');
+                } else {
+                    doNumbersElement.className = 'field-value';
+                    doNumbersElement.textContent = doValues[0] + '.';
+                }
+            } else {
+                doNumbersElement.className = 'field-value';
+                doNumbersElement.textContent = '';
+            }
             console.log('DO Numbers set to:', doNumbersElement.textContent);
         } else {
             console.error('DO Numbers element not found');
         }
         
+        // Handle P/O NO with multiple values
         if (poNumbersElement) {
-            poNumbersElement.textContent = invoice.numAtCard || '';
+            if (invoice.u_bsi_udf2) {
+                const poValues = Array.isArray(invoice.u_bsi_udf2) ? invoice.u_bsi_udf2 : [invoice.u_bsi_udf2];
+                if (poValues.length > 1) {
+                    poNumbersElement.className = 'field-value multiple';
+                    // Group values into rows of 3 with proper formatting
+                    const rows = [];
+                    for (let i = 0; i < poValues.length; i += 3) {
+                        const row = poValues.slice(i, i + 3);
+                        const isLastRow = i + 3 >= poValues.length;
+                        const separator = isLastRow ? '.' : ',';
+                        rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
+                    }
+                    poNumbersElement.innerHTML = rows.join('');
+                } else {
+                    poNumbersElement.className = 'field-value';
+                    poNumbersElement.textContent = poValues[0] + '.';
+                }
+            } else {
+                poNumbersElement.className = 'field-value';
+                poNumbersElement.textContent = '';
+            }
             console.log('PO Numbers set to:', poNumbersElement.textContent);
         } else {
             console.error('PO Numbers element not found');
@@ -707,16 +748,16 @@ function populateQRCode(invoice) {
         return;
     }
     
-    // Check if qrCodeSrc is available and not null from API
+    // Check if qrCodeSrc is available and not null/empty from API
     if (invoice.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log('QR Code source found:', invoice.qrCodeSrc);
         
         // Use qrCodeSrc data directly with API
         generateQRCodeFromSrc(invoice.qrCodeSrc, qrCodeElement);
     } else {
-        // Generate QR code from invoice data
-        console.log('No QR code source found, generating QR code from invoice data');
-        generateQRCodeFromInvoiceData(invoice, qrCodeElement);
+        // Hide QR code element if qrCodeSrc is null/empty
+        console.log('QR Code source is null/empty, hiding QR code element');
+        qrCodeElement.style.display = 'none';
     }
 }
 
@@ -1033,9 +1074,9 @@ function populateQRCodeForPage(invoice, pageNum) {
         // Use qrCodeSrc data directly with API - ONLY THIS METHOD
         generateQRCodeFromSrcForPage(invoice.qrCodeSrc, qrCodeElement, pageNum);
     } else {
-        // Generate QR code from invoice data for additional pages
-        console.log(`No QR code source found for page ${pageNum}, generating QR code from invoice data`);
-        generateQRCodeFromInvoiceDataForPage(invoice, qrCodeElement, pageNum);
+        // Hide QR code element if qrCodeSrc is null/empty
+        console.log(`QR Code source is null/empty for page ${pageNum}, hiding QR code element`);
+        qrCodeElement.style.display = 'none';
     }
 }
 
@@ -1511,7 +1552,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 </div>
             </div>
             <div class="generated-by">
-                <div>Generated by Expressiv</div>
+                <div>Generated by Expressiv System</div>
             </div>
         `;
     }

@@ -269,9 +269,9 @@ function populateInvItemData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-    safeSetValue('TaxNo', data.taxNo || '');
-    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+            safeSetValue('TaxNo', data.licTradNum || '');
+        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
@@ -284,10 +284,38 @@ function populateInvItemData(data) {
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
     
-    // Populate totals
-    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
-    safeSetValue('VatSum', data.vatSum || 0);
+    // Populate summary fields from API data
+    console.log('Populating summary fields with API data:', {
+        docTotal: data.docTotal,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
+    });
+    
+    // Total Amount (totalAmount) - API Field: "docCur" "docTotal"
     safeSetValue('DocTotal', data.docTotal || 0);
+    
+    // Discounted Amount (discountAmount) - API Field: "docCur" "discSum"
+    safeSetValue('discSum', data.discSum || 0);
+    
+    // Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
+    // If netPriceAfterDiscount is null, calculate it as docTotal - vatSum
+    const salesAmount = data.netPriceAfterDiscount !== null ? data.netPriceAfterDiscount : (data.docTotal - data.vatSum);
+    safeSetValue('netPriceAfterDiscount', salesAmount || 0);
+    
+    // Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
+    safeSetValue('dpp1112', data.dpp1112 || 0);
+    
+    // VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
+    safeSetValue('VatSum', data.vatSum || 0);
+    
+    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
+    safeSetValue('grandTotal', data.grandTotal || 0);
+    
+    // Legacy fields for compatibility
+    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
     
     // Populate comments
     safeSetValue('comments', data.comments || '');
@@ -325,9 +353,10 @@ function populateInvItemData(data) {
     // Apply text wrapping
     refreshTextWrapping();
     
-    // Apply currency formatting to table cells
+    // Apply currency formatting to table cells and summary fields
     setTimeout(() => {
         applyCurrencyFormattingToTable();
+        applyCurrencyFormattingToSummaryFields();
     }, 200);
 }
 
@@ -425,6 +454,9 @@ function createItemRow(item, index) {
         <td class="p-2 border item-code-column">
             <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
         </td>
+        <td class="p-2 border bp-catalog-column">
+            <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.bpCatalog || ''}" disabled autocomplete="off" />
+        </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
@@ -452,11 +484,8 @@ function createItemRow(item, index) {
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
         </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
-        </td>
         <td class="p-2 border h-12 line-total-column">
-            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
+            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="20" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
         </td>
         <td class="p-2 border account-code-column" style="display: none;">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.acctCode || ''}" />
@@ -733,7 +762,7 @@ function refreshTextWrapping() {
 
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
-    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
     
     textElements.forEach(element => {
         handleTextWrapping(element);
@@ -914,12 +943,16 @@ function applyCurrencyFormattingToTable() {
             input.value = '0.00';
         }
     });
+}
 
-    // Format summary fields
-    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+// Apply currency formatting to summary fields
+function applyCurrencyFormattingToSummaryFields() {
+    console.log('Applying currency formatting to summary fields');
+    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'grandTotal'];
     summaryFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
+            console.log(`Formatting field ${fieldId}:`, field.value);
             field.classList.add('currency-input-idr');
             field.addEventListener('input', function() {
                 formatCurrencyInputIDR(this);
@@ -929,6 +962,8 @@ function applyCurrencyFormattingToTable() {
             } else {
                 field.value = '0.00';
             }
+        } else {
+            console.warn(`Field with id '${fieldId}' not found`);
         }
     });
 }
@@ -936,4 +971,11 @@ function applyCurrencyFormattingToTable() {
 // Export functions for global access
 window.approveInvItem = approveInvItem;
 window.rejectInvItem = rejectInvItem;
-window.goToMenuAcknowInvItem = goToMenuAcknowInvItem; 
+window.goToMenuAcknowInvItem = goToMenuAcknowInvItem;
+
+// Initialize currency formatting when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        applyCurrencyFormattingToSummaryFields();
+    }, 1000);
+}); 

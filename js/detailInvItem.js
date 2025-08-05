@@ -3,6 +3,9 @@ let invoiceData = null;
 let currentUser = null;
 let employeesData = []; // Add this to store employee data
 
+// File upload variables
+let uploadedFiles = [];
+
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
@@ -273,6 +276,8 @@ async function loadInvoiceData(invoiceId) {
             }
             
             // Load attachments from the main response
+            console.log('Invoice data structure:', invoiceData);
+            console.log('arInvoiceAttachments from API:', invoiceData.arInvoiceAttachments);
             loadAttachmentsFromData(invoiceData.arInvoiceAttachments);
             
             // Close loading indicator
@@ -344,7 +349,7 @@ function populateFormData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '1');
     safeSetValue('TrnspCode', data.trnspCode || '1');
-    safeSetValue('TaxNo', data.trackNo || '');
+    safeSetValue('TaxNo', data.licTradNum || '');
     safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
     safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
@@ -442,10 +447,16 @@ function populateFormData(data) {
     // Try to load saved approval data from localStorage
     loadApprovalDataFromLocalStorage();
     
-    // Populate totals
-    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || '0.00');
-    safeSetValue('VatSum', data.vatSum || '0.00');
-    safeSetValue('DocTotal', data.docTotal || '0.00');
+    // Get currency code
+    const currencyCode = data.docCur || 'IDR';
+    
+    // Populate totals with new fields and include currency code
+    safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(data.docTotal || '0.00')}`);
+    safeSetValue('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || '0.00')}`);
+    safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || data.netPrice || '0.00')}`);
+    safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
+    safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || '0.00')}`);
+    safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || data.docTotal || '0.00')}`);
     
     // Populate table with invoice details
     populateInvoiceDetails(data.arInvoiceDetails || []);
@@ -468,7 +479,7 @@ function populateInvoiceDetails(details) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="12" class="p-4 text-center text-gray-500">
+            <td colspan="13" class="p-4 text-center text-gray-500">
                 No invoice details found
             </td>
         `;
@@ -481,10 +492,13 @@ function populateInvoiceDetails(details) {
         
         row.innerHTML = `
             <td class="p-2 border no-column">
-                <input type="text" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${detail.lineNum || index + 1}" disabled autocomplete="off" />
+                <input type="text" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${index + 1}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border item-code-column">
                 <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${detail.itemCode || ''}" disabled autocomplete="off" />
+            </td>
+            <td class="p-2 border bp-catalog-column">
+                <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${detail.bpCatalog || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border description-column">
                 <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.dscription || ''}</textarea>
@@ -493,7 +507,7 @@ function populateInvoiceDetails(details) {
                 <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.unitMsr || ''}</textarea>
             </td>
             <td class="p-2 border packing-size-column">
-                <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.packingSize || ''}</textarea>
+                <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.unitMsr2 || ''}</textarea>
             </td>
             <td class="p-2 border quantity-column">
                 <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-auto" maxlength="15" disabled style="resize: none;" autocomplete="off">${detail.quantity || '0'}</textarea>
@@ -550,6 +564,12 @@ function populateInvoiceDetails(details) {
     setTimeout(() => {
         applyCurrencyFormattingToTable();
     }, 200);
+    
+    // Ensure all inputs in the table have autocomplete disabled
+    const tableInputs = tableBody.querySelectorAll('input, textarea, select');
+    tableInputs.forEach(element => {
+        element.setAttribute('autocomplete', 'off');
+    });
 }
 
 // Format date to YYYY-MM-DD
@@ -588,6 +608,10 @@ function getStatusFromInvoice(invoice) {
             console.log('Using approvalStatus from arInvoiceApprovalSummary:', summary.approvalStatus);
             return summary.approvalStatus;
         }
+        
+        // If approvalStatus is empty, null, or undefined, return Draft
+        console.log('approvalStatus is empty/null/undefined, returning Draft');
+        return 'Draft';
         
         // Fallback: check individual status flags
         if (summary.isRejected) return 'Rejected';
@@ -835,87 +859,6 @@ async function submitInvoiceData() {
         console.log('API Response:', apiResult);
         console.log('Approval data successfully submitted to API');
         
-        // Handle file uploads if there are any uploaded files
-        if (uploadedFiles.length > 0) {
-            try {
-                console.log('Uploading', uploadedFiles.length, 'files...');
-                
-                // Show loading message for file upload
-                Swal.fire({
-                    title: 'Uploading Attachments',
-                    text: 'Please wait while we upload your files...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Prepare FormData for file upload
-                const formData = new FormData();
-                
-                // Add all files to formData
-                uploadedFiles.forEach(file => {
-                    formData.append('files', file);
-                    console.log('Adding file for upload:', file.name);
-                });
-                
-                // Upload files to server using the provided API endpoint
-                const uploadResponse = await fetch(`${API_BASE_URL}/ar-invoices/${stagingID}/attachments/upload`, {
-                    method: 'POST',
-                    headers: {
-                        'accept': '*/*'
-                        // Don't set Content-Type for FormData, let browser set it with boundary
-                    },
-                    body: formData
-                });
-                
-                console.log('Upload response status:', uploadResponse.status);
-                
-                if (uploadResponse.ok) {
-                    const uploadResult = await uploadResponse.json();
-                    console.log('File upload successful:', uploadResult);
-                    
-                    // Clear uploaded files after successful upload
-                    clearUploadedFiles();
-                    
-                    // Show success message for file upload
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Files Uploaded Successfully!',
-                        text: `${uploadedFiles.length} file(s) have been uploaded.`,
-                        confirmButtonText: 'OK'
-                    });
-                } else {
-                    const uploadError = await uploadResponse.text();
-                    console.error('File upload failed:', uploadError);
-                    
-                    // Try to parse error response as JSON
-                    let errorDetails = uploadError;
-                    try {
-                        const errorJson = JSON.parse(uploadError);
-                        errorDetails = errorJson.message || errorJson.error || uploadError;
-                    } catch (parseError) {
-                        console.error('Could not parse upload error response as JSON:', parseError);
-                    }
-                    
-                    throw new Error(`File upload failed: ${uploadResponse.status} - ${errorDetails}`);
-                }
-                
-            } catch (uploadError) {
-                console.error('Error uploading files:', uploadError);
-                
-                // Show error message for file upload
-                Swal.fire({
-                    icon: 'error',
-                    title: 'File Upload Failed',
-                    text: `Failed to upload files: ${uploadError.message}`,
-                    confirmButtonText: 'OK'
-                });
-                
-                // Don't throw error here as the approval data was already submitted successfully
-            }
-        }
-        
         // Show success message with details
         const approvalModified = window.approvalDataModified || false;
         const approvalInfo = approvalModified ? '<p><strong>Approval data has been updated successfully</strong></p>' : '';
@@ -1119,10 +1062,12 @@ function prepareInvoicePayload(data) {
     
     // Prepare attachments
     const invoiceAttachments = (data.arInvoiceAttachments || []).map(attachment => ({
-        fileName: attachment.fileName || '',
-        filePath: attachment.filePath || '',
-        fileUrl: attachment.fileUrl || '',
-        description: attachment.description || ''
+        fileName: attachment.fileName || attachment.file_name || '',
+        filePath: attachment.filePath || attachment.file_path || '',
+        fileUrl: attachment.fileUrl || attachment.file_url || '',
+        description: attachment.description || '',
+        createdAt: attachment.createdAt || attachment.created_at || '',
+        updatedAt: attachment.updatedAt || attachment.updated_at || ''
     }));
     
     // Prepare approval summary with updated values from form
@@ -1409,103 +1354,47 @@ function resetApprovalData() {
 function loadAttachmentsFromData(attachments) {
     try {
         console.log('Loading attachments from data:', attachments);
+        console.log('Attachments type:', typeof attachments);
+        console.log('Attachments length:', attachments ? attachments.length : 'null/undefined');
         
-        // Hide loading indicator
-        const attachmentLoading = document.getElementById('attachmentLoading');
-        const attachmentList = document.getElementById('attachmentList');
-        const noAttachments = document.getElementById('noAttachments');
+        // Initialize global attachment variables
+        uploadedFiles = [];
         
-        if (attachmentLoading) {
-            attachmentLoading.style.display = 'none';
-        }
-        if (attachmentList) {
-            attachmentList.innerHTML = '';
-        }
-        if (noAttachments) {
-            noAttachments.style.display = 'none';
-        }
-        
-        if (attachments && attachments.length > 0) {
-            displayAttachments(attachments);
+        // Check if attachments exist and have valid data
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            // Filter out attachments with empty or invalid file names
+            const validAttachments = attachments.filter(attachment => {
+                const fileName = attachment.fileName || attachment.file_name;
+                return fileName && fileName !== 'string' && fileName.trim() !== '';
+            });
+            
+            console.log('Valid attachments found:', validAttachments.length);
+            
+            if (validAttachments.length > 0) {
+                console.log('Attachments loaded but not displayed (existing attachments section removed)');
+            } else {
+                console.log('No valid attachments found');
+            }
         } else {
-            showNoAttachments();
+            console.log('No attachments data or empty array');
         }
         
     } catch (error) {
         console.error('Error loading attachments from data:', error);
-        showNoAttachments();
     }
 }
 
 // Load attachments for the invoice (legacy function for separate API call)
 
 
-// Display attachments in the UI
+// Display attachments in the UI (disabled since existing attachments section removed)
 function displayAttachments(attachments) {
-    const attachmentList = document.getElementById('attachmentList');
-    const attachmentLoading = document.getElementById('attachmentLoading');
-    const noAttachments = document.getElementById('noAttachments');
-    
-    if (attachmentLoading) {
-        attachmentLoading.style.display = 'none';
-    }
-    if (noAttachments) {
-        noAttachments.style.display = 'none';
-    }
-    if (attachmentList) {
-        attachmentList.innerHTML = '';
-        
-        attachments.forEach((attachment, index) => {
-            const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'attachment-item flex items-center justify-between';
-            
-            const fileIcon = getFileIcon(attachment.fileName);
-            const fileName = attachment.fileName || `Attachment ${index + 1}`;
-            const fileUrl = attachment.fileUrl || '#';
-            const description = attachment.description || '';
-            const createdAt = formatDate(attachment.createdAt);
-            
-            attachmentItem.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <div class="file-icon">${fileIcon}</div>
-                    <div class="flex-1 min-w-0">
-                        <div class="file-name" title="${fileName}">${fileName}</div>
-                        <div class="file-description">${description}</div>
-                        <div class="text-xs text-gray-400">Created: ${createdAt}</div>
-                    </div>
-                </div>
-                <div class="attachment-actions">
-                    <button onclick="downloadAttachment('${fileUrl}', '${fileName}')" 
-                            class="btn-download">
-                        Download
-                    </button>
-                    <button onclick="previewAttachment('${fileUrl}', '${fileName}')" 
-                            class="btn-preview">
-                        Preview
-                    </button>
-                </div>
-            `;
-            
-            attachmentList.appendChild(attachmentItem);
-        });
-    }
+    console.log('Display attachments function called but existing attachments section has been removed');
 }
 
-// Show no attachments message
+// Show no attachments message (disabled since existing attachments section removed)
 function showNoAttachments() {
-    const attachmentLoading = document.getElementById('attachmentLoading');
-    const attachmentList = document.getElementById('attachmentList');
-    const noAttachments = document.getElementById('noAttachments');
-    
-    if (attachmentLoading) {
-        attachmentLoading.style.display = 'none';
-    }
-    if (attachmentList) {
-        attachmentList.innerHTML = '';
-    }
-    if (noAttachments) {
-        noAttachments.style.display = 'block';
-    }
+    console.log('Show no attachments function called but existing attachments section has been removed');
 }
 
 // Get file icon based on file extension
@@ -1541,16 +1430,7 @@ function getFileIcon(fileName) {
     return iconMap[extension] || '📄';
 }
 
-// Format file size
-function formatFileSize(bytes) {
-    if (!bytes || bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+
 
 
 
@@ -1582,147 +1462,9 @@ function adjustTextareaHeights() {
 }
 
 // File upload functionality
-let uploadedFiles = [];
 
-// Function to handle file selection and validation
-function previewPDF(event) {
-    const files = event.target.files;
-    
-    // Validate all files are PDF
-    const pdfFiles = Array.from(files).filter(file => {
-        if (file.type !== 'application/pdf') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid File Type',
-                text: `File "${file.name}" is not a PDF. Only PDF files are allowed.`
-            });
-            return false;
-        }
-        return true;
-    });
 
-    // Add valid PDF files to the uploaded files array
-    pdfFiles.forEach(file => {
-        // Check if file with same name already exists
-        const fileExists = uploadedFiles.some(existingFile => 
-            existingFile.name === file.name && 
-            existingFile.size === file.size
-        );
-        
-        // Only add if it doesn't exist
-        if (!fileExists) {
-            uploadedFiles.push(file);
-        }
-    });
 
-    displayFileList();
-    
-    // Clear the file input
-    event.target.value = '';
-}
-
-// Function to display the list of selected files
-function displayFileList() {
-    const fileListContainer = document.getElementById("fileList");
-    
-    if (!fileListContainer) {
-        console.error('File list container not found');
-        return;
-    }
-    
-    // Clear existing content
-    fileListContainer.innerHTML = "";
-    
-    // Add each file to the list
-    uploadedFiles.forEach((file, index) => {
-        const fileItem = document.createElement("div");
-        fileItem.className = "file-item";
-        fileItem.innerHTML = `
-            <div class="file-item-header">
-                <div class="flex items-center flex-1">
-                    <span class="text-sm text-gray-600 mr-2">📄</span>
-                    <span class="file-item-name">${file.name}</span>
-                    <span class="file-item-size">(${formatFileSize(file.size)})</span>
-                </div>
-                <div class="file-item-actions">
-                    <button type="button" onclick="viewFile(${index})" class="btn-view">
-                        View
-                    </button>
-                    <button type="button" onclick="removeFile(${index})" class="btn-remove">
-                        Remove
-                    </button>
-                </div>
-            </div>
-        `;
-        fileListContainer.appendChild(fileItem);
-    });
-}
-
-// Function to view a file in a modal
-function viewFile(index) {
-    const file = uploadedFiles[index];
-    if (!file) return;
-    
-    // Create URL for the file
-    const fileURL = URL.createObjectURL(file);
-    
-    // Create modal container
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
-    modal.id = 'pdfViewerModal';
-    
-    // Create modal content
-    modal.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-lg font-semibold">${file.name}</h3>
-                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeModal()">
-                    <span class="text-2xl">&times;</span>
-                </button>
-            </div>
-            <div class="flex-grow p-4 overflow-auto">
-                <iframe src="${fileURL}" class="w-full h-full" frameborder="0"></iframe>
-            </div>
-        </div>
-    `;
-    
-    // Add modal to body
-    document.body.appendChild(modal);
-    
-    // Close modal when clicking outside
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-}
-
-// Function to close the modal
-function closeModal() {
-    const modal = document.getElementById('pdfViewerModal');
-    if (modal) {
-        document.body.removeChild(modal);
-    }
-}
-
-// Function to remove a file from the list
-function removeFile(index) {
-    if (index >= 0 && index < uploadedFiles.length) {
-        uploadedFiles.splice(index, 1);
-        displayFileList();
-    }
-}
-
-// Function to get uploaded files for submission
-function getUploadedFiles() {
-    return uploadedFiles;
-}
-
-// Function to clear uploaded files
-function clearUploadedFiles() {
-    uploadedFiles = [];
-    displayFileList();
-}
 
 // Function to download an attachment
 function downloadAttachment(fileUrl, fileName) {
@@ -1948,20 +1690,81 @@ function applyCurrencyFormattingToTable() {
         }
     });
 
-    // Format summary fields
-    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
-    summaryFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.classList.add('currency-input-idr');
-            field.addEventListener('input', function() {
-                formatCurrencyInputIDR(this);
-            });
-            if (field.value) {
-                formatCurrencyInputIDR(field);
-            } else {
-                field.value = '0.00';
-            }
+    // We don't need to format summary fields anymore since we're already
+    // including formatted values with currency code when populating the fields
+    // The currency-input-idr class is still applied in the HTML for consistent styling
+}
+
+// File upload and preview functions
+function previewPDF(event) {
+    const files = event.target.files;
+    
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
+        event.target.value = ''; // Clear the file input
+        return;
+    }
+    
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            alert('Please upload a valid PDF file');
         }
     });
+    
+    displayFileList();
 }
+
+function displayFileList() {
+    const fileList = document.getElementById('fileList');
+    if (!fileList) return;
+    
+    fileList.innerHTML = '';
+    
+    uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
+        fileItem.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-green-600 mr-2">📄</span>
+                <span class="text-sm font-medium">${file.name}</span>
+                <span class="text-xs text-green-600 ml-2">(new)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="viewUploadedFile(${index})" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </button>
+                <button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
+                    Remove
+                </button>
+            </div>
+        `;
+        fileList.appendChild(fileItem);
+    });
+}
+
+function removeUploadedFile(index) {
+    uploadedFiles.splice(index, 1);
+    displayFileList();
+}
+
+function viewUploadedFile(index) {
+    const file = uploadedFiles[index];
+    if (!file) {
+        console.error('File not found at index:', index);
+        return;
+    }
+    
+    // Create a URL for the file
+    const fileUrl = URL.createObjectURL(file);
+    
+    // Open the PDF in a new tab
+    window.open(fileUrl, '_blank');
+    
+    // Clean up the URL object after a delay to prevent memory leaks
+    setTimeout(() => {
+        URL.revokeObjectURL(fileUrl);
+    }, 1000);
+}
+

@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'checked'; // Default tab - showing checked invoices ready for acknowledgment
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -31,9 +31,9 @@ if (typeof isAuthenticated === 'function') {
 }
 
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
-    loadUserData();
-    loadDashboard();
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadUserData();
+    await loadDashboard();
     
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
@@ -41,8 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let searchTimeout;
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                handleSearch();
+            searchTimeout = setTimeout(async () => {
+                await handleSearch();
             }, 500); // Debounce search by 500ms
         });
     }
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener to the search type dropdown
     const searchType = document.getElementById('searchType');
     if (searchType) {
-        searchType.addEventListener('change', function() {
+        searchType.addEventListener('change', async function() {
             const searchInput = document.getElementById('searchInput');
             
             // Update input type and placeholder based on search type
@@ -66,23 +66,82 @@ document.addEventListener('DOMContentLoaded', function() {
             searchInput.value = '';
             currentSearchTerm = '';
             currentSearchType = this.value;
-            loadDashboard();
+            await loadDashboard();
         });
     }
 });
 
 // Function to load user data
-function loadUserData() {
-    // DEVELOPMENT MODE: Bypass authentication check
-    console.log('Development mode: Bypassing authentication check');
-    
-    // Set dummy user data for development
+async function loadUserData() {
+    try {
+        // Get user ID from localStorage or session
+        const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae'; // Default for development
+        
+        // Fetch user data
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': '*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            const userData = result.data;
+            console.log('User data loaded:', userData);
+            
+            // Display user name and avatar
+            try {
+                if (userData.fullName) {
+                    const userNameDisplay = document.getElementById('userNameDisplay');
+                    if (userNameDisplay) {
+                        userNameDisplay.textContent = userData.fullName;
+                    }
+                }
+                
+                // Set default avatar
+                const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+                if (dashboardUserIcon) {
+                    dashboardUserIcon.src = '../../../../image/profil.png';
+                }
+                
+                // Show user profile section
+                const userProfile = document.querySelector('.user-profile');
+                if (userProfile) {
+                    userProfile.style.display = 'flex';
+                }
+                
+                // Store user data for later use
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                
+            } catch (error) {
+                console.log('Error setting user display elements:', error);
+            }
+        } else {
+            console.error('Failed to get user data:', result.message);
+            // Fallback to dummy data
+            setDummyUserData();
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to dummy data
+        setDummyUserData();
+    }
+}
+
+// Fallback function for dummy user data
+function setDummyUserData() {
     const dummyUserData = {
         name: 'Development User',
         avatar: '../../../../image/profil.png'
     };
     
-    // Display user name and avatar
     try {
         if (dummyUserData.name) {
             const userNameDisplay = document.getElementById('userNameDisplay');
@@ -104,27 +163,57 @@ function loadUserData() {
             userProfile.style.display = 'flex';
         }
     } catch (error) {
-        console.log('Development mode: Error setting user display elements:', error);
+        console.log('Error setting dummy user display elements:', error);
     }
 }
 
 // Helper function to get user ID (for development mode)
-function getUserId() {
-    // For development, return a dummy user ID
-    return 'dev-user-001';
+async function getUserId() {
+    try {
+        // Get user ID from localStorage or session
+        const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae'; // Default for development
+        
+        // Fetch user data to get kansaiEmployeeId
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': '*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            console.log('User data fetched:', result.data);
+            return result.data.kansaiEmployeeId;
+        } else {
+            console.error('Failed to get user data:', result.message);
+            return '02403121'; // Fallback for development
+        }
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        return '02403121'; // Fallback for development
+    }
 }
 
 async function loadDashboard() {
     try {
         // Get user ID for approver ID
-        const userId = getUserId();
+        const userId = await getUserId();
         if (!userId) {
             alert("Unable to get user ID from token. Please login again.");
             return;
         }
 
-        // Build API URL for AR Invoices
-        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        console.log('Using kansaiEmployeeId for API call:', userId);
+
+        // Build API URL for AR Invoices by acknowledged status
+        const apiUrl = `${BASE_URL}/api/ar-invoices/by-acknowledged/${userId}`;
         console.log('Fetching data from:', apiUrl);
 
         // Make API call
@@ -258,20 +347,12 @@ function filterInvoicesByTab(invoices, tab) {
     switch (tab) {
         case 'all':
             return invoices;
-        case 'prepared':
-            return invoices.filter(inv => inv.status === 'Prepared');
         case 'checked':
             return invoices.filter(inv => inv.status === 'Checked');
-        case 'rejected':
-            return invoices.filter(inv => inv.status === 'Rejected');
-        case 'draft':
-            return invoices.filter(inv => inv.status === 'Draft');
         case 'acknowledged':
             return invoices.filter(inv => inv.status === 'Acknowledged');
-        case 'approved':
-            return invoices.filter(inv => inv.status === 'Approved');
-        case 'received':
-            return invoices.filter(inv => inv.status === 'Received');
+        case 'rejected':
+            return invoices.filter(inv => inv.status === 'Rejected');
         default:
             return invoices;
     }
@@ -311,7 +392,7 @@ function getMockInvoiceData() {
             salesEmployee: 'John Doe',
             invoiceDate: '2024-01-15',
             dueDate: '2024-02-15',
-            status: 'checked',
+            status: 'Checked',
             totalAmount: 15000000,
             invoiceType: 'Regular'
         },
@@ -323,7 +404,7 @@ function getMockInvoiceData() {
             salesEmployee: 'Jane Smith',
             invoiceDate: '2024-01-16',
             dueDate: '2024-02-16',
-            status: 'acknowledged',
+            status: 'Acknowledged',
             totalAmount: 25000000,
             invoiceType: 'Regular'
         },
@@ -335,7 +416,7 @@ function getMockInvoiceData() {
             salesEmployee: 'Mike Johnson',
             invoiceDate: '2024-01-17',
             dueDate: '2024-02-17',
-            status: 'rejected',
+            status: 'Rejected',
             totalAmount: 18000000,
             invoiceType: 'Regular'
         },
@@ -347,7 +428,7 @@ function getMockInvoiceData() {
             salesEmployee: 'Sarah Wilson',
             invoiceDate: '2024-01-18',
             dueDate: '2024-02-18',
-            status: 'checked',
+            status: 'Checked',
             totalAmount: 12000000,
             invoiceType: 'Regular'
         },
@@ -359,7 +440,7 @@ function getMockInvoiceData() {
             salesEmployee: 'David Brown',
             invoiceDate: '2024-01-19',
             dueDate: '2024-02-19',
-            status: 'acknowledged',
+            status: 'Acknowledged',
             totalAmount: 30000000,
             invoiceType: 'Regular'
         }
@@ -367,11 +448,11 @@ function getMockInvoiceData() {
     
     // Filter based on current tab
     if (currentTab === 'checked') {
-        return mockInvoices.filter(inv => inv.status === 'checked');
+        return mockInvoices.filter(inv => inv.status === 'Checked');
     } else if (currentTab === 'acknowledged') {
-        return mockInvoices.filter(inv => inv.status === 'acknowledged');
+        return mockInvoices.filter(inv => inv.status === 'Acknowledged');
     } else if (currentTab === 'rejected') {
-        return mockInvoices.filter(inv => inv.status === 'rejected');
+        return mockInvoices.filter(inv => inv.status === 'Rejected');
     }
     
     return mockInvoices;
@@ -379,8 +460,6 @@ function getMockInvoiceData() {
 
 async function updateCounters() {
     try {
-        const userId = getUserId();
-        
         // Calculate from actual data
         const totalCount = allInvoices.length;
         const checkedCount = allInvoices.filter(inv => inv.status === 'Checked').length;
@@ -514,7 +593,7 @@ function updatePaginationInfo(totalItems) {
 }
 
 // Global function definitions
-window.switchTab = function(tabName) {
+window.switchTab = async function(tabName) {
     currentTab = tabName;
     currentPage = 1;
     
@@ -529,10 +608,10 @@ window.switchTab = function(tabName) {
     }
     
     // Reload dashboard with new tab
-    loadDashboard();
+    await loadDashboard();
 };
 
-function switchTab(tabName) {
+async function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1;
     
@@ -548,14 +627,14 @@ function switchTab(tabName) {
     }
     
     // Reload dashboard with new tab
-    loadDashboard();
+    await loadDashboard();
 }
 
-function handleSearch() {
+async function handleSearch() {
     const searchInput = document.getElementById('searchInput');
     currentSearchTerm = searchInput.value.trim();
     currentPage = 1;
-    loadDashboard();
+    await loadDashboard();
 }
 
 window.changePage = function(direction) {
@@ -611,23 +690,21 @@ window.viewInvoiceDetails = function(stagingId) {
     }
 };
 
-window.acknowledgeInvoice = function(id) {
+window.acknowledgeInvoice = async function(id) {
     // Acknowledge invoice
     if (confirm('Are you sure you want to acknowledge this invoice?')) {
         // In production, make API call to acknowledge
         console.log('Acknowledging invoice:', id);
-        showNotification('Invoice acknowledged successfully', id);
-        loadDashboard(); // Reload to update status
+        await loadDashboard(); // Reload to update status
     }
 };
 
-window.rejectInvoice = function(id) {
+window.rejectInvoice = async function(id) {
     // Reject invoice
     if (confirm('Are you sure you want to reject this invoice?')) {
         // In production, make API call to reject
         console.log('Rejecting invoice:', id);
-        showNotification('Invoice rejected successfully', id);
-        loadDashboard(); // Reload to update status
+        await loadDashboard(); // Reload to update status
     }
 };
 
@@ -658,23 +735,21 @@ function viewInvoiceDetails(stagingId) {
     }
 }
 
-function acknowledgeInvoice(id) {
+async function acknowledgeInvoice(id) {
     // Acknowledge invoice
     if (confirm('Are you sure you want to acknowledge this invoice?')) {
         // In production, make API call to acknowledge
         console.log('Acknowledging invoice:', id);
-        showNotification('Invoice acknowledged successfully', id);
-        loadDashboard(); // Reload to update status
+        await loadDashboard(); // Reload to update status
     }
 }
 
-function rejectInvoice(id) {
+async function rejectInvoice(id) {
     // Reject invoice
     if (confirm('Are you sure you want to reject this invoice?')) {
         // In production, make API call to reject
         console.log('Rejecting invoice:', id);
-        showNotification('Invoice rejected successfully', id);
-        loadDashboard(); // Reload to update status
+        await loadDashboard(); // Reload to update status
     }
 }
 
@@ -916,8 +991,11 @@ async function pollRejectedDocs() {
 }
 
 // Start polling when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    pollCheckedDocs();
-    pollAcknowledgedDocs();
-    pollRejectedDocs();
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait a bit before starting polling to avoid conflicts with initial load
+    setTimeout(() => {
+        pollCheckedDocs();
+        pollAcknowledgedDocs();
+        pollRejectedDocs();
+    }, 5000); // Start polling after 5 seconds
 }); 

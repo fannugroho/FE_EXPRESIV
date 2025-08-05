@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'prepared'; // Default tab - changed to prepared for checker view
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -7,8 +7,8 @@ let filteredInvoices = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// API Base URL is defined in auth.js - using that instead of redeclaring
-// const BASE_URL = 'http://localhost:5000'; // Update with your actual API base URL
+// API Configuration
+const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
 // Authentication check - using original authentication
 if (typeof isAuthenticated === 'function') {
@@ -91,32 +91,65 @@ function loadUserData() {
 function getUserId() {
     try {
         const userData = getCurrentUser();
-        return userData ? userData.userId : null;
+        if (userData && userData.userId) {
+            return userData.userId;
+        }
+        
+        // Fallback to default user ID for development
+        const defaultUserId = '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae';
+        console.log('Using default user ID:', defaultUserId);
+        return defaultUserId;
     } catch (error) {
         console.error('Error getting user ID:', error);
-        return null;
+        // Fallback to default user ID
+        return '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae';
     }
 }
 
-async function loadDashboard() {
+// Function to fetch user data from API
+async function fetchUserData(userId) {
     try {
-        // Get user ID for checker ID
-        const userId = getUserId();
-        if (!userId) {
-            alert("Unable to get user ID from token. Please login again.");
-            return;
+        console.log('Fetching user data for ID:', userId);
+        
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': '*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Build API URL for AR Invoices
-        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        const result = await response.json();
+        console.log('User API Response:', result);
+        
+        if (result.status && result.data) {
+            console.log('User data fetched successfully:', result.data);
+            return result.data;
+        } else {
+            throw new Error('Invalid user API response format');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        throw error;
+    }
+}
+
+// Function to fetch AR invoices by prepared NIK
+async function fetchARInvoicesByPreparedNIK(kansaiEmployeeId) {
+    try {
+        console.log('Fetching AR invoices for prepared NIK:', kansaiEmployeeId);
+        
+        // Use the by-prepared endpoint with the kansaiEmployeeId
+        const apiUrl = `${API_BASE_URL}/ar-invoices/by-prepared/${kansaiEmployeeId}`;
         console.log('Fetching data from:', apiUrl);
 
-        // Make API call
-        console.log('Making API call to:', apiUrl);
         const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
                 'Accept': 'text/plain'
             }
         });
@@ -128,65 +161,117 @@ async function loadDashboard() {
         }
 
         const result = await response.json();
-        console.log('API Response data:', result);
+        console.log('AR Invoices API Response:', result);
         
         if (result.status && result.data) {
-            console.log('Transforming API data...');
-            // Transform API data to match our expected format
-            allInvoices = result.data.map(invoice => {
-                // Map docType to display type
-                let displayType = 'Regular';
-                if (invoice.docType === 'I') {
-                    displayType = 'Item';
-                } else if (invoice.docType === 'S') {
-                    displayType = 'Services';
-                }
-                
-                const transformedInvoice = {
-                    id: invoice.stagingID,
-                    invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
-                    customerName: invoice.cardName,
-                    salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
-                    invoiceDate: invoice.docDate,
-                    dueDate: invoice.docDueDate,
-                    status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
-                    totalAmount: invoice.docTotal,
-                    invoiceType: displayType,
-                    // Additional fields from API
-                    cardCode: invoice.cardCode,
-                    address: invoice.address,
-                    comments: invoice.comments,
-                    preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
-                    currency: invoice.docCur,
-                    vatSum: invoice.vatSum,
-                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
-                    createdAt: invoice.createdAt,
-                    updatedAt: invoice.updatedAt,
-                    approvalSummary: invoice.arInvoiceApprovalSummary,
-                    docType: invoice.docType // Keep original docType for reference
-                };
-                console.log('Transformed invoice:', transformedInvoice);
-                return transformedInvoice;
-            });
-            
-            // Filter based on current tab
-            filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
-            
-            // Apply search filter if any
-            if (currentSearchTerm) {
-                filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
-            }
-            
-            // Update counters and table
-            updateCounters();
-            updateTable(filteredInvoices);
+            console.log(`Successfully loaded ${result.data.length} invoices for prepared NIK ${kansaiEmployeeId}`);
+            return result.data;
         } else {
             console.error('API returned error:', result.message);
-            allInvoices = [];
-            filteredInvoices = [];
-            updateCounters();
-            updateTable([]);
+            return [];
         }
+        
+    } catch (error) {
+        console.error('Error fetching AR invoices:', error);
+        throw error;
+    }
+}
+
+async function loadDashboard() {
+    try {
+        // Get user ID
+        const userId = getUserId();
+        if (!userId) {
+            alert("Unable to get user ID from token. Please login again.");
+            return;
+        }
+
+        console.log('Loading dashboard for user ID:', userId);
+
+        // Step 1: Fetch user data to get kansaiEmployeeId
+        const userData = await fetchUserData(userId);
+        const kansaiEmployeeId = userData.kansaiEmployeeId;
+        
+        if (!kansaiEmployeeId) {
+            console.error('No kansaiEmployeeId found in user data');
+            alert('User data is incomplete. Please contact administrator.');
+            return;
+        }
+
+        console.log('Using kansaiEmployeeId for invoice filtering:', kansaiEmployeeId);
+
+        // Step 2: Fetch AR invoices using the kansaiEmployeeId
+        const invoices = await fetchARInvoicesByPreparedNIK(kansaiEmployeeId);
+        
+        console.log('Transforming API data...');
+        // Transform API data to match our expected format
+        allInvoices = invoices.map(invoice => {
+            // Map docType to display type
+            let displayType = 'Regular';
+            if (invoice.docType === 'I') {
+                displayType = 'Item';
+            } else if (invoice.docType === 'S') {
+                displayType = 'Services';
+            }
+            
+            const transformedInvoice = {
+                id: invoice.stagingID,
+                invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard || invoice.visInv,
+                customerName: invoice.cardName,
+                salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
+                invoiceDate: invoice.docDate,
+                dueDate: invoice.docDueDate,
+                status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
+                totalAmount: invoice.docTotal || invoice.grandTotal,
+                invoiceType: displayType,
+                // Additional fields from API
+                cardCode: invoice.cardCode,
+                address: invoice.address,
+                comments: invoice.comments,
+                preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
+                currency: invoice.docCur,
+                vatSum: invoice.vatSum,
+                isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                createdAt: invoice.createdAt,
+                updatedAt: invoice.updatedAt,
+                approvalSummary: invoice.arInvoiceApprovalSummary,
+                docType: invoice.docType, // Keep original docType for reference
+                // Additional fields from new API response
+                docNum: invoice.docNum,
+                grandTotal: invoice.grandTotal,
+                netAmount: invoice.netAmount,
+                docTax: invoice.docTax,
+                discSum: invoice.discSum,
+                sysRate: invoice.sysRate,
+                licTradNum: invoice.licTradNum,
+                taxRate: invoice.taxRate,
+                dpp1112: invoice.dpp1112,
+                u_BankCode: invoice.u_BankCode,
+                account: invoice.account,
+                acctName: invoice.acctName,
+                netPrice: invoice.netPrice,
+                trackNo: invoice.trackNo,
+                u_bsi_udf1: invoice.u_bsi_udf1,
+                u_bsi_udf2: invoice.u_bsi_udf2,
+                u_bsi_udf3: invoice.u_bsi_udf3,
+                arInvoiceDetails: invoice.arInvoiceDetails,
+                arInvoiceAttachments: invoice.arInvoiceAttachments
+            };
+            console.log('Transformed invoice:', transformedInvoice);
+            return transformedInvoice;
+        });
+        
+        // Filter based on current tab
+        filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
+        
+        // Apply search filter if any
+        if (currentSearchTerm) {
+            filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
+        }
+        
+        // Update counters and table
+        updateCounters();
+        updateTable(filteredInvoices);
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -284,12 +369,8 @@ function applySearchFilter(invoices, searchTerm, searchType) {
     });
 }
 
-
-
 async function updateCounters() {
     try {
-        const userId = getUserId();
-        
         // Calculate from actual data
         const totalCount = allInvoices.length;
         const preparedCount = allInvoices.filter(inv => inv.status === 'Prepared').length;
@@ -614,7 +695,20 @@ window.downloadExcel = async function() {
             'Comments': invoice.comments,
             'Is Transfered': invoice.isTransfered,
             'Created At': formatDate(invoice.createdAt),
-            'Updated At': formatDate(invoice.updatedAt)
+            'Updated At': formatDate(invoice.updatedAt),
+            // Additional fields from new API
+            'Doc Number': invoice.docNum,
+            'Grand Total': invoice.grandTotal,
+            'Net Amount': invoice.netAmount,
+            'Tax Amount': invoice.docTax,
+            'Discount Sum': invoice.discSum,
+            'Tax Rate': invoice.taxRate,
+            'License Number': invoice.licTradNum,
+            'Bank Code': invoice.u_BankCode,
+            'Account': invoice.account,
+            'Account Name': invoice.acctName,
+            'Net Price': invoice.netPrice,
+            'Tracking Number': invoice.trackNo
         }));
         
         const worksheet = XLSX.utils.json_to_sheet(exportData);

@@ -7,39 +7,51 @@ let filteredInvoices = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
+// Helper function to check authentication with development mode support
+function checkAuthentication() {
+    if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+        return true; // Always return true in development mode
+    }
+    return isAuthenticated();
+}
+
 // API Base URL is defined in auth.js - using that instead of redeclaring
 // const BASE_URL = 'http://localhost:5000'; // Update with your actual API base URL
 
 // ========================================
-// DEVELOPMENT MODE: AUTHENTICATION BYPASSED
+// AUTHENTICATION ENABLED
 // ========================================
-// Authentication has been temporarily disabled for development purposes.
-// 
-// To re-enable authentication:
-// 1. Comment out the dummy user data section (lines 28-58)
-// 2. Uncomment the original authentication check (lines 60-75)
-// 3. Remove or comment out the isAuthenticated override (lines 12-18)
+// Authentication is now properly enabled.
+// The system will use real user authentication and tokens.
 // ========================================
-
-// Override authentication check for development
-if (typeof isAuthenticated === 'function') {
-    const originalIsAuthenticated = isAuthenticated;
-    window.isAuthenticated = function() {
-        console.log('Development mode: Authentication check bypassed');
-        return true;
-    };
-}
 
 // Load dashboard when page is ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is authenticated before loading data
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+    
     loadUserData();
     loadDashboard();
+    
+    // Start polling for real-time updates
+    startPolling();
     
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let searchTimeout;
         searchInput.addEventListener('input', function() {
+            // Check if user is authenticated before searching
+            if (!checkAuthentication()) {
+                console.log('User not authenticated, redirecting to login');
+                window.location.href = getLoginPagePath();
+                return;
+            }
+            
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 handleSearch();
@@ -51,6 +63,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchType = document.getElementById('searchType');
     if (searchType) {
         searchType.addEventListener('change', function() {
+            // Check if user is authenticated before changing search type
+            if (!checkAuthentication()) {
+                console.log('User not authenticated, redirecting to login');
+                window.location.href = getLoginPagePath();
+                return;
+            }
+            
             const searchInput = document.getElementById('searchInput');
             
             // Update input type and placeholder based on search type
@@ -73,29 +92,81 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to load user data
 function loadUserData() {
-    // DEVELOPMENT MODE: Bypass authentication check
-    console.log('Development mode: Bypassing authentication check');
-    
-    // Set dummy user data for development
-    const dummyUserData = {
-        name: 'Development User',
-        avatar: '../../../../image/profil.png'
-    };
-    
-    // Display user name and avatar
     try {
-        if (dummyUserData.name) {
+        // Check if we're in development mode
+        if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+            console.log('Development mode: Using dummy user data');
+            
+            // Set dummy user data for development
+            const dummyUserData = {
+                name: 'Development User',
+                avatar: '../../../../image/profil.png'
+            };
+            
+            // Display user name and avatar
             const userNameDisplay = document.getElementById('userNameDisplay');
             if (userNameDisplay) {
                 userNameDisplay.textContent = dummyUserData.name;
             }
-        }
-        
-        if (dummyUserData.avatar) {
+            
             const dashboardUserIcon = document.getElementById('dashboardUserIcon');
             if (dashboardUserIcon) {
                 dashboardUserIcon.src = dummyUserData.avatar;
             }
+            
+            // Show user profile section
+            const userProfile = document.querySelector('.user-profile');
+            if (userProfile) {
+                userProfile.style.display = 'flex';
+            }
+            
+            return;
+        }
+
+        // Production mode: Check if user is authenticated
+        if (!isAuthenticated()) {
+            console.log('User not authenticated, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
+        // Get user data from token or localStorage
+        const token = getAccessToken();
+        if (!token) {
+            console.log('No access token found, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
+        // Decode token to get user information
+        const userInfo = decodeJWT(token);
+        if (!userInfo) {
+            console.log('Invalid token, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
+        // Get user data from localStorage
+        const userStr = localStorage.getItem('loggedInUser');
+        let userData = null;
+        
+        if (userStr) {
+            try {
+                userData = JSON.parse(userStr);
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+            }
+        }
+
+        // Display user name and avatar
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        if (userNameDisplay) {
+            userNameDisplay.textContent = userData?.name || userInfo.name || 'User';
+        }
+        
+        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+        if (dashboardUserIcon) {
+            dashboardUserIcon.src = userData?.avatar || '../../../../image/profil.png';
         }
         
         // Show user profile section
@@ -106,50 +177,82 @@ function loadUserData() {
         
     } catch (error) {
         console.error('Error loading user data:', error);
+        // If there's an error, redirect to login
+        window.location.href = getLoginPagePath();
     }
 }
 
 // Function to get user ID from token
 function getUserId() {
-    // DEVELOPMENT MODE: Return dummy user ID
-    return 'dev-user-001';
-    
-    // In production, uncomment this:
-    /*
+    // Check if we're in development mode
+    if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+        console.log('Development mode: Using dummy user ID');
+        return 'EXPAT003'; // Dummy user ID for development
+    }
+
     try {
         const token = getAccessToken();
         if (!token) return null;
         
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.userId || payload.sub;
+        const payload = decodeJWT(token);
+        if (!payload) return null;
+        
+        // Try different possible user ID fields from the token
+        return payload.userId || payload.sub || payload.user_id || payload.id;
     } catch (error) {
         console.error('Error parsing token:', error);
         return null;
     }
-    */
 }
 
 async function loadDashboard() {
     try {
+        // Check if we're in development mode
+        if (BYPASS_AUTH_FOR_DEVELOPMENT) {
+            console.log('Development mode: Bypassing authentication check');
+        } else {
+            // Production mode: Check if user is authenticated
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, redirecting to login');
+                window.location.href = getLoginPagePath();
+                return;
+            }
+        }
+
         // Get user ID for approver ID
         const userId = getUserId();
         if (!userId) {
-            alert("Unable to get user ID from token. Please login again.");
+            console.log('Unable to get user ID. Redirecting to login.');
+            window.location.href = getLoginPagePath();
             return;
         }
 
-        // Build API URL for AR Invoices
-        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        // Build API URL for AR Invoices by approved status
+        const apiUrl = `${BASE_URL}/api/ar-invoices/by-approved/${userId}`;
         console.log('Fetching data from:', apiUrl);
+
+        // Prepare headers for API call
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'text/plain'
+        };
+
+        // Add authorization header if not in development mode
+        if (!BYPASS_AUTH_FOR_DEVELOPMENT) {
+            const token = getAccessToken();
+            if (!token) {
+                console.log('No access token found, redirecting to login');
+                window.location.href = getLoginPagePath();
+                return;
+            }
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
         // Make API call
         console.log('Making API call to:', apiUrl);
         const response = await fetch(apiUrl, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'text/plain'
-            }
+            headers: headers
         });
 
         console.log('API Response status:', response.status);
@@ -221,7 +324,17 @@ async function loadDashboard() {
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        alert('Error loading dashboard data. Please try again.');
+        
+        // Check if it's an authentication error
+        if (error.message && error.message.includes('401')) {
+            console.log('Authentication error, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+        
+        // Show error message to user
+        const errorMessage = 'Error loading dashboard data. Please try again.';
+        console.error(errorMessage, error);
         
         // Show empty state when API fails
         allInvoices = [];
@@ -233,6 +346,13 @@ async function loadDashboard() {
 
 // Helper function to determine invoice status based on approval data
 function getInvoiceStatus(invoice) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return 'Draft';
+    }
+
     console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
     console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
     
@@ -270,6 +390,13 @@ function getInvoiceStatus(invoice) {
 
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return [];
+    }
+
     switch (tab) {
         case 'all':
             return invoices;
@@ -294,6 +421,13 @@ function filterInvoicesByTab(invoices, tab) {
 
 // Helper function to apply search filter
 function applySearchFilter(invoices, searchTerm, searchType) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return [];
+    }
+
     if (!searchTerm) return invoices;
     
     const term = searchTerm.toLowerCase();
@@ -315,84 +449,23 @@ function applySearchFilter(invoices, searchTerm, searchType) {
     });
 }
 
-// Mock data for development
-function getMockInvoiceData() {
-    const mockInvoices = [
-        {
-            id: 1,
-            invoiceNo: 'INV-2024-001',
-            customerName: 'PT Maju Bersama',
-            salesEmployee: 'John Doe',
-            invoiceDate: '2024-01-15',
-            dueDate: '2024-02-15',
-            status: 'acknowledge',
-            totalAmount: 15000000,
-            invoiceType: 'Regular',
-            remarks: 'Pending approval'
-        },
-        {
-            id: 2,
-            invoiceNo: 'INV-2024-002',
-            customerName: 'CV Sukses Mandiri',
-            salesEmployee: 'Jane Smith',
-            invoiceDate: '2024-01-16',
-            dueDate: '2024-02-16',
-            status: 'approved',
-            totalAmount: 25000000,
-            invoiceType: 'Regular',
-            remarks: 'Approved by manager'
-        },
-        {
-            id: 3,
-            invoiceNo: 'INV-2024-003',
-            customerName: 'PT Global Solutions',
-            salesEmployee: 'Mike Johnson',
-            invoiceDate: '2024-01-17',
-            dueDate: '2024-02-17',
-            status: 'rejected',
-            totalAmount: 8500000,
-            invoiceType: 'Special',
-            remarks: 'Rejected - incomplete documentation'
-        },
-        {
-            id: 4,
-            invoiceNo: 'INV-2024-004',
-            customerName: 'PT Teknologi Maju',
-            salesEmployee: 'Sarah Wilson',
-            invoiceDate: '2024-01-18',
-            dueDate: '2024-02-18',
-            status: 'acknowledge',
-            totalAmount: 12000000,
-            invoiceType: 'Regular',
-            remarks: 'Awaiting approval'
-        },
-        {
-            id: 5,
-            invoiceNo: 'INV-2024-005',
-            customerName: 'CV Inovasi Baru',
-            salesEmployee: 'David Brown',
-            invoiceDate: '2024-01-19',
-            dueDate: '2024-02-19',
-            status: 'approved',
-            totalAmount: 18000000,
-            invoiceType: 'Special',
-            remarks: 'Approved with conditions'
-        }
-    ];
-    
-    // Filter based on current tab
-    return mockInvoices.filter(invoice => {
-        if (currentTab === 'acknowledge') return invoice.status === 'acknowledge';
-        if (currentTab === 'approved') return invoice.status === 'approved';
-        if (currentTab === 'rejected') return invoice.status === 'rejected';
-        return true;
-    });
-}
+// Mock data function removed - now using real API data
 
 async function updateCounters() {
     try {
+        // Check if user is authenticated
+        if (!checkAuthentication()) {
+            console.log('User not authenticated, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
         const userId = getUserId();
-        if (!userId) return;
+        if (!userId) {
+            console.log('Unable to get user ID, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
 
         // Calculate from actual data
         const totalCount = allInvoices.length;
@@ -408,10 +481,21 @@ async function updateCounters() {
         
     } catch (error) {
         console.error('Error updating counters:', error);
+        // If there's an authentication error, redirect to login
+        if (error.message && error.message.includes('401')) {
+            window.location.href = getLoginPagePath();
+        }
     }
 }
 
 function updateTable(invoices) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const tbody = document.getElementById('recentDocs');
     if (!tbody) return;
 
@@ -456,12 +540,26 @@ function updateTable(invoices) {
 }
 
 function formatDate(dateString) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return '-';
+    }
+
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID');
 }
 
 function formatCurrency(amount) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return '0';
+    }
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -470,6 +568,13 @@ function formatCurrency(amount) {
 }
 
 function updatePaginationInfo(totalItems) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
     
@@ -487,6 +592,13 @@ function updatePaginationInfo(totalItems) {
 }
 
 function switchTab(tabName) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     currentTab = tabName;
     currentPage = 1;
     
@@ -506,6 +618,13 @@ function switchTab(tabName) {
 }
 
 function handleSearch() {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const searchInput = document.getElementById('searchInput');
     currentSearchTerm = searchInput.value.trim();
     currentPage = 1;
@@ -513,6 +632,13 @@ function handleSearch() {
 }
 
 function changePage(direction) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const newPage = currentPage + direction;
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
     
@@ -523,12 +649,26 @@ function changePage(direction) {
 }
 
 function goToTotalDocs() {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     console.log('Navigate to total documents');
     // Implement navigation to total documents view
 }
 
 // Approval action functions
 function viewInvoiceDetails(id) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     // Find the invoice data to get docType
     const invoice = allInvoices.find(inv => inv.id == id);
     
@@ -541,18 +681,25 @@ function viewInvoiceDetails(id) {
     // Route based on docType
     if (invoice.docType === 'I') {
         // Route to Invoice Item approval page
-        window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`;
     } else if (invoice.docType === 'S') {
         // Route to Invoice Service approval page
-        window.open(`../../../../approvalPages/approval/approve/invoiceService/approveInvService.html?stagingId=${id}`, '_blank');
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceService/approveInvService.html?stagingId=${id}`;
     } else {
         // Default fallback to Invoice Item page
         console.warn('Unknown docType:', invoice.docType, 'Defaulting to Invoice Item page');
-        window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`;
     }
 }
 
 function approveInvoice(id) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     if (confirm('Are you sure you want to approve this invoice?')) {
         console.log('Approving invoice:', id);
         // Implement approval API call
@@ -562,6 +709,13 @@ function approveInvoice(id) {
 }
 
 function rejectInvoice(id) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const reason = prompt('Please provide a reason for rejection:');
     if (reason !== null) {
         console.log('Rejecting invoice:', id, 'Reason:', reason);
@@ -572,18 +726,39 @@ function rejectInvoice(id) {
 }
 
 function editInvoice(id) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     console.log('Edit invoice:', id);
     // Implement edit functionality
-    window.open(`../approval/approve/invoiceItem/approveInvItem.html?id=${id}&mode=edit`, '_blank');
+    window.location.href = `../approval/approve/invoiceItem/approveInvItem.html?id=${id}&mode=edit`;
 }
 
 function printInvoice(id) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     console.log('Print invoice:', id);
     // Implement print functionality
-    window.open(`../approval/approve/invoiceItem/printInvItem.html?id=${id}`, '_blank');
+    window.location.href = `../approval/approve/invoiceItem/printInvItem.html?id=${id}`;
 }
 
 function getStatusClass(status) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return 'status-draft';
+    }
+
     switch (status.toLowerCase()) {
         case 'acknowledge':
             return 'status-acknowledge';
@@ -606,6 +781,13 @@ function getStatusClass(status) {
 
 // Sidebar and navigation functions
 function toggleSidebar() {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
         sidebar.classList.toggle('hidden');
@@ -613,6 +795,13 @@ function toggleSidebar() {
 }
 
 function toggleSubMenu(menuId) {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const submenu = document.getElementById(menuId);
     if (submenu) {
         submenu.classList.toggle('hidden');
@@ -621,14 +810,32 @@ function toggleSubMenu(menuId) {
 
 // Profile and notification functions
 function goToProfile() {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     console.log('Navigate to profile');
     // Implement profile navigation
 }
 
 function updateNotificationBadge() {
+    // Check if user is authenticated
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, hiding notification badge');
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            badge.classList.add('hidden');
+        }
+        return;
+    }
+
     const badge = document.getElementById('notificationBadge');
     if (badge) {
-        // Mock notification count for development
+        // TODO: Implement real notification count from API
+        // For now, using mock data
         const count = Math.floor(Math.random() * 5);
         if (count > 0) {
             badge.textContent = count;
@@ -642,6 +849,13 @@ function updateNotificationBadge() {
 // Export functions
 async function downloadExcel() {
     try {
+        // Check if user is authenticated
+        if (!checkAuthentication()) {
+            console.log('User not authenticated, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
         const data = filteredInvoices.map(invoice => ({
             'Invoice No.': invoice.invoiceNo,
             'Customer': invoice.customerName,
@@ -669,6 +883,13 @@ async function downloadExcel() {
 
 async function downloadPDF() {
     try {
+        // Check if user is authenticated
+        if (!checkAuthentication()) {
+            console.log('User not authenticated, redirecting to login');
+            window.location.href = getLoginPagePath();
+            return;
+        }
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
@@ -716,27 +937,54 @@ async function downloadPDF() {
 
 // Polling functions for real-time updates
 async function pollAcknowledgeDocs() {
+    // Check if user is authenticated before polling
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, stopping polling');
+        return;
+    }
+    
     if (currentTab === 'acknowledge') {
         await loadDashboard();
     }
 }
 
 async function pollApprovedDocs() {
+    // Check if user is authenticated before polling
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, stopping polling');
+        return;
+    }
+    
     if (currentTab === 'approved') {
         await loadDashboard();
     }
 }
 
 async function pollRejectedDocs() {
+    // Check if user is authenticated before polling
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, stopping polling');
+        return;
+    }
+    
     if (currentTab === 'rejected') {
         await loadDashboard();
     }
 }
 
-// Start polling for real-time updates
-setInterval(pollAcknowledgeDocs, 30000); // Poll every 30 seconds
-setInterval(pollApprovedDocs, 30000);
-setInterval(pollRejectedDocs, 30000);
+// Start polling for real-time updates (only if authenticated)
+function startPolling() {
+    // Check if user is authenticated before starting polling
+    if (!checkAuthentication()) {
+        console.log('User not authenticated, not starting polling');
+        return;
+    }
+    
+    console.log('Starting polling for real-time updates');
+    setInterval(pollAcknowledgeDocs, 30000); // Poll every 30 seconds
+    setInterval(pollApprovedDocs, 30000);
+    setInterval(pollRejectedDocs, 30000);
+    setInterval(updateNotificationBadge, 60000); // Update every minute
+}
 
-// Update notification badge periodically
-setInterval(updateNotificationBadge, 60000); // Update every minute 
+ 

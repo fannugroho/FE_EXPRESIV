@@ -49,6 +49,12 @@ function initializePage() {
     
     // Initialize button visibility (hide by default)
     updateButtonVisibility();
+    
+    // Initialize summary fields with default values
+    initializeSummaryFields();
+    
+    // Ensure table container displays full height
+    ensureTableContainerFullHeight();
 }
 
 // Function to fetch users from API
@@ -107,13 +113,23 @@ function getCurrentUserFullName() {
         user.name === currentUser.username
     );
     
-    if (currentUserData && currentUserData.fullName) {
-        console.log('Found full name for current user:', currentUserData.fullName);
-        return currentUserData.fullName;
+    if (currentUserData && currentUserData.name) {
+        return currentUserData.name;
     }
     
-    console.warn('Full name not found for current user, falling back to username');
     return currentUser.username || 'Unknown User';
+}
+
+// Function to initialize summary fields with default values
+function initializeSummaryFields() {
+    const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = '0.00';
+            field.classList.add('currency-input-idr');
+        }
+    });
 }
 
 // Load invoice item data
@@ -323,9 +339,9 @@ function populateInvItemData(data) {
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
     document.getElementById('GroupNum').value = data.groupNum || '';
     document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
+            document.getElementById('TaxNo').value = data.licTradNum || '';
+        document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
+        document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
@@ -338,10 +354,45 @@ function populateInvItemData(data) {
     const status = getStatusFromInvoice(data);
     document.getElementById('Status').value = status;
     
-    // Populate totals
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    // Populate summary fields with currency formatting
+    const docCur = data.docCur || 'IDR';
+    
+    // Total Amount (docTotal) - API Field: "docCur" "docTotal"
+    const docTotal = data.docTotal || 0;
+    document.getElementById('docTotal').value = formatCurrencyIDR(docTotal);
+    
+    // Discounted Amount (discSum) - API Field: "docCur" "discSum"
+    const discSum = data.discSum || 0;
+    document.getElementById('discSum').value = formatCurrencyIDR(discSum);
+    
+    // Sales Amount (netPriceAfterDiscount) - API Field: "docCur" "netPriceAfterDiscount"
+    // Use netPriceAfterDiscount if available, otherwise use netPrice, fallback to docTotal
+    const netPriceAfterDiscount = data.netPriceAfterDiscount !== null && data.netPriceAfterDiscount !== undefined 
+        ? data.netPriceAfterDiscount 
+        : (data.netPrice || data.docTotal || 0);
+    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(netPriceAfterDiscount);
+    
+    console.log('Summary fields populated:', {
+        docTotal: data.docTotal,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        netPrice: data.netPrice,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
+    });
+    
+    // Tax Base Other Value (dpp1112) - API Field: "docCur" "dpp1112"
+    const dpp1112 = data.dpp1112 || 0;
+    document.getElementById('dpp1112').value = formatCurrencyIDR(dpp1112);
+    
+    // VAT 12% (vatSum) - API Field: "docCur" "vatSum"
+    const vatSum = data.vatSum || 0;
+    document.getElementById('vatSum').value = formatCurrencyIDR(vatSum);
+    
+    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
+    const grandTotal = data.grandTotal || data.docTotal || 0;
+    document.getElementById('grandTotal').value = formatCurrencyIDR(grandTotal);
     
     // Populate comments
     document.getElementById('comments').value = data.comments || '';
@@ -379,9 +430,24 @@ function populateInvItemData(data) {
     // Apply text wrapping
     refreshTextWrapping();
     
-    // Apply currency formatting to table cells
+    // Apply currency formatting to table cells and summary fields
     setTimeout(() => {
         applyCurrencyFormattingToTable();
+        
+        // Apply currency formatting to summary fields
+        const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+        summaryFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.add('currency-input-idr');
+                if (field.value && field.value !== '0.00') {
+                    formatCurrencyInputIDR(field);
+                }
+            }
+        });
+        
+        // Ensure table container doesn't have max-height constraints
+        ensureTableContainerFullHeight();
     }, 200);
 }
 
@@ -448,7 +514,7 @@ function populateItemsTable(items) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="12" class="p-4 text-center text-gray-500">
+            <td colspan="13" class="p-4 text-center text-gray-500">
                 No invoice details found
             </td>
         `;
@@ -469,10 +535,13 @@ function createItemRow(item, index) {
     
     row.innerHTML = `
         <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.lineNum || index + 1}" disabled autocomplete="off" />
+            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${index + 1}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border item-code-column">
             <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
+        </td>
+        <td class="p-2 border bp-catalog-column">
+            <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.bpCatalog || ''}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
@@ -481,7 +550,7 @@ function createItemRow(item, index) {
             <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
         <td class="p-2 border packing-size-column">
-            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.packingSize || ''}</textarea>
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr2 || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
@@ -500,9 +569,6 @@ function createItemRow(item, index) {
         </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
-        </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
         </td>
         <td class="p-2 border h-12 line-total-column">
             <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
@@ -1078,7 +1144,7 @@ function applyCurrencyFormattingToTable() {
     });
 
     // Format summary fields
-    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal'];
+    const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
     summaryFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
@@ -1093,6 +1159,19 @@ function applyCurrencyFormattingToTable() {
             }
         }
     });
+}
+
+// Function to ensure table container displays full height without scrolling
+function ensureTableContainerFullHeight() {
+    const tableContainer = document.querySelector('.table-container');
+    if (tableContainer) {
+        // Remove any max-height constraints
+        tableContainer.style.maxHeight = 'none';
+        tableContainer.style.height = 'auto';
+        tableContainer.style.overflowY = 'visible';
+        
+        console.log('Table container height constraints removed for full display');
+    }
 }
 
 // Export functions for global access
