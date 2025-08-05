@@ -2276,3 +2276,587 @@ async function handleReimbursementData(result) {
         console.warn('Could not fetch reimbursement data (acknowledge):', err);
     }
 }
+
+// Enhanced Attachment Handling Functions for Receive OP Reim
+// Based on the working version from checked system
+
+// ===== ENHANCED ATTACHMENT MANAGER FOR RECEIVE =====
+class EnhancedAttachmentManager {
+    
+    // Main function to handle attachments - replaces the old handleAttachments
+    static async handleAttachments(result, docId) {
+        console.log('📎 Enhanced attachment handling for document:', docId);
+        console.log('📎 Result data:', result);
+        console.log('📎 Result attachments:', result.attachments);
+
+        if (result.attachments?.length > 0) {
+            console.log('📎 Found attachments in main response:', result.attachments);
+            this.displayExistingAttachments(result.attachments);
+            // Store in global variable for backward compatibility
+            existingAttachments = result.attachments;
+        } else {
+            console.log('📎 No attachments in main response, trying API endpoint');
+            await this.loadAttachmentsFromAPI(docId);
+        }
+    }
+
+    // Enhanced display function - replaces the old displayAttachments
+    static displayExistingAttachments(attachments) {
+        const container = document.getElementById('attachmentsList');
+        if (!container) {
+            console.warn('Attachments container not found: attachmentsList');
+            return;
+        }
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+            return;
+        }
+
+        console.log('📎 Displaying', attachments.length, 'attachments');
+
+        // Create attachment items HTML
+        const attachmentItems = attachments.map((attachment, index) => {
+            const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
+            const fileIcon = this.getFileIcon(fileName);
+            const fileSize = this.formatFileSize(attachment.fileSize || attachment.size);
+            const uploadDate = this.formatDate(attachment.uploadDate || attachment.createdAt);
+            
+            return this.createAttachmentItemHTML(attachment, fileName, fileIcon, fileSize, uploadDate, index);
+        }).join('');
+
+        // Set container content
+        container.innerHTML = `
+            <h4 class="text-md font-medium text-gray-700 mb-2">Outgoing Payment Attachments</h4>
+            ${attachmentItems}
+        `;
+
+        console.log('✅ Attachments displayed successfully');
+    }
+
+    // Create individual attachment item HTML
+    static createAttachmentItemHTML(attachment, fileName, fileIcon, fileSize, uploadDate, index) {
+        // Create a safe JSON string for the onclick handler
+        const attachmentData = {
+            id: attachment.id || attachment.attachmentId || attachment.fileId,
+            fileName: fileName,
+            filePath: attachment.filePath || attachment.fileUrl || attachment.url,
+            fileType: attachment.fileType || attachment.contentType,
+            fileSize: attachment.fileSize || attachment.size
+        };
+        
+        // Use index-based ID as fallback
+        const attachmentId = attachmentData.id || `attachment_${index}`;
+        
+        return `
+            <div class="flex items-center justify-between p-2 mb-2 bg-gray-50 rounded border">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">${fileIcon}</span>
+                    <div>
+                        <div class="font-medium text-sm">${fileName}</div>
+                        <div class="text-xs text-gray-500">${fileSize} • ${attachment.fileType || attachment.contentType || 'Unknown Type'}</div>
+                        <div class="text-xs text-gray-400">Outgoing Payment Attachment • Uploaded: ${uploadDate}</div>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="EnhancedAttachmentManager.viewAttachment('${attachmentId}')" 
+                            class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50">
+                        View
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Enhanced view attachment function
+    static async viewAttachment(attachmentId) {
+        try {
+            console.log('📎 Viewing attachment with ID:', attachmentId);
+            console.log('📎 Available attachments:', existingAttachments);
+
+            if (!existingAttachments || existingAttachments.length === 0) {
+                console.error('No attachments available');
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No attachments are currently available',
+                    icon: 'error'
+                });
+                return;
+            }
+
+            // Find attachment with comprehensive matching
+            const attachment = this.findAttachment(attachmentId);
+            
+            if (!attachment) {
+                console.error('Attachment not found for ID:', attachmentId);
+                this.logAvailableAttachments();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Attachment not found. Please refresh the page and try again.',
+                    icon: 'error'
+                });
+                return;
+            }
+
+            console.log('📎 Found attachment:', attachment);
+
+            // Show loading indicator
+            Swal.fire({
+                title: 'Loading...',
+                text: 'Loading attachment, please wait...',
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Try to open the attachment
+            await this.openAttachment(attachment);
+
+        } catch (error) {
+            console.error('Error viewing attachment:', error);
+            Swal.close();
+            Swal.fire({
+                title: 'Error',
+                text: `Failed to view attachment: ${error.message}`,
+                icon: 'error'
+            });
+        }
+    }
+
+    // Find attachment by various ID matching strategies
+    static findAttachment(attachmentId) {
+        return existingAttachments.find(a => {
+            return a.id === attachmentId ||
+                a.attachmentId === attachmentId ||
+                a.fileId === attachmentId ||
+                a.documentId === attachmentId ||
+                a.id === parseInt(attachmentId) ||
+                a.attachmentId === parseInt(attachmentId) ||
+                a.fileId === parseInt(attachmentId) ||
+                a.documentId === parseInt(attachmentId) ||
+                `attachment_${existingAttachments.indexOf(a)}` === attachmentId;
+        });
+    }
+
+    // Open attachment with multiple URL strategies
+    static async openAttachment(attachment) {
+        // Try different possible URL field names
+        const fileUrl = attachment.fileUrl ||
+            attachment.url ||
+            attachment.downloadUrl ||
+            attachment.filePath ||
+            attachment.link ||
+            attachment.attachmentUrl ||
+            attachment.documentUrl;
+
+        if (!fileUrl) {
+            console.error('No file URL found in attachment:', attachment);
+            this.logAttachmentURLFields(attachment);
+            throw new Error('Attachment file URL is not available. The attachment may not be properly uploaded.');
+        }
+
+        console.log('📎 Opening attachment URL:', fileUrl);
+
+        // If it's a file path, construct full URL
+        let fullUrl = fileUrl;
+        if (!fileUrl.startsWith('http')) {
+            const decodedPath = decodeURIComponent(fileUrl);
+            const cleanPath = decodedPath.replace(/^\/+/, '');
+            fullUrl = `${BASE_URL}/${cleanPath}`;
+            
+            console.log('📎 Constructed full URL:', {
+                originalPath: fileUrl,
+                decodedPath,
+                cleanPath,
+                baseUrl: BASE_URL,
+                finalURL: fullUrl
+            });
+        }
+
+        // Close loading and open attachment
+        Swal.close();
+        
+        const newWindow = window.open(fullUrl, '_blank');
+        
+        if (!newWindow) {
+            throw new Error('Pop-up blocked or failed to open');
+        }
+
+        // Show success message
+        Swal.fire({
+            title: 'Success',
+            text: 'Attachment opened in new tab',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+
+    // Load attachments from API with better error handling
+    static async loadAttachmentsFromAPI(docId) {
+        try {
+            console.log('📎 Loading attachments from API for document:', docId);
+
+            const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${docId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            console.log('📎 Attachments API response status:', response.status);
+
+            if (!response.ok) {
+                await this.handleAttachmentLoadError(response, docId);
+                return;
+            }
+
+            const result = await response.json();
+            console.log('📎 Attachments API response data:', result);
+
+            if (result.data?.length > 0) {
+                this.displayExistingAttachments(result.data);
+                existingAttachments = result.data;
+                console.log('📎 Stored attachments from API:', existingAttachments);
+            } else {
+                this.showNoAttachmentsMessage();
+            }
+
+        } catch (error) {
+            console.error("Error loading attachments from API:", error);
+            this.showAttachmentError();
+        }
+    }
+
+    // Handle attachment loading errors
+    static async handleAttachmentLoadError(response, docId) {
+        if (response.status === 404) {
+            console.warn(`No attachments found for document ${docId}`);
+            this.showNoAttachmentsMessage();
+            return;
+        }
+
+        if (response.status === 405) {
+            console.warn('GET method not allowed on attachments endpoint, trying alternative approach');
+            await this.tryAlternativeAttachmentLoad(docId);
+            return;
+        }
+
+        console.warn(`Failed to load attachments: ${response.status}`);
+        this.showAttachmentError();
+    }
+
+    // Try alternative method to load attachments
+    static async tryAlternativeAttachmentLoad(docId) {
+        try {
+            const mainResponse = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (mainResponse.ok) {
+                const mainResult = await mainResponse.json();
+                if (mainResult.attachments?.length > 0) {
+                    console.log('📎 Found attachments in main response:', mainResult.attachments);
+                    this.displayExistingAttachments(mainResult.attachments);
+                    existingAttachments = mainResult.attachments;
+                    return;
+                }
+            }
+
+            this.showNoAttachmentsMessage();
+        } catch (error) {
+            console.error('Error in alternative attachment load:', error);
+            this.showAttachmentError();
+        }
+    }
+
+    // Reimbursement attachments handling
+    static async loadReimbursementAttachments(reimbursementId) {
+        try {
+            console.log('📎 Loading reimbursement attachments for ID:', reimbursementId);
+
+            const response = await makeAuthenticatedRequest(`/api/reimbursements/${reimbursementId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                console.warn(`Failed to load reimbursement data: ${response.status}`);
+                return;
+            }
+
+            const result = await response.json();
+
+            if (result.data?.reimbursementAttachments?.length > 0) {
+                console.log('📎 Found reimbursement attachments:', result.data.reimbursementAttachments);
+                this.appendReimbursementAttachmentsSection(result.data.reimbursementAttachments);
+            } else {
+                console.log('📎 No reimbursement attachments found');
+            }
+
+        } catch (error) {
+            console.error("Error loading reimbursement attachments:", error);
+        }
+    }
+
+    // Add reimbursement attachments section
+    static appendReimbursementAttachmentsSection(attachments) {
+        const container = document.getElementById('attachmentsList');
+        if (!container) return;
+
+        // Check if reimbursement header already exists
+        const existingHeader = container.querySelector('.reimbursement-header');
+        if (!existingHeader) {
+            const reimbursementHeader = document.createElement('div');
+            reimbursementHeader.className = 'mt-4 mb-2 reimbursement-header';
+            reimbursementHeader.innerHTML = '<h4 class="text-md font-medium text-blue-800">Reimbursement Attachments</h4>';
+            container.appendChild(reimbursementHeader);
+        }
+
+        this.displayReimbursementAttachments(attachments);
+    }
+
+    // Display reimbursement attachments
+    static displayReimbursementAttachments(attachments) {
+        const container = document.getElementById('attachmentsList');
+        if (!container || !attachments?.length) return;
+
+        let attachmentList = container.querySelector('.reimbursement-attachments-list');
+        if (!attachmentList) {
+            attachmentList = document.createElement('div');
+            attachmentList.className = 'space-y-2 mb-4 reimbursement-attachments-list';
+            container.appendChild(attachmentList);
+        } else {
+            attachmentList.innerHTML = '';
+        }
+
+        attachments.forEach(attachment => {
+            const attachmentItem = this.createReimbursementAttachmentItem(attachment);
+            attachmentList.appendChild(attachmentItem);
+        });
+    }
+
+    // Create reimbursement attachment item
+    static createReimbursementAttachmentItem(attachment) {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+
+        const fileInfo = this.createReimbursementFileInfo(attachment);
+        const actions = this.createReimbursementActions(attachment);
+
+        attachmentItem.appendChild(fileInfo);
+        attachmentItem.appendChild(actions);
+
+        return attachmentItem;
+    }
+
+    // Create reimbursement file info
+    static createReimbursementFileInfo(attachment) {
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-2';
+
+        const fileIcon = this.getFileIcon(attachment.fileName || attachment.name);
+        const fileName = attachment.fileName || attachment.name || 'Unknown File';
+        const fileSize = this.formatFileSize(attachment.fileSize || attachment.size);
+        const fileType = attachment.fileType || attachment.contentType || 'Unknown Type';
+        const uploadDate = this.formatDate(attachment.uploadDate || attachment.createdAt);
+
+        fileInfo.innerHTML = `
+            <span class="text-lg">${fileIcon}</span>
+            <div>
+                <div class="font-medium text-sm">${fileName}</div>
+                <div class="text-xs text-gray-500">${fileSize} • ${fileType}</div>
+                <div class="text-xs text-blue-600">Reimbursement Attachment • Uploaded: ${uploadDate}</div>
+            </div>
+        `;
+
+        return fileInfo;
+    }
+
+    // Create reimbursement actions
+    static createReimbursementActions(attachment) {
+        const actions = document.createElement('div');
+        actions.className = 'flex space-x-2';
+
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+        viewBtn.innerHTML = 'View';
+        viewBtn.onclick = () => this.viewReimbursementAttachment(attachment);
+
+        actions.appendChild(viewBtn);
+        return actions;
+    }
+
+    // View reimbursement attachment
+    static async viewReimbursementAttachment(attachment) {
+        try {
+            Swal.fire({
+                title: 'Loading...',
+                text: 'Loading attachment, please wait...',
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            if (attachment.filePath) {
+                Swal.close();
+
+                const decodedPath = decodeURIComponent(attachment.filePath);
+                const fileUrl = `${BASE_URL}${decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath}`;
+
+                console.log('Reimbursement attachment URL construction:', {
+                    originalPath: attachment.filePath,
+                    decodedPath,
+                    baseUrl: BASE_URL,
+                    finalURL: fileUrl
+                });
+
+                window.open(fileUrl, '_blank');
+                return;
+            }
+
+            throw new Error('No file path available for this attachment');
+
+        } catch (error) {
+            console.error('Error viewing reimbursement attachment:', error);
+            Swal.close();
+            Swal.fire({
+                title: 'Error',
+                text: `Failed to view attachment: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    // Utility functions
+    static getFileIcon(fileName) {
+        if (!fileName || typeof fileName !== 'string') return '📄';
+
+        const extension = fileName.split('.').pop()?.toLowerCase();
+        const icons = {
+            pdf: '📄',
+            doc: '📝', docx: '📝',
+            xls: '📊', xlsx: '📊',
+            jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+            zip: '📦', rar: '📦',
+            txt: '📝',
+            csv: '📊'
+        };
+        return icons[extension] || '📄';
+    }
+
+    static formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    static formatDate(dateString) {
+        if (!dateString) return 'N/A';
+
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return 'Invalid Date';
+        }
+    }
+
+    static showNoAttachmentsMessage() {
+        const container = document.getElementById('attachmentsList');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+        }
+    }
+
+    static showAttachmentError() {
+        const container = document.getElementById('attachmentsList');
+        if (container) {
+            container.innerHTML = '<p class="text-red-500 text-sm">Error loading attachments</p>';
+        }
+    }
+
+    // Debug functions
+    static logAvailableAttachments() {
+        console.error('Available attachment IDs:', existingAttachments.map(a => ({
+            id: a.id,
+            attachmentId: a.attachmentId,
+            fileId: a.fileId,
+            documentId: a.documentId,
+            fileName: a.fileName || a.name
+        })));
+    }
+
+    static logAttachmentURLFields(attachment) {
+        console.error('Available URL fields:', {
+            fileUrl: attachment.fileUrl,
+            url: attachment.url,
+            downloadUrl: attachment.downloadUrl,
+            filePath: attachment.filePath,
+            link: attachment.link,
+            attachmentUrl: attachment.attachmentUrl,
+            documentUrl: attachment.documentUrl
+        });
+    }
+}
+
+// ===== REPLACEMENT FUNCTIONS FOR RECEIVE PAGE =====
+
+// Replace the old handleAttachments function
+async function handleAttachments(result, docId) {
+    return await EnhancedAttachmentManager.handleAttachments(result, docId);
+}
+
+// Replace the old displayAttachments function
+function displayAttachments(attachments) {
+    console.log('Legacy displayAttachments called, using enhanced version');
+    EnhancedAttachmentManager.displayExistingAttachments(attachments);
+    
+    // Store for backward compatibility
+    existingAttachments = attachments ? [...attachments] : [];
+    attachmentsToKeep = attachments ? [...attachments.map(a => a.id || a.attachmentId || a.fileId)] : [];
+}
+
+// Replace the old displayExistingAttachments function
+function displayExistingAttachments(attachments) {
+    return EnhancedAttachmentManager.displayExistingAttachments(attachments);
+}
+
+// Replace the old loadAttachmentsFromAPI function
+async function loadAttachmentsFromAPI(docId) {
+    return await EnhancedAttachmentManager.loadAttachmentsFromAPI(docId);
+}
+
+// Replace the old loadReimbursementAttachments function
+async function loadReimbursementAttachments(reimbursementId) {
+    return await EnhancedAttachmentManager.loadReimbursementAttachments(reimbursementId);
+}
+
+// Enhanced viewAttachment function to replace the old one
+function viewAttachment(attachmentId) {
+    return EnhancedAttachmentManager.viewAttachment(attachmentId);
+}
+
+console.log('✅ Enhanced Attachment Manager for Receive loaded successfully');

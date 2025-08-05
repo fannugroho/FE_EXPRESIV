@@ -295,28 +295,29 @@ function displayPrintOutReimbursement(reimbursementData) {
 
     // Build the Print Receive Reimbursement URL with parameters
     const baseUrl = window.location.origin;
-    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+    const params = new URLSearchParams();
+
+    // Clean and add the reimbursement ID
+    const cleanReimId = reimbursementId ? reimbursementId.trim() : '';
+    params.append('reim-id', cleanReimId);
 
     // Add additional parameters if available from reimbursement data
-    let fullUrl = printReimUrl;
     if (reimbursementData) {
-        const params = new URLSearchParams();
-
-        // Add all available parameters from reimbursement data
-        if (reimbursementData.payToName) params.append('payTo', encodeURIComponent(reimbursementData.payToName));
-        if (reimbursementData.voucherNo) params.append('voucherNo', encodeURIComponent(reimbursementData.voucherNo));
+        // Add all available parameters from reimbursement data with proper cleaning
+        if (reimbursementData.payToName) params.append('payTo', reimbursementData.payToName.trim());
+        if (reimbursementData.voucherNo) params.append('voucherNo', reimbursementData.voucherNo.trim());
         if (reimbursementData.submissionDate) params.append('submissionDate', reimbursementData.submissionDate);
-        if (reimbursementData.department) params.append('department', encodeURIComponent(reimbursementData.department));
-        if (reimbursementData.referenceDoc) params.append('referenceDoc', encodeURIComponent(reimbursementData.referenceDoc));
-        if (reimbursementData.preparedByName) params.append('preparedBy', encodeURIComponent(reimbursementData.preparedByName));
-        if (reimbursementData.checkedByName) params.append('checkedBy', encodeURIComponent(reimbursementData.checkedByName));
-        if (reimbursementData.acknowledgedByName) params.append('acknowledgeBy', encodeURIComponent(reimbursementData.acknowledgedByName));
-        if (reimbursementData.approvedByName) params.append('approvedBy', encodeURIComponent(reimbursementData.approvedByName));
-        if (reimbursementData.receivedByName) params.append('receivedBy', encodeURIComponent(reimbursementData.receivedByName));
-        if (reimbursementData.totalAmount) params.append('totalAmount', reimbursementData.totalAmount);
-        if (reimbursementData.currency) params.append('currency', reimbursementData.currency);
-        if (reimbursementData.remarks) params.append('remarks', encodeURIComponent(reimbursementData.remarks));
-        if (reimbursementData.typeOfTransaction) params.append('typeOfTransaction', encodeURIComponent(reimbursementData.typeOfTransaction));
+        if (reimbursementData.department) params.append('department', reimbursementData.department.trim());
+        if (reimbursementData.referenceDoc) params.append('referenceDoc', reimbursementData.referenceDoc.trim());
+        if (reimbursementData.preparedByName) params.append('preparedBy', reimbursementData.preparedByName.trim());
+        if (reimbursementData.checkedByName) params.append('checkedBy', reimbursementData.checkedByName.trim());
+        if (reimbursementData.acknowledgedByName) params.append('acknowledgeBy', reimbursementData.acknowledgedByName.trim());
+        if (reimbursementData.approvedByName) params.append('approvedBy', reimbursementData.approvedByName.trim());
+        if (reimbursementData.receivedByName) params.append('receivedBy', reimbursementData.receivedByName.trim());
+        if (reimbursementData.totalAmount) params.append('totalAmount', reimbursementData.totalAmount.toString());
+        if (reimbursementData.currency) params.append('currency', reimbursementData.currency.trim());
+        if (reimbursementData.remarks) params.append('remarks', reimbursementData.remarks.trim());
+        if (reimbursementData.typeOfTransaction) params.append('typeOfTransaction', reimbursementData.typeOfTransaction.trim());
 
         // Add details if available
         if (reimbursementData.reimbursementDetails && reimbursementData.reimbursementDetails.length > 0) {
@@ -330,10 +331,9 @@ function displayPrintOutReimbursement(reimbursementData) {
             params.append('details', encodeURIComponent(JSON.stringify(details)));
         }
 
-        // If we have parameters, append them to the URL
-        if (params.toString()) {
-            fullUrl += '&' + params.toString();
-        }
+        // Construct the final URL with all parameters
+        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?${params.toString()}`;
+        fullUrl = printReimUrl;
     }
 
     // Create the document item

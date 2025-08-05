@@ -6,21 +6,45 @@
 // Global flag to prevent multiple loads
 let sidebarLoaded = false;
 
+// Function to check and show/hide Outgoing Payment menu
+function checkAndUpdateOutgoingPaymentMenu() {
+    console.log('Checking Outgoing Payment access...');
+    const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+    console.log('Has Outgoing Payment access:', hasAccess);
+
+    const outgoingPaymentSection = document.getElementById('outgoingPaymentSection');
+    if (outgoingPaymentSection) {
+        if (hasAccess === 'true') {
+            console.log('Showing Outgoing Payment menu');
+            outgoingPaymentSection.style.display = 'block';
+        } else {
+            console.log('Hiding Outgoing Payment menu');
+            outgoingPaymentSection.style.display = 'none';
+        }
+    } else {
+        console.log('Outgoing Payment section not found in DOM');
+    }
+}
+
 // Listen for sidebar loaded event to check access
 document.addEventListener('sidebarLoaded', function () {
-    console.log('Sidebar loaded event received, checking Outgoing Payment access');
+    console.log('Sidebar loaded event received');
     setTimeout(() => {
-        checkOutgoingPaymentAccess();
-    }, 50);
+        checkAndUpdateOutgoingPaymentMenu();
+    }, 100);
 });
 
 document.addEventListener('DOMContentLoaded', async function () {
+    console.log('DOM Content Loaded - Starting sidebar initialization');
     const sidebarElement = document.getElementById('sidebar');
 
     if (!sidebarElement) {
         console.error('No sidebar element found on this page');
         return;
     }
+
+    // Check Outgoing Payment access immediately
+    checkAndUpdateOutgoingPaymentMenu();
 
     // Prevent multiple loads
     if (sidebarLoaded) {
