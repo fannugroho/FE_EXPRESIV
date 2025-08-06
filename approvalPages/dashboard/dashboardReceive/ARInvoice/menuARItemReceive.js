@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'approved'; // Default tab for receive dashboard
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -171,8 +171,8 @@ async function loadDashboard() {
             return;
         }
 
-        // Build API URL for AR Invoices by preparedByNIK
-        const apiUrl = `${BASE_URL}/api/ar-invoices/by-prepared/${kansaiEmployeeId}`;
+        // Build API URL for AR Invoices by receivedBy NIK
+        const apiUrl = `${BASE_URL}/api/ar-invoices/by-received/${kansaiEmployeeId}`;
         console.log('Fetching data from:', apiUrl);
 
         // Make API call
@@ -210,20 +210,24 @@ async function loadDashboard() {
                 let status = 'Draft';
                 if (invoice.arInvoiceApprovalSummary) {
                     const summary = invoice.arInvoiceApprovalSummary;
+                    // Use the approvalStatus field from the API response
                     if (summary.approvalStatus) {
                         status = summary.approvalStatus;
-                    } else if (summary.receivedBy) {
+                    } else if (summary.receivedDate && summary.receivedBy) {
                         status = 'Received';
-                    } else if (summary.approvedBy) {
+                    } else if (summary.approvedDate && summary.approvedBy) {
                         status = 'Approved';
-                    } else if (summary.acknowledgedBy) {
+                    } else if (summary.rejectedDate && summary.rejectedBy) {
+                        status = 'Rejected';
+                    } else if (summary.acknowledgedDate && summary.acknowledgedBy) {
                         status = 'Acknowledged';
-                    } else if (summary.checkedBy) {
+                    } else if (summary.checkedDate && summary.checkedBy) {
                         status = 'Checked';
                     }
                 }
                 
                 const transformedInvoice = {
+                    // Core display fields
                     id: invoice.stagingID,
                     invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
                     customerName: invoice.cardName,
@@ -233,36 +237,63 @@ async function loadDashboard() {
                     status: status,
                     totalAmount: invoice.docTotal,
                     invoiceType: displayType,
-                    // Additional fields from API
+                    
+                    // Document details from API response
+                    docNum: invoice.docNum,
+                    docType: invoice.docType,
                     cardCode: invoice.cardCode,
                     address: invoice.address,
+                    numAtCard: invoice.numAtCard,
                     comments: invoice.comments,
                     preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
-                    currency: invoice.docCur,
-                    vatSum: invoice.vatSum,
-                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
-                    createdAt: invoice.createdAt,
-                    updatedAt: invoice.updatedAt,
-                    approvalSummary: invoice.arInvoiceApprovalSummary,
-                    docType: invoice.docType, // Keep original docType for reference
-                    // Additional fields from new API response
-                    docNum: invoice.docNum,
-                    cardCode: invoice.cardCode,
-                    numAtCard: invoice.numAtCard,
+                    
+                    // Financial information
                     docCur: invoice.docCur,
                     docRate: invoice.docRate,
                     vatSum: invoice.vatSum,
+                    vatSumFC: invoice.vatSumFC,
+                    wtSum: invoice.wtSum,
+                    wtSumFC: invoice.wtSumFC,
                     docTotal: invoice.docTotal,
+                    docTotalFC: invoice.docTotalFC,
                     grandTotal: invoice.grandTotal,
                     netAmount: invoice.netAmount,
                     docTax: invoice.docTax,
                     discSum: invoice.discSum,
                     taxRate: invoice.taxRate,
+                    docBaseAmount: invoice.docBaseAmount,
+                    sysRate: invoice.sysRate,
+                    
+                    // Additional details
                     visInv: invoice.visInv,
                     trackNo: invoice.trackNo,
+                    trnspCode: invoice.trnspCode,
+                    u_BSI_ShippingType: invoice.u_BSI_ShippingType,
+                    groupNum: invoice.groupNum,
+                    u_BSI_PaymentGroup: invoice.u_BSI_PaymentGroup,
+                    u_bsi_udf1: invoice.u_bsi_udf1,
+                    u_bsi_udf2: invoice.u_bsi_udf2,
+                    u_bsi_udf3: invoice.u_bsi_udf3,
+                    licTradNum: invoice.licTradNum,
+                    dpp1112: invoice.dpp1112,
+                    qrCodeSrc: invoice.qrCodeSrc,
+                    
+                    // Banking information
                     u_BankCode: invoice.u_BankCode,
                     account: invoice.account,
                     acctName: invoice.acctName,
+                    netPrice: invoice.netPrice,
+                    netPriceAfterDiscount: invoice.netPriceAfterDiscount,
+                    
+                    // System fields
+                    u_BSI_Expressiv_IsTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    docEntryHeader: invoice.docEntryHeader,
+                    signedFilePath: invoice.signedFilePath,
+                    createdAt: invoice.createdAt,
+                    updatedAt: invoice.updatedAt,
+                    
+                    // Related data
+                    approvalSummary: invoice.arInvoiceApprovalSummary,
                     arInvoiceDetails: invoice.arInvoiceDetails,
                     arInvoiceAttachments: invoice.arInvoiceAttachments
                 };
@@ -306,8 +337,6 @@ async function loadDashboard() {
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
     switch (tab) {
-        case 'all':
-            return invoices;
         case 'approved':
             return invoices.filter(inv => inv.status === 'Approved');
         case 'received':
@@ -315,7 +344,7 @@ function filterInvoicesByTab(invoices, tab) {
         case 'rejected':
             return invoices.filter(inv => inv.status === 'Rejected');
         default:
-            return invoices;
+            return invoices.filter(inv => inv.status === 'Approved'); // Default to approved for receive dashboard
     }
 }
 
