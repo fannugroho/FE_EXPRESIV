@@ -194,10 +194,28 @@ async function startESigningProcess() {
             throw new Error('Document ID not found');
         }
 
+        // Get approvedByName from current invoice data
+        let signerName = "Atsuro Suzuki"; // Default fallback
+        
+        // Try to get approvedByName from currentInvItemData (if available)
+        if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.arInvoiceApprovalSummary) {
+            signerName = currentInvItemData.arInvoiceApprovalSummary.approvedByName || signerName;
+            console.log('🔍 Found approvedByName from currentInvItemData:', signerName);
+        } else {
+            // Fallback: try to get from HTML element if exists
+            const approvedByNameElement = document.getElementById('approvedByName') || document.getElementById('approvedBySearch');
+            if (approvedByNameElement && approvedByNameElement.value) {
+                signerName = approvedByNameElement.value;
+                console.log('🔍 Found approvedByName from HTML element:', signerName);
+            } else {
+                console.log('⚠️ No approvedByName found, using default:', signerName);
+            }
+        }
+
         // Prepare API payload
         const apiPayload = {
             document_base64: documentBase64,
-            sign_image_name: "Atsuro Suzuki", // Default signer name
+            sign_image_name: signerName,
             document_type: "ARInvoices",
             document_id: docEntry
         };
