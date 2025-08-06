@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'acknowledged'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -380,23 +380,34 @@ function getInvoiceStatus(invoice) {
 
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
-
+    console.log('Filtering invoices by tab:', tab);
+    console.log('Total invoices before filtering:', invoices.length);
 
     switch (tab) {
+        case 'acknowledged':
+            // Show only documents with 'Acknowledged' status
+            const acknowledgedInvoices = invoices.filter(inv => inv.status === 'Acknowledged');
+            console.log('Acknowledged invoices found:', acknowledgedInvoices.length);
+            return acknowledgedInvoices;
+        case 'approved':
+            // Show documents with 'Approved' and 'Received' status
+            const approvedInvoices = invoices.filter(inv => 
+                inv.status === 'Approved' || inv.status === 'Received'
+            );
+            console.log('Approved/Received invoices found:', approvedInvoices.length);
+            return approvedInvoices;
+        case 'rejected':
+            const rejectedInvoices = invoices.filter(inv => inv.status === 'Rejected');
+            console.log('Rejected invoices found:', rejectedInvoices.length);
+            return rejectedInvoices;
         case 'all':
             return invoices;
         case 'prepared':
             return invoices.filter(inv => inv.status === 'Prepared');
         case 'checked':
             return invoices.filter(inv => inv.status === 'Checked');
-        case 'rejected':
-            return invoices.filter(inv => inv.status === 'Rejected');
         case 'draft':
             return invoices.filter(inv => inv.status === 'Draft');
-        case 'acknowledged':
-            return invoices.filter(inv => inv.status === 'Acknowledged');
-        case 'approved':
-            return invoices.filter(inv => inv.status === 'Approved');
         case 'received':
             return invoices.filter(inv => inv.status === 'Received');
         default:
@@ -433,7 +444,7 @@ function applySearchFilter(invoices, searchTerm, searchType) {
 
 async function updateCounters() {
     try {
-
+        console.log('Updating counters with all invoices:', allInvoices.length);
 
         const userId = getUserId();
         if (!userId) {
@@ -443,8 +454,18 @@ async function updateCounters() {
         // Calculate from actual data
         const totalCount = allInvoices.length;
         const acknowledgeCount = allInvoices.filter(inv => inv.status === 'Acknowledged').length;
-        const approveCount = allInvoices.filter(inv => inv.status === 'Approved').length;
+        // Include both 'Approved' and 'Received' status in approve count
+        const approveCount = allInvoices.filter(inv => 
+            inv.status === 'Approved' || inv.status === 'Received'
+        ).length;
         const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
+
+        console.log('Counter calculations:', {
+            total: totalCount,
+            acknowledged: acknowledgeCount,
+            approved: approveCount,
+            rejected: rejectedCount
+        });
 
         // Update counter displays
         document.getElementById('totalCount').textContent = totalCount;
@@ -659,9 +680,11 @@ function printInvoice(id) {
 
 function getStatusClass(status) {
     // Check if user is authenticated
-
+    console.log('Getting status class for:', status);
 
     switch (status.toLowerCase()) {
+        case 'acknowledged':
+            return 'status-acknowledge';
         case 'acknowledge':
             return 'status-acknowledge';
         case 'approved':

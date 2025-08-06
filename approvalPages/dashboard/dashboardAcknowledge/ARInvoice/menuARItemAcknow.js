@@ -348,9 +348,15 @@ function filterInvoicesByTab(invoices, tab) {
         case 'all':
             return invoices;
         case 'checked':
+            // Tab checked: menampilkan dokumen yang statusnya Checked saja
             return invoices.filter(inv => inv.status === 'Checked');
         case 'acknowledged':
-            return invoices.filter(inv => inv.status === 'Acknowledged');
+            // Tab acknowledged: menampilkan dokumen yang statusnya acknowledged, approved, received
+            return invoices.filter(inv => 
+                inv.status === 'Acknowledged' || 
+                inv.status === 'Approved' || 
+                inv.status === 'Received'
+            );
         case 'rejected':
             return invoices.filter(inv => inv.status === 'Rejected');
         default:
@@ -463,7 +469,12 @@ async function updateCounters() {
         // Calculate from actual data
         const totalCount = allInvoices.length;
         const checkedCount = allInvoices.filter(inv => inv.status === 'Checked').length;
-        const acknowledgedCount = allInvoices.filter(inv => inv.status === 'Acknowledged').length;
+        // Count acknowledged includes: Acknowledged, Approved, Received
+        const acknowledgedCount = allInvoices.filter(inv => 
+            inv.status === 'Acknowledged' || 
+            inv.status === 'Approved' || 
+            inv.status === 'Received'
+        ).length;
         const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
         
         // Update counter displays
