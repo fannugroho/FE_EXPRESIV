@@ -1,8 +1,15 @@
-// ===== CLEAN ACKNOWLEDGE OUTGOING PAYMENT REIMBURSEMENT SYSTEM =====
-// File: acknowledgeOPReim.js
+// ===== CLEAN RECEIVE OUTGOING PAYMENT REIMBURSEMENT SYSTEM =====
+// File: receiveOPReim.js
+
+// ===== GLOBAL VARIABLES =====
+let documentId = null;
+let outgoingPaymentReimData = null;
+let uploadedFiles = [];
+let existingAttachments = [];
+let attachmentsToKeep = [];
 
 // ===== 1. GLOBAL STATE MANAGEMENT =====
-class OPReimAcknowledgeState {
+class OPReimReceiveState {
     constructor() {
         this.documentId = null;
         this.opReimData = null;
@@ -13,10 +20,12 @@ class OPReimAcknowledgeState {
 
     setDocumentId(id) {
         this.documentId = id;
+        documentId = id; // Also set global variable
     }
 
     setOPReimData(data) {
         this.opReimData = data;
+        outgoingPaymentReimData = data; // Also set global variable
     }
 
     setUsers(users) {
@@ -25,10 +34,11 @@ class OPReimAcknowledgeState {
 
     setAttachments(attachments) {
         this.existingAttachments = attachments || [];
+        existingAttachments = attachments || [];
     }
 }
 
-const acknowledgeState = new OPReimAcknowledgeState();
+const receiveState = new OPReimReceiveState();
 
 // ===== 2. API SERVICE =====
 class OPReimAPIService {
@@ -62,7 +72,7 @@ class OPReimAPIService {
         return await response.json();
     }
 
-    static async acknowledgeDocument(id, requestData) {
+    static async receiveDocument(id, requestData) {
         const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json-patch+json' },
@@ -586,19 +596,21 @@ class PermissionManager {
         }
 
         const currentStatus = this.determineCurrentStatus(approval);
-        const isAssignedApprover = approval.approvedBy === currentUser.userId;
-        const isReadyForApproving = currentStatus === 'Acknowledged' && !approval.approvedDate;
+        const isAssignedReceiver = approval.receivedBy === currentUser.userId;
+        const isReadyForReceiving = currentStatus === 'Approved' && !approval.receivedDate;
+        const isAboveReceiver = this.isUserAboveReceiver(currentUser.userId, approval.receivedBy);
 
         console.log('Permission check:', {
             currentStatus,
             currentUserId: currentUser.userId,
-            approvedById: approval.approvedBy,
-            isAssignedApprover,
-            isReadyForApproving
+            receivedById: approval.receivedBy,
+            isAssignedReceiver,
+            isReadyForReceiving,
+            isAboveReceiver
         });
 
         this.hideButtonsBasedOnStatus(data);
-        this.updateButtonStates(currentStatus, isAssignedApprover, isReadyForApproving, approval);
+        this.updateButtonStates(currentStatus, isAssignedReceiver, isReadyForReceiving, approval);
     }
 
     static determineCurrentStatus(approval) {
@@ -610,28 +622,54 @@ class PermissionManager {
         return 'Prepared';
     }
 
-    static updateButtonStates(currentStatus, isAssignedApprover, isReadyForApproving, approval) {
-        const approveButton = document.querySelector('button[onclick="approveOPReim()"]') || document.getElementById('approveButton');
+    static updateButtonStates(currentStatus, isAssignedReceiver, isReadyForReceiving, approval) {
+        const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]') || document.getElementById('receiveButton');
         const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]') || document.getElementById('rejectButton');
+        const printButton = document.querySelector('button[onclick="printOPReim()"]') || document.getElementById('printButton');
 
-        if (currentStatus === 'Acknowledged' && isAssignedApprover) {
-            this.enableButtons(approveButton, rejectButton);
-            UIUtils.showInfo('Ready for Approving', 'You can now approve this document');
-        } else if (currentStatus === 'Acknowledged' && !isAssignedApprover) {
-            this.disableButtons(approveButton, rejectButton);
-            const approverName = UserManager.getUserNameById(approval.approvedBy);
-            UIUtils.showWarning('Document Pending', `Only ${approverName} can approve this document`);
-        } else if (currentStatus !== 'Acknowledged') {
-            this.disableButtons(approveButton, rejectButton);
+        if (currentStatus === 'Approved' && isAssignedReceiver) {
+            this.enableButtons(receiveButton, rejectButton);
+            // Show print button when approved
+            if (printButton) {
+                printButton.style.display = 'inline-block';
+                printButton.disabled = false;
+                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            UIUtils.showInfo('Ready for Receiving', 'You can now receive this document');
+        } else if (currentStatus === 'Approved' && !isAssignedReceiver) {
+            this.disableButtons(receiveButton, rejectButton);
+            // Show print button even if not assigned receiver when approved
+            if (printButton) {
+                printButton.style.display = 'inline-block';
+                printButton.disabled = false;
+                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            const receiverName = UserManager.getUserNameById(approval.receivedBy);
+            UIUtils.showWarning('Document Pending', `Only ${receiverName} can receive this document`);
+        } else if (currentStatus === 'Received') {
+            this.disableButtons(receiveButton, rejectButton);
+            // Show print button when received
+            if (printButton) {
+                printButton.style.display = 'inline-block';
+                printButton.disabled = false;
+                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            UIUtils.showInfo('Document Status', 'This document has been received');
+        } else if (currentStatus !== 'Approved') {
+            this.disableButtons(receiveButton, rejectButton);
+            // Hide print button for other statuses
+            if (printButton) {
+                printButton.style.display = 'none';
+            }
             const statusMessage = this.getStatusMessage(currentStatus);
             UIUtils.showInfo('Document Status', statusMessage);
         }
     }
 
-    static enableButtons(approveButton, rejectButton) {
-        if (approveButton) {
-            approveButton.disabled = false;
-            approveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    static enableButtons(receiveButton, rejectButton) {
+        if (receiveButton) {
+            receiveButton.disabled = false;
+            receiveButton.classList.remove('opacity-50', 'cursor-not-allowed');
         }
         if (rejectButton) {
             rejectButton.disabled = false;
@@ -639,10 +677,10 @@ class PermissionManager {
         }
     }
 
-    static disableButtons(approveButton, rejectButton) {
-        if (approveButton) {
-            approveButton.disabled = true;
-            approveButton.classList.add('opacity-50', 'cursor-not-allowed');
+    static disableButtons(receiveButton, rejectButton) {
+        if (receiveButton) {
+            receiveButton.disabled = true;
+            receiveButton.classList.add('opacity-50', 'cursor-not-allowed');
         }
         if (rejectButton) {
             rejectButton.disabled = true;
@@ -651,32 +689,85 @@ class PermissionManager {
     }
 
     static hideButtonsBasedOnStatus(data) {
-        const approveButton = document.querySelector('button[onclick="approveOPReim()"]') || document.getElementById('approveButton');
+        const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]') || document.getElementById('receiveButton');
         const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]') || document.getElementById('rejectButton');
+        const printButton = document.querySelector('button[onclick="printOPReim()"]') || document.getElementById('printButton');
 
         const currentStatus = this.determineCurrentStatus(data.approval || {});
 
-        // Show buttons only when ready for approving (Acknowledged status)
-        // Hide buttons when document is already processed
-        if (currentStatus === 'Approved' || currentStatus === 'Received' || currentStatus === 'Rejected') {
-            if (approveButton) approveButton.style.display = 'none';
+        // Show buttons only when ready for receiving (Approved status)
+        // Hide action buttons when document is already processed
+        if (currentStatus === 'Received' || currentStatus === 'Rejected') {
+            if (receiveButton) receiveButton.style.display = 'none';
             if (rejectButton) rejectButton.style.display = 'none';
+            // Show print button when received
+            if (printButton && currentStatus === 'Received') {
+                printButton.style.display = 'inline-block';
+            } else if (printButton) {
+                printButton.style.display = 'none';
+            }
         } else {
-            if (approveButton) approveButton.style.display = 'inline-block';
+            if (receiveButton) receiveButton.style.display = 'inline-block';
             if (rejectButton) rejectButton.style.display = 'inline-block';
+            // Show print button when approved, hide for other statuses
+            if (printButton) {
+                if (currentStatus === 'Approved') {
+                    printButton.style.display = 'inline-block';
+                } else {
+                    printButton.style.display = 'none';
+                }
+            }
         }
+    }
+
+    static isUserAboveReceiver(currentUserId, receiverId) {
+        return currentUserId !== receiverId;
     }
 
     static getStatusMessage(status) {
         const messages = {
             'Prepared': 'This document is prepared and waiting to be checked.',
             'Checked': 'This document has been checked and is waiting to be acknowledged.',
-            'Acknowledged': 'This document has been acknowledged and is ready for approval.',
-            'Approved': 'This document has been approved.',
+            'Acknowledged': 'This document has been acknowledged and is waiting to be approved.',
+            'Approved': 'This document has been approved and is ready for receiving.',
             'Received': 'This document has been received.',
             'Rejected': 'This document has been rejected.'
         };
-        return messages[status] || 'This document is not ready for approval.';
+        return messages[status] || 'This document is not ready for receiving.';
+    }
+
+    static validateDocumentStatus() {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            UIUtils.showError('Authentication Error', 'User not authenticated. Please login again.')
+                .then(() => window.location.href = getLoginPagePath());
+            return false;
+        }
+
+        if (!receiveState.opReimData || !receiveState.opReimData.approval) {
+            UIUtils.showError('Error', 'Document data is incomplete. Please refresh the page.');
+            return false;
+        }
+
+        const approval = receiveState.opReimData.approval;
+
+        if (approval.receivedDate) {
+            UIUtils.showInfo('Already Received', 'This document has already been received.');
+            return false;
+        }
+
+        if (approval.receivedBy !== currentUser.userId) {
+            const receiverName = UserManager.getUserNameById(approval.receivedBy);
+            UIUtils.showWarning('Not Authorized', `Only ${receiverName} can receive this document.`);
+            return false;
+        }
+
+        if (!approval.approvedDate) {
+            UIUtils.showWarning('Not Ready', 'This document must be approved before it can be received.');
+            return false;
+        }
+
+        return true;
     }
 }
 
@@ -1042,6 +1133,153 @@ class PrintManager {
         container.appendChild(documentItem);
     }
 
+    static displayPrintVoucher(opReimData) {
+        const container = document.getElementById('printVoucherList');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        let opReimId = this.getOPReimId(opReimData);
+
+        if (!opReimId) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">Outgoing Payment Voucher ID not found</p>';
+            return;
+        }
+
+        const printVoucherUrl = this.buildPrintVoucherUrl(opReimId, opReimData);
+        const voucherItem = this.createPrintVoucherItem(opReimId, printVoucherUrl);
+
+        container.appendChild(voucherItem);
+    }
+
+    static buildPrintVoucherUrl(opReimId, opReimData) {
+        const baseUrl = window.location.origin;
+        const printVoucherUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html?docId=${opReimId}`;
+
+        if (!opReimData) return printVoucherUrl;
+
+        const params = new URLSearchParams();
+
+        // Add voucher-specific parameters
+        if (opReimData.counterRef) params.append('reimId', opReimData.counterRef);
+        if (opReimData.expressivNo) params.append('reimId', opReimData.expressivNo);
+        if (opReimData.cardName) params.append('payTo', opReimData.cardName);
+        if (opReimData.requesterName) params.append('payTo', opReimData.requesterName);
+        if (opReimData.counterRef) params.append('voucherNo', opReimData.counterRef);
+        if (opReimData.docDate) params.append('submissionDate', opReimData.docDate);
+        if (opReimData.trsfrDate) params.append('submissionDate', opReimData.trsfrDate);
+        if (opReimData.docCurr) params.append('currency', opReimData.docCurr);
+        if (opReimData.trsfrSum) params.append('totalAmount', opReimData.trsfrSum);
+        if (opReimData.jrnlMemo) params.append('remarks', opReimData.jrnlMemo);
+        if (opReimData.remarks) params.append('remarks', opReimData.remarks);
+
+        // Add approval information for voucher
+        if (opReimData.approval) {
+            const approval = opReimData.approval;
+            if (approval.preparedBy) {
+                const preparedByName = UserManager.getUserNameById(approval.preparedBy);
+                params.append('preparedBy', preparedByName);
+            }
+            if (approval.checkedBy) {
+                const checkedByName = UserManager.getUserNameById(approval.checkedBy);
+                params.append('checkedBy', checkedByName);
+            }
+            if (approval.acknowledgedBy) {
+                const acknowledgedByName = UserManager.getUserNameById(approval.acknowledgedBy);
+                params.append('acknowledgedBy', acknowledgedByName);
+            }
+            if (approval.approvedBy) {
+                const approvedByName = UserManager.getUserNameById(approval.approvedBy);
+                params.append('approvedBy', approvedByName);
+            }
+            if (approval.receivedBy) {
+                const receivedByName = UserManager.getUserNameById(approval.receivedBy);
+                params.append('receivedBy', receivedByName);
+            }
+        }
+
+        // Add line details for voucher
+        if (opReimData.lines && opReimData.lines.length > 0) {
+            const details = opReimData.lines.map(line => ({
+                category: 'OUTGOING PAYMENT',
+                accountName: line.acctName || '',
+                glAccount: line.acctCode || '',
+                description: line.descrip || '',
+                amount: line.sumApplied || 0,
+                division: line.divisionCode || line.division || '',
+                currency: line.CurrencyItem || line.currencyItem || 'IDR'
+            }));
+            params.append('details', JSON.stringify(details));
+        }
+
+        return params.toString() ? `${printVoucherUrl}&${params.toString()}` : printVoucherUrl;
+    }
+
+    static createPrintVoucherItem(opReimId, printUrl) {
+        const voucherItem = document.createElement('div');
+        voucherItem.className = 'flex items-center justify-between p-2 bg-green-50 rounded border border-green-200';
+
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-2';
+        fileInfo.innerHTML = `
+            <span class="text-lg">🧾</span>
+            <div>
+                <div class="font-medium text-sm text-green-800">Print Voucher Document</div>
+                <div class="text-xs text-gray-500">Voucher • PDF</div>
+                <div class="text-xs text-green-600">Voucher ID: ${opReimId}</div>
+            </div>
+        `;
+
+        const actions = document.createElement('div');
+        actions.className = 'flex space-x-2';
+
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
+        viewBtn.innerHTML = 'View';
+        viewBtn.onclick = () => this.viewPrintVoucher(printUrl);
+
+        const openBtn = document.createElement('button');
+        openBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+        openBtn.innerHTML = 'Open';
+        openBtn.onclick = () => this.openPrintVoucher(printUrl);
+
+        actions.appendChild(viewBtn);
+        actions.appendChild(openBtn);
+
+        voucherItem.appendChild(fileInfo);
+        voucherItem.appendChild(actions);
+
+        return voucherItem;
+    }
+
+    static async viewPrintVoucher(url) {
+        try {
+            UIUtils.showLoading('Loading Print Voucher document...');
+
+            const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+            if (newWindow) {
+                Swal.close();
+                UIUtils.showSuccess('Success', 'Print Voucher document opened in new window');
+            } else {
+                throw new Error('Failed to open voucher window');
+            }
+
+        } catch (error) {
+            console.error('Error viewing Print Voucher document:', error);
+            UIUtils.showError('Error', `Failed to open Print Voucher document: ${error.message}`);
+        }
+    }
+
+    static openPrintVoucher(url) {
+        try {
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('Error opening Print Voucher document:', error);
+            UIUtils.showError('Error', `Failed to open Print Voucher document: ${error.message}`);
+        }
+    }
+
     static getOPReimId(opReimData) {
         const urlParams = new URLSearchParams(window.location.search);
         let opReimId = urlParams.get('id');
@@ -1201,21 +1439,23 @@ class PrintManager {
 class DataManager {
     static async initialize() {
         try {
-            console.log('🚀 Initializing Acknowledge Outgoing Payment Reimbursement page...');
+            console.log('🚀 Initializing Receive Outgoing Payment Reimbursement page...');
 
             const urlParams = new URLSearchParams(window.location.search);
-            const documentId = urlParams.get('id');
+            const id = urlParams.get('id');
 
-            if (!documentId) {
+            if (!id) {
                 UIUtils.showError('Error', 'No document ID provided')
                     .then(() => this.goToMenu());
                 return;
             }
 
-            acknowledgeState.setDocumentId(documentId);
-            console.log('📋 Document ID:', documentId);
+            // Set global variables
+            documentId = id;
+            receiveState.setDocumentId(id);
+            console.log('📋 Document ID:', id);
 
-            await this.loadOPReimDetails(documentId);
+            await this.loadOPReimDetails(id);
 
         } catch (error) {
             console.error('❌ Initialization error:', error);
@@ -1230,16 +1470,17 @@ class DataManager {
             const data = await OPReimAPIService.fetchOPReimDetails(id);
             console.log('📋 Outgoing Payment API Response:', data);
 
-            acknowledgeState.setOPReimData(data);
+            // Set global variables
+            outgoingPaymentReimData = data;
+            receiveState.setOPReimData(data);
 
             await this.loadUsersData();
-            FormManager.populateFormFields(data);
-            PermissionManager.checkUserPermissions(data);
-            AttachmentManager.handleAttachments(data, id);
-            PrintManager.displayPrintOutReimbursement(data);
-            await this.handleReimbursementData(data);
-
-            Swal.close();
+        FormManager.populateFormFields(data);
+        PermissionManager.checkUserPermissions(data);
+        AttachmentManager.handleAttachments(data, id);
+        PrintManager.displayPrintOutReimbursement(data);
+        PrintManager.displayPrintVoucher(data);
+        await this.handleReimbursementData(data);            Swal.close();
 
         } catch (error) {
             console.error('❌ Error loading document:', error);
@@ -1251,10 +1492,10 @@ class DataManager {
     static async loadUsersData() {
         try {
             const usersData = await OPReimAPIService.fetchUsers();
-            acknowledgeState.setUsers(usersData.data || []);
+            receiveState.setUsers(usersData.data || []);
         } catch (error) {
             console.error('❌ Error loading users:', error);
-            acknowledgeState.setUsers([]);
+            receiveState.setUsers([]);
         }
     }
 
@@ -1282,19 +1523,19 @@ class DataManager {
     }
 
     static goToMenu() {
-        window.location.href = '../../../dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknow.html';
+        window.location.href = '../../../dashboard/dashboardReceive/OPReim/menuOPReimReceive.html';
     }
 }
 
 // ===== 12. ACTION MANAGER =====
 class ActionManager {
-    static async acknowledgeOPReim() {
+    static async receiveOPReim() {
         try {
             if (!PermissionManager.validateDocumentStatus()) {
                 return;
             }
 
-            UIUtils.showLoading('Processing...', 'Submitting acknowledgment');
+            UIUtils.showLoading('Processing...', 'Submitting receipt confirmation');
 
             const userId = UserManager.getCurrentUserId();
             if (!userId) {
@@ -1305,51 +1546,44 @@ class ActionManager {
             const currentUserName = currentUser ? currentUser.username : 'Unknown User';
             const currentDate = new Date().toISOString();
 
-            const requestData = this.buildAcknowledgeRequestData(userId, currentUserName, currentDate);
+            const requestData = this.buildReceiveRequestData(userId, currentUserName, currentDate);
 
-            const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${acknowledgeState.documentId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json-patch+json' },
-                body: JSON.stringify(requestData)
-            });
+            const response = await OPReimAPIService.receiveDocument(receiveState.documentId, requestData);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `API error: ${response.status}`);
-            }
+            console.log('✅ Document received successfully:', response);
 
-            UIUtils.showSuccess('Success', 'Document has been acknowledged successfully')
+            UIUtils.showSuccess('Success', 'Document has been received successfully')
                 .then(() => DataManager.goToMenu());
 
         } catch (error) {
-            console.error('❌ Error acknowledging document:', error);
-            UIUtils.showError('Error', `Failed to acknowledge document: ${error.message}`);
+            console.error('❌ Error receiving document:', error);
+            UIUtils.showError('Error', `Failed to receive document: ${error.message}`);
         }
     }
 
-    static buildAcknowledgeRequestData(userId, currentUserName, currentDate) {
-        const approval = acknowledgeState.opReimData.approval || {};
+    static buildReceiveRequestData(userId, currentUserName, currentDate) {
+        const approval = receiveState.opReimData.approval || {};
 
         return {
-            stagingID: acknowledgeState.documentId,
+            stagingID: receiveState.documentId,
             createdAt: approval.createdAt || currentDate,
             updatedAt: currentDate,
-            approvalStatus: "Acknowledged",
+            approvalStatus: "Received",
             preparedBy: approval.preparedBy || null,
             checkedBy: approval.checkedBy || null,
-            acknowledgedBy: userId,
+            acknowledgedBy: approval.acknowledgedBy || null,
             approvedBy: approval.approvedBy || null,
-            receivedBy: approval.receivedBy || null,
+            receivedBy: userId,
             preparedDate: approval.preparedDate || null,
             preparedByName: approval.preparedByName || null,
             checkedByName: approval.checkedByName || null,
-            acknowledgedByName: currentUserName,
+            acknowledgedByName: approval.acknowledgedByName || null,
             approvedByName: approval.approvedByName || null,
-            receivedByName: approval.receivedByName || null,
+            receivedByName: currentUserName,
             checkedDate: approval.checkedDate || null,
-            acknowledgedDate: currentDate,
+            acknowledgedDate: approval.acknowledgedDate || null,
             approvedDate: approval.approvedDate || null,
-            receivedDate: approval.receivedDate || null,
+            receivedDate: currentDate,
             rejectedDate: approval.rejectedDate || null,
             rejectionRemarks: approval.rejectionRemarks || "",
             revisionNumber: approval.revisionNumber || null,
@@ -1377,22 +1611,9 @@ class ActionManager {
 
             const requestData = this.buildRejectionRequestData(userId, rejectionReason);
 
-            const response = await fetch(`${BASE_URL}/api/staging-outgoing-payments/approvals/${acknowledgeState.documentId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestData)
-            });
+            const response = await OPReimAPIService.rejectDocument(receiveState.documentId, requestData);
 
-            if (!response.ok) {
-                let errorMessage = `API error: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.Message || errorMessage;
-                } catch (e) {
-                    console.error('Could not parse error response:', e);
-                }
-                throw new Error(errorMessage);
-            }
+            console.log('✅ Document rejected successfully:', response);
 
             await UIUtils.showSuccess('Success', 'Document has been rejected');
             DataManager.goToMenu();
@@ -1445,12 +1666,12 @@ class ActionManager {
     }
 
     static buildRejectionRequestData(userId, rejectionReason) {
-        const approval = acknowledgeState.opReimData.approval || {};
+        const approval = receiveState.opReimData.approval || {};
         const currentDate = new Date().toISOString();
 
         return {
-            stagingID: acknowledgeState.documentId,
-            createdAt: acknowledgeState.opReimData.createdAt || currentDate,
+            stagingID: receiveState.documentId,
+            createdAt: receiveState.opReimData.createdAt || currentDate,
             updatedAt: currentDate,
             approvalStatus: "Rejected",
             preparedBy: approval.preparedBy || null,
@@ -1505,29 +1726,24 @@ class ActionManager {
     }
 }
 
-// ===== 13. GLOBAL VARIABLES =====
-let documentId = null;
-let outgoingPaymentReimData = null;
-let usersList = [];
-
-// ===== 14. GLOBAL FUNCTIONS (Required by HTML) =====
+// ===== 13. GLOBAL FUNCTIONS (Required by HTML) =====
 
 // Navigate back to the menu
-function goToMenuApproveOPReim() {
-    window.location.href = '../../../dashboard/dashboardApprove/OPReim/menuOPReimApprove.html';
+function goToMenuReceiveOPReim() {
+    window.location.href = '../../../dashboard/dashboardReceive/OPReim/menuOPReimReceive.html';
 }
 
 // Initialize page on load
 async function initializePage() {
     try {
-        console.log('🚀 Initializing Approve Outgoing Payment Reimbursement page...');
+        console.log('🚀 Initializing Receive Outgoing Payment Reimbursement page...');
 
         const urlParams = new URLSearchParams(window.location.search);
         documentId = urlParams.get('id');
 
         if (!documentId) {
             UIUtils.showError('Error', 'No document ID provided')
-                .then(() => goToMenuApproveOPReim());
+                .then(() => goToMenuReceiveOPReim());
             return;
         }
 
@@ -1555,6 +1771,7 @@ async function loadOPReimDetails(id) {
         PermissionManager.checkUserPermissions(data);
         AttachmentManager.handleAttachments(data, id);
         PrintManager.displayPrintOutReimbursement(data);
+        PrintManager.displayPrintVoucher(data);
         await handleReimbursementData(data);
 
         Swal.close();
@@ -1562,7 +1779,7 @@ async function loadOPReimDetails(id) {
     } catch (error) {
         console.error('❌ Error loading document:', error);
         UIUtils.showError('Error', `Failed to load document: ${error.message}`)
-            .then(() => goToMenuApproveOPReim());
+            .then(() => goToMenuReceiveOPReim());
     }
 }
 
@@ -1601,252 +1818,18 @@ async function handleReimbursementData(result) {
     }
 }
 
-// Approve the outgoing payment reimbursement
-async function approveOPReim() {
-    try {
-        // Validate document status first
-        if (!validateDocumentStatusForApproval()) {
-            return;
-        }
-
-        // Show loading indicator
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Submitting approval',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Get current user ID
-        const userId = getUserId();
-
-        if (!userId) {
-            throw new Error('User ID not found. Please log in again.');
-        }
-
-        // Get current user information
-        const currentUser = getCurrentUser();
-        const currentUserName = currentUser ? currentUser.username : 'Unknown User';
-        const currentDate = new Date().toISOString();
-
-        // Prepare request data based on the API structure
-        const approval = outgoingPaymentReimData.approval || {};
-
-        const requestData = {
-            stagingID: documentId,
-            createdAt: outgoingPaymentReimData.approval?.createdAt || currentDate,
-            updatedAt: currentDate,
-            approvalStatus: "Approved",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: userId,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
-            approvedByName: currentUser?.username || null,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: currentDate,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            rejectedDate: outgoingPaymentReimData.approval?.rejectedDate || null,
-            rejectionRemarks: outgoingPaymentReimData.approval?.rejectionRemarks || "",
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
-            header: {}
-        };
-
-        // Make API request to update approval status using PUT method
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json-patch+json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            let errorMessage = `API error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorData.Message || errorMessage;
-            } catch (e) {
-                console.error('Could not parse error response:', e);
-            }
-            throw new Error(errorMessage);
-        }
-
-        // Try to parse response data if available
-        let responseData = null;
-        try {
-            responseData = await response.json();
-        } catch (e) {
-            console.log('Response does not contain JSON data');
-        }
-
-        // Show success message
-        Swal.fire({
-            title: 'Success',
-            text: 'Document has been approved successfully',
-            icon: 'success'
-        }).then(() => {
-            // Redirect back to menu
-            goToMenuApproveOPReim();
-        });
-
-    } catch (error) {
-        console.error('Error approving document:', error);
-
-        Swal.fire({
-            title: 'Error',
-            text: `Failed to approve document: ${error.message}`,
-            icon: 'error'
-        });
-    }
+// Receive the outgoing payment reimbursement
+async function receiveOPReim() {
+    await ActionManager.receiveOPReim();
 }
 
 // Reject the outgoing payment reimbursement
 async function rejectOPReim() {
-    try {
-        // Create custom dialog with single field
-        const { value: rejectionReason } = await Swal.fire({
-            title: 'Reject Outgoing Payment Reimbursement',
-            html: `
-                <div class="mb-4">
-                    <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
-                    <div id="rejectionFieldsContainer">
-                        <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
-                    </div>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Reject',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            width: '600px',
-            didOpen: () => {
-                const firstField = document.getElementById('rejectionField1');
-                if (firstField) {
-                    initializeWithRejectionPrefix(firstField);
-                }
-                const field = document.querySelector('#rejectionFieldsContainer textarea');
-                if (field) {
-                    field.addEventListener('input', handleRejectionInput);
-                }
-            },
-            preConfirm: () => {
-                const field = document.querySelector('#rejectionFieldsContainer textarea');
-                const remarks = field ? field.value.trim() : '';
-                if (remarks === '') {
-                    Swal.showValidationMessage('Please enter a rejection reason');
-                    return false;
-                }
-                return remarks;
-            }
-        });
-
-        if (!rejectionReason) {
-            return; // User cancelled or didn't provide a reason
-        }
-
-        // Show loading indicator
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Rejecting document, please wait...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Get current user ID
-        const userId = getUserId();
-        if (!userId) {
-            throw new Error('Unable to get user ID. Please login again.');
-        }
-
-        // Prepare request data for rejection
-        const requestData = {
-            stagingID: documentId,
-            createdAt: outgoingPaymentReimData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            approvalStatus: "Rejected",
-            preparedBy: outgoingPaymentReimData.approval?.preparedBy || null,
-            checkedBy: outgoingPaymentReimData.approval?.checkedBy || null,
-            acknowledgedBy: outgoingPaymentReimData.approval?.acknowledgedBy || null,
-            approvedBy: outgoingPaymentReimData.approval?.approvedBy || null,
-            receivedBy: outgoingPaymentReimData.approval?.receivedBy || null,
-            preparedDate: outgoingPaymentReimData.approval?.preparedDate || null,
-            preparedByName: outgoingPaymentReimData.approval?.preparedByName || null,
-            checkedByName: outgoingPaymentReimData.approval?.checkedByName || null,
-            acknowledgedByName: outgoingPaymentReimData.approval?.acknowledgedByName || null,
-            approvedByName: outgoingPaymentReimData.approval?.approvedByName || null,
-            receivedByName: outgoingPaymentReimData.approval?.receivedByName || null,
-            checkedDate: outgoingPaymentReimData.approval?.checkedDate || null,
-            acknowledgedDate: outgoingPaymentReimData.approval?.acknowledgedDate || null,
-            approvedDate: outgoingPaymentReimData.approval?.approvedDate || null,
-            receivedDate: outgoingPaymentReimData.approval?.receivedDate || null,
-            rejectedDate: new Date().toISOString(),
-            rejectionRemarks: rejectionReason,
-            revisionNumber: outgoingPaymentReimData.approval?.revisionNumber || null,
-            revisionDate: outgoingPaymentReimData.approval?.revisionDate || null,
-            revisionRemarks: outgoingPaymentReimData.approval?.revisionRemarks || null,
-            header: {}
-        };
-
-        // Also add rejectionRemarks at root level in case backend expects it there
-        requestData.rejectionRemarks = rejectionReason;
-
-        // Make API request to reject document using the approvals endpoint
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${documentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            // Try to get detailed error message
-            let errorMessage = `API error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorData.Message || errorMessage;
-            } catch (e) {
-                console.error('Could not parse error response:', e);
-            }
-            throw new Error(errorMessage);
-        }
-
-        // Show success message
-        await Swal.fire({
-            title: 'Success',
-            text: 'Document has been rejected',
-            icon: 'success'
-        });
-
-        // Redirect back to menu
-        goToMenuApproveOPReim();
-
-    } catch (error) {
-        console.error('❌ Error rejecting document:', error);
-        await Swal.fire({
-            title: 'Error',
-            text: `Failed to reject document: ${error.message}`,
-            icon: 'error'
-        });
-    }
+    await ActionManager.rejectOPReim();
 }
 
-// Validate document status for approval
-function validateDocumentStatusForApproval() {
+// Validate document status for receive
+function validateDocumentStatusForReceive() {
     const currentUser = getCurrentUser();
     if (!currentUser) {
         Swal.fire({
@@ -1868,32 +1851,32 @@ function validateDocumentStatusForApproval() {
 
     const approval = outgoingPaymentReimData.approval;
 
-    // Check if already approved
-    if (approval.approvedDate) {
+    // Check if already received
+    if (approval.receivedDate) {
         Swal.fire({
-            title: 'Already Approved',
-            text: 'This document has already been approved.',
+            title: 'Already Received',
+            text: 'This document has already been received.',
             icon: 'info'
         });
         return false;
     }
 
-    // Check if user is assigned approver
-    if (approval.approvedBy !== currentUser.userId) {
-        const approverName = getUserNameById(approval.approvedBy);
+    // Check if user is assigned receiver
+    if (approval.receivedBy !== currentUser.userId) {
+        const receiverName = getUserNameById(approval.receivedBy);
         Swal.fire({
             title: 'Not Authorized',
-            text: `Only ${approverName} can approve this document.`,
+            text: `Only ${receiverName} can receive this document.`,
             icon: 'warning'
         });
         return false;
     }
 
-    // Check if document is acknowledged
-    if (!approval.acknowledgedDate) {
+    // Check if document is approved
+    if (!approval.approvedDate) {
         Swal.fire({
             title: 'Not Ready',
-            text: 'This document must be acknowledged before it can be approved.',
+            text: 'This document must be approved before it can be received.',
             icon: 'warning'
         });
         return false;
@@ -1914,7 +1897,7 @@ function getUserNameById(userId) {
 function initializeWithRejectionPrefix(textarea) {
     const currentUser = getCurrentUser();
     const userName = currentUser ? currentUser.username : 'Unknown User';
-    const prefix = `[${userName} - Approver]: `;
+    const prefix = `[${userName} - Receiver]: `;
     textarea.value = prefix;
     textarea.dataset.prefixLength = prefix.length;
     textarea.setSelectionRange(prefix.length, prefix.length);
@@ -1929,7 +1912,7 @@ function handleRejectionInput(event) {
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const currentUser = getCurrentUser();
         const userName = currentUser ? currentUser.username : 'Unknown User';
-        const prefix = `[${userName} - Approver]: `;
+        const prefix = `[${userName} - Receiver]: `;
 
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -2029,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Acknowledge Outgoing Payment Reimbursement System initialized successfully');
 });
 
-// Function to handle print functionality
+// Function to handle print functionality with proper URL encoding
 function printOPReim() {
     try {
         // Get document ID
@@ -2044,21 +2027,82 @@ function printOPReim() {
             return;
         }
 
-        // Prepare data for print page
-        const printData = {
-            ...outgoingPaymentReimData,
-            attachments: existingAttachments || []
+        if (!outgoingPaymentReimData) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Document data not available',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Extract data for URL parameters (avoid over-encoding)
+        const approval = outgoingPaymentReimData.approval || {};
+        const printParams = {
+            'docId': docId,
+            'reimId': outgoingPaymentReimData.expressivNo || docId,
+            'payTo': outgoingPaymentReimData.cardName || outgoingPaymentReimData.requesterName || '',
+            'voucherNo': outgoingPaymentReimData.counterRef || '',
+            'submissionDate': outgoingPaymentReimData.docDate || outgoingPaymentReimData.trsfrDate || '',
+            'preparedBy': approval.preparedByName || '',
+            'checkedBy': approval.checkedByName || '',
+            'acknowledgedBy': approval.acknowledgedByName || '',
+            'approvedBy': approval.approvedByName || '',
+            'receivedBy': approval.receivedByName || '',
+            'currency': outgoingPaymentReimData.docCurr || 'IDR',
+            'totalAmount': outgoingPaymentReimData.trsfrSum || 0,
+            'remarks': outgoingPaymentReimData.remarks || outgoingPaymentReimData.jrnlMemo || ''
         };
 
-        // Store data in localStorage for print page
+        // Build details array from lines
+        const details = [];
+        if (outgoingPaymentReimData.lines && outgoingPaymentReimData.lines.length > 0) {
+            outgoingPaymentReimData.lines.forEach(line => {
+                details.push({
+                    category: 'OUTGOING PAYMENT',
+                    accountName: line.acctName || '',
+                    glAccount: line.acctCode || '',
+                    description: line.descrip || '',
+                    amount: line.sumApplied || 0,
+                    division: line.divisionCode || line.division || '',
+                    currency: line.CurrencyItem || line.currencyItem || 'IDR'
+                });
+            });
+        }
+
+        // Store comprehensive data in localStorage for print page
+        const printData = {
+            ...outgoingPaymentReimData,
+            attachments: existingAttachments || [],
+            printParams: printParams,
+            details: details
+        };
+
         localStorage.setItem(`opReimData_${docId}`, JSON.stringify(printData));
 
-        console.log('📄 Stored data for print:', printData);
-        console.log('📄 Attachments stored:', existingAttachments);
+        console.log('📄 Stored comprehensive data for print:', printData);
 
-        // Build print URL
+        // Build clean URL with properly encoded parameters
         const baseUrl = window.location.origin;
-        const printUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html?docId=${docId}`;
+        let printUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html`;
+        
+        // Add URL parameters with single encoding
+        const urlParams = new URLSearchParams();
+        Object.entries(printParams).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                urlParams.append(key, String(value));
+            }
+        });
+
+        // Add details as JSON (will be properly encoded by URLSearchParams)
+        if (details.length > 0) {
+            urlParams.append('details', JSON.stringify(details));
+        }
+
+        printUrl += '?' + urlParams.toString();
+
+        console.log('📄 Print URL created:', printUrl);
+        console.log('📄 URL length:', printUrl.length);
 
         // Open print page in new window
         const newWindow = window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
@@ -2068,10 +2112,11 @@ function printOPReim() {
                 title: 'Success',
                 text: 'Print page opened in new window',
                 icon: 'success',
-                confirmButtonText: 'OK'
+                timer: 2000,
+                showConfirmButton: false
             });
         } else {
-            throw new Error('Failed to open print window');
+            throw new Error('Failed to open print window. Please check if pop-ups are blocked.');
         }
 
     } catch (error) {
@@ -2083,5 +2128,11 @@ function printOPReim() {
             icon: 'error'
         });
     }
-} 
+}
 
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Initializing Receive Outgoing Payment Reimbursement System...');
+    DataManager.initialize();
+    console.log('✅ Receive Outgoing Payment Reimbursement System initialized successfully');
+});
