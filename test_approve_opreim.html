@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Test Approve OPReim Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
+
 <body>
     <h1>Test Approve OPReim Fixes</h1>
-    
+
     <div id="test-results">
         <h2>Test Results:</h2>
         <div id="results"></div>
@@ -15,16 +17,16 @@
     <script>
         // Mock dependencies for testing
         window.BASE_URL = 'http://localhost:3000';
-        
+
         // Mock auth functions
         window.getCurrentUser = () => ({ userId: 1, username: 'testuser' });
         window.getUserId = () => 1;
         window.getLoginPagePath = () => '/login';
         window.makeAuthenticatedRequest = async (url, options) => {
             console.log('Mock API call:', url, options);
-            return { 
-                ok: true, 
-                json: async () => ({ success: true, data: {} }) 
+            return {
+                ok: true,
+                json: async () => ({ success: true, data: {} })
             };
         };
 
@@ -35,7 +37,7 @@
         });
 
         const results = document.getElementById('results');
-        
+
         function addResult(test, status, message) {
             const div = document.createElement('div');
             div.innerHTML = `<strong>${test}:</strong> <span style="color: ${status === 'PASS' ? 'green' : 'red'}">${status}</span> - ${message}`;
@@ -92,4 +94,5 @@
     <!-- Load the actual JS file -->
     <script src="approvalPages/approval/approve/outgoingPayment/approveOPReim.js"></script>
 </body>
+
 </html>

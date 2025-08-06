@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test URL Encoding</title>
 </head>
+
 <body>
     <h1>Testing URL Encoding for Print Function</h1>
-    
+
     <h2>Test Scenarios:</h2>
     <div id="test-results"></div>
 
@@ -20,7 +22,7 @@
             totalAmount: 1500000,
             approval: {
                 preparedBy: "USER123",
-                checkedBy: "USER456", 
+                checkedBy: "USER456",
                 acknowledgedBy: "USER789",
                 approvedBy: "USER999",
                 receivedBy: "USER888"
@@ -65,7 +67,7 @@
                 `requesterName=${encodeURIComponent(data.requesterName)}`,
                 `totalAmount=${encodeURIComponent(data.totalAmount)}`
             ];
-            
+
             // Manual join creates double encoding issues
             return baseUrl + "?" + encodeURIComponent(params.join('&'));
         }
@@ -77,18 +79,18 @@
             params.append('companyName', data.companyName);
             params.append('requesterName', data.requesterName);
             params.append('totalAmount', data.totalAmount);
-            
+
             return `print-page.html?${params.toString()}`;
         }
 
         function compareEncodings() {
             const testString = "Test & Company <Special> Chars 100%";
-            
+
             const manual = encodeURIComponent(testString);
             const urlParams = new URLSearchParams();
             urlParams.append('test', testString);
             const automatic = urlParams.toString().split('=')[1];
-            
+
             return `
                 <table style="border-collapse: collapse; width: 100%;">
                     <tr style="background: #f0f0f0;">
@@ -119,4 +121,5 @@
         window.onload = testURLEncoding;
     </script>
 </body>
+
 </html>

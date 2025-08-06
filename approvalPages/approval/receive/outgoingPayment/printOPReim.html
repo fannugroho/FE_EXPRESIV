@@ -1117,9 +1117,9 @@
                 </div>
             </div>
             <div class="voucher-details">
-                <div id="voucherNoContainer" style="display: block;">Voucher No. <span id="voucherNo">407B/03/25</span>
+                <div id="voucherNoContainer" style="display: block;">Voucher No. <span id="voucherNo">-</span>
                 </div>
-                <div>Submission Date: <span id="submissionDate">09-June-2025</span></div>
+                <div>Submission Date: <span id="submissionDate">-</span></div>
             </div>
         </div>
 
@@ -1386,6 +1386,10 @@
             console.log('=== START: populateVoucherData ===');
             console.log('Document ID:', docId);
             console.log('Data received:', data);
+            console.log('DocNum:', data.docNum);
+            console.log('CounterRef:', data.counterRef);
+            console.log('Approval data:', data.approval);
+            console.log('Prepared date:', data.approval?.preparedDate);
 
             // Set basic information
             document.getElementById('paymentTo').textContent = data.cardName || 'Rizki Fajar Putra';
@@ -1402,15 +1406,19 @@
                     voucherNoContainer.style.display = 'none';
                 } else {
                     voucherNoContainer.style.display = 'block';
-                    document.getElementById('voucherNo').textContent = data.docNum || '407B/03/25';
+                    // Use docNum, counterRef, or document ID as voucher number
+                    const voucherNumber = data.docNum || data.counterRef || docId || '-';
+                    document.getElementById('voucherNo').textContent = voucherNumber;
                 }
             }
 
-            document.getElementById('submissionDate').textContent = data.docDate ? new Date(data.docDate).toLocaleDateString('en-GB', {
+            // Use submission date (prepared date) instead of document date for submission
+            const submissionDate = data.approval?.preparedDate || data.docDate || data.createdDate;
+            document.getElementById('submissionDate').textContent = submissionDate ? new Date(submissionDate).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric'
-            }) : '09-June-2025';
+            }) : '-';
 
             // Populate additional document information
             document.getElementById('reimburseNo').textContent = data.counterRef || '-';

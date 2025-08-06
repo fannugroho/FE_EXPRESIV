@@ -1475,12 +1475,12 @@ class DataManager {
             receiveState.setOPReimData(data);
 
             await this.loadUsersData();
-        FormManager.populateFormFields(data);
-        PermissionManager.checkUserPermissions(data);
-        AttachmentManager.handleAttachments(data, id);
-        PrintManager.displayPrintOutReimbursement(data);
-        PrintManager.displayPrintVoucher(data);
-        await this.handleReimbursementData(data);            Swal.close();
+            FormManager.populateFormFields(data);
+            PermissionManager.checkUserPermissions(data);
+            AttachmentManager.handleAttachments(data, id);
+            PrintManager.displayPrintOutReimbursement(data);
+            PrintManager.displayPrintVoucher(data);
+            await this.handleReimbursementData(data); Swal.close();
 
         } catch (error) {
             console.error('❌ Error loading document:', error);
@@ -2085,7 +2085,7 @@ function printOPReim() {
         // Build clean URL with properly encoded parameters
         const baseUrl = window.location.origin;
         let printUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html`;
-        
+
         // Add URL parameters with single encoding
         const urlParams = new URLSearchParams();
         Object.entries(printParams).forEach(([key, value]) => {
