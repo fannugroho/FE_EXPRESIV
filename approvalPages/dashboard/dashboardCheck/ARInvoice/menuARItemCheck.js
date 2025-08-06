@@ -1,3 +1,9 @@
+/**
+ * AR Invoice Check Dashboard
+ * Updated to use the new API endpoint: /api/ar-invoices/by-checked/{kansaiEmployeeId}
+ * This dashboard shows invoices that have been checked by the current user
+ */
+
 // Current tab state
 let currentTab = 'prepared'; // Default tab - changed to prepared for checker view
 let currentSearchTerm = '';
@@ -138,13 +144,13 @@ async function fetchUserData(userId) {
     }
 }
 
-// Function to fetch AR invoices by prepared NIK
-async function fetchARInvoicesByPreparedNIK(kansaiEmployeeId) {
+// Function to fetch AR invoices by checked NIK
+async function fetchARInvoicesByCheckedNIK(kansaiEmployeeId) {
     try {
-        console.log('Fetching AR invoices for prepared NIK:', kansaiEmployeeId);
+        console.log('Fetching AR invoices for checked NIK:', kansaiEmployeeId);
         
-        // Use the by-prepared endpoint with the kansaiEmployeeId
-        const apiUrl = `${API_BASE_URL}/ar-invoices/by-prepared/${kansaiEmployeeId}`;
+        // Use the by-checked endpoint with the kansaiEmployeeId
+        const apiUrl = `${API_BASE_URL}/ar-invoices/by-checked/${kansaiEmployeeId}`;
         console.log('Fetching data from:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -164,7 +170,7 @@ async function fetchARInvoicesByPreparedNIK(kansaiEmployeeId) {
         console.log('AR Invoices API Response:', result);
         
         if (result.status && result.data) {
-            console.log(`Successfully loaded ${result.data.length} invoices for prepared NIK ${kansaiEmployeeId}`);
+            console.log(`Successfully loaded ${result.data.length} invoices for checked NIK ${kansaiEmployeeId}`);
             return result.data;
         } else {
             console.error('API returned error:', result.message);
@@ -200,8 +206,8 @@ async function loadDashboard() {
 
         console.log('Using kansaiEmployeeId for invoice filtering:', kansaiEmployeeId);
 
-        // Step 2: Fetch AR invoices using the kansaiEmployeeId
-        const invoices = await fetchARInvoicesByPreparedNIK(kansaiEmployeeId);
+        // Step 2: Fetch AR invoices that have been checked by this user
+        const invoices = await fetchARInvoicesByCheckedNIK(kansaiEmployeeId);
         
         console.log('Transforming API data...');
         // Transform API data to match our expected format
@@ -231,6 +237,9 @@ async function loadDashboard() {
                 preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
                 currency: invoice.docCur,
                 vatSum: invoice.vatSum,
+                vatSumFC: invoice.vatSumFC,
+                wtSum: invoice.wtSum,
+                wtSumFC: invoice.wtSumFC,
                 isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
                 createdAt: invoice.createdAt,
                 updatedAt: invoice.updatedAt,
@@ -238,22 +247,33 @@ async function loadDashboard() {
                 docType: invoice.docType, // Keep original docType for reference
                 // Additional fields from new API response
                 docNum: invoice.docNum,
+                docRate: invoice.docRate,
+                docTotalFC: invoice.docTotalFC,
                 grandTotal: invoice.grandTotal,
                 netAmount: invoice.netAmount,
                 docTax: invoice.docTax,
                 discSum: invoice.discSum,
                 sysRate: invoice.sysRate,
+                docBaseAmount: invoice.docBaseAmount,
                 licTradNum: invoice.licTradNum,
                 taxRate: invoice.taxRate,
                 dpp1112: invoice.dpp1112,
+                qrCodeSrc: invoice.qrCodeSrc,
                 u_BankCode: invoice.u_BankCode,
                 account: invoice.account,
                 acctName: invoice.acctName,
                 netPrice: invoice.netPrice,
+                netPriceAfterDiscount: invoice.netPriceAfterDiscount,
                 trackNo: invoice.trackNo,
+                trnspCode: invoice.trnspCode,
+                u_BSI_ShippingType: invoice.u_BSI_ShippingType,
+                groupNum: invoice.groupNum,
+                u_BSI_PaymentGroup: invoice.u_BSI_PaymentGroup,
                 u_bsi_udf1: invoice.u_bsi_udf1,
                 u_bsi_udf2: invoice.u_bsi_udf2,
                 u_bsi_udf3: invoice.u_bsi_udf3,
+                docEntryHeader: invoice.docEntryHeader,
+                signedFilePath: invoice.signedFilePath,
                 arInvoiceDetails: invoice.arInvoiceDetails,
                 arInvoiceAttachments: invoice.arInvoiceAttachments
             };
@@ -306,7 +326,15 @@ function getInvoiceStatus(invoice) {
             return summary.approvalStatus;
         }
         
-        // Fallback to old logic if approvalStatus is not available
+        // Enhanced fallback logic based on date fields
+        if (summary.rejectedDate) return 'Rejected';
+        if (summary.receivedDate) return 'Received';
+        if (summary.approvedDate) return 'Approved';
+        if (summary.acknowledgedDate) return 'Acknowledged';
+        if (summary.checkedDate) return 'Checked';
+        if (summary.preparedDate) return 'Prepared';
+        
+        // Legacy fallback to old logic if dates are not available
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
         if (summary.isAcknowledged) return 'Acknowledged';
@@ -314,9 +342,9 @@ function getInvoiceStatus(invoice) {
         if (summary.isReceived) return 'Received';
     }
     
+    // Additional checks based on other fields
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
     
     return 'Draft';
@@ -692,23 +720,41 @@ window.downloadExcel = async function() {
             'Prepared By NIK': invoice.preparedByNIK,
             'Currency': invoice.currency,
             'VAT Sum': invoice.vatSum,
+            'VAT Sum FC': invoice.vatSumFC,
+            'WT Sum': invoice.wtSum,
+            'WT Sum FC': invoice.wtSumFC,
             'Comments': invoice.comments,
             'Is Transfered': invoice.isTransfered,
             'Created At': formatDate(invoice.createdAt),
             'Updated At': formatDate(invoice.updatedAt),
             // Additional fields from new API
             'Doc Number': invoice.docNum,
+            'Doc Rate': invoice.docRate,
+            'Doc Total FC': invoice.docTotalFC,
             'Grand Total': invoice.grandTotal,
             'Net Amount': invoice.netAmount,
             'Tax Amount': invoice.docTax,
             'Discount Sum': invoice.discSum,
+            'System Rate': invoice.sysRate,
+            'Doc Base Amount': invoice.docBaseAmount,
             'Tax Rate': invoice.taxRate,
             'License Number': invoice.licTradNum,
+            'DPP 11-12': invoice.dpp1112,
             'Bank Code': invoice.u_BankCode,
             'Account': invoice.account,
             'Account Name': invoice.acctName,
             'Net Price': invoice.netPrice,
-            'Tracking Number': invoice.trackNo
+            'Net Price After Discount': invoice.netPriceAfterDiscount,
+            'Tracking Number': invoice.trackNo,
+            'Transport Code': invoice.trnspCode,
+            'Shipping Type': invoice.u_BSI_ShippingType,
+            'Group Number': invoice.groupNum,
+            'Payment Group': invoice.u_BSI_PaymentGroup,
+            'UDF1': invoice.u_bsi_udf1,
+            'UDF2': invoice.u_bsi_udf2,
+            'UDF3': invoice.u_bsi_udf3,
+            'Doc Entry Header': invoice.docEntryHeader,
+            'Signed File Path': invoice.signedFilePath
         }));
         
         const worksheet = XLSX.utils.json_to_sheet(exportData);
