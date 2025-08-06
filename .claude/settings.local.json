@@ -7,7 +7,9 @@
       "Bash(mv:*)",
       "Bash(rmdir:*)",
       "Bash(sed:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git pull:*)",
+      "Bash(git config:*)"
     ],
     "deny": []
   }

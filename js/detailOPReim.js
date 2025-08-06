@@ -1691,7 +1691,6 @@ function goToMenuOP() {
  * Displays Print Out Reimbursement document
  * @param {Object} reimbursementData - Reimbursement data
  */
-// Function to display Print Out Reimbursement document
 function displayPrintOutReimbursement(reimbursementData) {
     const container = document.getElementById('printOutReimbursementList');
     if (!container) {
@@ -1699,114 +1698,17 @@ function displayPrintOutReimbursement(reimbursementData) {
         return;
     }
 
-    // Clear existing content
     container.innerHTML = '';
 
-    // Get reimbursement ID from various possible sources
-    let reimbursementId = null;
-
-    // Try to get from URL parameters first
-    const urlParams = new URLSearchParams(window.location.search);
-    reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
-
-    // If not in URL, try to get from form data
-    if (!reimbursementId) {
-        const counterRefField = document.getElementById('CounterRef');
-        if (counterRefField && counterRefField.value) {
-            reimbursementId = counterRefField.value;
-        }
-    }
-
-    // If still not found, try to get from reimbursement data
-    if (!reimbursementId && reimbursementData && reimbursementData.id) {
-        reimbursementId = reimbursementData.id;
-    }
-
+    const reimbursementId = getReimbursementId(reimbursementData);
     if (!reimbursementId) {
         container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
         return;
     }
 
-    // Build the Print Receive Reimbursement URL with parameters
-    const baseUrl = window.location.origin;
-    const params = new URLSearchParams();
+    const printUrl = buildPrintReimbursementUrl(reimbursementId, reimbursementData);
+    const documentItem = createPrintDocumentItem(reimbursementId, printUrl);
 
-    // Clean and add the reimbursement ID
-    const cleanReimId = reimbursementId ? reimbursementId.trim() : '';
-    params.append('reim-id', cleanReimId);
-
-    // Add additional parameters if available from reimbursement data
-    if (reimbursementData) {
-        // Add all available parameters from reimbursement data with proper cleaning
-        if (reimbursementData.payToName) params.append('payTo', reimbursementData.payToName.trim());
-        if (reimbursementData.voucherNo) params.append('voucherNo', reimbursementData.voucherNo.trim());
-        if (reimbursementData.submissionDate) params.append('submissionDate', reimbursementData.submissionDate);
-        if (reimbursementData.department) params.append('department', reimbursementData.department.trim());
-        if (reimbursementData.referenceDoc) params.append('referenceDoc', reimbursementData.referenceDoc.trim());
-        if (reimbursementData.preparedByName) params.append('preparedBy', reimbursementData.preparedByName.trim());
-        if (reimbursementData.checkedByName) params.append('checkedBy', reimbursementData.checkedByName.trim());
-        if (reimbursementData.acknowledgedByName) params.append('acknowledgeBy', reimbursementData.acknowledgedByName.trim());
-        if (reimbursementData.approvedByName) params.append('approvedBy', reimbursementData.approvedByName.trim());
-        if (reimbursementData.receivedByName) params.append('receivedBy', reimbursementData.receivedByName.trim());
-        if (reimbursementData.totalAmount) params.append('totalAmount', reimbursementData.totalAmount.toString());
-        if (reimbursementData.currency) params.append('currency', reimbursementData.currency.trim());
-        if (reimbursementData.remarks) params.append('remarks', reimbursementData.remarks.trim());
-        if (reimbursementData.typeOfTransaction) params.append('typeOfTransaction', reimbursementData.typeOfTransaction.trim());
-
-        // Add details if available
-        if (reimbursementData.reimbursementDetails && reimbursementData.reimbursementDetails.length > 0) {
-            const details = reimbursementData.reimbursementDetails.map(detail => ({
-                category: detail.category || '',
-                accountName: detail.accountName || '',
-                glAccount: detail.glAccount || '',
-                description: detail.description || '',
-                amount: detail.amount || 0
-            }));
-            params.append('details', encodeURIComponent(JSON.stringify(details)));
-        }
-
-        // Construct the final URL with all parameters
-        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?${params.toString()}`;
-        fullUrl = printReimUrl;
-    }
-
-    // Create the document item
-    const documentItem = document.createElement('div');
-    documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
-
-    const fileInfo = document.createElement('div');
-    fileInfo.className = 'flex items-center space-x-2';
-
-    // Use a document icon for the print reimbursement
-    fileInfo.innerHTML = `
-        <span class="text-lg">📄</span>
-        <div>
-            <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
-            <div class="text-xs text-gray-500">Document • PDF</div>
-            <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
-        </div>
-    `;
-
-    const actions = document.createElement('div');
-    actions.className = 'flex space-x-2';
-
-    // View button
-    const viewBtn = document.createElement('button');
-    viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
-    viewBtn.innerHTML = 'View';
-    viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
-
-    // Open in new tab button
-    const openBtn = document.createElement('button');
-    openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
-    openBtn.innerHTML = 'Open';
-    openBtn.onclick = () => openPrintReimbursement(fullUrl);
-
-    actions.appendChild(viewBtn);
-    actions.appendChild(openBtn);
-
-    documentItem.appendChild(fileInfo);
-    documentItem.appendChild(actions);
     container.appendChild(documentItem);
 }
 
@@ -1928,69 +1830,41 @@ function createPrintButton(text, color, clickHandler) {
     return button;
 }
 
-// Function to view Print Reimbursement document
+/**
+ * Views print reimbursement document
+ * @param {string} url - Document URL
+ */
 async function viewPrintReimbursement(url) {
     try {
-        // Show loading indicator
-        Swal.fire({
-            title: 'Loading...',
-            text: 'Loading Print Receive Reimbursement document...',
-            icon: 'info',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            allowEnterKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        showLoadingIndicator('Loading Print Receive Reimbursement document...');
 
-        // Open the URL in a new window/tab
         const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
 
         if (newWindow) {
-            // Close loading indicator
             Swal.close();
-
-            // Show success message
-            Swal.fire({
-                title: 'Success',
-                text: 'Print Receive Reimbursement document opened in new window',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
+            showSuccessMessage('Print Receive Reimbursement document opened in new window');
         } else {
             throw new Error('Failed to open document window');
         }
 
     } catch (error) {
         console.error('Error viewing Print Reimbursement document:', error);
-
-        Swal.fire({
-            title: 'Error',
-            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
+        showErrorMessage('Error', `Failed to open Print Receive Reimbursement document: ${error.message}`);
     }
 }
 
-// Function to open Print Reimbursement document in new tab
+/**
+ * Opens print reimbursement document in new tab
+ * @param {string} url - Document URL
+ */
 function openPrintReimbursement(url) {
     try {
         window.open(url, '_blank');
     } catch (error) {
         console.error('Error opening Print Reimbursement document:', error);
-
-        Swal.fire({
-            title: 'Error',
-            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
+        showErrorMessage('Error', `Failed to open Print Receive Reimbursement document: ${error.message}`);
     }
 }
-
 
 // ====================================
 // GLOBAL EXPORTS
