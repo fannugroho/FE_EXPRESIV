@@ -498,7 +498,7 @@ function populateInvoiceDetails(details) {
                 <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${detail.itemCode || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border bp-catalog-column">
-                <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${detail.bpCatalog || ''}" disabled autocomplete="off" />
+                <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${detail.catalogNo || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border description-column">
                 <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.dscription || ''}</textarea>
