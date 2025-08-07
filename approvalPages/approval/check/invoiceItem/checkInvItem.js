@@ -120,6 +120,12 @@ function getCurrentUserFullName() {
     return currentUser.username || 'Unknown User';
 }
 
+// Function to get role of the current user
+function getCurrentUserRole() {
+    // Since this is the check page, the role is Checker
+    return 'Checker';
+}
+
 // Function to initialize summary fields with default values
 function initializeSummaryFields() {
     const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
@@ -659,24 +665,51 @@ function rejectInvItem() {
         return;
     }
 
+    // Create custom dialog with prefix functionality
     Swal.fire({
         title: 'Reject Invoice Item',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            // Initialize the field with user prefix
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
             }
+            
+            // Add event listener for input protection
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            // Get the rejection remark
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            
+            // Check if there's content beyond the prefix
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            
+            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -684,6 +717,48 @@ function rejectInvItem() {
             updateInvItemStatus('Rejected', result.value);
         }
     });
+}
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // Get the expected prefix
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+    
+    // Check if the current value starts with the expected prefix
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        // If prefix is damaged, restore it
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        
+        // Reset cursor position after the prefix
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    } else {
+        // If user tries to modify content before or within the prefix
+        if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
 }
 
 // Update invoice item status using PATCH API
@@ -756,12 +831,19 @@ async function updateInvItemStatus(status, remarks = '') {
             // Preserve existing rejection remarks if any
             if (existingSummary.rejectionRemarks) payload.rejectionRemarks = existingSummary.rejectionRemarks;
             if (existingSummary.revisionRemarks) payload.revisionRemarks = existingSummary.revisionRemarks;
+            
+            // Preserve existing rejection data if any
+            if (existingSummary.rejectedBy) payload.rejectedBy = existingSummary.rejectedBy;
+            if (existingSummary.rejectedByName) payload.rejectedByName = existingSummary.rejectedByName;
+            if (existingSummary.rejectedDate) payload.rejectedDate = existingSummary.rejectedDate;
         }
 
         // Add rejection remarks if status is Rejected
         if (status === 'Rejected' && remarks) {
             payload.rejectionRemarks = remarks;
             payload.rejectedDate = now;
+            payload.rejectedBy = getCurrentUserKansaiEmployeeId();
+            payload.rejectedByName = getCurrentUserFullName();
         }
 
         console.log('Updating invoice item status with payload:', payload);

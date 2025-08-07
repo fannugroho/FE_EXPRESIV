@@ -62,6 +62,10 @@ async function loadEmployeesData() {
         console.log('Employees API response status:', response.status);
         
         if (!response.ok) {
+            if (response.status === 404) {
+                console.warn('Employees API endpoint not found (404) - continuing without employee data');
+                return;
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -86,6 +90,7 @@ async function loadEmployeesData() {
     } catch (error) {
         console.error('Error loading employees data:', error);
         // Don't show error to user as this is not critical for main functionality
+        // Just log the error and continue
     }
 }
 
@@ -293,12 +298,18 @@ async function loadInvoiceData(invoiceId) {
         
         if (error.message.includes('404')) {
             errorMessage = 'Invoice not found. Please check the invoice identifier.';
+            console.warn('Invoice not found (404) - this might be expected for new invoices');
         } else if (error.message.includes('500')) {
             errorMessage = 'Server error. Please try again later.';
         } else if (error.message.includes('NetworkError')) {
             errorMessage = 'Network error. Please check your connection.';
         } else {
             errorMessage = `Failed to load invoice data: ${error.message}`;
+        }
+        
+        // Close loading indicator if it's still open
+        if (Swal.isVisible()) {
+            Swal.close();
         }
         
         Swal.fire({
@@ -440,6 +451,26 @@ function populateFormData(data) {
             receivedBy: data.arInvoiceApprovalSummary.receivedBy,
             preparedBy: data.arInvoiceApprovalSummary.preparedBy
         });
+        
+        // Handle rejection remarks if status is Rejected
+        if (data.arInvoiceApprovalSummary.approvalStatus === 'Rejected' && data.arInvoiceApprovalSummary.rejectionRemarks) {
+            const rejectionSection = document.getElementById('rejectionRemarksSection');
+            const rejectionTextarea = document.getElementById('rejectionRemarks');
+            
+            if (rejectionSection && rejectionTextarea) {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks;
+                console.log('Rejection remarks displayed:', data.arInvoiceApprovalSummary.rejectionRemarks);
+            } else {
+                console.warn('Rejection remarks section elements not found');
+            }
+        } else {
+            // Hide the rejection remarks section if status is not Rejected
+            const rejectionSection = document.getElementById('rejectionRemarksSection');
+            if (rejectionSection) {
+                rejectionSection.style.display = 'none';
+            }
+        }
     } else {
         console.log('No approval summary data found');
     }
@@ -451,7 +482,16 @@ function populateFormData(data) {
     const currencyCode = data.docCur || 'IDR';
     
     // Populate totals with new fields and include currency code
-    safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(data.docTotal || '0.00')}`);
+    // Update Total field to use docCur and netPrice from API
+    const totalAmount = data.netPrice || data.docTotal || '0.00';
+    console.log('🔍 Total field update:', {
+        netPrice: data.netPrice,
+        docTotal: data.docTotal,
+        docCur: data.docCur,
+        calculatedTotalAmount: totalAmount,
+        currencyCode: currencyCode
+    });
+    safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(totalAmount)}`);
     safeSetValue('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || '0.00')}`);
     safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || data.netPrice || '0.00')}`);
     safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
@@ -726,7 +766,7 @@ async function submitInvoiceData() {
         // Show confirmation dialog first
         const confirmResult = await Swal.fire({
             title: 'Confirm Submission',
-            text: 'Are you sure you want to submit this invoice data?',
+            text: 'Are you sure you want to submit this invoice data and upload attachments?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
@@ -834,6 +874,12 @@ async function submitInvoiceData() {
                 const errorText = await response.text();
                 console.error('API Error response:', errorText);
                 
+                // Handle 404 errors specifically
+                if (response.status === 404) {
+                    console.warn('Approval endpoint not found (404) - this might be expected for new invoices');
+                    throw new Error('Approval endpoint not available for this invoice');
+                }
+                
                 // Try to parse error response as JSON for better error handling
                 let errorDetails = errorText;
                 try {
@@ -859,6 +905,22 @@ async function submitInvoiceData() {
         console.log('API Response:', apiResult);
         console.log('Approval data successfully submitted to API');
         
+        // Upload files if any are selected
+        let uploadResult = null;
+        if (uploadedFiles && uploadedFiles.length > 0) {
+            console.log('Uploading files:', uploadedFiles.length, 'files');
+            submitButtonText.textContent = 'Uploading Attachments...';
+            
+            try {
+                uploadResult = await uploadAttachments(stagingID, uploadedFiles);
+                console.log('File upload result:', uploadResult);
+            } catch (uploadError) {
+                console.error('Error uploading files:', uploadError);
+                // Don't throw error here, just log it and continue
+                // The approval data was already submitted successfully
+            }
+        }
+        
         // Show success message with details
         const approvalModified = window.approvalDataModified || false;
         const approvalInfo = approvalModified ? '<p><strong>Approval data has been updated successfully</strong></p>' : '';
@@ -876,6 +938,15 @@ async function submitInvoiceData() {
             ? '<p><strong>📅 Prepared Date Set:</strong> Current timestamp has been recorded</p>' 
             : '';
         
+        // Add file upload info
+        let uploadInfo = '';
+        if (uploadResult && uploadResult.status) {
+            const uploadedCount = uploadResult.data ? uploadResult.data.length : 0;
+            uploadInfo = `<p><strong>📎 Attachments Uploaded:</strong> ${uploadedCount} file(s) uploaded successfully</p>`;
+        } else if (uploadedFiles && uploadedFiles.length > 0) {
+            uploadInfo = '<p><strong>⚠️ File Upload:</strong> Files were not uploaded due to an error, but approval data was updated successfully</p>';
+        }
+        
         console.log('Submission completed successfully');
         console.log('Approval data was modified:', approvalModified);
         console.log('Status change:', originalStatus, '→', newStatus);
@@ -892,6 +963,7 @@ async function submitInvoiceData() {
                     ${statusChangeInfo}
                     ${preparedDateInfo}
                     ${approvalInfo}
+                    ${uploadInfo}
                 </div>
             `,
             confirmButtonText: 'OK',
@@ -902,6 +974,10 @@ async function submitInvoiceData() {
                 localStorage.removeItem(`approval_${invoiceData.stagingID}`);
                 console.log('Cleared approval data from localStorage after successful submission');
             }
+            
+            // Clear uploaded files
+            uploadedFiles = [];
+            displayFileList();
             
             // Optionally redirect or refresh
             window.location.reload();
@@ -930,6 +1006,81 @@ async function submitInvoiceData() {
     }
 }
 
+// Upload attachments to API
+async function uploadAttachments(stagingID, files) {
+    try {
+        console.log('Starting file upload for stagingID:', stagingID);
+        console.log('Files to upload:', files);
+        
+        if (!files || files.length === 0) {
+            console.log('No files to upload');
+            return { status: true, message: 'No files to upload' };
+        }
+        
+        // Create FormData object for multipart/form-data
+        const formData = new FormData();
+        
+        // Add each file to the FormData
+        files.forEach((file, index) => {
+            console.log(`Adding file ${index + 1}:`, file.name, file.type, file.size);
+            formData.append('files', file);
+        });
+        
+        // Construct the API URL
+        const uploadUrl = `${API_BASE_URL}/ar-invoices/${stagingID}/attachments/upload`;
+        console.log('Upload URL:', uploadUrl);
+        
+        // Make the API request
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'accept': '*/*'
+                // Don't set Content-Type header - let the browser set it with boundary for multipart/form-data
+            },
+            body: formData
+        });
+        
+        console.log('Upload response status:', response.status);
+        console.log('Upload response headers:', response.headers);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Upload API Error response:', errorText);
+            
+            // Handle 404 errors specifically
+            if (response.status === 404) {
+                console.warn('Upload endpoint not found (404) - this might be expected for new invoices');
+                throw new Error('Upload endpoint not available for this invoice');
+            }
+            
+            // Try to parse error response as JSON for better error handling
+            let errorDetails = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorDetails = errorJson.message || errorJson.error || errorText;
+                console.error('Parsed upload error details:', errorJson);
+            } catch (parseError) {
+                console.error('Could not parse upload error response as JSON:', parseError);
+            }
+            
+            throw new Error(`Upload API Error: ${response.status} - ${errorDetails}`);
+        }
+        
+        const result = await response.json();
+        console.log('Upload API response:', result);
+        
+        if (result.status && result.code === 200) {
+            console.log('Files uploaded successfully:', result.data);
+            return result;
+        } else {
+            throw new Error(`Upload failed: ${result.message || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error in uploadAttachments:', error);
+        throw error;
+    }
+}
 
 
 // Prepare approval payload for PATCH API submission
@@ -1371,20 +1522,124 @@ function loadAttachmentsFromData(attachments) {
             console.log('Valid attachments found:', validAttachments.length);
             
             if (validAttachments.length > 0) {
-                console.log('Attachments loaded but not displayed (existing attachments section removed)');
+                console.log('Displaying existing attachments:', validAttachments);
+                displayExistingAttachments(validAttachments);
             } else {
                 console.log('No valid attachments found');
+                showNoExistingAttachments();
             }
         } else {
             console.log('No attachments data or empty array');
+            showNoExistingAttachments();
         }
         
     } catch (error) {
         console.error('Error loading attachments from data:', error);
+        showNoExistingAttachments();
     }
 }
 
-// Load attachments for the invoice (legacy function for separate API call)
+// Display existing attachments in the UI
+function displayExistingAttachments(attachments) {
+    const existingAttachmentsContainer = document.getElementById('existingAttachmentsList');
+    if (!existingAttachmentsContainer) {
+        console.warn('Element with id "existingAttachmentsList" not found');
+        return;
+    }
+
+    existingAttachmentsContainer.innerHTML = ''; // Clear previous attachments
+
+    if (!attachments || attachments.length === 0) {
+        showNoExistingAttachments();
+        return;
+    }
+
+    attachments.forEach((attachment, index) => {
+        const attachmentItem = document.createElement('div');
+        attachmentItem.className = 'flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3 shadow-sm hover:shadow-md transition-shadow';
+        
+        // Get file name from various possible fields
+        const fileName = attachment.fileName || attachment.file_name || attachment.name || `Attachment ${index + 1}`;
+        
+        // Get file icon based on file extension
+        const fileIcon = getFileIcon(fileName);
+        
+        // Format file size if available
+        const fileSize = attachment.fileSize || attachment.file_size || attachment.size;
+        const formattedFileSize = fileSize ? formatFileSize(fileSize) : '';
+        
+        // Format creation date
+        const createdAt = attachment.createdAt || attachment.created_at || attachment.uploadDate || attachment.upload_date;
+        const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleDateString() : '';
+        
+        // Get file URL from various possible fields
+        const fileUrl = attachment.fileUrl || attachment.file_url || attachment.filePath || attachment.file_path || attachment.path || '';
+        
+        // Create attachment object for function call (with proper escaping)
+        const attachmentData = {
+            fileName: fileName,
+            fileUrl: fileUrl,
+            fileSize: fileSize,
+            createdAt: createdAt,
+            description: attachment.description || attachment.desc || '',
+            fileType: attachment.fileType || attachment.contentType || attachment.type || '',
+            id: attachment.id || attachment.attachmentId || ''
+        };
+        
+        // Escape the JSON properly for HTML attributes
+        const attachmentJson = JSON.stringify(attachmentData).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        
+        attachmentItem.innerHTML = `
+            <div class="flex items-center flex-1">
+                <span class="text-blue-600 mr-3 text-xl">${fileIcon}</span>
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">${fileName}</span>
+                    <div class="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                        ${formattedFileSize ? `<span>Size: ${formattedFileSize}</span>` : ''}
+                        ${formattedCreatedAt ? `<span>Created: ${formattedCreatedAt}</span>` : ''}
+                        ${attachmentData.description ? `<span>Description: ${attachmentData.description}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="viewExistingAttachment('${attachmentJson}')" class="text-blue-600 hover:text-blue-800 text-sm font-semibold px-3 py-1 border border-blue-600 rounded hover:bg-blue-50 transition-colors">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    View
+                </button>
+                <button onclick="downloadExistingAttachment('${fileUrl}', '${fileName}')" class="text-green-600 hover:text-green-800 text-sm font-semibold px-3 py-1 border border-green-600 rounded hover:bg-green-50 transition-colors">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download
+                </button>
+            </div>
+        `;
+        existingAttachmentsContainer.appendChild(attachmentItem);
+    });
+}
+
+// Show no existing attachments message
+function showNoExistingAttachments() {
+    const existingAttachmentsContainer = document.getElementById('existingAttachmentsList');
+    if (!existingAttachmentsContainer) {
+        console.warn('Element with id "existingAttachmentsList" not found');
+        return;
+    }
+    existingAttachmentsContainer.innerHTML = `
+        <div class="p-6 text-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-lg font-medium">No existing attachments found</p>
+            <p class="text-sm">This invoice doesn't have any attachments yet.</p>
+        </div>
+    `;
+}
+
+
 
 
 // Display attachments in the UI (disabled since existing attachments section removed)
@@ -1766,5 +2021,203 @@ function viewUploadedFile(index) {
     setTimeout(() => {
         URL.revokeObjectURL(fileUrl);
     }, 1000);
+}
+
+// Preview existing attachment
+function previewExistingAttachment(fileUrl, fileName) {
+    try {
+        console.log('Previewing existing attachment:', fileName, fileUrl);
+        
+        // Construct full URL if it's a relative path
+        const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl}`;
+        
+        // Create modal container
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+        modal.id = 'existingAttachmentViewerModal';
+        
+        // Create modal content
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
+                <div class="flex justify-between items-center p-4 border-b">
+                    <h3 class="text-lg font-semibold">${fileName}</h3>
+                    <button type="button" class="text-gray-500 hover:text-gray-700" onclick="closeExistingAttachmentModal()">
+                        <span class="text-2xl">&times;</span>
+                    </button>
+                </div>
+                <div class="flex-grow p-4 overflow-auto">
+                    <iframe src="${fullUrl}" class="w-full h-full" frameborder="0"></iframe>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to body
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeExistingAttachmentModal();
+            }
+        });
+        
+        console.log('Preview opened for existing attachment:', fileName);
+    } catch (error) {
+        console.error('Error previewing existing file:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Preview Failed',
+            text: 'Failed to preview the file. Please try again.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Download existing attachment
+function downloadExistingAttachment(fileUrl, fileName) {
+    try {
+        console.log('Downloading existing attachment:', fileName, fileUrl);
+        
+        // Construct full URL if it's a relative path
+        const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl}`;
+        
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Download initiated for existing attachment:', fileName);
+    } catch (error) {
+        console.error('Error downloading existing file:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Download Failed',
+            text: 'Failed to download the file. Please try again.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Close existing attachment modal
+function closeExistingAttachmentModal() {
+    const modal = document.getElementById('existingAttachmentViewerModal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// View existing attachment with proper error handling
+async function viewExistingAttachment(attachmentJson) {
+    try {
+        console.log('Viewing existing attachment:', attachmentJson);
+        
+        // Parse the JSON string if it's passed as a string
+        let attachment;
+        if (typeof attachmentJson === 'string') {
+            try {
+                attachment = JSON.parse(attachmentJson);
+            } catch (parseError) {
+                console.error('Error parsing attachment JSON:', parseError);
+                throw new Error('Invalid attachment data format');
+            }
+        } else {
+            attachment = attachmentJson;
+        }
+        
+        console.log('Parsed attachment data:', attachment);
+        
+        // Show loading indicator
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Loading...',
+                text: 'Loading attachment, please wait...',
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // Construct full URL if it's a relative path
+        let fullUrl = attachment.fileUrl || attachment.filePath || attachment.path;
+        if (!fullUrl) {
+            throw new Error('File URL not available');
+        }
+        
+        // If it's not already a full URL, construct it
+        if (!fullUrl.startsWith('http')) {
+            fullUrl = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+            fullUrl = `${API_BASE_URL}${fullUrl}`;
+        }
+        
+        console.log('Constructed full URL:', fullUrl);
+        
+        // Close loading indicator
+        if (typeof Swal !== 'undefined') {
+            Swal.close();
+        }
+        
+        // Open the file in a new tab
+        const newWindow = window.open(fullUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=yes');
+        
+        if (!newWindow) {
+            throw new Error('Failed to open document window. Please check your popup blocker settings.');
+        }
+        
+        console.log('Attachment opened successfully:', fullUrl);
+        
+        // Show success message
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Success',
+                text: 'Attachment opened in new tab',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3b82f6'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error viewing existing attachment:', error);
+        
+        // Close loading indicator if still open
+        if (typeof Swal !== 'undefined') {
+            Swal.close();
+        }
+        
+        // Show error message
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Error',
+                text: `Failed to view attachment: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert(`Failed to view attachment: ${error.message}`);
+        }
+    }
 }
 

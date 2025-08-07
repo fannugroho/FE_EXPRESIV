@@ -117,12 +117,79 @@
                 font-size: 10px !important;
             }
             
+            /* Print styles for shipper-details */
+            .shipper-details {
+                width: 48% !important;
+                font-size: 10px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+            }
+            
+            .detail-row {
+                display: flex !important;
+                align-items: center !important;
+                margin-bottom: 3px !important;
+                width: 100% !important;
+                justify-content: flex-end !important;
+                gap: 5px !important;
+            }
+            
+            .detail-label {
+                font-weight: bold !important;
+                text-align: right !important;
+                min-width: 80px !important;
+                flex-shrink: 0 !important;
+                font-size: 10px !important;
+            }
+            
+            .detail-separator {
+                font-weight: bold !important;
+                font-size: 10px !important;
+                flex-shrink: 0 !important;
+            }
+            
+            .detail-value {
+                text-align: left !important;
+                flex: 1 !important;
+                max-width: 200px !important;
+                font-size: 10px !important;
+                min-width: 0 !important;
+            }
+            
+            .detail-value.multiple {
+                margin-bottom: 4px !important;
+            }
+            
+            .detail-value .data-item {
+                margin-bottom: 2px !important;
+                padding: 1px 0 !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+            }
+            
             .order-numbers {
                 font-size: 10px !important;
             }
             
             .payment-instructions {
                 font-size: 10px !important;
+            }
+            
+            .payment-instructions div {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+                margin-bottom: 2px !important;
+            }
+            
+            #bankInformation,
+            [id^="bankInformation"] {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+                margin-bottom: 2px !important;
             }
             
             .financial-summary {
@@ -237,6 +304,9 @@
             .field-value .data-item {
                 margin-bottom: 2px !important;
                 padding: 1px 0 !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
             }
 
             .system-info {
@@ -393,6 +463,55 @@
             margin-left: auto;
         }
 
+        /* New shipper-details styles */
+        .shipper-details {
+            width: 48%;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+            width: 100%;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            text-align: right;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .detail-separator {
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            text-align: left;
+            flex: 1;
+            max-width: 200px;
+            min-width: 0;
+        }
+
+        .detail-value.multiple {
+            margin-bottom: 4px;
+        }
+
+        .detail-value .data-item {
+            margin-bottom: 2px;
+            padding: 1px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+        }
+
         .field-label {
             font-weight: bold;
             margin-bottom: 2px;
@@ -412,6 +531,9 @@
         .field-value .data-item {
             margin-bottom: 2px;
             padding: 1px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
         }
 
         .section-title {
@@ -504,6 +626,21 @@
         .payment-instructions {
             width: 45%;
             font-size: 10px;
+        }
+        
+        .payment-instructions div {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+        
+        #bankInformation,
+        [id^="bankInformation"] {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            margin-bottom: 2px;
         }
 
         .payment-title {
@@ -710,10 +847,7 @@
                     </div>
                 </div>
 
-                <!-- Invoice Title -->
-                <div class="invoice-title-section">
-                    <div class="invoice-title">INVOICE</div>
-                </div>
+
 
                 <!-- Invoice Details -->
                 <div class="invoice-details">
@@ -726,6 +860,13 @@
                     </div>
                 </div>
 
+
+                <!-- Invoice Title -->
+                <div class="invoice-title-section">
+                    <div class="invoice-title">INVOICE</div>
+                </div>
+
+
                 <!-- Recipient and Shipper -->
                 <div class="shipping-info">
                     <div class="recipient">
@@ -737,25 +878,32 @@
                         <div class="section-title">SHIPPED FROM:</div>
                         <div id="shipperName">PT. KANSAI PAINT INDONESIA</div>
                     </div>
-                    <div class="shipper">
-                        <div class="invoice-field shipper-right">
-                            <div class="field-label">NPWP :</div>
-                            <div class="field-value" id="npwp"></div>
+                    <div class="shipper-details">
+                        <div class="detail-row">
+                            <span class="detail-label">NPWP No.</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="npwp"></span>
                         </div>
-                        <div class="invoice-field shipper-right">
-                            <div class="field-label">Due Date :</div>
-                            <div class="field-value" id="dueDate"></div>
+                        <div class="detail-row">
+                            <span class="detail-label">Due Date</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="dueDate"></span>
                         </div>
+
                     </div>
                 </div>
 
                 <!-- Order Numbers -->
                 <div class="order-numbers">
-                    <div class="order-row">
-                        <div class="order-label">DO No.:</div>
-                        <div class="order-value" id="doNumbers"></div>
-                        <div class="order-label" style="margin-left: 50px;">P/O No.:</div>
-                        <div class="field-value" id="poNumbers"></div>
+                    <div class="order-row" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: flex-start; margin-right: 10px;">
+                            <div class="order-value" id="doNumbers"></div>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">P/O No.</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="poNumbers"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -781,35 +929,31 @@
                 <div class="payment-summary" id="paymentSummary">
                     <div class="payment-instructions">
                         <div class="payment-title">Please remit us in full amount to :</div>
-                        <div id="bankName"></div>
-                        <div id="bankAddress1"></div>
-                        <div id="bankAddress2"></div>
-                        <div id="bankCity"></div>
-                        <div id="accountNumber"></div>
+                        <div id="bankInformation"></div>
                     </div>
                     <div class="financial-summary">
                         <div class="summary-row">
-                            <span class="summary-label">Total <span id="currencyLabel">IDR</span></span>
+                            <span class="summary-label">Total <span id="currencyLabel"></span></span>
                             <span class="summary-value" id="totalAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Discounted <span id="currencyLabel2">IDR</span></span>
+                            <span class="summary-label">Discounted <span id="currencyLabel2"></span></span>
                             <span class="summary-value" id="discountAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Sales Amount <span id="currencyLabel3">IDR</span></span>
+                            <span class="summary-label">Sales Amount <span id="currencyLabel3"></span></span>
                             <span class="summary-value" id="salesAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Tax Base Other Value <span id="currencyLabel4">IDR</span></span>
+                            <span class="summary-label">Tax Base Other Value <span id="currencyLabel4"></span></span>
                             <span class="summary-value" id="taxBase"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">VAT 12% <span id="currencyLabel5">IDR</span></span>
+                            <span class="summary-label">VAT 12% <span id="currencyLabel5"></span></span>
                             <span class="summary-value" id="vatAmount"></span>
                         </div>
                         <div class="summary-row total-line">
-                            <span class="summary-label">GRAND TOTAL <span id="currencyLabel6">IDR</span></span>
+                            <span class="summary-label">GRAND TOTAL <span id="currencyLabel6"></span></span>
                             <span class="summary-value" id="grandTotal"></span>
                         </div>
                     </div>

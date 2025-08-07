@@ -152,12 +152,12 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -1100,8 +1100,8 @@
             }
             
             .price-column {
-                width: 80px !important;
-                min-width: 80px !important;
+                width: 100px !important;
+                min-width: 100px !important;
             }
             
             .line-total-column {
@@ -1486,10 +1486,23 @@
             </div>
 
                     <!-- Rejection Remarks Display Section -->
-            <div class="form-section" id="rejectionRemarksSection" style="display: none;">
-                <h3 class="text-xl font-semibold mb-4 text-red-600">Rejection Remarks</h3>
+            <div class="approval-section" id="rejectionRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Information</h3>
                 <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-red-700 mb-1">Rejected By:</label>
+                            <input type="text" id="rejectedByName" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-red-700 mb-1">Rejected Date:</label>
+                            <input type="text" id="rejectedDate" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800" readonly>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-red-700 mb-1">Rejection Remarks:</label>
+                        <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                    </div>
                 </div>
             </div>
 

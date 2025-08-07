@@ -289,13 +289,46 @@ function populateInvoiceData(invoice) {
         // Shipper information
         const shipperNameElement = document.getElementById('shipperName');
         if (shipperNameElement) {
-            shipperNameElement.textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
+            // Use API data for shipper name, no hardcoded defaults
+            shipperNameElement.textContent = invoice.shipperName || invoice.cardName || '';
             console.log('Shipper Name set to:', shipperNameElement.textContent);
         } else {
             console.error('Shipper Name element not found');
         }
         
-        // Order numbers - use specific fields for DO and PO numbers
+        // Company information - populate from API data
+        const companyNameElement = document.getElementById('companyName');
+        const companyAddressElement = document.getElementById('companyAddress');
+        const companyPhoneElement = document.getElementById('companyPhone');
+        const companyFaxElement = document.getElementById('companyFax');
+        const companyNameFooterElement = document.getElementById('companyNameFooter');
+        
+        if (companyNameElement) {
+            companyNameElement.textContent = invoice.companyName || '';
+            console.log('Company Name set to:', companyNameElement.textContent);
+        }
+        
+        if (companyAddressElement) {
+            companyAddressElement.textContent = invoice.companyAddress || '';
+            console.log('Company Address set to:', companyAddressElement.textContent);
+        }
+        
+        if (companyPhoneElement) {
+            companyPhoneElement.textContent = invoice.companyPhone ? `Phone : ${invoice.companyPhone}` : '';
+            console.log('Company Phone set to:', companyPhoneElement.textContent);
+        }
+        
+        if (companyFaxElement) {
+            companyFaxElement.textContent = invoice.companyFax ? `Fax : ${invoice.companyFax}` : '';
+            console.log('Company Fax set to:', companyFaxElement.textContent);
+        }
+        
+        if (companyNameFooterElement) {
+            companyNameFooterElement.textContent = invoice.companyName || '';
+            console.log('Company Name Footer set to:', companyNameFooterElement.textContent);
+        }
+        
+        // Order numbers - use specific fields for DO and PO numbers with character limits
         const doNumbersElement = document.getElementById('doNumbers');
         const poNumbersElement = document.getElementById('poNumbers');
         
@@ -310,16 +343,16 @@ function populateInvoiceData(invoice) {
                         const row = doValues.slice(i, i + 3);
                         const isLastRow = i + 3 >= doValues.length;
                         const separator = isLastRow ? '.' : ',';
-                        rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
+                        rows.push(`<div class="data-item"><strong>DO No.</strong> : ${row.join(', ')}${separator}</div>`);
                     }
                     doNumbersElement.innerHTML = rows.join('');
                 } else {
                     doNumbersElement.className = 'field-value';
-                    doNumbersElement.textContent = doValues[0] + '.';
+                    doNumbersElement.innerHTML = `<strong>DO No.</strong> : ${doValues[0]}`;
                 }
             } else {
                 doNumbersElement.className = 'field-value';
-                doNumbersElement.textContent = '';
+                doNumbersElement.innerHTML = '<strong>DO No.</strong> : ';
             }
             console.log('DO Numbers set to:', doNumbersElement.textContent);
         } else {
@@ -331,7 +364,7 @@ function populateInvoiceData(invoice) {
             if (invoice.u_bsi_udf2) {
                 const poValues = Array.isArray(invoice.u_bsi_udf2) ? invoice.u_bsi_udf2 : [invoice.u_bsi_udf2];
                 if (poValues.length > 1) {
-                    poNumbersElement.className = 'field-value multiple';
+                    poNumbersElement.className = 'detail-value multiple';
                     // Group values into rows of 3 with proper formatting
                     const rows = [];
                     for (let i = 0; i < poValues.length; i += 3) {
@@ -342,11 +375,11 @@ function populateInvoiceData(invoice) {
                     }
                     poNumbersElement.innerHTML = rows.join('');
                 } else {
-                    poNumbersElement.className = 'field-value';
-                    poNumbersElement.textContent = poValues[0] + '.';
+                    poNumbersElement.className = 'detail-value';
+                    poNumbersElement.textContent = poValues[0];
                 }
             } else {
-                poNumbersElement.className = 'field-value';
+                poNumbersElement.className = 'detail-value';
                 poNumbersElement.textContent = '';
             }
             console.log('PO Numbers set to:', poNumbersElement.textContent);
@@ -441,124 +474,145 @@ function getCurrentInvoiceData() {
 function populateBankInformation(invoice) {
     console.log('Populating bank information from invoice:', invoice);
     
-    // Default fallback values
-    const defaultBankInfo = {
-        bankName: 'MUFG Bank, Ltd., Jakarta Branch',
-        bankAddress1: 'Trinity Tower, Lt. 6-9',
-        bankAddress2: 'Jl. H. R. Rasuna Said Kav. C22 Blok IIB',
-        bankCity: 'Jakarta 12940',
-        accountNumber: 'Acc No. 5100138687 (IDR)'
-    };
+    // Get currency from API - use docCur field from API
+    const currency = invoice.docCur || 'IDR';
     
-    // Get bank information from API data
-    let bankInfo = { ...defaultBankInfo };
+    // Get bank information directly from acctName field
+    let bankInformation = '';
     
-    // Parse account name from acctName field
     if (invoice.acctName) {
-        console.log('Parsing acctName:', invoice.acctName);
-        const accountName = invoice.acctName;
-        const lines = accountName.split(',').map(line => line.trim());
+        console.log('Using acctName from API:', invoice.acctName);
+        bankInformation = invoice.acctName;
         
-        // Update bank info based on parsed data
-        if (lines.length >= 1 && lines[0]) {
-            bankInfo.bankName = lines[0];
+        // Add account number if available
+        if (invoice.account) {
+            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
         }
-        
-        if (lines.length >= 2 && lines[1]) {
-            bankInfo.bankAddress1 = lines[1];
-        }
-        
-        if (lines.length >= 3 && lines[2]) {
-            bankInfo.bankAddress2 = lines[2];
-        }
-        
-        if (lines.length >= 4 && lines[3]) {
-            bankInfo.bankCity = lines[3];
+    } else {
+        console.log('No acctName found in API data');
+        // If no acctName, just show account number if available
+        if (invoice.account) {
+            bankInformation = `Acc No. ${invoice.account} (${currency})`;
+        } else {
+            // No fallback values - show empty if no data available
+            bankInformation = '';
         }
     }
     
-    // Update account number from account field
-    if (invoice.account) {
-        bankInfo.accountNumber = `Acc No. ${invoice.account} (IDR)`;
+    // Function to wrap text if longer than 30 characters
+    function wrapText(text, maxLength = 30) {
+        if (!text || text.length <= maxLength) {
+            return text;
+        }
+        
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            if ((currentLine + ' ' + word).length <= maxLength) {
+                currentLine = currentLine ? currentLine + ' ' + word : word;
+            } else {
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = word;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines.join('<br>');
     }
     
-    // Populate the DOM elements
-    document.getElementById('bankName').textContent = bankInfo.bankName;
-    document.getElementById('bankAddress1').textContent = bankInfo.bankAddress1;
-    document.getElementById('bankAddress2').textContent = bankInfo.bankAddress2;
-    document.getElementById('bankCity').textContent = bankInfo.bankCity;
-    document.getElementById('accountNumber').textContent = bankInfo.accountNumber;
+    // Populate the DOM element with wrap text functionality
+    const bankInformationElement = document.getElementById('bankInformation');
     
-    console.log('Bank information populated:', bankInfo);
+    if (bankInformationElement) {
+        bankInformationElement.innerHTML = wrapText(bankInformation);
+        console.log('Bank information populated from acctName:', bankInformation);
+    } else {
+        console.error('Bank information element not found');
+    }
 }
 
 // Function to populate bank information for additional pages
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
     
-    // Default fallback values
-    const defaultBankInfo = {
-        bankName: 'MUFG Bank, Ltd., Jakarta Branch',
-        bankAddress1: 'Trinity Tower, Lt. 6-9',
-        bankAddress2: 'Jl. H. R. Rasuna Said Kav. C22 Blok IIB',
-        bankCity: 'Jakarta 12940',
-        accountNumber: 'Acc No. 5100138687 (IDR)'
-    };
+    // Get currency from API - use docCur field from API
+    const currency = invoice?.docCur || 'IDR';
     
-    // Get bank information from API data
-    let bankInfo = { ...defaultBankInfo };
+    // Get bank information directly from acctName field
+    let bankInformation = '';
     
-    // Parse account name from acctName field
     if (invoice?.acctName) {
-        console.log(`Parsing acctName for page ${pageNum}:`, invoice.acctName);
-        const accountName = invoice.acctName;
-        const lines = accountName.split(',').map(line => line.trim());
+        console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
+        bankInformation = invoice.acctName;
         
-        // Update bank info based on parsed data
-        if (lines.length >= 1 && lines[0]) {
-            bankInfo.bankName = lines[0];
+        // Add account number if available
+        if (invoice.account) {
+            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
         }
-        
-        if (lines.length >= 2 && lines[1]) {
-            bankInfo.bankAddress1 = lines[1];
-        }
-        
-        if (lines.length >= 3 && lines[2]) {
-            bankInfo.bankAddress2 = lines[2];
-        }
-        
-        if (lines.length >= 4 && lines[3]) {
-            bankInfo.bankCity = lines[3];
+    } else {
+        console.log(`No acctName found for page ${pageNum}`);
+        // If no acctName, just show account number if available
+        if (invoice.account) {
+            bankInformation = `Acc No. ${invoice.account} (${currency})`;
+        } else {
+            // No fallback values - show empty if no data available
+            bankInformation = '';
         }
     }
     
-    // Update account number from account field
-    if (invoice?.account) {
-        bankInfo.accountNumber = `Acc No. ${invoice.account} (IDR)`;
+    // Function to wrap text if longer than 30 characters
+    function wrapText(text, maxLength = 30) {
+        if (!text || text.length <= maxLength) {
+            return text;
+        }
+        
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            if ((currentLine + ' ' + word).length <= maxLength) {
+                currentLine = currentLine ? currentLine + ' ' + word : word;
+            } else {
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = word;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines.join('<br>');
     }
     
-    // Populate the DOM elements for the specific page
-    const bankNameElement = document.getElementById(`bankName${pageNum}`);
-    const bankAddress1Element = document.getElementById(`bankAddress1${pageNum}`);
-    const bankAddress2Element = document.getElementById(`bankAddress2${pageNum}`);
-    const bankCityElement = document.getElementById(`bankCity${pageNum}`);
-    const accountNumberElement = document.getElementById(`accountNumber${pageNum}`);
+    // Populate the DOM element with wrap text functionality
+    const bankInformationElement = document.getElementById(`bankInformation${pageNum}`);
     
-    if (bankNameElement) bankNameElement.textContent = bankInfo.bankName;
-    if (bankAddress1Element) bankAddress1Element.textContent = bankInfo.bankAddress1;
-    if (bankAddress2Element) bankAddress2Element.textContent = bankInfo.bankAddress2;
-    if (bankCityElement) bankCityElement.textContent = bankInfo.bankCity;
-    if (accountNumberElement) accountNumberElement.textContent = bankInfo.accountNumber;
-    
-    console.log(`Bank information populated for page ${pageNum}:`, bankInfo);
+    if (bankInformationElement) {
+        bankInformationElement.innerHTML = wrapText(bankInformation);
+        console.log(`Bank information populated for page ${pageNum} from acctName:`, bankInformation);
+    } else {
+        console.error(`Bank information element not found for page ${pageNum}`);
+    }
 }
 
 // Function to populate financial summary from API data
 function populateFinancialSummary(invoice) {
     console.log('Populating financial summary from invoice:', invoice);
     
-    // Get currency from API
+    // Get currency from API - use docCur field from API
     const currency = invoice.docCur || 'IDR';
+    console.log('Currency from API docCur field:', currency);
     
     // Financial summary field mapping based on API response
     const financialData = {
@@ -604,15 +658,17 @@ function populateFinancialSummary(invoice) {
         }
     });
     
-    // Update currency labels
+    // Update currency labels with docCur from API
     const currencyLabels = ['currencyLabel', 'currencyLabel2', 'currencyLabel3', 'currencyLabel4', 'currencyLabel5', 'currencyLabel6'];
     currencyLabels.forEach(labelId => {
         const labelElement = document.getElementById(labelId);
         if (labelElement) {
             labelElement.textContent = currency;
+            console.log(`Updated ${labelId} with currency: ${currency}`);
         }
     });
     
+    console.log('Financial summary populated with currency from docCur:', currency);
     console.log('Financial summary populated:', financialData);
 }
 
@@ -701,7 +757,7 @@ function getSignatureDataFromInvoice(invoice) {
     }
     
     if (!invoice) {
-        return { name: 'Authorized Signatory', position: 'Finance Department' };
+        return { name: '', position: '' };
     }
     
     console.log('Getting signature data from invoice for additional page:', invoice);
@@ -723,10 +779,10 @@ function getSignatureDataFromInvoice(invoice) {
         approvedByName = invoice.receivedByName;
         approvedPosition = 'Receiver';
     } else {
-        // Use default values if no data is available
-        approvedByName = 'Authorized Signatory';
-        approvedPosition = 'Finance Department';
-        console.log('Using default signature data for additional page');
+        // No default values - return empty if no data is available
+        approvedByName = '';
+        approvedPosition = '';
+        console.log('No signature data available for additional page');
     }
     
     const result = {
@@ -940,10 +996,10 @@ function generateQRCodeWithAPI(qrCodeString, qrCodeElement, qrCodeData) {
 
 // Function to extract bank name from account name
 function extractBankName(acctName) {
-    if (!acctName) return 'MUFG Bank, Ltd., Jakarta Branch';
+    if (!acctName) return '';
     
     const lines = acctName.split(',').map(line => line.trim());
-    return lines[0] || 'MUFG Bank, Ltd., Jakarta Branch';
+    return lines[0] || '';
 }
 
 // Function to show QR code data in a modal
@@ -1283,7 +1339,7 @@ function convertItemsForPrint(items) {
         codeNo: item.itemCode || '',
         description: item.dscription || '', // Note: this is the correct field name from API
         quantity: item.invQty || item.quantity || 0, // Use invQty (invoice quantity) for print
-        unit: item.unitMsr || 'PCS',
+        unit: item.unitMsr || '',
         unitPrice: item.u_bsi_salprice || item.priceBefDi || 0,
         amount: item.lineTotal || item.amountDit || 0
     }));
@@ -1481,11 +1537,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             <div class="payment-summary">
                 <div class="payment-instructions">
                     <div class="payment-title">Please remit us in full amount to :</div>
-                    <div id="bankName${pageNum}"></div>
-                    <div id="bankAddress1${pageNum}"></div>
-                    <div id="bankAddress2${pageNum}"></div>
-                    <div id="bankCity${pageNum}"></div>
-                    <div id="accountNumber${pageNum}"></div>
+                    <div id="bankInformation${pageNum}"></div>
                 </div>
                 <div class="financial-summary">
                     <div class="summary-row">
@@ -1890,13 +1942,13 @@ function generateIndonesianInvoiceQRCode(invoice) {
             // Informasi Bank
             bankName: extractBankName(invoice.acctName),
             accountNumber: invoice.account || '',
-            accountName: 'PT. KANSAI PAINT INDONESIA',
+            accountName: invoice.accountName || '',
             
-            // Informasi Perusahaan
-            companyName: 'PT. KANSAI PAINT INDONESIA',
-            companyAddress: 'BLOK DD-7 & DD-6 KAWASAN INDUSTRI MM2100, DANAU INDAH, CIKARANG BARAT, KAB. BEKASI, JAWA BARAT, 17847',
-            companyPhone: '+62 21 89982370',
-            companyFax: '+62 21 8998 3868',
+            // Informasi Perusahaan - use API data only
+            companyName: invoice.companyName || '',
+            companyAddress: invoice.companyAddress || '',
+            companyPhone: invoice.companyPhone || '',
+            companyFax: invoice.companyFax || '',
             
             // Informasi Approval
             approvedByName: getSignatureDataFromInvoice(invoice).name,

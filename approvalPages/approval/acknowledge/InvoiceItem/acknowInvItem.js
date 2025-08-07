@@ -339,6 +339,34 @@ function populateInvItemData(data) {
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             safeSetValue('rejectionRemarks', remarksToShow);
+            
+            // Populate rejection information if available
+            if (data.arInvoiceApprovalSummary.rejectedByName) {
+                safeSetValue('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
+                console.log('Populated rejectedByName:', data.arInvoiceApprovalSummary.rejectedByName);
+            } else {
+                safeSetValue('rejectedByName', '');
+            }
+            
+            if (data.arInvoiceApprovalSummary.rejectedDate) {
+                const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
+                if (!isNaN(rejectedDate.getTime())) {
+                    safeSetValue('rejectedDate', rejectedDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }));
+                    console.log('Populated rejectedDate:', rejectedDate.toLocaleDateString('en-US'));
+                } else {
+                    safeSetValue('rejectedDate', data.arInvoiceApprovalSummary.rejectedDate || '');
+                    console.log('Populated rejectedDate (raw):', data.arInvoiceApprovalSummary.rejectedDate);
+                }
+            } else {
+                safeSetValue('rejectedDate', '');
+            }
+            
             safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
@@ -573,24 +601,51 @@ function rejectInvItem() {
         return;
     }
 
+    // Create custom dialog with prefix functionality
     Swal.fire({
         title: 'Reject Invoice Item',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            // Initialize the field with user prefix
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
             }
+            
+            // Add event listener for input protection
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            // Get the rejection remark
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            
+            // Check if there's content beyond the prefix
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            
+            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -645,7 +700,11 @@ async function updateInvItemStatus(status, remarks = '') {
         } else if (status === 'Rejected') {
             // Add rejectedDate when status is "Rejected"
             payload.rejectedDate = now;
+            payload.rejectedBy = getCurrentUserKansaiEmployeeId();
+            payload.rejectedByName = getCurrentUserFullName();
             console.log('Added rejectedDate to payload:', now);
+            console.log('Added rejectedBy to payload:', getCurrentUserKansaiEmployeeId());
+            console.log('Added rejectedByName to payload:', getCurrentUserFullName());
             
             // Add rejection remarks if provided
             if (remarks && remarks.trim() !== '') {
@@ -680,6 +739,11 @@ async function updateInvItemStatus(status, remarks = '') {
                 payload.rejectionRemarks = existingSummary.rejectionRemarks;
             }
             if (existingSummary.revisionRemarks) payload.revisionRemarks = existingSummary.revisionRemarks;
+            
+            // Preserve existing rejection data if any
+            if (existingSummary.rejectedBy) payload.rejectedBy = existingSummary.rejectedBy;
+            if (existingSummary.rejectedByName) payload.rejectedByName = existingSummary.rejectedByName;
+            if (existingSummary.rejectedDate) payload.rejectedDate = existingSummary.rejectedDate;
         }
 
         console.log('Updating invoice item status with payload:', payload);
@@ -972,6 +1036,76 @@ function applyCurrencyFormattingToSummaryFields() {
 window.approveInvItem = approveInvItem;
 window.rejectInvItem = rejectInvItem;
 window.goToMenuAcknowInvItem = goToMenuAcknowInvItem;
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // Get the expected prefix
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+    
+    // Check if the current value starts with the expected prefix
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        // If prefix is damaged, restore it
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        
+        // Reset cursor position after the prefix
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    } else {
+        // If user tries to modify content before or within the prefix
+        if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user role
+function getCurrentUserRole() {
+    if (!currentUser) {
+        return 'Unknown Role';
+    }
+    
+    // Try to get role from current user object
+    if (currentUser.role) {
+        return currentUser.role;
+    }
+    
+    // Try to get role from allUsers array
+    if (allUsers.length > 0) {
+        const currentUserData = allUsers.find(user => 
+            user.id === currentUser.userId || 
+            user.username === currentUser.username ||
+            user.name === currentUser.username
+        );
+        
+        if (currentUserData && currentUserData.role) {
+            return currentUserData.role;
+        }
+    }
+    
+    // Default role based on context
+    return 'Acknowledger';
+}
 
 // Initialize currency formatting when page loads
 document.addEventListener('DOMContentLoaded', function() {

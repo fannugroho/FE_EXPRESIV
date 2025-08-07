@@ -63,12 +63,12 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -592,8 +592,8 @@
             }
             
             .price-column {
-                width: 100px !important;
-                min-width: 100px !important;
+                width: 140px !important;
+                min-width: 140px !important;
             }
             
             .line-total-column {
@@ -645,8 +645,8 @@
             }
             
             .price-column {
-                width: 80px !important;
-                min-width: 80px !important;
+                width: 120px !important;
+                min-width: 120px !important;
             }
             
             .line-total-column {
@@ -717,8 +717,8 @@
             }
             
             .price-column {
-                width: 70px !important;
-                min-width: 70px !important;
+                width: 100px !important;
+                min-width: 100px !important;
             }
             
             .line-total-column {
@@ -798,8 +798,8 @@
             }
             
             .price-column {
-                width: 60px !important;
-                min-width: 60px !important;
+                width: 80px !important;
+                min-width: 80px !important;
             }
             
             .line-total-column {
@@ -1494,6 +1494,14 @@
                         <!-- Selected files will be displayed here -->
                     </div>
                 </div>
+
+                <!-- Existing Attachments Section -->
+                <h3 class="text-lg font-semibold mb-2 mt-6">Existing Attachments</h3>
+                <div class="attachment-container">
+                    <div id="existingAttachmentsList" class="attachment-list-container">
+                        <!-- Existing attachments will be displayed here -->
+                    </div>
+                </div>
                 
 
             </div>
@@ -1624,6 +1632,14 @@
                 <div class="mt-6">
                     <label class="font-semibold text-gray-700">Remarks</label>
                     <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                </div>
+            </div>
+
+            <!-- Rejection Remarks Display Section -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly autocomplete="off"></textarea>
                 </div>
             </div>
 

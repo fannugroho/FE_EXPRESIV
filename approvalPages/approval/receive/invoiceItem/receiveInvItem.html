@@ -1610,11 +1610,41 @@
             }
         }
         
+        /* E-Signing specific styles */
+        .esign-progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+            background-size: 200% 100%;
+            animation: gradient-shift 2s ease-in-out infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 200% 0%; }
+            50% { background-position: 0% 0%; }
+            100% { background-position: -200% 0%; }
+        }
+        
+        .esign-success {
+            animation: esign-success-pulse 0.6s ease-in-out;
+        }
+        
+        @keyframes esign-success-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .esign-upload-area.dragover {
+            border-color: #3b82f6 !important;
+            background-color: #dbeafe !important;
+            transform: scale(1.02);
+        }
+        
         /* Print styles */
         @media print {
             .header-section button,
             .submit-section,
-            .file-upload-section {
+            .file-upload-section,
+            #eSigningSection {
                 display: none !important;
             }
             
@@ -1963,7 +1993,7 @@
             </div>
 
             <!-- Rejection Remarks Display Section -->
-            <div class="approval-section" id="rejectionRemarksSection" style="display: none;">
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
                 <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
                 <div class="bg-red-50 p-4 rounded-lg border border-red-200">
                     <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
@@ -2092,18 +2122,24 @@
                             </div>
                         </div>
                         
-                        <div class="mb-4">
-                            <button onclick="printInvItem()" class="flex items-center justify-center space-x-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200 w-full">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button onclick="printInvItem()" class="flex items-center justify-center space-x-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10z"></path>
                                 </svg>
                                 <span>Print Document</span>
                             </button>
+                            <button onclick="downloadPdfDocument()" class="flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Download PDF</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- File Upload Area -->
-                    <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 text-center bg-white hover:bg-blue-50 transition-all duration-300" id="eSignUploadArea">
+                    <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 text-center bg-white hover:bg-blue-50 transition-all duration-300 esign-upload-area" id="eSignUploadArea">
                         <div class="space-y-4">
                             <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2183,7 +2219,7 @@
                             <span class="text-sm text-gray-600" id="processPercentage">0%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2.5 rounded-full transition-all duration-300" id="processProgressBar" style="width: 0%"></div>
+                            <div class="esign-progress-bar h-2.5 rounded-full transition-all duration-300" id="processProgressBar" style="width: 0%"></div>
                         </div>
                     </div>
 
@@ -2232,6 +2268,16 @@
                                 </div>
                             </button>
                             
+                            <!-- Debug Button -->
+                            <button onclick="showDebugInfo()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition text-sm">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Show Debug Info</span>
+                                </div>
+                            </button>
+                            
                             <button onclick="downloadStampedDocument()" id="downloadStampedBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200 hidden">
                                 <div class="flex items-center justify-center space-x-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2254,7 +2300,7 @@
                     <button onclick="receiveInvItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
                         Receive
                     </button>
-                    <button onclick="showESigningSection()" id="eSignButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 text-lg" style="display: none;">
+                    <button onclick="showESigningSection()" id="eSignButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 text-lg">
                         E-Sign Document
                     </button>
 

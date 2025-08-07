@@ -631,24 +631,62 @@ function rejectInvItem() {
         return;
     }
 
+    // Check if document status is Approved (since this is receive page)
+    const status = getStatusFromInvoice(currentInvItemData);
+    if (status !== 'Approved') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Action',
+            text: `Cannot reject document with status: ${status}. Only documents with status "Approved" can be rejected.`
+        });
+        return;
+    }
+
+    // Create custom dialog with prefix functionality
     Swal.fire({
         title: 'Reject Invoice Item',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            // Initialize the field with user prefix
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
             }
+            
+            // Add event listener for input protection
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            // Get the rejection remark
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            
+            // Check if there's content beyond the prefix
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            
+            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -656,6 +694,54 @@ function rejectInvItem() {
             updateInvItemStatus('Rejected', result.value);
         }
     });
+}
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // Get the expected prefix
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+    
+    // Check if the current value starts with the expected prefix
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        // If prefix is damaged, restore it
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        
+        // Reset cursor position after the prefix
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    } else {
+        // If user tries to modify content before or within the prefix
+        if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get role of the current user
+function getCurrentUserRole() {
+    // Since this is the receive page, the role is Receiver
+    return 'Receiver';
 }
 
 // Update invoice item status using PATCH API
@@ -1282,10 +1368,789 @@ function applyCurrencyFormattingToTable() {
     });
 }
 
+// E-Signing Process Variables
+let currentJobId = null;
+let eSigningProcessData = null;
+let stampJobId = null;
+let signedDocumentUrl = null;
+let stampedDocumentPath = null;
+
+// Download PDF Document
+function downloadPdfDocument() {
+    // This function should generate and download the current invoice as PDF
+    // For now, we'll use the print functionality and suggest user to save as PDF
+    printInvItem();
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Download PDF',
+        html: 'Please use your browser\'s print dialog to save the document as PDF:<br><br>1. Click Print<br>2. Select "Save as PDF" or "Microsoft Print to PDF"<br>3. Choose location and save',
+        showConfirmButton: true,
+        confirmButtonText: 'OK'
+    });
+}
+
+// Show E-Signing Section
+function showESigningSection() {
+    const eSignSection = document.getElementById('eSigningSection');
+    if (eSignSection) {
+        if (eSignSection.style.display === 'none' || eSignSection.style.display === '') {
+            eSignSection.style.display = 'block';
+            eSignSection.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            eSignSection.style.display = 'none';
+        }
+    }
+}
+
+// Setup file upload functionality
+function setupFileUpload() {
+    const fileInput = document.getElementById('eSignFileInput');
+    const uploadArea = document.getElementById('eSignUploadArea');
+    const selectedFileDisplay = document.getElementById('selectedFileDisplay');
+    const startESignBtn = document.getElementById('startESignBtn');
+    const enableEStamp = document.getElementById('enableEStamp');
+
+    if (!fileInput) return;
+
+    // File input change event
+    fileInput.addEventListener('change', handleFileSelection);
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            if (file.type === 'application/pdf') {
+                fileInput.files = files;
+                handleFileSelection({ target: { files: [file] } });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Please select a PDF file only.'
+                });
+            }
+        }
+    });
+}
+
+// Handle file selection
+function handleFileSelection(event) {
+    const file = event.target.files[0];
+    const selectedFileDisplay = document.getElementById('selectedFileDisplay');
+    const startESignBtn = document.getElementById('startESignBtn');
+    const enableEStamp = document.getElementById('enableEStamp');
+
+    if (file && file.type === 'application/pdf') {
+        // Display selected file
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('selectedFileSize').textContent = formatFileSize(file.size);
+        selectedFileDisplay.classList.remove('hidden');
+        
+        // Enable buttons
+        startESignBtn.disabled = false;
+        enableEStamp.disabled = false;
+        
+        // Store file reference
+        window.selectedFile = file;
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid File',
+            text: 'Please select a valid PDF file.'
+        });
+        removeSelectedFile();
+    }
+}
+
+// Remove selected file
+function removeSelectedFile() {
+    const fileInput = document.getElementById('eSignFileInput');
+    const selectedFileDisplay = document.getElementById('selectedFileDisplay');
+    const startESignBtn = document.getElementById('startESignBtn');
+    const enableEStamp = document.getElementById('enableEStamp');
+
+    fileInput.value = '';
+    selectedFileDisplay.classList.add('hidden');
+    startESignBtn.disabled = true;
+    enableEStamp.disabled = true;
+    enableEStamp.checked = false;
+    
+    window.selectedFile = null;
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Get current user's signer name
+function getCurrentUserSignerName() {
+    // Try to get from current user data
+    if (currentUser) {
+        // Check if user has a specific signer name field
+        if (currentUser.signerName) {
+            return currentUser.signerName;
+        }
+        
+        // Try to get full name
+        if (currentUser.fullName) {
+            return currentUser.fullName;
+        }
+        
+        // Try to get name
+        if (currentUser.name) {
+            return currentUser.name;
+        }
+        
+        // Try to get username
+        if (currentUser.username) {
+            return currentUser.username;
+        }
+    }
+    
+    // Default fallback signer names (these should match entries in KasboExSignBase64 table)
+    const defaultSigners = [
+        "Atsuro Suzuki",
+        "Atsushi Hayashida", 
+        "Hirotoshi Nishihara"
+    ];
+    
+    // Return first default signer
+    return defaultSigners[0];
+}
+
+// Convert PDF to Base64
+function convertPdfToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const base64String = event.target.result.split(',')[1]; // Remove data:application/pdf;base64, prefix
+            resolve(base64String);
+        };
+        reader.onerror = function(error) {
+            reject(error);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Start E-Signing Process
+async function startESigningProcess() {
+    if (!window.selectedFile) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No File Selected',
+            text: 'Please select a PDF file first.'
+        });
+        return;
+    }
+
+    try {
+        // Show processing section
+        showProcessingSection();
+        
+        // Convert PDF to base64
+        updateProcessStatus('Converting PDF to base64...', 10);
+        const documentBase64 = await convertPdfToBase64(window.selectedFile);
+        
+        // Get document ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const documentId = urlParams.get('stagingID') || '0ecf5a75-911a-474f-9548-df5a0a24794f';
+        
+        // Get signer name (try to get from current user or use default)
+        const signerName = getCurrentUserSignerName();
+        
+        // Prepare API payload
+        const payload = {
+            document_base64: documentBase64,
+            sign_image_name: signerName,
+            document_type: "ARInvoices",
+            document_id: documentId
+        };
+
+        // Debug: Log API request details
+        console.log('=== E-SIGN API REQUEST DEBUG ===');
+        console.log('API URL:', 'https://dentsu-kansai-expressiv.idsdev.site/esign/process');
+        console.log('Document ID:', documentId);
+        console.log('Signer Name:', signerName);
+        console.log('Document Type:', 'ARInvoices');
+        console.log('Base64 length:', documentBase64 ? documentBase64.length : 'N/A');
+        console.log('Payload (without base64):', {
+            sign_image_name: signerName,
+            document_type: "ARInvoices",
+            document_id: documentId,
+            document_base64: documentBase64 ? `[${documentBase64.length} characters]` : 'N/A'
+        });
+
+        // Call E-Sign API
+        updateProcessStatus('Submitting document for e-signing...', 30);
+        const response = await fetch('https://dentsu-kansai-expressiv.idsdev.site/esign/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Debug: Log the complete API response
+        console.log('=== E-SIGN API RESPONSE DEBUG ===');
+        console.log('Full response:', result);
+        console.log('Response keys:', Object.keys(result));
+        
+        currentJobId = result.job_id || result.id;
+        console.log('Extracted job ID:', currentJobId);
+        
+        if (!currentJobId) {
+            console.error('No job ID found in response:', result);
+            throw new Error('No job ID returned from e-sign API');
+        }
+        
+        updateProcessStatus('E-signing in progress...', 50);
+        
+        // Start polling for job status
+        setTimeout(() => pollJobStatus(), 2000);
+
+    } catch (error) {
+        console.error('E-signing error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'E-Signing Failed',
+            text: 'Failed to start e-signing process: ' + error.message
+        });
+        hideProcessingSection();
+    }
+}
+
+// Poll job status
+async function pollJobStatus() {
+    if (!currentJobId) return;
+
+    try {
+        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/jobs/${currentJobId}/status`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Debug: Log job status response
+        console.log('=== JOB STATUS RESPONSE DEBUG ===');
+        console.log('Job status response:', result);
+        console.log('Response success:', result.success);
+        
+        if (result.success && result.job) {
+            const job = result.job;
+            console.log('Job object:', job);
+            console.log('Job status:', job.status);
+            console.log('Job result:', job.result);
+            
+            if (job.status === 'completed') {
+                updateProcessStatus('E-signing completed successfully!', 100);
+                console.log('=== E-SIGNING COMPLETED ===');
+                
+                // Extract signed document URL from result
+                console.log('Looking for signed URL in result:', job.result);
+                
+                if (job.result && job.result.includes('Signed URL:')) {
+                    console.log('Found "Signed URL:" in result');
+                    const urlMatch = job.result.match(/Signed URL:\s*(https?:\/\/[^\s]+)/);
+                    console.log('URL match result:', urlMatch);
+                    
+                    if (urlMatch) {
+                        signedDocumentUrl = urlMatch[1];
+                        console.log('✅ Signed document URL extracted:', signedDocumentUrl);
+                        
+                        // Show download button for signed document immediately
+                        setTimeout(() => {
+                            showCompletionSection(false); // false = no stamp yet
+                        }, 1000);
+                        
+                        // Check if e-stamp is requested
+                        const enableEStamp = document.getElementById('enableEStamp');
+                        if (enableEStamp && enableEStamp.checked) {
+                            console.log('E-stamp requested, starting e-stamp process...');
+                            // Start e-stamp process
+                            setTimeout(() => startEStampProcess(), 2000);
+                        } else {
+                            console.log('No e-stamp requested');
+                        }
+                        return;
+                    } else {
+                        console.error('❌ URL regex match failed');
+                        console.log('Trying alternative extraction methods...');
+                        
+                        // Try alternative URL extraction methods
+                        const alternativePatterns = [
+                            /Signed URL:\s*([^\s,]+)/,
+                            /https?:\/\/[^\s)]+/g,
+                            /"url":\s*"([^"]+)"/,
+                            /"signed_url":\s*"([^"]+)"/
+                        ];
+                        
+                        for (let pattern of alternativePatterns) {
+                            const match = job.result.match(pattern);
+                            if (match) {
+                                signedDocumentUrl = match[1] || match[0];
+                                console.log('✅ Alternative extraction successful:', signedDocumentUrl);
+                                setTimeout(() => showCompletionSection(false), 1000);
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    console.error('❌ No "Signed URL:" found in result');
+                    console.log('Raw result string:', JSON.stringify(job.result));
+                    
+                    // Check for alternative URL patterns
+                    if (job.result) {
+                        const urlRegex = /https?:\/\/[^\s)]+/g;
+                        const urls = job.result.match(urlRegex);
+                        if (urls && urls.length > 0) {
+                            signedDocumentUrl = urls[0];
+                            console.log('✅ Found URL with regex:', signedDocumentUrl);
+                            setTimeout(() => showCompletionSection(false), 1000);
+                            return;
+                        }
+                    }
+                }
+                
+                // If no URL found, still show completion but log the issue
+                console.warn('⚠️ No signed document URL found, showing completion anyway');
+                console.log('Complete job object for debugging:', JSON.stringify(job, null, 2));
+                setTimeout(() => showCompletionSection(false), 1000);
+                
+            } else if (job.status === 'failed' || job.status === 'error') {
+                throw new Error(job.error || 'E-signing process failed');
+            } else {
+                // Still processing, update progress
+                updateProcessStatus('E-signing in progress...', 70);
+                setTimeout(() => pollJobStatus(), 2000);
+            }
+        } else {
+            throw new Error('Invalid response from status API');
+        }
+
+    } catch (error) {
+        console.error('Job status polling error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Status Check Failed',
+            text: 'Failed to check e-signing status: ' + error.message
+        });
+        hideProcessingSection();
+    }
+}
+
+// Start E-Stamp Process
+async function startEStampProcess() {
+    try {
+        updateProcessStatus('Starting e-stamp process...', 75);
+        updateCurrentStep('E-Stamp Processing', 'Applying electronic stamp to signed document...');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const documentId = urlParams.get('stagingID') || '0ecf5a75-911a-474f-9548-df5a0a24794f';
+        
+        // Check if QR code should be included (look for any QR code related fields in the form)
+        const qrcodeSrc = document.getElementById('qrcodeSrc')?.value || 
+                         document.getElementById('qrCode')?.value || 
+                         document.getElementById('qr_code')?.value || '';
+        const isDocumentWithQrcode = qrcodeSrc && qrcodeSrc.trim() !== '';
+        
+        const payload = {
+            is_document_withqrcode: isDocumentWithQrcode
+        };
+
+        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/esign/stamp/ARInvoices/${documentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        stampJobId = result.job_id || result.id;
+        
+        updateProcessStatus('E-stamp in progress...', 80);
+        
+        // Start polling for stamp status
+        setTimeout(() => pollStampStatus(), 5000);
+
+    } catch (error) {
+        console.error('E-stamp error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'E-Stamp Failed',
+            text: 'Failed to start e-stamp process: ' + error.message
+        });
+        
+        // Show completion with signed document only
+        showCompletionSection(false);
+    }
+}
+
+// Poll stamp status
+async function pollStampStatus() {
+    if (!stampJobId) return;
+
+    try {
+        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/jobs/${stampJobId}/status`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.job) {
+            const job = result.job;
+            
+            if (job.status === 'completed') {
+                updateProcessStatus('E-stamp completed successfully!', 100);
+                
+                // Extract stamped file path from result
+                if (job.result && job.result.includes('Path:')) {
+                    const pathMatch = job.result.match(/Path:\s*([^\s]+)/);
+                    if (pathMatch) {
+                        stampedDocumentPath = pathMatch[1];
+                    }
+                }
+                
+                setTimeout(() => showCompletionSection(true), 1000);
+                
+            } else if (job.status === 'failed' || job.status === 'error') {
+                console.error('E-stamp failed:', job.error);
+                
+                // Show option to retry or continue with signed document only
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'E-Stamp Failed',
+                    text: 'The e-stamp process failed. You can download the signed document or try to re-stamp it.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Retry E-Stamp',
+                    cancelButtonText: 'Continue with Signed Document'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Reset and show upload section again for re-stamping
+                        hideProcessingSection();
+                        showUploadSection();
+                        removeSelectedFile();
+                        
+                        // Show instruction to upload the signed document again
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Re-stamp Process',
+                            text: 'Please upload the signed document again to retry the e-stamp process.',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        // Show completion with signed document only
+                        showCompletionSection(false);
+                    }
+                });
+                
+            } else {
+                // Still processing
+                updateProcessStatus('E-stamp in progress...', 90);
+                setTimeout(() => pollStampStatus(), 5000);
+            }
+        } else {
+            throw new Error('Invalid response from stamp status API');
+        }
+
+    } catch (error) {
+        console.error('Stamp status polling error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'E-Stamp Status Check Failed',
+            text: 'Failed to check e-stamp status: ' + error.message
+        });
+        showCompletionSection(false);
+    }
+}
+
+// Update process status
+function updateProcessStatus(message, percentage) {
+    const statusElement = document.getElementById('processStatus');
+    const percentageElement = document.getElementById('processPercentage');
+    const progressBar = document.getElementById('processProgressBar');
+
+    if (statusElement) statusElement.textContent = message;
+    if (percentageElement) percentageElement.textContent = `${percentage}%`;
+    if (progressBar) progressBar.style.width = `${percentage}%`;
+}
+
+// Update current step
+function updateCurrentStep(title, description) {
+    const titleElement = document.getElementById('currentStepTitle');
+    const descriptionElement = document.getElementById('currentStepDescription');
+
+    if (titleElement) titleElement.textContent = title;
+    if (descriptionElement) descriptionElement.textContent = description;
+}
+
+// Show processing section
+function showProcessingSection() {
+    const uploadSection = document.getElementById('uploadSection');
+    const processingSection = document.getElementById('processingSection');
+    const completionSection = document.getElementById('completionSection');
+
+    if (uploadSection) uploadSection.classList.add('hidden');
+    if (processingSection) processingSection.classList.remove('hidden');
+    if (completionSection) completionSection.classList.add('hidden');
+    
+    // Reset progress
+    updateProcessStatus('Initializing...', 0);
+    updateCurrentStep('Starting Process', 'Preparing document for e-signing...');
+}
+
+// Hide processing section
+function hideProcessingSection() {
+    const processingSection = document.getElementById('processingSection');
+    if (processingSection) processingSection.classList.add('hidden');
+}
+
+// Show upload section
+function showUploadSection() {
+    const uploadSection = document.getElementById('uploadSection');
+    const processingSection = document.getElementById('processingSection');
+    const completionSection = document.getElementById('completionSection');
+
+    if (uploadSection) uploadSection.classList.remove('hidden');
+    if (processingSection) processingSection.classList.add('hidden');
+    if (completionSection) completionSection.classList.add('hidden');
+}
+
+// Show completion section
+function showCompletionSection(hasStamp) {
+    const uploadSection = document.getElementById('uploadSection');
+    const processingSection = document.getElementById('processingSection');
+    const completionSection = document.getElementById('completionSection');
+    const downloadSignedBtn = document.getElementById('downloadSignedBtn');
+    const downloadStampedBtn = document.getElementById('downloadStampedBtn');
+    const completionMessage = document.getElementById('completionMessage');
+
+    if (uploadSection) uploadSection.classList.add('hidden');
+    if (processingSection) processingSection.classList.add('hidden');
+    if (completionSection) {
+        completionSection.classList.remove('hidden');
+        // Add success animation
+        setTimeout(() => {
+            completionSection.classList.add('esign-success');
+        }, 100);
+    }
+
+    // Update message and buttons based on whether stamp was applied
+    if (hasStamp) {
+        if (completionMessage) {
+            completionMessage.textContent = 'Your document has been digitally signed and stamped, ready for download.';
+        }
+        if (downloadStampedBtn) downloadStampedBtn.classList.remove('hidden');
+    } else {
+        if (completionMessage) {
+            completionMessage.textContent = 'Your document has been digitally signed and is ready for download.';
+        }
+        if (downloadStampedBtn) downloadStampedBtn.classList.add('hidden');
+    }
+    
+    // Enable download buttons
+    if (downloadSignedBtn) downloadSignedBtn.disabled = false;
+}
+
+// Download signed document
+function downloadSignedDocument() {
+    console.log('=== DOWNLOAD SIGNED DOCUMENT DEBUG ===');
+    console.log('signedDocumentUrl:', signedDocumentUrl);
+    console.log('signedDocumentUrl type:', typeof signedDocumentUrl);
+    console.log('signedDocumentUrl length:', signedDocumentUrl ? signedDocumentUrl.length : 'N/A');
+    
+    if (signedDocumentUrl) {
+        console.log('✅ Signed document URL is available, attempting download...');
+        
+        // Validate URL format
+        try {
+            new URL(signedDocumentUrl);
+            console.log('✅ URL format is valid');
+        } catch (e) {
+            console.error('❌ Invalid URL format:', e);
+            Swal.fire({
+                icon: 'error',
+                title: 'Download Failed',
+                text: 'Invalid signed document URL format: ' + signedDocumentUrl
+            });
+            return;
+        }
+        
+        // Create a temporary link and click it to download
+        const link = document.createElement('a');
+        link.href = signedDocumentUrl;
+        link.download = 'signed_document.pdf';
+        link.target = '_blank';
+        console.log('Created download link:', link.href);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('✅ Download link clicked successfully');
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Download Started',
+            text: 'Signed document download has been initiated.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+    } else {
+        console.error('❌ Signed document URL not available');
+        console.log('Current variables state:');
+        console.log('- currentJobId:', currentJobId);
+        console.log('- eSigningProcessData:', eSigningProcessData);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Download Failed',
+            html: `Signed document URL not available.<br><br>
+                   <strong>Debug Info:</strong><br>
+                   Job ID: ${currentJobId || 'Not available'}<br>
+                   URL: ${signedDocumentUrl || 'Not set'}<br><br>
+                   <small>Please check the browser console for detailed logs.</small>`,
+            confirmButtonText: 'OK',
+            footer: 'Check console for detailed debugging information'
+        });
+    }
+}
+
+// Download stamped document
+function downloadStampedDocument() {
+    if (stampedDocumentPath) {
+        // Extract filename from path
+        const filename = stampedDocumentPath.split('\\').pop().split('/').pop();
+        const downloadUrl = `https://dentsu-kansai-expressiv.idsdev.site/esign/download/stamped/ARInvoices/${filename}`;
+        
+        // Create a temporary link and click it to download
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Download Failed',
+            text: 'Stamped document path not available.'
+        });
+    }
+}
+
+// Show debug information
+function showDebugInfo() {
+    const debugInfo = {
+        'Job ID': currentJobId || 'Not set',
+        'Signed Document URL': signedDocumentUrl || 'Not set',
+        'Stamped Document Path': stampedDocumentPath || 'Not set',
+        'Current User': currentUser ? JSON.stringify(currentUser, null, 2) : 'Not available',
+        'Selected File': window.selectedFile ? window.selectedFile.name : 'No file selected',
+        'File Upload Initialized': window.fileUploadInitialized || false,
+        'URL Parameters': window.location.search,
+        'Document ID from URL': new URLSearchParams(window.location.search).get('stagingID') || 'Not found'
+    };
+    
+    let debugHtml = '<div style="text-align: left; font-family: monospace; font-size: 12px;">';
+    for (const [key, value] of Object.entries(debugInfo)) {
+        debugHtml += `<strong>${key}:</strong><br><pre style="background: #f5f5f5; padding: 5px; margin: 5px 0; border-radius: 3px; white-space: pre-wrap;">${value}</pre>`;
+    }
+    debugHtml += '</div>';
+    
+    Swal.fire({
+        title: 'Debug Information',
+        html: debugHtml,
+        width: '800px',
+        confirmButtonText: 'Copy to Clipboard',
+        showCancelButton: true,
+        cancelButtonText: 'Close'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Copy debug info to clipboard
+            const textToCopy = Object.entries(debugInfo).map(([key, value]) => `${key}: ${value}`).join('\n\n');
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: 'Debug information copied to clipboard.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }).catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Copy Failed',
+                    text: 'Could not copy to clipboard. Please copy manually from the console.',
+                });
+            });
+        }
+    });
+    
+    // Also log to console
+    console.log('=== COMPLETE DEBUG INFO ===');
+    console.table(debugInfo);
+}
+
+// Initialize file upload functionality when page loads (check if not already initialized)
+document.addEventListener('DOMContentLoaded', function() {
+    // Only setup if not already done
+    if (!window.fileUploadInitialized) {
+        setupFileUpload();
+        window.fileUploadInitialized = true;
+    }
+});
+
 // Export functions for global access
 window.receiveInvItem = receiveInvItem;
 window.rejectInvItem = rejectInvItem;
 window.printInvItem = printInvItem;
+window.downloadPdfDocument = downloadPdfDocument;
+window.showESigningSection = showESigningSection;
+window.startESigningProcess = startESigningProcess;
+window.removeSelectedFile = removeSelectedFile;
+window.downloadSignedDocument = downloadSignedDocument;
+window.downloadStampedDocument = downloadStampedDocument;
+window.showDebugInfo = showDebugInfo;
 window.goToMenuReceiveInvItem = goToMenuReceiveInvItem;
 window.saveInvoiceDataToStorage = saveInvoiceDataToStorage;
 window.clearInvoiceDataFromStorage = clearInvoiceDataFromStorage; 

@@ -165,6 +165,134 @@ function clearInvoiceDataFromStorage(identifier) {
     }
 }
 
+// Function to limit text to specified character count
+function limitText(text, maxLength) {
+    if (!text || text.length <= maxLength) {
+        return text;
+    }
+    return text.substring(0, maxLength) + '...';
+}
+
+// Function to format multiple values with character limit
+function formatMultipleValues(values, maxLength) {
+    if (values.length > 1) {
+        const rows = [];
+        let totalLength = 0;
+        
+        for (let i = 0; i < values.length; i += 3) {
+            const row = values.slice(i, i + 3);
+            const rowText = row.join(', ');
+            const isLastRow = i + 3 >= values.length;
+            const separator = isLastRow ? '.' : ',';
+            
+            // Check if adding this row would exceed maxLength
+            if (totalLength + rowText.length + separator.length > maxLength) {
+                // If it would exceed, truncate and add ellipsis
+                const remainingChars = maxLength - totalLength - 3; // 3 for "..."
+                if (remainingChars > 0) {
+                    const truncatedText = rowText.substring(0, remainingChars);
+                    rows.push(`<div class="data-item">${truncatedText}...</div>`);
+                }
+                break;
+            } else {
+                rows.push(`<div class="data-item">${rowText}${separator}</div>`);
+                totalLength += rowText.length + separator.length;
+            }
+        }
+        return rows.join('');
+    } else {
+        return limitText(values[0], maxLength) + (values[0].length <= maxLength ? '.' : '');
+    }
+}
+
+// Function to format multiple values with two items per line
+function formatMultipleValuesTwoPerLine(values, prefix) {
+    if (values.length === 0) {
+        return `<div class="data-item">${prefix}</div>`;
+    }
+    
+    if (values.length === 1) {
+        const singleValue = values[0];
+        const formattedValue = singleValue.length > 20 ? wrapText(singleValue, 20) : singleValue;
+        return `<div class="data-item">${prefix}${formattedValue}.</div>`;
+    }
+    
+    const rows = [];
+    rows.push(`<div class="data-item">${prefix}</div>`);
+    
+    for (let i = 0; i < values.length; i += 2) {
+        const row = values.slice(i, i + 2);
+        const isLastRow = i + 2 >= values.length;
+        
+        if (row.length === 2) {
+            // Two items in the row
+            const separator = isLastRow ? '.' : ',';
+            const item1 = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
+            const item2 = row[1].length > 20 ? wrapText(row[1], 20) : row[1];
+            rows.push(`<div class="data-item">${item1}, ${item2}${separator}</div>`);
+        } else {
+            // Single item in the last row
+            const singleItem = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
+            rows.push(`<div class="data-item">${singleItem}.</div>`);
+        }
+    }
+    
+    return rows.join('');
+}
+
+// Function to wrap text at specified character limit
+function wrapText(text, maxLength) {
+    if (!text || text.length <= maxLength) {
+        return text;
+    }
+    
+    // If text doesn't contain spaces or is a single long word
+    if (!text.includes(' ')) {
+        const chunks = [];
+        for (let i = 0; i < text.length; i += maxLength) {
+            chunks.push(text.slice(i, i + maxLength));
+        }
+        return chunks.join('<br>');
+    }
+    
+    // If text contains spaces, try to break at word boundaries
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+        // If single word is longer than maxLength, break it
+        if (word.length > maxLength) {
+            if (currentLine) {
+                lines.push(currentLine);
+                currentLine = '';
+            }
+            // Break the long word into chunks
+            const chunks = [];
+            for (let i = 0; i < word.length; i += maxLength) {
+                chunks.push(word.slice(i, i + maxLength));
+            }
+            lines.push(...chunks);
+        } else if ((currentLine + ' ' + word).length > maxLength) {
+            // If adding this word would exceed maxLength
+            if (currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = word;
+            }
+        } else {
+            currentLine = currentLine ? currentLine + ' ' + word : word;
+        }
+    }
+    
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    
+    return lines.join('<br>');
+}
+
 // Function to load invoice data from API (kept for backward compatibility)
 async function loadInvoiceData(invoiceId) {
     try {
@@ -208,14 +336,14 @@ function populateInvoiceData(invoice) {
     if (invoice.licTradNum) {
         const npwpValues = Array.isArray(invoice.licTradNum) ? invoice.licTradNum : [invoice.licTradNum];
         if (npwpValues.length > 1) {
-            npwpElement.className = 'field-value multiple';
+            npwpElement.className = 'detail-value multiple';
             npwpElement.innerHTML = npwpValues.map(npwp => `<div class="data-item">${npwp}</div>`).join('');
         } else {
-            npwpElement.className = 'field-value';
+            npwpElement.className = 'detail-value';
             npwpElement.textContent = npwpValues[0];
         }
     } else {
-        npwpElement.className = 'field-value';
+        npwpElement.className = 'detail-value';
         npwpElement.textContent = '';
     }
 
@@ -223,10 +351,10 @@ function populateInvoiceData(invoice) {
     const dueDateElement = document.getElementById('dueDate');
     const dueDateValue = formatDate(invoice.docDueDate || invoice.docDate);
     if (dueDateValue) {
-        dueDateElement.className = 'field-value';
+        dueDateElement.className = 'detail-value';
         dueDateElement.textContent = dueDateValue;
     } else {
-        dueDateElement.className = 'field-value';
+        dueDateElement.className = 'detail-value';
         dueDateElement.textContent = '';
     }
     
@@ -250,51 +378,39 @@ function populateInvoiceData(invoice) {
     // Shipper information
     document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
     
-    // Order numbers - use specific fields for DO and PO numbers
+
+    
+    // Order numbers - use specific fields for DO and PO numbers with character limits
     const doNumbersElement = document.getElementById('doNumbers');
     if (invoice.u_bsi_udf1) {
         const doValues = Array.isArray(invoice.u_bsi_udf1) ? invoice.u_bsi_udf1 : [invoice.u_bsi_udf1];
         if (doValues.length > 1) {
             doNumbersElement.className = 'field-value multiple';
-            // Group values into rows of 3 with proper formatting
-            const rows = [];
-            for (let i = 0; i < doValues.length; i += 3) {
-                const row = doValues.slice(i, i + 3);
-                const isLastRow = i + 3 >= doValues.length;
-                const separator = isLastRow ? '.' : ',';
-                rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
-            }
-            doNumbersElement.innerHTML = rows.join('');
+            const formattedDO = formatMultipleValuesTwoPerLine(doValues, '<strong>DO No.</strong> : ');
+            doNumbersElement.innerHTML = formattedDO;
         } else {
             doNumbersElement.className = 'field-value';
-            doNumbersElement.textContent = doValues[0] + '.';
+            doNumbersElement.innerHTML = `<strong>DO No.</strong> : ${doValues[0]}`;
         }
     } else {
         doNumbersElement.className = 'field-value';
-        doNumbersElement.textContent = '';
+        doNumbersElement.innerHTML = '<strong>DO No.</strong> : ';
     }
     
-    // Handle P/O NO with multiple values
+    // Handle P/O NO with multiple values and character limits
     const poNumbersElement = document.getElementById('poNumbers');
     if (invoice.u_bsi_udf2) {
         const poValues = Array.isArray(invoice.u_bsi_udf2) ? invoice.u_bsi_udf2 : [invoice.u_bsi_udf2];
         if (poValues.length > 1) {
-            poNumbersElement.className = 'field-value multiple';
-            // Group values into rows of 3 with proper formatting
-            const rows = [];
-            for (let i = 0; i < poValues.length; i += 3) {
-                const row = poValues.slice(i, i + 3);
-                const isLastRow = i + 3 >= poValues.length;
-                const separator = isLastRow ? '.' : ',';
-                rows.push(`<div class="data-item">${row.join(', ')}${separator}</div>`);
-            }
-            poNumbersElement.innerHTML = rows.join('');
+            poNumbersElement.className = 'detail-value multiple';
+            const formattedPO = formatMultipleValuesTwoPerLine(poValues, '');
+            poNumbersElement.innerHTML = formattedPO;
         } else {
-            poNumbersElement.className = 'field-value';
-            poNumbersElement.textContent = poValues[0] + '.';
+            poNumbersElement.className = 'detail-value';
+            poNumbersElement.textContent = poValues[0];
         }
     } else {
-        poNumbersElement.className = 'field-value';
+        poNumbersElement.className = 'detail-value';
         poNumbersElement.textContent = '';
     }
     
@@ -376,127 +492,146 @@ function getCurrentInvoiceData() {
 }
 
 // Function to populate bank information from API data
+// Uses acctName field from API without fallback dummy data
+// Implements text wrapping for lines longer than 30 characters
 function populateBankInformation(invoice) {
     console.log('Populating bank information from invoice:', invoice);
     
-    // Default fallback values
-    const defaultBankInfo = {
-        bankName: 'MUFG Bank, Ltd., Jakarta Branch',
-        bankAddress1: 'Trinity Tower, Lt. 6-9',
-        bankAddress2: 'Jl. H. R. Rasuna Said Kav. C22 Blok IIB',
-        bankCity: 'Jakarta 12940',
-        accountNumber: 'Acc No. 5100138687 (IDR)'
-    };
+    // Get currency from API - use docCur field from API
+    const currency = invoice.docCur || '';
     
-    // Get bank information from API data
-    let bankInfo = { ...defaultBankInfo };
+    // Get bank information directly from acctName field
+    let bankInformation = '';
     
-    // Parse account name from acctName field
     if (invoice.acctName) {
-        console.log('Parsing acctName:', invoice.acctName);
-        const accountName = invoice.acctName;
-        const lines = accountName.split(',').map(line => line.trim());
+        console.log('Using acctName from API:', invoice.acctName);
+        bankInformation = invoice.acctName;
         
-        // Update bank info based on parsed data
-        if (lines.length >= 1 && lines[0]) {
-            bankInfo.bankName = lines[0];
+        // Add account number if available
+        if (invoice.account) {
+            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
         }
-        
-        if (lines.length >= 2 && lines[1]) {
-            bankInfo.bankAddress1 = lines[1];
-        }
-        
-        if (lines.length >= 3 && lines[2]) {
-            bankInfo.bankAddress2 = lines[2];
-        }
-        
-        if (lines.length >= 4 && lines[3]) {
-            bankInfo.bankCity = lines[3];
+    } else {
+        console.log('No acctName found in API data');
+        // If no acctName, just show account number if available
+        if (invoice.account) {
+            bankInformation = `Acc No. ${invoice.account} (${currency})`;
         }
     }
     
-    // Update account number from account field
-    if (invoice.account) {
-        bankInfo.accountNumber = `Acc No. ${invoice.account} (IDR)`;
+    // Function to wrap text if longer than 30 characters
+    function wrapText(text, maxLength = 30) {
+        if (!text || text.length <= maxLength) {
+            return text;
+        }
+        
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            if ((currentLine + ' ' + word).length <= maxLength) {
+                currentLine = currentLine ? currentLine + ' ' + word : word;
+            } else {
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = word;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines.join('<br>');
     }
     
-    // Populate the DOM elements
-    document.getElementById('bankName').textContent = bankInfo.bankName;
-    document.getElementById('bankAddress1').textContent = bankInfo.bankAddress1;
-    document.getElementById('bankAddress2').textContent = bankInfo.bankAddress2;
-    document.getElementById('bankCity').textContent = bankInfo.bankCity;
-    document.getElementById('accountNumber').textContent = bankInfo.accountNumber;
+    // Populate the DOM element with wrap text functionality
+    const bankInformationElement = document.getElementById('bankInformation');
     
-    console.log('Bank information populated:', bankInfo);
+    if (bankInformationElement) {
+        bankInformationElement.innerHTML = wrapText(bankInformation);
+        console.log('Bank information populated from acctName:', bankInformation);
+    } else {
+        console.error('Bank information element not found');
+    }
 }
 
 // Function to populate bank information for additional pages
+// Uses acctName field from API without fallback dummy data
+// Implements text wrapping for lines longer than 30 characters
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
     
-    // Default fallback values
-    const defaultBankInfo = {
-        bankName: 'MUFG Bank, Ltd., Jakarta Branch',
-        bankAddress1: 'Trinity Tower, Lt. 6-9',
-        bankAddress2: 'Jl. H. R. Rasuna Said Kav. C22 Blok IIB',
-        bankCity: 'Jakarta 12940',
-        accountNumber: 'Acc No. 5100138687 (IDR)'
-    };
+    // Get currency from API - use docCur field from API
+    const currency = invoice?.docCur || '';
     
-    // Get bank information from API data
-    let bankInfo = { ...defaultBankInfo };
+    // Get bank information directly from acctName field
+    let bankInformation = '';
     
-    // Parse account name from acctName field
     if (invoice?.acctName) {
-        console.log(`Parsing acctName for page ${pageNum}:`, invoice.acctName);
-        const accountName = invoice.acctName;
-        const lines = accountName.split(',').map(line => line.trim());
+        console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
+        bankInformation = invoice.acctName;
         
-        // Update bank info based on parsed data
-        if (lines.length >= 1 && lines[0]) {
-            bankInfo.bankName = lines[0];
+        // Add account number if available
+        if (invoice.account) {
+            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
         }
-        
-        if (lines.length >= 2 && lines[1]) {
-            bankInfo.bankAddress1 = lines[1];
-        }
-        
-        if (lines.length >= 3 && lines[2]) {
-            bankInfo.bankAddress2 = lines[2];
-        }
-        
-        if (lines.length >= 4 && lines[3]) {
-            bankInfo.bankCity = lines[3];
+    } else {
+        console.log(`No acctName found for page ${pageNum}`);
+        // If no acctName, just show account number if available
+        if (invoice.account) {
+            bankInformation = `Acc No. ${invoice.account} (${currency})`;
         }
     }
     
-    // Update account number from account field
-    if (invoice?.account) {
-        bankInfo.accountNumber = `Acc No. ${invoice.account} (IDR)`;
+    // Function to wrap text if longer than 30 characters
+    function wrapText(text, maxLength = 30) {
+        if (!text || text.length <= maxLength) {
+            return text;
+        }
+        
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            if ((currentLine + ' ' + word).length <= maxLength) {
+                currentLine = currentLine ? currentLine + ' ' + word : word;
+            } else {
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = word;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines.join('<br>');
     }
     
-    // Populate the DOM elements for the specific page
-    const bankNameElement = document.getElementById(`bankName${pageNum}`);
-    const bankAddress1Element = document.getElementById(`bankAddress1${pageNum}`);
-    const bankAddress2Element = document.getElementById(`bankAddress2${pageNum}`);
-    const bankCityElement = document.getElementById(`bankCity${pageNum}`);
-    const accountNumberElement = document.getElementById(`accountNumber${pageNum}`);
+    // Populate the DOM element for the specific page with wrap text functionality
+    const bankInformationElement = document.getElementById(`bankInformation${pageNum}`);
     
-    if (bankNameElement) bankNameElement.textContent = bankInfo.bankName;
-    if (bankAddress1Element) bankAddress1Element.textContent = bankInfo.bankAddress1;
-    if (bankAddress2Element) bankAddress2Element.textContent = bankInfo.bankAddress2;
-    if (bankCityElement) bankCityElement.textContent = bankInfo.bankCity;
-    if (accountNumberElement) accountNumberElement.textContent = bankInfo.accountNumber;
-    
-    console.log(`Bank information populated for page ${pageNum}:`, bankInfo);
+    if (bankInformationElement) {
+        bankInformationElement.innerHTML = wrapText(bankInformation);
+        console.log(`Bank information populated for page ${pageNum} from acctName:`, bankInformation);
+    } else {
+        console.error(`Bank information element not found for page ${pageNum}`);
+    }
 }
 
 // Function to populate financial summary from API data
 function populateFinancialSummary(invoice) {
     console.log('Populating financial summary from invoice:', invoice);
     
-    // Get currency from API
-    const currency = invoice.docCur || 'IDR';
+    // Get currency from API - use docCur field from API
+    const currency = invoice.docCur || '';
+    console.log('Currency from API docCur field:', currency);
     
     // Financial summary field mapping based on API response
     const financialData = {
@@ -542,15 +677,17 @@ function populateFinancialSummary(invoice) {
         }
     });
     
-    // Update currency labels
+    // Update currency labels with docCur from API
     const currencyLabels = ['currencyLabel', 'currencyLabel2', 'currencyLabel3', 'currencyLabel4', 'currencyLabel5', 'currencyLabel6'];
     currencyLabels.forEach(labelId => {
         const labelElement = document.getElementById(labelId);
         if (labelElement) {
             labelElement.textContent = currency;
+            console.log(`Updated ${labelId} with currency: ${currency}`);
         }
     });
     
+    console.log('Financial summary populated with currency from docCur:', currency);
     console.log('Financial summary populated:', financialData);
 }
 
@@ -1081,40 +1218,39 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
         // Get the current invoice data to populate payment summary
         const currentInvoiceData = getCurrentInvoiceData();
         
+        // Get currency from API - ensure we always use docCur from API
+        const currency = currentInvoiceData?.docCur || '';
+        
         paymentSummaryHTML = `
             <div class="payment-summary">
                 <div class="payment-instructions">
                     <div class="payment-title">Please remit us in full amount to :</div>
-                    <div id="bankName${pageNum}"></div>
-                    <div id="bankAddress1${pageNum}"></div>
-                    <div id="bankAddress2${pageNum}"></div>
-                    <div id="bankCity${pageNum}"></div>
-                    <div id="accountNumber${pageNum}"></div>
+                    <div id="bankInformation${pageNum}"></div>
                 </div>
                 <div class="financial-summary">
                     <div class="summary-row">
-                        <span class="summary-label">Total ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">Total ${currency}</span>
+                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTotal || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Discounted ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">Discounted ${currency}</span>
+                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Sales Amount ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || currentInvoiceData?.netPrice || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">Sales Amount ${currency}</span>
+                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || currentInvoiceData?.netPrice || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">Tax Base Other Value ${currency}</span>
+                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">VAT 12% ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">VAT 12% ${currency}</span>
+                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || currentInvoiceData?.docTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-label">GRAND TOTAL ${currency}</span>
+                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || currentInvoiceData?.docTotal || 0, currency)}</span>
                     </div>
                 </div>
             </div>

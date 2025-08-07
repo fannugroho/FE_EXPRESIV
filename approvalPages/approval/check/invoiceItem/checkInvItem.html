@@ -6,8 +6,7 @@
     <title>Check Invoice Item</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Authentication is disabled for development -->
-    <!-- <script src="../../../../js/auth.js"></script> -->
+    <script src="../../../../js/auth.js"></script>
     
     <script src="checkInvItem.js"></script>
     <style>
@@ -96,12 +95,12 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -1243,8 +1242,8 @@
             }
             
             .price-column {
-                width: 100px !important;
-                min-width: 100px !important;
+                width: 120px !important;
+                min-width: 120px !important;
             }
             
             .line-total-column {
@@ -1290,8 +1289,8 @@
             }
             
             .price-column {
-                width: 110px !important;
-                min-width: 110px !important;
+                width: 140px !important;
+                min-width: 140px !important;
             }
             
             .line-total-column {
@@ -1337,8 +1336,8 @@
             }
             
             .price-column {
-                width: 120px !important;
-                min-width: 120px !important;
+                width: 160px !important;
+                min-width: 160px !important;
             }
             
             .line-total-column {
@@ -1376,8 +1375,8 @@
             }
             
             .price-column {
-                width: 130px !important;
-                min-width: 130px !important;
+                width: 180px !important;
+                min-width: 180px !important;
             }
             
             .line-total-column {
@@ -1795,7 +1794,7 @@
             </div>
 
             <!-- Rejection Remarks Display Section -->
-            <div class="approval-section" id="rejectionRemarksSection" style="display: none;">
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
                 <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
                 <div class="bg-red-50 p-4 rounded-lg border border-red-200">
                     <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
@@ -2455,22 +2454,6 @@
         
         // Employee dropdown functionality
         let employeesData = [];
-        
-        // Mock authentication function for development
-        function getCurrentUser() {
-            // For development purposes, return a mock user
-            // In production, this should be replaced with actual authentication
-            return {
-                userId: 'dev-user-001',
-                username: 'developer',
-                name: 'Developer User',
-                email: 'developer@example.com',
-                role: 'developer'
-            };
-        }
-        
-        // Make getCurrentUser available globally
-        window.getCurrentUser = getCurrentUser;
         
         // Load employees data from API
         async function loadEmployeesData() {

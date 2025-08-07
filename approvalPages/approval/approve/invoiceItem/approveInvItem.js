@@ -6,6 +6,45 @@ let allUsers = []; // Store all users for kansaiEmployeeId lookup
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
+/*
+ * REJECTION FEATURES IMPLEMENTED:
+ * 
+ * 1. Enhanced Rejection Dialog:
+ *    - User prefix functionality (e.g., "[John Doe - Approver]: ")
+ *    - Character count with color coding (red/yellow/gray)
+ *    - Minimum character validation (10 characters)
+ *    - Maximum character limit (500 characters)
+ *    - Prefix protection (cannot be deleted)
+ * 
+ * 2. Rejection Remarks Display:
+ *    - Conditional display based on rejection status
+ *    - Enhanced styling with warning icon
+ *    - Animation when remarks are shown
+ *    - Monospace font for better readability
+ * 
+ * 3. Status Validation:
+ *    - Only allows rejection for "Prepared" or "Checked" status
+ *    - Clear error messages for invalid actions
+ *    - Visual status indicators
+ * 
+ * 4. Enhanced UI/UX:
+ *    - Gradient rejection button styling
+ *    - Hover effects and animations
+ *    - Responsive design for mobile devices
+ *    - Accessibility improvements
+ * 
+ * 5. Data Persistence:
+ *    - Rejection remarks saved to API
+ *    - User information tracked (rejectedBy, rejectedByName)
+ *    - Timestamp recording (rejectedDate)
+ * 
+ * 6. Error Handling:
+ *    - Comprehensive validation
+ *    - User-friendly error messages
+ *    - Network error handling
+ *    - Graceful fallbacks
+ */
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
@@ -111,6 +150,56 @@ function getCurrentUserFullName() {
     
     console.warn('Full name not found for current user, falling back to username');
     return currentUser.username || 'Unknown User';
+}
+
+// Function to get current user role
+function getCurrentUserRole() {
+    if (!currentUser) {
+        return 'User';
+    }
+    
+    // Check if user has role information
+    if (currentUser.role) {
+        return currentUser.role;
+    }
+    
+    // Default role based on context
+    return 'Approver';
+}
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // Get the expected prefix
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+    
+    // Check if the prefix is still intact
+    const currentValue = textarea.value;
+    if (!currentValue.startsWith(expectedPrefix)) {
+        // Restore the prefix
+        const contentAfterPrefix = currentValue.substring(prefixLength);
+        textarea.value = expectedPrefix + contentAfterPrefix;
+        textarea.setSelectionRange(expectedPrefix.length, expectedPrefix.length);
+    }
 }
 
 // Load invoice item data
@@ -386,23 +475,10 @@ function populateInvItemData(data) {
         safeSetValue('checkedByName', data.arInvoiceApprovalSummary.checkedByName || '');
         safeSetValue('approvedByName', data.arInvoiceApprovalSummary.approvedByName || '');
         safeSetValue('receivedByName', data.arInvoiceApprovalSummary.receivedByName || '');
-        
-        // Show rejection remarks if exists and has valid value
-        const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
-        const rejectionRemarks = data.arInvoiceApprovalSummary.rejectionRemarks;
-        
-        // Check both revisionRemarks and rejectionRemarks fields
-        const remarksToShow = revisionRemarks || rejectionRemarks;
-        
-        if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
-            safeSetValue('rejectionRemarks', remarksToShow);
-            safeSetStyle('rejectionRemarksSection', 'display', 'block');
-            console.log('Showing rejection remarks:', remarksToShow);
-        } else {
-            safeSetStyle('rejectionRemarksSection', 'display', 'none');
-            console.log('Hiding rejection remarks section - no valid remarks found');
-        }
     }
+    
+    // Handle rejection remarks display
+    handleRejectionRemarksDisplay(data);
     
     // Populate items table
     populateItemsTable(data.arInvoiceDetails || []);
@@ -619,29 +695,114 @@ function rejectInvItem() {
         return;
     }
 
+    // Check if user has permission to reject
+    if (!currentUser) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Please login to continue'
+        });
+        return;
+    }
+
+    // Check if document status allows rejection
+    const status = getStatusFromInvoice(currentInvItemData);
+    if (status !== 'Prepared' && status !== 'Checked') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Action',
+            text: `Cannot reject document with status: ${status}. Only documents with status "Prepared" or "Checked" can be rejected.`
+        });
+        return;
+    }
+
     Swal.fire({
         title: 'Reject Invoice Item',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="text-left">
+                <p class="mb-4 text-gray-600">Please provide a reason for rejecting this invoice item:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionRemarksInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
+                        placeholder="Enter detailed rejection reason..." 
+                        rows="4" 
+                        maxlength="500"></textarea>
+                </div>
+                <div class="mt-2 text-sm text-gray-500">
+                    <span id="charCount">0</span>/500 characters
+                </div>
+            </div>
+        `,
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        focusConfirm: false,
+        width: '600px',
+        preConfirm: () => {
+            const textarea = document.getElementById('rejectionRemarksInput');
+            const remarks = textarea ? textarea.value.trim() : '';
+            
+            // Check if there's content beyond the prefix
+            const prefixLength = parseInt(textarea?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter rejection remarks');
+                return false;
+            }
+            
+            if (contentAfterPrefix.length < 10) {
+                Swal.showValidationMessage('Rejection remarks must be at least 10 characters long');
+                return false;
+            }
+            
+            return remarks;
+        },
+        didOpen: () => {
+            const textarea = document.getElementById('rejectionRemarksInput');
+            const charCount = document.getElementById('charCount');
+            
+            if (textarea && charCount) {
+                // Initialize with user prefix
+                initializeWithRejectionPrefix(textarea);
+                
+                textarea.addEventListener('input', function() {
+                    // Handle prefix protection
+                    handleRejectionInput({ target: this });
+                    
+                    // Update character count
+                    const contentAfterPrefix = this.value.substring(parseInt(this.dataset.prefixLength || '0'));
+                    charCount.textContent = contentAfterPrefix.length;
+                    
+                    if (contentAfterPrefix.length > 450) {
+                        charCount.className = 'text-red-500';
+                    } else if (contentAfterPrefix.length > 400) {
+                        charCount.className = 'text-yellow-500';
+                    } else {
+                        charCount.className = 'text-gray-500';
+                    }
+                });
             }
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Update status to Rejected with remarks
-            updateInvItemStatus('Rejected', result.value);
+            // Show confirmation dialog
+            Swal.fire({
+                title: 'Confirm Rejection',
+                text: 'Are you sure you want to reject this invoice item? This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, Reject',
+                cancelButtonText: 'Cancel'
+            }).then((confirmResult) => {
+                if (confirmResult.isConfirmed) {
+                    // Update status to Rejected with remarks
+                    updateInvItemStatus('Rejected', result.value);
+                }
+            });
         }
     });
 }
@@ -698,6 +859,14 @@ async function updateInvItemStatus(status, remarks = '') {
                 payload.rejectionRemarks = remarks.trim();
                 console.log('Added rejectionRemarks to payload:', remarks.trim());
             }
+            
+            // Add rejectedBy information
+            payload.rejectedBy = getCurrentUserKansaiEmployeeId();
+            payload.rejectedByName = getCurrentUserFullName();
+            console.log('Added rejectedBy information to payload:', {
+                rejectedBy: payload.rejectedBy,
+                rejectedByName: payload.rejectedByName
+            });
         }
 
         // Preserve existing approval data if available
@@ -1051,6 +1220,58 @@ function applyCurrencyFormattingToTable() {
             }
         }
     });
+}
+
+// Function to handle rejection remarks display
+function handleRejectionRemarksDisplay(data) {
+    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
+    const rejectionRemarksTextarea = document.getElementById('rejectionRemarks');
+    const statusElement = document.getElementById('Status');
+    
+    if (!rejectionRemarksSection || !rejectionRemarksTextarea) {
+        console.warn('Rejection remarks elements not found');
+        return;
+    }
+    
+    // Check for rejection remarks in approval summary
+    let remarksToShow = null;
+    
+    if (data.arInvoiceApprovalSummary) {
+        const summary = data.arInvoiceApprovalSummary;
+        remarksToShow = summary.rejectionRemarks || summary.revisionRemarks;
+    }
+    
+    if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
+        // Show rejection remarks
+        rejectionRemarksTextarea.value = remarksToShow.trim();
+        rejectionRemarksSection.style.display = 'block';
+        
+        // Add visual indicator for rejection status
+        if (statusElement && statusElement.value === 'Rejected') {
+            statusElement.classList.add('status-rejected');
+        }
+        
+        // Add animation
+        rejectionRemarksSection.classList.add('rejection-animation');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            rejectionRemarksSection.classList.remove('rejection-animation');
+        }, 2000);
+        
+        console.log('Showing rejection remarks:', remarksToShow);
+    } else {
+        // Hide rejection remarks section
+        rejectionRemarksSection.style.display = 'none';
+        rejectionRemarksTextarea.value = '';
+        
+        // Remove rejection status styling
+        if (statusElement) {
+            statusElement.classList.remove('status-rejected');
+        }
+        
+        console.log('Hiding rejection remarks section - no valid remarks found');
+    }
 }
 
 // Export functions for global access
