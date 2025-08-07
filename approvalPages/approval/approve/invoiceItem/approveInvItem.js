@@ -426,26 +426,22 @@ function populateInvItemData(data) {
     // Populate summary fields with currency formatting
     const docCur = data.docCur || 'IDR';
     
-    // Total Amount (docTotal) - API Field: "docCur" "docTotal"
-    const docTotal = data.docTotal || 0;
+    // Total Amount (docTotal) - API Field: "netPrice" only
+    const docTotal = data.netPrice || 0;
     safeSetValue('docTotal', formatCurrencyIDR(docTotal));
     
     // Discounted Amount (discSum) - API Field: "docCur" "discSum"
     const discSum = data.discSum || 0;
     safeSetValue('discSum', formatCurrencyIDR(discSum));
     
-    // Sales Amount (netPriceAfterDiscount) - API Field: "docCur" "netPriceAfterDiscount"
-    // Use netPriceAfterDiscount if available, otherwise use netPrice, fallback to docTotal
-    const netPriceAfterDiscount = data.netPriceAfterDiscount !== null && data.netPriceAfterDiscount !== undefined 
-        ? data.netPriceAfterDiscount 
-        : (data.netPrice || data.docTotal || 0);
+    // Sales Amount (netPriceAfterDiscount) - API Field: "netPriceAfterDiscount" only
+    const netPriceAfterDiscount = data.netPriceAfterDiscount || 0;
     safeSetValue('netPriceAfterDiscount', formatCurrencyIDR(netPriceAfterDiscount));
     
     console.log('Summary fields populated:', {
-        docTotal: data.docTotal,
+        netPrice: data.netPrice,
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
-        netPrice: data.netPrice,
         dpp1112: data.dpp1112,
         vatSum: data.vatSum,
         grandTotal: data.grandTotal
@@ -459,8 +455,8 @@ function populateInvItemData(data) {
     const vatSum = data.vatSum || 0;
     safeSetValue('vatSum', formatCurrencyIDR(vatSum));
     
-    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
-    const grandTotal = data.grandTotal || data.docTotal || 0;
+    // GRAND TOTAL (grandTotal) - API Field: "grandTotal" only
+    const grandTotal = data.grandTotal || 0;
     safeSetValue('grandTotal', formatCurrencyIDR(grandTotal));
     
     // Populate comments

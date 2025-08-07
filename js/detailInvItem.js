@@ -482,21 +482,22 @@ function populateFormData(data) {
     const currencyCode = data.docCur || 'IDR';
     
     // Populate totals with new fields and include currency code
-    // Update Total field to use docCur and netPrice from API
-    const totalAmount = data.netPrice || data.docTotal || '0.00';
+    // Update Total field to use only netPrice from API
+    const totalAmount = data.netPrice || '0.00';
     console.log('🔍 Total field update:', {
         netPrice: data.netPrice,
         docTotal: data.docTotal,
         docCur: data.docCur,
         calculatedTotalAmount: totalAmount,
-        currencyCode: currencyCode
+        currencyCode: currencyCode,
+        note: 'Only using netPrice field for Total Amount'
     });
     safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(totalAmount)}`);
     safeSetValue('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || '0.00')}`);
-    safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || data.netPrice || '0.00')}`);
+    safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || '0.00')}`);
     safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
     safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || '0.00')}`);
-    safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || data.docTotal || '0.00')}`);
+    safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || '0.00')}`);
     
     // Populate table with invoice details
     populateInvoiceDetails(data.arInvoiceDetails || []);
