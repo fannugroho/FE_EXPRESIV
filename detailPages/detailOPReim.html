@@ -314,7 +314,7 @@
                 ← Back to Menu
             </button>
             <h2 class="text-2xl font-bold text-center text-blue-900 flex-grow">
-                Detail Outgoing Payment Reimbursement
+                Detail Outgoing Payment
             </h2>
             <div class="w-24"></div> <!-- Spacer for centering -->
         </div>
@@ -331,9 +331,9 @@
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
 
-                <!-- Requester Reimbursement -->
+                <!-- Requester Payment -->
                 <div>
-                    <label class="block text-lg font-semibold mb-2 text-gray-700">Requester Reimbursement</label>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Requester Payment</label>
                     <input type="text" id="RequesterName" placeholder="Requester Reimbursement"
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
@@ -366,27 +366,22 @@
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
 
-                <!-- Attachments Section -->
-                <div class="bg-gray-50 p-4 rounded-lg border">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-lg font-semibold text-gray-700">Attachments</h3>
-                        <button onclick="refreshAttachments()"
-                            class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50 no-print">
-                            🔄 Refresh
-                        </button>
+                <!-- Attachments Display Section -->
+                <div class="mt-4" id="attachmentsSection">
+                    <!-- Existing Attachments Section -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachments</h4>
+                        <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Existing attachments will be displayed here -->
+                        </div>
                     </div>
-                    <div id="attachmentsList" class="min-h-16">
-                        <div class="loading-shimmer h-4 rounded mb-2"></div>
-                        <div class="loading-shimmer h-4 rounded w-3/4"></div>
-                    </div>
-                </div>
 
-                <!-- Print Out Reimbursement Section -->
-                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h4 class="text-md font-medium mb-3 text-blue-800">Print Out Reimbursement</h4>
-                    <div id="printOutReimbursementList" class="min-h-16">
-                        <div class="loading-shimmer h-4 rounded mb-2"></div>
-                        <div class="loading-shimmer h-4 rounded w-2/3"></div>
+                    <!-- Print Out Reimbursement Section -->
+                    <div class="mb-4" id="printOutReimbursementSection">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
+                        <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Print Receive Reimbursement document will be displayed here -->
+                        </div>
                     </div>
                 </div>
 
@@ -417,16 +412,16 @@
                     </select>
                 </div>
 
-                <!-- Journal Memo -->
+                <!-- Journal Memo menjadi Transaction -->
                 <div>
-                    <label class="block text-lg font-semibold mb-2 text-gray-700">Journal Memo</label>
-                    <input type="text" id="JrnlMemo" placeholder="Journal Memo"
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Transaction</label>
+                    <input type="text" id="jrnlMemo" placeholder="Journal Memo"
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
 
-                <!-- Remittance Request Currency -->
+                <!-- Remittance Request Currency menjadi Document Currency -->
                 <div>
-                    <label class="block text-lg font-semibold mb-2 text-gray-700">Remittance Request Currency</label>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Document Currency</label>
                     <input type="text" id="DocCurr" placeholder="Document Currency"
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" value="IDR" readonly>
                 </div>
@@ -445,12 +440,16 @@
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
 
-                <!-- Account Bank Transfer -->
+                <!-- Account Bank Transfer menjadi Payment Group -->
                 <div>
-                    <label class="block text-lg font-semibold mb-2 text-gray-700">Account Bank Transfer</label>
+                    <label class="block text-lg font-semibold mb-2 text-gray-700">Payment Group</label>
                     <input type="text" id="TrsfrAcct" placeholder="Account Bank Transfer"
                         class="form-input w-full p-3 border rounded-lg bg-gray-100 text-gray-800" readonly>
                 </div>
+
+                <!-- Hidden TrsfrSum field to prevent JavaScript errors -->
+                <input type="text" id="TrsfrSum" placeholder="Total Transfer"
+                    class="w-full p-2 border rounded currency-input" style="display: none;" readonly>
             </div>
         </div>
 
@@ -501,126 +500,97 @@
         <!-- Total Amount Due (Hidden for calculations) -->
         <input type="hidden" id="totalAmountDue" value="0">
 
-        <!-- Currency Summary Display -->
-        <div class="flex justify-end mb-4">
-            <div id="currencySummaryTable" class="text-sm">
-                <div class="loading-shimmer h-6 rounded mb-2"></div>
-                <div class="loading-shimmer h-4 rounded w-3/4"></div>
-            </div>
+        <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2 items-start">
+            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
         </div>
 
         <!-- Total Outstanding Transfers -->
-        <div class="flex flex-col items-end mb-6">
-            <label class="text-lg font-bold text-gray-800 mb-3">Total Outstanding Transfers:</label>
-            <div id="totalOutstandingTransfers"
-                class="w-full max-w-md p-4 border rounded-lg bg-gray-50 min-h-[80px] overflow-x-auto">
-                <div class="loading-shimmer h-4 rounded mb-2"></div>
-                <div class="loading-shimmer h-4 rounded w-4/5"></div>
-            </div>
+        <div class="mt-4 flex justify-end space-x-2">
+            <label class="font-semibold">Total Outstanding Transfers :</label>
+            <span id="totalOutstandingTransfers"
+                class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
         </div>
 
-        <!-- Remarks Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div class="mt-4">
+            <label>Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off"
+                placeholder="Enter remarks here..." readonly></textarea>
+        </div>
+        <div class="mt-4">
+            <label>Journal Remarks</label>
+            <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off"
+                placeholder="Enter journal remarks here..." readonly></textarea>
+        </div>
+
+        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <label class="font-semibold text-red-600">Rejection Reason</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly
+                autocomplete="off"></textarea>
+        </div>
+
+        <!-- Approval section -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <!-- Note: Proposed by field is automatically filled with the current logged-in user -->
             <div>
-                <label class="block text-lg font-semibold mb-2 text-gray-700">Remarks</label>
-                <textarea id="remarks"
-                    class="w-full p-3 border rounded-lg bg-gray-100 text-gray-800 min-h-[80px] resize-vertical" readonly
-                    placeholder="No remarks available"></textarea>
+                <label><strong>Proposed by:</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User"
+                        class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                    <select id="Approval.PreparedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.PreparedByIdDropdown"
+                        class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
             <div>
-                <label class="block text-lg font-semibold mb-2 text-gray-700">Journal Remarks</label>
-                <textarea id="journalRemarks"
-                    class="w-full p-3 border rounded-lg bg-gray-100 text-gray-800 min-h-[80px] resize-vertical" readonly
-                    placeholder="No journal remarks available"></textarea>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User"
+                        class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                    <select id="Approval.CheckedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.CheckedByIdDropdown"
+                        class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
-        </div>
-
-        <!-- Rejection Remarks Section (Hidden by default) -->
-        <div id="rejectionRemarksSection" class="mb-6 hidden">
-            <h3 class="text-lg font-semibold mb-3 text-red-600 flex items-center">
-                <span class="mr-2">⚠️</span>
-                Rejection Remarks
-            </h3>
-            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks"
-                    class="w-full p-3 border rounded-lg bg-white text-gray-800 text-sm min-h-[80px] resize-vertical"
-                    readonly placeholder="No rejection remarks"></textarea>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User"
+                        class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                    <select id="Approval.AcknowledgedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.AcknowledgedByIdDropdown"
+                        class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
+                </div>
             </div>
-        </div>
-
-        <!-- Approval Section -->
-        <div class="bg-gray-50 p-6 rounded-lg border">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">Approval Workflow</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-
-                <!-- Proposed by -->
-                <div>
-                    <label class="block font-semibold mb-2 text-gray-700">Proposed by:</label>
-                    <div class="relative">
-                        <input type="text" id="Approval.PreparedByIdSearch" placeholder="Search User"
-                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
-                        <select id="Approval.PreparedById" class="hidden">
-                            <option value="" disabled selected>Select User</option>
-                        </select>
-                        <div id="Approval.PreparedByIdDropdown"
-                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                    </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User"
+                        class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                    <select id="Approval.ApprovedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ApprovedByIdDropdown"
+                        class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
-
-                <!-- Checked by -->
-                <div>
-                    <label class="block font-semibold mb-2 text-gray-700">Checked by:</label>
-                    <div class="relative">
-                        <input type="text" id="Approval.CheckedByIdSearch" placeholder="Search User"
-                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
-                        <select id="Approval.CheckedById" class="hidden">
-                            <option value="" disabled selected>Select User</option>
-                        </select>
-                        <div id="Approval.CheckedByIdDropdown"
-                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                    </div>
-                </div>
-
-                <!-- Acknowledged by -->
-                <div>
-                    <label class="block font-semibold mb-2 text-gray-700">Acknowledged by:</label>
-                    <div class="relative">
-                        <input type="text" id="Approval.AcknowledgedByIdSearch" placeholder="Search User"
-                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
-                        <select id="Approval.AcknowledgedById" class="hidden">
-                            <option value="" disabled selected>Select User</option>
-                        </select>
-                        <div id="Approval.AcknowledgedByIdDropdown"
-                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                    </div>
-                </div>
-
-                <!-- Approved by -->
-                <div>
-                    <label class="block font-semibold mb-2 text-gray-700">Approved by:</label>
-                    <div class="relative">
-                        <input type="text" id="Approval.ApprovedByIdSearch" placeholder="Search User"
-                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
-                        <select id="Approval.ApprovedById" class="hidden">
-                            <option value="" disabled selected>Select User</option>
-                        </select>
-                        <div id="Approval.ApprovedByIdDropdown"
-                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                    </div>
-                </div>
-
-                <!-- Received by -->
-                <div>
-                    <label class="block font-semibold mb-2 text-gray-700">Received by:</label>
-                    <div class="relative">
-                        <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User"
-                            class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
-                        <select id="Approval.ReceivedById" class="hidden">
-                            <option value="" disabled selected>Select User</option>
-                        </select>
-                        <div id="Approval.ReceivedByIdDropdown"
-                            class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
-                    </div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div class="relative">
+                    <input type="text" id="Approval.ReceivedByIdSearch" placeholder="Search User"
+                        class="w-full p-2 border rounded search-input bg-gray-100 text-gray-800" readonly>
+                    <select id="Approval.ReceivedById" class="hidden">
+                        <option value="" disabled selected>Select User</option>
+                    </select>
+                    <div id="Approval.ReceivedByIdDropdown"
+                        class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
             </div>
         </div>
