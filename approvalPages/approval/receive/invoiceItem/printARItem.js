@@ -616,33 +616,39 @@ function populateFinancialSummary(invoice) {
     
     // Financial summary field mapping based on API response
     const financialData = {
+        // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
         totalAmount: {
-            value: invoice.docTotal || 0,
+            value: invoice.netPrice || 0,
             currency: currency,
             label: 'Total'
         },
+        // 2. Discounted (discountAmount) - API Field: "docCur" "discSum"
         discountAmount: {
             value: invoice.discSum || 0,
             currency: currency,
             label: 'Discounted'
         },
+        // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
         salesAmount: {
-            value: invoice.netPriceAfterDiscount || invoice.netPrice || 0,
+            value: invoice.netPriceAfterDiscount || 0,
             currency: currency,
             label: 'Sales Amount'
         },
+        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
         taxBase: {
             value: invoice.docTax || 0,
             currency: currency,
             label: 'Tax Base Other Value'
         },
+        // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
         vatAmount: {
             value: invoice.vatSum || 0,
             currency: currency,
             label: 'VAT 12%'
         },
+        // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
         grandTotal: {
-            value: invoice.grandTotal || invoice.docTotal || 0,
+            value: invoice.grandTotal || 0,
             currency: currency,
             label: 'GRAND TOTAL'
         }
@@ -1542,7 +1548,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 <div class="financial-summary">
                     <div class="summary-row">
                         <span class="summary-label">Total ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Discounted ${currentInvoiceData?.docCur || 'IDR'}</span>
@@ -1550,7 +1556,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Sales Amount ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || currentInvoiceData?.netPrice || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Tax Base Other Value ${currentInvoiceData?.docCur || 'IDR'}</span>
@@ -1562,7 +1568,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     </div>
                     <div class="summary-row total-line">
                         <span class="summary-label">GRAND TOTAL ${currentInvoiceData?.docCur || 'IDR'}</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || currentInvoiceData?.docTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                 </div>
             </div>
@@ -1931,12 +1937,12 @@ function generateIndonesianInvoiceQRCode(invoice) {
             customerNPWP: invoice.licTradNum || '',
             customerAddress: parseAddressForQR(invoice.address),
             
-            // Informasi Keuangan
-            subtotal: invoice.docTotal || 0,
-            discount: invoice.discSum || 0,
-            taxBase: invoice.docTax || 0,
-            vatAmount: invoice.vatSum || 0,
-            grandTotal: invoice.grandTotal || invoice.docTotal || 0,
+            // Informasi Keuangan - using correct API field mapping
+            subtotal: invoice.netPrice || 0,  // API Field: "netPrice"
+            discount: invoice.discSum || 0,   // API Field: "discSum"
+            taxBase: invoice.docTax || 0,     // API Field: "docTax"
+            vatAmount: invoice.vatSum || 0,   // API Field: "vatSum"
+            grandTotal: invoice.grandTotal || 0,  // API Field: "grandTotal"
             currency: invoice.docCur || 'IDR',
             
             // Informasi Bank
@@ -2087,7 +2093,7 @@ function generateCustomQRCode(invoice, format = 'indonesian') {
         case 'simple':
             qrCodeData = {
                 invoiceNumber: invoice.u_bsi_invnum || invoice.docNum || '',
-                totalAmount: invoice.grandTotal || invoice.docTotal || 0,
+                totalAmount: invoice.grandTotal || 0,
                 currency: invoice.docCur || 'IDR',
                 dueDate: formatDateForQR(invoice.docDueDate || invoice.docDate)
             };

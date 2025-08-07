@@ -481,22 +481,33 @@ function populateFormData(data) {
     // Get currency code
     const currencyCode = data.docCur || 'IDR';
     
-    // Populate totals with new fields and include currency code
-    // Update Total field to use only netPrice from API
-    const totalAmount = data.netPrice || '0.00';
-    console.log('🔍 Total field update:', {
-        netPrice: data.netPrice,
-        docTotal: data.docTotal,
+    // Populate totals with correct API field mapping
+    console.log('💰 Populating financial summary with API fields:', {
         docCur: data.docCur,
-        calculatedTotalAmount: totalAmount,
-        currencyCode: currencyCode,
-        note: 'Only using netPrice field for Total Amount'
+        netPrice: data.netPrice,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        docTax: data.docTax,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
     });
-    safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(totalAmount)}`);
+    
+    // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
+    safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(data.netPrice || '0.00')}`);
+    
+    // 2. Discounted (discountAmount) - API Field: "docCur" "discSum"
     safeSetValue('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || '0.00')}`);
+    
+    // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
     safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || '0.00')}`);
-    safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
+    
+    // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
+    safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.docTax || '0.00')}`);
+    
+    // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
     safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || '0.00')}`);
+    
+    // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
     safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || '0.00')}`);
     
     // Populate table with invoice details

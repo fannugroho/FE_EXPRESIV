@@ -363,37 +363,38 @@ function populateInvItemData(data) {
     // Populate summary fields with currency formatting
     const docCur = data.docCur || 'IDR';
     
-    // Total Amount (docTotal) - Only from netPrice field
+    // Total Amount (totalAmount) - from docCur and netPrice fields
     const totalAmount = data.netPrice || '0.00';
     document.getElementById('docTotal').value = formatCurrencyIDR(totalAmount);
     
-    // Discounted Amount (discSum) - Only from discSum field
-    const discSum = data.discSum || '0.00';
-    document.getElementById('discSum').value = formatCurrencyIDR(discSum);
+    // Discounted Amount (discountAmount) - from docCur and discSum fields
+    const discountAmount = data.discSum || '0.00';
+    document.getElementById('discSum').value = formatCurrencyIDR(discountAmount);
     
-    // Sales Amount (netPriceAfterDiscount) - Only from netPriceAfterDiscount field
-    const netPriceAfterDiscount = data.netPriceAfterDiscount || '0.00';
-    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(netPriceAfterDiscount);
+    // Sales Amount (salesAmount) - from docCur and netPriceAfterDiscount fields
+    const salesAmount = data.netPriceAfterDiscount || '0.00';
+    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(salesAmount);
     
     console.log('Summary fields populated:', {
+        docCur: data.docCur,
         netPrice: data.netPrice,
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
-        dpp1112: data.dpp1112,
+        docTax: data.docTax,
         vatSum: data.vatSum,
         grandTotal: data.grandTotal,
-        note: 'Using specific API fields only'
+        note: 'Using specific API fields with currency'
     });
     
-    // Tax Base Other Value (dpp1112) - Only from dpp1112 field
-    const dpp1112 = data.dpp1112 || '0.00';
-    document.getElementById('dpp1112').value = formatCurrencyIDR(dpp1112);
+    // Tax Base Other Value (taxBase) - from docCur and docTax fields
+    const taxBase = data.docTax || '0.00';
+    document.getElementById('dpp1112').value = formatCurrencyIDR(taxBase);
     
-    // VAT 12% (vatSum) - Only from vatSum field
-    const vatSum = data.vatSum || '0.00';
-    document.getElementById('vatSum').value = formatCurrencyIDR(vatSum);
+    // VAT 12% (vatAmount) - from docCur and vatSum fields
+    const vatAmount = data.vatSum || '0.00';
+    document.getElementById('vatSum').value = formatCurrencyIDR(vatAmount);
     
-    // GRAND TOTAL (grandTotal) - Only from grandTotal field
+    // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields
     const grandTotal = data.grandTotal || '0.00';
     document.getElementById('grandTotal').value = formatCurrencyIDR(grandTotal);
     
