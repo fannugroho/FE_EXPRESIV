@@ -3,6 +3,59 @@
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
+// Function to wrap text at specified character limit
+function wrapText(text, maxLength) {
+    if (!text || text.length <= maxLength) {
+        return text;
+    }
+    
+    // If text doesn't contain spaces or is a single long word
+    if (!text.includes(' ')) {
+        const chunks = [];
+        for (let i = 0; i < text.length; i += maxLength) {
+            chunks.push(text.slice(i, i + maxLength));
+        }
+        return chunks.join('<br>');
+    }
+    
+    // If text contains spaces, try to break at word boundaries
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+        // If single word is longer than maxLength, break it
+        if (word.length > maxLength) {
+            if (currentLine) {
+                lines.push(currentLine);
+                currentLine = '';
+            }
+            // Break the long word into chunks
+            const chunks = [];
+            for (let i = 0; i < word.length; i += maxLength) {
+                chunks.push(word.slice(i, i + maxLength));
+            }
+            lines.push(...chunks);
+        } else if ((currentLine + ' ' + word).length > maxLength) {
+            // If adding this word would exceed maxLength
+            if (currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = word;
+            }
+        } else {
+            currentLine = currentLine ? currentLine + ' ' + word : word;
+        }
+    }
+    
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    
+    return lines.join('<br>');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Get invoice data from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -10,31 +63,91 @@ document.addEventListener('DOMContentLoaded', function() {
     const docEntry = urlParams.get('docEntry');
     const identifier = stagingID || docEntry;
     
-    // Immediately fetch and populate signature data
+    // Check if this is the first load (no refresh flag in sessionStorage)
+    const hasRefreshed = sessionStorage.getItem(`refreshed_${identifier}`);
+    const refreshCount = parseInt(sessionStorage.getItem(`refreshCount_${identifier}`) || '0');
+    
+    if (!hasRefreshed && identifier && refreshCount < 1) {
+        // Check if we have complete data in localStorage before deciding to refresh
+        const storedData = localStorage.getItem(`invoice_${identifier}`);
+        let shouldRefresh = true;
+        
+        if (storedData) {
+            try {
+                const parsedData = JSON.parse(storedData);
+                if (isFinancialDataComplete(parsedData)) {
+                    console.log('Financial data is already complete in localStorage, no need to refresh...');
+                    shouldRefresh = false;
+                } else {
+                    console.log('Financial data is incomplete in localStorage, will refresh...');
+                }
+            } catch (error) {
+                console.log('Error parsing stored data, will refresh...');
+            }
+        } else {
+            console.log('No stored data found, will refresh...');
+        }
+        
+        if (shouldRefresh) {
+            // This is the first load and data is incomplete, set refresh flag and reload the page
+            console.log('First load detected with incomplete data, setting refresh flag and reloading page...');
+            sessionStorage.setItem(`refreshed_${identifier}`, 'true');
+            sessionStorage.setItem(`refreshCount_${identifier}`, (refreshCount + 1).toString());
+            
+            // Small delay to ensure sessionStorage is set
+            setTimeout(() => {
+                console.log('Auto-refreshing page to ensure data is loaded...');
+                window.location.reload();
+            }, 100);
+            return;
+        }
+    }
+    
+    // Clear the refresh flags after successful load
+    if (hasRefreshed && identifier) {
+        console.log('Page refreshed successfully, clearing refresh flags...');
+        sessionStorage.removeItem(`refreshed_${identifier}`);
+        sessionStorage.removeItem(`refreshCount_${identifier}`);
+    }
+    
+    // Immediately fetch and populate signature data AND financial summary data
     if (identifier) {
         try {
             const storedData = localStorage.getItem(`invoice_${identifier}`);
             if (storedData) {
                 const parsedData = JSON.parse(storedData);
-                console.log('Found cached invoice data in localStorage, pre-populating signature...');
+                console.log('Found cached invoice data in localStorage, checking completeness...');
+                console.log('Stored data keys:', Object.keys(parsedData));
+                
+                // Always populate signature information
                 populateSignatureInformation(parsedData);
+                
+                // Pre-populate financial summary data immediately ONLY if data is complete
+                if (isFinancialDataComplete(parsedData)) {
+                    console.log('Financial data is complete, pre-populating financial summary...');
+                    populateFinancialSummary(parsedData);
+                } else {
+                    console.log('Financial data is incomplete, skipping pre-population. Will wait for API data...');
+                }
             } else {
                 // If no data in localStorage, try to fetch signature data directly
-                console.log('No cached data found, fetching signature data directly...');
+                console.log('No cached data found, fetching signature and financial data directly...');
                 fetch(`${API_BASE_URL}/ar-invoices/${identifier}/details`)
                     .then(response => response.json())
                     .then(result => {
                         if (result.status && result.data) {
-                            console.log('Pre-populating signature from API data...');
+                            console.log('Pre-populating signature and financial summary from API data...');
                             populateSignatureInformation(result.data);
+                            // Pre-populate financial summary data immediately
+                            populateFinancialSummary(result.data);
                         }
                     })
                     .catch(error => {
-                        console.error('Error fetching signature data:', error);
+                        console.error('Error fetching signature and financial data:', error);
                     });
             }
         } catch (error) {
-            console.error('Error pre-populating signature from localStorage:', error);
+            console.error('Error pre-populating signature and financial data from localStorage:', error);
         }
     }
     
@@ -46,6 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const parentData = window.opener.currentInvItemData;
             // Populate signature first to ensure it's displayed immediately
             populateSignatureInformation(parentData);
+            // Pre-populate financial summary data immediately ONLY if data is complete
+            if (isFinancialDataComplete(parentData)) {
+                console.log('Financial data from parent window is complete, pre-populating financial summary...');
+                populateFinancialSummary(parentData);
+            } else {
+                console.log('Financial data from parent window is incomplete, skipping pre-population...');
+            }
             // Then populate the rest of the invoice data
             populateInvoiceData(parentData);
             return;
@@ -286,11 +406,10 @@ function populateInvoiceData(invoice) {
             if (recipientCityElement) recipientCityElement.textContent = '';
         }
         
-        // Shipper information
+        // Shipper information - Always use hardcoded value
         const shipperNameElement = document.getElementById('shipperName');
         if (shipperNameElement) {
-            // Use API data for shipper name, no hardcoded defaults
-            shipperNameElement.textContent = invoice.shipperName || invoice.cardName || '';
+            shipperNameElement.textContent = 'PT. KANSAI PAINT INDONESIA';
             console.log('Shipper Name set to:', shipperNameElement.textContent);
         } else {
             console.error('Shipper Name element not found');
@@ -403,7 +522,13 @@ function populateInvoiceData(invoice) {
         }
         
         // Financial summary - use API fields with currency
-        populateFinancialSummary(invoice);
+        // Only populate if data is complete and valid
+        if (isFinancialDataComplete(invoice)) {
+            console.log('Financial data is complete, populating financial summary...');
+            populateFinancialSummary(invoice);
+        } else {
+            console.log('Financial data is incomplete, skipping financial summary population...');
+        }
         
         // Bank account information from API data
         populateBankInformation(invoice);
@@ -471,136 +596,80 @@ function getCurrentInvoiceData() {
 }
 
 // Function to populate bank information from API data
+// Only displays acctName and account fields directly
 function populateBankInformation(invoice) {
     console.log('Populating bank information from invoice:', invoice);
     
-    // Get currency from API - use docCur field from API
-    const currency = invoice.docCur || 'IDR';
-    
-    // Get bank information directly from acctName field
+    // Get bank information directly from acctName and account fields only
     let bankInformation = '';
     
     if (invoice.acctName) {
         console.log('Using acctName from API:', invoice.acctName);
-        bankInformation = invoice.acctName;
+        // Use wrapText if acctName exceeds 40 characters
+        if (invoice.acctName.length > 40) {
+            bankInformation = wrapText(invoice.acctName, 40);
+        } else {
+            bankInformation = invoice.acctName;
+        }
         
-        // Add account number if available
+        // Add account number if available (on new line)
         if (invoice.account) {
-            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
+            bankInformation += `<br>${invoice.account}`;
         }
     } else {
         console.log('No acctName found in API data');
         // If no acctName, just show account number if available
         if (invoice.account) {
-            bankInformation = `Acc No. ${invoice.account} (${currency})`;
-        } else {
-            // No fallback values - show empty if no data available
-            bankInformation = '';
+            bankInformation = invoice.account;
         }
     }
     
-    // Function to wrap text if longer than 30 characters
-    function wrapText(text, maxLength = 30) {
-        if (!text || text.length <= maxLength) {
-            return text;
-        }
-        
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-        
-        for (const word of words) {
-            if ((currentLine + ' ' + word).length <= maxLength) {
-                currentLine = currentLine ? currentLine + ' ' + word : word;
-            } else {
-                if (currentLine) {
-                    lines.push(currentLine);
-                }
-                currentLine = word;
-            }
-        }
-        
-        if (currentLine) {
-            lines.push(currentLine);
-        }
-        
-        return lines.join('<br>');
-    }
-    
-    // Populate the DOM element with wrap text functionality
+    // Populate the DOM element
     const bankInformationElement = document.getElementById('bankInformation');
     
     if (bankInformationElement) {
-        bankInformationElement.innerHTML = wrapText(bankInformation);
-        console.log('Bank information populated from acctName:', bankInformation);
+        bankInformationElement.innerHTML = bankInformation;
+        console.log('Bank information populated from acctName and account:', bankInformation);
     } else {
         console.error('Bank information element not found');
     }
 }
 
 // Function to populate bank information for additional pages
+// Only displays acctName and account fields directly
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
     
-    // Get currency from API - use docCur field from API
-    const currency = invoice?.docCur || 'IDR';
-    
-    // Get bank information directly from acctName field
+    // Get bank information directly from acctName and account fields only
     let bankInformation = '';
     
     if (invoice?.acctName) {
         console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
-        bankInformation = invoice.acctName;
+        // Use wrapText if acctName exceeds 40 characters
+        if (invoice.acctName.length > 40) {
+            bankInformation = wrapText(invoice.acctName, 40);
+        } else {
+            bankInformation = invoice.acctName;
+        }
         
-        // Add account number if available
+        // Add account number if available (on new line)
         if (invoice.account) {
-            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
+            bankInformation += `<br>${invoice.account}`;
         }
     } else {
         console.log(`No acctName found for page ${pageNum}`);
         // If no acctName, just show account number if available
         if (invoice.account) {
-            bankInformation = `Acc No. ${invoice.account} (${currency})`;
-        } else {
-            // No fallback values - show empty if no data available
-            bankInformation = '';
+            bankInformation = invoice.account;
         }
     }
     
-    // Function to wrap text if longer than 30 characters
-    function wrapText(text, maxLength = 30) {
-        if (!text || text.length <= maxLength) {
-            return text;
-        }
-        
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-        
-        for (const word of words) {
-            if ((currentLine + ' ' + word).length <= maxLength) {
-                currentLine = currentLine ? currentLine + ' ' + word : word;
-            } else {
-                if (currentLine) {
-                    lines.push(currentLine);
-                }
-                currentLine = word;
-            }
-        }
-        
-        if (currentLine) {
-            lines.push(currentLine);
-        }
-        
-        return lines.join('<br>');
-    }
-    
-    // Populate the DOM element with wrap text functionality
+    // Populate the DOM element for the specific page
     const bankInformationElement = document.getElementById(`bankInformation${pageNum}`);
     
     if (bankInformationElement) {
-        bankInformationElement.innerHTML = wrapText(bankInformation);
-        console.log(`Bank information populated for page ${pageNum} from acctName:`, bankInformation);
+        bankInformationElement.innerHTML = bankInformation;
+        console.log(`Bank information populated for page ${pageNum} from acctName and account:`, bankInformation);
     } else {
         console.error(`Bank information element not found for page ${pageNum}`);
     }
@@ -609,6 +678,12 @@ function populateBankInformationForPage(invoice, pageNum) {
 // Function to populate financial summary from API data
 function populateFinancialSummary(invoice) {
     console.log('Populating financial summary from invoice:', invoice);
+    
+    // Check if invoice data is available
+    if (!invoice) {
+        console.log('No invoice data available for financial summary');
+        return;
+    }
     
     // Get currency from API - use docCur field from API
     const currency = invoice.docCur || 'IDR';
@@ -661,16 +736,8 @@ function populateFinancialSummary(invoice) {
             const data = financialData[key];
             element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
             console.log(`${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
-        }
-    });
-    
-    // Update currency labels with docCur from API
-    const currencyLabels = ['currencyLabel', 'currencyLabel2', 'currencyLabel3', 'currencyLabel4', 'currencyLabel5', 'currencyLabel6'];
-    currencyLabels.forEach(labelId => {
-        const labelElement = document.getElementById(labelId);
-        if (labelElement) {
-            labelElement.textContent = currency;
-            console.log(`Updated ${labelId} with currency: ${currency}`);
+        } else {
+            console.warn(`Financial summary element not found: ${key}`);
         }
     });
     
@@ -1336,7 +1403,7 @@ function formatCurrencyWithCurrency(amount, currency) {
     if (amount === null || amount === undefined) return '0';
     
     const formattedAmount = new Intl.NumberFormat('en-US').format(amount);
-    return `${formattedAmount} ${currency}`;
+    return `${currency} ${formattedAmount}`;
 }
 
 // Function to convert items from new API structure to print page structure
@@ -1547,27 +1614,27 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 </div>
                 <div class="financial-summary">
                     <div class="summary-row">
-                        <span class="summary-label">Total ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">Total</span>
                         <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Discounted ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">Discounted</span>
                         <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Sales Amount ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">Sales Amount</span>
                         <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">Tax Base Other Value</span>
                         <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">VAT 12% ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">VAT 12%</span>
                         <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                     <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL ${currentInvoiceData?.docCur || 'IDR'}</span>
+                        <span class="summary-label">GRAND TOTAL</span>
                         <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
                     </div>
                 </div>
@@ -2174,3 +2241,48 @@ function debugDataLoading() {
 
 // Make debug function available globally
 window.debugDataLoading = debugDataLoading; 
+
+// Function to check if financial data is complete and valid
+function isFinancialDataComplete(invoice) {
+    if (!invoice) {
+        console.log('No invoice data provided for financial completeness check');
+        return false;
+    }
+    
+    // Check if all required financial fields are present and have valid values
+    const requiredFields = ['netPrice', 'discSum', 'docTax', 'vatSum', 'grandTotal'];
+    const hasAllFields = requiredFields.every(field => {
+        const value = invoice[field];
+        const isValid = value !== null && value !== undefined && value !== '';
+        if (!isValid) {
+            console.log(`Field ${field} is missing or invalid:`, value);
+        }
+        return isValid;
+    });
+    
+    // Additional check: ensure at least one field has a non-zero value
+    const hasNonZeroValue = requiredFields.some(field => {
+        const value = invoice[field];
+        const numericValue = parseFloat(value) || 0;
+        const hasValue = numericValue > 0;
+        if (hasValue) {
+            console.log(`Field ${field} has non-zero value:`, numericValue);
+        }
+        return hasValue;
+    });
+    
+    console.log('Financial data completeness check:', {
+        hasAllFields,
+        hasNonZeroValue,
+        netPrice: invoice.netPrice,
+        discSum: invoice.discSum,
+        docTax: invoice.docTax,
+        vatSum: invoice.vatSum,
+        grandTotal: invoice.grandTotal
+    });
+    
+    const isComplete = hasAllFields && hasNonZeroValue;
+    console.log(`Financial data is ${isComplete ? 'COMPLETE' : 'INCOMPLETE'}`);
+    
+    return isComplete;
+}

@@ -375,8 +375,8 @@ function populateInvoiceData(invoice) {
         document.getElementById('recipientCity').textContent = '';
     }
     
-    // Shipper information
-    document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA'; // Default shipper
+    // Shipper information - Always use hardcoded value
+    document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA';
     
 
     
@@ -492,134 +492,80 @@ function getCurrentInvoiceData() {
 }
 
 // Function to populate bank information from API data
-// Uses acctName field from API without fallback dummy data
-// Implements text wrapping for lines longer than 30 characters
+// Only displays acctName and account fields directly
 function populateBankInformation(invoice) {
     console.log('Populating bank information from invoice:', invoice);
     
-    // Get currency from API - use docCur field from API
-    const currency = invoice.docCur || '';
-    
-    // Get bank information directly from acctName field
+    // Get bank information directly from acctName and account fields only
     let bankInformation = '';
     
     if (invoice.acctName) {
         console.log('Using acctName from API:', invoice.acctName);
-        bankInformation = invoice.acctName;
+        // Use wrapText if acctName exceeds 40 characters
+        if (invoice.acctName.length > 40) {
+            bankInformation = wrapText(invoice.acctName, 40);
+        } else {
+            bankInformation = invoice.acctName;
+        }
         
-        // Add account number if available
+        // Add account number if available (on new line)
         if (invoice.account) {
-            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
+            bankInformation += `<br>${invoice.account}`;
         }
     } else {
         console.log('No acctName found in API data');
         // If no acctName, just show account number if available
         if (invoice.account) {
-            bankInformation = `Acc No. ${invoice.account} (${currency})`;
+            bankInformation = invoice.account;
         }
     }
     
-    // Function to wrap text if longer than 30 characters
-    function wrapText(text, maxLength = 30) {
-        if (!text || text.length <= maxLength) {
-            return text;
-        }
-        
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-        
-        for (const word of words) {
-            if ((currentLine + ' ' + word).length <= maxLength) {
-                currentLine = currentLine ? currentLine + ' ' + word : word;
-            } else {
-                if (currentLine) {
-                    lines.push(currentLine);
-                }
-                currentLine = word;
-            }
-        }
-        
-        if (currentLine) {
-            lines.push(currentLine);
-        }
-        
-        return lines.join('<br>');
-    }
-    
-    // Populate the DOM element with wrap text functionality
+    // Populate the DOM element
     const bankInformationElement = document.getElementById('bankInformation');
     
     if (bankInformationElement) {
-        bankInformationElement.innerHTML = wrapText(bankInformation);
-        console.log('Bank information populated from acctName:', bankInformation);
+        bankInformationElement.innerHTML = bankInformation;
+        console.log('Bank information populated from acctName and account:', bankInformation);
     } else {
         console.error('Bank information element not found');
     }
 }
 
 // Function to populate bank information for additional pages
-// Uses acctName field from API without fallback dummy data
-// Implements text wrapping for lines longer than 30 characters
+// Only displays acctName and account fields directly
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
     
-    // Get currency from API - use docCur field from API
-    const currency = invoice?.docCur || '';
-    
-    // Get bank information directly from acctName field
+    // Get bank information directly from acctName and account fields only
     let bankInformation = '';
     
     if (invoice?.acctName) {
         console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
-        bankInformation = invoice.acctName;
+        // Use wrapText if acctName exceeds 40 characters
+        if (invoice.acctName.length > 40) {
+            bankInformation = wrapText(invoice.acctName, 40);
+        } else {
+            bankInformation = invoice.acctName;
+        }
         
-        // Add account number if available
+        // Add account number if available (on new line)
         if (invoice.account) {
-            bankInformation += `, Acc No. ${invoice.account} (${currency})`;
+            bankInformation += `<br>${invoice.account}`;
         }
     } else {
         console.log(`No acctName found for page ${pageNum}`);
         // If no acctName, just show account number if available
         if (invoice.account) {
-            bankInformation = `Acc No. ${invoice.account} (${currency})`;
+            bankInformation = invoice.account;
         }
     }
     
-    // Function to wrap text if longer than 30 characters
-    function wrapText(text, maxLength = 30) {
-        if (!text || text.length <= maxLength) {
-            return text;
-        }
-        
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-        
-        for (const word of words) {
-            if ((currentLine + ' ' + word).length <= maxLength) {
-                currentLine = currentLine ? currentLine + ' ' + word : word;
-            } else {
-                if (currentLine) {
-                    lines.push(currentLine);
-                }
-                currentLine = word;
-            }
-        }
-        
-        if (currentLine) {
-            lines.push(currentLine);
-        }
-        
-        return lines.join('<br>');
-    }
-    
-    // Populate the DOM element for the specific page with wrap text functionality
+    // Populate the DOM element for the specific page
     const bankInformationElement = document.getElementById(`bankInformation${pageNum}`);
     
     if (bankInformationElement) {
-        bankInformationElement.innerHTML = wrapText(bankInformation);
-        console.log(`Bank information populated for page ${pageNum} from acctName:`, bankInformation);
+        bankInformationElement.innerHTML = bankInformation;
+        console.log(`Bank information populated for page ${pageNum} from acctName and account:`, bankInformation);
     } else {
         console.error(`Bank information element not found for page ${pageNum}`);
     }
@@ -680,16 +626,8 @@ function populateFinancialSummary(invoice) {
             const data = financialData[key];
             element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
             console.log(`${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
-        }
-    });
-    
-    // Update currency labels with docCur from API
-    const currencyLabels = ['currencyLabel', 'currencyLabel2', 'currencyLabel3', 'currencyLabel4', 'currencyLabel5', 'currencyLabel6'];
-    currencyLabels.forEach(labelId => {
-        const labelElement = document.getElementById(labelId);
-        if (labelElement) {
-            labelElement.textContent = currency;
-            console.log(`Updated ${labelId} with currency: ${currency}`);
+        } else {
+            console.warn(`Financial summary element not found: ${key}`);
         }
     });
     
@@ -1059,7 +997,7 @@ function formatCurrencyWithCurrency(amount, currency) {
     if (amount === null || amount === undefined) return '0';
     
     const formattedAmount = new Intl.NumberFormat('en-US').format(amount);
-    return `${formattedAmount} ${currency}`;
+    return `${currency} ${formattedAmount}`;
 }
 
 // Function to convert items from new API structure to print page structure
@@ -1235,27 +1173,27 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 </div>
                 <div class="financial-summary">
                     <div class="summary-row">
-                        <span class="summary-label">Total ${currency}</span>
+                        <span class="summary-label">Total</span>
                         <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Discounted ${currency}</span>
+                        <span class="summary-label">Discounted</span>
                         <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Sales Amount ${currency}</span>
+                        <span class="summary-label">Sales Amount</span>
                         <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value ${currency}</span>
+                        <span class="summary-label">Tax Base Other Value</span>
                         <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">VAT 12% ${currency}</span>
+                        <span class="summary-label">VAT 12%</span>
                         <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL ${currency}</span>
+                        <span class="summary-label">GRAND TOTAL</span>
                         <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
                     </div>
                 </div>
