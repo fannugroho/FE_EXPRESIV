@@ -1242,6 +1242,35 @@ function handleRejectionRemarksDisplay(data) {
     if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
         // Show rejection remarks
         rejectionRemarksTextarea.value = remarksToShow.trim();
+        
+        // Populate rejection information if available
+        if (data.arInvoiceApprovalSummary) {
+            const summary = data.arInvoiceApprovalSummary;
+            
+            // Rejected By
+            const rejectedByElement = document.getElementById('rejectedByName');
+            if (rejectedByElement) {
+                rejectedByElement.value = summary.rejectedByName || '';
+            }
+            
+            // Rejected Date
+            const rejectedDateElement = document.getElementById('rejectedDate');
+            if (rejectedDateElement && summary.rejectedDate) {
+                const rejectedDate = new Date(summary.rejectedDate);
+                if (!isNaN(rejectedDate.getTime())) {
+                    rejectedDateElement.value = rejectedDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } else {
+                    rejectedDateElement.value = summary.rejectedDate || '';
+                }
+            }
+        }
+        
         rejectionRemarksSection.style.display = 'block';
         
         // Add visual indicator for rejection status

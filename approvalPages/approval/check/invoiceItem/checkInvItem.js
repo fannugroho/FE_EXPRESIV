@@ -420,6 +420,46 @@ function populateInvItemData(data) {
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             document.getElementById('rejectionRemarks').value = remarksToShow;
+            
+            // Populate rejection information if available
+            if (data.arInvoiceApprovalSummary.rejectedByName) {
+                const rejectedByElement = document.getElementById('rejectedByName');
+                if (rejectedByElement) {
+                    rejectedByElement.value = data.arInvoiceApprovalSummary.rejectedByName;
+                    console.log('Populated rejectedByName:', data.arInvoiceApprovalSummary.rejectedByName);
+                }
+            } else {
+                const rejectedByElement = document.getElementById('rejectedByName');
+                if (rejectedByElement) {
+                    rejectedByElement.value = '';
+                }
+            }
+            
+            if (data.arInvoiceApprovalSummary.rejectedDate) {
+                const rejectedDateElement = document.getElementById('rejectedDate');
+                if (rejectedDateElement) {
+                    const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
+                    if (!isNaN(rejectedDate.getTime())) {
+                        rejectedDateElement.value = rejectedDate.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        console.log('Populated rejectedDate:', rejectedDate.toLocaleDateString('en-US'));
+                    } else {
+                        rejectedDateElement.value = data.arInvoiceApprovalSummary.rejectedDate || '';
+                        console.log('Populated rejectedDate (raw):', data.arInvoiceApprovalSummary.rejectedDate);
+                    }
+                }
+            } else {
+                const rejectedDateElement = document.getElementById('rejectedDate');
+                if (rejectedDateElement) {
+                    rejectedDateElement.value = '';
+                }
+            }
+            
             document.getElementById('rejectionRemarksSection').style.display = 'block';
             console.log('Showing rejection remarks:', remarksToShow);
         } else {

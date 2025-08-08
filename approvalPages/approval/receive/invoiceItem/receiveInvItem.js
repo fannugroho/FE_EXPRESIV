@@ -378,6 +378,34 @@ function populateInvItemData(data) {
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             safeSetValue('rejectionRemarks', remarksToShow);
+            
+            // Populate rejection information if available
+            if (data.arInvoiceApprovalSummary.rejectedByName) {
+                safeSetValue('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
+                console.log('Populated rejectedByName:', data.arInvoiceApprovalSummary.rejectedByName);
+            } else {
+                safeSetValue('rejectedByName', '');
+            }
+            
+            if (data.arInvoiceApprovalSummary.rejectedDate) {
+                const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
+                if (!isNaN(rejectedDate.getTime())) {
+                    safeSetValue('rejectedDate', rejectedDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }));
+                    console.log('Populated rejectedDate:', rejectedDate.toLocaleDateString('en-US'));
+                } else {
+                    safeSetValue('rejectedDate', data.arInvoiceApprovalSummary.rejectedDate || '');
+                    console.log('Populated rejectedDate (raw):', data.arInvoiceApprovalSummary.rejectedDate);
+                }
+            } else {
+                safeSetValue('rejectedDate', '');
+            }
+            
             safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
