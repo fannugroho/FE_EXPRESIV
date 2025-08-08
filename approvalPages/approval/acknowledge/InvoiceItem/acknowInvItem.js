@@ -294,16 +294,14 @@ function populateInvItemData(data) {
         grandTotal: data.grandTotal
     });
     
-    // Total Amount (totalAmount) - API Field: "docCur" "docTotal"
-    safeSetValue('DocTotal', data.docTotal || 0);
+    // Total Amount (totalAmount) - API Field: "netPrice" only
+    safeSetValue('DocTotal', data.netPrice || 0);
     
     // Discounted Amount (discountAmount) - API Field: "docCur" "discSum"
     safeSetValue('discSum', data.discSum || 0);
     
-    // Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
-    // If netPriceAfterDiscount is null, calculate it as docTotal - vatSum
-    const salesAmount = data.netPriceAfterDiscount !== null ? data.netPriceAfterDiscount : (data.docTotal - data.vatSum);
-    safeSetValue('netPriceAfterDiscount', salesAmount || 0);
+    // Sales Amount (salesAmount) - API Field: "netPriceAfterDiscount" only
+    safeSetValue('netPriceAfterDiscount', data.netPriceAfterDiscount || 0);
     
     // Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
     safeSetValue('dpp1112', data.dpp1112 || 0);
@@ -311,7 +309,7 @@ function populateInvItemData(data) {
     // VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
     safeSetValue('VatSum', data.vatSum || 0);
     
-    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
+    // GRAND TOTAL (grandTotal) - API Field: "grandTotal" only
     safeSetValue('grandTotal', data.grandTotal || 0);
     
     // Legacy fields for compatibility

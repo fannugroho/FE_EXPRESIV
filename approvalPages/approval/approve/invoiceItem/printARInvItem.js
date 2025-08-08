@@ -635,33 +635,39 @@ function populateFinancialSummary(invoice) {
     
     // Financial summary field mapping based on API response
     const financialData = {
+        // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
         totalAmount: {
-            value: invoice.docTotal || 0,
+            value: invoice.netPrice || 0,
             currency: currency,
             label: 'Total'
         },
+        // 2. Discounted (discountAmount) - API Field: "docCur" "discSum"
         discountAmount: {
             value: invoice.discSum || 0,
             currency: currency,
             label: 'Discounted'
         },
+        // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
         salesAmount: {
-            value: invoice.netPriceAfterDiscount || invoice.netPrice || 0,
+            value: invoice.netPriceAfterDiscount || 0,
             currency: currency,
             label: 'Sales Amount'
         },
+        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
         taxBase: {
             value: invoice.docTax || 0,
             currency: currency,
             label: 'Tax Base Other Value'
         },
+        // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
         vatAmount: {
             value: invoice.vatSum || 0,
             currency: currency,
             label: 'VAT 12%'
         },
+        // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
         grandTotal: {
-            value: invoice.grandTotal || invoice.docTotal || 0,
+            value: invoice.grandTotal || 0,
             currency: currency,
             label: 'GRAND TOTAL'
         }
@@ -1230,7 +1236,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 <div class="financial-summary">
                     <div class="summary-row">
                         <span class="summary-label">Total ${currency}</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTotal || 0, currency)}</span>
+                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Discounted ${currency}</span>
@@ -1238,7 +1244,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Sales Amount ${currency}</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || currentInvoiceData?.netPrice || 0, currency)}</span>
+                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Tax Base Other Value ${currency}</span>
@@ -1250,7 +1256,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     </div>
                     <div class="summary-row total-line">
                         <span class="summary-label">GRAND TOTAL ${currency}</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || currentInvoiceData?.docTotal || 0, currency)}</span>
+                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
                     </div>
                 </div>
             </div>

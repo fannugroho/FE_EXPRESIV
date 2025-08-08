@@ -363,41 +363,39 @@ function populateInvItemData(data) {
     // Populate summary fields with currency formatting
     const docCur = data.docCur || 'IDR';
     
-    // Total Amount (docTotal) - API Field: "docCur" "docTotal"
-    const docTotal = data.docTotal || 0;
-    document.getElementById('docTotal').value = formatCurrencyIDR(docTotal);
+    // Total Amount (totalAmount) - from docCur and netPrice fields
+    const totalAmount = data.netPrice || '0.00';
+    document.getElementById('docTotal').value = formatCurrencyIDR(totalAmount);
     
-    // Discounted Amount (discSum) - API Field: "docCur" "discSum"
-    const discSum = data.discSum || 0;
-    document.getElementById('discSum').value = formatCurrencyIDR(discSum);
+    // Discounted Amount (discountAmount) - from docCur and discSum fields
+    const discountAmount = data.discSum || '0.00';
+    document.getElementById('discSum').value = formatCurrencyIDR(discountAmount);
     
-    // Sales Amount (netPriceAfterDiscount) - API Field: "docCur" "netPriceAfterDiscount"
-    // Use netPriceAfterDiscount if available, otherwise use netPrice, fallback to docTotal
-    const netPriceAfterDiscount = data.netPriceAfterDiscount !== null && data.netPriceAfterDiscount !== undefined 
-        ? data.netPriceAfterDiscount 
-        : (data.netPrice || data.docTotal || 0);
-    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(netPriceAfterDiscount);
+    // Sales Amount (salesAmount) - from docCur and netPriceAfterDiscount fields
+    const salesAmount = data.netPriceAfterDiscount || '0.00';
+    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(salesAmount);
     
     console.log('Summary fields populated:', {
-        docTotal: data.docTotal,
+        docCur: data.docCur,
+        netPrice: data.netPrice,
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
-        netPrice: data.netPrice,
-        dpp1112: data.dpp1112,
+        docTax: data.docTax,
         vatSum: data.vatSum,
-        grandTotal: data.grandTotal
+        grandTotal: data.grandTotal,
+        note: 'Using specific API fields with currency'
     });
     
-    // Tax Base Other Value (dpp1112) - API Field: "docCur" "dpp1112"
-    const dpp1112 = data.dpp1112 || 0;
-    document.getElementById('dpp1112').value = formatCurrencyIDR(dpp1112);
+    // Tax Base Other Value (taxBase) - from docCur and docTax fields
+    const taxBase = data.docTax || '0.00';
+    document.getElementById('dpp1112').value = formatCurrencyIDR(taxBase);
     
-    // VAT 12% (vatSum) - API Field: "docCur" "vatSum"
-    const vatSum = data.vatSum || 0;
-    document.getElementById('vatSum').value = formatCurrencyIDR(vatSum);
+    // VAT 12% (vatAmount) - from docCur and vatSum fields
+    const vatAmount = data.vatSum || '0.00';
+    document.getElementById('vatSum').value = formatCurrencyIDR(vatAmount);
     
-    // GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
-    const grandTotal = data.grandTotal || data.docTotal || 0;
+    // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields
+    const grandTotal = data.grandTotal || '0.00';
     document.getElementById('grandTotal').value = formatCurrencyIDR(grandTotal);
     
     // Populate comments
@@ -422,6 +420,46 @@ function populateInvItemData(data) {
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             document.getElementById('rejectionRemarks').value = remarksToShow;
+            
+            // Populate rejection information if available
+            if (data.arInvoiceApprovalSummary.rejectedByName) {
+                const rejectedByElement = document.getElementById('rejectedByName');
+                if (rejectedByElement) {
+                    rejectedByElement.value = data.arInvoiceApprovalSummary.rejectedByName;
+                    console.log('Populated rejectedByName:', data.arInvoiceApprovalSummary.rejectedByName);
+                }
+            } else {
+                const rejectedByElement = document.getElementById('rejectedByName');
+                if (rejectedByElement) {
+                    rejectedByElement.value = '';
+                }
+            }
+            
+            if (data.arInvoiceApprovalSummary.rejectedDate) {
+                const rejectedDateElement = document.getElementById('rejectedDate');
+                if (rejectedDateElement) {
+                    const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
+                    if (!isNaN(rejectedDate.getTime())) {
+                        rejectedDateElement.value = rejectedDate.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        console.log('Populated rejectedDate:', rejectedDate.toLocaleDateString('en-US'));
+                    } else {
+                        rejectedDateElement.value = data.arInvoiceApprovalSummary.rejectedDate || '';
+                        console.log('Populated rejectedDate (raw):', data.arInvoiceApprovalSummary.rejectedDate);
+                    }
+                }
+            } else {
+                const rejectedDateElement = document.getElementById('rejectedDate');
+                if (rejectedDateElement) {
+                    rejectedDateElement.value = '';
+                }
+            }
+            
             document.getElementById('rejectionRemarksSection').style.display = 'block';
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
