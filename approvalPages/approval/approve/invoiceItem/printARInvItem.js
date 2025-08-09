@@ -599,9 +599,9 @@ function populateFinancialSummary(invoice) {
             currency: currency,
             label: 'Sales Amount'
         },
-        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
+        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
         taxBase: {
-            value: invoice.docTax || 0,
+            value: invoice.dpp1112 || 0,
             currency: currency,
             label: 'Tax Base Other Value'
         },
@@ -1186,7 +1186,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Tax Base Other Value</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currency)}</span>
+                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.dpp1112 || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">VAT 12%</span>

@@ -121,13 +121,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Always populate signature information
                 populateSignatureInformation(parsedData);
+                // Debug cached financial data
+                console.log('=== CACHED FINANCIAL DATA DEBUG ===');
+                console.log('Cached netPrice:', parsedData.netPrice);
+                console.log('Cached discSum:', parsedData.discSum);
+                console.log('Cached netPriceAfterDiscount:', parsedData.netPriceAfterDiscount);
+                console.log('Cached dpp1112:', parsedData.dpp1112);
+                console.log('Cached vatSum:', parsedData.vatSum);
+                console.log('Cached grandTotal:', parsedData.grandTotal);
+                console.log('Cached docCur:', parsedData.docCur);
+                console.log('=== END CACHED FINANCIAL DATA DEBUG ===');
                 
-                // Pre-populate financial summary data immediately ONLY if data is complete
+                // Only populate financial summary if cached data is complete
                 if (isFinancialDataComplete(parsedData)) {
-                    console.log('Financial data is complete, pre-populating financial summary...');
+                    console.log('Cached financial data is complete, populating summary...');
                     populateFinancialSummary(parsedData);
                 } else {
-                    console.log('Financial data is incomplete, skipping pre-population. Will wait for API data...');
+                    console.log('Cached financial data is incomplete, will wait for API data...');
                 }
             } else {
                 // If no data in localStorage, try to fetch signature data directly
@@ -136,10 +146,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status && result.data) {
-                            console.log('Pre-populating signature and financial summary from API data...');
+                            console.log('Pre-populating signature data from API...');
                             populateSignatureInformation(result.data);
-                            // Pre-populate financial summary data immediately
-                            populateFinancialSummary(result.data);
+                            // Debug API financial data
+                            console.log('=== API FINANCIAL DATA DEBUG ===');
+                            console.log('API netPrice:', result.data.netPrice);
+                            console.log('API discSum:', result.data.discSum);
+                            console.log('API netPriceAfterDiscount:', result.data.netPriceAfterDiscount);
+                            console.log('API dpp1112:', result.data.dpp1112);
+                            console.log('API vatSum:', result.data.vatSum);
+                            console.log('API grandTotal:', result.data.grandTotal);
+                            console.log('API docCur:', result.data.docCur);
+                            console.log('=== END API FINANCIAL DATA DEBUG ===');
+                            
+                            // Only populate financial summary if API data is complete
+                            if (isFinancialDataComplete(result.data)) {
+                                console.log('API financial data is complete, populating summary...');
+                                populateFinancialSummary(result.data);
+                            } else {
+                                console.log('API financial data is incomplete, will populate during main data load...');
+                            }
                         }
                     })
                     .catch(error => {
@@ -159,12 +185,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const parentData = window.opener.currentInvItemData;
             // Populate signature first to ensure it's displayed immediately
             populateSignatureInformation(parentData);
-            // Pre-populate financial summary data immediately ONLY if data is complete
+            // Debug parent window financial data
+            console.log('=== PARENT WINDOW FINANCIAL DATA DEBUG ===');
+            console.log('Parent netPrice:', parentData.netPrice);
+            console.log('Parent discSum:', parentData.discSum);
+            console.log('Parent netPriceAfterDiscount:', parentData.netPriceAfterDiscount);
+            console.log('Parent dpp1112:', parentData.dpp1112);
+            console.log('Parent vatSum:', parentData.vatSum);
+            console.log('Parent grandTotal:', parentData.grandTotal);
+            console.log('Parent docCur:', parentData.docCur);
+            console.log('=== END PARENT WINDOW FINANCIAL DATA DEBUG ===');
+            
+            // Only populate financial summary if parent data is complete
             if (isFinancialDataComplete(parentData)) {
-                console.log('Financial data from parent window is complete, pre-populating financial summary...');
+                console.log('Parent financial data is complete, populating summary...');
                 populateFinancialSummary(parentData);
             } else {
-                console.log('Financial data from parent window is incomplete, skipping pre-population...');
+                console.log('Parent financial data is incomplete, will populate during main data load...');
             }
             // Then populate the rest of the invoice data
             populateInvoiceData(parentData);
@@ -331,6 +368,17 @@ async function loadInvoiceData(invoiceId) {
 // Function to populate invoice data with new API structure
 function populateInvoiceData(invoice) {
     console.log('Populating invoice data:', invoice);
+    
+    // Debug: Check financial data fields specifically
+    console.log('=== FINANCIAL DATA DEBUG ===');
+    console.log('netPrice:', invoice.netPrice);
+    console.log('discSum:', invoice.discSum);
+    console.log('netPriceAfterDiscount:', invoice.netPriceAfterDiscount);
+    console.log('dpp1112:', invoice.dpp1112);
+    console.log('vatSum:', invoice.vatSum);
+    console.log('grandTotal:', invoice.grandTotal);
+    console.log('docCur:', invoice.docCur);
+    console.log('=== END FINANCIAL DATA DEBUG ===');
     
     // Populate signature information first
     populateSignatureInformation(invoice);
@@ -521,13 +569,30 @@ function populateInvoiceData(invoice) {
             saveInvoiceDataToStorage(identifier, invoice);
         }
         
+        // Always store in window object for immediate access during pagination
+        window.latestInvoiceData = invoice;
+        console.log('Stored latest invoice data in window object for immediate access');
+        console.log('Window data financial fields:', {
+            netPrice: window.latestInvoiceData.netPrice,
+            grandTotal: window.latestInvoiceData.grandTotal,
+            docCur: window.latestInvoiceData.docCur
+        });
+        
         // Financial summary - use API fields with currency
-        // Only populate if data is complete and valid
-        if (isFinancialDataComplete(invoice)) {
-            console.log('Financial data is complete, populating financial summary...');
+        // Check if elements already have values (to avoid overwriting)
+        const totalAmountElement = document.getElementById('totalAmount');
+        const shouldPopulateFinancial = !totalAmountElement || 
+            totalAmountElement.textContent === '' || 
+            totalAmountElement.textContent === 'IDR 0' ||
+            totalAmountElement.textContent === '0';
+            
+        if (shouldPopulateFinancial) {
+            console.log('Populating financial summary as elements are empty or zero...');
+            console.log('Current totalAmount element value:', totalAmountElement ? totalAmountElement.textContent : 'element not found');
             populateFinancialSummary(invoice);
         } else {
-            console.log('Financial data is incomplete, skipping financial summary population...');
+            console.log('Financial summary already populated, skipping...');
+            console.log('Current totalAmount element value:', totalAmountElement ? totalAmountElement.textContent : 'element not found');
         }
         
         // Bank account information from API data
@@ -547,7 +612,13 @@ function populateInvoiceData(invoice) {
 
 // Function to get current invoice data for use in additional pages
 function getCurrentInvoiceData() {
-    // Try to get data from localStorage first
+    // Try to get fresh data from window.latestInvoiceData first if it's complete
+    if (window.latestInvoiceData && isFinancialDataComplete(window.latestInvoiceData)) {
+        console.log('Using fresh complete data from window.latestInvoiceData');
+        return window.latestInvoiceData;
+    }
+    
+    // Try to get data from localStorage next
     const urlParams = new URLSearchParams(window.location.search);
     const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
@@ -559,7 +630,16 @@ function getCurrentInvoiceData() {
         if (storedData) {
             const parsedData = JSON.parse(storedData);
             console.log('Found invoice data in localStorage:', parsedData);
+            
+            // Check if financial data is complete in stored data
+            if (isFinancialDataComplete(parsedData)) {
+                console.log('Stored data has complete financial information');
             return parsedData;
+            } else {
+                console.log('Stored data has incomplete financial information, will fetch fresh data');
+                // Try to fetch fresh data from API instead of using incomplete cached data
+                return null;
+            }
         }
     }
     
@@ -568,7 +648,16 @@ function getCurrentInvoiceData() {
         if (storedData) {
             const parsedData = JSON.parse(storedData);
             console.log('Found invoice data in localStorage:', parsedData);
+            
+            // Check if financial data is complete in stored data
+            if (isFinancialDataComplete(parsedData)) {
+                console.log('Stored data has complete financial information');
             return parsedData;
+            } else {
+                console.log('Stored data has incomplete financial information, will fetch fresh data');
+                // Try to fetch fresh data from API instead of using incomplete cached data
+                return null;
+            }
         }
     }
     
@@ -578,7 +667,15 @@ function getCurrentInvoiceData() {
         if (sessionData) {
             const parsedData = JSON.parse(sessionData);
             console.log('Found invoice data in sessionStorage:', parsedData);
+            
+            // Check if financial data is complete in session data
+            if (isFinancialDataComplete(parsedData)) {
+                console.log('Session data has complete financial information');
             return parsedData;
+            } else {
+                console.log('Session data has incomplete financial information');
+                return null;
+            }
         }
     }
     
@@ -587,7 +684,15 @@ function getCurrentInvoiceData() {
         if (sessionData) {
             const parsedData = JSON.parse(sessionData);
             console.log('Found invoice data in sessionStorage:', parsedData);
+            
+            // Check if financial data is complete in session data
+            if (isFinancialDataComplete(parsedData)) {
+                console.log('Session data has complete financial information');
             return parsedData;
+            } else {
+                console.log('Session data has incomplete financial information');
+                return null;
+            }
         }
     }
     
@@ -635,15 +740,83 @@ function populateBankInformation(invoice) {
     }
 }
 
+// Function to populate financial summary for additional pages
+function populateFinancialSummaryForPage(invoice, pageNum) {
+    console.log(`Populating financial summary for page ${pageNum} with invoice:`, invoice);
+    
+    if (!invoice) {
+        console.warn(`No invoice data provided for financial summary on page ${pageNum}`);
+        return;
+    }
+    
+    // Get currency from API - use docCur field from API
+    const currency = invoice.docCur || '';
+    console.log(`Currency from API docCur field for page ${pageNum}:`, currency);
+    
+    // Financial summary field mapping based on API response
+    const financialData = {
+        [`totalAmount${pageNum}`]: {
+            value: invoice.netPrice || 0,
+            currency: currency,
+            label: 'Total'
+        },
+        [`discountAmount${pageNum}`]: {
+            value: invoice.discSum || 0,
+            currency: currency,
+            label: 'Discounted'
+        },
+        [`salesAmount${pageNum}`]: {
+            value: invoice.netPriceAfterDiscount || 0,
+            currency: currency,
+            label: 'Sales Amount'
+        },
+        [`taxBase${pageNum}`]: {
+            value: invoice.dpp1112 || 0,
+            currency: currency,
+            label: 'Tax Base Other Value'
+        },
+        [`vatAmount${pageNum}`]: {
+            value: invoice.vatSum || 0,
+            currency: currency,
+            label: 'VAT 12%'
+        },
+        [`grandTotal${pageNum}`]: {
+            value: invoice.grandTotal || 0,
+            currency: currency,
+            label: 'GRAND TOTAL'
+        }
+    };
+    
+    // Populate the DOM elements for this page
+    Object.keys(financialData).forEach(key => {
+        const element = document.getElementById(key);
+        if (element) {
+            const data = financialData[key];
+            element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
+            console.log(`Page ${pageNum} - ${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
+        } else {
+            console.warn(`Financial summary element not found for page ${pageNum}: ${key}`);
+        }
+    });
+    
+    console.log(`Financial summary populated for page ${pageNum} with currency from docCur:`, currency);
+}
+
 // Function to populate bank information for additional pages
 // Only displays acctName and account fields directly
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
     
+    // Check if invoice data is valid
+    if (!invoice) {
+        console.warn(`No invoice data provided for bank information on page ${pageNum}`);
+        return;
+    }
+    
     // Get bank information directly from acctName and account fields only
     let bankInformation = '';
     
-    if (invoice?.acctName) {
+    if (invoice.acctName) {
         console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
         // Use wrapText if acctName exceeds 40 characters
         if (invoice.acctName.length > 40) {
@@ -679,14 +852,8 @@ function populateBankInformationForPage(invoice, pageNum) {
 function populateFinancialSummary(invoice) {
     console.log('Populating financial summary from invoice:', invoice);
     
-    // Check if invoice data is available
-    if (!invoice) {
-        console.log('No invoice data available for financial summary');
-        return;
-    }
-    
     // Get currency from API - use docCur field from API
-    const currency = invoice.docCur || 'IDR';
+    const currency = invoice.docCur || '';
     console.log('Currency from API docCur field:', currency);
     
     // Financial summary field mapping based on API response
@@ -709,9 +876,9 @@ function populateFinancialSummary(invoice) {
             currency: currency,
             label: 'Sales Amount'
         },
-        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
+        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
         taxBase: {
-            value: invoice.docTax || 0,
+            value: invoice.dpp1112 || 0,
             currency: currency,
             label: 'Tax Base Other Value'
         },
@@ -1398,10 +1565,9 @@ function generateQRCodeWithAPIForPage(qrCodeString, qrCodeElement, qrCodeData, p
     }
 }
 
-// Function to format currency with currency code
+// formatCurrencyWithCurrency kept if needed elsewhere; safe to remove as financial summary removed
 function formatCurrencyWithCurrency(amount, currency) {
     if (amount === null || amount === undefined) return '0';
-    
     const formattedAmount = new Intl.NumberFormat('en-US').format(amount);
     return `${currency} ${formattedAmount}`;
 }
@@ -1448,20 +1614,16 @@ function populateItemsTable(items) {
     console.log('Removing existing pages:', existingPages.length);
     existingPages.forEach(page => page.remove());
     
-    // Hide footer and payment summary on first page if there are multiple pages
+    // Hide footer on first page if there are multiple pages
     const footer = document.getElementById('footer');
     const paymentSummary = document.getElementById('paymentSummary');
     
     if (totalPages > 1) {
         if (footer) footer.style.display = 'none';
-        if (paymentSummary) {
-            paymentSummary.style.display = 'none';
-        }
+        if (paymentSummary) paymentSummary.style.display = 'none';
     } else {
         if (footer) footer.style.display = 'flex';
-        if (paymentSummary) {
-            paymentSummary.style.display = 'flex';
-        }
+        if (paymentSummary) paymentSummary.style.display = 'flex';
     }
     
     // Populate first page
@@ -1490,18 +1652,13 @@ function populateItemsTable(items) {
     // Store total pages for use in additional pages
     window.totalPages = totalPages;
     
-    // If multiple pages, ensure payment summary is hidden on first page
+    // Ensure payment instructions visibility according to pages
     if (totalPages > 1) {
-        const paymentSummary = document.getElementById('paymentSummary');
-        if (paymentSummary) {
-            paymentSummary.style.display = 'none';
-        }
+        const paymentSummaryEl = document.getElementById('paymentSummary');
+        if (paymentSummaryEl) paymentSummaryEl.style.display = 'none';
     } else {
-        // If single page, ensure payment summary is visible
-        const paymentSummary = document.getElementById('paymentSummary');
-        if (paymentSummary) {
-            paymentSummary.style.display = 'flex';
-        }
+        const paymentSummaryEl = document.getElementById('paymentSummary');
+        if (paymentSummaryEl) paymentSummaryEl.style.display = 'flex';
     }
     
     // Update page info for all pages
@@ -1600,12 +1757,59 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
         </table>
     `;
     
-    // Create payment summary if it's the last page
+    // Create payment instructions + financial summary if it's the last page
     let paymentSummaryHTML = '';
     if (isLastPage) {
-        // Get the current invoice data to populate payment summary
-        const currentInvoiceData = getCurrentInvoiceData();
+        let currentInvoiceData = getCurrentInvoiceData();
         
+        // If no complete data found, try to get it from the main loading process
+        if (!currentInvoiceData) {
+            console.log('No complete invoice data found in getCurrentInvoiceData(), using alternative approach...');
+            
+            // Try to get data from the global window object that was just populated
+            if (window.latestInvoiceData) {
+                currentInvoiceData = window.latestInvoiceData;
+                console.log('Using latestInvoiceData from window object');
+            } else {
+                // Try to get from localStorage with a more direct approach
+                const urlParams = new URLSearchParams(window.location.search);
+                const stagingID = urlParams.get('stagingID');
+                const docEntry = urlParams.get('docEntry');
+                const identifier = stagingID || docEntry;
+                
+                if (identifier) {
+                    try {
+                        const storedData = localStorage.getItem(`invoice_${identifier}`);
+                        if (storedData) {
+                            const parsedData = JSON.parse(storedData);
+                            // Use even incomplete data if it's all we have for additional pages
+                            currentInvoiceData = parsedData;
+                            console.log('Using stored data for additional page (may be incomplete)');
+                        }
+                    } catch (error) {
+                        console.error('Error parsing stored invoice data:', error);
+                    }
+                }
+            }
+            
+            // Final fallback - use default values
+            if (!currentInvoiceData) {
+                console.warn('No invoice data available, using default values for additional page');
+                currentInvoiceData = {
+                    docCur: 'IDR',
+                    netPrice: 0,
+                    discSum: 0,
+                    netPriceAfterDiscount: 0,
+                    dpp1112: 0,
+                    vatSum: 0,
+                    grandTotal: 0,
+                    acctName: '',
+                    account: ''
+                };
+            }
+        }
+        
+        const currency = currentInvoiceData?.docCur || '';
         paymentSummaryHTML = `
             <div class="payment-summary">
                 <div class="payment-instructions">
@@ -1615,41 +1819,78 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                 <div class="financial-summary">
                     <div class="summary-row">
                         <span class="summary-label">Total</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Discounted</span>
-                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Sales Amount</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Tax Base Other Value</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.docTax || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.dpp1112 || 0, currency)}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">VAT 12%</span>
-                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
                     </div>
                     <div class="summary-row total-line">
                         <span class="summary-label">GRAND TOTAL</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currentInvoiceData?.docCur || 'IDR')}</span>
+                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
                     </div>
                 </div>
             </div>
         `;
+
+        // Populate bank information, financial summary, and QR Code for additional pages immediately after page creation
+        console.log(`Setting up data population for page ${pageNum} with data:`, currentInvoiceData);
         
-                // Populate bank information for additional pages
-            setTimeout(() => {
-            populateBankInformationForPage(currentInvoiceData, pageNum);
-            }, 100);
-        
-        // Populate QR Code for additional pages
-            setTimeout(() => {
-            populateQRCodeForPage(currentInvoiceData, pageNum);
-            }, 100);
+                // Use setTimeout to ensure DOM is ready, but populate all data together
+        setTimeout(() => {
+            // Get the most up-to-date data from window.latestInvoiceData if available
+            let freshInvoiceData = currentInvoiceData;
+            if (window.latestInvoiceData && isFinancialDataComplete(window.latestInvoiceData)) {
+                freshInvoiceData = window.latestInvoiceData;
+                console.log(`Using fresh complete data from window.latestInvoiceData for page ${pageNum}`);
+            } else if (!currentInvoiceData) {
+                console.error(`No valid invoice data available for page ${pageNum}`);
+                return;
+            }
+            
+            console.log(`Valid invoice data confirmed for page ${pageNum}, proceeding with population...`);
+            console.log(`Financial data for page ${pageNum}:`, {
+                netPrice: freshInvoiceData.netPrice,
+                grandTotal: freshInvoiceData.grandTotal,
+                docCur: freshInvoiceData.docCur
+            });
+            
+            // Populate bank information
+            try {
+                populateBankInformationForPage(freshInvoiceData, pageNum);
+            } catch (error) {
+                console.error(`Error populating bank information for page ${pageNum}:`, error);
+            }
+            
+            // Populate financial summary with fresh current data
+            try {
+                console.log(`About to populate financial summary for page ${pageNum}...`);
+                populateFinancialSummaryForPage(freshInvoiceData, pageNum);
+            } catch (error) {
+                console.error(`Error populating financial summary for page ${pageNum}:`, error);
+            }
+            
+            // Populate QR Code
+            try {
+                populateQRCodeForPage(freshInvoiceData, pageNum);
+            } catch (error) {
+                console.error(`Error populating QR code for page ${pageNum}:`, error);
+            }
+            
+            console.log(`Completed data population for page ${pageNum}`);
+        }, 200); // Slightly longer delay to ensure DOM is fully ready
     }
     
     // Create footer only if it's the last page
@@ -2007,7 +2248,7 @@ function generateIndonesianInvoiceQRCode(invoice) {
             // Informasi Keuangan - using correct API field mapping
             subtotal: invoice.netPrice || 0,  // API Field: "netPrice"
             discount: invoice.discSum || 0,   // API Field: "discSum"
-            taxBase: invoice.docTax || 0,     // API Field: "docTax"
+            taxBase: invoice.dpp1112 || 0,     // API Field: "dpp1112"
             vatAmount: invoice.vatSum || 0,   // API Field: "vatSum"
             grandTotal: invoice.grandTotal || 0,  // API Field: "grandTotal"
             currency: invoice.docCur || 'IDR',
@@ -2250,7 +2491,7 @@ function isFinancialDataComplete(invoice) {
     }
     
     // Check if all required financial fields are present and have valid values
-    const requiredFields = ['netPrice', 'discSum', 'docTax', 'vatSum', 'grandTotal'];
+    const requiredFields = ['netPrice', 'discSum', 'dpp1112', 'vatSum', 'grandTotal'];
     const hasAllFields = requiredFields.every(field => {
         const value = invoice[field];
         const isValid = value !== null && value !== undefined && value !== '';
@@ -2276,7 +2517,7 @@ function isFinancialDataComplete(invoice) {
         hasNonZeroValue,
         netPrice: invoice.netPrice,
         discSum: invoice.discSum,
-        docTax: invoice.docTax,
+        dpp1112: invoice.dpp1112,
         vatSum: invoice.vatSum,
         grandTotal: invoice.grandTotal
     });
