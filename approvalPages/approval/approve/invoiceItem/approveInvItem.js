@@ -449,9 +449,9 @@ function populateInvItemData(data) {
         note: 'Using specific API fields with currency'
     });
     
-    // Tax Base Other Value (taxBase) - from docCur and docTax fields
-    const taxBase = data.docTax || 0;
-    safeSetValue('dpp1112', formatCurrencyIDR(taxBase));
+            // Tax Base Other Value (taxBase) - from dpp1112 field
+        const taxBase = data.dpp1112 || 0;
+        safeSetValue('dpp1112', formatCurrencyIDR(taxBase));
     
     // VAT 12% (vatAmount) - from docCur and vatSum fields
     const vatAmount = data.vatSum || 0;

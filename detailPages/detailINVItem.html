@@ -1711,17 +1711,27 @@
                         2. Set preparedDate to current timestamp
                         3. Send both values to the API
                     -->
-                    <button 
-                        id="submitButton" 
-                        onclick="submitInvoiceData()" 
-                        class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-                        disabled
-                    >
-                        <span id="submitButtonText">Submit</span>
-                        <div id="submitSpinner" class="hidden inline-block ml-2">
-                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        </div>
-                    </button>
+                    <div class="flex items-center justify-center gap-6">
+                        <button 
+                            id="rejectButton"
+                            onclick="rejectInvoice()"
+                            class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                            style="display: none;"
+                        >
+                            Reject
+                        </button>
+                        <button 
+                            id="submitButton" 
+                            onclick="submitInvoiceData()" 
+                            class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                            disabled
+                        >
+                            <span id="submitButtonText">Submit</span>
+                            <div id="submitSpinner" class="hidden inline-block ml-2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            </div>
+                        </button>
+                    </div>
                     <p class="text-sm text-gray-600 mt-2">Click to submit this invoice data and update approval status from Draft to Prepared</p>
                 </div>
             </div>

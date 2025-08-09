@@ -95,7 +95,7 @@
             /* Remove background colors and shadows for print */
             * {
                 -webkit-print-color-adjust: exact !important;
-                color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             
             /* Ensure images print properly */
@@ -238,7 +238,11 @@
                 right: -180px !important;
                 background-color: transparent !important;
                 border: none !important;
-                /* Display QR code when printing if it has content */
+                /* Hide by default when printing */
+                display: none !important;
+            }
+            /* Show only when it has content (e.g., an <img>) */
+            .qr-code:not(:empty) {
                 display: flex !important;
             }
             
@@ -930,7 +934,7 @@
                 <div class="payment-summary" id="paymentSummary">
                     <div class="payment-instructions">
                         <div class="payment-title">Please remit us in full amount to :</div>
-                        <br><div id="bankInformation"></div>
+                        <div id="bankInformation"></div>
                     </div>
                     <div class="financial-summary">
                         <div class="summary-row">
@@ -965,7 +969,7 @@
             <div class="footer" id="footer">
                 <div class="signature-section">
                     <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
-                    <div class="qr-code">QR CODE</div>
+                    <div class="qr-code"></div>
                     <div class="signature-space"></div>
                     <div class="signature-name" id="signatureName"></div>
                     <div class="signature-title" id="signatureTitle"></div>

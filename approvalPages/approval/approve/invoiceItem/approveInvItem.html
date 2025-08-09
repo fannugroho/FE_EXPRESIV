@@ -1239,88 +1239,7 @@
             }
         }
         
-        /* Enhanced rejection remarks section styling */
-        #rejectionRemarksSection {
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
-        }
-        
-        #rejectionRemarksSection h3 {
-            color: #dc2626;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-        }
-        
-        #rejectionRemarksSection h3::before {
-            content: "⚠️";
-            margin-right: 0.5rem;
-            font-size: 1.2em;
-        }
-        
-        #rejectionRemarksSection .bg-red-50 {
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 0.5rem;
-            padding: 1rem;
-        }
-        
-        #rejectionRemarksSection textarea {
-            background-color: white;
-            border: 1px solid #fecaca;
-            border-radius: 0.375rem;
-            padding: 0.75rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            resize: vertical;
-            min-height: 80px;
-            font-family: 'Courier New', monospace;
-        }
-        
-        #rejectionRemarksSection textarea:focus {
-            outline: none;
-            border-color: #dc2626;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-        }
-        
-        /* Rejection status styling */
-        .status-rejected {
-            color: #dc2626 !important;
-            font-weight: bold !important;
-            background-color: #fef2f2 !important;
-            border: 1px solid #fecaca !important;
-            padding: 0.5rem !important;
-            border-radius: 0.375rem !important;
-        }
-        
-        /* Rejection button enhanced styling */
-        #rejectButton {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            border: none;
-            box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
-        }
-        
-        #rejectButton:hover {
-            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(220, 38, 38, 0.4);
-        }
-        
-        /* Rejection animation */
-        @keyframes rejectionPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-        
-        .rejection-animation {
-            animation: rejectionPulse 2s ease-in-out;
-        }
+        /* Rejection remarks styling follows detailINVItem layout */
     </style>
 </head>
 
@@ -1513,22 +1432,9 @@
 
         <!-- Rejection Remarks Display Section -->
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Information</h3>
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-sm font-medium text-red-700 mb-1">Rejected By:</label>
-                        <input type="text" id="rejectedByName" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800" readonly>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-red-700 mb-1">Rejected Date:</label>
-                        <input type="text" id="rejectedDate" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800" readonly>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-red-700 mb-1">Rejection Remarks:</label>
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
-                </div>
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly autocomplete="off"></textarea>
             </div>
         </div>
 

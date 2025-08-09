@@ -492,31 +492,65 @@ function getCurrentInvoiceData() {
 }
 
 // Function to populate bank information from API data
-// Only displays acctName and account fields directly
+// Displays hardcoded bank data based on U_bankCode and account field
 function populateBankInformation(invoice) {
     console.log('Populating bank information from invoice:', invoice);
+    console.log('u_bankCode from API:', invoice.u_bankCode);
+    console.log('U_BankCode from API:', invoice.U_BankCode);
+    console.log('bankCode from API:', invoice.bankCode);
+    console.log('All invoice keys for debugging:', Object.keys(invoice));
     
-    // Get bank information directly from acctName and account fields only
+    // Hardcoded bank data mapping based on U_bankCode
+    const bankDataMapping = {
+        "MUFG": {
+            "name": "MUFG Bank, Ltd., Jakarta Branch",
+            "address_building": "Trinity Tower, Lt. 6-9",
+            "address_street": "Jl. H. R. Rasuna Said Kav. C22 Blok IIB",
+            "address_cityPos": "Jakarta 12940"
+        },
+        "MIZUHO": {
+            "name": "Bank Mizuho Indonesia",
+            "address_building": "Menara Astra, 53rd Floor",
+            "address_street": "Jl. Jend. Sudirman Kav.5-6",
+            "address_cityPos": "Jakarta 10220"
+        },
+        "CIMB NIAGA": {
+            "name": "CIMB NIAGA",
+            "address_building": "Gd BEFA Square Jl Kalimantan Blok CA 2-1",
+            "address_street": "Kawasan Industri MM2100 Cibitung Bekasi 17530"
+        }
+    };
+    
     let bankInformation = '';
     
-    if (invoice.acctName) {
-        console.log('Using acctName from API:', invoice.acctName);
-        // Use wrapText if acctName exceeds 40 characters
-        if (invoice.acctName.length > 40) {
-            bankInformation = wrapText(invoice.acctName, 40);
-        } else {
-            bankInformation = invoice.acctName;
+    // Get bank data based on U_bankCode - check multiple possible field names
+    const bankCode = invoice.u_bankCode || invoice.U_BankCode || invoice.bankCode || invoice.u_BankCode;
+    console.log('Final bankCode value used:', bankCode);
+    if (bankCode && bankDataMapping[bankCode]) {
+        const bankData = bankDataMapping[bankCode];
+        console.log('Using hardcoded bank data for:', bankCode, bankData);
+        
+        // Build bank information display with consistent spacing
+        bankInformation = `<br>${bankData.name}`;
+        if (bankData.address_building) {
+            bankInformation += `<br>${bankData.address_building}`;
+        }
+        if (bankData.address_street) {
+            bankInformation += `<br>${bankData.address_street}`;
+        }
+        if (bankData.address_cityPos) {
+            bankInformation += `<br>${bankData.address_cityPos}`;
         }
         
-        // Add account number if available (on new line)
+        // Add account number if available (without extra spacing since it's part of hardcoded data)
         if (invoice.account) {
-            bankInformation += `<br>${invoice.account}`;
+            bankInformation += `<br><br>${invoice.account}`;
         }
     } else {
-        console.log('No acctName found in API data');
-        // If no acctName, just show account number if available
+        console.log('No matching bank code found or U_bankCode is empty:', bankCode);
+        // Only show account if no bank code mapping found (with spacing)
         if (invoice.account) {
-            bankInformation = invoice.account;
+            bankInformation = `<br>${invoice.account}`;
         }
     }
     
@@ -525,37 +559,70 @@ function populateBankInformation(invoice) {
     
     if (bankInformationElement) {
         bankInformationElement.innerHTML = bankInformation;
-        console.log('Bank information populated from acctName and account:', bankInformation);
+        console.log('Bank information populated with hardcoded data and account:', bankInformation);
     } else {
         console.error('Bank information element not found');
     }
 }
 
 // Function to populate bank information for additional pages
-// Only displays acctName and account fields directly
+// Displays hardcoded bank data based on U_bankCode and account field
 function populateBankInformationForPage(invoice, pageNum) {
     console.log(`Populating bank information for page ${pageNum}:`, invoice);
+    console.log(`u_bankCode from API for page ${pageNum}:`, invoice?.u_bankCode);
+    console.log(`U_BankCode from API for page ${pageNum}:`, invoice?.U_BankCode);
+    console.log(`bankCode from API for page ${pageNum}:`, invoice?.bankCode);
     
-    // Get bank information directly from acctName and account fields only
+    // Hardcoded bank data mapping based on U_bankCode
+    const bankDataMapping = {
+        "MUFG": {
+            "name": "MUFG Bank, Ltd., Jakarta Branch",
+            "address_building": "Trinity Tower, Lt. 6-9",
+            "address_street": "Jl. H. R. Rasuna Said Kav. C22 Blok IIB",
+            "address_cityPos": "Jakarta 12940"
+        },
+        "MIZUHO": {
+            "name": "Bank Mizuho Indonesia",
+            "address_building": "Menara Astra, 53rd Floor",
+            "address_street": "Jl. Jend. Sudirman Kav.5-6",
+            "address_cityPos": "Jakarta 10220"
+        },
+        "CIMB NIAGA": {
+            "name": "CIMB NIAGA",
+            "address_building": "Gd BEFA Square Jl Kalimantan Blok CA 2-1",
+            "address_street": "Kawasan Industri MM2100 Cibitung Bekasi 17530"
+        }
+    };
+    
     let bankInformation = '';
     
-    if (invoice?.acctName) {
-        console.log(`Using acctName for page ${pageNum}:`, invoice.acctName);
-        // Use wrapText if acctName exceeds 40 characters
-        if (invoice.acctName.length > 40) {
-            bankInformation = wrapText(invoice.acctName, 40);
-        } else {
-            bankInformation = invoice.acctName;
+    // Get bank data based on U_bankCode - check multiple possible field names
+    const bankCode = invoice?.u_bankCode || invoice?.U_BankCode || invoice?.bankCode || invoice?.u_BankCode;
+    console.log(`Final bankCode value used for page ${pageNum}:`, bankCode);
+    if (bankCode && bankDataMapping[bankCode]) {
+        const bankData = bankDataMapping[bankCode];
+        console.log(`Using hardcoded bank data for page ${pageNum}:`, bankCode, bankData);
+        
+        // Build bank information display with consistent spacing
+        bankInformation = bankData.name;
+        if (bankData.address_building) {
+            bankInformation += `<br>${bankData.address_building}`;
+        }
+        if (bankData.address_street) {
+            bankInformation += `<br>${bankData.address_street}`;
+        }
+        if (bankData.address_cityPos) {
+            bankInformation += `<br>${bankData.address_cityPos}`;
         }
         
-        // Add account number if available (on new line)
-        if (invoice.account) {
-            bankInformation += `<br>${invoice.account}`;
+        // Add account number if available (without extra spacing since it's part of hardcoded data)
+        if (invoice?.account) {
+            bankInformation += `<br><br>${invoice.account}`;
         }
     } else {
-        console.log(`No acctName found for page ${pageNum}`);
-        // If no acctName, just show account number if available
-        if (invoice.account) {
+        console.log(`No matching bank code found or U_bankCode is empty for page ${pageNum}:`, bankCode);
+        // Only show account if no bank code mapping found
+        if (invoice?.account) {
             bankInformation = invoice.account;
         }
     }
@@ -565,7 +632,7 @@ function populateBankInformationForPage(invoice, pageNum) {
     
     if (bankInformationElement) {
         bankInformationElement.innerHTML = bankInformation;
-        console.log(`Bank information populated for page ${pageNum} from acctName and account:`, bankInformation);
+        console.log(`Bank information populated for page ${pageNum} with hardcoded data and account:`, bankInformation);
     } else {
         console.error(`Bank information element not found for page ${pageNum}`);
     }
@@ -1226,7 +1293,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             <div class="footer">
                 <div class="signature-section">
                     <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
-                    <div class="qr-code">QR CODE</div>
+                    <div class="qr-code"></div>
                     <div class="signature-space"></div>
                     <div class="signature-name">${signatureData.name}</div>
                     <div class="signature-title">${signatureData.position}</div>

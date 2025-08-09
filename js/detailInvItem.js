@@ -39,11 +39,22 @@ document.addEventListener('DOMContentLoaded', function() {
         loadInvoiceData('STG-001');
     }
     
+    // Try to resolve current user (if auth is enabled)
+    try {
+        if (typeof window.getCurrentUser === 'function') {
+            currentUser = window.getCurrentUser();
+            console.log('Resolved currentUser:', currentUser);
+        }
+    } catch (e) {
+        console.warn('Unable to resolve currentUser (auth may be disabled).');
+    }
+
     // Load employee data for approval dropdowns
     loadEmployeesData();
     
     // Setup approval input listeners
     setupApprovalInputListeners();
+    // Initialize action buttons visibility based on status once data is loaded
 });
 
 // Load employees data from API
@@ -377,7 +388,7 @@ function populateFormData(data) {
     safeSetValue('Status', status);
     
     // Check if submit button should be shown based on status
-    updateSubmitButtonVisibility(status);
+    updateSubmitAndRejectVisibility(status);
 
     
     // Populate approval fields from approval summary - make them editable
@@ -501,8 +512,8 @@ function populateFormData(data) {
     // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
     safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || '0.00')}`);
     
-    // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "docTax"
-    safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.docTax || '0.00')}`);
+            // 4. Tax Base Other Value (taxBase) - API Field: "dpp1112"
+        safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
     
     // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
     safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || '0.00')}`);
@@ -1307,13 +1318,14 @@ function enableSubmitButton() {
     const currentStatus = statusField ? statusField.value : '';
     
     // Use the helper function to update visibility
-    updateSubmitButtonVisibility(currentStatus);
+    updateSubmitAndRejectVisibility(currentStatus);
 }
 
-// Helper function to manage submit button and status message visibility
-function updateSubmitButtonVisibility(status) {
+// Helper function to manage submit and reject buttons visibility
+function updateSubmitAndRejectVisibility(status) {
     const submitButton = document.getElementById('submitButton');
     const submitButtonContainer = submitButton ? submitButton.closest('.text-center') : null;
+    const rejectButton = document.getElementById('rejectButton');
     
     if (submitButton && submitButtonContainer) {
         if (status === 'Draft') {
@@ -1327,6 +1339,197 @@ function updateSubmitButtonVisibility(status) {
             submitButton.disabled = true;
             console.log(`Submit button hidden for status: ${status}`);
         }
+    }
+
+    // Show Reject button only when status is Draft; hide otherwise
+    if (rejectButton) {
+        if (status === 'Draft') {
+            rejectButton.style.display = 'inline-block';
+        } else {
+            rejectButton.style.display = 'none';
+        }
+    }
+}
+
+// Reject flow (mirrors check page behavior but allowed on Draft)
+function rejectInvoice() {
+    if (!invoiceData) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No invoice data available'
+        });
+        return;
+    }
+
+    const status = getStatusFromInvoice(invoiceData);
+    if (status !== 'Draft') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Action',
+            text: `Cannot reject document with status: ${status}. Only documents with status "Draft" can be rejected.`,
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Reject Invoice',
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefixDetail(firstField);
+            }
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInputDetail);
+            }
+        },
+        preConfirm: () => {
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            return remarks;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateInvoiceStatusToRejected(result.value);
+        }
+    });
+}
+
+function initializeWithRejectionPrefixDetail(textarea) {
+    const fullName = getCurrentUserFullNameDetail();
+    const role = 'Prepared';
+    const prefix = `[${fullName} - ${role}]: `;
+    textarea.value = prefix;
+    textarea.dataset.prefixLength = prefix.length;
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+function handleRejectionInputDetail(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    const fullName = getCurrentUserFullNameDetail();
+    const role = 'Prepared';
+    const expectedPrefix = `[${fullName} - ${role}]: `;
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    } else if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    }
+}
+
+async function updateInvoiceStatusToRejected(remarks = '') {
+    try {
+        if (!invoiceData || !invoiceData.stagingID) {
+            throw new Error('Staging ID is required for rejection');
+        }
+
+        Swal.fire({
+            title: 'Updating Status...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        const now = new Date().toISOString();
+        const payload = {
+            approvalStatus: 'Rejected',
+            rejectedDate: now,
+            rejectionRemarks: remarks,
+            rejectedBy: (window.getCurrentUser && window.getCurrentUser()?.userId) || '',
+            rejectedByName: getCurrentUserFullNameDetail(),
+            updatedAt: now,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/ar-invoices/approval/${invoiceData.stagingID}`, {
+            method: 'PATCH',
+            headers: {
+                'accept': 'text/plain',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        }
+
+        await response.json();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Invoice Rejected',
+            text: 'The document has been rejected successfully.',
+            confirmButtonColor: '#10b981'
+        }).then(() => window.location.reload());
+    } catch (error) {
+        console.error('Error rejecting invoice:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Rejection Failed',
+            text: error.message || 'Failed to reject the invoice. Please try again.',
+        });
+    }
+}
+
+// Helper to get current user full name (best-effort, works even when auth disabled)
+function getCurrentUserFullNameDetail() {
+    try {
+        // 1) Try preparedByName field shown on the form
+        const preparedByInput = document.getElementById('preparedByName');
+        const preparedByFromInput = preparedByInput?.value?.trim();
+        if (preparedByFromInput) return preparedByFromInput;
+
+        // 2) Try from loaded invoice data approval summary
+        const preparedByFromData = invoiceData?.arInvoiceApprovalSummary?.preparedByName;
+        if (preparedByFromData && String(preparedByFromData).trim() !== '') return preparedByFromData;
+
+        // 3) Try from localStorage (if app placed user there)
+        try {
+            const loggedStr = localStorage.getItem('loggedInUser');
+            if (loggedStr) {
+                const logged = JSON.parse(loggedStr);
+                if (logged?.name) return logged.name;
+                if (logged?.fullName) return logged.fullName;
+                if (logged?.username) return logged.username;
+            }
+        } catch {}
+
+        // 4) Try auth.js current user if available
+        const user = currentUser || (typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null);
+        if (user) {
+            return (
+                user.name || user.fullName || user.username || user.userId || 'Unknown User'
+            );
+        }
+
+        // 5) Fallback
+        return 'Unknown User';
+    } catch (e) {
+        return 'Unknown User';
     }
 }
 
