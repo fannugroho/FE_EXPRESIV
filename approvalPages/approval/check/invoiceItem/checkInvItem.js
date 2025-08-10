@@ -668,13 +668,13 @@ function approveInvItem() {
     }
 
     Swal.fire({
-        title: 'Confirm Submit',
-        text: 'Are you sure you want to submit this invoice item?',
+        title: 'Confirm Checked',
+        text: 'Are you sure you want to checked this invoice item?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, submit it!',
+        confirmButtonText: 'Yes, checked it!',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
