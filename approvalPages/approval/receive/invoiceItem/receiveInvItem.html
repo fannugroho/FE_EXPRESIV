@@ -807,6 +807,63 @@
         .attachment-list-container {
             max-height: 300px;
             overflow-y: auto;
+            padding-right: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Custom scrollbar styling for attachment list */
+        .attachment-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+            margin: 4px 0;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+            border: 2px solid #f1f5f9;
+            transition: background-color 0.2s ease;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb:active {
+            background: #64748b;
+        }
+        
+        /* Firefox scrollbar styling */
+        .attachment-list-container {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        
+        /* Enhanced scrollbar styling when scrollbar is present */
+        .attachment-list-container.has-scrollbar {
+            padding-right: 12px;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin: 4px 0;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
         
         .loading-spinner-container {
@@ -861,6 +918,17 @@
             padding: 20px;
             margin-top: 20px;
             border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Enhanced attachment container styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+            overflow: hidden;
         }
         
         .attachment-header {
@@ -1920,23 +1988,8 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Account Name</h3>
                 <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <!-- Attachment List Section -->
-                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
-                <div class="attachment-container">
-                    <div id="attachmentList" class="attachment-list-container">
-                        <!-- Attachments will be loaded here -->
-                        <div class="loading-spinner-container text-center py-4">
-                            <div class="loading-spinner"></div>
-                            <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
-                        </div>
-                    </div>
-                    <div id="noAttachments" class="text-center py-4 hidden">
-                        <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
-                    </div>
-                </div>
-                </div>
             </div>
+        </div>
             
             <!-- Table Section -->
             <div class="table-section">
@@ -1970,6 +2023,23 @@
                 <!-- Item rows will be populated by JavaScript -->
             </tbody>
         </table>
+                </div>
+            </div>
+
+            <!-- Attachments Section -->
+            <div class="attachments-section mt-6">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Attachments</h3>
+                <div class="attachment-container">
+                    <div id="attachmentsContainer" class="attachment-list-container">
+                        <!-- Attachments will be loaded here -->
+                        <div class="loading-spinner-container text-center py-4">
+                            <div class="loading-spinner"></div>
+                            <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
+                        </div>
+                    </div>
+                    <div id="noAttachments" class="text-center py-4 hidden">
+                        <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
+                    </div>
                 </div>
             </div>
 

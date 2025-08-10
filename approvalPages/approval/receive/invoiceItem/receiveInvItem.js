@@ -196,6 +196,9 @@ async function loadInvItemFromAPI(stagingId) {
             // Update button visibility based on status
             updateButtonVisibility();
             
+            // Load attachments for this invoice item
+            loadAttachments(stagingId);
+            
             // Close loading indicator
             Swal.close();
         } else {
@@ -1397,6 +1400,407 @@ function applyCurrencyFormattingToTable() {
 // E-Signing Process Variables (now handled by eSigningFunctions.js)
 // Variables moved to eSigningFunctions.js to avoid conflicts
 
+// ===== ATTACHMENT FUNCTIONS =====
+
+// Initialize attachment scrollbar behavior
+function initializeAttachmentScrollbar(container) {
+    if (!container) return;
+    
+    // Add smooth scrolling behavior
+    container.style.scrollBehavior = 'smooth';
+    
+    // Add custom scrollbar indicators
+    const hasScrollbar = container.scrollHeight > container.clientHeight;
+    
+    if (hasScrollbar) {
+        // Add scroll indicator class
+        container.classList.add('has-scrollbar');
+        
+        // Add scroll event listener for enhanced UX
+        container.addEventListener('scroll', function() {
+            // Add shadow effect when scrolled
+            if (this.scrollTop > 0) {
+                this.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.1)';
+            } else {
+                this.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.06)';
+            }
+        });
+    }
+    
+    // Add keyboard navigation support
+    container.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const scrollAmount = e.key === 'ArrowDown' ? 50 : -50;
+            this.scrollTop += scrollAmount;
+        }
+    });
+    
+    // Make container focusable for keyboard navigation
+    container.setAttribute('tabindex', '0');
+    container.setAttribute('role', 'region');
+    container.setAttribute('aria-label', 'Attachments list');
+}
+
+// Load attachments from API
+async function loadAttachments(stagingId) {
+    try {
+        console.log('Loading attachments for stagingId:', stagingId);
+        
+        // Construct API URL for attachments
+        const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/attachments`;
+        console.log('Attachments API URL:', apiUrl);
+        
+        // Fetch attachments from API
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'accept': '*/*'
+            }
+        });
+        
+        console.log('Attachments response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Attachments API response result:', result);
+        
+        if (result.status && result.data) {
+            console.log('Attachments loaded from API:', result.data);
+            displayAttachments(result.data);
+        } else {
+            throw new Error('Invalid response format from attachments API');
+        }
+        
+    } catch (error) {
+        console.error('Error loading attachments:', error);
+        
+        // Show no attachments message instead of error for better UX
+        displayNoAttachments();
+    }
+}
+
+// Display attachments in the container
+function displayAttachments(attachments) {
+    const attachmentList = document.getElementById('attachmentsContainer');
+    const noAttachmentsDiv = document.getElementById('noAttachments');
+    
+    if (!attachmentList) {
+        console.error('Attachment list container not found');
+        return;
+    }
+    
+    // Clear loading content
+    attachmentList.innerHTML = '';
+    
+    if (!attachments || attachments.length === 0) {
+        displayNoAttachments();
+        return;
+    }
+    
+    // Hide no attachments message
+    if (noAttachmentsDiv) {
+        noAttachmentsDiv.classList.add('hidden');
+    }
+    
+    // Filter out invalid entries (like the "string" example)
+    const validAttachments = attachments.filter(attachment => 
+        attachment.fileName && 
+        attachment.fileName !== 'string' && 
+        attachment.fileName.trim() !== '' &&
+        attachment.fileUrl && 
+        attachment.fileUrl !== 'string' &&
+        attachment.fileUrl.trim() !== '' &&
+        attachment.id // Ensure attachment has a valid ID
+    );
+    
+    if (validAttachments.length === 0) {
+        displayNoAttachments();
+        return;
+    }
+    
+    // Create attachment list
+    validAttachments.forEach((attachment, index) => {
+        const attachmentItem = createAttachmentItem(attachment, index);
+        attachmentList.appendChild(attachmentItem);
+    });
+    
+    // Initialize scrollbar behavior
+    initializeAttachmentScrollbar(attachmentList);
+    
+    console.log(`Displayed ${validAttachments.length} valid attachments`);
+}
+
+// Create individual attachment item
+function createAttachmentItem(attachment, index) {
+    const attachmentDiv = document.createElement('div');
+    attachmentDiv.className = 'attachment-item border rounded-lg p-3 mb-2 bg-gray-50 hover:bg-gray-100 transition-colors';
+    
+    // Format file size if available
+    const fileSize = formatAttachmentDate(attachment.createdAt);
+    const fileName = attachment.fileName || 'Unknown file';
+    const description = attachment.description || '';
+    
+    // Determine file type icon
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    const fileIcon = getFileIcon(fileExtension);
+    
+    attachmentDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3 flex-1">
+                <div class="file-icon text-2xl">
+                    ${fileIcon}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="file-name font-medium text-gray-900 truncate" title="${fileName}">
+                        ${fileName}
+                    </div>
+                    <div class="file-info text-sm text-gray-500">
+                        <span>Uploaded: ${fileSize}</span>
+                        ${description ? `<span class="ml-2">• ${description}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button type="button" 
+                        class="view-btn px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        onclick="viewAttachment('${attachment.stagingID}', '${attachment.fileUrl}', '${fileName.replace(/'/g, "\\'")}')"
+                        title="View ${fileName}">
+                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    View
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return attachmentDiv;
+}
+
+// Display no attachments message
+function displayNoAttachments() {
+    const attachmentList = document.getElementById('attachmentsContainer');
+    const noAttachmentsDiv = document.getElementById('noAttachments');
+    
+    if (attachmentList) {
+        attachmentList.innerHTML = '';
+    }
+    
+    if (noAttachmentsDiv) {
+        noAttachmentsDiv.classList.remove('hidden');
+    }
+}
+
+// Get file icon based on extension
+function getFileIcon(extension) {
+    switch (extension) {
+        case 'pdf':
+            return '📄';
+        case 'doc':
+        case 'docx':
+            return '📝';
+        case 'xls':
+        case 'xlsx':
+            return '📊';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+            return '🖼️';
+        case 'zip':
+        case 'rar':
+            return '🗜️';
+        default:
+            return '📎';
+    }
+}
+
+// Format attachment date
+function formatAttachmentDate(dateString) {
+    if (!dateString) return 'Unknown date';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Unknown date';
+        
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Unknown date';
+    }
+}
+
+// View attachment in modal/new tab
+function viewAttachment(stagingId, fileUrl, fileName) {
+    try {
+        console.log('Viewing attachment:', { stagingId, fileUrl, fileName });
+        
+        // Construct full view URL
+        let viewUrl;
+        if (fileUrl.startsWith('http')) {
+            viewUrl = fileUrl;
+        } else if (fileUrl.startsWith('/api')) {
+            // Remove duplicate /api since API_BASE_URL already includes it
+            const cleanFileUrl = fileUrl.replace('/api', '');
+            viewUrl = `${API_BASE_URL}${cleanFileUrl}`;
+        } else {
+            viewUrl = `${API_BASE_URL}${fileUrl}`;
+        }
+        console.log('View URL:', viewUrl);
+        
+        // Determine file type
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        
+        if (fileExtension === 'pdf') {
+            // For PDF files, try to embed in iframe first, fallback to new tab
+            showPDFViewer(viewUrl, fileName);
+        } else {
+            // For other file types, open in new tab with specific headers
+            openInNewTab(viewUrl, fileName);
+        }
+        
+    } catch (error) {
+        console.error('Error viewing attachment:', error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'View Failed',
+            text: `Failed to open ${fileName}. Please try again.`,
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Show PDF in a modal viewer
+async function showPDFViewer(pdfUrl, fileName) {
+    try {
+        // Show loading
+        Swal.fire({
+            title: 'Loading PDF...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Fetch the PDF as blob for viewing
+        const response = await fetch(pdfUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/pdf,*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Close loading and show PDF viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="${blobUrl}" 
+                        style="width: 100%; height: 100%; border: none;"
+                        type="application/pdf">
+                        <p>Your browser doesn't support PDF viewing. 
+                           <a href="${blobUrl}" target="_blank">Click here to open the PDF</a>
+                        </p>
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            customClass: {
+                container: 'pdf-viewer-modal'
+            },
+            willClose: () => {
+                // Clean up blob URL when modal closes
+                URL.revokeObjectURL(blobUrl);
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading PDF for viewing:', error);
+        
+        // Fallback to Google Docs viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" 
+                        style="width: 100%; height: 100%; border: none;"
+                        allow="fullscreen">
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        });
+    }
+}
+
+// Open in new tab with proper handling
+function openInNewTab(fileUrl, fileName) {
+    // Show loading message
+    const loadingToast = Swal.fire({
+        title: 'Opening Document...',
+        text: `Loading ${fileName}`,
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        allowOutsideClick: true,
+        toast: true,
+        position: 'top-end'
+    });
+    
+    // Create a temporary link to force view behavior
+    const tempLink = document.createElement('a');
+    tempLink.href = fileUrl;
+    tempLink.target = '_blank';
+    tempLink.rel = 'noopener noreferrer';
+    
+    // Add parameters to hint at viewing instead of downloading
+    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
+    
+    // Try to open in new tab
+    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    
+    // Check if popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        loadingToast.close();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Popup Blocked',
+            html: `
+                <p>Your browser blocked the popup. Please allow popups for this site or</p>
+                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
+            `,
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
 // Download PDF Document
 function downloadPdfDocument() {
     // This function should generate and download the current invoice as PDF
@@ -1455,5 +1859,17 @@ window.printInvItem = printInvItem;
 window.downloadPdfDocument = downloadPdfDocument;
 window.goToMenuReceiveInvItem = goToMenuReceiveInvItem;
 window.saveInvoiceDataToStorage = saveInvoiceDataToStorage;
-window.clearInvoiceDataFromStorage = clearInvoiceDataFromStorage; 
+window.clearInvoiceDataFromStorage = clearInvoiceDataFromStorage;
+
+// Export attachment functions for global access
+window.loadAttachments = loadAttachments;
+window.displayAttachments = displayAttachments;
+window.createAttachmentItem = createAttachmentItem;
+window.displayNoAttachments = displayNoAttachments;
+window.getFileIcon = getFileIcon;
+window.formatAttachmentDate = formatAttachmentDate;
+window.viewAttachment = viewAttachment;
+window.showPDFViewer = showPDFViewer;
+window.openInNewTab = openInNewTab;
+window.initializeAttachmentScrollbar = initializeAttachmentScrollbar; 
 // Note: E-signing functions are now exported from eSigningFunctions.js 

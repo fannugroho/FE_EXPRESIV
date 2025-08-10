@@ -949,6 +949,50 @@
             padding: 2rem;
         }
         
+        /* Attachment list container styling */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* Ensure attachment items have proper spacing */
+        .attachment-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Improve button styling for attachment actions */
+        .attachment-actions .btn-download,
+        .attachment-actions .btn-preview {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .attachment-actions .btn-download {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .attachment-actions .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .attachment-actions .btn-preview {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .attachment-actions .btn-preview:hover {
+            background-color: #059669;
+        }
+        
         /* Ensure attachment items have proper spacing */
         .attachment-item {
             margin-bottom: 0.75rem;
@@ -1371,6 +1415,23 @@
             </div>
         </div>
         
+        <!-- Attachments Section -->
+        <div class="attachments-section mt-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">Attachments</h3>
+            <div class="attachment-container">
+                <div id="attachmentsContainer" class="attachment-list-container">
+                    <!-- Attachments will be loaded here -->
+                    <div class="loading-spinner-container text-center py-4">
+                        <div class="loading-spinner"></div>
+                        <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
+                    </div>
+                </div>
+                <div id="noAttachments" class="text-center py-4 hidden">
+                    <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
+                </div>
+            </div>
+        </div>
+        
         <!-- Footer Totals Section -->
         <div class="footer-section">
             <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
@@ -1445,7 +1506,7 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
+                    <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="preparedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -1455,7 +1516,7 @@
             <div>
                 <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="acknowledgeBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -1465,7 +1526,7 @@
             <div>
                 <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="checkedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -1475,17 +1536,17 @@
             <div>
                 <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="approvedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
-            </div>
+                </div>
             <div>
                 <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
+                    <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="receivedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
