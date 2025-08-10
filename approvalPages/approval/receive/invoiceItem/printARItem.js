@@ -475,7 +475,6 @@ function populateInvoiceData(invoice) {
         const companyAddressElement = document.getElementById('companyAddress');
         const companyPhoneElement = document.getElementById('companyPhone');
         const companyFaxElement = document.getElementById('companyFax');
-        const companyNameFooterElement = document.getElementById('companyNameFooter');
         
         if (companyNameElement) {
             companyNameElement.textContent = invoice.companyName || '';
@@ -497,10 +496,7 @@ function populateInvoiceData(invoice) {
             console.log('Company Fax set to:', companyFaxElement.textContent);
         }
         
-        if (companyNameFooterElement) {
-            companyNameFooterElement.textContent = invoice.companyName || '';
-            console.log('Company Name Footer set to:', companyNameFooterElement.textContent);
-        }
+        // Removed company name footer element from HTML; no longer setting it here
         
         // Order numbers - use specific fields for DO and PO numbers with character limits
         const doNumbersElement = document.getElementById('doNumbers');
