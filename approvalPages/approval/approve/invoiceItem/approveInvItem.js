@@ -1360,7 +1360,7 @@ async function loadAttachments(stagingId) {
 
 // Display attachments in the container
 function displayAttachments(attachments) {
-    const attachmentsContainer = document.getElementById('attachmentsContainer');
+    const attachmentsContainer = document.getElementById('attachmentList');
     const noAttachmentsDiv = document.getElementById('noAttachments');
     
     if (!attachmentsContainer) {
@@ -1456,7 +1456,7 @@ function createAttachmentItem(attachment, index) {
 
 // Display no attachments message
 function displayNoAttachments() {
-    const attachmentsContainer = document.getElementById('attachmentsContainer');
+    const attachmentsContainer = document.getElementById('attachmentList');
     const noAttachmentsDiv = document.getElementById('noAttachments');
     
     if (attachmentsContainer) {

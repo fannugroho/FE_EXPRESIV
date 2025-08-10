@@ -1145,6 +1145,46 @@
         
         .file-list-container {
             margin-top: 0.5rem;
+            max-height: 300px; /* Scroll area height for newly selected files */
+            overflow-y: auto;
+            padding-right: 4px; /* room for scrollbar */
+            overscroll-behavior: contain;
+        }
+
+        /* Scroll area for existing attachments list */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 4px;
+            overscroll-behavior: contain;
+        }
+
+        /* Custom scrollbar for attachments lists (WebKit) */
+        .file-list-container::-webkit-scrollbar,
+        .attachment-list-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .file-list-container::-webkit-scrollbar-track,
+        .attachment-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .file-list-container::-webkit-scrollbar-thumb,
+        .attachment-list-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        .file-list-container::-webkit-scrollbar-thumb:hover,
+        .attachment-list-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Custom scrollbar for Firefox */
+        .file-list-container,
+        .attachment-list-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
         }
         
         .file-item {
