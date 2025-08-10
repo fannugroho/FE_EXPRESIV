@@ -810,8 +810,8 @@ window.downloadExcel = async function() {
             'Date': formatDate(invoice.invoiceDate),
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
-            'Total (IDR)': invoice.totalAmount,
-            'Type': invoice.invoiceType
+            'Type': invoice.invoiceType,
+            'Total': invoice.totalAmount
         }));
         
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -850,13 +850,13 @@ window.downloadPDF = async function() {
             formatDate(invoice.invoiceDate),
             formatDate(invoice.dueDate),
             invoice.status,
-            formatCurrency(invoice.totalAmount),
-            invoice.invoiceType
+            invoice.invoiceType,
+            formatCurrency(invoice.totalAmount)
         ]);
         
         // Add table
         doc.autoTable({
-            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total (IDR)', 'Type']],
+            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total']],
             body: tableData,
             startY: 50,
             styles: {

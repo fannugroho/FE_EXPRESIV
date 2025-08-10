@@ -427,8 +427,8 @@ function updateTable(invoices) {
             <td class="p-2">
                 <span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
             </td>
-            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">${invoice.invoiceType}</td>
+            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">
                 <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -571,8 +571,8 @@ function downloadExcel() {
             'Date': formatDate(invoice.invoiceDate),
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
-            'Total (IDR)': invoice.totalAmount,
             'Type': invoice.invoiceType,
+            'Total': invoice.totalAmount,
             'Remarks': invoice.remarks || ''
         })));
         
@@ -604,13 +604,13 @@ function downloadPDF() {
             formatDate(invoice.invoiceDate),
             formatDate(invoice.dueDate),
             invoice.status,
-            formatCurrency(invoice.totalAmount),
             invoice.invoiceType,
+            formatCurrency(invoice.totalAmount),
             invoice.remarks || ''
         ]);
         
         doc.autoTable({
-            head: [['Invoice No', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total (IDR)', 'Type', 'Remarks']],
+            head: [['Invoice No', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total', 'Remarks']],
             body: tableData,
             startY: 50,
             styles: {

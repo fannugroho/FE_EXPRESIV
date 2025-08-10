@@ -488,15 +488,15 @@ function updateTable(invoices) {
         
         cellStatus.innerHTML = `<span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>`;
         
-        // Total Amount
-        const cellAmount = row.insertCell();
-        cellAmount.className = 'p-2 text-right';
-        cellAmount.textContent = formatCurrency(invoice.totalAmount);
-        
         // Type
         const cellType = row.insertCell();
         cellType.className = 'p-2';
         cellType.textContent = invoice.invoiceType;
+        
+        // Total Amount
+        const cellAmount = row.insertCell();
+        cellAmount.className = 'p-2 text-right';
+        cellAmount.textContent = formatCurrency(invoice.totalAmount);
         
         // Tools
         const cellTools = row.insertCell();
@@ -725,8 +725,8 @@ window.downloadExcel = async function() {
             'Date': formatDate(invoice.invoiceDate),
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
-            'Total (IDR)': invoice.totalAmount,
             'Type': invoice.invoiceType,
+            'Total': invoice.totalAmount,
             'Doc Type': invoice.docType || '',
             'Customer Code': invoice.cardCode,
             'Address': invoice.address,
@@ -806,13 +806,13 @@ window.downloadPDF = async function() {
             formatDate(invoice.invoiceDate),
             formatDate(invoice.dueDate),
             invoice.status,
-            formatCurrency(invoice.totalAmount),
-            invoice.invoiceType
+            invoice.invoiceType,
+            formatCurrency(invoice.totalAmount)
         ]);
         
         // Add table
         doc.autoTable({
-            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total (IDR)', 'Type']],
+            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total']],
             body: tableData,
             startY: 50,
             styles: {

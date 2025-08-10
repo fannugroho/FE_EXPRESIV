@@ -565,8 +565,8 @@ function displayInvoices() {
             <td class="p-2 border-b">${formattedDate}</td>
             <td class="p-2 border-b">${formattedDueDate}</td>
             <td class="p-2 border-b"><span class="px-2 py-1 rounded-full text-xs ${statusClass}">${status}</span></td>
-            <td class="p-2 border-b text-right">${formatCurrency(totalAmount)}</td>
             <td class="p-2 border-b">${documentType}</td>
+            <td class="p-2 border-b text-right">${formatCurrency(totalAmount)}</td>
             <td class="p-2 border-b">
                 <button ${detailButtonOnClick} class="${detailButtonClass}" title="${detailButtonTitle}">${detailButtonText}</button>
             </td>
@@ -935,8 +935,8 @@ function downloadExcel() {
                 'Date': formattedDate,
                 'Due Date': formattedDueDate,
                 'Status': getStatusFromInvoice(invoice),
-                'Total (IDR)': invoice.docTotal || invoice.grandTotal || 0,
-                'Type': getDocumentType(invoice.docType)
+                'Type': getDocumentType(invoice.docType),
+                'Total': invoice.docTotal || invoice.grandTotal || 0
             };
         });
         
@@ -991,8 +991,8 @@ function downloadPDF() {
                 formattedDate,
                 formattedDueDate,
                 getStatusFromInvoice(invoice),
-                new Intl.NumberFormat('id-ID').format(invoice.docTotal || invoice.grandTotal || 0),
-                getDocumentType(invoice.docType)
+                getDocumentType(invoice.docType),
+                new Intl.NumberFormat('id-ID').format(invoice.docTotal || invoice.grandTotal || 0)
             ];
         });
         
@@ -1011,14 +1011,14 @@ function downloadPDF() {
         // Add table
         doc.autoTable({
             startY: 35,
-            head: [['No', 'Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total (IDR)', 'Type']],
+            head: [['No', 'Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total']],
             body: pdfData,
             theme: 'grid',
             headStyles: { fillColor: [41, 128, 185], textColor: 255 },
             styles: { fontSize: 8 },
             columnStyles: {
                 0: { cellWidth: 10 },
-                7: { halign: 'right' }
+                8: { halign: 'right' }
             }
         });
         

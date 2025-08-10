@@ -2131,12 +2131,6 @@ function displayExistingAttachments(attachments) {
                     </svg>
                     View
                 </button>
-                <button onclick="downloadExistingAttachment('${fileUrl}', '${fileName}')" class="text-green-600 hover:text-green-800 text-sm font-semibold px-3 py-1 border border-green-600 rounded hover:bg-green-50 transition-colors">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Download
-                </button>
             </div>
         `;
         existingAttachmentsContainer.appendChild(attachmentItem);
@@ -2243,31 +2237,7 @@ function adjustTextareaHeights() {
 
 
 
-// Function to download an attachment
-function downloadAttachment(fileUrl, fileName) {
-    try {
-        // Create a temporary link element
-        const link = document.createElement('a');
-        link.href = fileUrl;
-        link.download = fileName;
-        link.target = '_blank';
-        
-        // Append to body, click, and remove
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('Download initiated for:', fileName);
-    } catch (error) {
-        console.error('Error downloading file:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Download Failed',
-            text: 'Failed to download the file. Please try again.',
-            confirmButtonText: 'OK'
-        });
-    }
-}
+// Download feature removed
 
 // Function to preview an attachment
 function previewAttachment(fileUrl, fileName) {
@@ -2610,36 +2580,7 @@ function previewExistingAttachment(fileUrl, fileName) {
     }
 }
 
-// Download existing attachment
-function downloadExistingAttachment(fileUrl, fileName) {
-    try {
-        console.log('Downloading existing attachment:', fileName, fileUrl);
-        
-        // Construct full URL if it's a relative path
-        const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl}`;
-        
-        // Create a temporary link element
-        const link = document.createElement('a');
-        link.href = fullUrl;
-        link.download = fileName;
-        link.target = '_blank';
-        
-        // Append to body, click, and remove
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('Download initiated for existing attachment:', fileName);
-    } catch (error) {
-        console.error('Error downloading existing file:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Download Failed',
-            text: 'Failed to download the file. Please try again.',
-            confirmButtonText: 'OK'
-        });
-    }
-}
+// Download feature removed
 
 // Close existing attachment modal
 function closeExistingAttachmentModal() {
