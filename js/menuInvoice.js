@@ -5,8 +5,8 @@ let currentTab = 'all';
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+// API Configuration - Using BASE_URL from auth.js
+const API_BASE_URL = `${BASE_URL}/api`;
 
 /*
  * UPDATED API IMPLEMENTATION
@@ -73,13 +73,13 @@ async function fetchARInvoiceDocuments() {
         // Get current user ID from auth.js
         const userId = getLocalUserId();
         console.log('Fetching AR invoice documents for user:', userId);
-        
+
         // Check if user is authenticated
         if (typeof window.isAuthenticated === 'function' && !window.isAuthenticated()) {
             console.error('User not authenticated');
             throw new Error('User not authenticated. Please login again.');
         }
-        
+
         // First, get the user's Kansai Employee ID
         const kansaiEmployeeId = await getUserKansaiEmployeeId(userId);
         if (!kansaiEmployeeId) {
@@ -87,21 +87,21 @@ async function fetchARInvoiceDocuments() {
             // Use default Kansai Employee ID as fallback
             const defaultKansaiEmployeeId = '02401115';
             console.log('Using default Kansai Employee ID:', defaultKansaiEmployeeId);
-            
+
             const response = await fetch(`${API_BASE_URL}/ar-invoices/by-preparer/${defaultKansaiEmployeeId}`, {
                 method: 'GET',
                 headers: {
                     'accept': 'text/plain'
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const result = await response.json();
             console.log('API response with default Kansai Employee ID:', result);
-            
+
             // Handle response structure
             if (result.status && result.data && Array.isArray(result.data)) {
                 console.log(`Successfully loaded ${result.data.length} invoices from API for default Kansai Employee ID ${defaultKansaiEmployeeId}`);
@@ -117,7 +117,7 @@ async function fetchARInvoiceDocuments() {
                 return [];
             }
         }
-        
+
         // Use the Kansai Employee ID to fetch invoices
         console.log('Using Kansai Employee ID for invoice fetch:', kansaiEmployeeId);
         const response = await fetch(`${API_BASE_URL}/ar-invoices/by-preparer/${kansaiEmployeeId}`, {
@@ -168,7 +168,7 @@ async function fetchAllDocuments() {
 async function fetchDocumentsByStatus(status) {
     try {
         const allDocuments = await fetchAllDocuments();
-        
+
         // Filter based on status using client-side logic
         switch (status) {
             case 'draft':
@@ -201,13 +201,13 @@ function getLocalUserId() {
         console.warn('auth.js getUserId function not available, using default user ID');
         return '02401115';
     }
-    
+
     // Use the getUserId function from auth.js
     const userId = window.getUserId();
     if (userId) {
         return userId;
     }
-    
+
     // Fallback to a default user ID for development if auth.js is not available
     console.warn('getUserId from auth.js returned null, using default user ID');
     return '02401115';
@@ -217,7 +217,7 @@ function getLocalUserId() {
 async function getUserKansaiEmployeeId(userId) {
     try {
         console.log('Fetching user details for ID:', userId);
-        
+
         const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
             method: 'GET',
             headers: {
@@ -256,20 +256,20 @@ function loadUserData() {
             console.error('User not authenticated');
             return null;
         }
-        
+
         // Get current user from auth.js
         const currentUser = typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null;
         const userId = getLocalUserId();
-        
+
         console.log('Current user:', currentUser);
         console.log('Current user ID:', userId);
-        
+
         // Set user display if available
         const userNameDisplay = document.getElementById('userNameDisplay');
         if (userNameDisplay && currentUser) {
             userNameDisplay.textContent = currentUser.username || 'User';
         }
-        
+
         return userId;
     } catch (error) {
         console.error('Error loading user data:', error);
@@ -282,16 +282,16 @@ async function fetchInvoiceData() {
     try {
         // Show loading state
         document.getElementById('recentDocs').innerHTML = '<tr><td colspan="10" class="text-center py-4"><div class="flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span class="ml-2">Loading data...</span></div></td></tr>';
-        
+
         console.log('Fetching invoice data...');
-        
+
         // Fetch data using simplified API
         const documents = await fetchAllDocuments();
-        
+
         if (Array.isArray(documents)) {
             allInvoices = documents;
             console.log('Invoice data loaded from API:', allInvoices);
-            
+
             // Debug: Log the structure of the first invoice
             if (allInvoices.length > 0) {
                 console.log('First invoice structure:', allInvoices[0]);
@@ -300,26 +300,26 @@ async function fetchInvoiceData() {
         } else {
             throw new Error('Invalid API response format');
         }
-        
+
         // Update counters
         updateCounters();
-        
+
         // Set filtered invoices to all invoices initially
         filteredInvoices = [...allInvoices];
-        
+
         // Display invoices
         displayInvoices();
-        
+
     } catch (error) {
         console.error('Error fetching invoice data:', error);
-        
+
         let errorMessage = error.message;
         if (error.name === 'AbortError') {
             errorMessage = 'Request timeout. Please check your connection and try again.';
         } else if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Network error. Please check your internet connection.';
         }
-        
+
         document.getElementById('recentDocs').innerHTML = `
             <tr>
                 <td colspan="10" class="text-center py-4">
@@ -332,7 +332,7 @@ async function fetchInvoiceData() {
                     </button>
                 </td>
             </tr>`;
-        
+
         // Set empty data when API fails
         allInvoices = [];
         filteredInvoices = [];
@@ -344,7 +344,7 @@ async function fetchInvoiceData() {
 function updateCounters() {
     // Count total documents
     document.getElementById('totalCount').textContent = allInvoices.length;
-    
+
     // Count by status using the current filtered documents
     const draftCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Draft').length;
     const preparedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Prepared').length;
@@ -353,7 +353,7 @@ function updateCounters() {
     const approvedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Approved').length;
     const receivedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Received').length;
     const rejectedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Rejected').length;
-    
+
     // Update counter displays
     document.getElementById('draftCount').textContent = draftCount;
     document.getElementById('preparedCount').textContent = preparedCount;
@@ -362,7 +362,7 @@ function updateCounters() {
     document.getElementById('approvedCount').textContent = approvedCount;
     document.getElementById('receivedCount').textContent = receivedCount;
     document.getElementById('rejectedCount').textContent = rejectedCount;
-    
+
     console.log('Counters updated:', {
         total: allInvoices.length,
         draft: draftCount,
@@ -390,43 +390,43 @@ function getStatusFromInvoice(invoice) {
     // Debug logging for arInvoiceApprovalSummary
     console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
     console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
-    
+
     // Check if invoice has approval summary - if null, return Draft
     if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
         console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
         return 'Draft';
     }
-    
+
     // If arInvoiceApprovalSummary exists, check the approvalStatus field first
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
         console.log('arInvoiceApprovalSummary properties:', summary);
-        
+
         // Use the approvalStatus field from the API response if available and not empty
         if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
             console.log('✅ Using approvalStatus from API:', summary.approvalStatus);
             return validateStatus(summary.approvalStatus);
         }
-        
+
         // If approvalStatus is empty, null, or undefined, return Draft
         console.log('❌ approvalStatus is empty/null/undefined, returning Draft');
         console.log('approvalStatus value:', summary.approvalStatus);
         console.log('approvalStatus type:', typeof summary.approvalStatus);
         return 'Draft';
     }
-    
+
     // Check transfer status
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if it's a staging document (draft)
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    
+
     // Check if document has been transferred (received)
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if document is in preparation stage
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
+
     // Default to Draft for new documents
     return 'Draft';
 }
@@ -464,7 +464,7 @@ function getStatusClass(status) {
 function displayInvoices() {
     const tableBody = document.getElementById('recentDocs');
     tableBody.innerHTML = '';
-    
+
     if (filteredInvoices.length === 0) {
         tableBody.innerHTML = `
             <tr>
@@ -475,15 +475,15 @@ function displayInvoices() {
             </tr>`;
         return;
     }
-    
+
     // Calculate pagination
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredInvoices.length);
     const pageInvoices = filteredInvoices.slice(startIndex, endIndex);
-    
+
     // Update pagination info
     updatePagination();
-    
+
     pageInvoices.forEach((invoice, index) => {
         // Debug logging for stagingID
         console.log(`Invoice ${index + 1} stagingID:`, invoice.stagingID);
@@ -491,7 +491,7 @@ function displayInvoices() {
         console.log(`Invoice ${index + 1} docNum:`, invoice.docNum);
         console.log(`Invoice ${index + 1} all fields:`, Object.keys(invoice));
         console.log(`Invoice ${index + 1} final ID used:`, invoice.stagingID || invoice.id || 'NO_ID');
-        
+
         // Try to find the correct ID field
         let invoiceId = null;
         if (invoice.stagingID && invoice.stagingID.trim() !== '') {
@@ -508,16 +508,16 @@ function displayInvoices() {
         } else {
             invoiceId = 'NO_VALID_ID';
         }
-        
+
         console.log(`Invoice ${index + 1} selected ID:`, invoiceId);
         console.log(`Invoice ${index + 1} stagingID (empty?):`, invoice.stagingID === '');
         console.log(`Invoice ${index + 1} docNum:`, invoice.docNum);
         console.log(`Invoice ${index + 1} numAtCard:`, invoice.numAtCard);
         console.log(`Invoice ${index + 1} u_bsi_invnum:`, invoice.u_bsi_invnum);
-        
+
         const row = document.createElement('tr');
         row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-        
+
         // Handle both string and Date object for docDate
         let docDate;
         if (typeof invoice.docDate === 'string') {
@@ -526,7 +526,7 @@ function displayInvoices() {
             docDate = invoice.docDate;
         }
         const formattedDate = docDate.toLocaleDateString('en-GB');
-        
+
         // Handle both string and Date object for docDueDate
         let dueDate;
         if (typeof invoice.docDueDate === 'string') {
@@ -535,29 +535,29 @@ function displayInvoices() {
             dueDate = invoice.docDueDate;
         }
         const formattedDueDate = dueDate.toLocaleDateString('en-GB');
-        
+
         // Get status from approvalStatus field, default to "Draft" if empty
         const status = getStatusFromInvoice(invoice);
         const statusClass = getStatusClass(status);
-        
+
         // Debug logging for status
         console.log(`Invoice ${index + 1} status:`, status);
         console.log(`Invoice ${index + 1} status class:`, statusClass);
-        
+
         // Create row content
         const detailButtonDisabled = invoiceId === 'NO_VALID_ID';
         const detailButtonClass = detailButtonDisabled ? 'bg-gray-400 text-white px-2 py-1 rounded cursor-not-allowed' : 'bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600';
         const detailButtonText = detailButtonDisabled ? 'No Details' : 'Detail';
         const detailButtonOnClick = detailButtonDisabled ? '' : `onclick="viewInvoiceDetails('${invoiceId}')"`;
         const detailButtonTitle = detailButtonDisabled ? 'This invoice does not have a valid identifier for details view' : '';
-        
+
         // Enhanced field mapping for new API structure
         const invoiceNumber = invoice.numAtCard || invoice.u_bsi_invnum || invoice.visInv || '-';
         const customerName = invoice.cardName || '-';
         const salesEmployee = invoice.u_BSI_Expressiv_PreparedByName || '-';
         const totalAmount = invoice.docTotal || invoice.grandTotal || 0;
         const documentType = getDocumentType(invoice.docType);
-        
+
         row.innerHTML = `
             <td class="p-2 border-b">${startIndex + index + 1}</td>
             <td class="p-2 border-b scrollable-cell">${invoiceNumber}</td>
@@ -571,7 +571,7 @@ function displayInvoices() {
                 <button ${detailButtonOnClick} class="${detailButtonClass}" title="${detailButtonTitle}">${detailButtonText}</button>
             </td>
         `;
-        
+
         tableBody.appendChild(row);
     });
 }
@@ -608,27 +608,27 @@ function getDocumentType(docType) {
 async function switchTab(tab) {
     currentTab = tab;
     currentPage = 1; // Reset to first page when switching tabs
-    
+
     console.log(`Switching to tab: ${tab}`);
-    
+
     // Update active tab styling
     document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
-    
+
     // Check if user is authenticated
     if (typeof window.isAuthenticated === 'function' && !window.isAuthenticated()) {
         console.error('User not authenticated');
         return;
     }
-    
+
     const userId = getLocalUserId();
     if (!userId) {
         console.error('User ID not found');
         return;
     }
-    
+
     try {
         let documents = [];
-        
+
         if (tab === 'all') {
             document.getElementById('allTabBtn').classList.add('tab-active');
             console.log('Fetching all documents...');
@@ -645,25 +645,25 @@ async function switchTab(tab) {
             documents = await fetchDocumentsByStatus('prepared');
             console.log(`Prepared documents fetched: ${documents.length} documents`);
         }
-        
+
         // Update the filtered documents
         filteredInvoices = documents;
         allInvoices = documents;
-        
+
         // Apply search filter if there's a search term
         const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
         const searchType = document.getElementById('searchType')?.value || 'invoice';
-        
+
         console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
         console.log(`Documents before search filter: ${filteredInvoices.length}`);
-        
+
         if (searchTerm) {
             filteredInvoices = filteredInvoices.filter(doc => {
                 switch (searchType) {
                     case 'invoice':
                         return (doc.numAtCard && doc.numAtCard.toLowerCase().includes(searchTerm)) ||
-                               (doc.u_bsi_invnum && doc.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
-                               (doc.docNum && doc.docNum.toString().includes(searchTerm));
+                            (doc.u_bsi_invnum && doc.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
+                            (doc.docNum && doc.docNum.toString().includes(searchTerm));
                     case 'customer':
                         return doc.cardName && doc.cardName.toLowerCase().includes(searchTerm);
                     case 'date':
@@ -678,13 +678,13 @@ async function switchTab(tab) {
             });
             console.log(`Documents after search filter: ${filteredInvoices.length}`);
         }
-        
+
         // Update counters
         updateCounters();
-        
+
         // Display documents
         displayInvoices();
-        
+
     } catch (error) {
         console.error('Error switching tabs:', error);
         // Show error message to user
@@ -706,15 +706,15 @@ async function switchTab(tab) {
 // Function to change page
 function changePage(direction) {
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-    
+
     if (direction === -1 && currentPage > 1) {
         currentPage--;
     } else if (direction === 1 && currentPage < totalPages) {
         currentPage++;
     }
-    
+
     console.log(`Changing page to: ${currentPage} of ${totalPages}`);
-    
+
     // Display invoices for the new page
     displayInvoices();
 }
@@ -723,11 +723,11 @@ function changePage(direction) {
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchType = document.getElementById('searchType');
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', performSearch);
     }
-    
+
     if (searchType) {
         searchType.addEventListener('change', performSearch);
     }
@@ -737,22 +737,22 @@ function setupSearch() {
 function updatePagination() {
     const totalItems = filteredInvoices.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
-    
+
     // Update pagination info
     document.getElementById('totalItems').textContent = totalItems;
     document.getElementById('currentPage').textContent = currentPage;
-    
+
     // Calculate start and end items for current page
     const startIndex = (currentPage - 1) * itemsPerPage + 1;
     const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
-    
+
     document.getElementById('startItem').textContent = startIndex;
     document.getElementById('endItem').textContent = endIndex;
-    
+
     // Enable/disable pagination buttons
     document.getElementById('prevPage').classList.toggle('disabled', currentPage === 1);
     document.getElementById('nextPage').classList.toggle('disabled', currentPage >= totalPages);
-    
+
     console.log('Pagination updated:', {
         totalItems,
         totalPages,
@@ -766,18 +766,18 @@ function updatePagination() {
 function performSearch() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const searchType = document.getElementById('searchType').value;
-    
+
     console.log('Performing search:', { searchTerm, searchType, currentTab });
-    
+
     // Apply search filter to the current documents
     if (searchTerm) {
         filteredInvoices = allInvoices.filter(invoice => {
             switch (searchType) {
                 case 'invoice':
                     return (invoice.numAtCard && invoice.numAtCard.toLowerCase().includes(searchTerm)) ||
-                           (invoice.u_bsi_invnum && invoice.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
-                           (invoice.visInv && invoice.visInv.toLowerCase().includes(searchTerm)) ||
-                           (invoice.docNum && invoice.docNum.toString().includes(searchTerm));
+                        (invoice.u_bsi_invnum && invoice.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
+                        (invoice.visInv && invoice.visInv.toLowerCase().includes(searchTerm)) ||
+                        (invoice.docNum && invoice.docNum.toString().includes(searchTerm));
                 case 'customer':
                     return invoice.cardName && invoice.cardName.toLowerCase().includes(searchTerm);
                 case 'date':
@@ -794,15 +794,15 @@ function performSearch() {
         // If no search term, show all documents for current tab
         filteredInvoices = [...allInvoices];
     }
-    
+
     console.log(`Search results: ${filteredInvoices.length} documents found`);
-    
+
     // Reset to first page when searching
     currentPage = 1;
-    
+
     // Update pagination
     updatePagination();
-    
+
     // Display filtered results
     displayInvoices();
 }
@@ -851,16 +851,16 @@ function goToAddInvoice() {
 // Function to view invoice details
 function viewInvoiceDetails(id) {
     console.log('Viewing invoice details for ID:', id);
-    
+
     // Find the invoice data to determine its type
     const invoice = allInvoices.find(inv => {
         const invId = inv.stagingID || inv.id || inv.docNum || inv.numAtCard || inv.u_bsi_invnum;
         return invId && invId.toString() === id.toString();
     });
-    
+
     // Determine which detail page to use based on document type
     let detailPage = 'detailINVItem.html'; // Default to item page
-    
+
     if (invoice && invoice.docType) {
         switch (invoice.docType) {
             case 'S':
@@ -872,9 +872,9 @@ function viewInvoiceDetails(id) {
                 break;
         }
     }
-    
+
     console.log(`Redirecting to ${detailPage} for invoice type: ${invoice?.docType || 'unknown'}`);
-    
+
     // Navigate to the appropriate invoice detail page
     if (typeof navigateToPage === 'function') {
         navigateToPage(`detailPages/${detailPage}?invoice-id=${id}`);
@@ -906,7 +906,7 @@ function downloadExcel() {
     try {
         // Get current filtered data
         const dataToExport = [...filteredInvoices];
-        
+
         // Format data for Excel
         const excelData = dataToExport.map((invoice, index) => {
             // Handle both string and Date object for docDate
@@ -917,7 +917,7 @@ function downloadExcel() {
                 docDate = invoice.docDate;
             }
             const formattedDate = docDate.toLocaleDateString('en-GB');
-            
+
             // Handle both string and Date object for docDueDate
             let dueDate;
             if (typeof invoice.docDueDate === 'string') {
@@ -926,7 +926,7 @@ function downloadExcel() {
                 dueDate = invoice.docDueDate;
             }
             const formattedDueDate = dueDate.toLocaleDateString('en-GB');
-            
+
             return {
                 'No': index + 1,
                 'Invoice No.': invoice.numAtCard || invoice.u_bsi_invnum || invoice.visInv || '-',
@@ -939,18 +939,18 @@ function downloadExcel() {
                 'Total': invoice.docTotal || invoice.grandTotal || 0
             };
         });
-        
+
         // Create worksheet
         const worksheet = XLSX.utils.json_to_sheet(excelData);
-        
+
         // Create workbook
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoices');
-        
+
         // Generate Excel file
         const today = new Date().toISOString().slice(0, 10);
         XLSX.writeFile(workbook, `Invoice_Report_${today}.xlsx`);
-        
+
     } catch (error) {
         console.error('Error exporting to Excel:', error);
         alert('Failed to export data to Excel. Please try again.');
@@ -962,7 +962,7 @@ function downloadPDF() {
     try {
         // Get current filtered data
         const dataToExport = [...filteredInvoices];
-        
+
         // Format data for PDF
         const pdfData = dataToExport.map((invoice, index) => {
             // Handle both string and Date object for docDate
@@ -973,7 +973,7 @@ function downloadPDF() {
                 docDate = invoice.docDate;
             }
             const formattedDate = docDate.toLocaleDateString('en-GB');
-            
+
             // Handle both string and Date object for docDueDate
             let dueDate;
             if (typeof invoice.docDueDate === 'string') {
@@ -982,7 +982,7 @@ function downloadPDF() {
                 dueDate = invoice.docDueDate;
             }
             const formattedDueDate = dueDate.toLocaleDateString('en-GB');
-            
+
             return [
                 index + 1,
                 invoice.numAtCard || invoice.u_bsi_invnum || invoice.visInv || '-',
@@ -995,19 +995,19 @@ function downloadPDF() {
                 new Intl.NumberFormat('id-ID').format(invoice.docTotal || invoice.grandTotal || 0)
             ];
         });
-        
+
         // Initialize jsPDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
+
         // Add title
         doc.setFontSize(18);
         doc.text('Invoice Report', 14, 22);
-        
+
         // Add date
         doc.setFontSize(11);
         doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 14, 30);
-        
+
         // Add table
         doc.autoTable({
             startY: 35,
@@ -1021,11 +1021,11 @@ function downloadPDF() {
                 8: { halign: 'right' }
             }
         });
-        
+
         // Save PDF
         const today = new Date().toISOString().slice(0, 10);
         doc.save(`Invoice_Report_${today}.pdf`);
-        
+
     } catch (error) {
         console.error('Error exporting to PDF:', error);
         alert('Failed to export data to PDF. Please try again.');
@@ -1049,18 +1049,18 @@ function refreshData() {
 }
 
 // Add refresh button functionality
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Refresh button functionality removed as requested
-    
+
     // Add caching functionality for better performance
     setupCaching();
-    
+
     // Load user data immediately
     loadUserData();
-    
+
     // Fetch invoice data
     fetchInvoiceData();
-    
+
     // Set up search functionality
     setupSearch();
 });
@@ -1069,8 +1069,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupCaching() {
     // Cache data in localStorage for 5 minutes
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-    
-    window.cacheInvoiceData = function(data) {
+
+    window.cacheInvoiceData = function (data) {
         const cacheData = {
             data: data,
             timestamp: Date.now()
@@ -1078,14 +1078,14 @@ function setupCaching() {
         localStorage.setItem('invoiceDataCache', JSON.stringify(cacheData));
         console.log('Invoice data cached successfully');
     };
-    
-    window.getCachedInvoiceData = function() {
+
+    window.getCachedInvoiceData = function () {
         const cached = localStorage.getItem('invoiceDataCache');
         if (cached) {
             try {
                 const cacheData = JSON.parse(cached);
                 const now = Date.now();
-                
+
                 if (now - cacheData.timestamp < CACHE_DURATION) {
                     console.log('Using cached invoice data');
                     return cacheData.data;
@@ -1100,23 +1100,23 @@ function setupCaching() {
         }
         return null;
     };
-    
+
     // Enhanced fetch function with caching
-    window.fetchWithCache = async function() {
+    window.fetchWithCache = async function () {
         // Try to get cached data first
         const cachedData = window.getCachedInvoiceData();
         if (cachedData) {
             console.log('Returning cached data');
             return cachedData;
         }
-        
+
         // If no cache, fetch from API
         console.log('No cached data found, fetching from API...');
         const freshData = await fetchARInvoiceDocuments();
-        
+
         // Cache the fresh data
         window.cacheInvoiceData(freshData);
-        
+
         return freshData;
     };
 }
@@ -1141,11 +1141,11 @@ const debouncedSearch = debounce(performSearch, 300);
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchType = document.getElementById('searchType');
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', debouncedSearch);
     }
-    
+
     if (searchType) {
         searchType.addEventListener('change', debouncedSearch);
     }
@@ -1162,7 +1162,7 @@ function cleanupEventListeners() {
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     cleanupEventListeners();
 });
 
@@ -1196,9 +1196,9 @@ function showSuccessNotification(message, title = 'Success') {
 // Network error handling
 function handleNetworkError(error) {
     console.error('Network error:', error);
-    
+
     let errorMessage = 'Network error occurred.';
-    
+
     if (error.message.includes('Failed to fetch')) {
         errorMessage = 'Unable to connect to server. Please check your internet connection.';
     } else if (error.message.includes('404')) {
@@ -1206,7 +1206,7 @@ function handleNetworkError(error) {
     } else if (error.message.includes('500')) {
         errorMessage = 'Server error occurred. Please try again later.';
     }
-    
+
     showErrorNotification(errorMessage, 'Network Error');
 }
 
@@ -1215,12 +1215,12 @@ let isLoading = false;
 
 function setLoadingState(loading) {
     isLoading = loading;
-    
+
     const loadingElement = document.querySelector('.loading-spinner');
     if (loadingElement) {
         loadingElement.style.display = loading ? 'block' : 'none';
     }
-    
+
     // Disable form inputs during loading
     const formInputs = document.querySelectorAll('input, textarea, select, button');
     formInputs.forEach(input => {
@@ -1241,7 +1241,7 @@ function measurePerformance(operation, callback) {
     const startTime = performance.now();
     const result = callback();
     const endTime = performance.now();
-    
+
     console.log(`${operation} took ${endTime - startTime} milliseconds`);
     return result;
 }
@@ -1267,16 +1267,16 @@ async function fetchInvoiceData() {
     try {
         // Show loading state
         document.getElementById('recentDocs').innerHTML = '<tr><td colspan="10" class="text-center py-4"><div class="flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span class="ml-2">Loading data...</span></div></td></tr>';
-        
+
         console.log('Fetching invoice data with performance monitoring...');
-        
+
         // Fetch data using enhanced function
         const documents = await fetchInvoiceDataWithMonitoring();
-        
+
         if (Array.isArray(documents)) {
             allInvoices = documents;
             console.log('Invoice data loaded from API:', allInvoices);
-            
+
             // Debug: Log the structure of the first invoice
             if (allInvoices.length > 0) {
                 console.log('First invoice structure:', allInvoices[0]);
@@ -1285,26 +1285,26 @@ async function fetchInvoiceData() {
         } else {
             throw new Error('Invalid API response format');
         }
-        
+
         // Update counters
         updateCounters();
-        
+
         // Set filtered invoices to all invoices initially
         filteredInvoices = [...allInvoices];
-        
+
         // Display invoices
         displayInvoices();
-        
+
     } catch (error) {
         console.error('Error fetching invoice data:', error);
-        
+
         let errorMessage = error.message;
         if (error.name === 'AbortError') {
             errorMessage = 'Request timeout. Please check your connection and try again.';
         } else if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Network error. Please check your internet connection.';
         }
-        
+
         document.getElementById('recentDocs').innerHTML = `
             <tr>
                 <td colspan="10" class="text-center py-4">
@@ -1317,7 +1317,7 @@ async function fetchInvoiceData() {
                     </button>
                 </td>
             </tr>`;
-        
+
         // Set empty data when API fails
         allInvoices = [];
         filteredInvoices = [];

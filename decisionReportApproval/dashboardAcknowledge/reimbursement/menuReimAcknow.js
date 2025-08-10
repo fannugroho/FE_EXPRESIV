@@ -1,10 +1,10 @@
 function loadDashboard() {
     // Fetch status counts and reimbursements from main API
     fetchStatusCounts();
-    
+
     // Fetch reimbursements from API
     fetchReimbursements();
-    
+
     // Setup event listeners
     setupEventListeners();
 }
@@ -26,8 +26,8 @@ let dataCache = {
 let isLoading = false;
 let searchInputListener = null;
 
-// Base URL for API calls
-const BASE_URL = 'https://expressiv-be-sb.idsdev.site';
+// Base URL for API calls - Using BASE_URL from auth.js
+// Note: BASE_URL is defined in auth.js and made available globally
 
 // Helper functions for user ID and access token
 function getUserId() {
@@ -45,17 +45,17 @@ function isDocumentRelevantForAcknowledger(doc, userId) {
     if (doc.acknowledgedBy !== userId) {
         return false;
     }
-    
+
     // Skip if rejected by checker (never reached acknowledger)
     if (doc.rejectedDateByChecker) {
         return false;
     }
-    
+
     // Skip if still in preparation (hasn't been checked yet)
     if (doc.status === 'Prepared' && !doc.checkedDate) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -64,22 +64,22 @@ function getDocumentStateForAcknowledger(doc, userId) {
     if (!isDocumentRelevantForAcknowledger(doc, userId)) {
         return null;
     }
-    
+
     // Check if waiting for acknowledger action
     if (doc.status === 'Checked' && doc.checkedDate && !doc.acknowledgedDate && !doc.rejectedDateByAcknowledger) {
         return 'checked';
     }
-    
+
     // Check if acknowledged by this user
     if (doc.acknowledgedDate && !doc.rejectedDateByAcknowledger) {
         return 'acknowledged';
     }
-    
+
     // Check if rejected by this user
     if (doc.rejectedDateByAcknowledger) {
         return 'rejected';
     }
-    
+
     return null;
 }
 
@@ -91,14 +91,14 @@ function calculateStatusCounts(documents, currentUserId) {
         acknowledgedCount: 0,
         rejectedCount: 0
     };
-    
+
     if (!documents || !Array.isArray(documents) || !currentUserId) {
         return counts;
     }
-    
+
     documents.forEach(doc => {
         const state = getDocumentStateForAcknowledger(doc, currentUserId);
-        
+
         if (state === 'checked') {
             counts.checkedCount++;
             counts.totalCount++;
@@ -110,7 +110,7 @@ function calculateStatusCounts(documents, currentUserId) {
             counts.totalCount++;
         }
     });
-    
+
     return counts;
 }
 
@@ -119,7 +119,7 @@ function filterDocumentsByState(documents, state, userId) {
     if (!documents || !Array.isArray(documents) || !userId) {
         return [];
     }
-    
+
     return documents.filter(doc => {
         return getDocumentStateForAcknowledger(doc, userId) === state;
     });
@@ -150,7 +150,7 @@ function filterReimbursements(searchTerm = '', tab = 'checked', searchType = 'pr
         }
         return searchMatch;
     });
-    
+
     // Reset to first page when filtering
     currentPage = 1;
     updateTable();
@@ -168,11 +168,11 @@ function formatDateWithLocalTimezone(dateString) {
 function formatDateYYYYMMDD(dateString) {
     const date = new Date(dateString);
     if (isNaN(date)) return '';
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
 }
 
@@ -206,9 +206,9 @@ function fetchStatusCounts() {
         console.error('User ID not found');
         return;
     }
-    
+
     const endpoint = `/api/reimbursements/acknowledger/${userId}`;
-    
+
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
             if (!response.ok) {
@@ -254,24 +254,24 @@ function setupEventListeners() {
             searchInput.removeEventListener('input', searchInputListener);
         }
     }
-    
+
     // Add new listeners
     const debouncedSearch = debounce(handleSearch, 300);
     searchInputListener = debouncedSearch;
-    
+
     const searchInput = document.getElementById('searchInput');
     const searchType = document.getElementById('searchType');
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', searchInputListener);
     }
-    
+
     // Add event listener for search type dropdown
     if (searchType) {
-        searchType.addEventListener('change', function() {
+        searchType.addEventListener('change', function () {
             if (searchInput) {
                 const searchTypeValue = this.value;
-                
+
                 // Change input type based on search type
                 if (searchTypeValue === 'date') {
                     searchInput.type = 'date';
@@ -280,13 +280,13 @@ function setupEventListeners() {
                     searchInput.type = 'text';
                     searchInput.placeholder = 'Search...';
                 }
-                
+
                 // Clear the search input when changing search type
                 searchInput.value = '';
-                
+
                 // Trigger search again when dropdown changes
                 const searchTerm = searchInput.value.toLowerCase();
-                handleSearch({target: {value: searchTerm}});
+                handleSearch({ target: { value: searchTerm } });
             }
         });
     }
@@ -295,21 +295,21 @@ function setupEventListeners() {
 // Function to fetch reimbursements from API
 function fetchReimbursements() {
     // Check cache first
-    if (dataCache.reimbursements && 
-        dataCache.lastFetch && 
+    if (dataCache.reimbursements &&
+        dataCache.lastFetch &&
         (Date.now() - dataCache.lastFetch) < dataCache.cacheExpiry) {
-        
+
         // Calculate and update status counts from cached data
         const userId = getUserId();
         if (userId) {
             const calculatedCounts = calculateStatusCounts(dataCache.reimbursements, userId);
             updateStatusCounts(calculatedCounts);
         }
-        
+
         fetchReimbursementsByStatus('checked');
         return;
     }
-    
+
     // Initialize with checked tab data
     fetchReimbursementsByStatus('checked');
 }
@@ -317,18 +317,18 @@ function fetchReimbursements() {
 // Function to fetch reimbursements by status using main API and filter client-side
 function fetchReimbursementsByStatus(status) {
     if (isLoading) return;
-    
+
     isLoading = true;
     const userId = getUserId();
-    
+
     if (!userId) {
         console.error('User ID not found');
         isLoading = false;
         return;
     }
-    
+
     const endpoint = `/api/reimbursements/acknowledger/${userId}`;
-    
+
     fetch(`${BASE_URL}${endpoint}`)
         .then(response => {
             if (!response.ok) {
@@ -341,17 +341,17 @@ function fetchReimbursementsByStatus(status) {
                 // Save full data to cache
                 dataCache.reimbursements = data.data;
                 dataCache.lastFetch = Date.now();
-                
+
                 // Calculate and update status counts from full dataset
                 const calculatedCounts = calculateStatusCounts(data.data, userId);
                 updateStatusCounts(calculatedCounts);
-                
+
                 // Filter data by the requested status using proper logic
                 allReimbursements = filterDocumentsByState(data.data, status, userId);
-                
+
                 const searchInput = document.getElementById('searchInput');
                 const searchType = document.getElementById('searchType');
-                
+
                 if (searchInput && searchType) {
                     const searchTerm = searchInput.value.toLowerCase();
                     const searchTypeValue = searchType.value;
@@ -387,7 +387,7 @@ function updateStatusCounts(data) {
     const checkedCount = document.getElementById("checkedCount");
     const acknowledgedCount = document.getElementById("acknowledgedCount");
     const rejectedCount = document.getElementById("rejectedCount");
-    
+
     if (totalCount) totalCount.textContent = data.totalCount || 0;
     if (checkedCount) checkedCount.textContent = data.checkedCount || 0;
     if (acknowledgedCount) acknowledgedCount.textContent = data.acknowledgedCount || 0;
@@ -407,51 +407,51 @@ function toggleSubMenu(menuId) {
 }
 
 // Navigation functions
-function goToMenu() { 
-    window.location.href = "../../../../pages/dashboard.html"; 
+function goToMenu() {
+    window.location.href = "../../../../pages/dashboard.html";
 }
 function goToAddDoc() {
-    window.location.href = "../../../../addPages/addReim.html"; 
+    window.location.href = "../../../../addPages/addReim.html";
 }
 function goToAddReim() {
-    window.location.href = "../../../../addPages/addReim.html"; 
+    window.location.href = "../../../../addPages/addReim.html";
 }
 function goToAddCash() {
-    window.location.href = "../../../../addPages/addCash.html"; 
+    window.location.href = "../../../../addPages/addCash.html";
 }
 function goToAddSettle() {
-    window.location.href = "../../../../addPages/addSettle.html"; 
+    window.location.href = "../../../../addPages/addSettle.html";
 }
 function goToAddPO() {
-    window.location.href = "../../../../addPages/addPO.html"; 
+    window.location.href = "../../../../addPages/addPO.html";
 }
-function goToMenuPR() { 
-    window.location.href = "../../../../pages/menuPR.html"; 
+function goToMenuPR() {
+    window.location.href = "../../../../pages/menuPR.html";
 }
-function goToMenuReim() { 
-    window.location.href = "../../../../pages/menuReim.html"; 
+function goToMenuReim() {
+    window.location.href = "../../../../pages/menuReim.html";
 }
-function goToMenuCash() { 
-    window.location.href = "../../../../pages/menuCash.html"; 
+function goToMenuCash() {
+    window.location.href = "../../../../pages/menuCash.html";
 }
-function goToMenuSettle() { 
-    window.location.href = "../../../../pages/menuSettle.html"; 
+function goToMenuSettle() {
+    window.location.href = "../../../../pages/menuSettle.html";
 }
-function goToApprovalReport() { 
-    window.location.href = "../../../../pages/approval-dashboard.html"; 
+function goToApprovalReport() {
+    window.location.href = "../../../../pages/approval-dashboard.html";
 }
-function goToMenuPO() { 
-    window.location.href = "../../../../pages/menuPO.html"; 
+function goToMenuPO() {
+    window.location.href = "../../../../pages/menuPO.html";
 }
-function goToMenuInvoice() { 
-    window.location.href = "../../../../pages/menuInvoice.html"; 
+function goToMenuInvoice() {
+    window.location.href = "../../../../pages/menuInvoice.html";
 }
-function goToMenuBanking() { 
-    window.location.href = "../../../../pages/menuBanking.html"; 
+function goToMenuBanking() {
+    window.location.href = "../../../../pages/menuBanking.html";
 }
-function logout() { 
-    localStorage.removeItem("loggedInUser"); 
-    window.location.href = "../../../../pages/login.html"; 
+function logout() {
+    localStorage.removeItem("loggedInUser");
+    window.location.href = "../../../../pages/login.html";
 }
 
 // Function to redirect to detail page with reimbursement ID
@@ -466,18 +466,18 @@ function displayErrorMessage(message) {
     const checkedCount = document.getElementById("checkedCount");
     const acknowledgedCount = document.getElementById("acknowledgedCount");
     const rejectedCount = document.getElementById("rejectedCount");
-    
+
     if (totalCount) totalCount.textContent = 0;
     if (checkedCount) checkedCount.textContent = 0;
     if (acknowledgedCount) acknowledgedCount.textContent = 0;
     if (rejectedCount) rejectedCount.textContent = 0;
-    
+
     // Clear table data
     allReimbursements = [];
     filteredData = [];
     updateTable();
     updatePagination();
-    
+
     // Show error message (could be enhanced with a visual error component)
     console.error(message);
 }
@@ -486,16 +486,16 @@ function displayErrorMessage(message) {
 function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1; // Reset to first page
-    
+
     // Update tab button styling
     const checkedTabBtn = document.getElementById('checkedTabBtn');
     const acknowledgedTabBtn = document.getElementById('acknowledgedTabBtn');
     const rejectedTabBtn = document.getElementById('rejectedTabBtn');
-    
+
     if (checkedTabBtn) checkedTabBtn.classList.remove('tab-active');
     if (acknowledgedTabBtn) acknowledgedTabBtn.classList.remove('tab-active');
     if (rejectedTabBtn) rejectedTabBtn.classList.remove('tab-active');
-    
+
     if (tabName === 'checked' && checkedTabBtn) {
         checkedTabBtn.classList.add('tab-active');
     } else if (tabName === 'acknowledged' && acknowledgedTabBtn) {
@@ -503,20 +503,20 @@ function switchTab(tabName) {
     } else if (tabName === 'rejected' && rejectedTabBtn) {
         rejectedTabBtn.classList.add('tab-active');
     }
-    
+
     // Get the table body for animation effects
     const tableBody = document.getElementById('recentDocs');
-    
+
     if (tableBody) {
         // Add fade-out effect
         tableBody.style.opacity = '0';
         tableBody.style.transform = 'translateY(10px)';
         tableBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        
+
         // Fetch data from specific API endpoint for each tab
         setTimeout(() => {
             fetchReimbursementsByStatus(tabName);
-            
+
             // Add fade-in effect
             setTimeout(() => {
                 tableBody.style.opacity = '1';
@@ -532,9 +532,9 @@ function switchTab(tabName) {
 function updateTable() {
     const tableBody = document.getElementById('recentDocs');
     const emptyState = document.getElementById('emptyState');
-    
+
     if (!tableBody) return;
-    
+
     // Show/hide empty state
     if (filteredData.length === 0) {
         tableBody.innerHTML = '';
@@ -543,26 +543,26 @@ function updateTable() {
     } else {
         if (emptyState) emptyState.classList.add('hidden');
     }
-    
+
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-    
+
     // Use DocumentFragment for batch DOM updates
     const fragment = document.createDocumentFragment();
-    
+
     for (let i = startIndex; i < endIndex; i++) {
         const item = filteredData[i];
-        
+
         let formattedDate = item.submissionDate;
         if (item.submissionDate) {
             formattedDate = formatDateWithLocalTimezone(item.submissionDate);
         }
-        
+
         const displayStatus = item.status;
-        
+
         const row = document.createElement('tr');
         row.classList.add('hover:bg-gray-50', 'transition-colors');
-        
+
         row.innerHTML = `
             <td class="p-3 text-gray-900">${startIndex + i + 1}</td>
             <td class="p-3 font-medium text-blue-600 hover:text-blue-800">
@@ -584,23 +584,23 @@ function updateTable() {
                 </button>
             </td>
         `;
-        
+
         fragment.appendChild(row);
     }
-    
+
     // Clear and append at once
     tableBody.innerHTML = '';
     tableBody.appendChild(fragment);
-    
+
     // Update item count display
     const startItem = document.getElementById('startItem');
     const endItem = document.getElementById('endItem');
     const totalItems = document.getElementById('totalItems');
-    
+
     if (startItem) startItem.textContent = filteredData.length > 0 ? startIndex + 1 : 0;
     if (endItem) endItem.textContent = endIndex;
     if (totalItems) totalItems.textContent = filteredData.length;
-    
+
     // Update last updated timestamp
     const lastUpdated = document.getElementById('lastUpdated');
     if (lastUpdated) {
@@ -613,11 +613,11 @@ function updatePagination() {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const currentPageElement = document.getElementById('currentPage');
     if (currentPageElement) currentPageElement.textContent = currentPage;
-    
+
     // Update prev/next button states
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
-    
+
     if (prevBtn) {
         if (currentPage <= 1) {
             prevBtn.classList.add('disabled');
@@ -625,7 +625,7 @@ function updatePagination() {
             prevBtn.classList.remove('disabled');
         }
     }
-    
+
     if (nextBtn) {
         if (currentPage >= totalPages) {
             nextBtn.classList.add('disabled');
@@ -638,13 +638,13 @@ function updatePagination() {
 // Optimized changePage function with requestAnimationFrame
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    
+
     if (direction === 'prev' && currentPage > 1) {
         currentPage--;
     } else if (direction === 'next' && currentPage < totalPages) {
         currentPage++;
     }
-    
+
     // Use requestAnimationFrame for smooth rendering
     requestAnimationFrame(() => {
         updateTable();
@@ -658,7 +658,7 @@ function goToTotalDocs() {
         const userId = getUserId();
         if (userId) {
             // Show all relevant documents for this acknowledger
-            const allRelevantDocs = dataCache.reimbursements.filter(doc => 
+            const allRelevantDocs = dataCache.reimbursements.filter(doc =>
                 isDocumentRelevantForAcknowledger(doc, userId)
             );
             filteredData = allRelevantDocs;
@@ -674,7 +674,7 @@ function downloadExcel() {
     // Get status text for filename
     const statusText = currentTab === 'checked' ? 'Checked' : currentTab === 'acknowledged' ? 'Acknowledged' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
+
     // Prepare data for export
     const data = filteredData.map((item, index) => {
         return {
@@ -686,14 +686,14 @@ function downloadExcel() {
             'Status': item.status
         };
     });
-    
+
     // Create a worksheet
     const ws = XLSX.utils.json_to_sheet(data);
-    
+
     // Create a workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Reimbursements');
-    
+
     // Generate Excel file and trigger download
     XLSX.writeFile(wb, fileName);
 }
@@ -703,23 +703,23 @@ function downloadPDF() {
     // Get status text for filename
     const statusText = currentTab === 'checked' ? 'Checked' : currentTab === 'acknowledged' ? 'Acknowledged' : 'Rejected';
     const fileName = `Reimbursement_${statusText}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    
+
     // Create PDF document
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
+
     // Add title
     doc.setFontSize(18);
     doc.text(`Reimbursement ${statusText} Documents`, 14, 22);
-    
+
     // Add date
     doc.setFontSize(12);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-    
+
     // Prepare table data
     const tableColumn = ['No.', 'Reimbursement Number', 'Requester', 'Department', 'Submission Date', 'Status'];
     const tableRows = [];
-    
+
     filteredData.forEach((item, index) => {
         const dataRow = [
             index + 1,
@@ -731,7 +731,7 @@ function downloadPDF() {
         ];
         tableRows.push(dataRow);
     });
-    
+
     // Add table
     doc.autoTable({
         head: [tableColumn],
@@ -750,7 +750,7 @@ function downloadPDF() {
             fillColor: [240, 240, 240]
         }
     });
-    
+
     // Save PDF
     doc.save(fileName);
 }
@@ -783,7 +783,7 @@ function toggleNotificationPanel() {
     if (!notificationContainer) {
         createNotificationPanel();
     }
-    
+
     if (isNotificationVisible) {
         hideNotificationPanel();
     } else {
@@ -811,10 +811,10 @@ function createNotificationPanel() {
 
 function showNotificationPanel() {
     if (!notificationContainer) return;
-    
+
     // Update notification content
     updateNotificationContent();
-    
+
     notificationContainer.style.display = 'block';
     isNotificationVisible = true;
 }
@@ -827,7 +827,7 @@ function hideNotificationPanel() {
 
 function updateNotificationContent() {
     if (!notificationContainer) return;
-    
+
     if (notifiedReims.size === 0) {
         notificationContainer.innerHTML = `
             <div class="p-4 text-center text-gray-500">
@@ -837,21 +837,21 @@ function updateNotificationContent() {
         `;
         return;
     }
-    
+
     let content = `
         <div class="p-3 border-b border-gray-200 bg-gray-50">
             <h3 class="font-semibold text-gray-800">Notifications (${notifiedReims.size})</h3>
         </div>
         <div class="max-h-80 overflow-y-auto">
     `;
-    
+
     // Get notification data from localStorage
     const notificationData = JSON.parse(localStorage.getItem('notificationDataReimAcknow') || '{}');
-    
+
     notifiedReims.forEach(reimNumber => {
         const data = notificationData[reimNumber] || {};
         const submissionDate = data.submissionDate ? new Date(data.submissionDate).toLocaleDateString() : '-';
-        
+
         content += `
             <div class="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <div class="flex items-start justify-between">
@@ -870,7 +870,7 @@ function updateNotificationContent() {
             </div>
         `;
     });
-    
+
     content += '</div>';
     notificationContainer.innerHTML = content;
 }
@@ -888,10 +888,10 @@ function showNotification(message, reimNumber) {
     };
     notificationData[reimNumber] = data;
     localStorage.setItem('notificationDataReimAcknow', JSON.stringify(notificationData));
-    
+
     notifiedReims.add(reimNumber);
     updateNotificationBadge();
-    
+
     // Update panel if currently open
     if (isNotificationVisible && notificationContainer) {
         updateNotificationContent();
@@ -903,10 +903,10 @@ function removeNotification(reimNumber) {
     const notificationData = JSON.parse(localStorage.getItem('notificationDataReimAcknow') || '{}');
     delete notificationData[reimNumber];
     localStorage.setItem('notificationDataReimAcknow', JSON.stringify(notificationData));
-    
+
     notifiedReims.delete(reimNumber);
     updateNotificationBadge();
-    
+
     // Update panel if currently open
     if (isNotificationVisible && notificationContainer) {
         updateNotificationContent();
@@ -918,39 +918,39 @@ async function pollCheckedDocs() {
     try {
         const userId = getUserId();
         if (!userId) return;
-        
+
         const lastPollData = localStorage.getItem('lastPollDataReimAcknow');
-        
+
         const response = await fetch(`${BASE_URL}/api/reimbursements/acknowledger/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        
+
         const data = await response.json();
         if (!data.status || data.code !== 200) return;
-        
+
         const docs = data.data || [];
         const currentDataHash = JSON.stringify(docs.map(d => ({
-            id: d.id, 
-            status: d.status, 
+            id: d.id,
+            status: d.status,
             checkedDate: d.checkedDate,
             acknowledgedDate: d.acknowledgedDate,
             rejectedDateByAcknowledger: d.rejectedDateByAcknowledger,
             rejectedDateByChecker: d.rejectedDateByChecker
         })));
-        
+
         if (lastPollData !== currentDataHash) {
             localStorage.setItem('lastPollDataReimAcknow', currentDataHash);
-            
+
             // Update status counts from full dataset
             const calculatedCounts = calculateStatusCounts(docs, userId);
             updateStatusCounts(calculatedCounts);
-            
+
             let newReimFound = false;
-            
+
             // Only notify for documents that are actually waiting for this acknowledger's action
             docs.forEach(doc => {
                 const state = getDocumentStateForAcknowledger(doc, userId);
-                
+
                 if (state === 'checked' && !notifiedReims.has(doc.voucherNo)) {
                     const submissionDate = doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '-';
                     const message = `${doc.voucherNo}-${doc.requesterName}-${doc.department}-${submissionDate}-${doc.status}`;
@@ -958,7 +958,7 @@ async function pollCheckedDocs() {
                     newReimFound = true;
                 }
             });
-            
+
             if (newReimFound) {
                 try {
                     const audio = new Audio('../../../../components/shared/tones.mp3');
@@ -977,17 +977,17 @@ async function pollAcknowledgedDocs() {
     try {
         const userId = getUserId();
         if (!userId) return;
-        
+
         // Use main API endpoint
         const response = await fetch(`${BASE_URL}/api/reimbursements/acknowledger/${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
-        
+
         const data = await response.json();
         if (!data.status || data.code !== 200) return;
-        
+
         const docs = data.data || [];
-        
+
         // Create set of reimbursements that are already processed (Acknowledged or Rejected)
         const processedReims = new Set();
         docs.forEach(doc => {
@@ -996,7 +996,7 @@ async function pollAcknowledgedDocs() {
                 processedReims.add(doc.voucherNo);
             }
         });
-        
+
         // Remove notifications for reimbursements that are already processed
         notifiedReims.forEach(reimNumber => {
             if (processedReims.has(reimNumber)) {
@@ -1009,14 +1009,14 @@ async function pollAcknowledgedDocs() {
 }
 
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadDashboard();
-    
+
     // Set user avatar and name if available
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     const userNameDisplay = document.getElementById('userNameDisplay');
     const dashboardUserIcon = document.getElementById('dashboardUserIcon');
-    
+
     if (userInfo.name && userNameDisplay) {
         userNameDisplay.textContent = userInfo.name;
     }
@@ -1026,18 +1026,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Default avatar if none is set
         dashboardUserIcon.src = "../../../../image/profil.png";
     }
-    
+
     // Add notification polling with delay
     setTimeout(() => {
         pollCheckedDocs();
         pollAcknowledgedDocs();
         updateNotificationBadge();
-        
+
         // Close panel if clicking outside
         const bell = document.getElementById('notificationBell');
-        document.addEventListener('click', function(event) {
-            if (notificationContainer && 
-                !notificationContainer.contains(event.target) && 
+        document.addEventListener('click', function (event) {
+            if (notificationContainer &&
+                !notificationContainer.contains(event.target) &&
                 bell && !bell.contains(event.target)) {
                 hideNotificationPanel();
             }

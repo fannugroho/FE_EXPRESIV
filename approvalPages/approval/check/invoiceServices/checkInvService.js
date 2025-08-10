@@ -3,11 +3,11 @@ let currentInvServiceData = null;
 let currentUser = null;
 let allUsers = []; // Store all users for kansaiEmployeeId lookup
 
-// API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+// API Configuration - Using BASE_URL from auth.js
+const API_BASE_URL = `${BASE_URL}/api`;
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializePage();
 });
 
@@ -40,13 +40,13 @@ function initializePage() {
 
     // Load users from API to get kansaiEmployeeId
     fetchUsers();
-    
+
     // Load invoice service data from URL parameters
     loadInvServiceData();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Initialize button visibility (hide by default)
     updateButtonVisibility();
 }
@@ -58,7 +58,7 @@ async function fetchUsers() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         if (result.data) {
             allUsers = result.data;
@@ -76,19 +76,19 @@ function getCurrentUserKansaiEmployeeId() {
         console.warn('No current user or users data available');
         return currentUser?.userId || currentUser?.username || 'unknown';
     }
-    
+
     // Find the current user in the allUsers array
-    const currentUserData = allUsers.find(user => 
-        user.id === currentUser.userId || 
+    const currentUserData = allUsers.find(user =>
+        user.id === currentUser.userId ||
         user.username === currentUser.username ||
         user.name === currentUser.username
     );
-    
+
     if (currentUserData && currentUserData.kansaiEmployeeId) {
         console.log('Found kansaiEmployeeId for current user:', currentUserData.kansaiEmployeeId);
         return currentUserData.kansaiEmployeeId;
     }
-    
+
     console.warn('kansaiEmployeeId not found for current user, falling back to userId/username');
     return currentUser.userId || currentUser.username || 'unknown';
 }
@@ -99,19 +99,19 @@ function getCurrentUserFullName() {
         console.warn('No current user or users data available for full name');
         return currentUser?.username || 'Unknown User';
     }
-    
+
     // Find the current user in the allUsers array
-    const currentUserData = allUsers.find(user => 
-        user.id === currentUser.userId || 
+    const currentUserData = allUsers.find(user =>
+        user.id === currentUser.userId ||
         user.username === currentUser.username ||
         user.name === currentUser.username
     );
-    
+
     if (currentUserData && currentUserData.fullName) {
         console.log('Found full name for current user:', currentUserData.fullName);
         return currentUserData.fullName;
     }
-    
+
     console.warn('Full name not found for current user, falling back to username');
     return currentUser.username || 'Unknown User';
 }
@@ -120,11 +120,11 @@ function getCurrentUserFullName() {
 function loadInvServiceData() {
     const urlParams = new URLSearchParams(window.location.search);
     const stagingId = urlParams.get('stagingId') || urlParams.get('invoice-id');
-    
+
     console.log('URL search params:', window.location.search);
     console.log('All URL params:', Object.fromEntries(urlParams.entries()));
     console.log('Staging ID from URL:', stagingId);
-    
+
     if (!stagingId) {
         Swal.fire({
             icon: 'error',
@@ -144,7 +144,7 @@ function loadInvServiceData() {
 async function loadInvServiceFromAPI(stagingId) {
     try {
         console.log('Loading invoice service data for stagingId:', stagingId);
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Loading...',
@@ -153,11 +153,11 @@ async function loadInvServiceFromAPI(stagingId) {
                 Swal.showLoading();
             }
         });
-        
+
         // Construct API URL
         const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/details`;
         console.log('API URL:', apiUrl);
-        
+
         // Fetch data from API
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -166,37 +166,37 @@ async function loadInvServiceFromAPI(stagingId) {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('API response result:', result);
-        
+
         if (result.status && result.data) {
             currentInvServiceData = result.data;
             console.log('Invoice service data loaded from API:', currentInvServiceData);
-            
+
             // Populate form with data
             populateInvServiceData(currentInvServiceData);
-            
+
             // Update button visibility based on status
             updateButtonVisibility();
-            
+
             // Close loading indicator
             Swal.close();
         } else {
             throw new Error('Invalid response format from API');
         }
-        
+
     } catch (error) {
         console.error('Error loading invoice service data:', error);
-        
+
         let errorMessage = 'Failed to load invoice service data';
-        
+
         if (error.message.includes('404')) {
             errorMessage = 'Invoice service not found. Please check the staging ID.';
         } else if (error.message.includes('500')) {
@@ -206,7 +206,7 @@ async function loadInvServiceFromAPI(stagingId) {
         } else {
             errorMessage = `Failed to load invoice service data: ${error.message}`;
         }
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -223,16 +223,16 @@ function updateButtonVisibility() {
         console.log('No currentInvServiceData available for button visibility update');
         return;
     }
-    
+
     const status = getStatusFromInvoice(currentInvServiceData);
     const actionButtonsContainer = document.getElementById('actionButtonsContainer');
     const statusMessage = document.getElementById('statusMessage');
     const statusMessageContent = document.getElementById('statusMessageContent');
-    
+
     console.log('Current document status:', status);
     console.log('Action buttons container found:', !!actionButtonsContainer);
     console.log('Status message found:', !!statusMessage);
-    
+
     // Only show buttons if status is "Prepared"
     if (status === 'Prepared') {
         if (actionButtonsContainer) {
@@ -249,12 +249,12 @@ function updateButtonVisibility() {
         } else {
             console.error('Action buttons container not found');
         }
-        
+
         // Show status message for non-Prepared status
         if (statusMessage && statusMessageContent) {
             statusMessage.style.display = 'block';
             statusMessage.className = 'mt-4 p-4 rounded-lg';
-            
+
             if (status === 'Checked') {
                 statusMessage.className += ' bg-blue-100 border border-blue-300';
                 statusMessageContent.innerHTML = `
@@ -313,7 +313,7 @@ function updateButtonVisibility() {
 // Populate invoice service data in the form
 function populateInvServiceData(data) {
     console.log('Populating invoice service data:', data);
-    
+
     // Helper function to safely set element value
     function safeSetValue(elementId, value) {
         const element = document.getElementById(elementId);
@@ -323,7 +323,7 @@ function populateInvServiceData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Helper function to safely set element style
     function safeSetStyle(elementId, styleProperty, value) {
         const element = document.getElementById(elementId);
@@ -333,7 +333,7 @@ function populateInvServiceData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Populate header fields with correct API field mapping
     safeSetValue('DocEntry', data.stagingID || '');
     safeSetValue('DocNum', data.docNum || '');
@@ -347,44 +347,44 @@ function populateInvServiceData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-            safeSetValue('TaxNo', data.licTradNum || '');
-        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('TaxNo', data.licTradNum || '');
+    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
     safeSetValue('account', data.account || '');
     safeSetValue('acctName', data.acctName || '');
-    
+
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
-    
+
     // Populate totals with correct calculation
     safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
     safeSetValue('VatSum', data.vatSum || 0);
     safeSetValue('DocTotal', data.docTotal || 0);
-    
+
     // Populate comments
     safeSetValue('comments', data.comments || '');
-    
+
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
-        
+
         safeSetValue('preparedByName', data.arInvoiceApprovalSummary.preparedByName || '');
         safeSetValue('acknowledgeByName', data.arInvoiceApprovalSummary.acknowledgedByName || '');
         safeSetValue('checkedByName', data.arInvoiceApprovalSummary.checkedByName || '');
         safeSetValue('approvedByName', data.arInvoiceApprovalSummary.approvedByName || '');
         safeSetValue('receivedByName', data.arInvoiceApprovalSummary.receivedByName || '');
-        
+
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
         const rejectionRemarks = data.arInvoiceApprovalSummary.rejectionRemarks;
-        
+
         // Check both revisionRemarks and rejectionRemarks fields
         const remarksToShow = revisionRemarks || rejectionRemarks;
-        
+
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             safeSetValue('rejectionRemarks', remarksToShow);
             safeSetStyle('rejectionRemarksSection', 'display', 'block');
@@ -394,10 +394,10 @@ function populateInvServiceData(data) {
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
-    
+
     // Populate services table using arInvoiceDetails (same as detailINVService.html)
     populateServicesTable(data.arInvoiceDetails || []);
-    
+
     // Apply text wrapping
     refreshTextWrapping();
 }
@@ -408,16 +408,16 @@ function getStatusFromInvoice(invoice) {
     if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
         return 'Draft';
     }
-    
+
     // If arInvoiceApprovalSummary exists, use approvalStatus field
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
-        
+
         // First priority: use approvalStatus field from arInvoiceApprovalSummary
         if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
             return summary.approvalStatus;
         }
-        
+
         // Fallback: check individual status flags
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
@@ -425,19 +425,19 @@ function getStatusFromInvoice(invoice) {
         if (summary.isChecked) return 'Checked';
         if (summary.isReceived) return 'Received';
     }
-    
+
     // Check transfer status
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if it's a staging document (draft)
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    
+
     // Check if document has been transferred (received)
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if document is in preparation stage
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
+
     // Default to Draft for new documents
     return 'Draft';
 }
@@ -445,14 +445,14 @@ function getStatusFromInvoice(invoice) {
 // Format date to YYYY-MM-DD
 function formatDate(dateString) {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
 }
 
@@ -463,9 +463,9 @@ function populateServicesTable(services) {
         console.warn('Element with id "tableBody" not found');
         return;
     }
-    
+
     tableBody.innerHTML = '';
-    
+
     if (services.length === 0) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
@@ -477,7 +477,7 @@ function populateServicesTable(services) {
         tableBody.appendChild(emptyRow);
         return;
     }
-    
+
     services.forEach((service, index) => {
         const row = createServiceRow(service, index);
         tableBody.appendChild(row);
@@ -488,7 +488,7 @@ function populateServicesTable(services) {
 function createServiceRow(service, index) {
     const row = document.createElement('tr');
     row.className = 'border-b';
-    
+
     row.innerHTML = `
         <td class="p-2 border no-column">
             <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${service.lineNum || index + 1}" disabled autocomplete="off" />
@@ -515,7 +515,7 @@ function createServiceRow(service, index) {
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="10" disabled autocomplete="off" value="-" />
         </td>
     `;
-    
+
     return row;
 }
 
@@ -640,7 +640,7 @@ async function updateInvServiceStatus(status, remarks = '') {
         }
 
         const now = new Date().toISOString();
-        
+
         // Prepare payload for PATCH API - preserve existing approval data
         const payload = {
             approvalStatus: status,
@@ -656,29 +656,29 @@ async function updateInvServiceStatus(status, remarks = '') {
         // Preserve existing approval data if available
         if (currentInvServiceData.arInvoiceApprovalSummary) {
             const existingSummary = currentInvServiceData.arInvoiceApprovalSummary;
-            
+
             // Preserve existing approval data
             if (existingSummary.preparedBy) payload.preparedBy = existingSummary.preparedBy;
             if (existingSummary.preparedByName) payload.preparedByName = existingSummary.preparedByName;
             if (existingSummary.preparedDate) payload.preparedDate = existingSummary.preparedDate;
-            
+
             if (existingSummary.acknowledgedBy) payload.acknowledgedBy = existingSummary.acknowledgedBy;
             if (existingSummary.acknowledgedByName) payload.acknowledgedByName = existingSummary.acknowledgedByName;
             if (existingSummary.acknowledgedDate) payload.acknowledgedDate = existingSummary.acknowledgedDate;
-            
+
             // Preserve existing checkedBy data - don't overwrite it
             if (existingSummary.checkedBy) payload.checkedBy = existingSummary.checkedBy;
             if (existingSummary.checkedByName) payload.checkedByName = existingSummary.checkedByName;
             if (existingSummary.checkedDate) payload.checkedDate = existingSummary.checkedDate;
-            
+
             if (existingSummary.approvedBy) payload.approvedBy = existingSummary.approvedBy;
             if (existingSummary.approvedByName) payload.approvedByName = existingSummary.approvedByName;
             if (existingSummary.approvedDate) payload.approvedDate = existingSummary.approvedDate;
-            
+
             if (existingSummary.receivedBy) payload.receivedBy = existingSummary.receivedBy;
             if (existingSummary.receivedByName) payload.receivedByName = existingSummary.receivedByName;
             if (existingSummary.receivedDate) payload.receivedDate = existingSummary.receivedDate;
-            
+
             // Preserve existing rejection remarks if any
             if (existingSummary.rejectionRemarks) payload.rejectionRemarks = existingSummary.rejectionRemarks;
             if (existingSummary.revisionRemarks) payload.revisionRemarks = existingSummary.revisionRemarks;
@@ -708,7 +708,7 @@ async function updateInvServiceStatus(status, remarks = '') {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error response:', errorText);
-            
+
             let errorDetails = errorText;
             try {
                 const errorJson = JSON.parse(errorText);
@@ -716,7 +716,7 @@ async function updateInvServiceStatus(status, remarks = '') {
             } catch (parseError) {
                 console.error('Could not parse error response as JSON:', parseError);
             }
-            
+
             throw new Error(`API Error: ${response.status} - ${errorDetails}`);
         }
 
@@ -745,7 +745,7 @@ async function updateInvServiceStatus(status, remarks = '') {
 
     } catch (error) {
         console.error('Error updating invoice service status:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Update Failed',
@@ -773,7 +773,7 @@ function formatCurrency(amount) {
 function validateNumericInput(input) {
     // Remove non-numeric characters except decimal point
     input.value = input.value.replace(/[^0-9.]/g, '');
-    
+
     // Ensure only one decimal point
     const parts = input.value.split('.');
     if (parts.length > 2) {
@@ -791,7 +791,7 @@ function refreshTextWrapping() {
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
     const textElements = document.querySelectorAll('.description-column textarea, .account-code-column input, .account-name-column input, .total-lc-column textarea');
-    
+
     textElements.forEach(element => {
         handleTextWrapping(element);
     });
@@ -801,14 +801,14 @@ function applyTextWrappingToAll() {
 function handleTextWrapping(element) {
     const text = element.value || element.textContent || '';
     const charLength = text.length;
-    
+
     // Remove existing classes
     element.classList.remove('wrap-text', 'no-wrap', 'auto-resize');
-    
+
     if (charLength > 15) {
         // Apply wrap text styling for long content
         element.classList.add('wrap-text', 'auto-resize');
-        
+
         // Auto-adjust height for textarea elements
         if (element.tagName === 'TEXTAREA') {
             const lineHeight = 20; // Approximate line height
@@ -819,7 +819,7 @@ function handleTextWrapping(element) {
     } else {
         // Apply no-wrap styling for short content
         element.classList.add('no-wrap');
-        
+
         // Reset height for textarea elements
         if (element.tagName === 'TEXTAREA') {
             element.style.height = '40px';

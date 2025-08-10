@@ -7,7 +7,7 @@ let employeesData = []; // Add this to store employee data
 let uploadedFiles = [];
 
 // API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 /*
  * DOCUMENT EDITABILITY CONTROL

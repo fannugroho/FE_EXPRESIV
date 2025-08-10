@@ -4,7 +4,7 @@ let currentUser = null;
 let allUsers = []; // Store all users for kansaiEmployeeId lookup
 
 // API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 /*
  * REJECTION FEATURES IMPLEMENTED:
