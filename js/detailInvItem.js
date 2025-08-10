@@ -9,6 +9,31 @@ let uploadedFiles = [];
 // API Configuration
 const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
 
+/*
+ * DOCUMENT EDITABILITY CONTROL
+ * 
+ * This page implements status-based form editing restrictions:
+ * - Only documents with status "Draft" can be edited
+ * - All other statuses (Prepared, Checked, Acknowledged, Approved, Received, Rejected) are read-only
+ * 
+ * Features implemented:
+ * 1. Form fields (approval section, remarks) are disabled for non-Draft status
+ * 2. File upload is prevented for non-Draft status
+ * 3. Employee dropdown search is disabled for non-Draft status
+ * 4. Table editing (if any) is restricted for non-Draft status
+ * 5. Visual indicator shows read-only status with color-coded badges
+ * 6. User warnings when attempting to edit non-Draft documents
+ *
+ * Status color coding:
+ * - Draft: No indicator (fully editable)
+ * - Prepared: Blue badge
+ * - Checked: Yellow badge
+ * - Acknowledged: Purple badge
+ * - Approved: Green badge
+ * - Received: Emerald badge
+ * - Rejected: Red badge
+ */
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     // Get invoice ID from URL parameters
@@ -54,6 +79,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup approval input listeners
     setupApprovalInputListeners();
+    
+    // Setup other form field listeners
+    setupOtherFieldListeners();
+    
     // Initialize action buttons visibility based on status once data is loaded
 });
 
@@ -145,6 +174,16 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
     
     // Setup input event listeners
     input.addEventListener('input', function() {
+        // Check if document is editable
+        const statusField = document.getElementById('Status');
+        const currentStatus = statusField ? statusField.value : '';
+        
+        if (currentStatus !== 'Draft') {
+            // If not Draft, hide dropdown and don't filter
+            dropdown.classList.add('hidden');
+            return;
+        }
+        
         const searchTerm = this.value.toLowerCase();
         const filteredEmployees = employeesData.filter(employee => 
             employee.fullName.toLowerCase().includes(searchTerm)
@@ -154,6 +193,16 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
     });
     
     input.addEventListener('focus', function() {
+        // Check if document is editable
+        const statusField = document.getElementById('Status');
+        const currentStatus = statusField ? statusField.value : '';
+        
+        if (currentStatus !== 'Draft') {
+            // If not Draft, hide dropdown and don't filter
+            dropdown.classList.add('hidden');
+            return;
+        }
+        
         const searchTerm = this.value.toLowerCase();
         const filteredEmployees = employeesData.filter(employee => 
             employee.fullName.toLowerCase().includes(searchTerm)
@@ -1319,6 +1368,205 @@ function enableSubmitButton() {
     
     // Use the helper function to update visibility
     updateSubmitAndRejectVisibility(currentStatus);
+    
+    // Update form editability based on status
+    updateFormEditability(currentStatus);
+}
+
+// Function to control form editability based on document status
+function updateFormEditability(status) {
+    console.log('Updating form editability for status:', status);
+    
+    const isDraft = status === 'Draft';
+    
+    // Update status indicator
+    updateDocumentStatusIndicator(status, isDraft);
+    
+    // Control approval section (only editable for Draft status)
+    setApprovalFieldsEditability(isDraft);
+    
+    // Control file upload section
+    setFileUploadEditability(isDraft);
+    
+    // Control remarks field
+    setRemarksEditability(isDraft);
+    
+    // Control table cells (in case there are any editable table fields)
+    setTableFieldsEditability(isDraft);
+    
+    console.log(`Form editability updated: ${isDraft ? 'Enabled' : 'Disabled'} for status: ${status}`);
+}
+
+// Function to update document status indicator
+function updateDocumentStatusIndicator(status, isEditable) {
+    const indicator = document.getElementById('documentStatusIndicator');
+    const statusDisplay = document.getElementById('currentStatusDisplay');
+    const badge = document.getElementById('readOnlyBadge');
+    
+    if (!indicator || !statusDisplay || !badge) return;
+    
+    if (!isEditable) {
+        // Show read-only indicator for non-Draft status
+        statusDisplay.textContent = status;
+        indicator.classList.remove('hidden');
+        
+        // Update badge color based on status
+        badge.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border';
+        
+        switch (status) {
+            case 'Prepared':
+                badge.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-300');
+                break;
+            case 'Checked':
+                badge.classList.add('bg-yellow-100', 'text-yellow-800', 'border-yellow-300');
+                break;
+            case 'Acknowledged':
+                badge.classList.add('bg-purple-100', 'text-purple-800', 'border-purple-300');
+                break;
+            case 'Approved':
+                badge.classList.add('bg-green-100', 'text-green-800', 'border-green-300');
+                break;
+            case 'Received':
+                badge.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300');
+                break;
+            case 'Rejected':
+                badge.classList.add('bg-red-100', 'text-red-800', 'border-red-300');
+                break;
+            default:
+                badge.classList.add('bg-gray-100', 'text-gray-800', 'border-gray-300');
+        }
+    } else {
+        // Hide indicator for Draft status (editable)
+        indicator.classList.add('hidden');
+    }
+}
+
+// Function to control approval fields editability
+function setApprovalFieldsEditability(isEditable) {
+    const approvalInputs = [
+        'acknowledgeByName',
+        'checkedByName', 
+        'approvedByName',
+        'receivedByName'
+    ];
+    
+    approvalInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.disabled = !isEditable;
+            input.readOnly = !isEditable;
+            
+            // Update visual appearance
+            if (isEditable) {
+                input.classList.remove('bg-gray-100');
+                input.classList.add('bg-white');
+            } else {
+                input.classList.remove('bg-white');
+                input.classList.add('bg-gray-100');
+            }
+        }
+    });
+    
+    // Also disable the corresponding dropdowns
+    const dropdownIds = [
+        'acknowledgeBySelectDropdown',
+        'checkedBySelectDropdown',
+        'approvedBySelectDropdown', 
+        'receivedBySelectDropdown'
+    ];
+    
+    dropdownIds.forEach(dropdownId => {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+            if (isEditable) {
+                dropdown.style.pointerEvents = 'auto';
+                dropdown.style.opacity = '1';
+            } else {
+                dropdown.style.pointerEvents = 'none';
+                dropdown.style.opacity = '0.6';
+            }
+        }
+    });
+}
+
+// Function to control file upload editability
+function setFileUploadEditability(isEditable) {
+    const fileInput = document.getElementById('filePath');
+    if (fileInput) {
+        fileInput.disabled = !isEditable;
+        
+        // Update visual appearance
+        if (isEditable) {
+            fileInput.classList.remove('bg-gray-100');
+            fileInput.classList.add('bg-white');
+        } else {
+            fileInput.classList.remove('bg-white');
+            fileInput.classList.add('bg-gray-100');
+        }
+    }
+    
+    // Hide/show file upload section
+    const fileUploadSection = document.querySelector('.file-upload-section');
+    if (fileUploadSection) {
+        if (isEditable) {
+            fileUploadSection.style.display = 'block';
+        } else {
+            fileUploadSection.style.display = 'none';
+        }
+    }
+}
+
+// Function to control remarks field editability
+function setRemarksEditability(isEditable) {
+    const remarksField = document.getElementById('comments');
+    if (remarksField) {
+        remarksField.disabled = !isEditable;
+        remarksField.readOnly = !isEditable;
+        
+        // Update visual appearance
+        if (isEditable) {
+            remarksField.classList.remove('bg-gray-100');
+            remarksField.classList.add('bg-white');
+        } else {
+            remarksField.classList.remove('bg-white');
+            remarksField.classList.add('bg-gray-100');
+        }
+    }
+}
+
+// Function to control table fields editability (if any editable fields exist)
+function setTableFieldsEditability(isEditable) {
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return;
+    
+    // Get all input and textarea elements in the table
+    const tableInputs = tableBody.querySelectorAll('input, textarea, select');
+    
+    tableInputs.forEach(element => {
+        element.disabled = !isEditable;
+        element.readOnly = !isEditable;
+        
+        // Update visual appearance
+        if (isEditable) {
+            element.classList.remove('bg-gray-100');
+            element.classList.add('bg-white');
+        } else {
+            element.classList.remove('bg-white');
+            element.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Hide/show any action buttons in table (like add/remove row buttons)
+    const actionButtons = tableBody.querySelectorAll('button, .btn-add, .btn-remove, .btn-delete');
+    actionButtons.forEach(button => {
+        if (isEditable) {
+            button.style.display = 'inline-block';
+            button.disabled = false;
+        } else {
+            button.style.display = 'none';
+            button.disabled = true;
+        }
+    });
 }
 
 // Helper function to manage submit and reject buttons visibility
@@ -1546,6 +1794,26 @@ function setupApprovalInputListeners() {
         const input = document.getElementById(inputId);
         if (input) {
             input.addEventListener('input', function() {
+                // Check if document is editable before allowing changes
+                const statusField = document.getElementById('Status');
+                const currentStatus = statusField ? statusField.value : '';
+                
+                if (currentStatus !== 'Draft') {
+                    // If not Draft, prevent changes and show warning
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cannot Edit',
+                        text: 'This document cannot be edited because its status is not "Draft".',
+                        confirmButtonText: 'OK',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    
+                    // Revert the change by clearing the input
+                    this.value = this.getAttribute('data-original-value') || '';
+                    return;
+                }
+                
                 // Mark that approval data has been modified
                 window.approvalDataModified = true;
                 console.log(`Approval data modified: ${inputId} = ${this.value}`);
@@ -1590,10 +1858,49 @@ function setupApprovalInputListeners() {
                 // Show subtle notification that data has been modified
                 showApprovalModifiedNotification();
             });
+            
+            // Store original value when the input gains focus (for reverting if needed)
+            input.addEventListener('focus', function() {
+                this.setAttribute('data-original-value', this.value);
+            });
         } else {
             console.warn(`Element with id '${inputId}' not found`);
         }
     });
+}
+
+// Setup event listeners for other form fields (comments, etc.)
+function setupOtherFieldListeners() {
+    // Setup comments/remarks field listener
+    const commentsField = document.getElementById('comments');
+    if (commentsField) {
+        commentsField.addEventListener('input', function() {
+            // Check if document is editable before allowing changes
+            const statusField = document.getElementById('Status');
+            const currentStatus = statusField ? statusField.value : '';
+            
+            if (currentStatus !== 'Draft') {
+                // If not Draft, prevent changes and show warning
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cannot Edit',
+                    text: 'Remarks cannot be edited because this document status is not "Draft".',
+                    confirmButtonText: 'OK',
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+                
+                // Revert the change
+                this.value = this.getAttribute('data-original-value') || '';
+                return;
+            }
+        });
+        
+        // Store original value when the field gains focus
+        commentsField.addEventListener('focus', function() {
+            this.setAttribute('data-original-value', this.value);
+        });
+    }
 }
 
 // Show notification when approval data is modified
@@ -2167,6 +2474,26 @@ function applyCurrencyFormattingToTable() {
 
 // File upload and preview functions
 function previewPDF(event) {
+    // Check if document is editable
+    const statusField = document.getElementById('Status');
+    const currentStatus = statusField ? statusField.value : '';
+    
+    if (currentStatus !== 'Draft') {
+        // If not Draft, prevent file upload and show warning
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cannot Upload Files',
+            text: 'Files cannot be uploaded because this document status is not "Draft".',
+            confirmButtonText: 'OK',
+            timer: 3000,
+            timerProgressBar: true
+        });
+        
+        // Clear the file input
+        event.target.value = '';
+        return;
+    }
+    
     const files = event.target.files;
     
     if (files.length + uploadedFiles.length > 5) {
@@ -2338,7 +2665,7 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// View existing attachment with proper error handling
+// View existing attachment with proper error handling and PDF viewer
 async function viewExistingAttachment(attachmentJson) {
     try {
         console.log('Viewing existing attachment:', attachmentJson);
@@ -2358,22 +2685,6 @@ async function viewExistingAttachment(attachmentJson) {
         
         console.log('Parsed attachment data:', attachment);
         
-        // Show loading indicator
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Loading...',
-                text: 'Loading attachment, please wait...',
-                icon: 'info',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                allowEnterKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-        }
-        
         // Construct full URL if it's a relative path
         let fullUrl = attachment.fileUrl || attachment.filePath || attachment.path;
         if (!fullUrl) {
@@ -2382,44 +2693,32 @@ async function viewExistingAttachment(attachmentJson) {
         
         // If it's not already a full URL, construct it
         if (!fullUrl.startsWith('http')) {
-            fullUrl = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
-            fullUrl = `${API_BASE_URL}${fullUrl}`;
+            if (fullUrl.startsWith('/api')) {
+                // Remove duplicate /api since API_BASE_URL already includes it
+                const cleanFileUrl = fullUrl.replace('/api', '');
+                fullUrl = `${API_BASE_URL}${cleanFileUrl}`;
+            } else {
+                fullUrl = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+                fullUrl = `${API_BASE_URL}${fullUrl}`;
+            }
         }
         
         console.log('Constructed full URL:', fullUrl);
         
-        // Close loading indicator
-        if (typeof Swal !== 'undefined') {
-            Swal.close();
-        }
+        // Get file name and determine file type
+        const fileName = attachment.fileName || attachment.name || 'attachment';
+        const fileExtension = fileName.split('.').pop().toLowerCase();
         
-        // Open the file in a new tab
-        const newWindow = window.open(fullUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=yes');
-        
-        if (!newWindow) {
-            throw new Error('Failed to open document window. Please check your popup blocker settings.');
-        }
-        
-        console.log('Attachment opened successfully:', fullUrl);
-        
-        // Show success message
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Success',
-                text: 'Attachment opened in new tab',
-                icon: 'success',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#3b82f6'
-            });
+        if (fileExtension === 'pdf') {
+            // For PDF files, use the PDF viewer modal
+            await showPDFViewerDetail(fullUrl, fileName);
+        } else {
+            // For other file types, open in new tab
+            openInNewTabDetail(fullUrl, fileName);
         }
         
     } catch (error) {
         console.error('Error viewing existing attachment:', error);
-        
-        // Close loading indicator if still open
-        if (typeof Swal !== 'undefined') {
-            Swal.close();
-        }
         
         // Show error message
         if (typeof Swal !== 'undefined') {
@@ -2433,6 +2732,125 @@ async function viewExistingAttachment(attachmentJson) {
         } else {
             alert(`Failed to view attachment: ${error.message}`);
         }
+    }
+}
+
+// Show PDF in a modal viewer for detail page
+async function showPDFViewerDetail(pdfUrl, fileName) {
+    try {
+        // Show loading
+        Swal.fire({
+            title: 'Loading PDF...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Fetch the PDF as blob for viewing
+        const response = await fetch(pdfUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/pdf,*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Close loading and show PDF viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="${blobUrl}" 
+                        style="width: 100%; height: 100%; border: none;"
+                        type="application/pdf">
+                        <p>Your browser doesn't support PDF viewing. 
+                           <a href="${blobUrl}" target="_blank">Click here to open the PDF</a>
+                        </p>
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            customClass: {
+                container: 'pdf-viewer-modal'
+            },
+            willClose: () => {
+                // Clean up blob URL when modal closes
+                URL.revokeObjectURL(blobUrl);
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading PDF for viewing:', error);
+        
+        // Fallback to Google Docs viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" 
+                        style="width: 100%; height: 100%; border: none;"
+                        allow="fullscreen">
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        });
+    }
+}
+
+// Open in new tab with proper handling for detail page
+function openInNewTabDetail(fileUrl, fileName) {
+    // Show loading message
+    const loadingToast = Swal.fire({
+        title: 'Opening Document...',
+        text: `Loading ${fileName}`,
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        allowOutsideClick: true,
+        toast: true,
+        position: 'top-end'
+    });
+    
+    // Create a temporary link to force view behavior
+    const tempLink = document.createElement('a');
+    tempLink.href = fileUrl;
+    tempLink.target = '_blank';
+    tempLink.rel = 'noopener noreferrer';
+    
+    // Add parameters to hint at viewing instead of downloading
+    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
+    
+    // Try to open in new tab
+    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    
+    // Check if popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        loadingToast.close();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Popup Blocked',
+            html: `
+                <p>Your browser blocked the popup. Please allow popups for this site or</p>
+                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
+            `,
+            confirmButtonText: 'OK'
+        });
     }
 }
 
