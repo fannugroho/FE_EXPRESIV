@@ -32,7 +32,7 @@
         }
         
         .scrollable-cell::-webkit-scrollbar {
-            height: 6px;
+            height: 4px;
         }
         
         .scrollable-cell::-webkit-scrollbar-track {
@@ -98,6 +98,262 @@
         .menu-icon {
             font-weight: bold !important;
         }
+
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Extra Small Devices (phones, 320px and up) */
+        @media (max-width: 575.98px) {
+            /* Sidebar adjustments for mobile */
+            #sidebar {
+                width: 100% !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1000;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s ease-in-out !important;
+            }
+            
+            #sidebar.show {
+                transform: translateX(0) !important;
+            }
+            
+            /* Main content adjustments */
+            .flex-1 {
+                margin-left: 0 !important;
+                width: 100%;
+            }
+            
+            /* Header adjustments */
+            h2 {
+                font-size: 1.5rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Status cards adjustments */
+            .stat-card {
+                min-width: auto !important;
+                padding: 1rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .stat-card h3 {
+                font-size: 0.875rem !important;
+            }
+            
+            .stat-card p {
+                font-size: 1.5rem !important;
+            }
+            
+            /* Table adjustments */
+            .table-auto {
+                font-size: 0.75rem !important;
+            }
+            
+            .table-auto th,
+            .table-auto td {
+                padding: 0.25rem !important;
+            }
+            
+            /* Search and filter adjustments */
+            #searchInput {
+                width: 100% !important;
+                margin-top: 0.5rem;
+            }
+            
+            /* Tab buttons adjustments */
+            .flex.border-b {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            
+            .flex.border-b button {
+                font-size: 0.75rem !important;
+                padding: 0.5rem 0.75rem !important;
+            }
+            
+            /* Pagination adjustments */
+            .flex.justify-between {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: center;
+            }
+            
+            /* Bottom navigation adjustments */
+            nav.fixed {
+                padding: 0.5rem 0.25rem;
+            }
+            
+            nav.fixed button {
+                font-size: 0.625rem !important;
+            }
+            
+            nav.fixed i {
+                font-size: 1rem !important;
+            }
+        }
+        
+        /* Small Devices (landscape phones, 576px and up) */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            /* Sidebar adjustments */
+            #sidebar {
+                width: 200px !important;
+            }
+            
+            /* Status cards adjustments */
+            .grid.grid-cols-1.sm\\:grid-cols-2 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .grid.grid-cols-1.sm\\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            /* Table adjustments */
+            .table-auto {
+                font-size: 0.875rem !important;
+            }
+            
+            /* Search adjustments */
+            #searchInput {
+                width: 200px !important;
+            }
+        }
+        
+        /* Medium Devices (tablets, 768px and up) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            /* Sidebar adjustments */
+            #sidebar {
+                width: 240px !important;
+            }
+            
+            /* Status cards adjustments */
+            .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .grid.grid-cols-1.sm\\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            /* Table adjustments */
+            .table-auto {
+                font-size: 0.875rem !important;
+            }
+            
+            /* Search adjustments */
+            #searchInput {
+                width: 250px !important;
+            }
+        }
+        
+        /* Large Devices (desktops, 992px and up) */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            /* Status cards adjustments */
+            .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .grid.grid-cols-1.sm\\:grid-cols-4 {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            /* Search adjustments */
+            #searchInput {
+                width: 300px !important;
+            }
+        }
+        
+        /* Extra Large Devices (large desktops, 1200px and up) */
+        @media (min-width: 1200px) {
+            /* Full desktop layout */
+            .stat-card {
+                min-width: 200px !important;
+            }
+            
+            #searchInput {
+                width: 350px !important;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            /* Reduce padding for landscape mobile */
+            .flex-1 {
+                padding: 1rem !important;
+            }
+            
+            .stat-card {
+                padding: 0.75rem !important;
+            }
+            
+            .stat-card h3 {
+                font-size: 0.75rem !important;
+            }
+            
+            .stat-card p {
+                font-size: 1.25rem !important;
+            }
+        }
+        
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            /* Ensure crisp text on high DPI displays */
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            #sidebar,
+            nav.fixed,
+            .user-profile {
+                display: none !important;
+            }
+            
+            .flex-1 {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+            
+            .bg-gradient {
+                background: white !important;
+            }
+            
+            .text-white {
+                color: black !important;
+            }
+            
+            .bg-white.bg-opacity-10 {
+                background: white !important;
+                border: 1px solid #ccc !important;
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            /* Add dark mode styles if needed */
+            .bg-white {
+                background-color: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            .text-gray-800 {
+                color: #f9fafb !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -106,6 +362,11 @@
         <aside id="sidebar" class="bg-white shadow-lg">
             <!-- Sidebar content will be loaded by sidebar-loader.js -->
         </aside>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobileMenuToggle" class="fixed top-4 left-4 z-50 md:hidden bg-white rounded-lg p-2 shadow-lg">
+            <i class="fas fa-bars text-gray-800"></i>
+        </button>
 
         <!-- User Avatar -->
         <div class="absolute top-4 right-4 flex items-center space-x-4">
@@ -178,43 +439,45 @@
                         <h3 class="text-xl font-semibold">Recent Documents</h3>
                     </div>
                     
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
                         <!-- Tab buttons - kiri -->
                          <!--status button-->
-                        <div class="flex border-b w-full md:w-auto overflow-x-auto">
-                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap">
+                        <div class="flex border-b w-full lg:w-auto overflow-x-auto">
+                            <button id="allTabBtn" onclick="switchTab('all')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap text-sm">
                                 <i class="fas fa-file-alt mr-2"></i>All Documents
                             </button>
-                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
+                            <button id="draftTabBtn" onclick="switchTab('draft')" class="px-4 py-2 rounded-t-lg whitespace-nowrap text-sm">
                                 <i class="fas fa-file mr-2"></i>Draft
                             </button>
-                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 rounded-t-lg whitespace-nowrap text-sm">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
                         </div>
                         
                         <!-- Search by Invoice - kanan -->
-                        <div class="relative">
+                        <div class="relative w-full lg:w-auto">
                             <!--Search by Invoice-->
-                            <div class="flex">
-                                <select id="searchType" class="border-r-0 rounded-r-none rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 px-2">
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <select id="searchType" class="border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-2 text-sm">
                                     <option value="invoice">Invoice No.</option>
                                     <option value="customer">Customer</option>
                                     <option value="date">Date</option>
                                     <option value="status">Status</option>
                                 </select>
-                                <input
-                                    type="text"
-                                    id="searchInput"
-                                    placeholder="Search..."
-                                    class="w-full md:w-48 px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                                <div class="relative flex-1 sm:flex-none">
+                                    <input
+                                        type="text"
+                                        id="searchInput"
+                                        placeholder="Search..."
+                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    />
+                                    <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <!--Table-->
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto shadow-lg rounded-lg">
                         <table class="table-auto w-full min-w-max whitespace-nowrap text-xs md:text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
@@ -224,8 +487,8 @@
                                     <th class="p-2 text-left">Date</th>
                                     <th class="p-2 text-left">Due Date</th>
                                     <th class="p-2 text-left">Status</th>
-                                    <th class="p-2 text-left">Total (IDR)</th>
                                     <th class="p-2 text-left">Type</th>
+                                    <th class="p-2 text-left">Total</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
@@ -234,16 +497,16 @@
                     </div>
                     
                     <!-- Pagination Controls -->
-                    <div class="flex justify-between items-center mt-4">
-                        <div class="text-sm text-gray-600">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mt-4 gap-2">
+                        <div class="text-sm text-gray-600 text-center sm:text-left">
                             Showing <span id="startItem">1</span>-<span id="endItem">10</span> of <span id="totalItems">0</span> items
                         </div>
                         <div class="flex space-x-2">
-                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled">
+                            <button id="prevPage" onclick="changePage(-1)" class="pagination-btn disabled px-3 py-1 rounded">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
-                            <span id="currentPage" class="px-3 py-1">1</span>
-                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn">
+                            <span id="currentPage" class="px-3 py-1 bg-gray-100 rounded">1</span>
+                            <button id="nextPage" onclick="changePage(1)" class="pagination-btn px-3 py-1 rounded">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
@@ -277,33 +540,91 @@
     <script src="../components/shared/navigation.js"></script>
     <script src="../js/menuInvoice.js"></script>
     <script>
-    // Disable any sidebar toggle functionality that might be in the JS
+    // Responsive sidebar functionality
     document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const isMobile = window.innerWidth <= 575.98;
+        
+        // Mobile menu toggle functionality
+        if (mobileMenuToggle && sidebar) {
+            mobileMenuToggle.addEventListener('click', function() {
+                if (isMobile) {
+                    sidebar.classList.toggle('show');
+                    // Update toggle button icon
+                    const icon = mobileMenuToggle.querySelector('i');
+                    if (sidebar.classList.contains('show')) {
+                        icon.className = 'fas fa-times text-gray-800';
+                    } else {
+                        icon.className = 'fas fa-bars text-gray-800';
+                    }
+                }
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (isMobile && sidebar.classList.contains('show')) {
+                    if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+                        sidebar.classList.remove('show');
+                        const icon = mobileMenuToggle.querySelector('i');
+                        icon.className = 'fas fa-bars text-gray-800';
+                    }
+                }
+            });
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const newIsMobile = window.innerWidth <= 575.98;
+            
+            if (newIsMobile !== isMobile) {
+                // Reload page or adjust layout when switching between mobile and desktop
+                if (newIsMobile) {
+                    // Switching to mobile
+                    if (sidebar) {
+                        sidebar.style.transform = 'translateX(-100%)';
+                    }
+                } else {
+                    // Switching to desktop
+                    if (sidebar) {
+                        sidebar.style.transform = 'none';
+                        sidebar.classList.remove('show');
+                    }
+                }
+            }
+        });
+        
         // Override any toggleSidebar function if it exists
         if (typeof toggleSidebar === 'function') {
             window.toggleSidebar = function() {
-                // Do nothing - sidebar is now permanent
+                if (isMobile) {
+                    // Toggle mobile sidebar
+                    if (mobileMenuToggle) {
+                        mobileMenuToggle.click();
+                    }
+                }
                 return false;
             };
         }
         
-        // Make sure sidebar stays fixed when tabs are clicked
-        document.getElementById('allTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
+        // Make sure sidebar stays fixed when tabs are clicked (desktop only)
+        if (!isMobile) {
+            document.getElementById('allTabBtn')?.addEventListener('click', function(e) {
+                ensureSidebarVisible();
+            });
+            
+            document.getElementById('draftTabBtn')?.addEventListener('click', function(e) {
+                ensureSidebarVisible();
+            });
+            
+            document.getElementById('preparedTabBtn')?.addEventListener('click', function(e) {
+                ensureSidebarVisible();
+            });
+        }
         
-        document.getElementById('draftTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        document.getElementById('preparedTabBtn').addEventListener('click', function(e) {
-            ensureSidebarVisible();
-        });
-        
-        // Function to ensure sidebar visibility
+        // Function to ensure sidebar visibility (desktop only)
         function ensureSidebarVisible() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
+            if (!isMobile && sidebar) {
                 sidebar.style.width = '256px';
                 sidebar.style.transform = 'none';
                 sidebar.style.marginLeft = '0';
@@ -312,9 +633,11 @@
             }
         }
         
-        // Run immediately and also set interval to keep checking
-        ensureSidebarVisible();
-        setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        // Run immediately and also set interval to keep checking (desktop only)
+        if (!isMobile) {
+            ensureSidebarVisible();
+            setInterval(ensureSidebarVisible, 500); // Check every 500ms
+        }
         
         // Override switchTab function if it exists to maintain sidebar
         const originalSwitchTab = window.switchTab;
@@ -322,9 +645,32 @@
             window.switchTab = function(tab) {
                 // Call the original function
                 originalSwitchTab(tab);
-                // Ensure sidebar remains visible
-                setTimeout(ensureSidebarVisible, 10);
+                // Ensure sidebar remains visible (desktop only)
+                if (!isMobile) {
+                    setTimeout(ensureSidebarVisible, 10);
+                }
             };
+        }
+        
+        // Add touch support for mobile
+        if (isMobile && sidebar) {
+            let startX = 0;
+            let currentX = 0;
+            
+            sidebar.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+            });
+            
+            sidebar.addEventListener('touchmove', function(e) {
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                
+                if (diff > 50) { // Swipe left to close
+                    sidebar.classList.remove('show');
+                    const icon = mobileMenuToggle.querySelector('i');
+                    icon.className = 'fas fa-bars text-gray-800';
+                }
+            });
         }
     });
     </script>

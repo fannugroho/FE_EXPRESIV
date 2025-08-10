@@ -20,10 +20,39 @@
             background-color: #f3f4f6;
         }
         .search-dropdown {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 50;
+            width: 100% !important;
+            max-width: 100% !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+        
+        .search-dropdown .dropdown-item {
+            padding: 10px 12px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s !important;
+        }
+        
+        .search-dropdown .dropdown-item:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .search-dropdown .dropdown-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        .search-dropdown .no-results {
+            padding: 12px !important;
+            color: #6b7280 !important;
+            font-style: italic !important;
+            text-align: center !important;
         }
         .search-input:focus {
             border-color: #3b82f6;
@@ -66,23 +95,23 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
         /* Custom width for line total column */
         .line-total-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .line-total-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -100,6 +129,16 @@
         
         .item-code-input {
             width: 120px !important;
+        }
+        
+        /* Custom width for BP Catalog column */
+        .bp-catalog-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .bp-catalog-input {
+            width: 100px !important;
         }
         
         /* Custom width for No. column */
@@ -127,6 +166,12 @@
         
         /* Custom width for Tax Code column */
         .tax-code-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        /* Custom width for Packing Size column */
+        .packing-size-column {
             width: 100px !important;
             min-width: 100px !important;
         }
@@ -236,12 +281,67 @@
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow-y: visible;
+            max-height: none !important;
         }
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
-            min-width: 1200px;
+            min-width: 1100px;
             table-layout: fixed;
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Table header styling */
+        #arInvTable thead {
+            background: #f3f4f6;
+            z-index: 10;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         /* Better spacing for table cells */
@@ -251,6 +351,117 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            vertical-align: middle !important;
+        }
+        
+        /* Ensure textarea content is properly displayed */
+        .table-container textarea {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-family: inherit;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        /* Text alignment for different column types */
+        /* No. column - center aligned */
+        .no-column input {
+            text-align: center !important;
+        }
+        
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
+        .description-column textarea {
+            text-align: left !important;
+        }
+        
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+        }
+        
+        /* Tax code column - center aligned */
+        .tax-code-column input {
+            text-align: center !important;
+        }
+        
+        /* Packing Size column - center aligned */
+        .packing-size-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Add visual indicator for scrollable content */
+        .table-container textarea.has-scroll {
+            border-right: 2px solid #3b82f6;
+        }
+        
+        /* Improve table row appearance */
+        #arInvTable tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* Ensure consistent cell alignment and height */
+        #arInvTable td {
+            vertical-align: middle !important;
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+        
+        /* Consistent input and textarea styling */
+        #arInvTable input,
+        #arInvTable textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            vertical-align: middle;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Remove any conflicting styles */
+        .item-description,
+        .item-free-txt,
+        .item-sales-employee,
+        .item-sls-qty,
+        .item-quantity,
+        .item-sls-price,
+        .item-price,
+        .item-line-total {
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Ensure table rows have consistent height */
+        #arInvTable tbody tr {
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
         }
         
         /* Responsive adjustments */
@@ -260,14 +471,62 @@
                 min-width: 200px !important;
             }
             
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
             .price-column {
                 width: 100px !important;
                 min-width: 100px !important;
             }
             
             .line-total-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+        }
+        
+        /* Mobile layout styles */
+        @media (max-width: 768px) {
+            .mobile-layout {
+                font-size: 12px !important;
+            }
+            
+            .mobile-layout th,
+            .mobile-layout td {
+                padding: 4px 2px !important;
+            }
+            
+            .mobile-layout .description-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .mobile-layout .price-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .mobile-layout .line-total-column {
                 width: 100px !important;
                 min-width: 100px !important;
+            }
+            
+            .mobile-layout .quantity-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .mobile-layout input,
+            .mobile-layout textarea {
+                font-size: 12px !important;
+                padding: 4px 6px !important;
             }
         }
         
@@ -308,6 +567,189 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
+
+        
+        /* Attachment section styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-container:hover {
+            border-color: #d1d5db;
+            background-color: #f3f4f6;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-icon {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        
+        .file-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+        
+        .attachment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-download {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-preview {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Loading state styles */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #10b981;
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        .notification.warning {
+            background-color: #f59e0b;
+        }
+        
+        .notification.info {
+            background-color: #3b82f6;
+        }
+        
+        /* Focus management styles */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        .focus-visible:focus {
+            outline: none;
+        }
+        
         /* Wrap text styles for columns with long content */
         .wrap-text {
             white-space: normal !important;
@@ -338,15 +780,529 @@
             resize: none;
             overflow-y: auto;
         }
+        
+        /* Full screen professional styling */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8fafc;
+            padding: 0;
+        }
+        
+        .content-wrapper {
+            max-width: none;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+        
+        .header-section {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .table-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .submit-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        /* Enhanced approval section styling */
+        .approval-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section h3 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .approval-section .grid {
+            gap: 1.5rem;
+        }
+        
+        .approval-section label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .approval-section input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .approval-section input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .approval-section input:disabled {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        /* Currency formatting styles */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+        }
+        
+        /* Currency formatting for summary fields */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Enhanced currency formatting */
+        .currency-input-idr:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        .currency-input-idr:hover {
+            border-color: #d1d5db !important;
+        }
+        
+        /* Summary field styling */
+        .summary-field {
+            background-color: #f8fafc !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.75rem !important;
+            font-weight: 600 !important;
+        }
+        
+        .summary-field:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        /* Attachment list container styling */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .loading-spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        /* Attachment list container styling */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* Ensure attachment items have proper spacing */
+        .attachment-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Improve button styling for attachment actions */
+        .attachment-actions .btn-download,
+        .attachment-actions .btn-preview {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .attachment-actions .btn-download {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .attachment-actions .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .attachment-actions .btn-preview {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .attachment-actions .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        /* Ensure attachment items have proper spacing */
+        .attachment-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Improve button styling for attachment actions */
+        .attachment-actions .btn-download,
+        .attachment-actions .btn-preview {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .attachment-actions .btn-download {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .attachment-actions .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .attachment-actions .btn-preview {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .attachment-actions .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Extra Small Devices (phones, 320px and up) */
+        @media (max-width: 575.98px) {
+            /* Main container adjustments */
+            .main-container {
+                padding: 0;
+            }
+            
+            .content-wrapper {
+                padding: 1rem;
+            }
+            
+            /* Header section adjustments */
+            .header-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.5rem !important;
+                text-align: center;
+            }
+            
+            .header-section button {
+                font-size: 0.875rem !important;
+                padding: 0.5rem 1rem !important;
+            }
+            
+            /* Form section adjustments */
+            .form-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .form-section h3 {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Table section adjustments */
+            .table-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .table-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Table responsive adjustments */
+            .table-container {
+                overflow-x: auto;
+                font-size: 0.75rem !important;
+            }
+            
+            #arInvTable {
+                min-width: 800px !important;
+                font-size: 0.75rem !important;
+            }
+            
+            #arInvTable th,
+            #arInvTable td {
+                padding: 0.25rem !important;
+                font-size: 0.75rem !important;
+            }
+            
+            /* Column width adjustments for mobile */
+            .line-total-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .footer-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Summary fields adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.5rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section label {
+                font-size: 0.875rem !important;
+                text-align: left !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .approval-section label {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .approval-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Submit section adjustments */
+            .submit-section {
+                padding: 1rem;
+            }
+            
+            .submit-section .flex {
+                flex-direction: column !important;
+                gap: 1rem;
+            }
+            
+            .submit-section button {
+                font-size: 1rem !important;
+                padding: 0.75rem 1.5rem !important;
+                width: 100% !important;
+            }
+        }
+        
+        /* Small Devices (landscape phones, 576px and up) */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+            
+            /* Table column adjustments */
+            .line-total-column {
+                width: 140px !important;
+                min-width: 140px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.75rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Medium Devices (tablets, 768px and up) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: row !important;
+                gap: 1rem;
+                align-items: center !important;
+            }
+            
+            .footer-section input {
+                width: 300px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+        }
+        
+        /* Large Devices (desktops, 992px and up) */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section input {
+                width: 350px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+        }
+        
+        /* Extra Large Devices (large desktops, 1200px and up) */
+        @media (min-width: 1200px) {
+            /* Full desktop layout */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+            
+            .footer-section input {
+                width: 400px !important;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+        }
+        
+        /* Rejection remarks styling follows detailINVItem layout */
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
-        <button onclick="goToMenuApproveInvItem()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Approve Invoice Item</h2>
-        <br>
-        <div class="grid grid-cols-2 gap-4">
+<body>
+
+    <div class="main-container">
+        <div class="content-wrapper" id="main-content">
+            <!-- Header Section -->
+            <div class="header-section">
+                <div class="flex justify-between items-center">
+                    <button onclick="goToMenuApproveInvItem()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <h2 class="text-3xl font-bold text-gray-800">Approve Invoice Item</h2>
+                    <div></div> <!-- Spacer for centering -->
+                </div>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="form-section">
+                <div class="grid grid-cols-2 gap-8">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
@@ -354,7 +1310,7 @@
                 <h3 class="text-lg font-semibold mb-2">Invoice No.</h3>
                 <input type="text" id="DocNum" placeholder="Invoice No." class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">CardCode</h3>
+                <h3 class="text-lg font-semibold mb-2">Customer Code</h3>
                 <input type="text" id="CardCode" placeholder="Customer Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
@@ -366,7 +1322,7 @@
                 <h3 class="text-lg font-semibold mb-2">Address</h3>
                 <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">base ref</h3>
+                <h3 class="text-lg font-semibold mb-2">Invoice Num Ref</h3>
                 <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
@@ -374,6 +1330,21 @@
                 
                 <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
                 <input type="number" id="docRate" placeholder="Document Rate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <!-- Attachment List Section -->
+                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                <div class="attachment-container">
+                    <div id="attachmentList" class="attachment-list-container">
+                        <!-- Attachments will be loaded here -->
+                        <div class="loading-spinner-container text-center py-4">
+                            <div class="loading-spinner"></div>
+                            <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
+                        </div>
+                    </div>
+                    <div id="noAttachments" class="text-center py-4 hidden">
+                        <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
+                    </div>
+                </div>
             </div>
             
             <div>
@@ -383,33 +1354,35 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">GroupNum</h3>
-                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">TrnspCode</h3>
-                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
                 <h3 class="text-lg font-semibold mb-2">Tax No</h3>
                 <input type="text" id="TaxNo" placeholder="Tax Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_ShippingType</h3>
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_PaymentGroup</h3>
+                <h3 class="text-lg font-semibold mb-2">Payment Terms</h3>
                 <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">U_BSI_Expressiv_IsTransfered</h3>
                 <input type="text" id="U_BSI_Expressiv_IsTransfered" placeholder="Is Transfered" class="w-full p-2 border rounded bg-gray-100" value="N" disabled autocomplete="off" style="display: none;">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF1</h3>
+                <h3 class="text-lg font-semibold mb-2">No Surat Jalan</h3>
                 <input type="text" id="U_BSI_UDF1" placeholder="UDF1" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF2</h3>
+                <h3 class="text-lg font-semibold mb-2">P/O No</h3>
                 <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account</h3>
+                <input type="text" id="account" placeholder="Account" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account Name</h3>
+                <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
         </div>
         
-        <!-- Table for Item details -->
+            <!-- Table Section -->
+            <div class="table-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Item Details</h3>
         <div class="table-container">
             <table id="arInvTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
@@ -417,18 +1390,17 @@
                 <tr>
                     <th class="p-2 no-column">No.</th>
                     <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 bp-catalog-column">Part Number</th>
                     <th class="p-2 description-column">Item Name</th>
-                    <th class="p-2 description-column">Catatan</th>
                     <th class="p-2 uom-column">UoM</th>
+                    <th class="p-2 packing-size-column">Packing Size</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
-                    <th class="p-2 price-column">Sales Price</th>
-                    <th class="p-2 price-column">Price</th>
-                    <th class="p-2 discount-column">Disc</th>
-                    <th class="p-2 tax-code-column">Tax Code</th>
-                    <th class="p-2 wtax-liable-column">Wtax Liable</th>
-                    <th class="p-2 line-total-column">Total Price</th>
+                    <th class="p-2 price-column">Price per UoM</th>
+                    <th class="p-2 price-column">Price per Unit</th>
+                    <th class="p-2 tax-code-column">VAT Code</th>
+                    <th class="p-2 line-total-column">Amount</th>
                     <th class="p-2 account-code-column" style="display: none;">Account Code</th>
                     <th class="p-2 base-column" style="display: none;">BaseType</th>
                     <th class="p-2 base-column" style="display: none;">BaseEntry</th>
@@ -440,47 +1412,86 @@
                 <!-- Item rows will be populated by JavaScript -->
             </tbody>
         </table>
+            </div>
         </div>
         
-        <!-- Footer totals section -->
-        <!--Total Amount Due-->
+        
+        
+        <!-- Footer Totals Section -->
+        <div class="footer-section">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
+            
+            <!--Total Amount-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Before Discount :</label>
-            <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                <label class="font-semibold text-gray-700">Total :</label>
+                <div class="flex items-center">
+                    <input type="text" id="docTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                </div>
         </div>
         
-        <!--Total Tax-->
+            <!--Discounted Amount-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax :</label>
-            <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                <label class="font-semibold text-gray-700">Discounted :</label>
+                <div class="flex items-center">
+                    <input type="text" id="discSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                </div>
         </div>
         
-        <!--Total Amount-->
+            <!--Sales Amount-->
         <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount :</label>
-            <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                <label class="font-semibold text-gray-700">Sales Amount :</label>
+                <div class="flex items-center">
+                    <input type="text" id="netPriceAfterDiscount" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                </div>
         </div>
 
-        <!-- Comments section -->
-        <div class="mt-4">
-            <label class="font-semibold">Comments</label>
+            <!--Tax Base Other Value-->
+            <div class="mt-4 flex justify-end space-x-2">
+                <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                <div class="flex items-center">
+                    <input type="text" id="dpp1112" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                </div>
+            </div>
+            
+            <!--VAT 12%-->
+            <div class="mt-4 flex justify-end space-x-2">
+                <label class="font-semibold text-gray-700">VAT 12% :</label>
+                <div class="flex items-center">
+                    <input type="text" id="vatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                </div>
+            </div>
+            
+            <!--GRAND TOTAL-->
+            <div class="mt-4 flex justify-end space-x-2">
+                <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                <div class="flex items-center">
+                    <input type="text" id="grandTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr font-bold" readonly autocomplete="off" value="0.00">
+                </div>
+            </div>
+
+            <!-- Remarks section -->
+            <div class="mt-6">
+                <label class="font-semibold text-gray-700">Remarks</label>
             <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+            </div>
         </div>
 
         <!-- Rejection Remarks Display Section -->
         <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
             <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly autocomplete="off"></textarea>
             </div>
         </div>
 
-        <!-- Approval -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+        <!-- Approval Section -->
+        <div class="approval-section">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
+            <div class="grid grid-cols-2 gap-6 text-sm">
             <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
+                <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                    <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="preparedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -488,9 +1499,9 @@
                 </div>
             </div>
             <div>
-                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
+                <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="acknowledgeBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -498,9 +1509,9 @@
                 </div>
             </div>
             <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
+                <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                    <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="checkedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -508,19 +1519,19 @@
                 </div>
             </div>
             <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
+                <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                    <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="approvedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
-            </div>
+                </div>
             <div>
-                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
+                <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                    <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded bg-gray-100" autocomplete="off" readonly>
                     <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
                     <select id="receivedBy" class="hidden" autocomplete="off">
                         <option value="" disabled selected>Choose Name</option>
@@ -529,14 +1540,25 @@
             </div>
         </div>
         
-        <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="rejectInvItem()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+        <!-- Submit Section -->
+        <div class="submit-section">
+            <div id="actionButtonsContainer" class="flex justify-center space-x-8" style="display: none;">
+                <button id="printButton" onclick="printInvoice()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 text-lg">
+                    Print
+                </button>
+                <button id="rejectButton" onclick="rejectInvItem()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 text-lg">
                 Reject
             </button>
-            <button onclick="approveInvItem()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Approved
+                <button id="approveButton" onclick="approveInvItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                    Approve
             </button>
+            </div>
+            
+            <!-- Status Message -->
+            <div id="statusMessage" class="mt-4 p-4 rounded-lg hidden">
+                <div id="statusMessageContent" class="text-center"></div>
+            </div>
+        </div>
         </div>
     </div>
     
@@ -582,19 +1604,209 @@
             });
         }
         
-        // Function to handle input events for dynamic wrapping
-        function setupTextWrapping() {
-            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
-            
-            textElements.forEach(element => {
-                // Apply initial wrapping
-                handleTextWrapping(element);
-            });
-        }
-        
         // Initialize text wrapping when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            setupTextWrapping();
+            // Apply text wrapping after data is loaded
+            setTimeout(() => {
+                applyTextWrappingToAll();
+            }, 500);
+            
+            // Load approval data from localStorage
+            if (typeof loadApprovalDataFromLocalStorage === 'function') {
+                loadApprovalDataFromLocalStorage();
+            }
+            
+            // Setup approval input listeners
+            if (typeof setupApprovalInputListeners === 'function') {
+                setupApprovalInputListeners();
+            }
+            
+            // Load employee data for approval dropdowns
+            if (typeof loadEmployeesData === 'function') {
+                loadEmployeesData();
+            }
+        });
+
+        // Currency formatting functions
+        function formatCurrencyIDR(number) {
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    if (cleanedStr.length > 15) {
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            const maxAmount = 100000000000000;
+            if (num > maxAmount) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Amount Exceeds Limit',
+                        text: 'Total amount must not exceed 100 trillion rupiah'
+                    });
+                } else {
+                    alert('Total amount must not exceed 100 trillion rupiah');
+                }
+                num = maxAmount;
+            }
+            
+            if (num >= 1e12) {
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                return result + '.00';
+            } else {
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        function formatCurrencyInputIDR(input) {
+            // Change input type to text for currency formatting
+            if (input.type === 'number') {
+                input.type = 'text';
+            }
+            
+            const cursorPos = input.selectionStart;
+            const originalLength = input.value.length;
+            
+            let value = input.value.replace(/[^\d,.]/g, '');
+            
+            let parts = value.split('.');
+            if (parts.length > 1) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            const numValue = parseCurrencyIDR(value);
+            const formattedValue = formatCurrencyIDR(numValue);
+            
+            input.value = formattedValue;
+            
+            const newLength = input.value.length;
+            const newCursorPos = cursorPos + (newLength - originalLength);
+            input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+        }
+
+        // Apply currency formatting to table cells
+        function applyCurrencyFormatting() {
+            // Format Price per UoM columns
+            const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+            pricePerUoMInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Price per Unit columns
+            const pricePerUnitInputs = document.querySelectorAll('.item-price');
+            pricePerUnitInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Amount columns
+            const amountInputs = document.querySelectorAll('.item-line-total');
+            amountInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format summary fields
+            const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+            summaryFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.classList.add('currency-input-idr');
+                    field.addEventListener('input', function() {
+                        formatCurrencyInputIDR(this);
+                    });
+                    if (field.value) {
+                        formatCurrencyInputIDR(field);
+                    } else {
+                        field.value = '0.00';
+                    }
+                }
+            });
+        }
+
+        // Initialize currency formatting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                applyCurrencyFormatting();
+                
+                // Apply currency formatting to summary fields
+                const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+                summaryFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.classList.add('currency-input-idr');
+                        if (field.value && field.value !== '0.00') {
+                            formatCurrencyInputIDR(field);
+                        }
+                    }
+                });
+            }, 1000);
         });
         
         // Re-apply text wrapping when table content changes
@@ -606,6 +1818,851 @@
         
         // Make the function globally available
         window.refreshTextWrapping = refreshTextWrapping;
+        
+        // Approval data persistence functions
+        function saveApprovalDataToLocalStorage() {
+            const approvalData = {
+                acknowledgeBy: document.getElementById('acknowledgeBy').value,
+                acknowledgeByName: document.getElementById('acknowledgeByName').value,
+                checkedBy: document.getElementById('checkedBy').value,
+                checkedByName: document.getElementById('checkedByName').value,
+                approvedBy: document.getElementById('approvedBy').value,
+                approvedByName: document.getElementById('approvedByName').value,
+                receivedBy: document.getElementById('receivedBy').value,
+                receivedByName: document.getElementById('receivedByName').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('approveInvItem_approval_data', JSON.stringify(approvalData));
+            console.log('Approval data saved to localStorage');
+        }
+        
+        function loadApprovalDataFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('approveInvItem_approval_data');
+                if (savedData) {
+                    const approvalData = JSON.parse(savedData);
+                    
+                    // Restore approval data
+                    if (approvalData.acknowledgeBy) {
+                        document.getElementById('acknowledgeBy').value = approvalData.acknowledgeBy;
+                        document.getElementById('acknowledgeByName').value = approvalData.acknowledgeByName || '';
+                    }
+                    if (approvalData.checkedBy) {
+                        document.getElementById('checkedBy').value = approvalData.checkedBy;
+                        document.getElementById('checkedByName').value = approvalData.checkedByName || '';
+                    }
+                    if (approvalData.approvedBy) {
+                        document.getElementById('approvedBy').value = approvalData.approvedBy;
+                        document.getElementById('approvedByName').value = approvalData.approvedByName || '';
+                    }
+                    if (approvalData.receivedBy) {
+                        document.getElementById('receivedBy').value = approvalData.receivedBy;
+                        document.getElementById('receivedByName').value = approvalData.receivedByName || '';
+                    }
+                    
+                    console.log('Approval data loaded from localStorage');
+                }
+            } catch (error) {
+                console.error('Error loading approval data from localStorage:', error);
+            }
+        }
+        
+        // Setup approval input listeners
+        function setupApprovalInputListeners() {
+            const approvalInputs = [
+                'acknowledgeByName', 'checkedByName', 'approvedByName', 'receivedByName'
+            ];
+            
+            approvalInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', function() {
+                        saveApprovalDataToLocalStorage();
+                        showApprovalModifiedNotification();
+                    });
+                }
+            });
+        }
+        
+        function showApprovalModifiedNotification() {
+            // Show a subtle notification that approval data has been modified
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
+            notification.textContent = 'Approval data saved';
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 2000);
+        }
+        
+        function resetApprovalData() {
+            const approvalInputs = [
+                'acknowledgeByName', 'checkedByName', 'approvedByName', 'receivedByName'
+            ];
+            
+            approvalInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.value = '';
+                }
+            });
+            
+            localStorage.removeItem('approveInvItem_approval_data');
+            console.log('Approval data reset');
+        }
+        
+        // Employee dropdown functionality
+        let employeesData = [];
+        
+        // Use the proper authentication function from auth.js
+        // The getCurrentUser function is already available from auth.js
+        
+        // Load employees data from API
+        async function loadEmployeesData() {
+            try {
+                console.log('Loading employees data from API...');
+                
+                const response = await fetch(`${API_BASE_URL}/employees`, {
+                    method: 'GET',
+                    headers: {
+                        'accept': '*/*',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Employees API response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Employees API response:', result);
+                
+                if (result.status && result.data) {
+                    employeesData = result.data;
+                    console.log('Employees data loaded:', employeesData);
+                    
+                    // Setup approval dropdowns with employee data
+                    setupApprovalDropdowns();
+                    
+                    // If form is already populated, refresh the dropdowns
+                    if (currentInvItemData) {
+                        refreshApprovalDropdowns();
+                    }
+                } else {
+                    throw new Error('Invalid response format from employees API');
+                }
+                
+            } catch (error) {
+                console.error('Error loading employees data:', error);
+                // Don't show error to user as this is not critical for main functionality
+            }
+        }
+        
+        // Setup approval dropdowns with employee data
+        function setupApprovalDropdowns() {
+            // Setup dropdowns for acknowledge, check, approve, and receive (excluding prepared by)
+            const approvalFields = [
+                { inputId: 'acknowledgeByName', dropdownId: 'acknowledgeBySelectDropdown', selectId: 'acknowledgeBy' },
+                { inputId: 'checkedByName', dropdownId: 'checkedBySelectDropdown', selectId: 'checkedBy' },
+                { inputId: 'approvedByName', dropdownId: 'approvedBySelectDropdown', selectId: 'approvedBy' },
+                { inputId: 'receivedByName', dropdownId: 'receivedBySelectDropdown', selectId: 'receivedBy' }
+            ];
+            
+            approvalFields.forEach(field => {
+                setupEmployeeDropdown(field.inputId, field.dropdownId, field.selectId);
+            });
+        }
+        
+        function setupEmployeeDropdown(inputId, dropdownId, selectId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            const select = document.getElementById(selectId);
+            
+            if (!input || !dropdown || !select) {
+                console.warn(`Missing elements for employee dropdown: ${inputId}`);
+                return;
+            }
+            
+            // Clear existing options
+            select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
+            
+            // Add employee options
+            employeesData.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.kansaiEmployeeId || employee.id;
+                option.textContent = employee.name || employee.username;
+                select.appendChild(option);
+            });
+            
+            // Setup input event listeners
+            input.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const filteredEmployees = employeesData.filter(employee => 
+                    (employee.name && employee.name.toLowerCase().includes(searchTerm)) ||
+                    (employee.username && employee.username.toLowerCase().includes(searchTerm))
+                );
+                
+                displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
+            });
+            
+            input.addEventListener('focus', function() {
+                const searchTerm = this.value.toLowerCase();
+                const filteredEmployees = employeesData.filter(employee => 
+                    (employee.name && employee.name.toLowerCase().includes(searchTerm)) ||
+                    (employee.username && employee.username.toLowerCase().includes(searchTerm))
+                );
+                
+                displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        function displayEmployeeDropdown(dropdown, employees, input, select) {
+            dropdown.innerHTML = '';
+            
+            if (employees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item no-results">No employees found</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            
+            employees.forEach(employee => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = employee.name || employee.username;
+                
+                item.addEventListener('click', function() {
+                    input.value = employee.name || employee.username;
+                    select.value = employee.kansaiEmployeeId || employee.id;
+                    dropdown.classList.add('hidden');
+                    
+                    // Save to localStorage
+                    saveApprovalDataToLocalStorage();
+                });
+                
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.classList.remove('hidden');
+        }
+        
+        function refreshApprovalDropdowns() {
+            // Refresh dropdowns with current data
+            setupApprovalDropdowns();
+        }
+        
+        // Enhanced error handling
+        function showErrorNotification(message, title = 'Error') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showSuccessNotification(message, title = 'Success') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showWarningNotification(message, title = 'Warning') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        // Performance optimization functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Debounced version of approval data saving
+        const debouncedSaveApprovalData = debounce(saveApprovalDataToLocalStorage, 500);
+        
+        // Debounced version of text wrapping
+        const debouncedApplyTextWrapping = debounce(applyTextWrappingToAll, 300);
+        
+        // Memory management
+        function cleanupEventListeners() {
+            // Remove any existing event listeners to prevent memory leaks
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                const newInput = input.cloneNode(true);
+                input.parentNode.replaceChild(newInput, input);
+            });
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            cleanupEventListeners();
+        });
+        
+        // Accessibility improvements
+        function setupAccessibility() {
+            // Add ARIA labels to form elements
+            const formElements = document.querySelectorAll('input, textarea, select');
+            formElements.forEach(element => {
+                if (!element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby')) {
+                    const label = element.previousElementSibling;
+                    if (label && label.tagName === 'LABEL') {
+                        element.setAttribute('aria-label', label.textContent);
+                    }
+                }
+            });
+            
+            // Add keyboard navigation support
+            const focusableElements = document.querySelectorAll('input, textarea, select, button, a');
+            focusableElements.forEach(element => {
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && element.tagName === 'INPUT') {
+                        e.preventDefault();
+                        const nextElement = element.nextElementSibling;
+                        if (nextElement && (nextElement.tagName === 'INPUT' || nextElement.tagName === 'TEXTAREA' || nextElement.tagName === 'SELECT')) {
+                            nextElement.focus();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize accessibility features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAccessibility();
+        });
+        
+        // Enhanced validation functions
+        function validateNumericInput(input) {
+            const value = input.value;
+            const numericValue = value.replace(/[^\d,.]/g, '');
+            
+            if (numericValue !== value) {
+                input.value = numericValue;
+            }
+            
+            return numericValue;
+        }
+        
+        function validateCurrencyInput(input) {
+            const value = input.value;
+            const cleanedValue = value.replace(/[^\d,.]/g, '');
+            
+            if (cleanedValue !== value) {
+                input.value = cleanedValue;
+            }
+            
+            return cleanedValue;
+        }
+        
+        function validateRequiredField(field, fieldName) {
+            if (!field.value || field.value.trim() === '') {
+                showErrorNotification(`${fieldName} is required.`);
+                field.focus();
+                return false;
+            }
+            return true;
+        }
+        
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function validateFileSize(file, maxSizeMB = 10) {
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
+            return file.size <= maxSizeBytes;
+        }
+        
+        function validateFileType(file, allowedTypes = ['application/pdf']) {
+            return allowedTypes.includes(file.type);
+        }
+        
+        // Data sanitization functions
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') {
+                return input;
+            }
+            
+            // Remove potentially dangerous characters
+            return input
+                .replace(/[<>]/g, '') // Remove < and >
+                .replace(/javascript:/gi, '') // Remove javascript: protocol
+                .replace(/on\w+=/gi, '') // Remove event handlers
+                .trim();
+        }
+        
+        function sanitizeFormData(formData) {
+            const sanitizedData = {};
+            
+            for (const [key, value] of Object.entries(formData)) {
+                if (typeof value === 'string') {
+                    sanitizedData[key] = sanitizeInput(value);
+                } else {
+                    sanitizedData[key] = value;
+                }
+            }
+            
+            return sanitizedData;
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Error boundary and recovery
+        function setupErrorBoundary() {
+            window.addEventListener('error', function(event) {
+                console.error('Global error caught:', event.error);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+            
+            window.addEventListener('unhandledrejection', function(event) {
+                console.error('Unhandled promise rejection:', event.reason);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+        }
+        
+        // Initialize error boundary
+        document.addEventListener('DOMContentLoaded', function() {
+            setupErrorBoundary();
+        });
+        
+        // Recovery functions
+        function recoverFromError() {
+            try {
+                // Attempt to reload data
+                if (typeof loadInvItemData === 'function') {
+                    loadInvItemData();
+                }
+                
+                // Reset form state
+                resetApprovalData();
+                
+                showSuccessNotification('Page recovered successfully.');
+            } catch (error) {
+                console.error('Recovery failed:', error);
+                showErrorNotification('Recovery failed. Please refresh the page.');
+            }
+        }
+        
+        // User experience improvements
+        function showLoadingIndicator(message = 'Loading...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+        }
+        
+        function hideLoadingIndicator() {
+            if (typeof Swal !== 'undefined') {
+                Swal.close();
+            }
+        }
+        
+        function showProgressIndicator(progress, message = 'Processing...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    html: `<div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>`,
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+            }
+        }
+        
+        function showConfirmationDialog(message, title = 'Confirm') {
+            return new Promise((resolve) => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        resolve(result.isConfirmed);
+                    });
+                } else {
+                    resolve(confirm(message));
+                }
+            });
+        }
+        
+        // Backup data functionality
+        function backupFormData() {
+            const formData = {
+                acknowledgeByName: document.getElementById('acknowledgeByName')?.value || '',
+                checkedByName: document.getElementById('checkedByName')?.value || '',
+                approvedByName: document.getElementById('approvedByName')?.value || '',
+                receivedByName: document.getElementById('receivedByName')?.value || '',
+                comments: document.getElementById('comments')?.value || '',
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('approveInvItem_backup_data', JSON.stringify(formData));
+            console.log('Form data backed up to localStorage');
+        }
+        
+        function restoreFormData() {
+            try {
+                const savedData = localStorage.getItem('approveInvItem_backup_data');
+                if (savedData) {
+                    const formData = JSON.parse(savedData);
+                    
+                    // Restore form data
+                    if (formData.acknowledgeByName) {
+                        document.getElementById('acknowledgeByName').value = formData.acknowledgeByName;
+                    }
+                    if (formData.checkedByName) {
+                        document.getElementById('checkedByName').value = formData.checkedByName;
+                    }
+                    if (formData.approvedByName) {
+                        document.getElementById('approvedByName').value = formData.approvedByName;
+                    }
+                    if (formData.receivedByName) {
+                        document.getElementById('receivedByName').value = formData.receivedByName;
+                    }
+                    if (formData.comments) {
+                        document.getElementById('comments').value = formData.comments;
+                    }
+                    
+                    console.log('Form data restored from localStorage');
+                    showSuccessNotification('Form data restored successfully.');
+                }
+            } catch (error) {
+                console.error('Error restoring form data:', error);
+                showErrorNotification('Failed to restore form data.');
+            }
+        }
+        
+        function clearBackupData() {
+            localStorage.removeItem('approveInvItem_backup_data');
+            console.log('Backup data cleared');
+        }
+        
+        // Auto-backup form data periodically
+        setInterval(backupFormData, 30000); // Backup every 30 seconds
+        
+        // Auto-backup on form changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const formElements = document.querySelectorAll('input, textarea, select');
+            formElements.forEach(element => {
+                element.addEventListener('change', backupFormData);
+                element.addEventListener('input', debounce(backupFormData, 1000));
+            });
+        });
+        
+        // Network error handling
+        function handleNetworkError(error) {
+            console.error('Network error:', error);
+            
+            let errorMessage = 'Network error occurred.';
+            
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Unable to connect to server. Please check your internet connection.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Resource not found. Please check the URL and try again.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Server error occurred. Please try again later.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'Access denied. Please check your permissions.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Authentication required. Please login again.';
+            }
+            
+            showErrorNotification(errorMessage, 'Network Error');
+        }
+        
+        function isOnline() {
+            return navigator.onLine;
+        }
+        
+        function setupNetworkMonitoring() {
+            window.addEventListener('online', function() {
+                showSuccessNotification('Internet connection restored.', 'Connection Restored');
+            });
+            
+            window.addEventListener('offline', function() {
+                showWarningNotification('Internet connection lost. Some features may not work properly.', 'Connection Lost');
+            });
+        }
+        
+        // Initialize network monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNetworkMonitoring();
+        });
+        
+        // Responsive design enhancements
+        function setupResponsiveFeatures() {
+            // Handle window resize for responsive adjustments
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    adjustLayoutForScreenSize();
+                }, 250);
+            });
+            
+            // Initial layout adjustment
+            adjustLayoutForScreenSize();
+            
+            // Setup mobile-specific features
+            if (window.innerWidth <= 768) {
+                setupMobileFeatures();
+            }
+        }
+        
+        function adjustLayoutForScreenSize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Adjust table container for different screen sizes
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                if (width <= 575.98) {
+                    // Mobile phones
+                    tableContainer.style.fontSize = '0.75rem';
+                    // Remove maxHeight constraint to allow full table display
+                    tableContainer.style.maxHeight = 'none';
+                } else if (width <= 767.98) {
+                    // Small tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    // Remove maxHeight constraint to allow full table display
+                    tableContainer.style.maxHeight = 'none';
+                } else if (width <= 991.98) {
+                    // Tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    // Remove maxHeight constraint to allow full table display
+                    tableContainer.style.maxHeight = 'none';
+                } else {
+                    // Desktop
+                    tableContainer.style.fontSize = '0.875rem';
+                    // Remove maxHeight constraint to allow full table display
+                    tableContainer.style.maxHeight = 'none';
+                }
+            }
+            
+            // Adjust form layout
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                const grid = formSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+            
+            // Adjust approval section layout
+            const approvalSection = document.querySelector('.approval-section');
+            if (approvalSection) {
+                const grid = approvalSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+        }
+        
+        function setupMobileFeatures() {
+            // Add mobile-specific event listeners
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                // Add touch scroll indicators
+                let isScrolling = false;
+                let scrollTimeout;
+                
+                tableContainer.addEventListener('scroll', function() {
+                    isScrolling = true;
+                    clearTimeout(scrollTimeout);
+                    
+                    scrollTimeout = setTimeout(function() {
+                        isScrolling = false;
+                    }, 150);
+                });
+                
+
+            }
+            
+            // Optimize form inputs for mobile
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                // Prevent zoom on iOS
+                if (input.type === 'text' || input.type === 'email' || input.type === 'tel') {
+                    input.style.fontSize = '16px';
+                }
+                
+                // Add mobile-friendly focus styles
+                input.addEventListener('focus', function() {
+                    this.style.outline = '2px solid #3b82f6';
+                    this.style.outlineOffset = '2px';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.outline = '';
+                    this.style.outlineOffset = '';
+                });
+            });
+            
+            // Add mobile-friendly button styles
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.style.minHeight = '44px';
+                button.style.touchAction = 'manipulation';
+            });
+        }
+        
+
+        
+        // Mobile-friendly form validation
+        function setupMobileFormValidation() {
+            const formElements = document.querySelectorAll('input, textarea, select');
+            
+            formElements.forEach(element => {
+                element.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+                    
+                    // Show mobile-friendly error message
+                    if (window.innerWidth <= 768) {
+                        showMobileErrorNotification(this.validationMessage);
+                    }
+                });
+            });
+        }
+        
+        function showMobileErrorNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'mobile-error-notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ef4444;
+                color: white;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                z-index: 10000;
+                max-width: 90vw;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Performance optimizations for mobile
+        function setupMobilePerformanceOptimizations() {
+            if (window.innerWidth <= 768) {
+                // Reduce animation complexity on mobile
+                const style = document.createElement('style');
+                style.textContent = `
+                    @media (max-width: 768px) {
+                        * {
+                            animation-duration: 0.2s !important;
+                            transition-duration: 0.2s !important;
+                        }
+                        
+                        .loading-spinner {
+                            animation-duration: 0.8s !important;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Optimize scroll performance
+                const scrollableElements = document.querySelectorAll('.table-container, .attachment-list-container');
+                scrollableElements.forEach(element => {
+                    element.style.webkitOverflowScrolling = 'touch';
+                });
+            }
+        }
+        
+        // Initialize responsive features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupResponsiveFeatures();
+            setupMobileFormValidation();
+            setupMobilePerformanceOptimizations();
+            
+            // Re-adjust layout when data is loaded
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+            }, 1000);
+        });
+        
+        // Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+                if (window.innerWidth <= 768) {
+                    setupMobileFeatures();
+                }
+            }, 500);
+        });
+        
     </script>
 </body>
 </html> 

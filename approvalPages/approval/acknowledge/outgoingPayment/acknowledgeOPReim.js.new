@@ -1,0 +1,129 @@
+// Existing code remains the same until ActionManager
+
+class ActionManager {
+    static async acknowledgeOPReim() {
+        try {
+            // Validate current document status and user permissions
+            if (!PermissionManager.validateDocumentStatus()) {
+                return;
+            }
+
+            UIUtils.showLoading('Processing...', 'Submitting acknowledgment');
+
+            const userId = UserManager.getCurrentUserId();
+            if (!userId) {
+                throw new Error('User ID not found. Please log in again.');
+            }
+
+            const currentUser = getCurrentUser();
+            const currentUserName = currentUser ? currentUser.username : 'Unknown User';
+            const currentDate = new Date().toISOString();
+
+            const requestData = {
+                stagingID: checkState.documentId,
+                approvalStatus: "Acknowledged",
+                acknowledgedBy: userId,
+                acknowledgedByName: currentUserName,
+                acknowledgedDate: currentDate,
+                header: {}
+            };
+
+            const response = await OPReimAPIService.approveDocument(checkState.documentId, requestData);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `API error: ${response.status}`);
+            }
+
+            await UIUtils.showSuccess('Success', 'Document has been acknowledged successfully');
+            window.location.href = '../../../dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknowledge.html';
+
+        } catch (error) {
+            console.error('❌ Error acknowledging document:', error);
+            UIUtils.showError('Error', `Failed to acknowledge document: ${error.message}`);
+        }
+    }
+
+    static async rejectOPReim() {
+        try {
+            // Check document status first
+            if (!PermissionManager.validateDocumentStatus()) {
+                return;
+            }
+
+            const rejectionReason = await this.showRejectionDialog();
+            if (!rejectionReason) return;
+
+            UIUtils.showLoading('Processing...', 'Rejecting document');
+
+            const userId = UserManager.getCurrentUserId();
+            if (!userId) {
+                throw new Error('User ID not found. Please log in again.');
+            }
+
+            const currentUser = getCurrentUser();
+            const currentDate = new Date().toISOString();
+
+            const requestData = {
+                stagingID: checkState.documentId,
+                approvalStatus: "Rejected",
+                rejectionRemarks: rejectionReason,
+                rejectedBy: userId,
+                rejectedByName: currentUser.username,
+                rejectedDate: currentDate,
+                header: {}
+            };
+
+            const response = await OPReimAPIService.rejectDocument(checkState.documentId, requestData);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `API error: ${response.status}`);
+            }
+
+            await UIUtils.showSuccess('Success', 'Document has been rejected');
+            window.location.href = '../../../dashboard/dashboardAcknowledge/OPReim/menuOPReimAcknowledge.html';
+
+        } catch (error) {
+            console.error('❌ Error rejecting document:', error);
+            UIUtils.showError('Error', `Failed to reject document: ${error.message}`);
+        }
+    }
+
+    static async showRejectionDialog() {
+        const { value: rejectionReason } = await Swal.fire({
+            title: 'Reject Document',
+            html: `
+                <div class="mb-4">
+                    <textarea id="rejectionReason" 
+                        class="w-full p-2 border rounded" 
+                        placeholder="Enter reason for rejection" 
+                        rows="3"
+                    ></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Reject',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545',
+            focusConfirm: false,
+            preConfirm: () => {
+                const reason = document.getElementById('rejectionReason').value;
+                if (!reason.trim()) {
+                    Swal.showValidationMessage('Please enter a rejection reason');
+                    return false;
+                }
+                return reason;
+            }
+        });
+
+        return rejectionReason;
+    }
+}
+
+// Remove the global functions since we're using ActionManager directly
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Initializing Acknowledge Outgoing Payment Reimbursement System...');
+    DataManager.initialize();
+    console.log('✅ System initialized successfully');
+});

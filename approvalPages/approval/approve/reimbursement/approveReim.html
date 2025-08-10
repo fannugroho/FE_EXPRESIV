@@ -1,28 +1,125 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Approve Document Reimbursement</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="approveReim.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="receiveReim.js"></script>
     <script src="../../../../js/auth.js"></script>
+    <script>
+        // Function to check document status and update UI accordingly
+        function checkDocumentStatus() {
+            const statusElement = document.getElementById('status');
+            if (!statusElement) return;
 
+            const currentStatus = statusElement.value;
+            const printBtn = document.getElementById('printBtn');
+            const addRowBtn = document.getElementById('addRowBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+            const receiveBtn = document.getElementById('receiveBtn');
+            const revisionButton = document.getElementById('revisionButton');
+            const addRevisionBtn = document.getElementById('addRevisionBtn');
+            const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
+
+            // Hide buttons if status is "rejected"
+            if (currentStatus === 'Rejected') {
+                if (addRowBtn) addRowBtn.style.display = 'none';
+                if (rejectBtn) rejectBtn.style.display = 'none';
+                if (receiveBtn) receiveBtn.style.display = 'none';
+                if (revisionButton) revisionButton.style.display = 'none';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+                if (printBtn) printBtn.style.display = 'none';
+
+                // Hide delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
+            // Hide buttons if status is "Approved" or "Received" - only show print button
+            else if (currentStatus === 'Approved' || currentStatus === 'Received') {
+                if (addRowBtn) addRowBtn.style.display = 'none';
+                if (rejectBtn) rejectBtn.style.display = 'none';
+                if (receiveBtn) receiveBtn.style.display = 'none';
+                if (revisionButton) revisionButton.style.display = 'none';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
+
+                // Show print button when status is "Approved" or "Received"
+                if (printBtn) printBtn.style.display = 'inline-block';
+
+                // Hide delete buttons in action column
+                deleteButtons.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
+            // Hide Print button if status is "Checked"
+            else if (currentStatus === 'Checked' && printBtn) {
+                printBtn.style.display = 'none';
+            }
+            // Show buttons for other statuses (Draft, Prepared, Acknowledged, etc.)
+            else {
+                if (rejectBtn) rejectBtn.style.display = 'inline-block';
+                if (receiveBtn) receiveBtn.style.display = 'inline-block';
+                if (revisionButton) revisionButton.style.display = 'inline-block';
+                if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
+                if (printBtn) printBtn.style.display = 'none'; // Hide print for other statuses
+            }
+        }
+
+        // Override the original DOMContentLoaded event listener
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load users and departments first, then check document status
+            Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
+                // Then load reimbursement data
+                fetchReimbursementData().then(() => {
+                    // After data is loaded, check document status
+                    checkDocumentStatus();
+                });
+            });
+
+            // Listen for changes to the status field
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.addEventListener('change', checkDocumentStatus);
+            }
+
+            // Initialize revision container and button states
+            const revisionContainer = document.getElementById('revisionContainer');
+            if (revisionContainer) {
+                // Use event delegation to handle input events on all textareas
+                revisionContainer.addEventListener('input', function (event) {
+                    if (event.target.tagName === 'TEXTAREA') {
+                        checkRevisionButton();
+                    }
+                });
+            }
+
+            // Initialize button states
+            checkRevisionButton();
+            updateAddButtonState();
+        });
+    </script>
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
-        <button onclick="goToMenuReim()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
+        <button onclick="goToMenuReim()" type="button"
+            class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Approve Document Reimbursement</h2>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <h3 class="text-lg font-semibold mb-2">Voucher No</h3>
-                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded bg-gray-100"
+                    readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                <input type="text" id="requesterName" placeholder="Requester" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="requesterName" placeholder="Requester"
+                    class="w-full p-2 border rounded bg-gray-100" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled>
@@ -38,12 +135,14 @@
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="currency" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100"
+                    readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                <input type="text" id="payTo" placeholder="outno" class="w-full p-2 border rounded bg-gray-100" readonly>        
+                <input type="text" id="payTo" placeholder="outno" class="w-full p-2 border rounded bg-gray-100"
+                    readonly>
             </div>
-            
+
             <div>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="submissionDate" class="w-full p-2 border rounded bg-gray-100" readonly>
@@ -55,17 +154,19 @@
                     <option value="Checked">Checked</option>
                     <option value="Acknowledged">Acknowledged</option>
                     <option value="Approved">Approved</option>
-                    <option value="Paid">Paid</option>
+                    <option value="Received">Received</option>
                     <option value="Rejected">Rejected</option>
                     <option value="Revised">Revised</option>
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded bg-gray-100" multiple onchange="previewPDF(event)" disabled /> <!-- ini dari reimbursementAttachments-->
+                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded bg-gray-100"
+                    multiple onchange="previewPDF(event)" disabled /> <!-- ini dari reimbursementAttachments-->
                 <div id="attachmentsList" class="mt-2"></div>
-                
+
                 <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
-                <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded bg-gray-100" readonly>
+                <input type="text" id="referenceDoc" placeholder="No.Invoice"
+                    class="w-full p-2 border rounded bg-gray-100" readonly>
 
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="typeOfTransaction" class="w-full p-2 border rounded bg-gray-100">
@@ -76,7 +177,7 @@
                 </select>
             </div>
         </div>
-        
+
         <table id="reimTable" class="w-full text-left border mt-2"> <!-- ini dari reimbursementDetails-->
             <thead class="bg-gray-100">
                 <br>
@@ -93,40 +194,44 @@
                 <!-- Rows will be added dynamically -->
             </tbody>
         </table>
-        
+
         <!-- Total Amount Field -->
         <div class="flex justify-end mt-4">
             <div class="w-1/3">
                 <div class="flex items-center">
                     <label class="font-semibold text-lg mr-4">Total Amount:</label>
-                    <input type="text" id="totalAmount" class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
+                    <input type="text" id="totalAmount"
+                        class="w-full p-2 border rounded bg-gray-100 font-semibold text-right" readonly>
                 </div>
             </div>
         </div>
-        
-        <!-- Tombol Tambah Baris -->
-        <!-- <button onclick="addRow()" id="addRowButton" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
+
+        <!-- Tombol Tambah Baris 
+        <button onclick="addRow()" id="addRowBtn" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
             + 
-        </button> -->
+        </button>
+        -->
+        <div class="mt-4">
+            <label>Remarks</label>
+            <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
+        </div>
 
-            <div class="mt-4">
-              <label>Remarks</label>
-              <textarea id="remarks" class="w-full p-2 border rounded-md bg-gray-100" readonly></textarea>
+        <!-- Rejection Remarks Display Section -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <textarea id="rejectionRemarks"
+                    class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
+                    readonly></textarea>
             </div>
-
-            <!-- Rejection Remarks Display Section -->
-            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
-                </div>
-            </div>
+        </div>
 
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
                 <!--<label class="text-red-600">Need Revision</label>-->
-                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+                <button onclick="toggleRevisionField()" id="addRevisionBtn"
+                    class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
             </div>
             <div id="revisionContainer" class="hidden">
                 <!-- Revision fields will be added here by JavaScript -->
@@ -138,7 +243,7 @@
 
         <!-- Approval section -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
+            <div>
                 <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
                 <select id="preparedBySelect" class="w-full p-1 border rounded bg-gray-100">
                     <!-- <option value="Admin 1">Admin 1</option>
@@ -146,54 +251,75 @@
                 </select>
             </div>
             <div>
-            <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-            <select id="acknowledgeBySelect" class="w-full p-1 border rounded bg-gray-100">
-                <!-- <option value="Supervisor 1">Supervisor 1</option>
+                <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+                <select id="acknowledgedBySelect" class="w-full p-1 border rounded bg-gray-100">
+                    <!-- <option value="Supervisor 1">Supervisor 1</option>
                 <option value="Supervisor 2">Supervisor 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
-            <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-            <select id="checkedBySelect" class="w-full p-1 border rounded bg-gray-100">
-                <!-- <option value="Finance 1">Finance 1</option>
+                <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+                <select id="checkedBySelect" class="w-full p-1 border rounded bg-gray-100">
+                    <!-- <option value="Finance 1">Finance 1</option>
                 <option value="Finance 2">Finance 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
-            <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-            <select id="approvedBySelect" class="w-full p-1 border rounded bg-gray-100">
-                <!-- <option value="Manager 1">Manager 1</option>
+                <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+                <select id="approvedBySelect" class="w-full p-1 border rounded bg-gray-100">
+                    <!-- <option value="Manager 1">Manager 1</option>
                 <option value="Manager 2">Manager 2</option> -->
-            </select>
+                </select>
             </div>
             <div>
-                <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
-                <select id="receivedBySelect" class="w-full p-1 border rounded bg-gray-100">
+                <label id="receiveBy" class="mr-1"><strong>Receive by :</strong></label>
+                <select id="receiveBySelect" class="w-full p-1 border rounded bg-gray-100">
                     <!-- <option value="Admin 1">Admin 1</option>
-                    <option value="Admin 2">Admin 2</option> -->
+                <option value="Admin 2">Admin 2</option> -->
                 </select>
             </div>
         </div>
         <br>
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="onReject()" id="rejectButton" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="onReject()" id="rejectBtn"
+                    class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Reject
                 </button>
-                <button onclick="onApprove()" id="approveButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+
+                <button onclick="onApprove()" id="receiveBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Approve
                 </button>
-                <button onclick="printReimbursement()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+
+                <button onclick="printReimbursement()" id="printBtn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                     Print
                 </button>
             </div>
-            <button onclick="revisionReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+
+            <button onclick="revisionReim()" id="revisionButton"
+                class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
                 Revision
             </button>
         </div>
-</div>
+
+        <!-- Auto-print configuration -->
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="autoPrintEnabled" class="rounded" checked>
+                <label for="autoPrintEnabled" class="text-sm font-medium text-gray-700">
+                    Enable auto-print and save as attachment when document is approved
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                When enabled, the system will automatically generate a print document and save it as an attachment when
+                you approve this document.
+            </p>
+        </div>
     </div>
-    
+    </div>
+
     <script>
         // Global variables to track revision fields
         let revisionFieldsByUser = new Map(); // Track which users have added fields
@@ -205,7 +331,7 @@
             const addBtn = document.getElementById('addRevisionBtn');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if user can add a field
             if (currentFieldCount >= MAX_REVISION_FIELDS) {
                 Swal.fire({
@@ -215,7 +341,7 @@
                 });
                 return;
             }
-            
+
             if (revisionFieldsByUser.has(currentUser.name)) {
                 Swal.fire({
                     icon: 'warning',
@@ -224,7 +350,7 @@
                 });
                 return;
             }
-            
+
             if (container.classList.contains('hidden')) {
                 // Show container and add first field
                 container.classList.remove('hidden');
@@ -240,7 +366,7 @@
             const container = document.getElementById('revisionContainer');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if maximum fields reached
             if (currentFieldCount >= MAX_REVISION_FIELDS) {
                 Swal.fire({
@@ -250,7 +376,7 @@
                 });
                 return;
             }
-            
+
             // Check if current user already has a field
             if (revisionFieldsByUser.has(currentUser.name)) {
                 Swal.fire({
@@ -260,60 +386,60 @@
                 });
                 return;
             }
-            
+
             // Create wrapper div for the textarea and delete button
             const fieldWrapper = document.createElement('div');
             fieldWrapper.className = 'flex items-center space-x-2 mt-2';
             fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
-            
+
             // Create textarea
             const newField = document.createElement('textarea');
             newField.className = 'w-full p-2 border rounded-md';
             newField.placeholder = 'Enter additional revision details';
-            
+
             // Add event listener for input to handle protected prefix
             newField.addEventListener('input', handleRevisionInput);
-            
+
             // Initialize with user prefix
             initializeWithUserPrefix(newField);
-            
+
             // Create delete button
             const deleteButton = document.createElement('button');
             deleteButton.innerHTML = '&times;'; // × symbol
             deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
             deleteButton.title = 'Hapus field revision ini';
-            deleteButton.onclick = function() {
+            deleteButton.onclick = function () {
                 // Remove user from tracking when field is deleted
                 const userName = fieldWrapper.dataset.userName;
                 revisionFieldsByUser.delete(userName);
-                
+
                 fieldWrapper.remove();
                 checkRevisionButton(); // Update button state after removing a field
                 checkRevisionContainer(); // Check if container should be hidden
                 updateAddButtonState(); // Update add button state
             };
-            
+
             // Add textarea and delete button to wrapper
             fieldWrapper.appendChild(newField);
             fieldWrapper.appendChild(deleteButton);
-            
+
             // Add wrapper to container
             container.appendChild(fieldWrapper);
-            
+
             // Track that this user has added a field
             revisionFieldsByUser.set(currentUser.name, true);
-            
+
             // Update the revision button state and add button state
             checkRevisionButton();
             updateAddButtonState();
         }
-        
+
         // Check if revision container should be hidden when all fields are removed
         function checkRevisionContainer() {
             const container = document.getElementById('revisionContainer');
             const addBtn = document.getElementById('addRevisionBtn');
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             if (revisionFields.length === 0) {
                 container.classList.add('hidden');
                 addBtn.textContent = '+ Add revision';
@@ -328,10 +454,10 @@
             const container = document.getElementById('revisionContainer');
             const currentUser = getUserInfo();
             const currentFieldCount = container.querySelectorAll('textarea').length;
-            
+
             // Check if user can add more fields
             const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
-            
+
             if (canAddMore) {
                 addBtn.style.opacity = '1';
                 addBtn.style.cursor = 'pointer';
@@ -345,7 +471,7 @@
                 addBtn.style.opacity = '0.5';
                 addBtn.style.cursor = 'not-allowed';
                 addBtn.style.pointerEvents = 'none';
-                
+
                 if (currentFieldCount >= MAX_REVISION_FIELDS) {
                     addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
                 } else if (revisionFieldsByUser.has(currentUser.name)) {
@@ -358,54 +484,54 @@
         function getUserInfo() {
             // Use functions from auth.js to get user information
             let userName = 'Unknown User';
-            let userRole = 'Approver'; // Default role for this page since we're on the approver page
-            
+            let userRole = 'Receiver'; // Default role for this page since we're on the receiver page
+
             try {
                 // Get user info from getCurrentUser function in auth.js
                 const currentUser = getCurrentUser();
                 if (currentUser && currentUser.username) {
                     userName = currentUser.username;
                 }
-                
+
                 // Get user role based on the current page
-                // Since we're on the approver page, the role is Approver
+                // Since we're on the receiver page, the role is Receiver
             } catch (e) {
                 console.error('Error getting user info:', e);
             }
-            
+
             return { name: userName, role: userRole };
         }
-        
+
         // Function to initialize textarea with user prefix
         function initializeWithUserPrefix(textarea) {
             const userInfo = getUserInfo();
             const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
             textarea.value = prefix;
-            
+
             // Store the prefix length as a data attribute
             textarea.dataset.prefixLength = prefix.length;
-            
+
             // Set selection range after the prefix
             textarea.setSelectionRange(prefix.length, prefix.length);
             textarea.focus();
         }
-        
+
         // Function to handle input and protect the prefix
         function handleRevisionInput(event) {
             const textarea = event.target;
             const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-            
+
             // If user tries to modify content before the prefix length
             if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
                 // Restore the prefix
                 const userInfo = getUserInfo();
                 const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-                
+
                 // Only restore if the prefix is damaged
                 if (!textarea.value.startsWith(prefix)) {
                     const userText = textarea.value.substring(prefixLength);
                     textarea.value = prefix + userText;
-                    
+
                     // Reset cursor position after the prefix
                     textarea.setSelectionRange(prefixLength, prefixLength);
                 } else {
@@ -414,14 +540,14 @@
                 }
             }
         }
-        
+
         // Check if revision remarks are filled to enable/disable revision button
         function checkRevisionButton() {
             const revisionButton = document.getElementById('revisionButton');
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             let hasContent = false;
-            
+
             // Check if there are any revision fields and if they have content
             if (revisionFields.length > 0) {
                 revisionFields.forEach(field => {
@@ -432,7 +558,7 @@
                     }
                 });
             }
-            
+
             if (hasContent) {
                 revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 revisionButton.disabled = false;
@@ -441,23 +567,23 @@
                 revisionButton.disabled = true;
             }
         }
-        
-        // Function to handle revision for Reimbursement
+
+        // Revision function for Reimbursement
         function revisionReim() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
-            
+
             // Check if revision button is disabled
             if (document.getElementById('revisionButton').disabled) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Please add and fill revision field first'
+                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
                 });
                 return;
             }
-            
+
             let allRemarks = '';
-            
+
             revisionFields.forEach((field, index) => {
                 // Include the entire content including the prefix
                 if (field.value.trim() !== '') {
@@ -465,16 +591,16 @@
                     allRemarks += field.value.trim();
                 }
             });
-            
+
             if (revisionFields.length === 0 || allRemarks.trim() === '') {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Please add and fill revision field first'
+                    text: 'Silakan tambahkan dan isi field revision terlebih dahulu'
                 });
                 return;
             }
-            
+
             // First show confirmation dialog
             Swal.fire({
                 title: 'Are you sure?',
@@ -493,7 +619,7 @@
                         Swal.fire('Error', 'No reimbursement ID found', 'error');
                         return;
                     }
-                    
+
                     // Get user ID from auth.js
                     const userId = getUserId();
                     if (!userId) {
@@ -509,119 +635,45 @@
                         body: JSON.stringify({
                             userId: userId,
                             remarks: allRemarks,
-                            stage: "Approved"
+                            stage: "Received"
                         })
                     })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status && result.code === 200) {
-                            Swal.fire(
-                                'Success!',
-                                'Revision remarks have been submitted successfully.',
-                                'success'
-                            ).then(() => {
-                                // Return to menu
-                                goToMenuReim();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status && result.code === 200) {
+                                Swal.fire(
+                                    'Success!',
+                                    'Revision remarks have been submitted successfully.',
+                                    'success'
+                                ).then(() => {
+                                    // Return to menu
+                                    goToMenuReim();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error',
+                                    result.message || 'Failed to submit revision',
+                                    'error'
+                                );
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error submitting revision:', error);
                             Swal.fire(
                                 'Error',
-                                result.message || 'Failed to submit revision',
+                                'An error occurred while submitting the revision',
                                 'error'
                             );
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error submitting revision:', error);
-                        Swal.fire(
-                            'Error',
-                            'An error occurred while submitting the revision',
-                            'error'
-                        );
-                    });
+                        });
                 }
             });
-        }
-
-        // Initialize revision functionality when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const revisionContainer = document.getElementById('revisionContainer');
-            
-            // Use event delegation to handle input events on all textareas
-            revisionContainer.addEventListener('input', function(event) {
-                if (event.target.tagName === 'TEXTAREA') {
-                    checkRevisionButton();
-                }
-            });
-            
-            // Initialize button states
-            checkRevisionButton();
-            updateAddButtonState();
-            
-            // Check status and hide buttons if needed
-            checkStatusAndHideButtons();
-        });
-        
-        // Function to check status and hide buttons based on status
-        function checkStatusAndHideButtons() {
-            const statusSelect = document.getElementById('status');
-            if (!statusSelect) return;
-            
-            const currentStatus = statusSelect.value;
-            const isAcknowledged = currentStatus === "Acknowledged";
-            const isRejected = currentStatus === "Rejected";
-            const isApproved = currentStatus === "Approved";
-            const isReceived = currentStatus === "Received";
-            
-            // Get all buttons that need to be controlled
-            const deleteButtons = document.querySelectorAll('#reimbursementDetails button[onclick*="deleteRow"]');
-            const addRowButton = document.getElementById('addRowButton');
-            const addRevisionBtn = document.getElementById('addRevisionBtn');
-            const rejectButton = document.getElementById('rejectButton');
-            const approveButton = document.getElementById('approveButton');
-            const printButton = document.getElementById('printButton');
-            const revisionButton = document.getElementById('revisionButton');
-            
-            // Hide buttons if status is not "acknowledged" or if status is "rejected"
-            if (!isAcknowledged || isRejected) {
-                // Hide delete buttons in action column
-                deleteButtons.forEach(btn => {
-                    btn.style.display = 'none';
-                });
-                
-                // Hide other buttons
-                if (addRowButton) addRowButton.style.display = 'none';
-                if (addRevisionBtn) addRevisionBtn.style.display = 'none';
-                if (rejectButton) rejectButton.style.display = 'none';
-                if (approveButton) approveButton.style.display = 'none';
-                if (revisionButton) revisionButton.style.display = 'none';
-                
-                // Show print button only if status is "Approved" or "Received"
-                if (printButton) {
-                    if (isApproved || isReceived) {
-                        printButton.style.display = 'inline-block';
-                    } else {
-                        printButton.style.display = 'none';
-                    }
-                }
-            } else {
-                // Show buttons if status is "acknowledged" and not "rejected"
-                deleteButtons.forEach(btn => {
-                    btn.style.display = 'inline-block';
-                });
-                
-                if (addRowButton) addRowButton.style.display = 'inline-block';
-                if (addRevisionBtn) addRevisionBtn.style.display = 'inline-block';
-                if (rejectButton) rejectButton.style.display = 'inline-block';
-                if (approveButton) approveButton.style.display = 'inline-block';
-                if (revisionButton) revisionButton.style.display = 'inline-block';
-                
-                // Hide print button for acknowledged status (not approved/received yet)
-                if (printButton) {
-                    printButton.style.display = 'none';
-                }
-            }
         }
     </script>
+
+
+
+    <!-- Include the JavaScript file -->
+    <script src="approveReim.js"></script>
 </body>
+
 </html>

@@ -261,9 +261,9 @@ function populateInvServiceData(data) {
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
     document.getElementById('GroupNum').value = data.groupNum || '';
     document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.trackNo || ''; // Use trackNo for TaxNo field
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
+            document.getElementById('TaxNo').value = data.licTradNum || '';
+        document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
+        document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
@@ -274,10 +274,29 @@ function populateInvServiceData(data) {
     const status = getStatusFromInvoice(data);
     document.getElementById('Status').value = status;
     
-    // Populate totals with correct calculation
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    // Total Amount (totalAmount) - from docCur and netPrice fields
+    const totalAmount = data.netPrice || 0;
+    document.getElementById('docTotal').value = formatCurrencyIDR(totalAmount);
+    
+    // Discounted Amount (discountAmount) - from docCur and discSum fields
+    const discountAmount = data.discSum || 0;
+    document.getElementById('discSum').value = formatCurrencyIDR(discountAmount);
+    
+    // Sales Amount (salesAmount) - from docCur and netPriceAfterDiscount fields
+    const salesAmount = data.netPriceAfterDiscount || 0;
+    document.getElementById('netPriceAfterDiscount').value = formatCurrencyIDR(salesAmount);
+    
+    // Tax Base Other Value (taxBase) - from docCur and docTax fields
+    const taxBase = data.docTax || 0;
+    document.getElementById('dpp1112').value = formatCurrencyIDR(taxBase);
+    
+    // VAT 12% (vatAmount) - from docCur and vatSum fields
+    const vatAmount = data.vatSum || 0;
+    document.getElementById('vatSum').value = formatCurrencyIDR(vatAmount);
+    
+    // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields
+    const grandTotal = data.grandTotal || 0;
+    document.getElementById('grandTotal').value = formatCurrencyIDR(grandTotal);
     
     // Populate comments
     document.getElementById('comments').value = data.comments || '';
@@ -883,7 +902,7 @@ async function updateInvServiceStatus(status) {
 
 // Function to navigate back to menu
 function goToMenuAcknowInvService() {
-    window.location.href = '../../dashboard/dashboardAcknowledge/ARInvoice/menuARInvoiceAcknowledge.html';
+    window.location.href = '../../../../dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html';
 }
 
 // Function to format currency

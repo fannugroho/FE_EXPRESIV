@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,130 +9,136 @@
     <script src="../../../../js/auth.js"></script>
     <style>
         @media print {
-            body { 
-                margin: 0; 
+            body {
+                margin: 0;
                 font-size: 9px;
             }
-            .no-print { display: none !important; }
-            .print-page { page-break-after: always; }
-            
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-page {
+                page-break-after: always;
+            }
+
             /* Prevent page breaks for single page documents */
             .voucher-container {
                 page-break-inside: avoid;
                 max-height: 100vh;
                 padding: 5px !important;
             }
-            
+
             /* Reduce margins and spacing for print */
             .header {
                 margin-bottom: 5px !important;
             }
-            
+
             .company-name {
                 font-size: 14px !important;
                 margin-bottom: 2px !important;
             }
-            
+
             .company-address {
                 font-size: 9px !important;
                 line-height: 1.2 !important;
             }
-            
+
             .payment-to {
                 font-size: 10px !important;
                 margin-top: 5px !important;
             }
-            
+
             .voucher-details {
                 font-size: 9px !important;
             }
-            
+
             .voucher-title {
                 margin: 5px 0 !important;
                 font-size: 16px !important;
             }
-            
+
             .document-info {
                 margin-bottom: 5px !important;
                 padding: 4px !important;
             }
-            
+
             .document-info h3 {
                 font-size: 11px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 2px !important;
             }
-            
+
             .document-info .info-item {
                 padding: 2px 0 !important;
             }
-            
+
             .document-info strong {
                 font-size: 9px !important;
                 min-width: 100px !important;
             }
-            
+
             .document-info span {
                 font-size: 9px !important;
             }
-            
+
             .approval-boxes {
                 margin-bottom: 5px !important;
                 gap: 5px !important;
             }
-            
+
             .approval-box {
                 padding: 3px !important;
                 min-height: 30px !important;
             }
-            
+
             .approval-title {
                 font-size: 9px !important;
                 margin-bottom: 5px !important;
             }
-            
+
             .approval-stamp {
                 height: 18px !important;
                 margin-bottom: 3px !important;
             }
-            
+
             .approval-stamp-text {
                 font-size: 8px !important;
                 padding: 1px 4px !important;
             }
-            
+
             .amount-section {
                 margin-bottom: 5px !important;
             }
-            
+
             .amount-row {
                 margin-bottom: 5px !important;
             }
-            
+
             .amount-value {
                 font-size: 12px !important;
             }
-            
+
             .footer-note {
                 margin-top: 5px !important;
                 font-size: 8px !important;
             }
         }
-        
+
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f5f5f5;
         }
-        
+
         .voucher-container {
             max-width: 1000px;
             margin: 0 auto;
             background: white;
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        
+
         @media print {
             .voucher-container {
                 padding: 5px !important;
@@ -141,45 +148,45 @@
                 overflow: visible !important;
             }
         }
-        
+
         .header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
         }
-        
+
         @media print {
             .header {
                 margin-bottom: 10px;
             }
         }
-        
+
         .company-info {
             flex: 1;
         }
-        
+
         .company-name {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .company-address {
             font-size: 12px;
             color: #666;
             line-height: 1.4;
         }
-        
+
         .payment-to {
             margin-top: 10px;
             font-size: 14px;
         }
-        
+
         .voucher-details {
             text-align: right;
             flex: 1;
         }
-        
+
         .voucher-title {
             text-align: center;
             font-size: 24px;
@@ -187,45 +194,56 @@
             margin: 20px 0;
             text-transform: uppercase;
         }
-        
+
         @media print {
             .voucher-title {
                 margin: 10px 0;
                 font-size: 20px;
             }
         }
-        
+
         .payment-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        
+
         @media print {
             .payment-table {
                 margin-bottom: 8px !important;
                 font-size: 8px !important;
                 page-break-inside: avoid !important;
             }
-            
+
             .payment-table th,
             .payment-table td {
                 padding: 2px !important;
                 font-size: 8px !important;
             }
-            
+
             /* Ensure all text elements are smaller for print */
             * {
                 font-size: 9px !important;
             }
-            
+
             /* Specific font sizes for print */
-            .company-name { font-size: 14px !important; }
-            .voucher-title { font-size: 16px !important; }
-            .amount-value { font-size: 12px !important; }
-            .footer-note { font-size: 8px !important; }
+            .company-name {
+                font-size: 14px !important;
+            }
+
+            .voucher-title {
+                font-size: 16px !important;
+            }
+
+            .amount-value {
+                font-size: 12px !important;
+            }
+
+            .footer-note {
+                font-size: 8px !important;
+            }
         }
-        
+
         .payment-table th,
         .payment-table td {
             border: 1px solid #000;
@@ -233,102 +251,104 @@
             text-align: left;
             font-size: 11px;
         }
-        
+
         @media print {
+
             .payment-table th,
             .payment-table td {
                 padding: 4px;
                 font-size: 9px;
             }
         }
-        
+
         .payment-table th {
             background-color: #f0f0f0;
             font-weight: bold;
         }
-        
+
         .payment-table .total-row {
             font-weight: bold;
             background-color: #f9f9f9;
         }
-        
+
         .payment-table .amount {
             text-align: right;
         }
-        
+
         /* Page break controls for payment table - Removed forced breaks */
         @media print {
+
             /* Ensure total row stays with last items */
             .payment-table .total-row {
                 page-break-inside: avoid;
             }
-            
+
             /* Prevent page breaks within payment table for small content */
             .payment-table {
                 page-break-inside: avoid;
             }
         }
-        
+
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        
+
         .invoice-table th,
         .invoice-table td {
             border: 1px solid #000;
             padding: 6px;
             text-align: left;
         }
-        
+
         .invoice-table th {
             background-color: #f0f0f0;
             font-weight: bold;
         }
-        
+
         .invoice-table .amount {
             text-align: right;
         }
-        
+
         .section {
             margin-bottom: 20px;
         }
-        
+
         .section-title {
             font-weight: bold;
             margin-bottom: 10px;
         }
-        
+
         .checkbox-group {
             display: flex;
             gap: 20px;
             margin-bottom: 10px;
         }
-        
+
         .checkbox-item {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        
+
         .supporting-docs {
             margin-bottom: 20px;
         }
-        
+
         .doc-item {
             display: flex;
             align-items: center;
             margin-bottom: 5px;
         }
-        
+
         .doc-item::after {
             content: '';
             flex: 1;
             border-bottom: 1px dotted #000;
             margin-left: 10px;
         }
-        
+
         .approval-boxes {
             display: flex;
             justify-content: space-between;
@@ -336,7 +356,7 @@
             margin-bottom: 15px;
             flex-wrap: wrap;
         }
-        
+
         @media print {
             .approval-boxes {
                 margin-bottom: 8px !important;
@@ -344,7 +364,7 @@
                 page-break-inside: avoid !important;
             }
         }
-        
+
         .approval-box {
             flex: 1;
             min-width: 150px;
@@ -353,32 +373,32 @@
             min-height: 60px;
             text-align: center;
         }
-        
+
         @media print {
             .approval-box {
                 padding: 6px;
                 min-height: 45px;
             }
         }
-        
+
         .approval-box {
             border: 1px solid #000;
             padding: 5px;
             min-height: 45px;
             text-align: center;
         }
-        
+
         .approval-title {
             font-weight: bold;
             margin-bottom: 10px;
             text-align: center;
         }
-        
+
         .approval-signature {
             height: 30px;
             border-bottom: 1px solid #ccc;
         }
-        
+
         /* Approval stamp styling */
         .approval-stamp {
             position: relative;
@@ -389,7 +409,7 @@
             justify-content: center;
             margin-bottom: 5px;
         }
-        
+
         .approval-stamp-text {
             color: #0056b3;
             font-weight: bold;
@@ -405,33 +425,33 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
+
         .amount-section {
             margin-bottom: 20px;
         }
-        
+
         @media print {
             .amount-section {
                 margin-bottom: 8px !important;
                 page-break-inside: avoid !important;
             }
         }
-        
+
         .amount-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
         }
-        
+
         .amount-label {
             font-weight: bold;
         }
-        
+
         .amount-value {
             font-weight: bold;
             font-size: 16px;
         }
-        
+
         .footer-note {
             font-size: 12px;
             color: #666;
@@ -439,13 +459,13 @@
             margin-top: 20px;
             font-style: italic;
         }
-        
+
         @media print {
             .footer-note {
                 margin-top: 10px;
                 font-size: 10px;
             }
-            
+
             /* Page numbering styles for print */
             .page-number {
                 position: fixed;
@@ -455,12 +475,12 @@
                 color: #666;
                 font-weight: bold;
             }
-            
+
             /* Hide page number on screen */
             .page-number {
                 display: none;
             }
-            
+
             /* Show page number only when printing */
             @media print {
                 .page-number {
@@ -468,7 +488,7 @@
                 }
             }
         }
-        
+
         /* Page numbering footer styles */
         .page-number-footer {
             position: fixed;
@@ -484,21 +504,21 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             display: none;
         }
-        
+
         .page-number-text {
             font-family: Arial, sans-serif;
         }
-        
+
         .current-page {
             color: #007bff;
             font-weight: bold;
         }
-        
+
         .total-pages {
             color: #28a745;
             font-weight: bold;
         }
-        
+
         @media print {
             .page-number-footer {
                 display: block !important;
@@ -511,25 +531,25 @@
                 box-shadow: none !important;
                 padding: 3px 8px !important;
             }
-            
+
             /* CSS counters for page numbering */
             @page {
                 counter-increment: page;
             }
-            
+
             .current-page::after {
                 content: counter(page);
             }
-            
+
             .total-pages::after {
                 content: counter(pages);
             }
         }
-        
+
         .no-print {
             margin-bottom: 20px;
         }
-        
+
         .print-button {
             background-color: #007bff;
             color: white;
@@ -539,11 +559,11 @@
             cursor: pointer;
             font-size: 16px;
         }
-        
+
         .print-button:hover {
             background-color: #0056b3;
         }
-        
+
         .back-button {
             background-color: #6c757d;
             color: white;
@@ -554,11 +574,11 @@
             font-size: 16px;
             margin-right: 10px;
         }
-        
+
         .back-button:hover {
             background-color: #545b62;
         }
-        
+
         .document-info {
             margin-bottom: 15px;
             padding: 12px;
@@ -567,7 +587,7 @@
             border-radius: 6px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
-        
+
         @media print {
             .document-info {
                 margin-bottom: 8px !important;
@@ -577,7 +597,7 @@
                 page-break-inside: avoid !important;
             }
         }
-        
+
         .document-info h3 {
             font-weight: 700;
             margin-bottom: 10px;
@@ -588,13 +608,13 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        
+
         .document-info .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
-        
+
         .document-info .info-item {
             display: flex;
             justify-content: space-between;
@@ -602,18 +622,18 @@
             padding: 5px 0;
             border-bottom: 1px solid #e2e8f0;
         }
-        
+
         .document-info .info-item:last-child {
             border-bottom: none;
         }
-        
+
         .document-info strong {
             color: #374151;
             font-weight: 600;
             font-size: 12px;
             min-width: 120px;
         }
-        
+
         .document-info span {
             color: #1f2937;
             font-weight: 500;
@@ -621,7 +641,7 @@
             flex: 1;
             font-size: 12px;
         }
-        
+
         .approval-details {
             margin-bottom: 20px;
             padding: 15px;
@@ -629,7 +649,7 @@
             background-color: #f9f9f9;
             border-radius: 5px;
         }
-        
+
         .approval-details h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -637,7 +657,7 @@
             border-bottom: 2px solid #28a745;
             padding-bottom: 5px;
         }
-        
+
         .attachments-section {
             margin-bottom: 15px;
             padding: 15px;
@@ -645,7 +665,7 @@
             background-color: #f9f9f9;
             border-radius: 5px;
         }
-        
+
         /* File Attachment Section styling */
         #fileAttachmentSection {
             margin-bottom: 15px;
@@ -654,7 +674,7 @@
             background-color: #f9f9f9;
             border-radius: 5px;
         }
-        
+
         #fileAttachmentSection h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -663,12 +683,12 @@
             padding-bottom: 5px;
             font-size: 14px;
         }
-        
+
         #fileAttachmentList {
             min-height: 20px;
             padding: 4px;
         }
-        
+
         /* List attachment styling */
         .attachment-list-item {
             display: flex;
@@ -679,53 +699,53 @@
             font-size: 11px;
             line-height: 1.3;
         }
-        
+
         .attachment-list-item:last-child {
             margin-bottom: 0;
         }
-        
+
         .attachment-list-item .file-icon {
             margin-right: 6px;
             font-size: 12px;
         }
-        
+
         .attachment-list-item .file-name {
             font-weight: 500;
             color: #374151;
         }
-        
+
         /* Blue theme for outgoing payment attachments */
         .attachment-list-item.blue-theme {
             background-color: #eff6ff;
             border: 1px solid #bfdbfe;
         }
-        
+
         .attachment-list-item.blue-theme .file-name {
             color: #1e40af;
         }
-        
+
         /* Green theme for reimbursement attachments */
         .attachment-list-item.green-theme {
             background-color: #f0fdf4;
             border: 1px solid #86efac;
         }
-        
+
         .attachment-list-item.green-theme .file-name {
             color: #047857;
         }
-        
+
         /* Attachment styling for print page */
         .reimbursement-header {
             margin-top: 1rem;
             margin-bottom: 0.5rem;
         }
-        
+
         .reimbursement-attachments-list {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-        
+
         .reimbursement-attachments-list .flex {
             display: flex;
             align-items: center;
@@ -735,95 +755,95 @@
             border: 1px solid #bfdbfe;
             border-radius: 0.25rem;
         }
-        
+
         .reimbursement-attachments-list .space-x-2 {
             display: flex;
             gap: 0.5rem;
         }
-        
+
         .reimbursement-attachments-list .text-lg {
             font-size: 1.125rem;
         }
-        
+
         .reimbursement-attachments-list .text-sm {
             font-size: 0.875rem;
         }
-        
+
         .reimbursement-attachments-list .text-xs {
             font-size: 0.75rem;
             color: #6b7280;
         }
-        
+
         .reimbursement-attachments-list .text-blue-600 {
             color: #2563eb;
         }
-        
+
         .reimbursement-attachments-list .text-blue-800 {
             color: #1e40af;
         }
-        
+
         .reimbursement-attachments-list .text-gray-500 {
             color: #6b7280;
         }
-        
+
         .reimbursement-attachments-list .text-green-600 {
             color: #059669;
         }
-        
+
         .reimbursement-attachments-list .hover\:text-blue-800:hover {
             color: #1e40af;
         }
-        
+
         .reimbursement-attachments-list .hover\:text-green-800:hover {
             color: #047857;
         }
-        
+
         .reimbursement-attachments-list .hover\:bg-blue-50:hover {
             background-color: #eff6ff;
         }
-        
+
         .reimbursement-attachments-list .hover\:bg-green-50:hover {
             background-color: #f0fdf4;
         }
-        
+
         .reimbursement-attachments-list .border-blue-300 {
             border-color: #93c5fd;
         }
-        
+
         .reimbursement-attachments-list .border-green-300 {
             border-color: #86efac;
         }
-        
+
         .reimbursement-attachments-list .rounded {
             border-radius: 0.25rem;
         }
-        
+
         .reimbursement-attachments-list .px-2 {
             padding-left: 0.5rem;
             padding-right: 0.5rem;
         }
-        
+
         .reimbursement-attachments-list .py-1 {
             padding-top: 0.25rem;
             padding-bottom: 0.25rem;
         }
-        
+
         /* Print Out Reimbursement Section styling */
         #printOutReimbursementSection {
             margin-bottom: 0.5rem;
         }
-        
+
         #printOutReimbursementSection h4 {
             font-size: 0.875rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
             color: #374151;
         }
-        
+
         #printOutReimbursementList {
             min-height: 1rem;
         }
-        
+
         .attachments-section h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -832,7 +852,7 @@
             padding-bottom: 5px;
             font-size: 14px;
         }
-        
+
         .reimbursement-attachments-section {
             margin-bottom: 15px;
             padding: 15px;
@@ -840,7 +860,7 @@
             background-color: #f8fff9;
             border-radius: 5px;
         }
-        
+
         .reimbursement-attachments-section h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -849,7 +869,7 @@
             padding-bottom: 5px;
             font-size: 14px;
         }
-        
+
         @media print {
             .attachments-section {
                 margin-bottom: 8px !important;
@@ -858,7 +878,7 @@
                 border: 1px solid #000 !important;
                 page-break-inside: avoid !important;
             }
-            
+
             #fileAttachmentSection {
                 margin-bottom: 8px !important;
                 padding: 8px !important;
@@ -866,33 +886,33 @@
                 border: 1px solid #000 !important;
                 page-break-inside: avoid !important;
             }
-            
+
             #fileAttachmentSection h3 {
                 font-size: 12px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 3px !important;
             }
-            
+
             #fileAttachmentList {
                 padding: 2px !important;
                 min-height: 10px !important;
             }
-            
+
             .attachment-list-item {
                 padding: 2px 4px !important;
                 margin-bottom: 2px !important;
                 font-size: 8px !important;
             }
-            
+
             .attachment-list-item .file-icon {
                 margin-right: 4px !important;
                 font-size: 8px !important;
             }
-            
+
             .attachment-list-item .file-name {
                 font-size: 8px !important;
             }
-            
+
             .reimbursement-attachments-section {
                 margin-bottom: 8px !important;
                 padding: 8px !important;
@@ -900,56 +920,56 @@
                 border: 1px solid #000 !important;
                 page-break-inside: avoid !important;
             }
-            
+
             .attachments-section h3 {
                 font-size: 12px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 3px !important;
             }
-            
+
             .reimbursement-attachments-section h3 {
                 font-size: 12px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 3px !important;
             }
-            
+
             .reimbursement-header h4 {
                 font-size: 10px !important;
                 margin-bottom: 5px !important;
             }
-            
+
             .reimbursement-attachments-list {
                 gap: 2px !important;
             }
-            
+
             .reimbursement-attachments-list .flex {
                 padding: 2px 4px !important;
                 font-size: 8px !important;
             }
-            
+
             .reimbursement-attachments-list .text-sm {
                 font-size: 8px !important;
             }
-            
+
             .reimbursement-attachments-list .text-xs {
                 font-size: 7px !important;
             }
-            
+
             #printOutReimbursementSection {
                 margin-bottom: 5px !important;
             }
-            
+
             #printOutReimbursementSection h4 {
                 font-size: 10px !important;
                 margin-bottom: 5px !important;
             }
-            
+
             #printOutReimbursementList {
                 padding: 2px !important;
                 min-height: 10px !important;
             }
         }
-        
+
         .rejection-section {
             margin-bottom: 20px;
             padding: 15px;
@@ -957,7 +977,7 @@
             background-color: #f8d7da;
             border-radius: 5px;
         }
-        
+
         .rejection-section h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -965,7 +985,7 @@
             border-bottom: 2px solid #dc3545;
             padding-bottom: 5px;
         }
-        
+
         .rejection-section #rejectionRemarks {
             padding: 10px;
             background-color: #f8d7da;
@@ -974,7 +994,7 @@
             color: #721c24;
             white-space: pre-wrap;
         }
-        
+
         /* Attachments Table Styles */
         .attachments-table-section {
             margin-bottom: 20px;
@@ -984,7 +1004,7 @@
             border-radius: 5px;
             display: block !important;
         }
-        
+
         .attachments-table-section h3 {
             font-weight: bold;
             margin-bottom: 10px;
@@ -993,14 +1013,14 @@
             padding-bottom: 5px;
             font-size: 14px;
         }
-        
+
         .attachments-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
             font-size: 11px;
         }
-        
+
         .attachments-table th,
         .attachments-table td {
             border: 1px solid #ddd;
@@ -1008,34 +1028,34 @@
             text-align: left;
             font-size: 10px;
         }
-        
+
         .attachments-table th {
             background-color: #e9ecef;
             font-weight: bold;
             color: #495057;
         }
-        
+
         .attachments-table td {
             background-color: #fff;
         }
-        
+
         .attachments-table .file-name {
             font-weight: 500;
             color: #007bff;
         }
-        
+
         .attachments-table .file-type {
             text-transform: uppercase;
             font-size: 9px;
             color: #6c757d;
         }
-        
+
         .attachments-table .file-size {
             text-align: right;
             font-family: monospace;
             font-size: 9px;
         }
-        
+
         @media print {
             .attachments-table-section {
                 margin-bottom: 8px !important;
@@ -1044,26 +1064,27 @@
                 border: 1px solid #000 !important;
                 page-break-inside: avoid !important;
             }
-            
+
             .attachments-table-section h3 {
                 font-size: 12px !important;
                 margin-bottom: 5px !important;
                 padding-bottom: 3px !important;
             }
-            
+
             .attachments-table {
                 font-size: 8px !important;
                 margin-bottom: 5px !important;
             }
-            
+
             .attachments-table th,
             .attachments-table td {
                 padding: 3px !important;
                 font-size: 8px !important;
             }
         }
-        
+
         @media print {
+
             .document-info,
             .approval-details,
             .attachments-section,
@@ -1076,32 +1097,34 @@
         }
     </style>
 </head>
+
 <body>
     <div class="no-print">
         <button class="back-button" onclick="goBack()">Back</button>
         <button class="print-button" onclick="handlePrint()">Print</button>
     </div>
-    
-            <div class="voucher-container">
-            <div class="header">
-                <div class="company-info">
-                    <div class="company-name">PT KANSAI PAINT INDONESIA</div>
-                    <div class="company-address">
-                        Blok DD-7 & DD-6 Kawasan Industri MM2100 Danauindah<br>
-                        Cikarang Barat Kab. Bekasi Jawa Barat 17530
-                    </div>
-                    <div class="payment-to">
-                        Payment to: <span id="paymentTo">Rizki Fajar Putra</span>
-                    </div>
+
+    <div class="voucher-container">
+        <div class="header">
+            <div class="company-info">
+                <div class="company-name">PT KANSAI PAINT INDONESIA</div>
+                <div class="company-address">
+                    Blok DD-7 & DD-6 Kawasan Industri MM2100,<br>
+                    Danau Indah, Cikarang Barat Kab. Bekasi Jawa Barat 17847
                 </div>
-                <div class="voucher-details">
-                    <div id="voucherNoContainer" style="display: block;">Voucher No. <span id="voucherNo">407B/03/25</span></div>
-                    <div>Submission Date: <span id="submissionDate">09-June-2025</span></div>
+                <div class="payment-to">
+                    Payment to: <span id="paymentTo">Rizki Fajar Putra</span>
                 </div>
             </div>
-            
-            <div class="voucher-title">PAYMENT VOUCHER</div>
-        
+            <div class="voucher-details">
+                <div id="voucherNoContainer" style="display: block;">Voucher No. <span id="voucherNo">-</span>
+                </div>
+                <div>Submission Date: <span id="submissionDate">-</span></div>
+            </div>
+        </div>
+
+        <div class="voucher-title">PAYMENT VOUCHER</div>
+
         <table class="payment-table">
             <thead>
                 <tr>
@@ -1116,7 +1139,7 @@
                 <!-- Payment rows will be populated by JavaScript -->
             </tbody>
         </table>
-        
+
         <!-- Additional Document Information -->
         <div class="document-info">
             <h3>Document Information</h3>
@@ -1175,9 +1198,9 @@
                 </div>
             </div>
         </div>
-        
 
-        
+
+
         <!-- File Attachment Section -->
         <div class="attachments-section" id="fileAttachmentSection" style="display: block;">
             <h3>File Attachment</h3>
@@ -1192,9 +1215,9 @@
                 </div>
             </div>
         </div>
-        
 
-        
+
+
         <!-- Rejection Remarks Section -->
         <div class="rejection-section" id="rejectionSection" style="display: none;">
             <h3>Rejection Remarks</h3>
@@ -1202,7 +1225,7 @@
                 <!-- Rejection remarks will be populated by JavaScript -->
             </div>
         </div>
-        
+
         <div class="approval-boxes">
             <div class="approval-box">
                 <div class="approval-title">Prepared by :</div>
@@ -1210,7 +1233,8 @@
                     <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="preparedByBox">-</div>
-                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="preparedDateBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="preparedDateBox">-
+                </div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Checked by :</div>
@@ -1218,7 +1242,8 @@
                     <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="checkedByBox">-</div>
-                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="checkedDateBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="checkedDateBox">-
+                </div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Acknowledged by :</div>
@@ -1226,7 +1251,8 @@
                     <span class="approval-stamp-text">Signed</span>
                 </div>
                 <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="acknowledgedByBox">-</div>
-                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="acknowledgedDateBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="acknowledgedDateBox">
+                    -</div>
             </div>
             <div class="approval-box">
                 <div class="approval-title">Approved by :</div>
@@ -1234,10 +1260,11 @@
                     <span class="approval-stamp-text">Approved</span>
                 </div>
                 <div style="text-align: center; margin-top: 3px; font-size: 10px;" id="approvedBy">N. Widya M.</div>
-                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="approvedDateBox">-</div>
+                <div style="text-align: center; margin-top: 2px; font-size: 8px; color: #666;" id="approvedDateBox">-
+                </div>
             </div>
         </div>
-        
+
         <div class="amount-section">
             <div class="amount-row">
                 <span class="amount-label">Amount Payment:</span>
@@ -1245,17 +1272,19 @@
             </div>
             <div class="amount-row">
                 <span class="amount-label">Amount in Word:</span>
-                <span class="amount-value" id="amountInWord">ONE MILLION FOUR HUNDRED NINETY-TWO THOUSAND FIVE HUNDRED THIRTY-TWO RUPIAH</span>
+                <span class="amount-value" id="amountInWord">ONE MILLION FOUR HUNDRED NINETY-TWO THOUSAND FIVE HUNDRED
+                    THIRTY-TWO RUPIAH</span>
             </div>
         </div>
-        
+
         <div class="footer-note">
             Generated by Expressiv system
         </div>
-        
+
         <!-- Page numbering footer -->
         <div class="page-number-footer" id="pageNumberFooter">
-            <span class="page-number-text">Pages <span class="current-page">1</span> of <span class="total-pages">1</span></span>
+            <span class="page-number-text">Pages <span class="current-page">1</span> of <span
+                    class="total-pages">1</span></span>
         </div>
     </div>
 
@@ -1264,24 +1293,24 @@
         function goBack() {
             window.history.back();
         }
-        
+
         // Function to format currency
         function formatCurrency(number) {
             if (number === null || number === undefined || number === '') {
                 return '0';
             }
-            
+
             const num = parseFloat(number);
             if (isNaN(num)) {
                 return '0';
             }
-            
+
             return num.toLocaleString('id-ID', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
         }
-        
+
         // Function to get bank account name based on account code
         // Function to get bank account name based on COA
         function getBankAccountName(accountCode) {
@@ -1298,21 +1327,21 @@
                 '1313': 'Saving Account (IDR, MUFG)',
                 '1316': 'Saving Account (IDR, CIMB NIAGA)'
             };
-            
+
             return accountMapping[accountCode] || 'Current Account (IDR,BTMU-UFJ)';
         }
-        
+
         // Function to convert number to words
         function numberToWords(num) {
             const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'];
             const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
             const teens = ['TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
-            
+
             if (num === 0) return 'ZERO';
-            
+
             function convertLessThanOneThousand(n) {
                 if (n === 0) return '';
-                
+
                 if (n < 10) return ones[n];
                 if (n < 20) return teens[n - 10];
                 if (n < 100) {
@@ -1322,17 +1351,17 @@
                     return ones[Math.floor(n / 10 / 10)] + ' HUNDRED' + (n % 100 !== 0 ? ' ' + convertLessThanOneThousand(n % 100) : '');
                 }
             }
-            
+
             function convert(n) {
                 if (n === 0) return 'ZERO';
-                
+
                 const billions = Math.floor(n / 1000000000);
                 const millions = Math.floor((n % 1000000000) / 1000000);
                 const thousands = Math.floor((n % 1000000) / 1000);
                 const remainder = n % 1000;
-                
+
                 let result = '';
-                
+
                 if (billions > 0) {
                     result += convertLessThanOneThousand(billions) + ' BILLION';
                 }
@@ -1345,27 +1374,31 @@
                 if (remainder > 0) {
                     result += (result ? ' ' : '') + convertLessThanOneThousand(remainder);
                 }
-                
+
                 return result;
             }
-            
+
             return convert(Math.floor(num)) + ' RUPIAH';
         }
-        
+
         // Function to populate voucher data
         function populateVoucherData(data, docId) {
             console.log('=== START: populateVoucherData ===');
             console.log('Document ID:', docId);
             console.log('Data received:', data);
-            
+            console.log('DocNum:', data.docNum);
+            console.log('CounterRef:', data.counterRef);
+            console.log('Approval data:', data.approval);
+            console.log('Prepared date:', data.approval?.preparedDate);
+
             // Set basic information
             document.getElementById('paymentTo').textContent = data.cardName || 'Rizki Fajar Putra';
-            
+
             // Check if data is from Expressiv (has specific Expressiv fields)
-            const isFromExpressiv = data.source === 'expressiv' || data.system === 'expressiv' || 
-                                   (data.docNum && data.docNum.includes('EXP')) ||
-                                   (data.counterRef && data.counterRef.includes('EXP'));
-            
+            const isFromExpressiv = data.source === 'expressiv' || data.system === 'expressiv' ||
+                (data.docNum && data.docNum.includes('EXP')) ||
+                (data.counterRef && data.counterRef.includes('EXP'));
+
             // Show/hide voucher number based on source
             const voucherNoContainer = document.getElementById('voucherNoContainer');
             if (voucherNoContainer) {
@@ -1373,16 +1406,20 @@
                     voucherNoContainer.style.display = 'none';
                 } else {
                     voucherNoContainer.style.display = 'block';
-                    document.getElementById('voucherNo').textContent = data.docNum || '407B/03/25';
+                    // Use docNum, counterRef, or document ID as voucher number
+                    const voucherNumber = data.docNum || data.counterRef || docId || '-';
+                    document.getElementById('voucherNo').textContent = voucherNumber;
                 }
             }
-            
-            document.getElementById('submissionDate').textContent = data.docDate ? new Date(data.docDate).toLocaleDateString('en-GB', {
+
+            // Use submission date (prepared date) instead of document date for submission
+            const submissionDate = data.approval?.preparedDate || data.docDate || data.createdDate;
+            document.getElementById('submissionDate').textContent = submissionDate ? new Date(submissionDate).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric'
-            }) : '09-June-2025';
-            
+            }) : '-';
+
             // Populate additional document information
             document.getElementById('reimburseNo').textContent = data.counterRef || '-';
             document.getElementById('requesterName').textContent = data.requesterName || '-';
@@ -1405,7 +1442,7 @@
                 year: 'numeric'
             }) : '-';
             document.getElementById('accountBankTransfer').textContent = data.trsfrAcct || '-';
-            
+
             // Store bank account name for use in payment table
             // Note: trsfrAcctName is not available in API response
             // Using hardcoded value or mapping based on trsfrAcct
@@ -1424,14 +1461,14 @@
             console.log('PrintOPReim - JrnlMemo data:', data.jrnlMemo);
             document.getElementById('documentRemarks').textContent = data.remarks || data.comments || '-';
             document.getElementById('journalRemarks').textContent = data.journalRemarks || data.jrnlMemo || '-';
-            
+
             // Populate payment table
             const paymentTableBody = document.getElementById('paymentTableBody');
             paymentTableBody.innerHTML = '';
-            
+
             let totalDebit = 0;
             let totalCredit = 0;
-            
+
             if (data.lines && data.lines.length > 0) {
                 // For small content, show all items to fit on one page
                 // If total amount is small (less than 1 million), show all items
@@ -1439,11 +1476,11 @@
                 const isSmallAmount = totalAmount < 1000000; // Less than 1 million
                 const maxItemsPerPage = isSmallAmount ? data.lines.length : Math.min(data.lines.length, 2);
                 const itemsToShow = data.lines.slice(0, maxItemsPerPage);
-                
+
                 itemsToShow.forEach((line, index) => {
                     const row = document.createElement('tr');
                     const amount = line.sumApplied || 0;
-                    
+
                     row.innerHTML = `
                         <td>${line.descrip || 'Medical for Children, Rheanika - Rizki Fajar Putra'}</td>
                         <td>${line.acctCode || '7245'}</td>
@@ -1452,10 +1489,10 @@
                         <td class="amount"></td>
                     `;
                     paymentTableBody.appendChild(row);
-                    
+
                     totalDebit += amount;
                 });
-                
+
                 // Add note if there are more items and amount is large
                 if (data.lines.length > maxItemsPerPage && !isSmallAmount) {
                     const noteRow = document.createElement('tr');
@@ -1466,9 +1503,9 @@
                     `;
                     paymentTableBody.appendChild(noteRow);
                 }
-                
+
                 totalCredit = totalDebit;
-                
+
                 // Add credit row for bank account (balancing entry)
                 const creditRow = document.createElement('tr');
                 creditRow.innerHTML = `
@@ -1479,7 +1516,7 @@
                     <td class="amount">IDR ${formatCurrency(totalDebit)}</td>
                 `;
                 paymentTableBody.appendChild(creditRow);
-                
+
                 // Add total row
                 const totalRow = document.createElement('tr');
                 totalRow.className = 'total-row';
@@ -1492,11 +1529,11 @@
                 `;
                 paymentTableBody.appendChild(totalRow);
             }
-            
 
-            
 
-            
+
+
+
             // Set approval name
             const approvedBy = document.getElementById('approvedBy');
             if (data.approval && data.approval.approvedByName) {
@@ -1504,14 +1541,14 @@
             } else if (data.approval && data.approval.approvedBy) {
                 approvedBy.textContent = data.approval.approvedBy;
             }
-            
 
-            
+
+
             // Populate approval boxes
             document.getElementById('preparedByBox').textContent = data.approval?.preparedByName || '-';
             document.getElementById('checkedByBox').textContent = data.approval?.checkedByName || '-';
             document.getElementById('acknowledgedByBox').textContent = data.approval?.acknowledgedByName || '-';
-            
+
             // Populate approval dates
             const formatDate = (dateString) => {
                 if (!dateString) return '-';
@@ -1522,32 +1559,32 @@
                     year: 'numeric'
                 });
             };
-            
+
             document.getElementById('preparedDateBox').textContent = formatDate(data.approval?.preparedDate);
             document.getElementById('checkedDateBox').textContent = formatDate(data.approval?.checkedDate);
             document.getElementById('acknowledgedDateBox').textContent = formatDate(data.approval?.acknowledgedDate);
             document.getElementById('approvedDateBox').textContent = formatDate(data.approval?.approvedDate);
-            
+
             // Display attachments table (always show) - Enhanced with receiveOPReim.html model
             console.log('Starting to populate attachments table...');
             const attachmentsTableSection = document.getElementById('attachmentsTableSection');
             const attachmentsTableBody = document.getElementById('attachmentsTableBody');
-            
+
             console.log('Attachments table section:', attachmentsTableSection);
             console.log('Attachments table body:', attachmentsTableBody);
-            
+
             if (attachmentsTableSection && attachmentsTableBody) {
                 attachmentsTableSection.style.display = 'block';
                 attachmentsTableBody.innerHTML = '';
-                
+
                 // Check if attachments exist
                 console.log('Data attachments:', data.attachments);
                 if (data.attachments && data.attachments.length > 0) {
                     console.log('Found attachments:', data.attachments.length);
-                    
+
                     data.attachments.forEach((attachment, index) => {
                         const row = document.createElement('tr');
-                        
+
                         // Format file size (same as receiveOPReim.html)
                         const formatFileSize = (bytes) => {
                             if (!bytes || bytes === 0) return '0 B';
@@ -1556,7 +1593,7 @@
                             const i = Math.floor(Math.log(bytes) / Math.log(k));
                             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
                         };
-                        
+
                         // Get file type from extension (same as receiveOPReim.html)
                         const getFileType = (fileName) => {
                             const ext = fileName.split('.').pop()?.toLowerCase();
@@ -1567,7 +1604,7 @@
                             if (['txt'].includes(ext)) return 'Text';
                             return 'Unknown';
                         };
-                        
+
                         // Format upload date (same as receiveOPReim.html)
                         const formatUploadDate = (dateString) => {
                             if (!dateString) return '-';
@@ -1578,12 +1615,12 @@
                                 year: 'numeric'
                             });
                         };
-                        
+
                         const fileName = attachment.fileName || attachment.name || `Attachment ${index + 1}`;
                         const fileSize = formatFileSize(attachment.fileSize || attachment.size);
                         const fileType = getFileType(fileName);
                         const uploadDate = formatUploadDate(attachment.uploadDate || attachment.createdDate || attachment.date);
-                        
+
                         row.innerHTML = `
                             <td style="text-align: center;">${index + 1}</td>
                             <td class="file-name">${fileName}</td>
@@ -1607,33 +1644,33 @@
             } else {
                 console.error('Attachments table elements not found');
             }
-            
+
             // Display rejection remarks if available
             if (data.approval && data.approval.rejectionRemarks) {
                 const rejectionSection = document.getElementById('rejectionSection');
                 const rejectionRemarks = document.getElementById('rejectionRemarks');
-                
+
                 if (rejectionSection && rejectionRemarks) {
                     rejectionSection.style.display = 'block';
                     rejectionRemarks.textContent = data.approval.rejectionRemarks;
                 }
             }
-            
 
-            
+
+
             // Set amounts
             document.getElementById('amountPayment').textContent = `IDR ${formatCurrency(totalDebit)}`;
             document.getElementById('amountInWord').textContent = numberToWords(totalDebit);
-            
+
             // Handle attachments like receiveOPReim.html model
             handleAttachmentsForPrint(data, docId);
-            
+
             // Display Print Out Reimbursement document
             displayPrintOutReimbursementForPrint(data);
-            
+
             console.log('=== END: populateVoucherData ===');
         }
-        
+
         // Function to handle page numbering
         function updatePageNumbers() {
             const pageNumberFooter = document.getElementById('pageNumberFooter');
@@ -1642,12 +1679,12 @@
                 pageNumberFooter.style.display = 'block';
             }
         }
-        
+
         // Function to handle print event
         function handlePrint() {
             // Update page numbers before printing
             updatePageNumbers();
-            
+
             // Add CSS for page numbering
             const style = document.createElement('style');
             style.textContent = `
@@ -1664,23 +1701,23 @@
                 }
             `;
             document.head.appendChild(style);
-            
+
             // Trigger print
             window.print();
         }
-        
+
         // Global variables
         let documentId = null;
-        
+
         // Load data when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('=== START: DOMContentLoaded ===');
-            
+
             // Get data from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             documentId = urlParams.get('docId') || urlParams.get('id');
             console.log('Document ID from URL:', documentId);
-            
+
             if (documentId) {
                 console.log('Loading data from API for document ID:', documentId);
                 // Load data from API like receiveOPReim.html
@@ -1690,10 +1727,10 @@
                 // Use default values if no docId
                 populateVoucherData({}, null);
             }
-            
+
             // Initialize page numbering
             updatePageNumbers();
-            
+
             // Debug: Check if attachments table section exists
             const attachmentsTableSection = document.getElementById('attachmentsTableSection');
             console.log('Attachments table section found:', !!attachmentsTableSection);
@@ -1701,16 +1738,16 @@
                 attachmentsTableSection.style.display = 'block';
                 console.log('Attachments table section displayed');
             }
-            
+
             console.log('=== END: DOMContentLoaded ===');
         });
-        
+
         // Load outgoing payment reimbursement details from API (similar to receiveOPReim.html)
         async function loadOPReimDetailsForPrint(id) {
             try {
                 console.log('=== START: loadOPReimDetailsForPrint ===');
                 console.log('Document ID:', id);
-                
+
                 // Show loading indicator
                 Swal.fire({
                     title: 'Loading...',
@@ -1736,7 +1773,7 @@
                 // Parse response data
                 const data = await response.json();
                 console.log('API response data:', data);
-                
+
                 // Load attachments from API if not in main response
                 if (!data.attachments || data.attachments.length === 0) {
                     console.log('No attachments in main response, loading from API...');
@@ -1771,7 +1808,7 @@
                 });
             }
         }
-        
+
         // Load attachments from API (similar to receiveOPReim.html)
         async function loadAttachmentsFromAPIForPrint(docId, mainData) {
             try {
@@ -1810,7 +1847,7 @@
                 console.error("Error loading attachments for print:", error);
             }
         }
-        
+
         // Load reimbursement attachments from API
         async function loadReimbursementAttachmentsForPrint(expressivNo, mainData) {
             try {
@@ -1856,7 +1893,7 @@
             console.log('=== START: handleAttachmentLoadErrorForPrint ===');
             console.log('Response status:', response.status);
             console.log('Document ID:', docId);
-            
+
             if (response.status === 404) {
                 console.warn(`No attachments found for document ${docId}`);
                 console.log('=== END: handleAttachmentLoadErrorForPrint (404) ===');
@@ -1877,7 +1914,7 @@
                 if (mainResponse.ok) {
                     const mainResult = await mainResponse.json();
                     console.log('Alternative API response data:', mainResult);
-                    
+
                     if (mainResult.attachments?.length > 0) {
                         console.log('Found attachments in main response for print:', mainResult.attachments);
                         mainData.attachments = mainResult.attachments;
@@ -1895,7 +1932,7 @@
             console.warn(`Failed to load attachments for print: ${response.status}`);
             console.log('=== END: handleAttachmentLoadErrorForPrint (other error) ===');
         }
-        
+
         // Handle attachments for print (similar to receiveOPReim.html)
         async function handleAttachmentsForPrint(result, docId) {
             console.log('=== START: handleAttachmentsForPrint ===');
@@ -1910,10 +1947,10 @@
                 console.log('No attachments in main response for print, trying API endpoint');
                 await loadAttachmentsFromAPIForPrint(docId, result);
             }
-            
+
             console.log('=== END: handleAttachmentsForPrint ===');
         }
-        
+
         // Display attachments for print (similar to receiveOPReim.html)
         function displayAttachmentsForPrint(attachments) {
             const container = document.getElementById('attachmentsList');
@@ -1973,7 +2010,7 @@
         function displayReimbursementAttachmentsForPrint(attachments) {
             const container = document.getElementById('reimbursementAttachmentsList');
             const section = document.getElementById('fileAttachmentSection');
-            
+
             if (!container || !section) {
                 console.error('Reimbursement attachments container or section not found');
                 return;
@@ -2008,7 +2045,7 @@
 
             console.log('Successfully displayed reimbursement attachment items in container');
         }
-        
+
         // Creates attachment item HTML for print (simplified - only document name and type)
         function createAttachmentItemForPrint(attachment, fileName, fileIcon, fileType, uploadDate) {
             return `
@@ -2028,7 +2065,7 @@
                 </div>
             `;
         }
-        
+
         // Get file icon for print (same as receiveOPReim.html)
         function getFileIconForPrint(fileName) {
             const ext = fileName.split('.').pop()?.toLowerCase();
@@ -2039,7 +2076,7 @@
             if (['txt'].includes(ext)) return '📄';
             return '📎';
         }
-        
+
         // Get file type from file name
         function getFileTypeFromName(fileName) {
             const ext = fileName.split('.').pop()?.toLowerCase();
@@ -2063,9 +2100,9 @@
                 minute: '2-digit'
             });
         }
-        
 
-        
+
+
         // View attachment for print
         async function viewAttachmentForPrint(attachmentOrPath, fileName) {
             try {
@@ -2111,7 +2148,7 @@
                 });
             }
         }
-        
+
         // Normalize attachment parameter for print
         function normalizeAttachmentForPrint(attachmentOrPath, fileName) {
             if (typeof attachmentOrPath === 'string') {
@@ -2119,7 +2156,7 @@
             }
             return attachmentOrPath;
         }
-        
+
         // Open attachment file for print
         async function openAttachmentFileForPrint(filePath) {
             console.log('Using direct filePath for print:', filePath);
@@ -2140,7 +2177,7 @@
                 showConfirmButton: false
             });
         }
-        
+
         // Construct file URL for print
         function constructFileUrlForPrint(filePath) {
             if (!filePath) {
@@ -2157,7 +2194,7 @@
             const baseUrl = window.location.origin;
             return `${baseUrl}/api/files/${encodeURIComponent(filePath)}`;
         }
-        
+
         // Fetch and open attachment for print
         async function fetchAndOpenAttachmentForPrint(docId, attachment) {
             try {
@@ -2193,7 +2230,7 @@
                 throw error;
             }
         }
-        
+
         // Handle attachment fetch error for print
         async function handleAttachmentFetchErrorForPrint(response, docId, attachment) {
             console.warn(`Failed to fetch attachment for print: ${response.status}`);
@@ -2210,7 +2247,7 @@
 
             throw new Error(`Failed to fetch attachment: ${response.status}`);
         }
-        
+
         // Try alternative attachment fetch for print
         async function tryAlternativeAttachmentFetchForPrint(docId, attachment) {
             try {
@@ -2239,11 +2276,11 @@
                 throw error;
             }
         }
-        
+
         // Find target attachment for print
         function findTargetAttachmentForPrint(attachments, target) {
-            return attachments.find(att => 
-                att.id === target.id || 
+            return attachments.find(att =>
+                att.id === target.id ||
                 att.attachmentId === target.attachmentId ||
                 att.fileName === target.fileName
             );
@@ -2339,12 +2376,12 @@
             const baseUrl = window.location.origin;
             return `${baseUrl}/api/files/${encodeURIComponent(filePath)}`;
         }
-        
+
         // Function to display Print Out Reimbursement document for print
         function displayPrintOutReimbursementForPrint(reimbursementData) {
             const container = document.getElementById('printOutReimbursementList');
             const fileAttachmentSection = document.getElementById('fileAttachmentSection');
-            
+
             if (!container) {
                 console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
                 return;

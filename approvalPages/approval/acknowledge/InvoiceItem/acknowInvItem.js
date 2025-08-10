@@ -179,6 +179,9 @@ async function loadInvItemFromAPI(stagingId) {
             // Update button visibility based on status
             updateButtonVisibility();
             
+            // Load attachments for this invoice item
+            loadAttachments(stagingId);
+            
             // Close loading indicator
             Swal.close();
         } else {
@@ -236,49 +239,97 @@ function updateButtonVisibility() {
 function populateInvItemData(data) {
     console.log('Populating invoice item data:', data);
     
+    // Helper function to safely set element value
+    function safeSetValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.value = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
+    // Helper function to safely set element style
+    function safeSetStyle(elementId, styleProperty, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style[styleProperty] = value;
+        } else {
+            console.warn(`Element with id '${elementId}' not found`);
+        }
+    }
+    
     // Populate header fields
-    document.getElementById('DocEntry').value = data.stagingID || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('CardCode').value = data.cardCode || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
-    document.getElementById('DocCur').value = data.docCur || '';
-    document.getElementById('docRate').value = data.docRate || '';
-    document.getElementById('DocDate').value = formatDate(data.docDate);
-    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('GroupNum').value = data.groupNum || '';
-    document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
-    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    safeSetValue('DocEntry', data.stagingID || '');
+    safeSetValue('DocNum', data.docNum || '');
+    safeSetValue('CardCode', data.cardCode || '');
+    safeSetValue('CardName', data.cardName || '');
+    safeSetValue('address', data.address || '');
+    safeSetValue('NumAtCard', data.numAtCard || '');
+    safeSetValue('DocCur', data.docCur || '');
+    safeSetValue('docRate', data.docRate || '');
+    safeSetValue('DocDate', formatDate(data.docDate));
+    safeSetValue('DocDueDate', formatDate(data.docDueDate));
+    safeSetValue('GroupNum', data.groupNum || '');
+    safeSetValue('TrnspCode', data.trnspCode || '');
+            safeSetValue('TaxNo', data.licTradNum || '');
+        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
+    safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
+    safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
+    safeSetValue('account', data.account || '');
+    safeSetValue('acctName', data.acctName || '');
     
 
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
-    document.getElementById('Status').value = status;
+    safeSetValue('Status', status);
     
-    // Populate totals
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || 0;
-    document.getElementById('VatSum').value = data.vatSum || 0;
-    document.getElementById('DocTotal').value = data.docTotal || 0;
+    // Populate summary fields from API data
+    console.log('Populating summary fields with API data:', {
+        docTotal: data.docTotal,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        grandTotal: data.grandTotal
+    });
+    
+    // Total Amount (totalAmount) - API Field: "netPrice" only
+    safeSetValue('DocTotal', data.netPrice || 0);
+    
+    // Discounted Amount (discountAmount) - API Field: "docCur" "discSum"
+    safeSetValue('discSum', data.discSum || 0);
+    
+    // Sales Amount (salesAmount) - API Field: "netPriceAfterDiscount" only
+    safeSetValue('netPriceAfterDiscount', data.netPriceAfterDiscount || 0);
+    
+    // Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
+    safeSetValue('dpp1112', data.dpp1112 || 0);
+    
+    // VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
+    safeSetValue('VatSum', data.vatSum || 0);
+    
+    // GRAND TOTAL (grandTotal) - API Field: "grandTotal" only
+    safeSetValue('grandTotal', data.grandTotal || 0);
+    
+    // Legacy fields for compatibility
+    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
     
     // Populate comments
-    document.getElementById('comments').value = data.comments || '';
+    safeSetValue('comments', data.comments || '');
     
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        document.getElementById('preparedBySearch').value = data.arInvoiceApprovalSummary.preparedByName || '';
-        document.getElementById('acknowledgeBySearch').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedBySearch').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedBySearch').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedBySearch').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        safeSetValue('preparedBySearch', data.arInvoiceApprovalSummary.preparedByName || '');
+        safeSetValue('acknowledgeBySearch', data.arInvoiceApprovalSummary.acknowledgedByName || '');
+        safeSetValue('checkedBySearch', data.arInvoiceApprovalSummary.checkedByName || '');
+        safeSetValue('approvedBySearch', data.arInvoiceApprovalSummary.approvedByName || '');
+        safeSetValue('receivedBySearch', data.arInvoiceApprovalSummary.receivedByName || '');
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -288,11 +339,39 @@ function populateInvItemData(data) {
         const remarksToShow = revisionRemarks || rejectionRemarks;
         
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
-            document.getElementById('rejectionRemarks').value = remarksToShow;
-            document.getElementById('rejectionRemarksSection').style.display = 'block';
+            safeSetValue('rejectionRemarks', remarksToShow);
+            
+            // Populate rejection information if available
+            if (data.arInvoiceApprovalSummary.rejectedByName) {
+                safeSetValue('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
+                console.log('Populated rejectedByName:', data.arInvoiceApprovalSummary.rejectedByName);
+            } else {
+                safeSetValue('rejectedByName', '');
+            }
+            
+            if (data.arInvoiceApprovalSummary.rejectedDate) {
+                const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
+                if (!isNaN(rejectedDate.getTime())) {
+                    safeSetValue('rejectedDate', rejectedDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }));
+                    console.log('Populated rejectedDate:', rejectedDate.toLocaleDateString('en-US'));
+                } else {
+                    safeSetValue('rejectedDate', data.arInvoiceApprovalSummary.rejectedDate || '');
+                    console.log('Populated rejectedDate (raw):', data.arInvoiceApprovalSummary.rejectedDate);
+                }
+            } else {
+                safeSetValue('rejectedDate', '');
+            }
+            
+            safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
-            document.getElementById('rejectionRemarksSection').style.display = 'none';
+            safeSetStyle('rejectionRemarksSection', 'display', 'none');
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
@@ -302,6 +381,12 @@ function populateInvItemData(data) {
     
     // Apply text wrapping
     refreshTextWrapping();
+    
+    // Apply currency formatting to table cells and summary fields
+    setTimeout(() => {
+        applyCurrencyFormattingToTable();
+        applyCurrencyFormattingToSummaryFields();
+    }, 200);
 }
 
 // Helper function to determine status from invoice data
@@ -361,6 +446,11 @@ function formatDate(dateString) {
 // Populate items table
 function populateItemsTable(items) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.warn('Element with id "tableBody" not found');
+        return;
+    }
+    
     tableBody.innerHTML = '';
     
     if (items.length === 0) {
@@ -388,19 +478,22 @@ function createItemRow(item, index) {
     
     row.innerHTML = `
         <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${item.lineNum || index + 1}" disabled autocomplete="off" />
+            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${index + 1}" disabled autocomplete="off" />
         </td>
         <td class="p-2 border item-code-column">
             <input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled autocomplete="off" />
         </td>
+        <td class="p-2 border bp-catalog-column">
+                            <input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.catalogNo || ''}" disabled autocomplete="off" />
+        </td>
         <td class="p-2 border description-column">
             <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.dscription || ''}</textarea>
         </td>
-        <td class="p-2 border description-column">
-            <textarea class="w-full item-free-txt bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" style="height: 40px; vertical-align: top;" disabled autocomplete="off">${item.text || ''}</textarea>
+        <td class="p-2 border uom-column">
+            <textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
         </td>
-        <td class="p-2 border sales-employee-column">
-            <textarea class="w-full item-sales-employee bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr || ''}</textarea>
+        <td class="p-2 border packing-size-column">
+            <textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${item.unitMsr2 || ''}</textarea>
         </td>
         <td class="p-2 border h-12 quantity-column">
             <textarea class="quantity-input item-sls-qty bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: center;" disabled autocomplete="off">${item.quantity || ''}</textarea>
@@ -417,17 +510,11 @@ function createItemRow(item, index) {
         <td class="p-2 border h-12 price-column">
             <textarea class="price-input item-price bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.priceBefDi || ''}</textarea>
         </td>
-        <td class="p-2 border discount-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.discount || ''}" />
-        </td>
         <td class="p-2 border tax-code-column">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.vatgroup || ''}" />
         </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${item.wtaxLiable || ''}" />
-        </td>
         <td class="p-2 border h-12 line-total-column">
-            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="15" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
+            <textarea class="line-total-input item-line-total bg-gray-100 overflow-x-auto whitespace-nowrap" maxlength="20" style="resize: none; height: 40px; text-align: right;" disabled autocomplete="off">${item.lineTotal || ''}</textarea>
         </td>
         <td class="p-2 border account-code-column" style="display: none;">
             <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="15" disabled autocomplete="off" value="${item.acctCode || ''}" />
@@ -515,24 +602,51 @@ function rejectInvItem() {
         return;
     }
 
+    // Create custom dialog with prefix functionality
     Swal.fire({
         title: 'Reject Invoice Item',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            // Initialize the field with user prefix
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
             }
+            
+            // Add event listener for input protection
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            // Get the rejection remark
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            
+            // Check if there's content beyond the prefix
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            
+            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -587,7 +701,11 @@ async function updateInvItemStatus(status, remarks = '') {
         } else if (status === 'Rejected') {
             // Add rejectedDate when status is "Rejected"
             payload.rejectedDate = now;
+            payload.rejectedBy = getCurrentUserKansaiEmployeeId();
+            payload.rejectedByName = getCurrentUserFullName();
             console.log('Added rejectedDate to payload:', now);
+            console.log('Added rejectedBy to payload:', getCurrentUserKansaiEmployeeId());
+            console.log('Added rejectedByName to payload:', getCurrentUserFullName());
             
             // Add rejection remarks if provided
             if (remarks && remarks.trim() !== '') {
@@ -622,6 +740,11 @@ async function updateInvItemStatus(status, remarks = '') {
                 payload.rejectionRemarks = existingSummary.rejectionRemarks;
             }
             if (existingSummary.revisionRemarks) payload.revisionRemarks = existingSummary.revisionRemarks;
+            
+            // Preserve existing rejection data if any
+            if (existingSummary.rejectedBy) payload.rejectedBy = existingSummary.rejectedBy;
+            if (existingSummary.rejectedByName) payload.rejectedByName = existingSummary.rejectedByName;
+            if (existingSummary.rejectedDate) payload.rejectedDate = existingSummary.rejectedDate;
         }
 
         console.log('Updating invoice item status with payload:', payload);
@@ -704,7 +827,7 @@ function refreshTextWrapping() {
 
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
-    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .sales-employee-column textarea');
+    const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
     
     textElements.forEach(element => {
         handleTextWrapping(element);
@@ -741,7 +864,611 @@ function handleTextWrapping(element) {
     }
 }
 
+// Currency formatting functions
+function formatCurrencyIDR(number) {
+    if (number === null || number === undefined || number === '') {
+        return '0.00';
+    }
+    
+    let num;
+    try {
+        if (typeof number === 'string') {
+            const cleanedStr = number.replace(/[^\d,.]/g, '');
+            if (cleanedStr.length > 15) {
+                num = Number(cleanedStr.replace(/,/g, ''));
+            } else {
+                num = parseFloat(cleanedStr.replace(/,/g, ''));
+            }
+        } else {
+            num = Number(number);
+        }
+        
+        if (isNaN(num)) {
+            return '0.00';
+        }
+    } catch (e) {
+        console.error('Error parsing number:', e);
+        return '0.00';
+    }
+    
+    const maxAmount = 100000000000000;
+    if (num > maxAmount) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Amount Exceeds Limit',
+                text: 'Total amount must not exceed 100 trillion rupiah'
+            });
+        } else {
+            alert('Total amount must not exceed 100 trillion rupiah');
+        }
+        num = maxAmount;
+    }
+    
+    if (num >= 1e12) {
+        let strNum = num.toString();
+        let result = '';
+        let count = 0;
+        
+        for (let i = strNum.length - 1; i >= 0; i--) {
+            result = strNum[i] + result;
+            count++;
+            if (count % 3 === 0 && i > 0) {
+                result = ',' + result;
+            }
+        }
+        
+        return result + '.00';
+    } else {
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
+function parseCurrencyIDR(formattedValue) {
+    if (!formattedValue) return 0;
+    
+    try {
+        const numericValue = formattedValue.toString().replace(/,/g, '');
+        return parseFloat(numericValue) || 0;
+    } catch (e) {
+        console.error('Error parsing currency:', e);
+        return 0;
+    }
+}
+
+function formatCurrencyInputIDR(input) {
+    // Change input type to text for currency formatting
+    if (input.type === 'number') {
+        input.type = 'text';
+    }
+    
+    const cursorPos = input.selectionStart;
+    const originalLength = input.value.length;
+    
+    let value = input.value.replace(/[^\d,.]/g, '');
+    
+    let parts = value.split('.');
+    if (parts.length > 1) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const numValue = parseCurrencyIDR(value);
+    const formattedValue = formatCurrencyIDR(numValue);
+    
+    input.value = formattedValue;
+    
+    const newLength = input.value.length;
+    const newCursorPos = cursorPos + (newLength - originalLength);
+    input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+}
+
+// Apply currency formatting to table cells
+function applyCurrencyFormattingToTable() {
+    // Format Price per UoM columns
+    const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+    pricePerUoMInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Price per Unit columns
+    const pricePerUnitInputs = document.querySelectorAll('.item-price');
+    pricePerUnitInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+
+    // Format Amount columns
+    const amountInputs = document.querySelectorAll('.item-line-total');
+    amountInputs.forEach(input => {
+        input.classList.add('currency-input-idr');
+        input.addEventListener('input', function() {
+            formatCurrencyInputIDR(this);
+        });
+        if (input.value) {
+            formatCurrencyInputIDR(input);
+        } else {
+            input.value = '0.00';
+        }
+    });
+}
+
+// Apply currency formatting to summary fields
+function applyCurrencyFormattingToSummaryFields() {
+    console.log('Applying currency formatting to summary fields');
+    const summaryFields = ['PriceBefDi', 'VatSum', 'DocTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'grandTotal'];
+    summaryFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            console.log(`Formatting field ${fieldId}:`, field.value);
+            field.classList.add('currency-input-idr');
+            field.addEventListener('input', function() {
+                formatCurrencyInputIDR(this);
+            });
+            if (field.value) {
+                formatCurrencyInputIDR(field);
+            } else {
+                field.value = '0.00';
+            }
+        } else {
+            console.warn(`Field with id '${fieldId}' not found`);
+        }
+    });
+}
+
 // Export functions for global access
 window.approveInvItem = approveInvItem;
 window.rejectInvItem = rejectInvItem;
-window.goToMenuAcknowInvItem = goToMenuAcknowInvItem; 
+window.goToMenuAcknowInvItem = goToMenuAcknowInvItem;
+
+// Function to initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix for rejection
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // Get the expected prefix
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+    
+    // Check if the current value starts with the expected prefix
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        // If prefix is damaged, restore it
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        
+        // Reset cursor position after the prefix
+        textarea.setSelectionRange(prefixLength, prefixLength);
+    } else {
+        // If user tries to modify content before or within the prefix
+        if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Function to get current user role
+function getCurrentUserRole() {
+    if (!currentUser) {
+        return 'Unknown Role';
+    }
+    
+    // Try to get role from current user object
+    if (currentUser.role) {
+        return currentUser.role;
+    }
+    
+    // Try to get role from allUsers array
+    if (allUsers.length > 0) {
+        const currentUserData = allUsers.find(user => 
+            user.id === currentUser.userId || 
+            user.username === currentUser.username ||
+            user.name === currentUser.username
+        );
+        
+        if (currentUserData && currentUserData.role) {
+            return currentUserData.role;
+        }
+    }
+    
+    // Default role based on context
+    return 'Acknowledger';
+}
+
+// Initialize currency formatting when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        applyCurrencyFormattingToSummaryFields();
+    }, 1000);
+}); 
+
+// ===== ATTACHMENT FUNCTIONS =====
+
+// Load attachments from API
+async function loadAttachments(stagingId) {
+    try {
+        console.log('Loading attachments for stagingId:', stagingId);
+        
+        // Construct API URL for attachments
+        const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/attachments`;
+        console.log('Attachments API URL:', apiUrl);
+        
+        // Fetch attachments from API
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'accept': '*/*'
+            }
+        });
+        
+        console.log('Attachments response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Attachments API response result:', result);
+        
+        if (result.status && result.data) {
+            console.log('Attachments loaded from API:', result.data);
+            displayAttachments(result.data);
+        } else {
+            throw new Error('Invalid response format from attachments API');
+        }
+        
+    } catch (error) {
+        console.error('Error loading attachments:', error);
+        
+        // Show no attachments message instead of error for better UX
+        displayNoAttachments();
+    }
+}
+
+// Display attachments in the container
+function displayAttachments(attachments) {
+    const attachmentList = document.getElementById('attachmentList');
+    const noAttachmentsDiv = document.getElementById('noAttachments');
+    
+    if (!attachmentList) {
+        console.error('Attachment list container not found');
+        return;
+    }
+    
+    // Clear loading content
+    attachmentList.innerHTML = '';
+    
+    if (!attachments || attachments.length === 0) {
+        displayNoAttachments();
+        return;
+    }
+    
+    // Hide no attachments message
+    if (noAttachmentsDiv) {
+        noAttachmentsDiv.classList.add('hidden');
+    }
+    
+    // Filter out invalid entries (like the "string" example)
+    const validAttachments = attachments.filter(attachment => 
+        attachment.fileName && 
+        attachment.fileName !== 'string' && 
+        attachment.fileName.trim() !== '' &&
+        attachment.fileUrl && 
+        attachment.fileUrl !== 'string' &&
+        attachment.fileUrl.trim() !== '' &&
+        attachment.id // Ensure attachment has a valid ID
+    );
+    
+    if (validAttachments.length === 0) {
+        displayNoAttachments();
+        return;
+    }
+    
+    // Create attachment list
+    validAttachments.forEach((attachment, index) => {
+        const attachmentItem = createAttachmentItem(attachment, index);
+        attachmentList.appendChild(attachmentItem);
+    });
+    
+    console.log(`Displayed ${validAttachments.length} valid attachments`);
+}
+
+// Create individual attachment item
+function createAttachmentItem(attachment, index) {
+    const attachmentDiv = document.createElement('div');
+    attachmentDiv.className = 'attachment-item border rounded-lg p-3 mb-2 bg-gray-50 hover:bg-gray-100 transition-colors';
+    
+    // Format file size if available
+    const fileSize = formatAttachmentDate(attachment.createdAt);
+    const fileName = attachment.fileName || 'Unknown file';
+    const description = attachment.description || '';
+    
+    // Determine file type icon
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    const fileIcon = getFileIcon(fileExtension);
+    
+    attachmentDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3 flex-1">
+                <div class="file-icon text-2xl">
+                    ${fileIcon}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="file-name font-medium text-gray-900 truncate" title="${fileName}">
+                        ${fileName}
+                    </div>
+                    <div class="file-info text-sm text-gray-500">
+                        <span>Uploaded: ${fileSize}</span>
+                        ${description ? `<span class="ml-2">• ${description}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button type="button" 
+                        class="view-btn px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        onclick="viewAttachment('${attachment.stagingID}', '${attachment.fileUrl}', '${fileName.replace(/'/g, "\\'")}')"
+                        title="View ${fileName}">
+                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    View
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return attachmentDiv;
+}
+
+// Display no attachments message
+function displayNoAttachments() {
+    const attachmentList = document.getElementById('attachmentList');
+    const noAttachmentsDiv = document.getElementById('noAttachments');
+    
+    if (attachmentList) {
+        attachmentList.innerHTML = '';
+    }
+    
+    if (noAttachmentsDiv) {
+        noAttachmentsDiv.classList.remove('hidden');
+    }
+}
+
+// Get file icon based on extension
+function getFileIcon(extension) {
+    switch (extension) {
+        case 'pdf':
+            return '📄';
+        case 'doc':
+        case 'docx':
+            return '📝';
+        case 'xls':
+        case 'xlsx':
+            return '📊';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+            return '🖼️';
+        case 'zip':
+        case 'rar':
+            return '🗜️';
+        default:
+            return '📎';
+    }
+}
+
+// Format attachment date
+function formatAttachmentDate(dateString) {
+    if (!dateString) return 'Unknown date';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Unknown date';
+        
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Unknown date';
+    }
+}
+
+// View attachment in modal/new tab
+function viewAttachment(stagingId, fileUrl, fileName) {
+    try {
+        console.log('Viewing attachment:', { stagingId, fileUrl, fileName });
+        
+        // Construct full view URL
+        let viewUrl;
+        if (fileUrl.startsWith('http')) {
+            viewUrl = fileUrl;
+        } else if (fileUrl.startsWith('/api')) {
+            // Remove duplicate /api since API_BASE_URL already includes it
+            const cleanFileUrl = fileUrl.replace('/api', '');
+            viewUrl = `${API_BASE_URL}${cleanFileUrl}`;
+        } else {
+            viewUrl = `${API_BASE_URL}${fileUrl}`;
+        }
+        console.log('View URL:', viewUrl);
+        
+        // Determine file type
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        
+        if (fileExtension === 'pdf') {
+            // For PDF files, try to embed in iframe first, fallback to new tab
+            showPDFViewer(viewUrl, fileName);
+        } else {
+            // For other file types, open in new tab with specific headers
+            openInNewTab(viewUrl, fileName);
+        }
+        
+    } catch (error) {
+        console.error('Error viewing attachment:', error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'View Failed',
+            text: `Failed to open ${fileName}. Please try again.`,
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Show PDF in a modal viewer
+async function showPDFViewer(pdfUrl, fileName) {
+    try {
+        // Show loading
+        Swal.fire({
+            title: 'Loading PDF...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Fetch the PDF as blob for viewing
+        const response = await fetch(pdfUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/pdf,*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Close loading and show PDF viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="${blobUrl}" 
+                        style="width: 100%; height: 100%; border: none;"
+                        type="application/pdf">
+                        <p>Your browser doesn't support PDF viewing. 
+                           <a href="${blobUrl}" target="_blank">Click here to open the PDF</a>
+                        </p>
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            customClass: {
+                container: 'pdf-viewer-modal'
+            },
+            willClose: () => {
+                // Clean up blob URL when modal closes
+                URL.revokeObjectURL(blobUrl);
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading PDF for viewing:', error);
+        
+        // Fallback to Google Docs viewer
+        Swal.fire({
+            title: fileName,
+            html: `
+                <div style="width: 100%; height: 70vh; margin: 10px 0;">
+                    <iframe 
+                        src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" 
+                        style="width: 100%; height: 100%; border: none;"
+                        allow="fullscreen">
+                    </iframe>
+                </div>
+            `,
+            width: '90%',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        });
+    }
+}
+
+// Open in new tab with proper handling
+function openInNewTab(fileUrl, fileName) {
+    // Show loading message
+    const loadingToast = Swal.fire({
+        title: 'Opening Document...',
+        text: `Loading ${fileName}`,
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        allowOutsideClick: true,
+        toast: true,
+        position: 'top-end'
+    });
+    
+    // Create a temporary link to force view behavior
+    const tempLink = document.createElement('a');
+    tempLink.href = fileUrl;
+    tempLink.target = '_blank';
+    tempLink.rel = 'noopener noreferrer';
+    
+    // Add parameters to hint at viewing instead of downloading
+    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
+    
+    // Try to open in new tab
+    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    
+    // Check if popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        loadingToast.close();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Popup Blocked',
+            html: `
+                <p>Your browser blocked the popup. Please allow popups for this site or</p>
+                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
+            `,
+            confirmButtonText: 'OK'
+        });
+    }
+} 

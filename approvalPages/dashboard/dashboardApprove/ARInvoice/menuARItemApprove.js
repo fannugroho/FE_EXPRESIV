@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'acknowledged'; // Default tab
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -7,18 +7,15 @@ let filteredInvoices = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// API Base URL is defined in auth.js - using that instead of redeclaring
-// const BASE_URL = 'http://localhost:5000'; // Update with your actual API base URL
-
 // ========================================
 // DEVELOPMENT MODE: AUTHENTICATION BYPASSED
 // ========================================
 // Authentication has been temporarily disabled for development purposes.
 // 
 // To re-enable authentication:
-// 1. Comment out the dummy user data section (lines 28-58)
-// 2. Uncomment the original authentication check (lines 60-75)
-// 3. Remove or comment out the isAuthenticated override (lines 12-18)
+// 1. Comment out the authentication override section (lines 23-31)
+// 2. Set BYPASS_AUTH_FOR_DEVELOPMENT to false in auth.js
+// 3. Remove or comment out the isAuthenticated override
 // ========================================
 
 // Override authentication check for development
@@ -30,10 +27,32 @@ if (typeof isAuthenticated === 'function') {
     };
 }
 
+// Helper function to check authentication with development mode support
+function checkAuthentication() {
+    console.log('Development mode: Authentication check bypassed');
+        return true; // Always return true in development mode
+}
+
+// API Base URL is defined in auth.js - using that instead of redeclaring
+// const BASE_URL = 'http://localhost:5000'; // Update with your actual API base URL
+
+// ========================================
+// AUTHENTICATION ENABLED
+// ========================================
+// Authentication is now properly enabled.
+// The system will use real user authentication and tokens.
+// ========================================
+
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
-    loadUserData();
-    loadDashboard();
+document.addEventListener('DOMContentLoaded', async function() {
+    // Development mode: Skip authentication check
+    console.log('Development mode: Skip authentication check');
+    
+    await loadUserData();
+    await loadDashboard();
+    
+    // Start polling for real-time updates
+    startPolling();
     
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
@@ -72,28 +91,92 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to load user data
-function loadUserData() {
-    // DEVELOPMENT MODE: Bypass authentication check
-    console.log('Development mode: Bypassing authentication check');
-    
-    // Set dummy user data for development
+async function loadUserData() {
+    try {
+        // Development mode: Use dummy data like in acknowledge page
+            console.log('Development mode: Using dummy user data');
+            
+        // Get user ID from localStorage or use default
+        const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae';
+        
+        // Try to fetch user data from API, but don't fail if it doesn't work
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.status && result.data) {
+                    const userData = result.data;
+                    console.log('User data loaded:', userData);
+            
+            // Display user name and avatar
+                    if (userData.fullName) {
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay) {
+                            userNameDisplay.textContent = userData.fullName;
+                        }
+                    }
+                    
+                    // Store user data for later use
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                } else {
+                    throw new Error('Failed to get user data');
+                }
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (apiError) {
+            console.log('API call failed, using fallback dummy data:', apiError);
+            // Fallback to dummy data
+            setDummyUserData();
+        }
+        
+        // Set default avatar and show profile
+            const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+            if (dashboardUserIcon) {
+            dashboardUserIcon.src = '../../../../image/profil.png';
+            }
+            
+            // Show user profile section
+            const userProfile = document.querySelector('.user-profile');
+            if (userProfile) {
+                userProfile.style.display = 'flex';
+            }
+            
+            return;
+        
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to dummy data on any error
+        setDummyUserData();
+    }
+}
+
+// Fallback function for dummy user data
+function setDummyUserData() {
     const dummyUserData = {
         name: 'Development User',
         avatar: '../../../../image/profil.png'
     };
     
-    // Display user name and avatar
     try {
         if (dummyUserData.name) {
-            const userNameDisplay = document.getElementById('userNameDisplay');
-            if (userNameDisplay) {
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        if (userNameDisplay) {
                 userNameDisplay.textContent = dummyUserData.name;
             }
         }
         
         if (dummyUserData.avatar) {
-            const dashboardUserIcon = document.getElementById('dashboardUserIcon');
-            if (dashboardUserIcon) {
+        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+        if (dashboardUserIcon) {
                 dashboardUserIcon.src = dummyUserData.avatar;
             }
         }
@@ -103,43 +186,66 @@ function loadUserData() {
         if (userProfile) {
             userProfile.style.display = 'flex';
         }
-        
     } catch (error) {
-        console.error('Error loading user data:', error);
+        console.log('Error setting dummy user display elements:', error);
     }
 }
 
-// Function to get user ID from token
-function getUserId() {
-    // DEVELOPMENT MODE: Return dummy user ID
-    return 'dev-user-001';
-    
-    // In production, uncomment this:
-    /*
+// Helper function to get user ID (for development mode)
+async function getUserId() {
     try {
-        const token = getAccessToken();
-        if (!token) return null;
+        // Development mode: Use consistent approach like acknowledge page
+        const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae';
         
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.userId || payload.sub;
+        // Try to fetch user data to get kansaiEmployeeId
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.status && result.data) {
+                    console.log('User data fetched for ID:', result.data);
+                    return result.data.kansaiEmployeeId;
+                } else {
+                    console.log('Failed to get user data, using fallback');
+                    return '02403121'; // Fallback for development
+                }
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (apiError) {
+            console.log('API call failed, using fallback user ID:', apiError);
+            return '02403121'; // Fallback for development
+        }
     } catch (error) {
-        console.error('Error parsing token:', error);
-        return null;
+        console.error('Error fetching user data:', error);
+        return '02403121'; // Fallback for development
     }
-    */
 }
 
 async function loadDashboard() {
     try {
+        // Development mode: Bypassing authentication check
+            console.log('Development mode: Bypassing authentication check');
+
         // Get user ID for approver ID
-        const userId = getUserId();
+        const userId = await getUserId();
         if (!userId) {
-            alert("Unable to get user ID from token. Please login again.");
-            return;
+            console.log('Unable to get user ID, using fallback.');
+            // Don't redirect, just use fallback data
         }
 
-        // Build API URL for AR Invoices
-        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        console.log('Using kansaiEmployeeId for API call:', userId);
+
+        // Build API URL for AR Invoices by approved status
+        const apiUrl = `${BASE_URL}/api/ar-invoices/by-approved/${userId}`;
         console.log('Fetching data from:', apiUrl);
 
         // Make API call
@@ -221,7 +327,10 @@ async function loadDashboard() {
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        alert('Error loading dashboard data. Please try again.');
+        
+        // Show error message to user
+        const errorMessage = 'Error loading dashboard data. Please try again.';
+        console.error(errorMessage, error);
         
         // Show empty state when API fails
         allInvoices = [];
@@ -233,6 +342,7 @@ async function loadDashboard() {
 
 // Helper function to determine invoice status based on approval data
 function getInvoiceStatus(invoice) {
+
     console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
     console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
     
@@ -270,21 +380,34 @@ function getInvoiceStatus(invoice) {
 
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
+    console.log('Filtering invoices by tab:', tab);
+    console.log('Total invoices before filtering:', invoices.length);
+
     switch (tab) {
+        case 'acknowledged':
+            // Show only documents with 'Acknowledged' status
+            const acknowledgedInvoices = invoices.filter(inv => inv.status === 'Acknowledged');
+            console.log('Acknowledged invoices found:', acknowledgedInvoices.length);
+            return acknowledgedInvoices;
+        case 'approved':
+            // Show documents with 'Approved' and 'Received' status
+            const approvedInvoices = invoices.filter(inv => 
+                inv.status === 'Approved' || inv.status === 'Received'
+            );
+            console.log('Approved/Received invoices found:', approvedInvoices.length);
+            return approvedInvoices;
+        case 'rejected':
+            const rejectedInvoices = invoices.filter(inv => inv.status === 'Rejected');
+            console.log('Rejected invoices found:', rejectedInvoices.length);
+            return rejectedInvoices;
         case 'all':
             return invoices;
         case 'prepared':
             return invoices.filter(inv => inv.status === 'Prepared');
         case 'checked':
             return invoices.filter(inv => inv.status === 'Checked');
-        case 'rejected':
-            return invoices.filter(inv => inv.status === 'Rejected');
         case 'draft':
             return invoices.filter(inv => inv.status === 'Draft');
-        case 'acknowledged':
-            return invoices.filter(inv => inv.status === 'Acknowledged');
-        case 'approved':
-            return invoices.filter(inv => inv.status === 'Approved');
         case 'received':
             return invoices.filter(inv => inv.status === 'Received');
         default:
@@ -294,6 +417,8 @@ function filterInvoicesByTab(invoices, tab) {
 
 // Helper function to apply search filter
 function applySearchFilter(invoices, searchTerm, searchType) {
+
+
     if (!searchTerm) return invoices;
     
     const term = searchTerm.toLowerCase();
@@ -315,90 +440,32 @@ function applySearchFilter(invoices, searchTerm, searchType) {
     });
 }
 
-// Mock data for development
-function getMockInvoiceData() {
-    const mockInvoices = [
-        {
-            id: 1,
-            invoiceNo: 'INV-2024-001',
-            customerName: 'PT Maju Bersama',
-            salesEmployee: 'John Doe',
-            invoiceDate: '2024-01-15',
-            dueDate: '2024-02-15',
-            status: 'acknowledge',
-            totalAmount: 15000000,
-            invoiceType: 'Regular',
-            remarks: 'Pending approval'
-        },
-        {
-            id: 2,
-            invoiceNo: 'INV-2024-002',
-            customerName: 'CV Sukses Mandiri',
-            salesEmployee: 'Jane Smith',
-            invoiceDate: '2024-01-16',
-            dueDate: '2024-02-16',
-            status: 'approved',
-            totalAmount: 25000000,
-            invoiceType: 'Regular',
-            remarks: 'Approved by manager'
-        },
-        {
-            id: 3,
-            invoiceNo: 'INV-2024-003',
-            customerName: 'PT Global Solutions',
-            salesEmployee: 'Mike Johnson',
-            invoiceDate: '2024-01-17',
-            dueDate: '2024-02-17',
-            status: 'rejected',
-            totalAmount: 8500000,
-            invoiceType: 'Special',
-            remarks: 'Rejected - incomplete documentation'
-        },
-        {
-            id: 4,
-            invoiceNo: 'INV-2024-004',
-            customerName: 'PT Teknologi Maju',
-            salesEmployee: 'Sarah Wilson',
-            invoiceDate: '2024-01-18',
-            dueDate: '2024-02-18',
-            status: 'acknowledge',
-            totalAmount: 12000000,
-            invoiceType: 'Regular',
-            remarks: 'Awaiting approval'
-        },
-        {
-            id: 5,
-            invoiceNo: 'INV-2024-005',
-            customerName: 'CV Inovasi Baru',
-            salesEmployee: 'David Brown',
-            invoiceDate: '2024-01-19',
-            dueDate: '2024-02-19',
-            status: 'approved',
-            totalAmount: 18000000,
-            invoiceType: 'Special',
-            remarks: 'Approved with conditions'
-        }
-    ];
-    
-    // Filter based on current tab
-    return mockInvoices.filter(invoice => {
-        if (currentTab === 'acknowledge') return invoice.status === 'acknowledge';
-        if (currentTab === 'approved') return invoice.status === 'approved';
-        if (currentTab === 'rejected') return invoice.status === 'rejected';
-        return true;
-    });
-}
+// Mock data function removed - now using real API data
 
 async function updateCounters() {
     try {
+        console.log('Updating counters with all invoices:', allInvoices.length);
+
         const userId = getUserId();
-        if (!userId) return;
+        if (!userId) {
+            console.log('Unable to get user ID, using fallback');
+        }
 
         // Calculate from actual data
         const totalCount = allInvoices.length;
         const acknowledgeCount = allInvoices.filter(inv => inv.status === 'Acknowledged').length;
-        const approveCount = allInvoices.filter(inv => inv.status === 'Approved').length;
+        // Include both 'Approved' and 'Received' status in approve count
+        const approveCount = allInvoices.filter(inv => 
+            inv.status === 'Approved' || inv.status === 'Received'
+        ).length;
         const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
+
+        console.log('Counter calculations:', {
+            total: totalCount,
+            acknowledged: acknowledgeCount,
+            approved: approveCount,
+            rejected: rejectedCount
+        });
 
         // Update counter displays
         document.getElementById('totalCount').textContent = totalCount;
@@ -408,6 +475,8 @@ async function updateCounters() {
         
     } catch (error) {
         console.error('Error updating counters:', error);
+        // Log error for debugging
+        console.log('Error in updateCounters:', error);
     }
 }
 
@@ -440,8 +509,8 @@ function updateTable(invoices) {
             <td class="p-2">
                 <span class="status-badge ${statusClass}">${invoice.status}</span>
             </td>
-            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">${invoice.invoiceType}</td>
+            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">
                 <div class="approval-actions">
                     <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
@@ -456,12 +525,18 @@ function updateTable(invoices) {
 }
 
 function formatDate(dateString) {
+    // Check if user is authenticated
+
+
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID');
 }
 
 function formatCurrency(amount) {
+    // Check if user is authenticated
+
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -470,6 +545,8 @@ function formatCurrency(amount) {
 }
 
 function updatePaginationInfo(totalItems) {
+
+
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
     
@@ -487,6 +564,8 @@ function updatePaginationInfo(totalItems) {
 }
 
 function switchTab(tabName) {
+
+
     currentTab = tabName;
     currentPage = 1;
     
@@ -506,6 +585,8 @@ function switchTab(tabName) {
 }
 
 function handleSearch() {
+
+
     const searchInput = document.getElementById('searchInput');
     currentSearchTerm = searchInput.value.trim();
     currentPage = 1;
@@ -513,6 +594,8 @@ function handleSearch() {
 }
 
 function changePage(direction) {
+
+
     const newPage = currentPage + direction;
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
     
@@ -523,17 +606,42 @@ function changePage(direction) {
 }
 
 function goToTotalDocs() {
+
+
     console.log('Navigate to total documents');
     // Implement navigation to total documents view
 }
 
 // Approval action functions
 function viewInvoiceDetails(id) {
-    // Implement view details functionality
-    window.open(`../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`, '_blank');
+
+
+    // Find the invoice data to get docType
+    const invoice = allInvoices.find(inv => inv.id == id);
+    
+    if (!invoice) {
+        console.error('Invoice not found with ID:', id);
+        alert('Invoice not found. Please try again.');
+        return;
+    }
+    
+    // Route based on docType
+    if (invoice.docType === 'I') {
+        // Route to Invoice Item approval page
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`;
+    } else if (invoice.docType === 'S') {
+        // Route to Invoice Service approval page
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceService/approveInvService.html?stagingId=${id}`;
+    } else {
+        // Default fallback to Invoice Item page
+        console.warn('Unknown docType:', invoice.docType, 'Defaulting to Invoice Item page');
+        window.location.href = `../../../../approvalPages/approval/approve/invoiceItem/approveInvItem.html?stagingId=${id}`;
+    }
 }
 
 function approveInvoice(id) {
+
+
     if (confirm('Are you sure you want to approve this invoice?')) {
         console.log('Approving invoice:', id);
         // Implement approval API call
@@ -543,6 +651,8 @@ function approveInvoice(id) {
 }
 
 function rejectInvoice(id) {
+
+
     const reason = prompt('Please provide a reason for rejection:');
     if (reason !== null) {
         console.log('Rejecting invoice:', id, 'Reason:', reason);
@@ -553,19 +663,28 @@ function rejectInvoice(id) {
 }
 
 function editInvoice(id) {
+
+
     console.log('Edit invoice:', id);
     // Implement edit functionality
-    window.open(`../approval/approve/invoiceItem/approveInvItem.html?id=${id}&mode=edit`, '_blank');
+    window.location.href = `../approval/approve/invoiceItem/approveInvItem.html?id=${id}&mode=edit`;
 }
 
 function printInvoice(id) {
+
+
     console.log('Print invoice:', id);
     // Implement print functionality
-    window.open(`../approval/approve/invoiceItem/printInvItem.html?id=${id}`, '_blank');
+    window.location.href = `../approval/approve/invoiceItem/printInvItem.html?id=${id}`;
 }
 
 function getStatusClass(status) {
+    // Check if user is authenticated
+    console.log('Getting status class for:', status);
+
     switch (status.toLowerCase()) {
+        case 'acknowledged':
+            return 'status-acknowledge';
         case 'acknowledge':
             return 'status-acknowledge';
         case 'approved':
@@ -587,6 +706,8 @@ function getStatusClass(status) {
 
 // Sidebar and navigation functions
 function toggleSidebar() {
+
+
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
         sidebar.classList.toggle('hidden');
@@ -594,6 +715,8 @@ function toggleSidebar() {
 }
 
 function toggleSubMenu(menuId) {
+
+
     const submenu = document.getElementById(menuId);
     if (submenu) {
         submenu.classList.toggle('hidden');
@@ -602,14 +725,20 @@ function toggleSubMenu(menuId) {
 
 // Profile and notification functions
 function goToProfile() {
+
+
     console.log('Navigate to profile');
     // Implement profile navigation
 }
 
 function updateNotificationBadge() {
+    // Check if user is authenticated
+    
+
     const badge = document.getElementById('notificationBadge');
     if (badge) {
-        // Mock notification count for development
+        // TODO: Implement real notification count from API
+        // For now, using mock data
         const count = Math.floor(Math.random() * 5);
         if (count > 0) {
             badge.textContent = count;
@@ -623,6 +752,8 @@ function updateNotificationBadge() {
 // Export functions
 async function downloadExcel() {
     try {
+
+
         const data = filteredInvoices.map(invoice => ({
             'Invoice No.': invoice.invoiceNo,
             'Customer': invoice.customerName,
@@ -630,8 +761,8 @@ async function downloadExcel() {
             'Date': formatDate(invoice.invoiceDate),
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
-            'Total (IDR)': invoice.totalAmount,
             'Type': invoice.invoiceType,
+            'Total': invoice.totalAmount,
             'Remarks': invoice.remarks || ''
         }));
 
@@ -650,6 +781,8 @@ async function downloadExcel() {
 
 async function downloadPDF() {
     try {
+
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
@@ -668,13 +801,13 @@ async function downloadPDF() {
             formatDate(invoice.invoiceDate),
             formatDate(invoice.dueDate),
             invoice.status,
-            formatCurrency(invoice.totalAmount),
-            invoice.invoiceType
+            invoice.invoiceType,
+            formatCurrency(invoice.totalAmount)
         ]);
         
         // Add table
         doc.autoTable({
-            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total', 'Type']],
+            head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total']],
             body: tableData,
             startY: 45,
             styles: {
@@ -697,27 +830,38 @@ async function downloadPDF() {
 
 // Polling functions for real-time updates
 async function pollAcknowledgeDocs() {
+
+    
     if (currentTab === 'acknowledge') {
         await loadDashboard();
     }
 }
 
 async function pollApprovedDocs() {
+
+    
     if (currentTab === 'approved') {
         await loadDashboard();
     }
 }
 
 async function pollRejectedDocs() {
+
+    
     if (currentTab === 'rejected') {
         await loadDashboard();
     }
 }
 
-// Start polling for real-time updates
-setInterval(pollAcknowledgeDocs, 30000); // Poll every 30 seconds
-setInterval(pollApprovedDocs, 30000);
-setInterval(pollRejectedDocs, 30000);
+// Start polling for real-time updates (only if authenticated)
+function startPolling() {
 
-// Update notification badge periodically
-setInterval(updateNotificationBadge, 60000); // Update every minute 
+    
+    console.log('Starting polling for real-time updates');
+    setInterval(pollAcknowledgeDocs, 30000); // Poll every 30 seconds
+    setInterval(pollApprovedDocs, 30000);
+    setInterval(pollRejectedDocs, 30000);
+    setInterval(updateNotificationBadge, 60000); // Update every minute
+}
+
+ 

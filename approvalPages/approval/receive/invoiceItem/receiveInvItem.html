@@ -9,6 +9,7 @@
     <!-- Authentication is enabled -->
     <script src="../../../../js/auth.js"></script>
     
+    <script src="../../../../js/eSigningFunctions.js"></script>
     <script src="receiveInvItem.js"></script>
     <style>
         /* Dropdown styling */
@@ -67,23 +68,23 @@
         
         /* Custom width for price column */
         .price-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .price-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
         /* Custom width for line total column */
         .line-total-column {
-            width: 120px !important;
-            min-width: 120px !important;
+            width: 180px !important;
+            min-width: 180px !important;
         }
         
         .line-total-input {
-            width: 100px !important;
+            width: 160px !important;
             text-align: right;
         }
         
@@ -91,6 +92,62 @@
         .action-column {
             width: 60px !important;
             min-width: 60px !important;
+        }
+        
+        /* Custom width for Account Code column */
+        .account-code-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        /* Account Code column - left aligned */
+        .account-code-column input {
+            text-align: left !important;
+        }
+        
+        /* Custom width for Account Name column */
+        .account-name-column {
+            width: 200px !important;
+            min-width: 200px !important;
+        }
+        
+        /* Custom width for Total LC column */
+        .total-lc-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+        
+        .total-lc-input {
+            width: 100px !important;
+            text-align: right;
+        }
+        
+        /* Custom width for Source column */
+        .source-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        /* Custom width for No. column */
+        .no-column {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        
+        .no-input {
+            width: 50px !important;
+            text-align: center;
+            font-weight: 500 !important;
+            color: #374151 !important;
+        }
+        
+        /* Line number input styling */
+        .line-num-input {
+            text-align: center !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
+            background-color: #f9fafb !important;
+            border: 1px solid #d1d5db !important;
         }
         
         /* Custom width for Item Code column */
@@ -103,15 +160,19 @@
             width: 120px !important;
         }
         
-        /* Custom width for No. column */
-        .no-column {
-            width: 60px !important;
-            min-width: 60px !important;
+        /* Custom width for BP Catalog column */
+        .bp-catalog-column {
+            width: 120px !important;
+            min-width: 120px !important;
         }
         
-        .no-input {
-            width: 50px !important;
-            text-align: center;
+        .bp-catalog-input {
+            width: 100px !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
+            text-align: left !important;
         }
         
         /* Custom width for UoM column */
@@ -126,16 +187,15 @@
             min-width: 80px !important;
         }
         
-        /* Custom width for Tax Code column */
-        .tax-code-column {
-            width: 100px !important;
-            min-width: 100px !important;
+        /* Base columns - center aligned */
+        .base-column input {
+            text-align: center !important;
         }
         
-        /* Custom width for Wtax Liable column */
-        .wtax-liable-column {
-            width: 100px !important;
-            min-width: 100px !important;
+        /* Custom width for Tax Code column */
+        .tax-code-column {
+            width: 80px !important;
+            min-width: 80px !important;
         }
         
         /* Custom width for Discount column */
@@ -232,17 +292,53 @@
         }
         
         /* Table container with horizontal scroll for better responsiveness */
+        /* Note: Removed height restrictions to display all documents without scrollbar */
         .table-container {
             overflow-x: auto;
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow-y: visible;
+            max-height: none !important;
         }
         
         /* Ensure table doesn't overflow container */
         #arInvTable {
-            min-width: 1200px;
+            min-width: 1100px;
             table-layout: fixed;
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Table header styling */
+        #arInvTable thead {
+            background: #f3f4f6;
+            z-index: 10;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
         }
         
         /* Better spacing for table cells */
@@ -252,6 +348,235 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            vertical-align: middle !important;
+        }
+        
+        /* Ensure all textarea elements in table are top-aligned */
+        .item-description,
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            vertical-align: top !important;
+            text-align: left !important;
+            padding-top: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Special styling for quantity and price textarea */
+        .item-quantity,
+        .item-price,
+        .item-line-total {
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+        
+        .item-price,
+        .item-line-total {
+            text-align: right !important;
+        }
+        
+        /* Ensure table cells with textarea are properly aligned */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+        
+        /* Ensure textarea content is properly displayed */
+        .table-container textarea {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-family: inherit;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        /* Ensure textarea in table cells have proper scrollbar */
+        .table-container textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+        }
+        
+        /* Custom scrollbar for textarea elements */
+        .table-container textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .table-container textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Text alignment for different column types */
+        /* No. column - center aligned */
+        .no-column input {
+            text-align: center !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
+        }
+        
+        /* Item Code column - left aligned */
+        .item-code-column input {
+            text-align: left !important;
+        }
+        
+        /* BP Catalog column - left aligned */
+        .bp-catalog-column input {
+            text-align: left !important;
+        }
+        
+        /* Description columns - left aligned */
+        .description-column textarea {
+            text-align: left !important;
+        }
+        
+        /* Quantity columns - center aligned */
+        .quantity-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Price columns - right aligned */
+        .price-column textarea {
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+        
+        /* Line total column - right aligned */
+        .line-total-column textarea {
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+        
+        /* Conditional scrollbar for price and amount columns */
+        .price-column textarea.has-scroll,
+        .line-total-column textarea.has-scroll {
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+        }
+        
+        /* Custom scrollbar styling for price and amount columns */
+        .price-column textarea::-webkit-scrollbar,
+        .line-total-column textarea::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-track,
+        .line-total-column textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-thumb,
+        .line-total-column textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .price-column textarea::-webkit-scrollbar-thumb:hover,
+        .line-total-column textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Tax code column - center aligned */
+        .tax-code-column input {
+            text-align: center !important;
+        }
+        
+        /* Packing Size column - center aligned */
+        .packing-size-column textarea {
+            text-align: center !important;
+        }
+        
+        /* Custom width for Packing Size column */
+        .packing-size-column {
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+        
+        .packing-size-input {
+            width: 80px !important;
+            text-align: center;
+        }
+        
+        /* Add visual indicator for scrollable content */
+        .table-container textarea.has-scroll {
+            border-right: 2px solid #3b82f6;
+        }
+        
+        /* Improve table row appearance */
+        #arInvTable tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* Ensure consistent cell alignment and height */
+        #arInvTable td {
+            vertical-align: middle !important;
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+        
+        /* Consistent input and textarea styling */
+        #arInvTable input,
+        #arInvTable textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            vertical-align: middle;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Ensure table rows have consistent height */
+        #arInvTable tbody tr {
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+        
+        /* Consistent input and textarea styling */
+        #arInvTable input,
+        #arInvTable textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            vertical-align: middle;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+        
+        /* Remove any conflicting styles */
+        .item-description,
+        .item-free-txt,
+        .item-sales-employee,
+        .item-sls-qty,
+        .item-quantity,
+        .item-sls-price,
+        .item-price,
+        .item-line-total {
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
         }
         
         /* Responsive adjustments */
@@ -261,15 +586,415 @@
                 min-width: 200px !important;
             }
             
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
             .price-column {
                 width: 100px !important;
                 min-width: 100px !important;
             }
             
+            .price-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
             .line-total-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .account-name-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .total-lc-column {
                 width: 100px !important;
                 min-width: 100px !important;
             }
+        }
+        
+        /* Attachment section styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-container:hover {
+            border-color: #d1d5db;
+            background-color: #f3f4f6;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-icon {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        
+        .file-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+        
+        .attachment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-download {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-preview {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Loading state styles */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #10b981;
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        .notification.warning {
+            background-color: #f59e0b;
+        }
+        
+        .notification.info {
+            background-color: #3b82f6;
+        }
+        
+        /* Focus management styles */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        .focus-visible:focus {
+            outline: none;
+        }
+        
+        /* Attachment list container styling */
+        .attachment-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Custom scrollbar styling for attachment list */
+        .attachment-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+            margin: 4px 0;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+            border: 2px solid #f1f5f9;
+            transition: background-color 0.2s ease;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .attachment-list-container::-webkit-scrollbar-thumb:active {
+            background: #64748b;
+        }
+        
+        /* Firefox scrollbar styling */
+        .attachment-list-container {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        
+        /* Enhanced scrollbar styling when scrollbar is present */
+        .attachment-list-container.has-scrollbar {
+            padding-right: 12px;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin: 4px 0;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .attachment-list-container.has-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        .loading-spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        /* Ensure attachment items have proper spacing */
+        .attachment-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Improve button styling for attachment actions */
+        .attachment-actions .btn-download,
+        .attachment-actions .btn-preview {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .attachment-actions .btn-download {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .attachment-actions .btn-download:hover {
+            background-color: #2563eb;
+        }
+        
+        .attachment-actions .btn-preview {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .attachment-actions .btn-preview:hover {
+            background-color: #059669;
+        }
+        
+        .attachment-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Enhanced attachment container styling */
+        .attachment-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            min-height: 100px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .attachment-header {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .attachment-header svg {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .attachment-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .attachment-item:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .timer-display {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #92400e;
+            font-weight: 600;
+        }
+        
+        .progress-container {
+            background: #f1f5f9;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
         
         /* Form field improvements */
@@ -309,6 +1034,43 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
+        /* Currency formatting styles */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+        }
+        
+        /* Currency formatting for summary fields */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Enhanced currency formatting */
+        .currency-input-idr:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        .currency-input-idr:hover {
+            border-color: #d1d5db !important;
+        }
+        
+        /* Summary field styling */
+        .summary-field {
+            background-color: #f8fafc !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.75rem !important;
+            font-weight: 600 !important;
+        }
+        
+        .summary-field:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
         /* Wrap text styles for columns with long content */
         .wrap-text {
             white-space: normal !important;
@@ -329,6 +1091,7 @@
         /* Specific column styles for better text handling */
         .description-column textarea,
         .item-code-column input,
+        .bp-catalog-column input,
         .quantity-column textarea,
         .price-column textarea {
             transition: all 0.3s ease;
@@ -339,23 +1102,841 @@
             resize: none;
             overflow-y: auto;
         }
+        
+        /* Full screen professional styling */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8fafc;
+            padding: 0;
+        }
+        
+        .content-wrapper {
+            max-width: none;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+        
+        .header-section {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .table-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .approval-section h3 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .approval-section .grid {
+            gap: 1.5rem;
+        }
+        
+        .approval-section label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .approval-section input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .approval-section input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .approval-section input:disabled {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        .submit-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        /* Responsive Design - Mobile First Approach */
+        
+        /* Extra Small Devices (phones, 320px and up) */
+        @media (max-width: 575.98px) {
+            /* Main container adjustments */
+            .main-container {
+                padding: 0;
+            }
+            
+            .content-wrapper {
+                padding: 1rem;
+            }
+            
+            /* Header section adjustments */
+            .header-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .header-section h2 {
+                font-size: 1.5rem !important;
+                text-align: center;
+            }
+            
+            .header-section button {
+                font-size: 0.875rem !important;
+                padding: 0.5rem 1rem !important;
+            }
+            
+            /* Form section adjustments */
+            .form-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .form-section h3 {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Table section adjustments */
+            .table-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .table-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Table responsive adjustments */
+            .table-container {
+                overflow-x: auto;
+                overflow-y: visible;
+                font-size: 0.75rem !important;
+                max-height: none !important;
+            }
+            
+            #arInvTable {
+                min-width: 800px !important;
+                font-size: 0.75rem !important;
+            }
+            
+            #arInvTable th,
+            #arInvTable td {
+                padding: 0.25rem !important;
+                font-size: 0.75rem !important;
+            }
+            
+            /* Column width adjustments for mobile */
+            .no-column {
+                width: 45px !important;
+                min-width: 45px !important;
+            }
+            
+            .item-code-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .description-column {
+                width: 150px !important;
+                min-width: 150px !important;
+            }
+            
+            .uom-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .packing-size-column {
+                width: 80px !important;
+                min-width: 80px !important;
+            }
+            
+            .quantity-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .price-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .tax-code-column {
+                width: 60px !important;
+                min-width: 60px !important;
+            }
+            
+            .line-total-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            /* Input and textarea adjustments */
+            #arInvTable input,
+            #arInvTable textarea {
+                font-size: 0.75rem !important;
+                padding: 0.25rem !important;
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .footer-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            /* Summary fields adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.5rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section label {
+                font-size: 0.875rem !important;
+                text-align: left !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section h3 {
+                font-size: 1rem !important;
+                margin-bottom: 1rem;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            
+            .approval-section label {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem;
+            }
+            
+            .approval-section input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Submit section adjustments */
+            .submit-section {
+                padding: 1rem;
+            }
+            
+            .submit-section .flex {
+                flex-direction: column !important;
+                gap: 1rem;
+            }
+            
+            .submit-section button {
+                font-size: 1rem !important;
+                padding: 0.75rem 1.5rem !important;
+                width: 100% !important;
+            }
+            
+            /* Attachment section adjustments */
+            .attachment-section {
+                min-height: 80px;
+            }
+            
+            .attachment-item {
+                padding: 0.5rem;
+            }
+            
+            /* Dropdown adjustments */
+            .search-dropdown {
+                max-height: 150px !important;
+                font-size: 0.875rem !important;
+            }
+            
+            .search-dropdown .dropdown-item {
+                padding: 0.5rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+        
+        /* Small Devices (landscape phones, 576px and up) */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 900px !important;
+                font-size: 0.875rem !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .line-total-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: column !important;
+                gap: 0.75rem;
+                align-items: stretch !important;
+            }
+            
+            .footer-section input {
+                width: 100% !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Medium Devices (tablets, 768px and up) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 1000px !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 220px !important;
+                min-width: 220px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 100px !important;
+                min-width: 100px !important;
+            }
+            
+            .price-column {
+                width: 160px !important;
+                min-width: 160px !important;
+            }
+            
+            .line-total-column {
+                width: 160px !important;
+                min-width: 160px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section .flex {
+                flex-direction: row !important;
+                gap: 1rem;
+                align-items: center !important;
+            }
+            
+            .footer-section input {
+                width: 300px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 2rem;
+            }
+        }
+        
+        /* Large Devices (desktops, 992px and up) */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            /* Form section adjustments */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+            
+            /* Table adjustments */
+            #arInvTable {
+                min-width: 1100px !important;
+            }
+            
+            /* Column width adjustments */
+            .description-column {
+                width: 250px !important;
+                min-width: 250px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .price-column {
+                width: 180px !important;
+                min-width: 180px !important;
+            }
+            
+            .line-total-column {
+                width: 180px !important;
+                min-width: 180px !important;
+            }
+            
+            /* Footer section adjustments */
+            .footer-section input {
+                width: 350px !important;
+            }
+            
+            /* Approval section adjustments */
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 3rem;
+            }
+        }
+        
+        /* Extra Large Devices (large desktops, 1200px and up) */
+        @media (min-width: 1200px) {
+            /* Full desktop layout */
+            .form-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+            
+            #arInvTable {
+                min-width: 1200px !important;
+            }
+            
+            .description-column {
+                width: 280px !important;
+                min-width: 280px !important;
+            }
+            
+            .bp-catalog-column {
+                width: 120px !important;
+                min-width: 120px !important;
+            }
+            
+            .price-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .line-total-column {
+                width: 200px !important;
+                min-width: 200px !important;
+            }
+            
+            .footer-section input {
+                width: 400px !important;
+            }
+            
+            .approval-section .grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4rem;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            /* Reduce padding for landscape mobile */
+            .content-wrapper {
+                padding: 0.5rem;
+            }
+            
+            .header-section,
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Reduce table row height */
+            #arInvTable td {
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+            }
+            
+            #arInvTable input,
+            #arInvTable textarea {
+                height: 40px !important;
+                min-height: 40px !important;
+                max-height: 40px !important;
+            }
+        }
+        
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            /* Ensure crisp text on high DPI displays */
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+        
+        /* E-Signing specific styles */
+        .esign-progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+            background-size: 200% 100%;
+            animation: gradient-shift 2s ease-in-out infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 200% 0%; }
+            50% { background-position: 0% 0%; }
+            100% { background-position: -200% 0%; }
+        }
+        
+        .esign-success {
+            animation: esign-success-pulse 0.6s ease-in-out;
+        }
+        
+        @keyframes esign-success-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .esign-upload-area.dragover {
+            border-color: #3b82f6 !important;
+            background-color: #dbeafe !important;
+            transform: scale(1.02);
+        }
+        
+        /* Print styles */
+        @media print {
+            .header-section button,
+            .submit-section,
+            .file-upload-section,
+            #eSigningSection {
+                display: none !important;
+            }
+            
+            .content-wrapper {
+                padding: 0 !important;
+            }
+            
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .table-container {
+                overflow: visible !important;
+                overflow-y: hidden !important;
+            }
+            
+            #arInvTable {
+                min-width: auto !important;
+                font-size: 0.75rem !important;
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            /* Add dark mode styles if needed */
+            .bg-white {
+                background-color: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            .text-gray-800 {
+                color: #f9fafb !important;
+            }
+            
+            .bg-gray-100 {
+                background-color: #374151 !important;
+                color: #f9fafb !important;
+            }
+            
+            .border {
+                border-color: #4b5563 !important;
+            }
+        }
+        
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            /* Increase touch targets for mobile devices */
+            button, input, select, textarea {
+                min-height: 44px !important;
+            }
+            
+            .dropdown-item {
+                min-height: 44px !important;
+                padding: 12px !important;
+            }
+            
+            /* Increase spacing for better touch interaction */
+            .form-section .grid {
+                gap: 1.5rem;
+            }
+            
+            .approval-section .grid {
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Focus management for better accessibility */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        /* Mobile navigation improvements */
+        .mobile-nav-toggle {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-nav-toggle {
+                display: block;
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1000;
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 0.375rem;
+                padding: 0.5rem;
+                cursor: pointer;
+            }
+        }
+        
+        /* Enhanced table responsiveness */
+        @media (max-width: 1024px) {
+            .table-container {
+                position: relative;
+                overflow-y: visible;
+                max-height: none !important;
+            }
+            
+            .table-container::after {
+                content: '← Scroll →';
+                position: absolute;
+                bottom: -20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #3b82f6;
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 0.25rem;
+                font-size: 0.75rem;
+                opacity: 0.8;
+            }
+        }
+        
+        /* Loading state improvements for mobile */
+        @media (max-width: 768px) {
+            .loading-spinner {
+                width: 1rem;
+                height: 1rem;
+            }
+            
+            .loading-content {
+                padding: 1rem;
+                max-width: 90vw;
+            }
+            
+            .loading-text {
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Notification improvements for mobile */
+        @media (max-width: 768px) {
+            .notification {
+                top: 0.5rem;
+                right: 0.5rem;
+                left: 0.5rem;
+                font-size: 0.875rem;
+                padding: 0.75rem;
+            }
+        }
+        
+        /* Enhanced E-Signing Styles */
+        .esign-upload-area {
+            transition: all 0.3s ease;
+        }
+        
+        .esign-upload-area.dragover {
+            border-color: #3B82F6 !important;
+            background-color: #EBF4FF !important;
+            transform: scale(1.02);
+        }
+        
+        .esign-progress-bar {
+            background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+            animation: pulse 2s infinite;
+        }
+        
+        .esign-success {
+            animation: successBounce 0.8s ease-out;
+        }
+        
+        @keyframes successBounce {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .existing-docs-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .document-item {
+            transition: all 0.2s ease;
+        }
+        
+        .document-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
-        <button onclick="goToMenuReceiveInvItem()" type="button" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Receive Invoice Item</h2>
-        <br>
-        <div class="grid grid-cols-2 gap-4">
+<body>
+
+    <div class="main-container">
+        <div class="content-wrapper" id="main-content">
+            <!-- Header Section -->
+            <div class="header-section">
+                <div class="flex justify-between items-center">
+                    <button onclick="goToMenuReceiveInvItem()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <h2 class="text-3xl font-bold text-gray-800">Receive Invoice Item</h2>
+                    <div></div> <!-- Spacer for centering -->
+                </div>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="form-section">
+                <div class="grid grid-cols-2 gap-8">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
                 
-                <h3 class="text-lg font-semibold mb-2">Invoice No.</h3>
-                <input type="text" id="DocNum" placeholder="Invoice No." class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Invoice SAP Doc Entry Number</h3>
+                <input type="text" id="DocNum" placeholder="Invoice SAP Doc Entry Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">CardCode</h3>
+                <h3 class="text-lg font-semibold mb-2">Customer Code</h3>
                 <input type="text" id="CardCode" placeholder="Customer Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
@@ -364,17 +1945,32 @@
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">base ref</h3>
-                <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Address</h3>
+                <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">KPIN Invoice Number</h3>
+                <input type="text" id="NumAtCard" placeholder="KPIN Invoice Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Currency</h3>
                 <input type="text" id="DocCur" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Address</h3>
-                <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
                 <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
                 <input type="number" id="docRate" placeholder="Document Rate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <!-- Attachment List Section -->
+                <h3 class="text-lg font-semibold mb-2">Attachments</h3>
+                <div class="attachment-container">
+                    <div id="attachmentsContainer" class="attachment-list-container">
+                        <!-- Attachments will be loaded here -->
+                        <div class="loading-spinner-container text-center py-4">
+                            <div class="loading-spinner"></div>
+                            <p class="text-sm text-gray-600 mt-2">Loading attachments...</p>
+                        </div>
+                    </div>
+                    <div id="noAttachments" class="text-center py-4 hidden">
+                        <p class="text-gray-500 text-sm">No attachments found for this invoice.</p>
+                    </div>
+                </div>
             </div>
             
             <div>
@@ -384,52 +1980,53 @@
                 <h3 class="text-lg font-semibold mb-2">Due Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">GroupNum</h3>
-                <input type="number" id="GroupNum" placeholder="Group Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Tax Identification Number (NPWP)</h3>
+                <input type="text" id="TaxNo" placeholder="Tax Identification Number (NPWP)" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">TrnspCode</h3>
-                <input type="number" id="TrnspCode" placeholder="Transport Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">Tax No</h3>
-                <input type="text" id="TaxNo" placeholder="Tax Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                
-                <h3 class="text-lg font-semibold mb-2">U_BSI_ShippingType</h3>
+                <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
                 <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_PaymentGroup</h3>
+                <h3 class="text-lg font-semibold mb-2">Payment Terms</h3>
                 <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">U_BSI_Expressiv_IsTransfered</h3>
                 <input type="text" id="U_BSI_Expressiv_IsTransfered" placeholder="Is Transfered" class="w-full p-2 border rounded bg-gray-100" value="N" disabled autocomplete="off" style="display: none;">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF1</h3>
+                <h3 class="text-lg font-semibold mb-2">No Surat Jalan</h3>
                 <input type="text" id="U_BSI_UDF1" placeholder="UDF1" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">U_BSI_UDF2</h3>
+                <h3 class="text-lg font-semibold mb-2">P/O No</h3>
                 <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account</h3>
+                <input type="text" id="account" placeholder="Account" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Account Name</h3>
+                <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
         </div>
-        
-        <!-- Table for Item details -->
-        <div class="table-container">
+            
+            <!-- Table Section -->
+            <div class="table-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Item Details</h3>
+                <div class="table-container">
             <table id="arInvTable" class="w-full text-left border mt-2">
             <thead class="bg-purple-100">
                 <br>
                 <tr>
                     <th class="p-2 no-column">No.</th>
                     <th class="p-2 item-code-column">Item Code</th>
+                    <th class="p-2 bp-catalog-column">Part Number</th>
                     <th class="p-2 description-column">Item Name</th>
-                    <th class="p-2 description-column">Catatan</th>
                     <th class="p-2 uom-column">UoM</th>
+                    <th class="p-2 packing-size-column">Packing Size</th>
                     <th class="p-2 quantity-column">Sales Qty</th>
                     <th class="p-2 quantity-column">Inv. Qty</th>
                     <th class="p-2 uom-column" style="display: none;">UoM</th>
-                    <th class="p-2 price-column">Sales Price</th>
-                    <th class="p-2 price-column">Price</th>
-                    <th class="p-2 discount-column">Disc</th>
-                    <th class="p-2 tax-code-column">Tax Code</th>
-                    <th class="p-2 wtax-liable-column">Wtax Liable</th>
-                    <th class="p-2 line-total-column">Total Price</th>
+                    <th class="p-2 price-column">Price per UoM</th>
+                    <th class="p-2 price-column">Price per Unit</th>
+                    <th class="p-2 tax-code-column">VAT Code</th>
+                    <th class="p-2 line-total-column">Amount</th>
                     <th class="p-2 account-code-column" style="display: none;">Account Code</th>
                     <th class="p-2 base-column" style="display: none;">BaseType</th>
                     <th class="p-2 base-column" style="display: none;">BaseEntry</th>
@@ -441,106 +2038,507 @@
                 <!-- Item rows will be populated by JavaScript -->
             </tbody>
         </table>
-        </div>
-        
-        <!-- Footer totals section -->
-        <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Before Discount :</label>
-            <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Tax-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax :</label>
-            <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
-        
-        <!--Total Amount-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount :</label>
-            <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
-        </div>
+                </div>
+            </div>
 
-        <!-- Comments section -->
-        <div class="mt-4">
-            <label class="font-semibold">Comments</label>
-            <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
-        </div>
+            <!-- Footer Totals Section -->
+            <div class="footer-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
+                
+                <!--Total Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="docTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Discounted Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Discounted :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="discSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Sales Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Sales Amount :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="netPriceAfterDiscount" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--Tax Base Other Value-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="dpp1112" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--VAT 12%-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">VAT 12% :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="vatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
+                
+                <!--GRAND TOTAL-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="grandTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100 currency-input-idr font-bold" readonly autocomplete="off" value="0.00">
+                    </div>
+                </div>
 
-        <!-- Rejection Remarks Display Section -->
-        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                <!-- Remarks section -->
+                <div class="mt-6">
+                    <label class="font-semibold text-gray-700">Remarks</label>
+                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                </div>
             </div>
-        </div>
 
-        <!-- Approval -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-            <div> 
-                <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="preparedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+            <!-- Rejection Remarks Display Section -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly autocomplete="off"></textarea>
                 </div>
             </div>
-            <div>
-                <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="acknowledgeBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
+
+            <!-- Approval Section -->
+            <div class="approval-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                    <div> 
+                        <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="preparedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="acknowledgeBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="checkedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="approvedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
+                        <div class="relative">
+                            <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
+                            <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <select id="receivedBy" class="hidden" autocomplete="off">
+                                <option value="" disabled selected>Choose Name</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <label id="checkedByCheck" class="mr-1"><strong>Checked by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="checkedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="approvedByCheck" class="mr-1"><strong>Approved by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="approvedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label id="receivedByCheck" class="mr-1"><strong>Received by:</strong></label>
-                <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded search-input bg-gray-100" autocomplete="off" readonly>
-                    <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
-                    <select id="receivedBy" class="hidden" autocomplete="off">
-                        <option value="" disabled selected>Choose Name</option>
-                    </select>
-                </div>
-            </div>
-        </div>
         
-        <!-- Action Buttons -->
-        <div class="flex justify-start space-x-4 mt-6">
-            <button onclick="rejectInvItem()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Reject
-            </button>
-            <button onclick="receiveInvItem()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Receive
-            </button>
-            <button onclick="printInvItem()" id="printButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32" style="display: none;">
-                Print
-            </button>
+
+        
+            <!-- E-Signing Section -->
+            <div class="approval-section" id="eSigningSection" style="display: none;">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-blue-100 p-2 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800">Electronic Signature Process</h3>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">Step</span>
+                        <div class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold" id="eSignStep">1 of 3</div>
+                    </div>
+                </div>
+
+                <!-- Step Indicator -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2" id="step1">
+                            <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+                            <span class="text-sm font-medium text-blue-600">Upload Document</span>
+                        </div>
+                        <div class="flex-1 h-1 bg-gray-200 mx-4">
+                            <div class="h-1 bg-blue-600 transition-all duration-500" id="progress1" style="width: 0%"></div>
+                        </div>
+                        <div class="flex items-center space-x-2" id="step2">
+                            <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+                            <span class="text-sm font-medium text-gray-500">Digital Signing</span>
+                        </div>
+                        <div class="flex-1 h-1 bg-gray-200 mx-4">
+                            <div class="h-1 bg-blue-600 transition-all duration-500" id="progress2" style="width: 0%"></div>
+                        </div>
+                        <div class="flex items-center space-x-2" id="step3">
+                            <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+                            <span class="text-sm font-medium text-gray-500">Download</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div id="uploadSection" class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Upload Document for E-Signing
+                    </h4>
+                    
+                    <div class="mb-4">
+                        <!-- Information about automatic document loading -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-800">Document Loading</p>
+                                    <p class="text-sm text-blue-700 mt-1">The system automatically loads all previously signed documents for this staging ID when the page opens. If no documents appear below, it means no documents have been signed yet (this is normal for new invoices).</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Refresh Button for Document List -->
+                        <div class="flex justify-between items-center mb-4">
+                            <div></div>
+                            <button onclick="refreshDocumentList()" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>Refresh Document List</span>
+                            </button>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-yellow-800">E-Signing Instructions</p>
+                                    <p class="text-sm text-yellow-700 mt-1">You can print or download the document first, then upload the signed PDF for electronic processing. Alternatively, you can generate and upload a PDF from the system directly.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4 mb-4">
+                            <button onclick="downloadPdfDocument()" class="flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Download PDF</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File Upload Area -->
+                    <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 text-center bg-white hover:bg-blue-50 transition-all duration-300 esign-upload-area" id="eSignUploadArea">
+                        <div class="space-y-4">
+                            <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-lg font-medium text-gray-700">Upload Signed PDF Document</p>
+                                <p class="text-sm text-gray-500 mt-1">Drag and drop your signed PDF file here, or click to browse</p>
+                            </div>
+                            <input type="file" id="eSignFileInput" accept=".pdf" class="hidden">
+                            <button onclick="document.getElementById('eSignFileInput').click()" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span>Choose File</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected File Display -->
+                    <div id="selectedFileDisplay" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg hidden">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800" id="selectedFileName">document.pdf</p>
+                                    <p class="text-sm text-gray-600" id="selectedFileSize">2.5 MB</p>
+                                </div>
+                            </div>
+                            <button onclick="removeSelectedFile()" class="text-red-600 hover:text-red-800 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- E-Stamp Option - Hidden -->
+                    <div class="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-lg hidden">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="enableEStamp" disabled class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            <label for="enableEStamp" class="text-sm font-medium text-gray-700">
+                                Also apply E-Stamp (E-meterai) to the document
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-2 ml-7">
+                            Electronic stamp will be added to the document for official validation (additional processing time required)
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <button onclick="startESigningProcess()" id="startESignBtn" disabled class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                            Start E-Signing Process
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Processing Section -->
+                <div id="processingSection" class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200 hidden">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-indigo-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Processing Document
+                    </h4>
+                    
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700" id="processStatus">Uploading document...</span>
+                            <span class="text-sm text-gray-600" id="processPercentage">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="esign-progress-bar h-2.5 rounded-full transition-all duration-300" id="processProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Time Remaining -->
+                    <div class="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Estimated time remaining: <span id="timeRemaining" class="font-medium">Calculating...</span></span>
+                    </div>
+
+                    <!-- Current Step Info -->
+                    <div class="mt-4 p-3 bg-white rounded-lg border border-indigo-100">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800" id="currentStepTitle">Processing E-Signature</p>
+                                <p class="text-xs text-gray-600" id="currentStepDescription">Applying digital signature to your document...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completion Section -->
+                <div id="completionSection" class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200 hidden">
+                    <div class="text-center">
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">Document Successfully Processed!</h4>
+                        <p class="text-gray-600 mb-6" id="completionMessage">Your document has been digitally signed and is ready for download.</p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="downloadSignedDocument()" id="downloadSignedBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span>Download Signed Document</span>
+                                </div>
+                            </button>
+                            
+                            <!-- Debug Button -->
+                            <button onclick="showDebugInfo()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition text-sm">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Show Debug Info</span>
+                                </div>
+                            </button>
+                            
+                            <button onclick="downloadStampedDocument()" id="downloadStampedBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition transform hover:scale-105 duration-200 hidden">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span>Download Signed & Stamped Document</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- E-Stamping Processing Section -->
+                <div id="stampingSection" class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200 hidden mt-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Processing E-Stamp
+                    </h4>
+                    
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700" id="stampStatus">Preparing document...</span>
+                            <span class="text-sm text-gray-600" id="stampPercentage">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-purple-600 h-2.5 rounded-full transition-all duration-300" id="stampProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Time Remaining -->
+                    <div class="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Estimated time remaining: <span id="stampTimeRemaining" class="font-medium">Calculating...</span></span>
+                    </div>
+
+                    <!-- Current Step Info -->
+                    <div class="mt-4 p-3 bg-white rounded-lg border border-purple-100">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Applying Electronic Stamp</p>
+                                <p class="text-xs text-gray-600">Adding official E-meterai validation to your document...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Existing E-Stamped Documents Section -->
+                <div class="mt-8 bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-purple-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">E-Stamped Documents</h3>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="startManualEStamping()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <span>Upload for E-Stamp</span>
+                            </button>
+                            <button onclick="refreshStampedDocumentList()" class="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>Refresh List</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Container for existing stamped documents -->
+                    <div id="existingStampedDocs" class="space-y-4">
+                        <!-- Documents will be loaded here dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Existing Signed Documents Section -->
+                <div class="mt-8 bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-blue-100 p-2 rounded-lg">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">Signed Documents</h3>
+                        </div>
+                        <button onclick="refreshDocumentList()" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span>Refresh List</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Container for existing signed documents -->
+                    <div id="existingSignedDocs" class="space-y-4">
+                        <!-- Documents will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <div id="actionButtonsContainer" class="flex justify-center space-x-8">
+                    <button onclick="rejectInvItem()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 text-lg">
+                        Reject
+                    </button>
+                    <button onclick="receiveInvItem()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                        Receive
+                    </button>
+                    <button onclick="showESigningSection()" id="eSignButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 text-lg">
+                        E-Sign Document
+                    </button>
+
+                </div>
+                
+                <!-- Status Message -->
+                <div id="statusMessage" class="mt-4 p-4 rounded-lg hidden">
+                    <div id="statusMessageContent" class="text-center"></div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -572,35 +2570,57 @@
                 
                 // Reset height for textarea elements
                 if (element.tagName === 'TEXTAREA') {
-                    element.style.height = '40px';
+                    element.style.height = '50px';
                 }
+            }
+        }
+        
+        // Function to handle conditional scrollbars for price and amount columns
+        function handleConditionalScrollbars(element) {
+            const text = element.value || element.textContent || '';
+            const charLength = text.length;
+            
+            // Remove existing scroll classes
+            element.classList.remove('has-scroll');
+            
+            // Check if element is in price or line-total columns
+            const isPriceColumn = element.closest('.price-column') !== null;
+            const isLineTotalColumn = element.closest('.line-total-column') !== null;
+            
+            if ((isPriceColumn || isLineTotalColumn) && charLength > 15) {
+                // Add scroll class for long content in price/amount columns
+                element.classList.add('has-scroll');
             }
         }
         
         // Function to apply text wrapping to all relevant elements
         function applyTextWrappingToAll() {
-            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .line-total-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
                 handleTextWrapping(element);
+                handleConditionalScrollbars(element);
             });
         }
         
         // Function to handle input events for dynamic wrapping
         function setupTextWrapping() {
-            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea');
+            const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .bp-catalog-column input, .quantity-column textarea, .price-column textarea, .line-total-column textarea, .packing-size-column textarea');
             
             textElements.forEach(element => {
-                // Apply initial wrapping
+                // Apply initial wrapping and scrollbars
                 handleTextWrapping(element);
+                handleConditionalScrollbars(element);
                 
                 // Add event listeners for dynamic updates
                 element.addEventListener('input', function() {
                     handleTextWrapping(this);
+                    handleConditionalScrollbars(this);
                 });
                 
                 element.addEventListener('blur', function() {
                     handleTextWrapping(this);
+                    handleConditionalScrollbars(this);
                 });
             });
         }
@@ -619,6 +2639,738 @@
         
         // Make the function globally available
         window.refreshTextWrapping = refreshTextWrapping;
+    </script>
+
+    <script>
+        // Currency formatting functions
+        function formatCurrencyIDR(number) {
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    if (cleanedStr.length > 15) {
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            const maxAmount = 100000000000000;
+            if (num > maxAmount) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Amount Exceeds Limit',
+                        text: 'Total amount must not exceed 100 trillion rupiah'
+                    });
+                } else {
+                    alert('Total amount must not exceed 100 trillion rupiah');
+                }
+                num = maxAmount;
+            }
+            
+            if (num >= 1e12) {
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                return result + '.00';
+            } else {
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        function formatCurrencyInputIDR(input) {
+            // Change input type to text for currency formatting
+            if (input.type === 'number') {
+                input.type = 'text';
+            }
+            
+            const cursorPos = input.selectionStart;
+            const originalLength = input.value.length;
+            
+            let value = input.value.replace(/[^\d,.]/g, '');
+            
+            let parts = value.split('.');
+            if (parts.length > 1) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            const numValue = parseCurrencyIDR(value);
+            const formattedValue = formatCurrencyIDR(numValue);
+            
+            input.value = formattedValue;
+            
+            const newLength = input.value.length;
+            const newCursorPos = cursorPos + (newLength - originalLength);
+            input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+        }
+
+        // Apply currency formatting to table cells
+        function applyCurrencyFormatting() {
+            // Format Price per UoM columns
+            const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
+            pricePerUoMInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Price per Unit columns
+            const pricePerUnitInputs = document.querySelectorAll('.item-price');
+            pricePerUnitInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format Amount columns
+            const amountInputs = document.querySelectorAll('.item-line-total');
+            amountInputs.forEach(input => {
+                input.classList.add('currency-input-idr');
+                input.addEventListener('input', function() {
+                    formatCurrencyInputIDR(this);
+                });
+                if (input.value) {
+                    formatCurrencyInputIDR(input);
+                } else {
+                    input.value = '0.00';
+                }
+            });
+
+            // Format summary fields
+            const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+            summaryFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.classList.add('currency-input-idr');
+                    field.addEventListener('input', function() {
+                        formatCurrencyInputIDR(this);
+                    });
+                    if (field.value) {
+                        formatCurrencyInputIDR(field);
+                    } else {
+                        field.value = '0.00';
+                    }
+                }
+            });
+        }
+
+        // Initialize currency formatting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                applyCurrencyFormatting();
+                
+                // Apply currency formatting to summary fields
+                const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
+                summaryFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.classList.add('currency-input-idr');
+                        if (field.value && field.value !== '0.00') {
+                            formatCurrencyInputIDR(field);
+                        }
+                    }
+                });
+            }, 1000);
+        });
+        
+        // Initialize text wrapping when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply text wrapping after data is loaded
+            setTimeout(() => {
+                applyTextWrappingToAll();
+            }, 500);
+        });
+        
+        // Enhanced error handling
+        function showErrorNotification(message, title = 'Error') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showSuccessNotification(message, title = 'Success') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        function showWarningNotification(message, title = 'Warning') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        
+        // Performance optimization functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Debounced version of text wrapping
+        const debouncedApplyTextWrapping = debounce(applyTextWrappingToAll, 300);
+        
+        // Memory management
+        function cleanupEventListeners() {
+            // Remove any existing event listeners to prevent memory leaks
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                const newInput = input.cloneNode(true);
+                input.parentNode.replaceChild(newInput, input);
+            });
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            cleanupEventListeners();
+        });
+        
+        // Accessibility improvements
+        function setupAccessibility() {
+            // Add ARIA labels to form elements
+            const formElements = document.querySelectorAll('input, textarea, select');
+            formElements.forEach(element => {
+                if (!element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby')) {
+                    const label = element.previousElementSibling;
+                    if (label && label.tagName === 'LABEL') {
+                        element.setAttribute('aria-label', label.textContent);
+                    }
+                }
+            });
+            
+            // Add keyboard navigation support
+            const focusableElements = document.querySelectorAll('input, textarea, select, button, a');
+            focusableElements.forEach(element => {
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && element.tagName === 'INPUT') {
+                        e.preventDefault();
+                        const nextElement = element.nextElementSibling;
+                        if (nextElement && (nextElement.tagName === 'INPUT' || nextElement.tagName === 'TEXTAREA' || nextElement.tagName === 'SELECT')) {
+                            nextElement.focus();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize accessibility features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAccessibility();
+        });
+        
+        // Enhanced validation functions
+        function validateNumericInput(input) {
+            const value = input.value;
+            const numericValue = value.replace(/[^\d,.]/g, '');
+            
+            if (numericValue !== value) {
+                input.value = numericValue;
+            }
+            
+            return numericValue;
+        }
+        
+        function validateCurrencyInput(input) {
+            const value = input.value;
+            const cleanedValue = value.replace(/[^\d,.]/g, '');
+            
+            if (cleanedValue !== value) {
+                input.value = cleanedValue;
+            }
+            
+            return cleanedValue;
+        }
+        
+        function validateRequiredField(field, fieldName) {
+            if (!field.value || field.value.trim() === '') {
+                showErrorNotification(`${fieldName} is required.`);
+                field.focus();
+                return false;
+            }
+            return true;
+        }
+        
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function validateFileSize(file, maxSizeMB = 10) {
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
+            return file.size <= maxSizeBytes;
+        }
+        
+        function validateFileType(file, allowedTypes = ['application/pdf']) {
+            return allowedTypes.includes(file.type);
+        }
+        
+        // Data sanitization functions
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') {
+                return input;
+            }
+            
+            // Remove potentially dangerous characters
+            return input
+                .replace(/[<>]/g, '') // Remove < and >
+                .replace(/javascript:/gi, '') // Remove javascript: protocol
+                .replace(/on\w+=/gi, '') // Remove event handlers
+                .trim();
+        }
+        
+        function sanitizeFormData(formData) {
+            const sanitizedData = {};
+            
+            for (const [key, value] of Object.entries(formData)) {
+                if (typeof value === 'string') {
+                    sanitizedData[key] = sanitizeInput(value);
+                } else {
+                    sanitizedData[key] = value;
+                }
+            }
+            
+            return sanitizedData;
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Error boundary and recovery
+        function setupErrorBoundary() {
+            window.addEventListener('error', function(event) {
+                console.error('Global error caught:', event.error);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+            
+            window.addEventListener('unhandledrejection', function(event) {
+                console.error('Unhandled promise rejection:', event.reason);
+                showErrorNotification('An unexpected error occurred. Please refresh the page and try again.');
+            });
+        }
+        
+        // Initialize error boundary
+        document.addEventListener('DOMContentLoaded', function() {
+            setupErrorBoundary();
+        });
+        
+        // Recovery functions
+        function recoverFromError() {
+            try {
+                // Attempt to reload data
+                if (typeof loadInvItemData === 'function') {
+                    loadInvItemData();
+                }
+                
+                showSuccessNotification('Page recovered successfully.');
+            } catch (error) {
+                console.error('Recovery failed:', error);
+                showErrorNotification('Recovery failed. Please refresh the page.');
+            }
+        }
+        
+        // User experience improvements
+        function showLoadingIndicator(message = 'Loading...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+        }
+        
+        function hideLoadingIndicator() {
+            if (typeof Swal !== 'undefined') {
+                Swal.close();
+            }
+        }
+        
+        function showProgressIndicator(progress, message = 'Processing...') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: message,
+                    html: `<div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>`,
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+            }
+        }
+        
+        function showConfirmationDialog(message, title = 'Confirm') {
+            return new Promise((resolve) => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        resolve(result.isConfirmed);
+                    });
+                } else {
+                    resolve(confirm(message));
+                }
+            });
+        }
+        
+        // Network error handling
+        function handleNetworkError(error) {
+            console.error('Network error:', error);
+            
+            let errorMessage = 'Network error occurred.';
+            
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Unable to connect to server. Please check your internet connection.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Resource not found. Please check the URL and try again.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Server error occurred. Please try again later.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'Access denied. Please check your permissions.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Authentication required. Please login again.';
+            }
+            
+            showErrorNotification(errorMessage, 'Network Error');
+        }
+        
+        function isOnline() {
+            return navigator.onLine;
+        }
+        
+        function setupNetworkMonitoring() {
+            window.addEventListener('online', function() {
+                showSuccessNotification('Internet connection restored.', 'Connection Restored');
+            });
+            
+            window.addEventListener('offline', function() {
+                showWarningNotification('Internet connection lost. Some features may not work properly.', 'Connection Lost');
+            });
+        }
+        
+        // Initialize network monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNetworkMonitoring();
+        });
+        
+        // Responsive design enhancements
+        function setupResponsiveFeatures() {
+            // Handle window resize for responsive adjustments
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    adjustLayoutForScreenSize();
+                }, 250);
+            });
+            
+            // Initial layout adjustment
+            adjustLayoutForScreenSize();
+            
+            // Setup mobile-specific features
+            if (window.innerWidth <= 768) {
+                setupMobileFeatures();
+            }
+        }
+        
+        function adjustLayoutForScreenSize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Adjust table container for different screen sizes
+            // Note: Removed height restrictions to display all documents without scrollbar
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                if (width <= 575.98) {
+                    // Mobile phones
+                    tableContainer.style.fontSize = '0.75rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else if (width <= 767.98) {
+                    // Small tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else if (width <= 991.98) {
+                    // Tablets
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                } else {
+                    // Desktop
+                    tableContainer.style.fontSize = '0.875rem';
+                    tableContainer.style.maxHeight = 'none';
+                    tableContainer.style.overflowY = 'visible';
+                }
+            }
+            
+            // Adjust form layout
+            const formSection = document.querySelector('.form-section');
+            if (formSection) {
+                const grid = formSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+            
+            // Adjust approval section layout
+            const approvalSection = document.querySelector('.approval-section');
+            if (approvalSection) {
+                const grid = approvalSection.querySelector('.grid');
+                if (grid) {
+                    if (width <= 767.98) {
+                        grid.style.gridTemplateColumns = '1fr';
+                    } else {
+                        grid.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                }
+            }
+        }
+        
+        function setupMobileFeatures() {
+            // Add mobile-specific event listeners
+            const tableContainer = document.querySelector('.table-container');
+            if (tableContainer) {
+                // Add touch scroll indicators
+                let isScrolling = false;
+                let scrollTimeout;
+                
+                tableContainer.addEventListener('scroll', function() {
+                    isScrolling = true;
+                    clearTimeout(scrollTimeout);
+                    
+                    scrollTimeout = setTimeout(function() {
+                        isScrolling = false;
+                    }, 150);
+                });
+            }
+            
+            // Optimize form inputs for mobile
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                // Prevent zoom on iOS
+                if (input.type === 'text' || input.type === 'email' || input.type === 'tel') {
+                    input.style.fontSize = '16px';
+                }
+                
+                // Add mobile-friendly focus styles
+                input.addEventListener('focus', function() {
+                    this.style.outline = '2px solid #3b82f6';
+                    this.style.outlineOffset = '2px';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.outline = '';
+                    this.style.outlineOffset = '';
+                });
+            });
+            
+            // Add mobile-friendly button styles
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.style.minHeight = '44px';
+                button.style.touchAction = 'manipulation';
+            });
+        }
+        
+        // Mobile-friendly form validation
+        function setupMobileFormValidation() {
+            const formElements = document.querySelectorAll('input, textarea, select');
+            
+            formElements.forEach(element => {
+                element.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+                    
+                    // Show mobile-friendly error message
+                    if (window.innerWidth <= 768) {
+                        showMobileErrorNotification(this.validationMessage);
+                    }
+                });
+            });
+        }
+        
+        function showMobileErrorNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'mobile-error-notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ef4444;
+                color: white;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                z-index: 10000;
+                max-width: 90vw;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Performance optimizations for mobile
+        function setupMobilePerformanceOptimizations() {
+            if (window.innerWidth <= 768) {
+                // Reduce animation complexity on mobile
+                const style = document.createElement('style');
+                style.textContent = `
+                    @media (max-width: 768px) {
+                        * {
+                            animation-duration: 0.2s !important;
+                            transition-duration: 0.2s !important;
+                        }
+                        
+                        .loading-spinner {
+                            animation-duration: 0.8s !important;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Optimize scroll performance
+                const scrollableElements = document.querySelectorAll('.table-container, .attachment-list-container');
+                scrollableElements.forEach(element => {
+                    element.style.webkitOverflowScrolling = 'touch';
+                });
+            }
+        }
+        
+        // Initialize responsive features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupResponsiveFeatures();
+            setupMobileFormValidation();
+            setupMobilePerformanceOptimizations();
+            
+            // Re-adjust layout when data is loaded
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+            }, 1000);
+        });
+        
+        // Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+                adjustLayoutForScreenSize();
+                if (window.innerWidth <= 768) {
+                    setupMobileFeatures();
+                }
+            }, 500);
+        });
+        
+
+        
+        // Initialize functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize E-Signing functionality
+            initializeESigningFeatures();
+        });
+
+        // E-Signing Variables are now declared in eSigningFunctions.js
+        // All variables moved to avoid conflicts
     </script>
 </body>
 </html> 

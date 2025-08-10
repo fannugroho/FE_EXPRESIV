@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test URL Encoding</title>
+</head>
+
+<body>
+    <h1>Testing URL Encoding for Print Function</h1>
+
+    <h2>Test Scenarios:</h2>
+    <div id="test-results"></div>
+
+    <script>
+        // Test data similar to the structure used in receiveOPReim.js
+        const testData = {
+            stagingId: "OPREIM-2024-001",
+            companyName: "PT Test Company & Co",
+            requesterName: "John Doe",
+            totalAmount: 1500000,
+            approval: {
+                preparedBy: "USER123",
+                checkedBy: "USER456",
+                acknowledgedBy: "USER789",
+                approvedBy: "USER999",
+                receivedBy: "USER888"
+            }
+        };
+
+        function testURLEncoding() {
+            const testResults = document.getElementById('test-results');
+
+            // Test 1: Old manual encoding (problematic)
+            const oldEncodedUrl = createOldURL(testData);
+            testResults.innerHTML += `
+                <h3>❌ Old Manual Encoding (Problematic):</h3>
+                <p style="word-break: break-all; color: red;">${oldEncodedUrl}</p>
+                <p><strong>Issues:</strong> Double encoding (%2520), unreadable URLs</p>
+                <hr>
+            `;
+
+            // Test 2: New URLSearchParams encoding (fixed)
+            const newEncodedUrl = createNewURL(testData);
+            testResults.innerHTML += `
+                <h3>✅ New URLSearchParams Encoding (Fixed):</h3>
+                <p style="word-break: break-all; color: green;">${newEncodedUrl}</p>
+                <p><strong>Benefits:</strong> Clean single encoding, readable URLs</p>
+                <hr>
+            `;
+
+            // Test 3: Compare encoding results
+            const comparison = compareEncodings();
+            testResults.innerHTML += `
+                <h3>🔍 Encoding Comparison:</h3>
+                ${comparison}
+            `;
+        }
+
+        function createOldURL(data) {
+            // Simulate old manual encoding method
+            const baseUrl = "print-page.html";
+            const params = [
+                `stagingId=${encodeURIComponent(data.stagingId)}`,
+                `companyName=${encodeURIComponent(data.companyName)}`,
+                `requesterName=${encodeURIComponent(data.requesterName)}`,
+                `totalAmount=${encodeURIComponent(data.totalAmount)}`
+            ];
+
+            // Manual join creates double encoding issues
+            return baseUrl + "?" + encodeURIComponent(params.join('&'));
+        }
+
+        function createNewURL(data) {
+            // New URLSearchParams method (from fixed receiveOPReim.js)
+            const params = new URLSearchParams();
+            params.append('stagingId', data.stagingId);
+            params.append('companyName', data.companyName);
+            params.append('requesterName', data.requesterName);
+            params.append('totalAmount', data.totalAmount);
+
+            return `print-page.html?${params.toString()}`;
+        }
+
+        function compareEncodings() {
+            const testString = "Test & Company <Special> Chars 100%";
+
+            const manual = encodeURIComponent(testString);
+            const urlParams = new URLSearchParams();
+            urlParams.append('test', testString);
+            const automatic = urlParams.toString().split('=')[1];
+
+            return `
+                <table style="border-collapse: collapse; width: 100%;">
+                    <tr style="background: #f0f0f0;">
+                        <th style="border: 1px solid #ccc; padding: 8px;">Method</th>
+                        <th style="border: 1px solid #ccc; padding: 8px;">Input</th>
+                        <th style="border: 1px solid #ccc; padding: 8px;">Output</th>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ccc; padding: 8px;">Original</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${testString}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">-</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ccc; padding: 8px;">Manual encodeURIComponent</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${testString}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px; color: red;">${manual}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ccc; padding: 8px;">URLSearchParams</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${testString}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px; color: green;">${automatic}</td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        // Run tests when page loads
+        window.onload = testURLEncoding;
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 // Current tab state
-let currentTab = 'all'; // Default tab
+let currentTab = 'approved'; // Default tab for receive dashboard
 let currentSearchTerm = '';
 let currentSearchType = 'invoice';
 let allInvoices = [];
@@ -7,19 +7,10 @@ let filteredInvoices = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// Override authentication check for development
-if (typeof isAuthenticated === 'function') {
-    const originalIsAuthenticated = isAuthenticated;
-    window.isAuthenticated = function() {
-        console.log('Development mode: Authentication check bypassed');
-        return true;
-    };
-}
-
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', function() {
-    loadUserData();
-    loadDashboard();
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadUserData();
+    await loadDashboard();
     
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
@@ -56,55 +47,132 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to load user data
-function loadUserData() {
-    console.log('Development mode: Bypassing authentication check');
-    
-    const dummyUserData = {
-        name: 'Development User',
-        avatar: '../../../../image/profil.png'
-    };
-    
+async function loadUserData() {
     try {
-        if (dummyUserData.name) {
-            const userNameDisplay = document.getElementById('userNameDisplay');
-            if (userNameDisplay) {
-                userNameDisplay.textContent = dummyUserData.name;
+        // Get user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            console.warn('No user ID found in localStorage');
+            return;
+        }
+
+        // Fetch user data from API
+        const userApiUrl = `${BASE_URL}/api/users/${userId}`;
+        console.log('Fetching user data from:', userApiUrl);
+
+        const response = await fetch(userApiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': '*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('User API Response:', result);
+
+        if (result.status && result.data) {
+            const user = result.data;
+            
+            // Display user name
+            if (user.fullName) {
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                if (userNameDisplay) {
+                    userNameDisplay.textContent = user.fullName;
+                }
+            }
+            
+            // Set avatar (use default if none provided)
+            const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+            if (dashboardUserIcon) {
+                dashboardUserIcon.src = '../../../../image/profil.png';
+            }
+            
+            // Show user profile
+            const userProfile = document.querySelector('.user-profile');
+            if (userProfile) {
+                userProfile.style.display = 'flex';
             }
         }
         
-        if (dummyUserData.avatar) {
-            const dashboardUserIcon = document.getElementById('dashboardUserIcon');
-            if (dashboardUserIcon) {
-                dashboardUserIcon.src = dummyUserData.avatar;
-            }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to default avatar and name
+        const dashboardUserIcon = document.getElementById('dashboardUserIcon');
+        if (dashboardUserIcon) {
+            dashboardUserIcon.src = '../../../../image/profil.png';
         }
         
         const userProfile = document.querySelector('.user-profile');
         if (userProfile) {
             userProfile.style.display = 'flex';
         }
-        
-    } catch (error) {
-        console.error('Error loading user data:', error);
     }
 }
 
 // Function to get user ID from token
-function getUserId() {
-    return 'dev-user-001';
+async function getUserId() {
+    try {
+        // First, get the user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            console.warn('No user ID found in localStorage');
+            return null;
+        }
+
+        // Fetch user data from API to get kansaiEmployeeId
+        const userApiUrl = `${BASE_URL}/api/users/${userId}`;
+        console.log('Fetching user data from:', userApiUrl);
+
+        const response = await fetch(userApiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': '*/*'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('User API Response:', result);
+
+        if (result.status && result.data && result.data.kansaiEmployeeId) {
+            console.log('Found kansaiEmployeeId:', result.data.kansaiEmployeeId);
+            return result.data.kansaiEmployeeId;
+        } else {
+            console.warn('No kansaiEmployeeId found in user data');
+            return null;
+        }
+
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
 }
 
 // Main function to load dashboard data
 async function loadDashboard() {
     try {
-        const userId = getUserId();
-        if (!userId) {
-            alert("Unable to get user ID from token. Please login again.");
+        const kansaiEmployeeId = await getUserId();
+        if (!kansaiEmployeeId) {
+            console.error('No kansaiEmployeeId found. Please login again.');
+            // Show empty state when no user ID
+            allInvoices = [];
+            filteredInvoices = [];
+            updateCounters();
+            updateTable([]);
             return;
         }
 
-        // Build API URL for AR Invoices
-        const apiUrl = `${BASE_URL}/api/ar-invoices`;
+        // Build API URL for AR Invoices by receivedBy NIK
+        const apiUrl = `${BASE_URL}/api/ar-invoices/by-received/${kansaiEmployeeId}`;
         console.log('Fetching data from:', apiUrl);
 
         // Make API call
@@ -138,28 +206,96 @@ async function loadDashboard() {
                     displayType = 'Services';
                 }
                 
+                // Determine status based on approval summary
+                let status = 'Draft';
+                if (invoice.arInvoiceApprovalSummary) {
+                    const summary = invoice.arInvoiceApprovalSummary;
+                    // Use the approvalStatus field from the API response
+                    if (summary.approvalStatus) {
+                        status = summary.approvalStatus;
+                    } else if (summary.receivedDate && summary.receivedBy) {
+                        status = 'Received';
+                    } else if (summary.approvedDate && summary.approvedBy) {
+                        status = 'Approved';
+                    } else if (summary.rejectedDate && summary.rejectedBy) {
+                        status = 'Rejected';
+                    } else if (summary.acknowledgedDate && summary.acknowledgedBy) {
+                        status = 'Acknowledged';
+                    } else if (summary.checkedDate && summary.checkedBy) {
+                        status = 'Checked';
+                    }
+                }
+                
                 const transformedInvoice = {
+                    // Core display fields
                     id: invoice.stagingID,
                     invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
                     customerName: invoice.cardName,
                     salesEmployee: invoice.u_BSI_Expressiv_PreparedByName || 'N/A',
                     invoiceDate: invoice.docDate,
                     dueDate: invoice.docDueDate,
-                    status: getInvoiceStatus(invoice), // We'll need to determine status based on approval data
+                    status: status,
                     totalAmount: invoice.docTotal,
                     invoiceType: displayType,
-                    // Additional fields from API
+                    
+                    // Document details from API response
+                    docNum: invoice.docNum,
+                    docType: invoice.docType,
                     cardCode: invoice.cardCode,
                     address: invoice.address,
+                    numAtCard: invoice.numAtCard,
                     comments: invoice.comments,
                     preparedByNIK: invoice.u_BSI_Expressiv_PreparedByNIK,
-                    currency: invoice.docCur,
+                    
+                    // Financial information
+                    docCur: invoice.docCur,
+                    docRate: invoice.docRate,
                     vatSum: invoice.vatSum,
-                    isTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    vatSumFC: invoice.vatSumFC,
+                    wtSum: invoice.wtSum,
+                    wtSumFC: invoice.wtSumFC,
+                    docTotal: invoice.docTotal,
+                    docTotalFC: invoice.docTotalFC,
+                    grandTotal: invoice.grandTotal,
+                    netAmount: invoice.netAmount,
+                    docTax: invoice.docTax,
+                    discSum: invoice.discSum,
+                    taxRate: invoice.taxRate,
+                    docBaseAmount: invoice.docBaseAmount,
+                    sysRate: invoice.sysRate,
+                    
+                    // Additional details
+                    visInv: invoice.visInv,
+                    trackNo: invoice.trackNo,
+                    trnspCode: invoice.trnspCode,
+                    u_BSI_ShippingType: invoice.u_BSI_ShippingType,
+                    groupNum: invoice.groupNum,
+                    u_BSI_PaymentGroup: invoice.u_BSI_PaymentGroup,
+                    u_bsi_udf1: invoice.u_bsi_udf1,
+                    u_bsi_udf2: invoice.u_bsi_udf2,
+                    u_bsi_udf3: invoice.u_bsi_udf3,
+                    licTradNum: invoice.licTradNum,
+                    dpp1112: invoice.dpp1112,
+                    qrCodeSrc: invoice.qrCodeSrc,
+                    
+                    // Banking information
+                    u_BankCode: invoice.u_BankCode,
+                    account: invoice.account,
+                    acctName: invoice.acctName,
+                    netPrice: invoice.netPrice,
+                    netPriceAfterDiscount: invoice.netPriceAfterDiscount,
+                    
+                    // System fields
+                    u_BSI_Expressiv_IsTransfered: invoice.u_BSI_Expressiv_IsTransfered,
+                    docEntryHeader: invoice.docEntryHeader,
+                    signedFilePath: invoice.signedFilePath,
                     createdAt: invoice.createdAt,
                     updatedAt: invoice.updatedAt,
+                    
+                    // Related data
                     approvalSummary: invoice.arInvoiceApprovalSummary,
-                    docType: invoice.docType // Keep original docType for reference
+                    arInvoiceDetails: invoice.arInvoiceDetails,
+                    arInvoiceAttachments: invoice.arInvoiceAttachments
                 };
                 console.log('Transformed invoice:', transformedInvoice);
                 return transformedInvoice;
@@ -196,64 +332,19 @@ async function loadDashboard() {
     }
 }
 
-// Helper function to determine invoice status based on approval data
-function getInvoiceStatus(invoice) {
-    console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
-    console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
-    
-    if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
-        console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
-        return 'Draft';
-    }
-    
-    // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
-    if (invoice.arInvoiceApprovalSummary) {
-        const summary = invoice.arInvoiceApprovalSummary;
-        console.log('arInvoiceApprovalSummary properties:', summary);
-        
-        // Use the approvalStatus field from the API response
-        if (summary.approvalStatus) {
-            console.log('Using approvalStatus from API:', summary.approvalStatus);
-            return summary.approvalStatus;
-        }
-        
-        // Fallback to old logic if approvalStatus is not available
-        if (summary.isRejected) return 'Rejected';
-        if (summary.isApproved) return 'Approved';
-        if (summary.isAcknowledged) return 'Acknowledged';
-        if (summary.isChecked) return 'Checked';
-        if (summary.isReceived) return 'Received';
-    }
-    
-    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
-    return 'Draft';
-}
+
 
 // Helper function to filter invoices by tab
 function filterInvoicesByTab(invoices, tab) {
     switch (tab) {
-        case 'all':
-            return invoices;
-        case 'prepared':
-            return invoices.filter(inv => inv.status === 'Prepared');
-        case 'checked':
-            return invoices.filter(inv => inv.status === 'Checked');
-        case 'rejected':
-            return invoices.filter(inv => inv.status === 'Rejected');
-        case 'draft':
-            return invoices.filter(inv => inv.status === 'Draft');
-        case 'acknowledged':
-            return invoices.filter(inv => inv.status === 'Acknowledged');
         case 'approved':
             return invoices.filter(inv => inv.status === 'Approved');
         case 'received':
             return invoices.filter(inv => inv.status === 'Received');
+        case 'rejected':
+            return invoices.filter(inv => inv.status === 'Rejected');
         default:
-            return invoices;
+            return invoices.filter(inv => inv.status === 'Approved'); // Default to approved for receive dashboard
     }
 }
 
@@ -278,56 +369,6 @@ function applySearchFilter(invoices, searchTerm, searchType) {
                        invoice.customerName.toLowerCase().includes(term);
         }
     });
-}
-
-// Mock data for development
-function getMockInvoiceData() {
-    const mockInvoices = [
-        {
-            id: 1,
-            invoiceNo: 'INV-2024-001',
-            customerName: 'PT Maju Bersama',
-            salesEmployee: 'John Doe',
-            invoiceDate: '2024-01-15',
-            dueDate: '2024-02-15',
-            status: currentTab === 'approved' ? 'Approved' : currentTab === 'received' ? 'Received' : 'Rejected',
-            totalAmount: 15000000,
-            invoiceType: 'Regular',
-            remarks: currentTab === 'rejected' ? 'Document incomplete' : '',
-            isReceived: currentTab === 'received',
-            isApproved: currentTab === 'approved' || currentTab === 'received'
-        },
-        {
-            id: 2,
-            invoiceNo: 'INV-2024-002',
-            customerName: 'PT Sukses Mandiri',
-            salesEmployee: 'Jane Smith',
-            invoiceDate: '2024-01-16',
-            dueDate: '2024-02-16',
-            status: currentTab === 'approved' ? 'Approved' : currentTab === 'received' ? 'Received' : 'Rejected',
-            totalAmount: 25000000,
-            invoiceType: 'Regular',
-            remarks: currentTab === 'rejected' ? 'Amount exceeds limit' : '',
-            isReceived: currentTab === 'received',
-            isApproved: currentTab === 'approved' || currentTab === 'received'
-        },
-        {
-            id: 3,
-            invoiceNo: 'INV-2024-003',
-            customerName: 'PT Berkah Abadi',
-            salesEmployee: 'Mike Johnson',
-            invoiceDate: '2024-01-17',
-            dueDate: '2024-02-17',
-            status: currentTab === 'approved' ? 'Approved' : currentTab === 'received' ? 'Received' : 'Rejected',
-            totalAmount: 8500000,
-            invoiceType: 'Special',
-            remarks: currentTab === 'rejected' ? 'Customer credit limit exceeded' : '',
-            isReceived: currentTab === 'received',
-            isApproved: currentTab === 'approved' || currentTab === 'received'
-        }
-    ];
-    
-    return mockInvoices;
 }
 
 // Function to update counters
@@ -386,8 +427,8 @@ function updateTable(invoices) {
             <td class="p-2">
                 <span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
             </td>
-            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">${invoice.invoiceType}</td>
+            <td class="p-2 text-right">${formatCurrency(invoice.totalAmount)}</td>
             <td class="p-2">
                 <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
@@ -530,8 +571,8 @@ function downloadExcel() {
             'Date': formatDate(invoice.invoiceDate),
             'Due Date': formatDate(invoice.dueDate),
             'Status': invoice.status,
-            'Total (IDR)': invoice.totalAmount,
             'Type': invoice.invoiceType,
+            'Total': invoice.totalAmount,
             'Remarks': invoice.remarks || ''
         })));
         
@@ -563,13 +604,13 @@ function downloadPDF() {
             formatDate(invoice.invoiceDate),
             formatDate(invoice.dueDate),
             invoice.status,
-            formatCurrency(invoice.totalAmount),
             invoice.invoiceType,
+            formatCurrency(invoice.totalAmount),
             invoice.remarks || ''
         ]);
         
         doc.autoTable({
-            head: [['Invoice No', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Total (IDR)', 'Type', 'Remarks']],
+            head: [['Invoice No', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total', 'Remarks']],
             body: tableData,
             startY: 50,
             styles: {

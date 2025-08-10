@@ -11,39 +11,22 @@ function getReimbursementIdFromUrl() {
 function getUrlParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     const params = {};
-    
+
     // Extract all parameters
     for (const [key, value] of urlParams.entries()) {
         params[key] = value;
     }
-    
+
     // Special handling for details JSON
     if (params.details) {
         try {
-            console.log('Raw details parameter:', params.details);
             params.details = JSON.parse(decodeURIComponent(params.details));
-            console.log('Parsed details:', params.details);
-            
-            // Validasi data details
-            if (Array.isArray(params.details)) {
-                console.log('Details is an array with', params.details.length, 'items');
-                
-                // Log setiap item details
-                params.details.forEach((item, index) => {
-                    console.log(`Detail item ${index}:`, item);
-                    console.log(`Amount for item ${index}:`, item.amount);
-                });
-            } else {
-                console.error('Details is not an array:', typeof params.details);
-            }
         } catch (error) {
             console.error('Error parsing details JSON:', error);
             params.details = [];
         }
-    } else {
-        console.log('No details parameter found in URL');
     }
-    
+
     return params;
 }
 
@@ -52,13 +35,13 @@ function numberToWords(num) {
     const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
     const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
     const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-    
+
     // Function to convert a number less than 1000 to words
     function convertLessThanOneThousand(num) {
         if (num === 0) return '';
-        
+
         let result = '';
-        
+
         if (num < 10) {
             result = units[num];
         } else if (num < 20) {
@@ -74,49 +57,49 @@ function numberToWords(num) {
                 result += ' and ' + convertLessThanOneThousand(num % 100);
             }
         }
-        
+
         return result;
     }
-    
+
     if (num === 0) return 'zero';
-    
+
     let result = '';
     let isNegative = num < 0;
-    
+
     if (isNegative) {
         num = Math.abs(num);
     }
-    
+
     // Handle billions
     if (num >= 1000000000) {
         result += convertLessThanOneThousand(Math.floor(num / 1000000000)) + ' billion';
         num %= 1000000000;
         if (num > 0) result += ' ';
     }
-    
+
     // Handle millions
     if (num >= 1000000) {
         result += convertLessThanOneThousand(Math.floor(num / 1000000)) + ' million';
         num %= 1000000;
         if (num > 0) result += ' ';
     }
-    
+
     // Handle thousands
     if (num >= 1000) {
         result += convertLessThanOneThousand(Math.floor(num / 1000)) + ' thousand';
         num %= 1000;
         if (num > 0) result += ' ';
     }
-    
+
     // Handle hundreds and below
     if (num > 0) {
         result += convertLessThanOneThousand(num);
     }
-    
+
     if (isNegative) {
         result = 'negative ' + result;
     }
-    
+
     return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
@@ -136,11 +119,11 @@ async function fetchReimbursementData() {
         console.error('No reimbursement ID found in URL');
         return;
     }
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
-        
+
         if (result.status && result.code === 200) {
             populatePrintData(result.data);
         } else {
@@ -155,7 +138,7 @@ async function fetchReimbursementData() {
 function populatePrintData(apiData = null) {
     // Get data from URL parameters first
     const urlParams = getUrlParameters();
-    
+
     // Use URL parameters if available, otherwise fall back to API data
     const data = {
         payTo: urlParams.payTo || (apiData ? apiData.payTo : ''),
@@ -168,27 +151,32 @@ function populatePrintData(apiData = null) {
         acknowledgeBy: urlParams.acknowledgeBy || (apiData ? apiData.acknowledgeBy : ''),
         approvedBy: urlParams.approvedBy || (apiData ? apiData.approvedBy : ''),
         receivedBy: urlParams.receivedBy || (apiData ? apiData.receivedBy : ''),
-        totalAmount: urlParams.totalAmount || (apiData ? calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
+        totalAmount: urlParams.totalAmount || (apiData ? apiData.totalAmount || calculateTotalFromDetails(apiData.reimbursementDetails) : 0),
         reimbursementDetails: urlParams.details || (apiData ? apiData.reimbursementDetails : []),
         typeOfTransaction: urlParams.typeOfTransaction || (apiData ? apiData.typeOfTransaction : ''),
         remarks: urlParams.remarks || (apiData ? apiData.remarks : ''),
-        currency: urlParams.currency || (apiData ? apiData.currency : 'IDR')
+        currency: urlParams.currency || (apiData ? apiData.currency : 'IDR'),
+        status: urlParams.status || (apiData ? apiData.status : ''),
+        preparedByDate: urlParams.preparedByDate || (apiData && apiData.preparedByDate ? apiData.preparedByDate : new Date().toISOString().split('T')[0]),
+        checkedByDate: urlParams.checkedByDate || (apiData && apiData.checkedByDate ? apiData.checkedByDate : new Date().toISOString().split('T')[0]),
+        acknowledgeByDate: urlParams.acknowledgeByDate || (apiData && apiData.acknowledgeByDate ? apiData.acknowledgeByDate : new Date().toISOString().split('T')[0]),
+        approvedByDate: urlParams.approvedByDate || (apiData && apiData.approvedByDate ? apiData.approvedByDate : new Date().toISOString().split('T')[0]),
+        receivedByDate: urlParams.receivedByDate || (apiData && apiData.receivedByDate ? apiData.receivedByDate : new Date().toISOString().split('T')[0])
     };
-    
+
+    console.log('Data for print page:', data);
+    console.log('Approval dates:', {
+        preparedByDate: data.preparedByDate,
+        checkedByDate: data.checkedByDate,
+        acknowledgeByDate: data.acknowledgeByDate,
+        approvedByDate: data.approvedByDate,
+        receivedByDate: data.receivedByDate
+    });
+
     // Populate header information
     document.getElementById('payToText').textContent = data.payTo || '';
     document.getElementById('voucherNoText').textContent = data.voucherNo || '';
-    
-    // Set Type of Transaction
-    if (document.getElementById('typeOfTransactionText')) {
-        document.getElementById('typeOfTransactionText').textContent = data.typeOfTransaction || '';
-    }
-    
-    // Set Remarks
-    if (document.getElementById('remarksText')) {
-        document.getElementById('remarksText').textContent = data.remarks || '';
-    }
-    
+
     // Format date if it's a string in YYYY-MM-DD format
     if (data.submissionDate) {
         if (typeof data.submissionDate === 'string' && data.submissionDate.includes('-')) {
@@ -205,79 +193,155 @@ function populatePrintData(apiData = null) {
             document.getElementById('submissionDateText').textContent = new Date(data.submissionDate).toLocaleDateString('en-GB');
         }
     }
-    
+
+    // Set type of transaction
+    if (document.getElementById('typeOfTransactionText')) {
+        document.getElementById('typeOfTransactionText').textContent = data.typeOfTransaction || getTypeOfTransactionFromUrl() || '';
+        console.log('Type of Transaction set to:', data.typeOfTransaction);
+    } else {
+        console.warn('typeOfTransactionText element not found in the document');
+    }
+
+    // Set department
+    if (document.getElementById('departmentText')) {
+        document.getElementById('departmentText').textContent = `Department : ${data.department || ''}`;
+        console.log('Department set to:', data.department);
+    } else {
+        console.warn('departmentText element not found in the document');
+    }
+
+    // Set remarks
+    if (document.getElementById('remarksText')) {
+        document.getElementById('remarksText').textContent = data.remarks || '';
+        console.log('Remarks set to:', data.remarks);
+    } else {
+        console.warn('remarksText element not found in the document');
+    }
+
+
     // Set reference document
     if (document.getElementById('refdoc')) {
         document.getElementById('refdoc').textContent = `Reference Doc: ${data.referenceDoc || ''}`;
     }
-    
-    // Set department value
-    if (document.getElementById('departmentValue')) {
-        document.getElementById('departmentValue').textContent = data.department || '';
-    }
-    
+
     // Set approver names in signature section
     if (document.getElementById('preparedBy') && data.preparedBy) {
         document.getElementById('preparedBy').textContent = data.preparedBy;
     }
-    
+
     if (document.getElementById('checkedBy') && data.checkedBy) {
         document.getElementById('checkedBy').textContent = data.checkedBy;
     }
-    
+
     if (document.getElementById('acknowledgeBy') && data.acknowledgeBy) {
         document.getElementById('acknowledgeBy').textContent = data.acknowledgeBy;
     }
-    
+
     if (document.getElementById('approvedBy') && data.approvedBy) {
         document.getElementById('approvedBy').textContent = data.approvedBy;
     }
-    
+
     if (document.getElementById('approvedByText') && data.approvedBy) {
         document.getElementById('approvedByText').textContent = data.approvedBy;
     }
-    
+
     if (document.getElementById('receivedBy') && data.receivedBy) {
         document.getElementById('receivedBy').textContent = data.receivedBy;
     }
-    
-    // Show approval stamps based on status
-    const approvalStamps = document.querySelectorAll('.approval-stamp');
-    if (approvalStamps.length >= 5) {
-        // Default to visible if we have data, hidden if not
-        approvalStamps[0].style.visibility = data.preparedBy ? 'visible' : 'hidden';
-        approvalStamps[1].style.visibility = data.checkedBy ? 'visible' : 'hidden';
-        approvalStamps[2].style.visibility = data.acknowledgeBy ? 'visible' : 'hidden';
-        approvalStamps[3].style.visibility = data.approvedBy ? 'visible' : 'hidden';
-        approvalStamps[4].style.visibility = data.receivedBy ? 'visible' : 'hidden';
-    }
-    
-    // Set approval dates (current date as placeholder)
-    const currentDate = new Date().toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+
+    // Set approval dates
     if (document.getElementById('preparedByDate')) {
-        document.getElementById('preparedByDate').textContent = currentDate;
+        console.log('Setting preparedByDate:', data.preparedByDate);
+        document.getElementById('preparedByDate').textContent = formatDateIfExists(data.preparedByDate);
     }
+
     if (document.getElementById('checkedByDate')) {
-        document.getElementById('checkedByDate').textContent = currentDate;
+        console.log('Setting checkedByDate:', data.checkedByDate);
+        document.getElementById('checkedByDate').textContent = formatDateIfExists(data.checkedByDate);
     }
+
     if (document.getElementById('acknowledgeByDate')) {
-        document.getElementById('acknowledgeByDate').textContent = currentDate;
+        console.log('Setting acknowledgeByDate:', data.acknowledgeByDate);
+        document.getElementById('acknowledgeByDate').textContent = formatDateIfExists(data.acknowledgeByDate);
     }
+
     if (document.getElementById('approvedByDate')) {
-        document.getElementById('approvedByDate').textContent = currentDate;
+        console.log('Setting approvedByDate:', data.approvedByDate);
+        document.getElementById('approvedByDate').textContent = formatDateIfExists(data.approvedByDate);
     }
+
     if (document.getElementById('receivedByDate')) {
-        document.getElementById('receivedByDate').textContent = currentDate;
+        console.log('Setting receivedByDate:', data.receivedByDate);
+        document.getElementById('receivedByDate').textContent = formatDateIfExists(data.receivedByDate);
     }
-    
+
+    // Update "Received by" approval stamp based on status
+    updateReceivedByStamp(data.status);
+
     // Populate reimbursement details table
     populateDetailsTable(data.reimbursementDetails, data.totalAmount, data.currency);
+}
+
+// Update approval stamp text based on document status
+function updateReceivedByStamp(status) {
+    // Find the "Received by" signature box and its approval stamp text
+    const signatureBoxes = document.querySelectorAll('.signature-box');
+    let receivedByStampElement = null;
+
+    signatureBoxes.forEach(box => {
+        const title = box.querySelector('.signature-title');
+        if (title && title.textContent.includes('Received by')) {
+            receivedByStampElement = box.querySelector('.approval-stamp-text');
+        }
+    });
+
+    if (receivedByStampElement) {
+        if (status === 'Approved') {
+            receivedByStampElement.textContent = '-';
+        } else if (status === 'Received') {
+            receivedByStampElement.textContent = 'Received';
+        } else {
+            // For other statuses, keep default
+            receivedByStampElement.textContent = '-';
+        }
+        console.log('Updated received by stamp for status:', status);
+    } else {
+        console.log('Received by stamp element not found');
+    }
+}
+
+// Format date if it exists
+function formatDateIfExists(dateString) {
+    if (!dateString) {
+        console.log('Date string is empty or null');
+        return '';
+    }
+
+    try {
+        console.log('Formatting date:', dateString, 'Type:', typeof dateString);
+        if (typeof dateString === 'string' && dateString.includes('-')) {
+            const dateParts = dateString.split('-');
+            if (dateParts.length === 3) {
+                // Convert from YYYY-MM-DD to DD/MM/YYYY
+                const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                console.log('Formatted date (YYYY-MM-DD):', formatted);
+                return formatted;
+            }
+        }
+        // If it's a date object or other format
+        const formatted = new Date(dateString).toLocaleDateString('en-GB');
+        console.log('Formatted date (other):', formatted);
+        return formatted;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString; // Return as is if there's an error
+    }
 }
 
 // Helper function to calculate total from details
 function calculateTotalFromDetails(details) {
     if (!details || !Array.isArray(details)) return 0;
-    
+
     return details.reduce((sum, detail) => {
         return sum + (parseFloat(detail.amount) || 0);
     }, 0);
@@ -286,26 +350,25 @@ function calculateTotalFromDetails(details) {
 // Populate reimbursement details table
 function populateDetailsTable(details, totalAmount = null, currency = 'IDR') {
     const tableBody = document.getElementById('reimbursementDetailsTable');
+    if (!tableBody) {
+        console.error('reimbursementDetailsTable not found');
+        return;
+    }
+
     tableBody.innerHTML = ''; // Clear existing rows
-    
+
     let calculatedTotal = 0;
-    
+
     if (details && details.length > 0) {
         details.forEach(detail => {
             const amount = parseFloat(detail.amount) || 0;
             calculatedTotal += amount;
-            
-            // Log untuk debugging
-            console.log('Detail item:', detail);
-            console.log('Amount value:', amount);
-            console.log('Formatted amount:', formatCurrency(amount));
-            
+
             const row = document.createElement('tr');
-            // Urutan kolom: Category, Account, Detail Account, Description, Debit, Credit
             row.innerHTML = `
                 <td class="border p-2">${detail.category || ''}</td>
-                <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.accountName || ''}</td>
+                <td class="border p-2">${detail.glAccount || ''}</td>
                 <td class="border p-2">${detail.description || ''}</td>
                 <td class="border p-2">${formatCurrency(amount, currency)}</td>
                 <td class="border p-2"></td>
@@ -313,36 +376,47 @@ function populateDetailsTable(details, totalAmount = null, currency = 'IDR') {
             tableBody.appendChild(row);
         });
     } else {
-        console.log('No details found or empty array');
+        console.warn('No details found to populate table');
     }
-    
-    // Use provided total amount or calculated total
-    const finalTotal = totalAmount !== null ? parseFloat(totalAmount) : calculatedTotal;
-    
-    // Log untuk debugging
-    console.log('Final total amount:', finalTotal);
-    console.log('Formatted total:', formatCurrency(finalTotal));
-    
+
+    // Always prioritize totalAmount from parameters if available
+    let finalTotal = 0;
+    if (totalAmount !== null && totalAmount !== undefined && totalAmount !== '') {
+        // Handle comma-separated numbers (e.g. "1,234.56")
+        const cleanedTotal = String(totalAmount).replace(/,/g, '');
+        finalTotal = parseFloat(cleanedTotal) || 0;
+        console.log('Using provided totalAmount:', totalAmount, 'parsed as:', finalTotal);
+    } else {
+        finalTotal = calculatedTotal;
+        console.log('Using calculated total:', calculatedTotal);
+    }
+
     // Update totals
     if (document.getElementById('totalDebitText')) {
         document.getElementById('totalDebitText').textContent = formatCurrency(finalTotal, currency);
+        console.log('Set totalDebitText to:', formatCurrency(finalTotal, currency));
     } else {
-        console.error('Element with ID totalDebitText not found');
+        console.warn('totalDebitText element not found');
     }
-    
+
     if (document.getElementById('totalCreditText')) {
-        document.getElementById('totalCreditText').textContent = ''; // Removed the credit amount display
+        document.getElementById('totalCreditText').textContent = '-';
+        console.log('Set totalCreditText to empty');
     } else {
-        console.error('Element with ID totalCreditText not found');
+        console.warn('totalCreditText element not found');
     }
-    
+
     // Update amount payment and amount in words
     if (document.getElementById('amountText')) {
         document.getElementById('amountText').textContent = formatCurrency(finalTotal, currency);
+    } else {
+        console.warn('amountText element not found');
     }
-    
+
     if (document.getElementById('amountInWordText')) {
         document.getElementById('amountInWordText').textContent = `${numberToWords(finalTotal)}`;
+    } else {
+        console.warn('amountInWordText element not found');
     }
 }
 
@@ -352,7 +426,7 @@ function goBack() {
 }
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Try to populate from URL parameters first
     const urlParams = getUrlParameters();
     if (urlParams && Object.keys(urlParams).length > 1) { // More than just reim-id
@@ -361,4 +435,4 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fall back to API if URL parameters are insufficient
         fetchReimbursementData();
     }
-});
+}); 

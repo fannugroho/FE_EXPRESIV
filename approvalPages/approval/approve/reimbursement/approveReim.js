@@ -15,12 +15,12 @@ async function fetchReimbursementData() {
         console.error('No reimbursement ID found in URL');
         return;
     }
-    
+
     try {
         console.log('Fetching reimbursement data for ID:', reimbursementId);
         const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}`);
         const result = await response.json();
-        
+
         if (result.status && result.code === 200) {
             console.log('Reimbursement data received:', result.data);
             console.log('Type of Transaction:', result.data.typeOfTransaction);
@@ -38,38 +38,38 @@ async function fetchUsers() {
     try {
         console.log('Fetching users from API...');
         const response = await fetch(`${BASE_URL}/api/users`);
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('Users API response:', result);
-        
+
         if (!result.status || result.code !== 200) {
             throw new Error(result.message || 'Failed to fetch users');
         }
-        
+
         const users = result.data;
         console.log('Users data:', users);
-        
+
         if (!users || users.length === 0) {
             console.warn('No users found in API response');
             return;
         }
-        
+
         // Store users globally for later use
         window.allUsers = users;
-        
+
         // Populate dropdowns
         populateDropdown("preparedBySelect", users);
-        populateDropdown("acknowledgeBySelect", users);
+        populateDropdown("acknowledgedBySelect", users);
         populateDropdown("checkedBySelect", users);
         populateDropdown("approvedBySelect", users);
-        populateDropdown("receivedBySelect", users);
-        
+        populateDropdown("receiveBySelect", users);
+
         // Make all dropdowns readonly by disabling them
-        const dropdownIds = ["preparedBySelect", "acknowledgeBySelect", "checkedBySelect", "approvedBySelect", "receivedBySelect"];
+        const dropdownIds = ["preparedBySelect", "acknowledgedBySelect", "checkedBySelect", "approvedBySelect", "receiveBySelect"];
         dropdownIds.forEach(id => {
             const dropdown = document.getElementById(id);
             if (dropdown) {
@@ -77,11 +77,42 @@ async function fetchUsers() {
                 dropdown.classList.add('bg-gray-200', 'cursor-not-allowed');
             }
         });
-        
+
         console.log('Successfully populated all user dropdowns');
-        
+
     } catch (error) {
         console.error("Error fetching users:", error);
+    }
+}
+
+// Function to fetch business partners from API
+async function fetchBusinessPartners() {
+    try {
+        console.log('Fetching business partners from API...');
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Business partners API response:', result);
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to fetch business partners');
+        }
+
+        const businessPartners = result.data;
+        console.log('Business partners data:', businessPartners);
+
+        // Store business partners globally for later use
+        window.allBusinessPartners = businessPartners;
+
+        console.log('Successfully fetched business partners');
+
+    } catch (error) {
+        console.error("Error fetching business partners:", error);
+        // Don't throw error, just log it as business partners might not be critical
     }
 }
 
@@ -89,11 +120,11 @@ async function fetchUsers() {
 async function fetchDepartments() {
     try {
         const response = await fetch(`${BASE_URL}/api/department`);
-        
+
         if (!response.ok) {
             throw new Error('Network response was not ok: ' + response.statusText);
         }
-        
+
         const data = await response.json();
         console.log("Department data:", data);
         populateDepartmentSelect(data.data);
@@ -106,10 +137,10 @@ async function fetchDepartments() {
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("department");
     if (!departmentSelect) return;
-    
+
     // Clear existing options except the first one (if any)
     departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
-    
+
     departments.forEach(department => {
         const option = document.createElement("option");
         option.value = department.name;
@@ -122,18 +153,18 @@ function populateDepartmentSelect(departments) {
 function setDepartmentValue(departmentName) {
     const departmentSelect = document.getElementById("department");
     if (!departmentSelect || !departmentName) return;
-    
+
     // Try to find existing option
     let optionExists = false;
     for (let i = 0; i < departmentSelect.options.length; i++) {
-        if (departmentSelect.options[i].value === departmentName || 
+        if (departmentSelect.options[i].value === departmentName ||
             departmentSelect.options[i].textContent === departmentName) {
             departmentSelect.selectedIndex = i;
             optionExists = true;
             break;
         }
     }
-    
+
     // If option doesn't exist, create and add it
     if (!optionExists) {
         const newOption = document.createElement('option');
@@ -152,12 +183,12 @@ function populateDropdown(dropdownId, users) {
         console.log(`Dropdown ${dropdownId} not found`);
         return;
     }
-    
+
     console.log(`Populating ${dropdownId} with ${users.length} users`);
-    
+
     // Clear existing options
     dropdown.innerHTML = "";
-    
+
     // Add default option
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
@@ -165,112 +196,131 @@ function populateDropdown(dropdownId, users) {
     defaultOption.disabled = true;
     defaultOption.selected = true;
     dropdown.appendChild(defaultOption);
-    
+
     // Add users as options
     users.forEach(user => {
         const option = document.createElement("option");
         option.value = user.id;
-        
+
         // Combine names with spaces, handling empty middle/last names
         let displayName = user.fullName || '';
-        
+
         // Fallback to username if no name fields
         if (!displayName.trim()) {
             displayName = user.username || `User ${user.id}`;
         }
-        
+
         option.textContent = displayName.trim();
         dropdown.appendChild(option);
         console.log(`Added user: ${displayName.trim()} with ID: ${user.id}`);
     });
-    
+
     console.log(`Finished populating ${dropdownId}`);
+}
+
+// NEW FUNCTION: Populate PayTo field with proper name translation
+function populatePayToField(payToId) {
+    if (!payToId) return;
+
+    const payToField = document.getElementById('payTo');
+    if (!payToField) return;
+
+    console.log('Translating payTo ID:', payToId);
+
+    // Try business partners first
+    const businessPartners = window.allBusinessPartners || [];
+    const matchingBP = businessPartners.find(bp =>
+        bp.id.toString() === payToId.toString()
+    );
+
+    if (matchingBP) {
+        const displayText = `${matchingBP.code} - ${matchingBP.name}`;
+        payToField.value = displayText;
+        console.log('Found business partner:', displayText);
+        return;
+    }
+
+    // Try users if business partner not found
+    const users = window.allUsers || [];
+    const matchingUser = users.find(user =>
+        user.id.toString() === payToId.toString()
+    );
+
+    if (matchingUser) {
+        // Create display text with employee ID and name
+        let displayText = '';
+
+        if (matchingUser.kansaiEmployeeId) {
+            displayText = `${matchingUser.kansaiEmployeeId} - ${matchingUser.fullName || matchingUser.username}`;
+        } else if (matchingUser.employeeId) {
+            displayText = `${matchingUser.employeeId} - ${matchingUser.fullName || matchingUser.username}`;
+        } else {
+            displayText = matchingUser.fullName || matchingUser.username || `User ${matchingUser.id}`;
+        }
+
+        payToField.value = displayText;
+        console.log('Found user:', displayText);
+        return;
+    }
+
+    // Fallback if no match found
+    payToField.value = `ID: ${payToId}`;
+    console.log('No match found for payTo ID, using fallback:', payToId);
 }
 
 // Populate form fields with data
 function populateFormData(data) {
     // Store users globally for search functionality (mock data if needed)
     window.allUsers = window.allUsers || [];
-    
+
     // Main form fields
     if (document.getElementById('voucherNo')) document.getElementById('voucherNo').value = data.voucherNo || '';
     if (document.getElementById('requesterName')) document.getElementById('requesterName').value = data.requesterName || '';
-    
+
     // Set department and ensure it exists in dropdown
     if (data.department) {
         setDepartmentValue(data.department);
     }
-    
+
     if (document.getElementById('currency')) document.getElementById('currency').value = data.currency || '';
-    
-    // Set payTo to show requester name instead of ID
-    if (document.getElementById('payTo')) {
-        document.getElementById('payTo').value = data.requesterName || '';
+
+    // FIXED: Use the new payTo population function instead of just showing requester name
+    if (data.payTo) {
+        populatePayToField(data.payTo);
+    } else if (data.requesterName) {
+        // Fallback to requester name if payTo is not available
+        if (document.getElementById('payTo')) {
+            document.getElementById('payTo').value = data.requesterName;
+        }
     }
-    
+
     // Format date for the date input (YYYY-MM-DD) with local timezone
     if (data.submissionDate && document.getElementById('submissionDate')) {
         // Buat objek Date dari string tanggal
         const date = new Date(data.submissionDate);
-        
+
         // Gunakan metode yang mempertahankan zona waktu lokal
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
         const day = String(date.getDate()).padStart(2, '0');
-        
+
         // Format tanggal dalam format YYYY-MM-DD untuk input date
         const formattedDate = `${year}-${month}-${day}`;
-        
+
         document.getElementById('submissionDate').value = formattedDate;
     }
-    
+
     if (document.getElementById('status')) document.getElementById('status').value = data.status || '';
-    
-    // Hide Print button if status is "Acknowledged"
-    if (data.status === "Acknowledged" && document.getElementById('printButton')) {
-        document.getElementById('printButton').style.display = 'none';
-    }
-    
-    // Hide buttons if status is "Approved"
-    if (data.status === "Approved") {
-        // Hide Add Row button
-        if (document.getElementById('addRowButton')) {
-            document.getElementById('addRowButton').style.display = 'none';
-        }
-        
-        // Hide Reject button
-        if (document.getElementById('rejectButton')) {
-            document.getElementById('rejectButton').style.display = 'none';
-        }
-        
-        // Hide Approve button
-        if (document.getElementById('approveButton')) {
-            document.getElementById('approveButton').style.display = 'none';
-        }
-        
-        // Hide Add Revision button
-        if (document.getElementById('addRevisionBtn')) {
-            document.getElementById('addRevisionBtn').style.display = 'none';
-        }
-        
-        // Hide Revision button
-        if (document.getElementById('revisionButton')) {
-            document.getElementById('revisionButton').style.display = 'none';
-        }
-    }
-    
     if (document.getElementById('referenceDoc')) document.getElementById('referenceDoc').value = data.referenceDoc || '';
     if (document.getElementById('remarks')) document.getElementById('remarks').value = data.remarks || '';
-    
+
     // Approvers information - safely check if elements exist
     if (document.getElementById('preparedBySelect')) document.getElementById('preparedBySelect').value = data.preparedBy || '';
     if (document.getElementById('checkedBySelect')) document.getElementById('checkedBySelect').value = data.checkedBy || '';
-    if (document.getElementById('acknowledgeBySelect')) document.getElementById('acknowledgeBySelect').value = data.acknowledgedBy || '';
+    if (document.getElementById('acknowledgedBySelect')) document.getElementById('acknowledgedBySelect').value = data.acknowledgedBy || '';
     if (document.getElementById('approvedBySelect')) document.getElementById('approvedBySelect').value = data.approvedBy || '';
-    if (document.getElementById('receivedBySelect')) document.getElementById('receivedBySelect').value = data.receivedBy || '';
-    
-    // Set checkbox states based on if values exist - removed checks for elements that don't exist
-    
+    if (document.getElementById('receiveBySelect')) document.getElementById('receiveBySelect').value = data.receivedBy || '';
+
     // Handle reimbursement details (table rows)
     if (data.reimbursementDetails) {
         console.log('Populating reimbursement details:', data.reimbursementDetails);
@@ -278,27 +328,27 @@ function populateFormData(data) {
     } else {
         console.log('No reimbursement details found in data');
     }
-    
+
     // Display attachment information
     if (data.reimbursementAttachments) {
         displayAttachments(data.reimbursementAttachments);
     }
-    
+
     if (data.revisions) {
         renderRevisionHistory(data.revisions);
     } else {
         renderRevisionHistory([]);
     }
-    
+
     // Display rejection remarks if status is Rejected
     if (data.status === 'Rejected') {
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         const rejectionTextarea = document.getElementById('rejectionRemarks');
-        
+
         if (rejectionSection && rejectionTextarea) {
             // Check for various possible rejection remarks fields
             let rejectionRemarks = '';
-            
+
             // Check for specific rejection remarks by role
             if (data.remarksRejectByChecker) {
                 rejectionRemarks = data.remarksRejectByChecker;
@@ -313,7 +363,7 @@ function populateFormData(data) {
             } else if (data.remarks) {
                 rejectionRemarks = data.remarks;
             }
-            
+
             if (rejectionRemarks.trim() !== '') {
                 rejectionSection.style.display = 'block';
                 rejectionTextarea.value = rejectionRemarks;
@@ -328,11 +378,11 @@ function populateFormData(data) {
             rejectionSection.style.display = 'none';
         }
     }
-    
+
     // Fix untuk typeOfTransaction - pastikan nilai ditampilkan dengan benar
     if (document.getElementById('typeOfTransaction') && data.typeOfTransaction) {
         const typeSelect = document.getElementById('typeOfTransaction');
-        
+
         // Cek apakah nilai ada dalam opsi
         let optionExists = false;
         for (let i = 0; i < typeSelect.options.length; i++) {
@@ -341,10 +391,10 @@ function populateFormData(data) {
                 break;
             }
         }
-        
+
         // Aktifkan sementara untuk mengatur nilai
         typeSelect.disabled = false;
-        
+
         // Jika nilai tidak ada dalam opsi, tambahkan opsi baru
         if (!optionExists && data.typeOfTransaction) {
             const newOption = document.createElement('option');
@@ -352,32 +402,25 @@ function populateFormData(data) {
             newOption.textContent = data.typeOfTransaction;
             typeSelect.appendChild(newOption);
         }
-        
+
         // Set nilai
         typeSelect.value = data.typeOfTransaction;
-        
+
         // Nonaktifkan kembali
         setTimeout(() => {
             typeSelect.disabled = true;
             typeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
         }, 100);
-        
+
         console.log('Set typeOfTransaction to:', data.typeOfTransaction);
     }
-    
-    // Check status and hide buttons after all data is loaded
-    setTimeout(() => {
-        if (typeof checkStatusAndHideButtons === 'function') {
-            checkStatusAndHideButtons();
-        }
-    }, 100);
 }
 
 // Function to format amount with decimal places
 function formatAmount(amount) {
     // Ensure amount is a number
     const numericValue = parseFloat(amount) || 0;
-    
+
     // Format with thousands separator and 2 decimal places
     return numericValue.toLocaleString('en-US', {
         minimumFractionDigits: 2,
@@ -385,51 +428,27 @@ function formatAmount(amount) {
     });
 }
 
-// Function to calculate and update the total amount
-function updateTotalAmount() {
-    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
-    let total = 0;
-    
-    amountInputs.forEach(input => {
-        // Get numeric value from data-raw-value attribute
-        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
-        total += numericValue;
-    });
-    
-    // Format total with thousands separator
-    const formattedTotal = total.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    
-    // Update total amount field
-    document.getElementById('totalAmount').value = formattedTotal;
-}
-
-// Override populateReimbursementDetails to use proper amount formatting
-const originalPopulateReimbursementDetails = window.populateReimbursementDetails;
-window.populateReimbursementDetails = function(details) {
+// Populate reimbursement details table
+function populateReimbursementDetails(details) {
     const tableBody = document.getElementById('reimbursementDetails');
     if (!tableBody) {
         console.error('reimbursementDetails table body not found');
         return;
     }
-    
+
     tableBody.innerHTML = ''; // Clear existing rows
-    
-    // Check if status is "Approved"
-    const status = document.getElementById('status').value;
-    const isApproved = status === "Approved";
-    
+
     if (details && details.length > 0) {
         details.forEach(detail => {
             // Format amount with decimal places
             const formattedAmount = formatAmount(detail.amount);
-            
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="p-2 border">
-                    <input type="text" value="${detail.category || ''}" maxlength="200" class="w-full bg-gray-100" required readonly />
+                    <select class="w-full bg-gray-100" required disabled>
+                        <option value="${detail.category || ''}" selected>${detail.category || ''}</option>
+                    </select>
                 </td>
                 <td class="p-2 border">
                     <input type="text" value="${detail.accountName || ''}" maxlength="30" class="w-full bg-gray-100" required readonly />
@@ -443,8 +462,8 @@ window.populateReimbursementDetails = function(details) {
                 <td class="p-2 border">
                     <input type="text" value="${formattedAmount}" data-raw-value="${detail.amount || 0}" class="w-full text-right bg-gray-100" required readonly />
                 </td>
-                <td class="p-2 border text-center bg-gray-100">
-                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" ${isApproved ? 'style="display: none;"' : ''} disabled>
+                <td class="p-2 border text-center">
+                    <button type="button" onclick="deleteRow(this)" data-id="${detail.id}" class="text-red-500 hover:text-red-700" disabled style="display: none;">
                         🗑
                     </button>
                 </td>
@@ -455,51 +474,10 @@ window.populateReimbursementDetails = function(details) {
         // Add an empty row if no details
         addRow();
     }
-    
-    // Calculate and update the total amount
-    updateTotalAmount();
-};
 
-// Override addRow to use the same amount formatting
-window.addRow = function() {
-    const tableBody = document.getElementById('reimbursementDetails');
-    if (!tableBody) {
-        console.error('reimbursementDetails table body not found');
-        return;
-    }
-    
-    // Check if status is "Approved"
-    const status = document.getElementById('status').value;
-    const isApproved = status === "Approved";
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full bg-gray-100" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="10" class="w-full bg-gray-100" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right bg-gray-100" required readonly />
-        </td>
-        <td class="p-2 border text-center bg-gray-100">
-            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" ${isApproved ? 'style="display: none;"' : ''} disabled>
-                🗑
-            </button>
-        </td>
-    `;
-    tableBody.appendChild(newRow);
-    
-    // Update total amount
+    // Calculate and update total amount
     updateTotalAmount();
-};
+}
 
 // Display attachments
 function displayAttachments(attachments) {
@@ -508,9 +486,9 @@ function displayAttachments(attachments) {
         console.error('attachmentsList element not found');
         return;
     }
-    
+
     attachmentsList.innerHTML = ''; // Clear existing attachments
-    
+
     if (attachments && attachments.length > 0) {
         attachments.forEach(attachment => {
             const attachmentItem = document.createElement('div');
@@ -524,10 +502,53 @@ function displayAttachments(attachments) {
     }
 }
 
+// Add a new empty row to the reimbursement details table
+function addRow() {
+    const tableBody = document.getElementById('reimbursementDetails');
+    if (!tableBody) {
+        console.error('reimbursementDetails table body not found');
+        return;
+    }
+
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="p-2 border">
+            <select class="w-full bg-gray-100" required disabled>
+                <option value="" selected></option>
+            </select>
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="30" class="w-full bg-gray-100" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="10" class="w-full bg-gray-100" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" maxlength="200" class="w-full bg-gray-100" required readonly />
+        </td>
+        <td class="p-2 border">
+            <input type="text" value="0.00" data-raw-value="0" class="w-full text-right bg-gray-100" required readonly />
+        </td>
+        <td class="p-2 border text-center">
+            <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700" disabled style="display: none;">
+                🗑
+            </button>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
+
+    // Update total amount
+    updateTotalAmount();
+}
+
 // Delete a row from the reimbursement details table
 function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
+}
+
+function goToMenuReim() {
+    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
 }
 
 // Submit reimbursement update to API
@@ -538,26 +559,35 @@ async function submitReimbursementUpdate() {
         Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
-    
+
     // Collect reimbursement details from table
     const detailsTable = document.getElementById('reimbursementDetails');
     const rows = detailsTable.querySelectorAll('tr');
     const reimbursementDetails = [];
-    
+
     rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
+        const categoryCell = row.querySelector('td:nth-child(1) select');
+        const accountNameCell = row.querySelector('td:nth-child(2) input');
+        const glAccountCell = row.querySelector('td:nth-child(3) input');
+        const descriptionCell = row.querySelector('td:nth-child(4) input');
+        const amountCell = row.querySelector('td:nth-child(5) input');
         const deleteButton = row.querySelector('button');
-        const detailId = deleteButton.getAttribute('data-id') || null;
-        
+        const detailId = deleteButton ? deleteButton.getAttribute('data-id') : null;
+
+        if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+            return; // Skip if any cell is missing
+        }
+
         reimbursementDetails.push({
             id: detailId,
-            description: inputs[0].value,
-            glAccount: inputs[1].value,
-            accountName: inputs[2].value,
-            amount: parseFloat(inputs[3].value) || 0
+            category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
+            accountName: accountNameCell.value,
+            glAccount: glAccountCell.value,
+            description: descriptionCell.value,
+            amount: parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0
         });
     });
-    
+
     // Build request data
     const requestData = {
         requesterName: document.getElementById('requesterName').value,
@@ -569,7 +599,7 @@ async function submitReimbursementUpdate() {
         remarks: document.getElementById('remarks').value,
         reimbursementDetails: reimbursementDetails
     };
-    
+
     // API call removed
     Swal.fire(
         'Updated!',
@@ -581,11 +611,12 @@ async function submitReimbursementUpdate() {
     });
 }
 
-// Function to go back to menu
-function goToMenuReim() {
-    window.location.href = '../../../dashboard/dashboardApprove/reimbursement/menuReimApprove.html';
+// Function to navigate back to the menu
+function goToMenuReceiveReim() {
+    window.location.href = "../../../dashboard/dashboardReceive/reimbursement/menuReimReceive.html";
 }
 
+// Function to reject the document
 function onReject() {
     // Create custom dialog with single field
     Swal.fire({
@@ -631,7 +662,7 @@ function onReject() {
                 Swal.fire('Error', 'No reimbursement ID found', 'error');
                 return;
             }
-            
+
             // Make API call to reject the reimbursement
             fetch(`${BASE_URL}/api/reimbursements/approver/${id}/reject`, {
                 method: 'PATCH',
@@ -643,33 +674,33 @@ function onReject() {
                     remarks: result.value
                 })
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Rejected!',
-                        'The document has been rejected.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status && result.code === 200) {
+                        Swal.fire(
+                            'Rejected!',
+                            'The document has been rejected.',
+                            'success'
+                        ).then(() => {
+                            // Return to menu
+                            goToMenuReim();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            result.message || 'Failed to reject document',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error rejecting reimbursement:', error);
                     Swal.fire(
                         'Error',
-                        result.message || 'Failed to reject document',
+                        'An error occurred while rejecting the document',
                         'error'
                     );
-                }
-            })
-            .catch(error => {
-                console.error('Error rejecting reimbursement:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while rejecting the document',
-                    'error'
-                );
-            });
+                });
         }
     });
 }
@@ -692,7 +723,19 @@ function onApprove() {
                 Swal.fire('Error', 'No reimbursement ID found', 'error');
                 return;
             }
-            
+
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving document and generating print...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             // Make API call to approve the reimbursement
             fetch(`${BASE_URL}/api/reimbursements/approver/${id}/approve`, {
                 method: 'PATCH',
@@ -701,35 +744,567 @@ function onApprove() {
                     'Authorization': `Bearer ${getAccessToken()}`
                 }
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status && result.code === 200) {
-                    Swal.fire(
-                        'Approved!',
-                        'The document has been approved.',
-                        'success'
-                    ).then(() => {
-                        // Return to menu
-                        goToMenuReim();
-                    });
-                } else {
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status && result.code === 200) {
+                        // Check if auto-print is enabled
+                        const autoPrintEnabled = document.getElementById('autoPrintEnabled').checked;
+
+                        if (autoPrintEnabled) {
+                            // After successful approval, trigger auto-print and save as attachment
+                            autoPrintAndSaveAsAttachment(id).then(() => {
+                                Swal.fire(
+                                    'Approved!',
+                                    'The document has been approved and print has been generated.',
+                                    'success'
+                                ).then(() => {
+                                    // Return to menu
+                                    goToMenuReim();
+                                });
+                            }).catch(error => {
+                                console.error('Error in auto-print:', error);
+                                Swal.fire(
+                                    'Approved with Warning',
+                                    'Document approved but there was an issue with auto-print. You can manually print the document.',
+                                    'warning'
+                                ).then(() => {
+                                    goToMenuReim();
+                                });
+                            });
+                        } else {
+                            // Just approve without auto-print
+                            Swal.fire(
+                                'Approved!',
+                                'The document has been approved.',
+                                'success'
+                            ).then(() => {
+                                // Return to menu
+                                goToMenuReim();
+                            });
+                        }
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            result.message || 'Failed to approve document',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error approving reimbursement:', error);
                     Swal.fire(
                         'Error',
-                        result.message || 'Failed to approve document',
+                        'An error occurred while approving the document',
                         'error'
                     );
-                }
-            })
-            .catch(error => {
-                console.error('Error approving reimbursement:', error);
-                Swal.fire(
-                    'Error',
-                    'An error occurred while approving the document',
-                    'error'
-                );
-            });
+                });
         }
     });
+}
+
+// New function to handle auto-print and save as attachment
+async function autoPrintAndSaveAsAttachment(reimbursementId) {
+    try {
+        // First, generate the print data
+        const printData = await generatePrintData();
+
+        // Generate HTML content for the print
+        const printContent = await generatePrintContent(printData);
+
+        // Create a temporary div to hold the print content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = printContent;
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        document.body.appendChild(tempDiv);
+
+        try {
+            // Convert HTML to PDF using html2pdf
+            const pdfBlob = await html2pdf().from(tempDiv).outputPdf('blob');
+
+            // Save PDF as attachment
+            await savePrintAsAttachment(reimbursementId, pdfBlob, 'pdf');
+
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+
+            // Wait a bit for content to load, then print
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+
+            // Fallback: just save HTML and trigger print
+            const htmlBlob = new Blob([printContent], { type: 'text/html' });
+            await savePrintAsAttachment(reimbursementId, htmlBlob, 'html');
+
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        } finally {
+            // Clean up temporary div
+            document.body.removeChild(tempDiv);
+        }
+
+    } catch (error) {
+        console.error('Error in auto-print:', error);
+        throw error;
+    }
+}
+
+// Function to generate print data
+async function generatePrintData() {
+    // Get values from form fields
+    const voucherNo = document.getElementById('voucherNo').value || '';
+    const payTo = document.getElementById('payTo').value || '';
+    const submissionDate = document.getElementById('submissionDate').value || '';
+    const department = document.getElementById('department').value || '';
+    const referenceDoc = document.getElementById('referenceDoc').value || '';
+    const typeOfTransaction = document.getElementById('typeOfTransaction').value || '';
+    const remarks = document.getElementById('remarks').value || '';
+    const currency = document.getElementById('currency').value || '';
+
+    // Get approvers
+    const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
+    const checkedBy = document.getElementById('checkedBySelect').options[document.getElementById('checkedBySelect').selectedIndex]?.text || '';
+    const acknowledgeBy = document.getElementById('acknowledgedBySelect').options[document.getElementById('acknowledgedBySelect').selectedIndex]?.text || '';
+    const approvedBy = document.getElementById('approvedBySelect').options[document.getElementById('approvedBySelect').selectedIndex]?.text || '';
+    const receivedBy = document.getElementById('receiveBySelect').options[document.getElementById('receiveBySelect').selectedIndex]?.text || '';
+
+    // Get total amount
+    const totalAmountElement = document.getElementById('totalAmount');
+    let totalAmount = '0';
+
+    if (totalAmountElement) {
+        if (totalAmountElement.dataset && totalAmountElement.dataset.rawValue) {
+            totalAmount = totalAmountElement.dataset.rawValue;
+        } else {
+            totalAmount = totalAmountElement.value || '0';
+        }
+    }
+
+    // Get reimbursement details from table
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const details = [];
+
+    if (detailsTable) {
+        const rows = detailsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const categoryCell = row.querySelector('td:nth-child(1) select');
+            const accountNameCell = row.querySelector('td:nth-child(2) input');
+            const glAccountCell = row.querySelector('td:nth-child(3) input');
+            const descriptionCell = row.querySelector('td:nth-child(4) input');
+            const amountCell = row.querySelector('td:nth-child(5) input');
+
+            if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+                return;
+            }
+
+            const amount = parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0;
+
+            details.push({
+                category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
+                accountName: accountNameCell.value,
+                glAccount: glAccountCell.value,
+                description: descriptionCell.value,
+                amount: amount
+            });
+        });
+    }
+
+    return {
+        voucherNo,
+        payTo,
+        submissionDate,
+        department,
+        referenceDoc,
+        typeOfTransaction,
+        remarks,
+        currency,
+        preparedBy,
+        checkedBy,
+        acknowledgeBy,
+        approvedBy,
+        receivedBy,
+        totalAmount,
+        details
+    };
+}
+
+// Function to convert number to words (for amount in words)
+function numberToWords(num) {
+    const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+    // Function to convert a number less than 1000 to words
+    function convertLessThanOneThousand(num) {
+        if (num === 0) return '';
+
+        let result = '';
+
+        if (num < 10) {
+            result = units[num];
+        } else if (num < 20) {
+            result = teens[num - 10];
+        } else if (num < 100) {
+            result = tens[Math.floor(num / 10)];
+            if (num % 10 > 0) {
+                result += '-' + units[num % 10];
+            }
+        } else {
+            result = units[Math.floor(num / 100)] + ' hundred';
+            if (num % 100 > 0) {
+                result += ' and ' + convertLessThanOneThousand(num % 100);
+            }
+        }
+
+        return result;
+    }
+
+    if (num === 0) return 'zero';
+
+    let result = '';
+    let isNegative = num < 0;
+
+    if (isNegative) {
+        num = Math.abs(num);
+    }
+
+    // Handle billions
+    if (num >= 1000000000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000000000)) + ' billion';
+        num %= 1000000000;
+        if (num > 0) result += ' ';
+    }
+
+    // Handle millions
+    if (num >= 1000000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000000)) + ' million';
+        num %= 1000000;
+        if (num > 0) result += ' ';
+    }
+
+    // Handle thousands
+    if (num >= 1000) {
+        result += convertLessThanOneThousand(Math.floor(num / 1000)) + ' thousand';
+        num %= 1000;
+        if (num > 0) result += ' ';
+    }
+
+    // Handle hundreds and below
+    if (num > 0) {
+        result += convertLessThanOneThousand(num);
+    }
+
+    if (isNegative) {
+        result = 'negative ' + result;
+    }
+
+    return result;
+}
+
+// Function to generate print URL
+function generatePrintUrl(printData) {
+    const detailsParam = encodeURIComponent(JSON.stringify(printData.details));
+
+    return `printReim.html?reim-id=${getReimbursementIdFromUrl()}&payTo=${encodeURIComponent(printData.payTo)}&voucherNo=${encodeURIComponent(printData.voucherNo)}&submissionDate=${encodeURIComponent(printData.submissionDate)}&department=${encodeURIComponent(printData.department)}&referenceDoc=${encodeURIComponent(printData.referenceDoc)}&preparedBy=${encodeURIComponent(printData.preparedBy)}&checkedBy=${encodeURIComponent(printData.checkedBy)}&acknowledgeBy=${encodeURIComponent(printData.acknowledgeBy)}&approvedBy=${encodeURIComponent(printData.approvedBy)}&receivedBy=${encodeURIComponent(printData.receivedBy)}&totalAmount=${encodeURIComponent(printData.totalAmount)}&details=${detailsParam}&typeOfTransaction=${encodeURIComponent(printData.typeOfTransaction)}&remarks=${encodeURIComponent(printData.remarks)}&currency=${encodeURIComponent(printData.currency)}`;
+}
+
+// Function to save print as attachment
+async function savePrintAsAttachment(reimbursementId, blob, fileType = 'html') {
+    try {
+        // Create FormData for file upload
+        const formData = new FormData();
+        const fileName = `reimbursement_${reimbursementId}_print.${fileType}`;
+        formData.append('files', blob, fileName);
+
+        // Upload attachment to API using the correct endpoint
+        const response = await fetch(`${BASE_URL}/api/reimbursements/${reimbursementId}/attachments/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAccessToken()}`
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!result.status || result.code !== 200) {
+            throw new Error(result.message || 'Failed to save attachment');
+        }
+
+        console.log('Print saved as attachment successfully');
+        return result;
+
+    } catch (error) {
+        console.error('Error saving print as attachment:', error);
+        throw error;
+    }
+}
+
+// Function to generate print content as HTML
+async function generatePrintContent(printData) {
+    // Generate a professional-looking HTML for print
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reimbursement Print - ${printData.voucherNo}</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 20px; }
+            .no-print { display: none; }
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .company-logo {
+            width: 150px;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-transform: uppercase;
+        }
+        
+        .document-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .info-section {
+            flex: 1;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .details { 
+            margin-bottom: 30px; 
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 30px;
+        }
+        
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px 8px; 
+            text-align: left; 
+            font-size: 12px;
+        }
+        
+        th { 
+            background-color: #f8f9fa; 
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .total { 
+            font-weight: bold; 
+            background-color: #f8f9fa;
+        }
+        
+        .amount {
+            text-align: right;
+        }
+        
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 18%;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 10px;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .signature-name {
+            font-size: 11px;
+        }
+        
+        .remarks {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        
+        .remarks-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">PT. KANSAI PAINT INDONESIA</div>
+        <div style="font-size: 12px; color: #666;">
+            Blok DD-7 & DD-6 Kawasan Industri MM2100 Cibitung<br>
+            Cikarang Barat Kab. Bekasi Jawa Barat 17530
+        </div>
+        <div class="document-title">Reimbursement Request</div>
+    </div>
+    
+    <div class="document-info">
+        <div class="info-section">
+            <div class="info-item">
+                <span class="info-label">Voucher No:</span> ${printData.voucherNo}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Submission Date:</span> ${printData.submissionDate}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Department:</span> ${printData.department}
+            </div>
+        </div>
+        <div class="info-section">
+            <div class="info-item">
+                <span class="info-label">Pay To:</span> ${printData.payTo}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Type of Transaction:</span> ${printData.typeOfTransaction}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Reference Doc:</span> ${printData.referenceDoc}
+            </div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Account Name</th>
+                <th>G/L Account</th>
+                <th>Description</th>
+                <th class="amount">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${printData.details.map(detail => `
+                <tr>
+                    <td>${detail.category}</td>
+                    <td>${detail.accountName}</td>
+                    <td>${detail.glAccount}</td>
+                    <td>${detail.description}</td>
+                    <td class="amount">${formatAmount(detail.amount)}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+        <tfoot>
+            <tr class="total">
+                <td colspan="4" style="text-align: right; font-weight: bold;">Total Amount:</td>
+                <td class="amount">${formatAmount(printData.totalAmount)}</td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    ${printData.remarks ? `
+    <div class="remarks">
+        <div class="remarks-title">Remarks:</div>
+        <div>${printData.remarks}</div>
+    </div>
+    ` : ''}
+    
+    <div class="signatures">
+        <div class="signature-box">
+            <div class="signature-title">Prepared by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.preparedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Checked by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.checkedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Acknowledged by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.acknowledgeBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Approved by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.approvedBy}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Received by</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">${printData.receivedBy}</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #666;">
+        <p>Amount in Words: ${numberToWords(parseFloat(printData.totalAmount))} Rupiah</p>
+        <p>Generated on: ${new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })}</p>
+    </div>
+</body>
+</html>`;
+
+    return htmlContent;
 }
 
 function updateApprovalStatus(docNumber, statusKey) {
@@ -766,6 +1341,7 @@ function displayFileList() {
     console.log('Files uploaded:', uploadedFiles);
 }
 
+// Function to print reimbursement
 function printReimbursement() {
     // Get reimbursement ID from URL
     const reimId = getReimbursementIdFromUrl();
@@ -773,120 +1349,109 @@ function printReimbursement() {
         Swal.fire('Error', 'No reimbursement ID found', 'error');
         return;
     }
-    
-    // Collect all field values to pass to print page
-    const payTo = document.getElementById('payTo').value;
-    const voucherNo = document.getElementById('voucherNo').value;
-    const submissionDate = document.getElementById('submissionDate').value;
-    const department = document.getElementById('department').value;
-    const referenceDoc = document.getElementById('referenceDoc').value;
-    const typeOfTransaction = document.getElementById('typeOfTransaction').value;
-    const remarks = document.getElementById('remarks').value;
-    const currency = document.getElementById('currency').value;
-    
-    // Get selected values from dropdowns
+
+    // Get values from form fields
+    const voucherNo = document.getElementById('voucherNo').value || '';
+    const payTo = document.getElementById('payTo').value || '';
+    const submissionDate = document.getElementById('submissionDate').value || '';
+    const department = document.getElementById('department').value || '';
+    const referenceDoc = document.getElementById('referenceDoc').value || '';
+    const typeOfTransaction = document.getElementById('typeOfTransaction').value || '';
+    const remarks = document.getElementById('remarks').value || '';
+    const currency = document.getElementById('currency').value || '';
+
+    // Get approvers
     const preparedBy = document.getElementById('preparedBySelect').options[document.getElementById('preparedBySelect').selectedIndex]?.text || '';
     const checkedBy = document.getElementById('checkedBySelect').options[document.getElementById('checkedBySelect').selectedIndex]?.text || '';
-    const acknowledgeBy = document.getElementById('acknowledgeBySelect') ? 
-        document.getElementById('acknowledgeBySelect').options[document.getElementById('acknowledgeBySelect').selectedIndex]?.text || '' : '';
+    const acknowledgeBy = document.getElementById('acknowledgedBySelect').options[document.getElementById('acknowledgedBySelect').selectedIndex]?.text || '';
     const approvedBy = document.getElementById('approvedBySelect').options[document.getElementById('approvedBySelect').selectedIndex]?.text || '';
-    const receivedBy = document.getElementById('receivedBySelect') ? 
-        document.getElementById('receivedBySelect').options[document.getElementById('receivedBySelect').selectedIndex]?.text || '' : '';
-    
-    // Calculate total amount from reimbursement details
-    let totalAmount = 0;
-    const detailsRows = document.querySelectorAll('#reimbursementDetails tr');
-    const details = [];
-    
-    detailsRows.forEach(row => {
-        const categoryCell = row.querySelector('td:nth-child(1) input');
-        const accountCell = row.querySelector('td:nth-child(2) input');
-        const detailAccountCell = row.querySelector('td:nth-child(3) input');
-        const descriptionCell = row.querySelector('td:nth-child(4) input');
-        const amountCell = row.querySelector('td:nth-child(5) input');
-        
-        if (categoryCell && accountCell && detailAccountCell && descriptionCell && amountCell) {
-            // Parse amount value, removing any currency formatting
-            const amountValue = amountCell.value.replace(/[^\d.-]/g, '');
-            const amount = parseFloat(amountValue) || 0;
-            totalAmount += amount;
-            
-            // Log untuk debugging
-            console.log('Row data:', {
-                category: categoryCell.value,
-                glAccount: accountCell.value,
-                accountName: detailAccountCell.value,
-                description: descriptionCell.value,
-                amount: amount
-            });
-            
-            details.push({
-                category: categoryCell.value,
-                glAccount: accountCell.value,
-                accountName: detailAccountCell.value,
-                description: descriptionCell.value,
-                amount: amount
-            });
+    const receivedBy = document.getElementById('receiveBySelect').options[document.getElementById('receiveBySelect').selectedIndex]?.text || '';
+
+    // Get total amount - use raw value if available, otherwise use formatted value
+    const totalAmountElement = document.getElementById('totalAmount');
+    let totalAmount = '0';
+
+    if (totalAmountElement) {
+        // Prefer raw value if available (more accurate for calculations)
+        if (totalAmountElement.dataset && totalAmountElement.dataset.rawValue) {
+            totalAmount = totalAmountElement.dataset.rawValue;
+        } else {
+            // Fall back to formatted value
+            totalAmount = totalAmountElement.value || '0';
         }
-    });
-    
-    // Get the total amount from the totalAmount field
-    const totalAmountField = document.getElementById('totalAmount');
-    if (totalAmountField && totalAmountField.value) {
-        // If the totalAmount field has a value, use it instead of the calculated total
-        totalAmount = parseFloat(totalAmountField.value.replace(/[^\d.-]/g, '')) || totalAmount;
     }
-    
-    // Log untuk debugging
-    console.log('Total details to send:', details.length);
-    console.log('Total amount to send:', totalAmount);
-    
+
+    console.log('Sending total amount to print page:', totalAmount);
+
+    // Get reimbursement details from table
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const details = [];
+
+    if (detailsTable) {
+        const rows = detailsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const categoryCell = row.querySelector('td:nth-child(1) select');
+            const accountNameCell = row.querySelector('td:nth-child(2) input');
+            const glAccountCell = row.querySelector('td:nth-child(3) input');
+            const descriptionCell = row.querySelector('td:nth-child(4) input');
+            const amountCell = row.querySelector('td:nth-child(5) input');
+
+            if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+                return; // Skip if any cell is missing
+            }
+
+            const amount = parseFloat(amountCell.dataset.rawValue || amountCell.value) || 0;
+
+            details.push({
+                category: categoryCell.value || categoryCell.options[categoryCell.selectedIndex]?.value || '',
+                accountName: accountNameCell.value,
+                glAccount: glAccountCell.value,
+                description: descriptionCell.value,
+                amount: amount
+            });
+        });
+    }
+
     // Encode the details as JSON and then as URI component
     const detailsParam = encodeURIComponent(JSON.stringify(details));
-    
+
     // Build URL with all parameters
     const printUrl = `printReim.html?reim-id=${reimId}&payTo=${encodeURIComponent(payTo)}&voucherNo=${encodeURIComponent(voucherNo)}&submissionDate=${encodeURIComponent(submissionDate)}&department=${encodeURIComponent(department)}&referenceDoc=${encodeURIComponent(referenceDoc)}&preparedBy=${encodeURIComponent(preparedBy)}&checkedBy=${encodeURIComponent(checkedBy)}&acknowledgeBy=${encodeURIComponent(acknowledgeBy)}&approvedBy=${encodeURIComponent(approvedBy)}&receivedBy=${encodeURIComponent(receivedBy)}&totalAmount=${encodeURIComponent(totalAmount)}&details=${detailsParam}&typeOfTransaction=${encodeURIComponent(typeOfTransaction)}&remarks=${encodeURIComponent(remarks)}&currency=${encodeURIComponent(currency)}`;
-    
+
     // Open the print page in a new window/tab
     window.open(printUrl, '_blank');
 }
 
 // Event listener for document type change
-document.addEventListener('DOMContentLoaded', function() {
-    // Load users and departments first
-    Promise.all([fetchUsers(), fetchDepartments()]).then(() => {
-        // Then load reimbursement data
-        fetchReimbursementData();
-    });
-});
+// Removed DOMContentLoaded event listener to avoid conflict with the one in HTML
 
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const searchText = searchInput.value.toLowerCase();
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    
+
     // Clear dropdown
     dropdown.innerHTML = '';
-    
+
     // Use stored users or mock data if not available
     const usersList = window.allUsers || [];
-    
+
     // Filter users based on search text
     const filteredUsers = usersList.filter(user => {
         const userName = user.name || `${user.fullName || ''}`;
         return userName.toLowerCase().includes(searchText);
     });
-    
+
     // Display search results
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
         option.className = 'dropdown-item';
-        const userName = user.name || `${user.fullName || ''}`;
+        const userName = user.name || `${user.fullName}`;
         option.innerText = userName;
-        option.onclick = function() {
+        option.onclick = function () {
             searchInput.value = userName;
-            
+
             // Get the correct select element based on fieldId
             let selectId = fieldId;
             document.getElementById(selectId).value = user.id;
@@ -894,7 +1459,7 @@ function filterUsers(fieldId) {
         };
         dropdown.appendChild(option);
     });
-    
+
     // Display message if no results
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
@@ -902,7 +1467,7 @@ function filterUsers(fieldId) {
         noResults.innerText = 'No matching users found';
         dropdown.appendChild(noResults);
     }
-    
+
     // Show dropdown
     dropdown.classList.remove('hidden');
 }
@@ -910,14 +1475,14 @@ function filterUsers(fieldId) {
 // Helper function to update approver fields
 function updateApproverField(fieldId, value) {
     if (!value) return;
-    
+
     const select = document.getElementById(fieldId);
     const searchInput = document.getElementById(`${fieldId}Search`);
-    
+
     if (select) {
         select.value = value;
     }
-    
+
     if (searchInput) {
         searchInput.value = value;
     }
@@ -931,7 +1496,7 @@ function makeAllFieldsReadOnly() {
         field.readOnly = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
-    
+
     // Make search inputs read-only but with normal styling
     const searchInputs = document.querySelectorAll('input[id$="Search"]');
     searchInputs.forEach(field => {
@@ -940,26 +1505,26 @@ function makeAllFieldsReadOnly() {
         // Remove the onkeyup event to prevent search triggering
         field.removeAttribute('onkeyup');
     });
-    
+
     // Disable all select fields
     const selectFields = document.querySelectorAll('select');
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
-    
+
     // Hide add row button
     const addRowButton = document.querySelector('button[onclick="addRow()"]');
     if (addRowButton) {
         addRowButton.style.display = 'none';
     }
-    
+
     // Hide all delete row buttons
     const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
     deleteButtons.forEach(button => {
         button.style.display = 'none';
     });
-    
+
     // Disable file upload
     const fileInput = document.getElementById('filePath');
     if (fileInput) {
@@ -1006,15 +1571,44 @@ function renderRevisionHistory(revisions) {
     section.innerHTML = html;
 }
 
+// Function to calculate and update the total amount
+function updateTotalAmount() {
+    const amountInputs = document.querySelectorAll('#reimbursementDetails input[data-raw-value]');
+    let total = 0;
+
+    amountInputs.forEach(input => {
+        // Get numeric value from data-raw-value attribute
+        const numericValue = parseFloat(input.getAttribute('data-raw-value')) || 0;
+        total += numericValue;
+    });
+
+    // Format total with thousands separator
+    const formattedTotal = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    // Update total amount field
+    const totalAmountElement = document.getElementById('totalAmount');
+    if (totalAmountElement) {
+        totalAmountElement.value = formattedTotal;
+        // Store raw value as data attribute for accurate calculations
+        totalAmountElement.dataset.rawValue = total.toString();
+        console.log('Updated total amount:', formattedTotal, 'Raw value:', total);
+    } else {
+        console.error('totalAmount element not found');
+    }
+}
+
 // Function to initialize textarea with user prefix for rejection
 function initializeWithRejectionPrefix(textarea) {
     const userInfo = getUserInfo();
     const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -1024,12 +1618,12 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // If user tries to modify content before the prefix length
     if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
         const userInfo = getUserInfo();
         const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
-        
+
         // Only restore if the prefix is damaged
         if (!textarea.value.startsWith(prefix)) {
             const userText = textarea.value.substring(prefixLength);
@@ -1046,7 +1640,7 @@ function getUserInfo() {
     // Use functions from auth.js to get user information
     let userName = 'Unknown User';
     let userRole = 'Approver'; // Default role for this page
-    
+
     try {
         // Get user info from getCurrentUser function in auth.js
         const currentUser = getCurrentUser();
@@ -1056,7 +1650,326 @@ function getUserInfo() {
     } catch (e) {
         console.error('Error getting user info:', e);
     }
-    
+
     return { name: userName, role: userRole };
 }
+
+// ===== TAMBAHAN FUNGSI UNTUK MEMPERBAIKI ENCODING URL =====
+// Tambahkan di bagian bawah file JavaScript yang sudah ada
+
+// Fungsi baru untuk generate URL yang bersih
+function generateCleanPrintUrl(printData) {
+    const baseUrl = 'printReim.html';
+    const params = new URLSearchParams();
     
+    // Add basic parameters menggunakan URLSearchParams yang otomatis handle encoding
+    params.append('reim-id', getReimbursementIdFromUrl() || '');
+    params.append('payTo', printData.payTo || '');
+    params.append('voucherNo', printData.voucherNo || '');
+    params.append('submissionDate', printData.submissionDate || '');
+    params.append('department', printData.department || '');
+    params.append('referenceDoc', printData.referenceDoc || '');
+    params.append('typeOfTransaction', printData.typeOfTransaction || '');
+    params.append('remarks', printData.remarks || '');
+    params.append('currency', printData.currency || '');
+    
+    // Add approver parameters
+    params.append('preparedBy', printData.preparedBy || '');
+    params.append('checkedBy', printData.checkedBy || '');
+    params.append('acknowledgeBy', printData.acknowledgeBy || '');
+    params.append('approvedBy', printData.approvedBy || '');
+    params.append('receivedBy', printData.receivedBy || '');
+    params.append('totalAmount', printData.totalAmount || '0');
+    
+    // Add details as JSON - URLSearchParams akan handle encoding secara otomatis
+    if (printData.details && printData.details.length > 0) {
+        params.append('details', JSON.stringify(printData.details));
+    }
+    
+    return `${baseUrl}?${params.toString()}`;
+}
+
+// Fungsi print yang menggunakan URL encoding yang benar
+function printReimbursementClean() {
+    const reimId = getReimbursementIdFromUrl();
+    if (!reimId) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+
+    // Collect data dari form
+    const printData = {
+        voucherNo: document.getElementById('voucherNo')?.value || '',
+        payTo: document.getElementById('payTo')?.value || '',
+        submissionDate: document.getElementById('submissionDate')?.value || '',
+        department: document.getElementById('department')?.value || '',
+        referenceDoc: document.getElementById('referenceDoc')?.value || '',
+        typeOfTransaction: document.getElementById('typeOfTransaction')?.value || '',
+        remarks: document.getElementById('remarks')?.value || '',
+        currency: document.getElementById('currency')?.value || '',
+        preparedBy: document.getElementById('preparedBySelect')?.options[document.getElementById('preparedBySelect')?.selectedIndex]?.text || '',
+        checkedBy: document.getElementById('checkedBySelect')?.options[document.getElementById('checkedBySelect')?.selectedIndex]?.text || '',
+        acknowledgeBy: document.getElementById('acknowledgedBySelect')?.options[document.getElementById('acknowledgedBySelect')?.selectedIndex]?.text || '',
+        approvedBy: document.getElementById('approvedBySelect')?.options[document.getElementById('approvedBySelect')?.selectedIndex]?.text || '',
+        receivedBy: document.getElementById('receiveBySelect')?.options[document.getElementById('receiveBySelect')?.selectedIndex]?.text || '',
+        totalAmount: getCleanTotalAmount(),
+        details: getCleanReimbursementDetails()
+    };
+
+    // Generate URL yang bersih
+    const printUrl = generateCleanPrintUrl(printData);
+    
+    console.log('Clean Print URL:', printUrl);
+    
+    // Buka di window baru
+    window.open(printUrl, '_blank');
+}
+
+// Helper function untuk mendapatkan total amount yang bersih
+function getCleanTotalAmount() {
+    const totalAmountElement = document.getElementById('totalAmount');
+    if (!totalAmountElement) return '0';
+    
+    // Gunakan raw value jika tersedia
+    if (totalAmountElement.dataset && totalAmountElement.dataset.rawValue) {
+        return totalAmountElement.dataset.rawValue;
+    } else {
+        // Bersihkan formatting dan ambil nilai numerik
+        const cleanValue = totalAmountElement.value.replace(/[^\d.-]/g, '');
+        return cleanValue || '0';
+    }
+}
+
+// Helper function untuk mendapatkan detail reimbursement yang bersih
+function getCleanReimbursementDetails() {
+    const detailsTable = document.getElementById('reimbursementDetails');
+    const details = [];
+
+    if (detailsTable) {
+        const rows = detailsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const categoryCell = row.querySelector('td:nth-child(1) select');
+            const accountNameCell = row.querySelector('td:nth-child(2) input');
+            const glAccountCell = row.querySelector('td:nth-child(3) input');
+            const descriptionCell = row.querySelector('td:nth-child(4) input');
+            const amountCell = row.querySelector('td:nth-child(5) input');
+
+            if (!categoryCell || !accountNameCell || !glAccountCell || !descriptionCell || !amountCell) {
+                return; // Skip jika ada cell yang missing
+            }
+
+            const amount = parseFloat(amountCell.dataset.rawValue || amountCell.value.replace(/[^\d.-]/g, '')) || 0;
+
+            // Hanya tambahkan row yang memiliki data aktual
+            if (categoryCell.value || accountNameCell.value || glAccountCell.value || descriptionCell.value || amount > 0) {
+                details.push({
+                    category: categoryCell.value || '',
+                    accountName: accountNameCell.value || '',
+                    glAccount: glAccountCell.value || '',
+                    description: descriptionCell.value || '',
+                    amount: amount
+                });
+            }
+        });
+    }
+
+    return details;
+}
+
+// Fungsi untuk generate print data yang bersih (update dari yang sudah ada)
+async function generateCleanPrintData() {
+    // Sama seperti generatePrintData() tapi dengan handling yang lebih bersih
+    const voucherNo = document.getElementById('voucherNo')?.value || '';
+    const payTo = document.getElementById('payTo')?.value || '';
+    const submissionDate = document.getElementById('submissionDate')?.value || '';
+    const department = document.getElementById('department')?.value || '';
+    const referenceDoc = document.getElementById('referenceDoc')?.value || '';
+    const typeOfTransaction = document.getElementById('typeOfTransaction')?.value || '';
+    const remarks = document.getElementById('remarks')?.value || '';
+    const currency = document.getElementById('currency')?.value || '';
+
+    // Get approvers dengan null checking yang lebih baik
+    const preparedBySelect = document.getElementById('preparedBySelect');
+    const checkedBySelect = document.getElementById('checkedBySelect');
+    const acknowledgedBySelect = document.getElementById('acknowledgedBySelect');
+    const approvedBySelect = document.getElementById('approvedBySelect');
+    const receiveBySelect = document.getElementById('receiveBySelect');
+
+    const preparedBy = preparedBySelect?.options[preparedBySelect.selectedIndex]?.text || '';
+    const checkedBy = checkedBySelect?.options[checkedBySelect.selectedIndex]?.text || '';
+    const acknowledgeBy = acknowledgedBySelect?.options[acknowledgedBySelect.selectedIndex]?.text || '';
+    const approvedBy = approvedBySelect?.options[approvedBySelect.selectedIndex]?.text || '';
+    const receivedBy = receiveBySelect?.options[receiveBySelect.selectedIndex]?.text || '';
+
+    const totalAmount = getCleanTotalAmount();
+    const details = getCleanReimbursementDetails();
+
+    return {
+        voucherNo,
+        payTo,
+        submissionDate,
+        department,
+        referenceDoc,
+        typeOfTransaction,
+        remarks,
+        currency,
+        preparedBy,
+        checkedBy,
+        acknowledgeBy,
+        approvedBy,
+        receivedBy,
+        totalAmount,
+        details
+    };
+}
+
+// Alternatif menggunakan POST method jika URL terlalu panjang
+function printReimbursementWithPost() {
+    const reimId = getReimbursementIdFromUrl();
+    if (!reimId) {
+        Swal.fire('Error', 'No reimbursement ID found', 'error');
+        return;
+    }
+
+    // Collect semua data print
+    generateCleanPrintData().then(printData => {
+        printData.reimId = reimId;
+
+        // Buat form dan submit ke print page
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'printReim.html';
+        form.target = '_blank';
+        form.style.display = 'none';
+
+        // Tambahkan data sebagai hidden input
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'printData';
+        input.value = JSON.stringify(printData);
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    });
+}
+
+// Update auto print function untuk menggunakan encoding yang bersih
+async function autoPrintCleanAndSaveAsAttachment(reimbursementId) {
+    try {
+        // Generate print data yang bersih
+        const printData = await generateCleanPrintData();
+
+        // Generate HTML content untuk print
+        const printContent = await generatePrintContent(printData);
+
+        // Buat temporary div untuk hold print content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = printContent;
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        document.body.appendChild(tempDiv);
+
+        try {
+            // Convert HTML ke PDF menggunakan html2pdf jika tersedia
+            if (typeof html2pdf !== 'undefined') {
+                const pdfBlob = await html2pdf().from(tempDiv).outputPdf('blob');
+                await savePrintAsAttachment(reimbursementId, pdfBlob, 'pdf');
+            } else {
+                // Fallback: save sebagai HTML
+                const htmlBlob = new Blob([printContent], { type: 'text/html' });
+                await savePrintAsAttachment(reimbursementId, htmlBlob, 'html');
+            }
+
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+
+            // Wait sebentar untuk content load, lalu print
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+
+            // Fallback: just save HTML dan trigger print
+            const htmlBlob = new Blob([printContent], { type: 'text/html' });
+            await savePrintAsAttachment(reimbursementId, htmlBlob, 'html');
+
+            // Trigger print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        } finally {
+            // Cleanup temporary div
+            document.body.removeChild(tempDiv);
+        }
+
+    } catch (error) {
+        console.error('Error in clean auto-print:', error);
+        throw error;
+    }
+}
+
+// Utility function untuk decode URL parameters dengan benar di halaman print
+function getCleanUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name) || '';
+}
+
+// Utility function untuk parse details dari URL parameter
+function parseDetailsFromUrl() {
+    try {
+        const detailsParam = getCleanUrlParameter('details');
+        if (detailsParam) {
+            return JSON.parse(detailsParam);
+        }
+        return [];
+    } catch (error) {
+        console.error('Error parsing details from URL:', error);
+        return [];
+    }
+}
+
+// Console log untuk debugging URL issues
+function debugPrintUrl(printData) {
+    console.group('Print URL Debug Info');
+    console.log('Original Print Data:', printData);
+    
+    const cleanUrl = generateCleanPrintUrl(printData);
+    console.log('Clean URL:', cleanUrl);
+    
+    // Test decoding
+    const url = new URL(cleanUrl, window.location.origin);
+    console.log('Decoded Parameters:');
+    for (const [key, value] of url.searchParams.entries()) {
+        console.log(`${key}:`, value);
+    }
+    
+    console.groupEnd();
+}
+
+// ===== INSTRUKSI PENGGUNAAN =====
+/*
+Untuk menggunakan fungsi-fungsi yang sudah diperbaiki:
+
+1. Ganti pemanggilan printReimbursement() dengan printReimbursementClean()
+2. Ganti generatePrintData() dengan generateCleanPrintData() 
+3. Gunakan printReimbursementWithPost() jika URL terlalu panjang
+4. Gunakan autoPrintCleanAndSaveAsAttachment() untuk auto print yang bersih
+5. Di halaman printReim.html, gunakan getCleanUrlParameter() dan parseDetailsFromUrl()
+
+Contoh penggunaan:
+- onclick="printReimbursementClean()" untuk button print
+- debugPrintUrl(printData) untuk debug issues
+*/

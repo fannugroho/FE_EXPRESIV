@@ -8,16 +8,313 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="printARItem.js"></script>
     <style>
+        /* QR Code specific styling */
+        .qr-code img {
+            max-width: none !important;
+            width: 200px !important;
+            height: 200px !important;
+            object-fit: contain !important;
+        }
+        
         @media print {
             body {
-                margin: 0;
-                padding: 0;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: white !important;
             }
+            
             .no-print {
                 display: none !important;
             }
-            .print-page {
-                page-break-after: always;
+            
+            /* Ensure page containers fit properly on A4 */
+            .page-container {
+                width: 21cm !important;
+                min-height: 29.7cm !important;
+                max-height: 29.7cm !important;
+                padding: 0.8cm !important;
+                margin: 0 !important;
+                background: white !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            
+            /* Only add page break before, not after */
+            .page-container:not(:first-child) {
+                page-break-before: always;
+                margin-top: 0 !important;
+            }
+            
+            /* Remove page-break-after from all pages */
+            .page-container {
+                page-break-after: auto !important;
+            }
+            
+            /* Ensure content fits within page bounds */
+            .page-content {
+                height: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            
+            /* Optimize table for print */
+            .items-table {
+                font-size: 8px !important;
+                page-break-inside: avoid;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 2px 3px !important;
+                border: 1px solid #000 !important;
+            }
+            
+            /* Ensure footer stays at bottom */
+            .footer {
+                margin-top: auto !important;
+                page-break-inside: avoid;
+            }
+            
+            /* Ensure generated-by stays at bottom */
+            .generated-by {
+                text-align: right !important;
+                font-size: 8px !important;
+                color: #666 !important;
+                margin-top: 5px !important;
+            }
+            
+            /* Optimize payment summary for print */
+            .payment-summary {
+                page-break-inside: avoid;
+            }
+            
+            /* Remove background colors and shadows for print */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Ensure images print properly */
+            img {
+                max-width: none !important;
+                height: auto !important;
+            }
+            
+            /* QR Code specific styling for print */
+            .qr-code img {
+                max-width: none !important;
+                width: 200px !important;
+                height: 200px !important;
+                object-fit: contain !important;
+            }
+            
+            /* Optimize text for print */
+            .company-info {
+                font-size: 10px !important;
+            }
+            
+            .invoice-field {
+                font-size: 10px !important;
+            }
+            
+            .section-title {
+                font-size: 10px !important;
+            }
+            
+            /* Print styles for shipper-details */
+            .shipper-details {
+                width: 48% !important;
+                font-size: 10px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+            }
+            
+            .detail-row {
+                display: flex !important;
+                align-items: center !important;
+                margin-bottom: 3px !important;
+                width: 100% !important;
+                justify-content: flex-end !important;
+                gap: 5px !important;
+            }
+            
+            .detail-label {
+                font-weight: bold !important;
+                text-align: right !important;
+                min-width: 80px !important;
+                flex-shrink: 0 !important;
+                font-size: 10px !important;
+            }
+            
+            .detail-separator {
+                font-weight: bold !important;
+                font-size: 10px !important;
+                flex-shrink: 0 !important;
+            }
+            
+            .detail-value {
+                text-align: left !important;
+                flex: 1 !important;
+                max-width: 200px !important;
+                font-size: 10px !important;
+                min-width: 0 !important;
+            }
+            
+            .detail-value.multiple {
+                margin-bottom: 4px !important;
+            }
+            
+            .detail-value .data-item {
+                margin-bottom: 2px !important;
+                padding: 1px 0 !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+            }
+            
+            .order-numbers {
+                font-size: 10px !important;
+            }
+            
+            .payment-instructions {
+                font-size: 10px !important;
+            }
+            
+            .payment-instructions div {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+                margin-bottom: 2px !important;
+            }
+            
+            #bankInformation,
+            [id^="bankInformation"] {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+                margin-bottom: 2px !important;
+            }
+
+            .financial-summary {
+                font-size: 10px !important;
+            }
+            
+            .signature-name {
+                font-size: 10px !important;
+                margin-top: 10px !important;
+            }
+            
+            .signature-title {
+                font-size: 10px !important;
+                margin-top: 5px !important;
+            }
+
+            .invoice-title-section {
+                text-align: center !important;
+                margin: 15px 0 !important;
+            }
+
+            .invoice-title {
+                font-size: 20px !important;
+            }
+
+            .shipper-right {
+                text-align: right !important;
+                margin-left: auto !important;
+            }
+
+            .field-label {
+                font-weight: bold !important;
+                margin-bottom: 2px !important;
+                font-size: 10px !important;
+            }
+
+            .field-value {
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                margin-bottom: 8px !important;
+            }
+
+            .field-value.multiple {
+                margin-bottom: 4px !important;
+            }
+
+            .field-value .data-item {
+                margin-bottom: 2px !important;
+                padding: 1px 0 !important;
+            }
+
+            .company-name-footer {
+                font-weight: bold !important;
+                font-size: 10px !important;
+                margin-bottom: 10px !important;
+            }
+            
+            .signature-space {
+                height: 60px !important;
+                border-bottom: 1px solid #ccc !important;
+                margin-bottom: 10px !important;
+                margin-left: 0 !important;
+                margin-right: auto !important;
+                width: 60% !important;
+                padding-left: 0 !important;
+                transform: translateX(-10px) !important;
+            }
+            
+            /* Signature image styles for print */
+            .signature-space img {
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                display: block !important;
+                margin: 0 !important;
+                object-fit: contain !important;
+            }
+            
+            /* QR code positioning for print */
+            .qr-code {
+                width: 200px !important;
+                height: 200px !important;
+                font-size: 10px !important;
+                position: absolute !important;
+                top: -30px !important;
+                right: -180px !important;
+                background-color: transparent !important;
+                border: none !important;
+                /* Display QR code when printing if it has content */
+                display: flex !important;
+            }
+            
+            .signature-stamp {
+                width: 6cm !important;
+                height: 0.4cm !important;
+                margin-bottom: 40px !important;
+                display: block !important;
+            }
+            
+            .signature-section {
+                position: relative !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                padding-left: 0 !important;
+            }
+            
+            .system-info {
+                font-size: 10px !important;
+            }
+            
+            /* Prevent blank pages */
+            #pagesContainer {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            /* Hide empty pages */
+            .page-container:empty {
+                display: none !important;
             }
         }
 
@@ -26,15 +323,33 @@
             margin: 0;
             padding: 0;
             background-color: #f5f5f5;
+            font-size: 10px;
         }
 
-        .container {
+        /* Page container with proper A4 dimensions */
+        .page-container {
             width: 21cm;
             min-height: 29.7cm;
-            padding: 1cm;
-            margin: 0 auto;
+            max-height: 29.7cm;
+            padding: 0.8cm;
+            margin: 0 auto 10px auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            page-break-inside: avoid;
+        }
+        
+        /* Remove margin from last page container */
+        .page-container:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Content area that takes available space */
+        .page-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Header Section */
@@ -42,9 +357,9 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
 
         .logo-section {
@@ -52,7 +367,7 @@
         }
 
         .logo {
-            font-size: 24px;
+            font-size: 10px;
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 5px;
@@ -65,22 +380,22 @@
         .company-info {
             width: 55%;
             text-align: right;
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: 10px;
+            line-height: 1.2;
         }
 
         .company-name {
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 5px;
+            font-size: 10px;
+            margin-bottom: 4px;
         }
 
         .company-address {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .company-contact {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         /* Invoice Details */
@@ -88,13 +403,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
+            margin-bottom: 15px;
+            padding: 8px 0;
         }
 
         .invoice-left {
             width: 30%;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .invoice-center {
@@ -103,49 +418,129 @@
         }
 
         .invoice-title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             text-decoration: underline;
             margin-bottom: 5px;
         }
 
+        .invoice-title-section {
+            text-align: center;
+            margin: 15px 0;
+        }
+
         .invoice-right {
             width: 25%;
             text-align: right;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .invoice-field {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         /* Recipient and Shipper */
         .shipping-info {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .recipient, .shipper {
             width: 48%;
-            font-size: 11px;
+            font-size: 10px;
+        }
+
+        .shipper-right {
+            text-align: right;
+            margin-left: auto;
+        }
+
+        /* New shipper-details styles */
+        .shipper-details {
+            width: 48%;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+            width: 100%;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            text-align: right;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .detail-separator {
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            text-align: left;
+            flex: 1;
+            max-width: 200px;
+            min-width: 0;
+        }
+
+        .detail-value.multiple {
+            margin-bottom: 4px;
+        }
+
+        .detail-value .data-item {
+            margin-bottom: 2px;
+            padding: 1px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+        }
+
+        .field-label {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+
+        .field-value {
+            font-size: 10px;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .field-value.multiple {
+            margin-bottom: 4px;
+        }
+
+        .field-value .data-item {
+            margin-bottom: 2px;
+            padding: 1px 0;
         }
 
         .section-title {
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             text-transform: uppercase;
         }
 
         /* Order Numbers */
         .order-numbers {
-            margin-bottom: 20px;
-            font-size: 11px;
+            margin-bottom: 15px;
+            font-size: 10px;
         }
 
         .order-row {
             display: flex;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .order-label {
@@ -161,14 +556,14 @@
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 10px;
         }
 
         .items-table th,
         .items-table td {
             border: 1px solid #000;
-            padding: 5px;
+            padding: 3px;
             text-align: left;
         }
 
@@ -193,7 +588,7 @@
 
         .items-table .quantity-col {
             width: 10%;
-            text-align: right;
+            text-align: center;
         }
 
         .items-table .unit-col {
@@ -203,24 +598,39 @@
 
         .items-table .price-col {
             width: 12%;
-            text-align: right;
+            text-align: center;
         }
 
         .items-table .amount-col {
             width: 15%;
-            text-align: right;
+            text-align: center;
         }
 
         /* Payment and Summary */
         .payment-summary {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .payment-instructions {
             width: 45%;
-            font-size: 11px;
+            font-size: 10px;
+        }
+        
+        .payment-instructions div {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+        
+        #bankInformation,
+        [id^="bankInformation"] {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            margin-bottom: 2px;
         }
 
         .payment-title {
@@ -230,13 +640,13 @@
 
         .financial-summary {
             width: 45%;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .summary-label {
@@ -249,8 +659,8 @@
 
         .total-line {
             border-top: 1px solid #000;
-            margin-top: 5px;
-            padding-top: 5px;
+            margin-top: 3px;
+            padding-top: 3px;
         }
 
         /* Footer */
@@ -259,51 +669,80 @@
             justify-content: space-between;
             align-items: flex-end;
             margin-top: auto;
-            padding-top: 20px;
+            padding-top: 15px;
+            flex-shrink: 0;
         }
         
-        /* Page container with flexbox for footer positioning */
-        .page-container {
-            width: 21cm;
-            min-height: 29.7cm;
-            padding: 1cm;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Content area that takes available space */
-        .page-content {
-            flex: 1;
-        }
-
         .signature-section {
             width: 40%;
-            text-align: center;
+            text-align: left;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding-left: 0;
+        }
+
+        .company-name-footer {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 10px;
         }
 
         .qr-code {
-            width: 80px;
-            height: 80px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            margin: 0 auto 10px;
+            width: 200px;
+            height: 200px;
+            background-color: transparent;
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+            font-size: 10px;
             color: #666;
+            position: absolute;
+            top: -30px;
+            right: -180px;
+            /* Will be shown if QR code data is available */
         }
 
         .signature-name {
             font-weight: bold;
             margin-bottom: 3px;
+            margin-top: 10px;
+        }
+
+        .signature-stamp {
+            width: 6cm;
+            height: 0.4cm;
+            margin-bottom: 40px;
+            display: block;
         }
 
         .signature-title {
             font-size: 10px;
+            margin-top: 5px;
+        }
+        
+        .signature-space {
+            height: 60px;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: auto;
+            width: 60%;
+            padding-left: 0;
+            transform: translateX(-10px);
+        }
+        
+        /* Signature image styles */
+        .signature-space img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0;
+            object-fit: contain;
         }
 
         .system-info {
@@ -311,6 +750,13 @@
             text-align: right;
             font-size: 10px;
             color: #666;
+        }
+
+        .generated-by {
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+            margin-top: 10px;
         }
 
         /* Print Controls */
@@ -328,7 +774,7 @@
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 10px;
         }
 
         .print-btn:hover {
@@ -356,6 +802,12 @@
     </style>
 </head>
 <body>
+    <!-- Print Controls -->
+    <div class="print-controls no-print">
+        <button onclick="printInvoice()" class="print-btn">Print</button>
+        <button onclick="goBack()" class="print-btn" style="background-color: #6b7280; margin-left: 10px;">Back</button>
+    </div>
+
     <!--ganti ke logo kansaipaint-->
 
     <div id="pagesContainer">
@@ -377,21 +829,24 @@
                     </div>
                 </div>
 
+
+
                 <!-- Invoice Details -->
                 <div class="invoice-details">
                     <div class="invoice-left">
                         <div class="invoice-field">No. Inv : <span id="invoiceNumber"></span></div>
                         <div class="invoice-field">No. Vision Inv : <span id="visionInvoiceNumber"></span></div>
                     </div>
-                    <div class="invoice-center">
-                        <div class="invoice-title">INVOICE</div>
-                    </div>
                     <div class="invoice-right">
-                        <div class="invoice-field">DATE: <span id="invoiceDate"></span></div>
-                        <div class="invoice-field">NPWP : <span id="npwp"></span></div>
-                        <div class="invoice-field">Due Date <span id="dueDate"></span></div>
+                        <div class="invoice-field">Date: <span id="invoiceDate"></span></div>
                     </div>
                 </div>
+
+
+                                <!-- Invoice Title -->
+                                <div class="invoice-title-section">
+                                    <div class="invoice-title">INVOICE</div>
+                                </div>
 
                 <!-- Recipient and Shipper -->
                 <div class="shipping-info">
@@ -400,22 +855,35 @@
                         <div id="recipientName"></div>
                         <div id="recipientAddress"></div>
                         <div id="recipientCity"></div>
-                    </div>
-                    <div class="shipper">
+                        <br>
                         <div class="section-title">SHIPPED FROM:</div>
                         <div id="shipperName">PT. KANSAI PAINT INDONESIA</div>
+                    </div>
+                    <div class="shipper-details">
+                        <div class="detail-row">
+                            <span class="detail-label">NPWP No.</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="npwp"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Due Date</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="dueDate"></span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Order Numbers -->
                 <div class="order-numbers">
-                    <div class="order-row">
-                        <div class="order-label">DO No:</div>
-                        <div class="order-value" id="doNumbers"></div>
-                    </div>
-                    <div class="order-row">
-                        <div class="order-label">P/O NO.:</div>
-                        <div class="order-value" id="poNumbers"></div>
+                    <div class="order-row" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: flex-start; margin-right: 10px;">
+                            <div class="order-value" id="doNumbers"></div>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">P/O No.</span>
+                            <span class="detail-separator">:</span>
+                            <span class="detail-value" id="poNumbers"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -437,39 +905,35 @@
                     </tbody>
                 </table>
 
-                <!-- Payment Instructions and Financial Summary -->
+                <!-- Payment Instructions (Financial Summary removed) -->
                 <div class="payment-summary" id="paymentSummary">
                     <div class="payment-instructions">
                         <div class="payment-title">Please remit us in full amount to :</div>
-                        <div>MUFG Bank, Ltd., Jakarta Branch</div>
-                        <div>Trinity Tower, Lt. 6-9</div>
-                        <div>Jl. H. R. Rasuna Said Kav. C22 Blok IIB</div>
-                        <div>Jakarta 12940</div>
-                        <div>Acc No. 5100138687 (IDR)</div>
+                        <div id="bankInformation"></div>
                     </div>
                     <div class="financial-summary">
                         <div class="summary-row">
-                            <span class="summary-label">Total IDR</span>
+                            <span class="summary-label">Total</span>
                             <span class="summary-value" id="totalAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Discounted IDR</span>
+                            <span class="summary-label">Discounted</span>
                             <span class="summary-value" id="discountAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Sales Amount IDR</span>
+                            <span class="summary-label">Sales Amount</span>
                             <span class="summary-value" id="salesAmount"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">Tax Base Other Value IDR</span>
+                            <span class="summary-label">Tax Base Other Value</span>
                             <span class="summary-value" id="taxBase"></span>
                         </div>
                         <div class="summary-row">
-                            <span class="summary-label">VAT 12% IDR</span>
+                            <span class="summary-label">VAT 12%</span>
                             <span class="summary-value" id="vatAmount"></span>
                         </div>
                         <div class="summary-row total-line">
-                            <span class="summary-label">GRAND TOTAL IDR</span>
+                            <span class="summary-label">GRAND TOTAL</span>
                             <span class="summary-value" id="grandTotal"></span>
                         </div>
                     </div>
@@ -479,15 +943,19 @@
             <!-- Footer (always at bottom) -->
             <div class="footer" id="footer">
                 <div class="signature-section">
-                    
+                    <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
+                    <div class="qr-code">QR CODE</div>
+                    <div class="company-name-footer">PT. KANSAI PAINT INDONESIA</div>
+                    <div class="signature-space"></div>
                     <div class="signature-name" id="signatureName"></div>
                     <div class="signature-title" id="signatureTitle"></div>
                 </div>
-                <div class="qr-code">QR CODE</div>
                 <div class="system-info">
-                    <div>Generated by Expressiv</div>
-                    <div id="pageInfo">Page 1 of 1</div>
+                    <div id="pageInfo">Page 1</div>
                 </div>
+            </div>
+            <div class="generated-by">
+                <div>Generated by Expressiv System</div>
             </div>
         </div>
     </div>

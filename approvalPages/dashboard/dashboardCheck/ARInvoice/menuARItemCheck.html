@@ -31,7 +31,7 @@
         }
         
         .scrollable-cell::-webkit-scrollbar {
-            height: 6px;
+            height: 4px;
         }
         
         .scrollable-cell::-webkit-scrollbar-track {
@@ -117,10 +117,10 @@
                     <!-- Tab buttons for switching views -->
                     <div class="flex flex-col md:flex-row justify-between items-center mb-0">
                         <div class="flex mb-0 mt-2 md:mt-0 border-b w-full md:w-auto overflow-x-auto">
-                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap">
+                            <button id="preparedTabBtn" onclick="switchTab('prepared')" class="px-4 py-2 tab-active rounded-t-lg whitespace-nowrap" title="Dokumen dengan status Prepared">
                                 <i class="fas fa-clipboard-check mr-2"></i>Prepared
                             </button>
-                            <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
+                            <button id="checkedTabBtn" onclick="switchTab('checked')" class="px-4 py-2 rounded-t-lg whitespace-nowrap" title="Dokumen dengan status Checked, Acknowledged, Approved, atau Received">
                                 <i class="fas fa-check mr-2"></i>Checked
                             </button>
                             <button id="rejectedTabBtn" onclick="switchTab('rejected')" class="px-4 py-2 rounded-t-lg whitespace-nowrap">
@@ -158,8 +158,8 @@
                                     <th class="p-2 text-left">Date</th>
                                     <th class="p-2 text-left">Due Date</th>
                                     <th class="p-2 text-left">Status</th>
-                                    <th class="p-2 text-left">Total (IDR)</th>
                                     <th class="p-2 text-left">Type</th>
+                                    <th class="p-2 text-left">Total</th>
                                     <th class="p-2 text-left">Tools</th>
                                 </tr>
                             </thead>
@@ -200,11 +200,11 @@
 
     <!-- Mobile Navigation Bar - More comprehensive options -->
     <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden flex justify-around items-center shadow-md rounded-t-xl">
-        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('prepared')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none" title="Dokumen dengan status Prepared">
             <i class="fas fa-clipboard-check text-xl"></i>
             <span>Prepared</span>
         </button>
-        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none">
+        <button onclick="switchTab('checked')" class="flex flex-col items-center space-y-1 text-xs font-medium text-gray-600 hover:text-blue-500 transition-colors duration-200 focus:outline-none" title="Dokumen dengan status Checked, Acknowledged, Approved, atau Received">
             <i class="fas fa-check text-xl"></i>
             <span>Checked</span>
         </button>

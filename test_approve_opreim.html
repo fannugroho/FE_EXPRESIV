@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Approve OPReim Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <h1>Test Approve OPReim Fixes</h1>
+
+    <div id="test-results">
+        <h2>Test Results:</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Mock dependencies for testing
+        window.BASE_URL = 'http://localhost:3000';
+
+        // Mock auth functions
+        window.getCurrentUser = () => ({ userId: 1, username: 'testuser' });
+        window.getUserId = () => 1;
+        window.getLoginPagePath = () => '/login';
+        window.makeAuthenticatedRequest = async (url, options) => {
+            console.log('Mock API call:', url, options);
+            return {
+                ok: true,
+                json: async () => ({ success: true, data: {} })
+            };
+        };
+
+        // Mock URL parameters
+        Object.defineProperty(window, 'location', {
+            value: { search: '?id=123' },
+            writable: true
+        });
+
+        const results = document.getElementById('results');
+
+        function addResult(test, status, message) {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${test}:</strong> <span style="color: ${status === 'PASS' ? 'green' : 'red'}">${status}</span> - ${message}`;
+            results.appendChild(div);
+        }
+
+        // Test 1: Check if file loads without errors
+        try {
+            // This will only work if the JS file is loaded
+            addResult('File Load', 'CHECKING', 'Loading approveOPReim.js...');
+        } catch (error) {
+            addResult('File Load', 'FAIL', error.message);
+        }
+
+        // Test 2: Check global variables
+        setTimeout(() => {
+            try {
+                if (typeof documentId !== 'undefined') {
+                    addResult('Global documentId', 'PASS', 'Variable exists');
+                } else {
+                    addResult('Global documentId', 'FAIL', 'Variable not found');
+                }
+
+                if (typeof outgoingPaymentReimData !== 'undefined') {
+                    addResult('Global outgoingPaymentReimData', 'PASS', 'Variable exists');
+                } else {
+                    addResult('Global outgoingPaymentReimData', 'FAIL', 'Variable not found');
+                }
+
+                if (typeof approveState !== 'undefined') {
+                    addResult('approveState object', 'PASS', 'State object exists');
+                } else {
+                    addResult('approveState object', 'FAIL', 'State object not found');
+                }
+
+                if (typeof approveOPReim === 'function') {
+                    addResult('approveOPReim function', 'PASS', 'Function exists');
+                } else {
+                    addResult('approveOPReim function', 'FAIL', 'Function not found');
+                }
+
+                if (typeof rejectOPReim === 'function') {
+                    addResult('rejectOPReim function', 'PASS', 'Function exists');
+                } else {
+                    addResult('rejectOPReim function', 'FAIL', 'Function not found');
+                }
+
+            } catch (error) {
+                addResult('Variable Check', 'FAIL', error.message);
+            }
+        }, 1000);
+    </script>
+
+    <!-- Load the actual JS file -->
+    <script src="approvalPages/approval/approve/outgoingPayment/approveOPReim.js"></script>
+</body>
+
+</html>

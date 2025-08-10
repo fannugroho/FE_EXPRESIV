@@ -35,7 +35,7 @@ if (typeof makeAuthenticatedRequest === 'undefined') {
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
         if (!response.ok) {
@@ -52,7 +52,7 @@ async function getAvailableCategories(departmentId, transactionType) {
 // Function to get available account names based on category, department, and transaction type from API
 async function getAvailableAccountNames(category, departmentId, transactionType) {
     if (!category || !departmentId || !transactionType) return [];
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
         if (!response.ok) {
@@ -69,7 +69,7 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
 // Function to get COA based on category, account name, department, and transaction type from API
 async function getCOA(category, accountName, departmentId, transactionType) {
     if (!category || !accountName || !departmentId || !transactionType) return '';
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
         if (!response.ok) {
@@ -89,177 +89,177 @@ async function setupCategoryDropdown(row) {
     const categoryDropdown = row.querySelector('.category-dropdown');
     const accountNameSelect = row.querySelector('.account-name');
     const coaInput = row.querySelector('.coa');
-    
+
     if (!categoryInput || !categoryDropdown) return;
-    
+
     // Initially disable category input and account name
     updateFieldsBasedOnPrerequisites(row);
-    
+
     // Get current values
     const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
     const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
     const requesterSearchInput = document.getElementById("requesterSearch");
-    
-    categoryInput.addEventListener('input', async function() {
+
+    categoryInput.addEventListener('input', async function () {
         const departmentId = departmentSelect.value;
         const transactionType = transactionTypeSelect.value;
         const requesterValue = requesterSearchInput.value;
-        
+
         // Validate prerequisites
         if (!requesterValue || !departmentId || !transactionType) {
             showValidationMessage(categoryInput, 'Please select requester and transaction type first');
             categoryDropdown.classList.add('hidden');
             return;
         }
-        
+
         const searchText = this.value.toLowerCase();
         const availableCategories = await getAvailableCategories(departmentId, transactionType);
-        
+
         // Clear dropdown
         categoryDropdown.innerHTML = '';
-        
+
         // Filter categories based on search text
-        const filteredCategories = availableCategories.filter(category => 
+        const filteredCategories = availableCategories.filter(category =>
             category.toLowerCase().includes(searchText)
         );
-        
+
         // Add historical categories to filtered list if they match search
         const historicalCategories = categoryInput.historicalCategories || [];
-        const filteredHistoricalCategories = historicalCategories.filter(category => 
-            category.toLowerCase().includes(searchText) && 
+        const filteredHistoricalCategories = historicalCategories.filter(category =>
+            category.toLowerCase().includes(searchText) &&
             !filteredCategories.includes(category)
         );
-        
+
         const allFilteredCategories = [...filteredCategories, ...filteredHistoricalCategories];
-        
+
         if (allFilteredCategories.length > 0) {
             // Add regular categories
             filteredCategories.forEach(category => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.textContent = category;
-                option.onclick = function() {
+                option.onclick = function () {
                     categoryInput.value = category;
                     categoryDropdown.classList.add('hidden');
-                    
+
                     // Update account name dropdown
                     updateAccountNameDropdown(row, category, departmentId, transactionType);
-                    
+
                     // Clear COA when category changes
                     if (coaInput) coaInput.value = '';
-                    
+
                     // Enable account name dropdown now that category is selected
                     enableAccountNameField(row);
                 };
                 categoryDropdown.appendChild(option);
             });
-            
+
             // Add historical categories with visual distinction
             filteredHistoricalCategories.forEach(category => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerHTML = `<span style="font-style: italic; color: #6b7280;">${category} (Historical)</span>`;
-                option.onclick = function() {
+                option.onclick = function () {
                     categoryInput.value = category;
                     categoryDropdown.classList.add('hidden');
-                    
+
                     // Update account name dropdown for historical category
                     updateAccountNameDropdown(row, category, departmentId, transactionType);
-                    
+
                     // Clear COA when category changes
                     if (coaInput) coaInput.value = '';
-                    
+
                     // Enable account name dropdown now that category is selected
                     enableAccountNameField(row);
                 };
                 categoryDropdown.appendChild(option);
             });
-            
+
             categoryDropdown.classList.remove('hidden');
         } else {
             categoryDropdown.classList.add('hidden');
         }
     });
-    
-    categoryInput.addEventListener('focus', async function() {
+
+    categoryInput.addEventListener('focus', async function () {
         const departmentId = departmentSelect.value;
         const transactionType = transactionTypeSelect.value;
         const requesterValue = requesterSearchInput.value;
-        
+
         // Validate prerequisites
         if (!requesterValue || !departmentId || !transactionType) {
             showValidationMessage(this, 'Please select requester and transaction type first');
             this.blur(); // Remove focus
             return;
         }
-        
+
         const availableCategories = await getAvailableCategories(departmentId, transactionType);
-        
+
         // Clear dropdown
         categoryDropdown.innerHTML = '';
-        
+
         // Combine available categories with historical ones
         const historicalCategories = categoryInput.historicalCategories || [];
         const allCategories = [...availableCategories];
-        
+
         // Add historical categories that aren't already in available categories
         historicalCategories.forEach(histCat => {
             if (!availableCategories.includes(histCat)) {
                 allCategories.push(histCat);
             }
         });
-        
+
         if (allCategories.length > 0) {
             // Add regular categories
             availableCategories.forEach(category => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.textContent = category;
-                option.onclick = function() {
+                option.onclick = function () {
                     categoryInput.value = category;
                     categoryDropdown.classList.add('hidden');
-                    
+
                     // Update account name dropdown
                     updateAccountNameDropdown(row, category, departmentId, transactionType);
-                    
+
                     // Clear COA when category changes
                     if (coaInput) coaInput.value = '';
-                    
+
                     // Enable account name dropdown now that category is selected
                     enableAccountNameField(row);
                 };
                 categoryDropdown.appendChild(option);
             });
-            
+
             // Add historical categories with visual distinction
             historicalCategories.forEach(category => {
                 if (!availableCategories.includes(category)) {
                     const option = document.createElement('div');
                     option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                     option.innerHTML = `<span style="font-style: italic; color: #6b7280;">${category} (Historical)</span>`;
-                    option.onclick = function() {
+                    option.onclick = function () {
                         categoryInput.value = category;
                         categoryDropdown.classList.add('hidden');
-                        
+
                         // Update account name dropdown for historical category
                         updateAccountNameDropdown(row, category, departmentId, transactionType);
-                        
+
                         // Clear COA when category changes
                         if (coaInput) coaInput.value = '';
-                        
+
                         // Enable account name dropdown now that category is selected
                         enableAccountNameField(row);
                     };
                     categoryDropdown.appendChild(option);
                 }
             });
-            
+
             categoryDropdown.classList.remove('hidden');
         }
     });
-    
+
     // Hide dropdown when clicking outside
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         if (!categoryInput.contains(event.target) && !categoryDropdown.contains(event.target)) {
             categoryDropdown.classList.add('hidden');
         }
@@ -273,13 +273,13 @@ function showValidationMessage(element, message) {
     if (existingMessage) {
         existingMessage.remove();
     }
-    
+
     // Create and show new validation message
     const messageDiv = document.createElement('div');
     messageDiv.className = 'validation-message text-red-500 text-sm mt-1';
     messageDiv.textContent = message;
     element.parentElement.appendChild(messageDiv);
-    
+
     // Remove message after 3 seconds
     setTimeout(() => {
         if (messageDiv.parentElement) {
@@ -292,16 +292,16 @@ function showValidationMessage(element, message) {
 function updateFieldsBasedOnPrerequisites(row) {
     const categoryInput = row.querySelector('.category-input');
     const accountNameSelect = row.querySelector('.account-name');
-    
+
     const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
     const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
     const requesterSearchInput = document.getElementById("requesterSearch");
-    
+
     const departmentId = departmentSelect?.value;
     const transactionType = transactionTypeSelect?.value;
     const requesterValue = requesterSearchInput?.value;
     const categoryValue = categoryInput?.value;
-    
+
     if (!requesterValue || !departmentId || !transactionType) {
         // Disable category input
         if (categoryInput) {
@@ -321,7 +321,7 @@ function updateFieldsBasedOnPrerequisites(row) {
             categoryInput.placeholder = 'Search category...';
             categoryInput.classList.remove('bg-gray-100');
         }
-        
+
         // Check if category is selected to enable account name
         if (!categoryValue) {
             if (accountNameSelect) {
@@ -346,13 +346,13 @@ function enableAccountNameField(row) {
 // Function to ensure category exists in available options (for historical data)
 async function ensureCategoryAvailable(categoryInput, existingCategory, departmentId, transactionType) {
     if (!existingCategory || !categoryInput) return;
-    
+
     // Get available categories
     const availableCategories = await getAvailableCategories(departmentId, transactionType);
-    
+
     // Check if existing category exists in available options
     const categoryExists = availableCategories.some(cat => cat.toLowerCase() === existingCategory.toLowerCase());
-    
+
     if (!categoryExists) {
         // Add the historical category to a global list for this input
         if (!categoryInput.historicalCategories) {
@@ -369,27 +369,27 @@ async function ensureCategoryAvailable(categoryInput, existingCategory, departme
 async function updateAccountNameDropdown(row, category, departmentId, transactionType, existingAccountName = null, existingCoa = null) {
     const accountNameSelect = row.querySelector('.account-name');
     const coaInput = row.querySelector('.coa');
-    
+
     if (!accountNameSelect) return;
-    
+
     // Validate prerequisites
     if (!category) {
         showValidationMessage(accountNameSelect, 'Please select a category first');
         return;
     }
-    
+
     // Store the current selected value before clearing
     const currentSelectedValue = accountNameSelect.value || existingAccountName;
-    
+
     // Clear existing options
     accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
-    
+
     // Get available account names for the selected category
     const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
-    
+
     // Check if existing account name exists in the fetched options
     let existingAccountNameFound = false;
-    
+
     accountNames.forEach(item => {
         const option = document.createElement('option');
         option.value = item.accountName;
@@ -397,13 +397,13 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
         option.dataset.coa = item.coa;
         option.dataset.remarks = item.remarks || '';
         accountNameSelect.appendChild(option);
-        
+
         // Check if this matches the existing account name
         if (currentSelectedValue && item.accountName === currentSelectedValue) {
             existingAccountNameFound = true;
         }
     });
-    
+
     // If existing account name doesn't exist in current options, add it
     if (currentSelectedValue && !existingAccountNameFound) {
         const option = document.createElement('option');
@@ -416,7 +416,7 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
         accountNameSelect.appendChild(option);
         console.log(`Added historical account name: ${currentSelectedValue}`);
     }
-    
+
     // Set the selected value
     if (currentSelectedValue) {
         accountNameSelect.value = currentSelectedValue;
@@ -425,16 +425,16 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
             coaInput.value = existingCoa;
         }
     }
-    
+
     // Remove existing event listeners to avoid conflicts
     const newAccountNameSelect = accountNameSelect.cloneNode(true);
     accountNameSelect.parentNode.replaceChild(newAccountNameSelect, accountNameSelect);
-    
+
     // Add event listener for account name selection - use dataset.coa instead of API call
-    newAccountNameSelect.addEventListener('change', function() {
+    newAccountNameSelect.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const selectedAccountName = this.value;
-        
+
         if (selectedAccountName && selectedOption) {
             // Use COA data that's already available from dataset
             const coa = selectedOption.dataset.coa || '';
@@ -444,7 +444,7 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
             if (coaInput) coaInput.value = '';
         }
     });
-    
+
     // Enable the account name field
     enableAccountNameField(row);
 }
@@ -543,15 +543,15 @@ async function refreshAllCategoryDropdowns() {
         const categoryInput = row.querySelector('.category-input');
         const accountNameSelect = row.querySelector('.account-name');
         const coaInput = row.querySelector('.coa');
-        
+
         // Don't clear existing values if they exist, just update states
         if (categoryInput && !categoryInput.value) categoryInput.value = '';
         if (accountNameSelect && !accountNameSelect.value) accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
         if (coaInput && !coaInput.value) coaInput.value = '';
-        
+
         // Update field states based on prerequisites
         updateFieldsBasedOnPrerequisites(row);
-        
+
         // Re-setup dropdown
         await setupCategoryDropdown(row);
     }
@@ -563,13 +563,13 @@ function emphasizeRequesterSelection() {
     if (requesterSearchInput && !requesterSearchInput.value) {
         requesterSearchInput.style.border = '2px solid #ef4444';
         requesterSearchInput.style.backgroundColor = '#fef2f2';
-        
+
         // Add a helper text
         const helperText = document.createElement('div');
         helperText.id = 'requester-helper';
         helperText.className = 'text-red-600 text-sm mt-1 font-medium';
         helperText.textContent = '⚠️ Please select a requester first to auto-fill department';
-        
+
         if (!document.getElementById('requester-helper')) {
             requesterSearchInput.parentElement.appendChild(helperText);
         }
@@ -580,12 +580,12 @@ function emphasizeRequesterSelection() {
 function removeRequesterEmphasis() {
     const requesterSearchInput = document.getElementById("requesterSearch");
     const helperText = document.getElementById('requester-helper');
-    
+
     if (requesterSearchInput) {
         requesterSearchInput.style.border = '';
         requesterSearchInput.style.backgroundColor = '';
     }
-    
+
     if (helperText) {
         helperText.remove();
     }
@@ -597,13 +597,13 @@ function emphasizeTransactionTypeSelection() {
     if (transactionTypeSelect && !transactionTypeSelect.value) {
         transactionTypeSelect.style.border = '2px solid #f59e0b';
         transactionTypeSelect.style.backgroundColor = '#fef3c7';
-        
+
         // Add a helper text
         const helperText = document.createElement('div');
         helperText.id = 'transaction-type-helper';
         helperText.className = 'text-amber-600 text-sm mt-1 font-medium';
         helperText.textContent = '⚠️ Please select transaction type to enable expense categories';
-        
+
         if (!document.getElementById('transaction-type-helper')) {
             transactionTypeSelect.parentElement.appendChild(helperText);
         }
@@ -614,12 +614,12 @@ function emphasizeTransactionTypeSelection() {
 function removeTransactionTypeEmphasis() {
     const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
     const helperText = document.getElementById('transaction-type-helper');
-    
+
     if (transactionTypeSelect) {
         transactionTypeSelect.style.border = '';
         transactionTypeSelect.style.backgroundColor = '';
     }
-    
+
     if (helperText) {
         helperText.remove();
     }
@@ -665,7 +665,7 @@ function fetchDepartments() {
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
     if (!departmentSelect) return;
-    
+
     // Clear and create options from API data like revisionCash.js
     departmentSelect.innerHTML = '<option value="" disabled>Select Department</option>';
 
@@ -675,7 +675,7 @@ function populateDepartmentSelect(departments) {
         option.textContent = department.name;
         departmentSelect.appendChild(option);
     });
-    
+
     // Set the value from stored data if available
     if (window.currentValues && window.currentValues.departmentId) {
         departmentSelect.value = window.currentValues.departmentId;
@@ -714,10 +714,10 @@ function populateUserSelects(users, caData = null) {
         fullName: user.fullName,
         department: user.department
     }));
-    
+
     // Store all users globally
     window.allUsers = users;
-    
+
     // Store employees globally for reference
     window.employees = users.map(user => ({
         id: user.id,
@@ -738,14 +738,14 @@ function populateUserSelects(users, caData = null) {
     const requesterSelect = document.getElementById("RequesterId");
     if (requesterSelect) {
         requesterSelect.innerHTML = '<option value="">Select a requester</option>';
-        
+
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
             option.textContent = user.fullName;
             requesterSelect.appendChild(option);
         });
-        
+
         // Set the requester value from cash advance data if available
         if (caData && caData.requesterId) {
             requesterSelect.value = caData.requesterId;
@@ -755,10 +755,10 @@ function populateUserSelects(users, caData = null) {
     // Setup search functionality for requester
     const requesterSearchInput = document.getElementById('requesterSearch');
     const requesterDropdown = document.getElementById('requesterDropdown');
-    
+
     if (requesterSearchInput && requesterDropdown) {
         // Function to filter requesters
-        window.filterRequesters = function() {
+        window.filterRequesters = function () {
             const searchText = requesterSearchInput.value.toLowerCase();
             populateRequesterDropdown(searchText);
             requesterDropdown.classList.remove('hidden');
@@ -777,19 +777,19 @@ function populateUserSelects(users, caData = null) {
             const filteredRequesters = window.requesters.filter(r => 
                 r && r.fullName && r.fullName.toLowerCase().includes(filter)
             );
-            
+
             filteredRequesters.forEach(requester => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerText = requester.fullName;
-                option.onclick = function() {
+                option.onclick = function () {
                     requesterSearchInput.value = requester.fullName;
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
-                    
+
                     // Remove requester emphasis when selected
                     removeRequesterEmphasis();
-                    
+
                     // Update department - use correct field ID
                     const departmentSelect = document.getElementById('departmentId');
                     if (requester.department && departmentSelect) {
@@ -801,13 +801,13 @@ function populateUserSelects(users, caData = null) {
                             }
                         }
                     }
-                    
+
                     // Refresh category dropdowns after requester selection
                     refreshAllCategoryDropdowns();
                 };
                 requesterDropdown.appendChild(option);
             });
-            
+
             if (filteredRequesters.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
@@ -841,7 +841,7 @@ function populateUserSelects(users, caData = null) {
         });
 
         // Hide dropdown when clicking outside
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             if (!requesterSearchInput.contains(event.target) && !requesterDropdown.contains(event.target)) {
                 requesterDropdown.classList.add('hidden');
             }
@@ -867,7 +867,7 @@ function populateUserSelects(users, caData = null) {
             if (loggedInEmployee) {
                 const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
                 const employeeName = loggedInEmployee.fullName || '';
-                
+
                 document.getElementById("employeeId").value = employeeNIK;
                 document.getElementById("employeeName").value = employeeName;
             }
@@ -895,7 +895,7 @@ function populateUserSelects(users, caData = null) {
     });
 
     // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         const dropdowns = document.querySelectorAll('.search-dropdown');
         dropdowns.forEach(dropdown => {
             const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
@@ -928,7 +928,7 @@ function fetchTransactionType() {
 function populateTransactionTypeSelect(transactionTypes) {
     const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
     if (!transactionTypeSelect) return;
-    
+
     // Clear and create options from API data like revisionCash.js
     transactionTypeSelect.innerHTML = '<option value="" disabled>Select Transaction Type</option>';
 
@@ -938,7 +938,7 @@ function populateTransactionTypeSelect(transactionTypes) {
         option.textContent = type.name;
         transactionTypeSelect.appendChild(option);
     });
-    
+
     // Set the value from stored data if available
     if (window.currentValues && window.currentValues.transactionType) {
         // Direct match by name since we're using name as value
@@ -951,12 +951,12 @@ function populateTransactionTypeSelect(transactionTypes) {
     }
 
     // Add event listener for transaction type change
-    transactionTypeSelect.addEventListener('change', function() {
+    transactionTypeSelect.addEventListener('change', function () {
         // Remove emphasis when transaction type is selected
         if (this.value) {
             removeTransactionTypeEmphasis();
         }
-        
+
         // Refresh all category dropdowns when transaction type changes
         refreshAllCategoryDropdowns();
     });
@@ -966,7 +966,7 @@ function saveDocument() {
     const docNumber = (JSON.parse(localStorage.getItem("documents")) || []).length + 1;
     const documentData = {
         docNumber,
-        invoiceNo : document.getElementById("invoiceNo").value,
+        invoiceNo: document.getElementById("invoiceNo").value,
         requester: document.getElementById("requester").value,
         department: document.getElementById("department").value,
         vendor: document.getElementById("vendor").value,
@@ -986,7 +986,7 @@ function saveDocument() {
             knowledge: document.getElementById("knowledge").checked,
         }
     };
-    
+
     let documents = JSON.parse(localStorage.getItem("documents")) || [];
     documents.push(documentData);
     localStorage.setItem("documents", JSON.stringify(documents));
@@ -1000,7 +1000,7 @@ function goToMenuCash() {
 // Only add event listener if the element exists (to prevent errors)
 const docTypeElement = document.getElementById("docType");
 if (docTypeElement) {
-    docTypeElement.addEventListener("change", function() {
+    docTypeElement.addEventListener("change", function () {
         const selectedValue = this.value;
         const prTable = document.getElementById("prTable");
 
@@ -1015,13 +1015,13 @@ if (docTypeElement) {
 function previewPDF(event) {
     const files = event.target.files;
     const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
-    
+
     if (files.length + totalExistingFiles > 5) {
         alert('Maximum 5 PDF files are allowed.');
         event.target.value = ''; // Clear the file input
         return;
     }
-    
+
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
             uploadedFiles.push(file);
@@ -1029,7 +1029,7 @@ function previewPDF(event) {
             alert('Please upload a valid PDF file');
         }
     });
-    
+
     displayFileList();
     updateAttachmentsDisplay();
 }
@@ -1059,9 +1059,9 @@ function removeExistingAttachment(attachmentId) {
 function updateAttachmentsDisplay() {
     const attachmentsList = document.getElementById('attachmentsList');
     if (!attachmentsList) return;
-    
+
     attachmentsList.innerHTML = ''; // Clear existing display
-    
+
     // Display existing attachments that are marked to keep
     const existingToKeep = existingAttachments.filter(att => attachmentsToKeep.includes(att.id));
     existingToKeep.forEach(attachment => {
@@ -1077,7 +1077,7 @@ function updateAttachmentsDisplay() {
                 <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
                     View
                 </a>
-                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ? 
+                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ?
                 `<button onclick="removeExistingAttachment('${attachment.id}')" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove
                 </button>` : ''}
@@ -1085,7 +1085,7 @@ function updateAttachmentsDisplay() {
         `;
         attachmentsList.appendChild(attachmentItem);
     });
-    
+
     // Display new uploaded files
     uploadedFiles.forEach((file, index) => {
         const attachmentItem = document.createElement('div');
@@ -1097,7 +1097,7 @@ function updateAttachmentsDisplay() {
                 <span class="text-xs text-green-600 ml-2">(new)</span>
             </div>
             <div class="flex items-center gap-2">
-                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ? 
+                ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ?
                 `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove
                 </button>` : ''}
@@ -1105,12 +1105,12 @@ function updateAttachmentsDisplay() {
         `;
         attachmentsList.appendChild(attachmentItem);
     });
-    
+
     // Show message if no attachments
     if (existingToKeep.length === 0 && uploadedFiles.length === 0) {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments</p>';
     }
-    
+
     // Show attachment count
     const totalAttachments = existingToKeep.length + uploadedFiles.length;
     console.log(`Total attachments: ${totalAttachments} (${existingToKeep.length} existing, ${uploadedFiles.length} new)`);
@@ -1147,7 +1147,7 @@ async function addRow() {
     `;
 
     tableBody.appendChild(newRow);
-    
+
     // Setup category dropdown for the new row
     await setupCategoryDropdown(newRow);
     
@@ -1274,12 +1274,12 @@ function deleteDocument() {
     // Get the ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('ca-id');
-    
+
     if (!id) {
         Swal.fire('Error!', 'ID cash advance tidak ditemukan.', 'error');
         return;
     }
-    
+
     // Call the DELETE API
     fetch(`${BASE_URL}/api/cash-advance/${id}`, {
         method: 'DELETE',
@@ -1287,34 +1287,34 @@ function deleteDocument() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => {
-        if (response.status === 204) {
-            // 204 No Content - Success case
-            Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
-            .then(() => {
-                // Redirect to previous page or list page after successful deletion
-                window.history.back();
-            });
-        } else if (response.ok) {
-            // If there's a response body, try to parse it
-            return response.json().then(data => {
-                if (data.status) {
-                    Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
+        .then(response => {
+            if (response.status === 204) {
+                // 204 No Content - Success case
+                Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
                     .then(() => {
+                        // Redirect to previous page or list page after successful deletion
                         window.history.back();
                     });
-                } else {
-                    Swal.fire('Error!', data.message || 'Gagal menghapus dokumen karena status dokumen sudah bukan draft.', 'error');
-                }
-            });
-        } else {
-            Swal.fire('Error!', `Gagal menghapus dokumen. Status: ${response.status}`, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire('Error!', 'Terjadi kesalahan saat menghapus dokumen.', 'error');
-    });
+            } else if (response.ok) {
+                // If there's a response body, try to parse it
+                return response.json().then(data => {
+                    if (data.status) {
+                        Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
+                            .then(() => {
+                                window.history.back();
+                            });
+                    } else {
+                        Swal.fire('Error!', data.message || 'Gagal menghapus dokumen karena status dokumen sudah bukan draft.', 'error');
+                    }
+                });
+            } else {
+                Swal.fire('Error!', `Gagal menghapus dokumen. Status: ${response.status}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error!', 'Terjadi kesalahan saat menghapus dokumen.', 'error');
+        });
 }
 
 // Old loadCashAdvanceData function removed - replaced by fetchCashAdvanceDetail
@@ -1366,7 +1366,7 @@ async function populateCashAdvanceDetails(data) {
     if (data.payToCode && data.payToName) {
         const paidToSearchInput = document.getElementById('paidToSearch');
         const paidToHiddenInput = document.getElementById('paidTo');
-        
+
         if (paidToSearchInput && paidToHiddenInput) {
             console.log('Setting PayTo field - payToName:', data.payToName, 'payToCode:', data.payToCode);
             paidToSearchInput.value = data.payToName;
@@ -1374,13 +1374,13 @@ async function populateCashAdvanceDetails(data) {
             console.log('PayTo field values after setting - search:', paidToSearchInput.value, 'hidden:', paidToHiddenInput.value);
         }
     }
-    
+
     // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
         const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById("submissionDate").value = formattedDate;
     }
-    
+
     // Handle requester name with search functionality  
     if (data.requesterName) {
         document.getElementById("requesterSearch").value = data.requesterName;
@@ -1388,7 +1388,7 @@ async function populateCashAdvanceDetails(data) {
         window.cashAdvanceRequesterId = data.requesterId;
         removeRequesterEmphasis();
     }
-    
+
     // Handle remarks if exists
     const remarksTextarea = document.getElementById('remarks');
     if (remarksTextarea) {
@@ -1935,15 +1935,15 @@ function displayRejectionRemarks(data) {
 
 async function populateTable(cashAdvanceDetails) {
     const tableBody = document.getElementById("tableBody");
-    
+
     console.log("cashAdvanceDetails", cashAdvanceDetails);
     // Clear existing rows
     tableBody.innerHTML = '';
-    
+
     // Add rows for each detail
     for (const detail of cashAdvanceDetails) {
         const newRow = document.createElement("tr");
-        
+
         newRow.innerHTML = `
             <td class="p-2 border relative">
                 <input type="text" class="category-input w-full" placeholder="Search category..." value="${detail.category || ''}" />
@@ -1951,10 +1951,10 @@ async function populateTable(cashAdvanceDetails) {
             </td>
             <td class="p-2 border">
              <select class="account-name w-full">
-                ${detail.accountName 
-                    ? `<option value="${detail.accountName}" selected>${detail.accountName}</option>` 
-                    : `<option value="" selected>Select Account Name</option>`
-                }
+                ${detail.accountName
+                ? `<option value="${detail.accountName}" selected>${detail.accountName}</option>`
+                : `<option value="" selected>Select Account Name</option>`
+            }
             </select>
             </td>
             <td class="p-2 border">
@@ -1972,22 +1972,22 @@ async function populateTable(cashAdvanceDetails) {
                 </button>
             </td>
         `;
-        
+
         tableBody.appendChild(newRow);
-        
+
         // Get department and transaction type values
         const departmentId = document.getElementById("departmentId").value;
         const transactionType = document.getElementById("transactionType").value;
-        
+
         // Setup category dropdown for each row
         await setupCategoryDropdown(newRow);
-        
+
         // Ensure historical category is available if it doesn't exist in master data
         if (detail.category) {
             const categoryInput = newRow.querySelector('.category-input');
             await ensureCategoryAvailable(categoryInput, detail.category, departmentId, transactionType);
         }
-        
+
         // If row has account name and category, populate account name dropdown with historical support
         if (detail.category && detail.accountName) {
             // For initial load, we'll populate the dropdown options without clearing the existing value
@@ -2002,7 +2002,7 @@ async function populateTable(cashAdvanceDetails) {
             );
         }
     }
-    
+
     // If no details exist, add one empty row
     if (cashAdvanceDetails.length === 0) {
         await addRow();
@@ -2351,62 +2351,62 @@ function updateCash(isSubmit = true) {
 function numberToWords(num) {
     const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
     const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-    
+
     if (num === 0) return 'zero';
-    
+
     function convertLessThanOneThousand(num) {
         if (num < 20) {
             return ones[num];
         }
-        
+
         const ten = Math.floor(num / 10);
         const unit = num % 10;
-        
+
         return tens[ten] + (unit !== 0 ? '-' + ones[unit] : '');
     }
-    
+
     function convert(num) {
         if (num < 1000) {
             return convertLessThanOneThousand(num);
         }
-        
+
         const billions = Math.floor(num / 1000000000);
         const millions = Math.floor((num % 1000000000) / 1000000);
         const thousands = Math.floor((num % 1000000) / 1000);
         const remainder = num % 1000;
-        
+
         let result = '';
-        
+
         if (billions) {
             result += convertLessThanOneThousand(billions) + ' billion ';
         }
-        
+
         if (millions) {
             result += convertLessThanOneThousand(millions) + ' million ';
         }
-        
+
         if (thousands) {
             result += convertLessThanOneThousand(thousands) + ' thousand ';
         }
-        
+
         if (remainder) {
             result += convertLessThanOneThousand(remainder);
         }
-        
+
         return result.trim();
     }
-    
+
     // Split number into whole and decimal parts
     const parts = Number(num).toFixed(2).split('.');
     const wholePart = parseInt(parts[0]);
     const decimalPart = parseInt(parts[1]);
-    
+
     let result = convert(wholePart);
-    
+
     if (decimalPart) {
         result += ' point ' + convert(decimalPart);
     }
-    
+
     return result + ' rupiah';
 }
 
@@ -2418,29 +2418,29 @@ function printCashAdvanceVoucher() {
     const paidTo = document.getElementById("paidTo").value;
     const purpose = document.getElementById("purpose").value;
     const submissionDate = document.getElementById("submissionDate").value;
-    
+
     // Get approval data
     const proposedName = document.getElementById("preparedSelect").value;
     const checkedName = document.getElementById("checkedSelect").value;
     const approvedName = document.getElementById("approvedSelect").value;
     const acknowledgedName = document.getElementById("acknowledgedSelect").value;
-    
+
     // Get checkbox states
     const proposedChecked = document.getElementById("preparedCheckbox").checked;
     const checkedChecked = document.getElementById("checkedCheckbox").checked;
     const approvedChecked = document.getElementById("approvedCheckbox").checked;
     const acknowledgedChecked = document.getElementById("acknowledgedCheckbox").checked;
-    
+
     // Get table data
     const tableBody = document.getElementById("tableBody");
     const rows = tableBody.querySelectorAll("tr");
     const tableData = [];
     let totalAmount = 0;
-    
+
     rows.forEach(row => {
         const descriptionInput = row.querySelector("td:first-child input");
         const amountInput = row.querySelector("td:nth-child(2) input");
-        
+
         if (descriptionInput && amountInput && descriptionInput.value && amountInput.value) {
             const amount = parseFloat(amountInput.value);
             tableData.push({
@@ -2450,17 +2450,17 @@ function printCashAdvanceVoucher() {
             totalAmount += amount;
         }
     });
-    
+
     // Convert total amount to words
     const amountInWords = numberToWords(totalAmount);
-    
+
     // Create the printable HTML
     const printContent = `
     <div id="print-container" style="width: 800px; margin: 0 auto; font-family: Arial, sans-serif; padding: 20px;">
         <div style="text-align: left; margin-bottom: 20px;">
             <h3 style="margin: 0;">PT KANSAI PAINT INDONESIA</h3>
-            <p style="margin: 0;">Blok DD-7 & DD-6 Kawasan Industri MM2100 Danaludah</p>
-            <p style="margin: 0;">Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
+            <p style="margin: 0;">Blok DD-7 & DD-6 Kawasan Industri MM2100</p>
+            <p style="margin: 0;">Danau Indah, Cikarang Barat Kab. Bekasi Jawa Barat 17847</p>
         </div>
         
         <div style="text-align: right; margin-bottom: 20px;">
@@ -2661,13 +2661,13 @@ function printCashAdvanceVoucher() {
         </div>
     </div>
     `;
-    
+
     // Create a temporary container to hold the printable content
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = printContent;
     tempDiv.style.display = 'none';
     document.body.appendChild(tempDiv);
-    
+
     // Generate the PDF
     const element = document.getElementById('print-container');
     const opt = {
@@ -2677,7 +2677,7 @@ function printCashAdvanceVoucher() {
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    
+
     // Generate PDF
     html2pdf().set(opt).from(element).save().then(() => {
         // Remove the temporary container after PDF is generated
@@ -2702,7 +2702,7 @@ function hideUpdateSubmitButtons() {
 // Function to make all fields read-only when status is not Draft or Revision
 function makeAllFieldsReadOnlyForNonDraft() {
     console.log('Status is not Draft or Revision - making all fields read-only');
-    
+
     // Make all input fields read-only
     const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], input[type="file"], textarea');
     inputFields.forEach(field => {
@@ -2710,49 +2710,49 @@ function makeAllFieldsReadOnlyForNonDraft() {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
-    
+
     // Disable all select fields
     const selectFields = document.querySelectorAll('select');
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
     });
-    
+
     // Hide all approval dropdown divs
     const approvalDropdowns = [
         'Approval.PreparedByIdDropdown',
-        'Approval.CheckedByIdDropdown', 
+        'Approval.CheckedByIdDropdown',
         'Approval.ApprovedByIdDropdown',
         'Approval.AcknowledgedByIdDropdown',
         'Approval.ReceivedByIdDropdown',
         'Approval.ClosedByIdDropdown'
     ];
-    
+
     approvalDropdowns.forEach(dropdownId => {
         const dropdown = document.getElementById(dropdownId);
         if (dropdown) {
             dropdown.style.display = 'none';
         }
     });
-    
+
     // Hide PayTo dropdown
     const paidToDropdown = document.getElementById('paidToDropdown');
     if (paidToDropdown) {
         paidToDropdown.style.display = 'none';
     }
-    
+
     // Hide action buttons (Update, Submit, Delete)
     const actionButtons = document.querySelectorAll('button[onclick*="updateCash"], button[onclick*="confirmDelete"]');
     actionButtons.forEach(button => {
         button.style.display = 'none';
     });
-    
+
     // Hide add row button
     const addRowButton = document.querySelector('button[onclick="addRow()"]');
     if (addRowButton) {
         addRowButton.style.display = 'none';
     }
-    
+
     // Hide all delete row buttons in table
     const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
     deleteButtons.forEach(button => {
@@ -2771,7 +2771,7 @@ function makeAllFieldsReadOnlyForNonDraft() {
         fileInput.disabled = true;
         fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
     }
-    
+
     // Update attachments display to hide remove buttons
     updateAttachmentsDisplay();
 }
@@ -2811,10 +2811,10 @@ function setupBusinessPartnerSearch(businessPartners) {
     const paidToSearchInput = document.getElementById('paidToSearch');
     const paidToDropdown = document.getElementById('paidToDropdown');
     const paidToHiddenInput = document.getElementById('paidTo');
-    
+
     if (paidToSearchInput && paidToDropdown && paidToHiddenInput) {
         // Function to filter business partners
-        window.filterBusinessPartners = function() {
+        window.filterBusinessPartners = function () {
             const searchText = paidToSearchInput.value.toLowerCase();
             populateBusinessPartnerDropdown(searchText);
             paidToDropdown.classList.remove('hidden');
@@ -2823,24 +2823,24 @@ function setupBusinessPartnerSearch(businessPartners) {
         // Function to populate dropdown with filtered business partners
         function populateBusinessPartnerDropdown(filter = '') {
             paidToDropdown.innerHTML = '';
-            
-            const filteredPartners = window.businessPartners.filter(bp => 
-                bp.code.toLowerCase().includes(filter) || 
+
+            const filteredPartners = window.businessPartners.filter(bp =>
+                bp.code.toLowerCase().includes(filter) ||
                 bp.name.toLowerCase().includes(filter)
             );
-            
+
             filteredPartners.forEach(partner => {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerHTML = `<span class="font-medium">${partner.code}</span> - ${partner.name}`;
-                option.onclick = function() {
+                option.onclick = function () {
                     paidToSearchInput.value = `${partner.code} - ${partner.name}`;
                     paidToHiddenInput.value = partner.code;
                     paidToDropdown.classList.add('hidden');
                 };
                 paidToDropdown.appendChild(option);
             });
-            
+
             if (filteredPartners.length === 0) {
                 const noResults = document.createElement('div');
                 noResults.className = 'p-2 text-gray-500';
@@ -2850,7 +2850,7 @@ function setupBusinessPartnerSearch(businessPartners) {
         }
 
         // Hide dropdown when clicking outside
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             if (!paidToSearchInput.contains(event.target) && !paidToDropdown.contains(event.target)) {
                 paidToDropdown.classList.add('hidden');
             }
@@ -2904,7 +2904,7 @@ function validateFormFields(isSubmit) {
 
         if (description && amount) {
             hasValidDetails = true;
-            
+
             if (isSubmit && (!category || !accountName || !coa)) {
                 invalidRows.push(index + 1);
             }

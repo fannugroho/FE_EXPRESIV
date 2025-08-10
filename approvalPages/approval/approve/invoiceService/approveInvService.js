@@ -243,12 +243,14 @@ function populateInvServiceData(data) {
     document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
     document.getElementById('GroupNum').value = data.groupNum || '';
     document.getElementById('TrnspCode').value = data.trnspCode || '';
-    document.getElementById('TaxNo').value = data.taxNo || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
+            document.getElementById('TaxNo').value = data.licTradNum || '';
+        document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
+        document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
     document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
     document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
+    document.getElementById('account').value = data.account || '';
+    document.getElementById('acctName').value = data.acctName || '';
     
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
@@ -266,11 +268,8 @@ function populateInvServiceData(data) {
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
         
-        document.getElementById('preparedBySearch').value = data.arInvoiceApprovalSummary.preparedByName || '';
-        document.getElementById('acknowledgeBySearch').value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
-        document.getElementById('checkedBySearch').value = data.arInvoiceApprovalSummary.checkedByName || '';
-        document.getElementById('approvedBySearch').value = data.arInvoiceApprovalSummary.approvedByName || '';
-        document.getElementById('receivedBySearch').value = data.arInvoiceApprovalSummary.receivedByName || '';
+        // Populate approval fields
+        populateApprovalFields(data.arInvoiceApprovalSummary);
         
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
@@ -289,8 +288,8 @@ function populateInvServiceData(data) {
         }
     }
     
-    // Populate services table
-    populateServicesTable(data.arInvoiceServices || []);
+    // Populate services table using arInvoiceDetails
+    populateServicesTable(data.arInvoiceDetails || []);
     
     // Apply text wrapping
     refreshTextWrapping();
@@ -350,20 +349,50 @@ function formatDate(dateString) {
     return `${year}-${month}-${day}`;
 }
 
+// Function to populate approval fields
+function populateApprovalFields(approvalSummary) {
+    if (!approvalSummary) return;
+    
+    // Populate prepared by
+    if (approvalSummary.preparedByName) {
+        document.getElementById('preparedBySearch').value = approvalSummary.preparedByName;
+        document.getElementById('preparedBy').value = approvalSummary.preparedById || '';
+    }
+    
+    // Populate acknowledged by
+    if (approvalSummary.acknowledgedByName) {
+        document.getElementById('acknowledgeBySearch').value = approvalSummary.acknowledgedByName;
+        document.getElementById('acknowledgeBy').value = approvalSummary.acknowledgedById || '';
+    }
+    
+    // Populate checked by
+    if (approvalSummary.checkedByName) {
+        document.getElementById('checkedBySearch').value = approvalSummary.checkedByName;
+        document.getElementById('checkedBy').value = approvalSummary.checkedById || '';
+    }
+    
+    // Populate approved by
+    if (approvalSummary.approvedByName) {
+        document.getElementById('approvedBySearch').value = approvalSummary.approvedByName;
+        document.getElementById('approvedBy').value = approvalSummary.approvedById || '';
+    }
+    
+    // Populate received by
+    if (approvalSummary.receivedByName) {
+        document.getElementById('receivedBySearch').value = approvalSummary.receivedByName;
+        document.getElementById('receivedBy').value = approvalSummary.receivedById || '';
+    }
+}
+
 // Populate services table
 function populateServicesTable(services) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
     
-    if (services.length === 0) {
-        // Add empty row message
-        const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = `
-            <td colspan="8" class="p-4 text-center text-gray-500">
-                No invoice services found
-            </td>
-        `;
-        tableBody.appendChild(emptyRow);
+    if (!services || services.length === 0) {
+        const noDataRow = document.createElement('tr');
+        noDataRow.innerHTML = '<td colspan="8" class="text-center text-gray-500 py-4">No service items found</td>';
+        tableBody.appendChild(noDataRow);
         return;
     }
     
@@ -376,32 +405,32 @@ function populateServicesTable(services) {
 // Create service row
 function createServiceRow(service, index) {
     const row = document.createElement('tr');
-    row.className = 'border-b';
+    row.className = 'border-b hover:bg-gray-50';
     
     row.innerHTML = `
-        <td class="p-2 border no-column">
-            <input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${service.lineNum || index + 1}" disabled autocomplete="off" />
+        <td class="p-2 no-column">
+            <input type="text" value="${service.lineNum || index + 1}" class="no-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border description-column">
-            <textarea class="w-full service-description bg-gray-100 resize-none overflow-auto overflow-x-auto whitespace-nowrap" maxlength="100" disabled style="height: 40px; vertical-align: top;" autocomplete="off">${service.dscription || ''}</textarea>
+        <td class="p-2 description-column">
+            <textarea value="${service.dscription || ''}" class="w-full bg-gray-100" readonly>${service.dscription || ''}</textarea>
         </td>
-        <td class="p-2 border account-code-column">
-            <input type="text" class="account-code-input p-2 border rounded bg-gray-100" value="${service.acctCode || ''}" disabled autocomplete="off" />
+        <td class="p-2 account-code-column">
+            <input type="text" value="${service.acctCode || ''}" class="account-code-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border account-name-column">
-            <input type="text" class="account-name-input p-2 border rounded bg-gray-100" value="${service.acctName || ''}" disabled autocomplete="off" />
+        <td class="p-2 account-name-column">
+            <input type="text" value="-" class="account-name-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border tax-code-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.vatgroup || ''}" />
+        <td class="p-2 tax-code-column">
+            <input type="text" value="${service.vatgroup || ''}" class="tax-code-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border wtax-liable-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.wtaxLiable || ''}" />
+        <td class="p-2 wtax-liable-column">
+            <input type="text" value="${service.wtLiable || ''}" class="wtax-liable-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border total-lc-column">
-            <input type="text" class="total-lc-input p-2 border rounded bg-gray-100" value="${service.lineTotal || ''}" disabled autocomplete="off" />
+        <td class="p-2 total-lc-column">
+            <input type="text" value="${formatCurrency(service.lineTotal || 0)}" class="total-lc-input bg-gray-100" readonly>
         </td>
-        <td class="p-2 border source-column">
-            <input type="text" class="w-full p-2 border rounded bg-gray-100" maxlength="8" disabled autocomplete="off" value="${service.source || ''}" />
+        <td class="p-2 source-column">
+            <input type="text" value="-" class="source-input bg-gray-100" readonly>
         </td>
     `;
     
@@ -676,6 +705,12 @@ function handleTextWrapping(element) {
             element.style.height = '40px';
         }
     }
+}
+
+// Function to format currency
+function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return '0.00';
+    return parseFloat(amount).toFixed(2);
 }
 
 // Export functions for global access

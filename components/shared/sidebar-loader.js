@@ -6,52 +6,76 @@
 // Global flag to prevent multiple loads
 let sidebarLoaded = false;
 
+// Function to check and show/hide Outgoing Payment menu
+function checkAndUpdateOutgoingPaymentMenu() {
+    console.log('Checking Outgoing Payment access...');
+    const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
+    console.log('Has Outgoing Payment access:', hasAccess);
+
+    const outgoingPaymentSection = document.getElementById('outgoingPaymentSection');
+    if (outgoingPaymentSection) {
+        if (hasAccess === 'true') {
+            console.log('Showing Outgoing Payment menu');
+            outgoingPaymentSection.style.display = 'block';
+        } else {
+            console.log('Hiding Outgoing Payment menu');
+            outgoingPaymentSection.style.display = 'none';
+        }
+    } else {
+        console.log('Outgoing Payment section not found in DOM');
+    }
+}
+
 // Listen for sidebar loaded event to check access
-document.addEventListener('sidebarLoaded', function() {
-    console.log('Sidebar loaded event received, checking Outgoing Payment access');
+document.addEventListener('sidebarLoaded', function () {
+    console.log('Sidebar loaded event received');
     setTimeout(() => {
-        checkOutgoingPaymentAccess();
-    }, 50);
+        checkAndUpdateOutgoingPaymentMenu();
+    }, 100);
 });
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
+    console.log('DOM Content Loaded - Starting sidebar initialization');
     const sidebarElement = document.getElementById('sidebar');
-    
+
     if (!sidebarElement) {
         console.error('No sidebar element found on this page');
         return;
     }
-    
+
+    // Check Outgoing Payment access immediately
+    checkAndUpdateOutgoingPaymentMenu();
+
     // Prevent multiple loads
     if (sidebarLoaded) {
         return;
     }
-    
+
     try {
         // Calculate the relative path to the components directory
         const currentPath = window.location.pathname;
         const pathSegments = currentPath.split('/').filter(Boolean);
-        
+
         // Calculate relative path depth
         let basePath = '';
         const depth = pathSegments.length - 1; // -1 because we don't count the HTML file itself
-        
+
         if (depth > 0) {
             basePath = '../'.repeat(depth);
         }
-        
+
         // Show loading state
         sidebarElement.innerHTML = '<div class="flex items-center justify-center h-32"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
-        
+
         // Fetch the sidebar template
         const response = await fetch(`${basePath}components/shared/sidebar-template.html`);
         if (!response.ok) {
             throw new Error(`Failed to fetch sidebar template: ${response.status}`);
         }
-        
+
         const templateHtml = await response.text();
         sidebarElement.innerHTML = templateHtml;
-        
+
         // Add the sidebar styles if not already included
         if (!document.querySelector('link[href*="sidebar-styles.css"]')) {
             const linkElement = document.createElement('link');
@@ -59,14 +83,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             linkElement.href = `${basePath}components/shared/sidebar-styles.css`;
             document.head.appendChild(linkElement);
         }
-        
+
         // Load navigation.js if not already loaded
         if (!window.goToAddARInvoice) {
             const scriptElement = document.createElement('script');
             scriptElement.src = `${basePath}components/shared/navigation.js`;
             document.head.appendChild(scriptElement);
         }
-        
+
         // Fix image paths in the sidebar (Seiho.png)
         const logoImg = sidebarElement.querySelector('.sidebar-logo-container img');
         if (logoImg) {
@@ -76,21 +100,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 logoImg.src = `${basePath}image/Seiho.png`;
             }
         }
-        
+
         // Initialize sidebar functionality
         initializeSidebarFunctionality();
-        
+
         // Mark as loaded
         sidebarLoaded = true;
-        
+
         // Dispatch custom event to notify other scripts
         document.dispatchEvent(new CustomEvent('sidebarLoaded'));
-        
+
         // Check Outgoing Payment access after sidebar is loaded
         setTimeout(() => {
             checkOutgoingPaymentAccess();
         }, 100);
-        
+
     } catch (error) {
         console.error('Error loading sidebar:', error);
         // Show fallback content
@@ -110,13 +134,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 function initializeSidebarFunctionality() {
     // Set active menu item based on current page
     setActiveMenuItem();
-    
+
     // Initialize submenu toggles
     initializeSubmenuToggles();
-    
+
     // Ensure sidebar is visible and stable
     ensureSidebarStability();
-    
+
     // Check and show/hide Outgoing Payment menu based on user access
     checkOutgoingPaymentAccess();
 }
@@ -125,13 +149,13 @@ function initializeSidebarFunctionality() {
 function setActiveMenuItem() {
     const currentPath = window.location.pathname;
     const currentPage = currentPath.split('/').pop();
-    
+
     // Remove all active classes
     const allMenuItems = document.querySelectorAll('.menu-btn, .submenu-btn');
     allMenuItems.forEach(item => {
         item.classList.remove('active-menu-item');
     });
-    
+
     // Find and set active menu based on current page
     const menuMappings = {
         'dashboard.html': '.menu-btn[onclick*="goToMenu()"]',
@@ -150,13 +174,13 @@ function setActiveMenuItem() {
         'menuARItemApprove.html': '.submenu-btn[onclick*="goToMenuApprovInvoice()"]',
         'menuARItemReceive.html': '.submenu-btn[onclick*="goToMenuReceiveInvoice()"]'
     };
-    
+
     const activeSelector = menuMappings[currentPage];
     if (activeSelector) {
         const activeElement = document.querySelector(activeSelector);
         if (activeElement) {
             activeElement.classList.add('active-menu-item');
-            
+
             // Expand parent submenu if it's a submenu item
             const parentSubmenu = activeElement.closest('div[id^="Menu"], #settings, #OutgoingPayment');
             if (parentSubmenu && !parentSubmenu.classList.contains('hidden')) {
@@ -177,11 +201,11 @@ function initializeSubmenuToggles() {
     existingButtons.forEach(button => {
         button.onclick = null;
     });
-    
+
     // Add new event listeners
     const submenuButtons = document.querySelectorAll('.menu-btn[onclick*="toggleSubMenu"]');
     submenuButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             e.preventDefault();
             const submenuId = this.getAttribute('onclick').match(/toggleSubMenu\('([^']+)'\)/)[1];
             toggleSubMenu(submenuId);
@@ -194,7 +218,7 @@ function toggleSubMenu(id) {
     const submenu = document.getElementById(id);
     const button = submenu.previousElementSibling;
     const chevron = button.querySelector('.fa-chevron-right');
-    
+
     if (submenu.classList.contains('hidden')) {
         submenu.classList.remove('hidden');
         if (chevron) {
@@ -206,7 +230,7 @@ function toggleSubMenu(id) {
             chevron.style.transform = 'rotate(0deg)';
         }
     }
-    
+
     // Close other submenus (optional - comment out if you want multiple open)
     /*
     const allSubmenus = document.querySelectorAll('div[id^="Menu"], #settings, #OutgoingPayment');
@@ -236,7 +260,7 @@ function ensureSidebarStability() {
         sidebar.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
         sidebar.style.boxShadow = '0 0 20px rgba(0,0,0,0.1)';
         sidebar.style.zIndex = '1000';
-        
+
         // Prevent any transform or margin changes
         sidebar.style.transform = 'none';
         sidebar.style.marginLeft = '0';
@@ -247,7 +271,7 @@ function ensureSidebarStability() {
 }
 
 // Global function to ensure sidebar visibility (for compatibility with existing code)
-window.ensureSidebarVisible = function() {
+window.ensureSidebarVisible = function () {
     ensureSidebarStability();
 };
 
@@ -255,16 +279,16 @@ window.ensureSidebarVisible = function() {
 let sidebarCheckInterval = null;
 
 // Function to start sidebar monitoring (for pages that need it)
-window.startSidebarMonitoring = function() {
+window.startSidebarMonitoring = function () {
     if (sidebarCheckInterval) {
         clearInterval(sidebarCheckInterval);
     }
-    
+
     sidebarCheckInterval = setInterval(ensureSidebarStability, 1000);
 };
 
 // Function to stop sidebar monitoring
-window.stopSidebarMonitoring = function() {
+window.stopSidebarMonitoring = function () {
     if (sidebarCheckInterval) {
         clearInterval(sidebarCheckInterval);
         sidebarCheckInterval = null;
@@ -274,26 +298,26 @@ window.stopSidebarMonitoring = function() {
 // Function to check and show/hide Outgoing Payment menu based on user access
 function checkOutgoingPaymentAccess() {
     console.log('=== Sidebar Loader checkOutgoingPaymentAccess Start ===');
-    
-    const outgoingPaymentMenu = document.getElementById('outgoingPaymentMenu');
-    console.log('Outgoing Payment Menu Element:', outgoingPaymentMenu);
-    
-    if (outgoingPaymentMenu) {
+
+    const outgoingPaymentSection = document.getElementById('outgoingPaymentSection');
+    console.log('Outgoing Payment Section Element:', outgoingPaymentSection);
+
+    if (outgoingPaymentSection) {
         const hasAccess = localStorage.getItem('hasOutgoingPaymentAccess');
         console.log('hasOutgoingPaymentAccess from localStorage:', hasAccess);
-        
+
         if (hasAccess === 'true') {
             // User has access, show the menu
-            outgoingPaymentMenu.style.display = 'block';
+            outgoingPaymentSection.style.display = 'block';
             console.log('Showing Outgoing Payment menu');
         } else {
             // User doesn't have access, hide the menu
-            outgoingPaymentMenu.style.display = 'none';
+            outgoingPaymentSection.style.display = 'none';
             console.log('Hiding Outgoing Payment menu');
         }
     } else {
-        console.log('Outgoing Payment menu element not found');
+        console.log('Outgoing Payment section element not found');
     }
-    
+
     console.log('=== Sidebar Loader checkOutgoingPaymentAccess End ===');
 } 
