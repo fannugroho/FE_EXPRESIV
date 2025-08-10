@@ -2496,11 +2496,6 @@ function previewPDF(event) {
     
     const files = event.target.files;
     
-    if (files.length + uploadedFiles.length > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        event.target.value = ''; // Clear the file input
-        return;
-    }
     
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
