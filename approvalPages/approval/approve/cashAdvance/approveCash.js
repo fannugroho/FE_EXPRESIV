@@ -63,14 +63,20 @@ window.onload = function() {
     if (currentTab === 'approved' || currentTab === 'rejected') hideRevisionButton();
 };
 
-function fetchCADetails(caId) {
-    fetch(`${BASE_URL}/api/cash-advance/${caId}`)
-        .then(response => response.ok ? response.json() : response.json().then(e => { throw new Error(e.message || `HTTP error! Status: ${response.status}`); }))
-        .then(response => { if (response.data) populateCADetails(response.data); })
-        .catch(error => { console.error('Error:', error); alert('Error fetching CA details: ' + error.message); });
+async function fetchCADetails(caId) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/cash-advance/${caId}`);
+        const result = response.ok ? await response.json() : await response.json().then(e => { throw new Error(e.message || `HTTP error! Status: ${response.status}`); });
+        if (result.data) {
+            await populateCADetails(result.data);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error fetching CA details: ' + error.message);
+    }
 }
 
-function populateCADetails(data) {
+async function populateCADetails(data) {
     document.getElementById('invno').value = data.cashAdvanceNo;
     document.getElementById('Employee').value = data.employeeNIK || '';
     document.getElementById('EmployeeName').value = data.employeeName || '';
@@ -100,7 +106,7 @@ function populateCADetails(data) {
     }
     if (data && data.status) {
         // Populate approval fields from detail data
-        populateApprovalFieldsFromDetail(data);
+        await populateApprovalFieldsFromDetail(data);
     }
     if (data && data.cashAdvanceDetails && data.cashAdvanceDetails.length > 0) {
         populateCashAdvanceDetails(data.cashAdvanceDetails);
@@ -132,68 +138,113 @@ function populateCADetails(data) {
     });
 }
 
+// Helper function to fetch user name by ID
+async function fetchUserNameById(userId) {
+    if (!userId) return null;
+    
+    try {
+        // First try to get from cached users
+        if (window.requesters && window.requesters.length > 0) {
+            const user = window.requesters.find(u => u.id === userId);
+            if (user && user.fullName) {
+                console.log(`Found full name in cache for ${userId}: ${user.fullName}`);
+                return user.fullName;
+            }
+        }
+        
+        // If not in cache, fetch from API
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.status && result.data && result.data.fullName) {
+                console.log(`Fetched full name from API for ${userId}: ${result.data.fullName}`);
+                return result.data.fullName;
+            }
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch full name for user ${userId}:`, error);
+    }
+    
+    return null;
+}
+
 // Function to populate approval fields from detail data
-function populateApprovalFieldsFromDetail(data) {
+async function populateApprovalFieldsFromDetail(data) {
     // Populate approval fields with data from the detail response
-    if (data.preparedName) {
+    if (data.preparedById) {
         const preparedField = document.getElementById('prepared');
         if (preparedField) {
+            const fullName = await fetchUserNameById(data.preparedById);
+            const displayName = fullName || data.preparedName || '';
+            
             preparedField.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.preparedById || '';
-            option.textContent = data.preparedName;
+            option.textContent = displayName;
             option.selected = true;
             preparedField.appendChild(option);
             preparedField.disabled = true;
         }
     }
     
-    if (data.checkedName) {
+    if (data.checkedById) {
         const checkedField = document.getElementById('Checked');
         if (checkedField) {
+            const fullName = await fetchUserNameById(data.checkedById);
+            const displayName = fullName || data.checkedName || '';
+            
             checkedField.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.checkedById || '';
-            option.textContent = data.checkedName;
+            option.textContent = displayName;
             option.selected = true;
             checkedField.appendChild(option);
             checkedField.disabled = true;
         }
     }
     
-    if (data.acknowledgedName) {
+    if (data.acknowledgedById) {
         const acknowledgedField = document.getElementById('Acknowledged');
         if (acknowledgedField) {
+            const fullName = await fetchUserNameById(data.acknowledgedById);
+            const displayName = fullName || data.acknowledgedName || '';
+            
             acknowledgedField.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.acknowledgedById || '';
-            option.textContent = data.acknowledgedName;
+            option.textContent = displayName;
             option.selected = true;
             acknowledgedField.appendChild(option);
             acknowledgedField.disabled = true;
         }
     }
     
-    if (data.approvedName) {
+    if (data.approvedById) {
         const approvedField = document.getElementById('Approved');
         if (approvedField) {
+            const fullName = await fetchUserNameById(data.approvedById);
+            const displayName = fullName || data.approvedName || '';
+            
             approvedField.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.approvedById || '';
-            option.textContent = data.approvedName;
+            option.textContent = displayName;
             option.selected = true;
             approvedField.appendChild(option);
             approvedField.disabled = true;
         }
     }
     
-    if (data.receivedName) {
+    if (data.receivedById) {
         const receivedField = document.getElementById('Received');
         if (receivedField) {
+            const fullName = await fetchUserNameById(data.receivedById);
+            const displayName = fullName || data.receivedName || '';
+            
             receivedField.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.receivedById || '';
-            option.textContent = data.receivedName;
+            option.textContent = displayName;
             option.selected = true;
             receivedField.appendChild(option);
             receivedField.disabled = true;

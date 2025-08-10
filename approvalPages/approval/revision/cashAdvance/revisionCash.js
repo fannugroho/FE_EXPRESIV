@@ -678,6 +678,9 @@ function populateApprovalFields(data) {
         closedName: data.closedName
     };
     
+    // Toggle closed by visibility based on transaction type
+    toggleClosedBy();
+    
     console.log('Stored approval field values globally:', window.approvalFieldValues);
     
     // Map of field names to API response field names - using the actual API field names from Cash Advance
@@ -719,6 +722,9 @@ function populateApprovalFields(data) {
             apiIdField: 'closedById'
         }
     };
+    
+    // Toggle closed by visibility based on transaction type
+    toggleClosedBy();
     
     // Populate each approval field
     Object.entries(approvalFieldMapping).forEach(([fieldKey, fieldConfig]) => {
@@ -1616,7 +1622,8 @@ async function updateCashAdvance(isSubmit = false) {
         'CheckedById': 'Approval.CheckedById',
         'AcknowledgedById': 'Approval.AcknowledgedById',
         'ApprovedById': 'Approval.ApprovedById',
-        'ReceivedById': 'Approval.ReceivedById'
+        'ReceivedById': 'Approval.ReceivedById',
+        'ClosedById': 'Approval.ClosedById'
     };
     
     Object.entries(approvalFields).forEach(([apiField, elementId]) => {
@@ -1827,7 +1834,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'CL'
+        'Approval.ClosedById': 'RE'
     };
     return levelMap[fieldId] || null;
 }
@@ -1976,6 +1983,9 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     if (transactionType === 'Personal Loan') {
         fieldIds.push('Approval.ClosedById');
     }
+    
+    // Toggle closed by visibility
+    toggleClosedBy();
 
     // Populate all dropdowns in parallel
     const promises = fieldIds.map(fieldId => 

@@ -291,8 +291,8 @@ function updateFieldsBasedOnPrerequisites(row) {
     const requesterValue = requesterSearchInput?.value;
     const categoryValue = categoryInput?.value;
     
-    // Check if settlement is editable (Draft or Revision status)
-    const isEditable = settlementData ? (settlementData.status === 'Draft' || settlementData.status === 'Revision') : true;
+    // Check if settlement is editable (Draft status only)
+    const isEditable = settlementData ? (settlementData.status === 'Draft') : true;
     
     if (!isEditable) {
         // If settlement is not editable, disable all fields
@@ -344,8 +344,8 @@ function updateFieldsBasedOnPrerequisites(row) {
 function enableAccountNameField(row) {
     const accountNameSelect = row.querySelector('.account-name');
     if (accountNameSelect) {
-        // Check if settlement is editable (Draft or Revision status)
-        const isEditable = settlementData ? (settlementData.status === 'Draft' || settlementData.status === 'Revision') : true;
+        // Check if settlement is editable (Draft status only)
+        const isEditable = settlementData ? (settlementData.status === 'Draft') : true;
         
         if (isEditable) {
             accountNameSelect.disabled = false;
@@ -779,40 +779,83 @@ function populateUserSelects(users, approvalData = null) {
 // Function to filter users for approval dropdowns (like addSettle.js)
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
+    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
+    
+    console.log(`filterUsers called for ${fieldId} with search text: "${searchText}"`);
+    
+    if (!searchInput || !dropdown) {
+        console.error(`Search input or dropdown not found for ${fieldId}`);
+        return;
+    }
     
     // Clear dropdown
     dropdown.innerHTML = '';
     
-    // Filter users based on search text
-    const filteredUsers = window.employees ? 
-        window.employees.filter(user => user.fullName && user.fullName.toLowerCase().includes(searchText)) : 
-        [];
+    // For approval fields, use superior employees if available
+    let usersToFilter = [];
     
-    // Show filtered results
+    if (fieldId.startsWith('Approval.')) {
+        // Use superior employees for approval fields
+        const superiorLevel = getSuperiorLevelForField(fieldId);
+        console.log(`Filtering for field: ${fieldId}, superiorLevel: ${superiorLevel}`);
+        console.log(`window.superiorEmployees:`, window.superiorEmployees);
+        console.log(`Available superior levels:`, Object.keys(window.superiorEmployees || {}));
+        
+        if (superiorLevel && window.superiorEmployees && window.superiorEmployees[superiorLevel]) {
+            usersToFilter = window.superiorEmployees[superiorLevel];
+            console.log(`Using superior employees for level ${superiorLevel}:`, usersToFilter);
+        } else {
+            console.warn(`No superior employees found for level ${superiorLevel}, falling back to regular users`);
+            // Fallback to regular users if superior employees not available
+            usersToFilter = window.requesters || [];
+            console.log(`Falling back to regular users:`, usersToFilter);
+        }
+    } else {
+        // Use regular users for non-approval fields
+        usersToFilter = window.requesters || [];
+        console.log(`Using regular users for non-approval field:`, usersToFilter);
+    }
+    
+    console.log(`Total users to filter: ${usersToFilter.length}`);
+    
+    // Filter users based on search text
+    const filteredUsers = usersToFilter.filter(user => {
+        const userName = user.fullName || user.superiorFullName || user.name || '';
+        const matches = userName.toLowerCase().includes(searchText);
+        console.log(`User: ${userName}, matches "${searchText}": ${matches}`);
+        return matches;
+    });
+    
+    console.log(`Filtered users count: ${filteredUsers.length}`);
+    
+    // Display search results
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        option.innerText = user.fullName;
+        option.className = 'dropdown-item p-2 cursor-pointer hover:bg-gray-100';
+        option.innerText = user.fullName || user.superiorFullName || user.name || '';
         option.onclick = function() {
-            searchInput.value = user.fullName;
-            document.getElementById(fieldId).value = user.id;
+            const userName = user.fullName || user.superiorFullName || user.name || '';
+            const userId = user.id || user.superiorUserId || '';
+            console.log(`Selected user: ${userName} (${userId})`);
+            searchInput.value = userName;
+            document.getElementById(fieldId).value = userId;
             dropdown.classList.add('hidden');
         };
         dropdown.appendChild(option);
     });
     
-    // Show "no results" message if no users found
+    // Show message if no results
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users';
+        noResults.innerText = `No matching users found for "${searchText}"`;
         dropdown.appendChild(noResults);
     }
     
     // Show dropdown
     dropdown.classList.remove('hidden');
+    console.log(`Dropdown shown with ${filteredUsers.length} results`);
 }
 
 // Function to fetch transaction types from API
@@ -994,14 +1037,54 @@ async function populateFormWithData(data) {
     document.getElementById('remarks').value = data.remarks || '';
     
     // Handle rejection remarks if status is Rejected
-    if (data.status === 'Rejected' && data.rejectedRemarks) {
+    if (data.status === 'Rejected') {
         // Show the rejection remarks section
         const rejectionSection = document.getElementById('rejectionRemarksSection');
         const rejectionTextarea = document.getElementById('rejectionRemarks');
         
         if (rejectionSection && rejectionTextarea) {
-            rejectionSection.style.display = 'block';
-            rejectionTextarea.value = data.rejectedRemarks;
+            // Check for various possible rejection remarks fields
+            let rejectionRemarks = '';
+            let rejectedByName = '';
+            
+            // Check for specific rejection remarks by role
+            if (data.remarksRejectByChecker) {
+                rejectionRemarks = data.remarksRejectByChecker;
+            } else if (data.remarksRejectByAcknowledger) {
+                rejectionRemarks = data.remarksRejectByAcknowledger;
+            } else if (data.remarksRejectByApprover) {
+                rejectionRemarks = data.remarksRejectByApprover;
+            } else if (data.remarksRejectByReceiver) {
+                rejectionRemarks = data.remarksRejectByReceiver;
+            } else if (data.rejectedRemarks) {
+                rejectionRemarks = data.rejectedRemarks;
+            } else if (data.rejectionRemarks) {
+                rejectionRemarks = data.rejectionRemarks;
+            }
+            
+            // Get rejected by name for settlement
+            if (data.rejectedByName) {
+                rejectedByName = data.rejectedByName;
+            }
+            
+            if (rejectionRemarks && rejectionRemarks.trim() !== '') {
+                rejectionSection.style.display = 'block';
+                rejectionTextarea.value = rejectionRemarks;
+                
+                // Update the rejection info display if it exists
+                const rejectionInfo = document.getElementById('rejectionInfo');
+                if (rejectionInfo && rejectedByName) {
+                    rejectionInfo.innerHTML = `
+                        <div class="text-sm text-gray-600 mb-2">
+                            <span class="font-medium">Rejected by:</span> ${rejectedByName}
+                            ${data.rejectedByNIK ? `(${data.rejectedByNIK})` : ''}
+                            ${data.rejectedDate ? `on ${new Date(data.rejectedDate).toLocaleDateString()}` : ''}
+                        </div>
+                    `;
+                }
+            } else {
+                rejectionSection.style.display = 'none';
+            }
         }
     } else {
         // Hide the rejection remarks section if status is not Rejected
@@ -1021,9 +1104,20 @@ async function populateFormWithData(data) {
     if (data.status && data.status.toLowerCase() !== 'draft') {
         makeAllFieldsReadOnlyForNonDraft();
     }
+    
+    // Hide Update and Submit buttons when status is "Revision"
+    if (data.status && data.status.toLowerCase() === 'revision') {
+        hideUpdateSubmitButtons();
+        
+        // Also hide delete button for revision status
+        const deleteDocumentButton = document.querySelector('button[onclick="confirmDelete()"]');
+        if (deleteDocumentButton) {
+            deleteDocumentButton.style.display = 'none';
+        }
+    }
 
     // Check if editable after populating data
-    const isEditable = data.status === 'Draft' || data.status === 'Revision';
+    const isEditable = data.status === 'Draft';
     toggleEditableFields(isEditable);
 
     // Fetch dropdown options with approval data
@@ -1111,12 +1205,12 @@ async function populateSettlementItemsTable(settlementItems) {
             <td class="p-2 border">
                 <input type="text" class="coa w-full" value="${item.glAccount || ''}" readonly style="background-color: #f3f4f6;" />
             </td>
-            <td class="p-2 border">
-                <input type="text" class="description w-full" value="${item.description || ''}" maxlength="200" />
-            </td>
-            <td class="p-2 border">
-                <input type="number" class="total w-full" value="${item.amount ? parseFloat(item.amount).toFixed(2) : '0.00'}" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
-            </td>
+                    <td class="p-2 border">
+            <input type="text" class="description w-full" value="${item.description || ''}" maxlength="200" ${settlementData && settlementData.status !== 'Draft' ? 'readonly' : ''} ${settlementData && settlementData.status !== 'Draft' ? 'style="background-color: #f3f4f6;"' : ''} />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="total w-full" value="${item.amount ? parseFloat(item.amount).toFixed(2) : '0.00'}" maxlength="10" required step="0.01" oninput="calculateTotalAmount()" ${settlementData && settlementData.status !== 'Draft' ? 'readonly' : ''} ${settlementData && settlementData.status !== 'Draft' ? 'style="background-color: #f3f4f6;"' : ''} />
+        </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
                     🗑
@@ -1283,10 +1377,10 @@ async function addRow() {
             <input type="text" class="coa w-full" readonly style="background-color: #f3f4f6;" />
         </td>
         <td class="p-2 border">
-            <input type="text" class="description w-full" maxlength="200" />
+            <input type="text" class="description w-full" maxlength="200" ${settlementData && settlementData.status !== 'Draft' ? 'readonly' : ''} ${settlementData && settlementData.status !== 'Draft' ? 'style="background-color: #f3f4f6;"' : ''} />
         </td>
         <td class="p-2 border">
-            <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
+            <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()" ${settlementData && settlementData.status !== 'Draft' ? 'readonly' : ''} ${settlementData && settlementData.status !== 'Draft' ? 'style="background-color: #f3f4f6;"' : ''} />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -1526,7 +1620,7 @@ async function loadCashAdvanceOptions() {
             responseData.data.forEach(cashAdvance => {
                 const option = document.createElement('option');
                 option.value = cashAdvance.id;
-                option.textContent = cashAdvance.cashAdvanceNo;
+                option.textContent = cashAdvance.cashAdvanceNo + ' - ' + cashAdvance.totalAmount.toFixed(2);
                 dropdown.appendChild(option);           
             });
         } else {
@@ -2027,18 +2121,18 @@ function toggleEditableFields(isEditable) {
         button.style.display = isEditable ? 'block' : 'none';
     });
     
-    // Handle action buttons - enable/disable based on Draft status
+    // Handle action buttons - hide based on Draft status only
     const deleteButton = document.querySelector('button[onclick="confirmDelete()"]');
     const updateButton = document.querySelector('button[onclick="updateSettle(false)"]');
     const submitButton = document.querySelector('button[onclick="updateSettle(true)"]');
     
     [deleteButton, updateButton, submitButton].forEach(button => {
         if (button) {
-            button.disabled = !isEditable;
             if (!isEditable) {
-                button.classList.add('opacity-50', 'cursor-not-allowed');
-                button.title = 'You can only perform this action on settlements with Draft or Revision status';
+                button.style.display = 'none';
             } else {
+                button.style.display = 'block';
+                button.disabled = false;
                 button.classList.remove('opacity-50', 'cursor-not-allowed');
                 button.title = '';
             }
@@ -2083,6 +2177,20 @@ function toggleEditableFields(isEditable) {
 // Function to make all fields read-only when status is not Draft
 function makeAllFieldsReadOnlyForNonDraft() {
     toggleEditableFields(false);
+}
+
+// Function to hide Update and Submit buttons when status is Revision
+function hideUpdateSubmitButtons() {
+    console.log('Status is Revision - hiding Update and Submit buttons');
+    
+    // Find and hide the buttons by their onclick attributes
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+        const onclick = button.getAttribute('onclick');
+        if (onclick && (onclick.includes('updateSettle(false)') || onclick.includes('updateSettle(true)'))) {
+            button.style.display = 'none';
+        }
+    });
 }
 
 // Function to display attachments (initial load)
@@ -2505,7 +2613,7 @@ async function populateSuperiorEmployeeDropdown(fieldId, documentType, transacti
 
 // Function to populate all superior employee dropdowns
 async function populateAllSuperiorEmployeeDropdowns(transactionType) {
-    const documentType = 'ST'; // Settlement
+    const documentType = 'SE'; // Settlement
     
     console.log(`populateAllSuperiorEmployeeDropdowns called with transactionType: ${transactionType}, documentType: ${documentType}`);
     
@@ -2609,7 +2717,7 @@ async function populateSuperiorEmployeesWithData(data) {
     console.log('Populating superior employees with data:', data);
     
     // Use the comprehensive approval field handling similar to detailCash.js
-    populateApprovalFields(data);
+    await populateApprovalFields(data);
     
     // Setup click handlers for approval dropdowns to show dropdown when clicked
     const approvalFields = [
@@ -2656,7 +2764,37 @@ async function populateSuperiorEmployeesWithData(data) {
 // Global variable to store approval field values from API
 window.approvalFieldValues = {};
 
-function populateApprovalFields(data) {
+// Helper function to fetch user name by ID
+async function fetchUserNameById(userId) {
+    if (!userId) return null;
+    
+    try {
+        // First try to get from cached users
+        if (window.requesters && window.requesters.length > 0) {
+            const user = window.requesters.find(u => u.id === userId);
+            if (user && user.fullName) {
+                console.log(`Found full name in cache for ${userId}: ${user.fullName}`);
+                return user.fullName;
+            }
+        }
+        
+        // If not in cache, fetch from API
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.status && result.data && result.data.fullName) {
+                console.log(`Fetched full name from API for ${userId}: ${result.data.fullName}`);
+                return result.data.fullName;
+            }
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch full name for user ${userId}:`, error);
+    }
+    
+    return null;
+}
+
+async function populateApprovalFields(data) {
     console.log('Populating approval fields with data:', data);
     
     // Store approval field values globally for later use
@@ -2722,27 +2860,59 @@ function populateApprovalFields(data) {
     };
     
     // Populate each approval field
-    Object.entries(approvalFieldMapping).forEach(([fieldName, fieldConfig]) => {
+    for (const [fieldName, fieldConfig] of Object.entries(approvalFieldMapping)) {
         const searchInput = document.getElementById(fieldConfig.searchInput);
         const selectElement = document.getElementById(fieldConfig.selectElement);
         
-        if (searchInput && selectElement) {
-            const nameValue = data[fieldConfig.apiField];
-            const idValue = data[fieldConfig.apiIdField];
+        console.log(`Processing field: ${fieldName}`);
+        console.log(`API data - ${fieldConfig.apiField}:`, data[fieldConfig.apiField]);
+        console.log(`API data - ${fieldConfig.apiIdField}:`, data[fieldConfig.apiIdField]);
+        console.log(`Search input found:`, !!searchInput);
+        console.log(`Select element found:`, !!selectElement);
+        
+        if (searchInput && data[fieldConfig.apiIdField]) {
+            // Always fetch the full name by user ID to ensure we display the name instead of username
+            const fullName = await fetchUserNameById(data[fieldConfig.apiIdField]);
+            const displayName = fullName || data[fieldConfig.apiField] || '';
             
-            console.log(`Setting ${fieldName}: name="${nameValue}", id="${idValue}"`);
+            console.log(`Setting ${fieldConfig.searchInput} to: ${displayName}`);
+            searchInput.value = displayName;
             
-            if (nameValue) {
-                searchInput.value = nameValue;
-                console.log(`Set search input ${fieldConfig.searchInput} to: ${nameValue}`);
-            }
-            
-            if (idValue) {
-                selectElement.value = idValue;
-                console.log(`Set select element ${fieldConfig.selectElement} to: ${idValue}`);
+            // Handle the select element value
+            if (selectElement) {
+                console.log(`Setting ${fieldConfig.selectElement} to: ${data[fieldConfig.apiIdField]}`);
+                
+                // Check if the user ID already exists in the select options
+                let userExists = false;
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
+                        selectElement.selectedIndex = i;
+                        userExists = true;
+                        console.log(`Found existing option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                        break;
+                    }
+                }
+                
+                // If the user doesn't exist in the select options, add them
+                if (!userExists) {
+                    console.log(`Adding new option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
+                    const option = document.createElement('option');
+                    option.value = data[fieldConfig.apiIdField];
+                    option.textContent = displayName;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                }
+                
+                console.log(`Final select value for ${fieldConfig.selectElement}:`, selectElement.value);
+                
+                // Verify the value was set correctly
+                setTimeout(() => {
+                    const currentValue = document.getElementById(fieldConfig.selectElement)?.value;
+                    console.log(`Verification - ${fieldConfig.selectElement} value:`, currentValue);
+                }, 100);
             }
         } else {
-            console.warn(`Missing elements for ${fieldName}: searchInput=${fieldConfig.searchInput}, selectElement=${fieldConfig.selectElement}`);
+            console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiIdField}`);
         }
-    });
+    }
 }

@@ -1,11 +1,36 @@
-// Global variable for file uploads
 let uploadedFiles = [];
 let existingAttachments = []; // Track existing attachments from API
 let attachmentsToKeep = []; // Track which existing attachments to keep
 
-// Global variables
-let rowCounter = 1;
-let cashAdvanceData = null;
+let cashAdvanceId; // Declare global variable
+
+// Fallback for makeAuthenticatedRequest if auth.js is not loaded
+if (typeof makeAuthenticatedRequest === 'undefined') {
+    console.warn('makeAuthenticatedRequest not found, creating fallback function');
+    window.makeAuthenticatedRequest = async function (endpoint, options = {}) {
+        console.warn('Using fallback makeAuthenticatedRequest - auth.js may not be loaded properly');
+        
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+        
+        // Set default headers
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+        };
+        
+        // Make the request
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
+            ...options,
+            headers
+        });
+        
+        return response;
+    };
+}
 
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
@@ -1294,19 +1319,28 @@ function deleteDocument() {
 
 // Old loadCashAdvanceData function removed - replaced by fetchCashAdvanceDetail
 
-async function populateForm(data) {
+async function populateCashAdvanceDetails(data) {
     // Store the global cash advance data
-    cashAdvanceData = data;
-    console.log("cashAdvanceData", cashAdvanceData);
+    window.cashAdvanceData = data;
+    console.log("cashAdvanceData", window.cashAdvanceData);
     
-    // Store values to be used after fetching options
-    window.currentValues = {
-        transactionType: data.transactionType,
-        departmentName: data.departmentName,
-        departmentId: data.departmentId,
-        status: data.status,
-        employeeId: data.employeeId
-    };
+    // Populate basic cash advance information
+    document.getElementById('cashAdvanceNo').value = data.cashAdvanceNo;
+    
+    // Handle requester name with search functionality
+    if (data.requesterName) {
+        console.log("Setting requesterSearch to:", data.requesterName);
+        document.getElementById('requesterSearch').value = data.requesterName;
+        // Store the requester ID if available
+        if (data.requesterId) {
+            console.log("Setting RequesterId to:", data.requesterId);
+            document.getElementById('RequesterId').value = data.requesterId;
+        } else {
+            console.log("No requesterId found in data. Available fields:", Object.keys(data));
+        }
+    } else {
+        console.log("No requesterName found in data");
+    }
     
     // Populate basic fields with correct IDs to match HTML
     document.getElementById("cashAdvanceNo").value = data.cashAdvanceNo || '';
@@ -1361,21 +1395,7 @@ async function populateForm(data) {
         remarksTextarea.value = data.remarks || '';
     }
     
-    // Handle rejection remarks if status is Rejected
-    if (data.status === 'Rejected' && data.rejectedRemarks) {
-        const rejectionSection = document.getElementById('rejectionRemarksSection');
-        const rejectionTextarea = document.getElementById('rejectionRemarks');
-        
-        if (rejectionSection && rejectionTextarea) {
-            rejectionSection.style.display = 'block';
-            rejectionTextarea.value = data.rejectedRemarks;
-        }
-    } else {
-        const rejectionSection = document.getElementById('rejectionRemarksSection');
-        if (rejectionSection) {
-            rejectionSection.style.display = 'none';
-        }
-    }
+    // Handle rejection remarks display (will be handled by displayRejectionRemarks function)
 
     // Handle revision remarks display
     displayRevisionRemarks(data);
@@ -1426,60 +1446,222 @@ async function populateForm(data) {
     }
 }
 
+// Function to toggle editable fields based on cash advance status
+function toggleEditableFields(isEditable) {
+    // List all input fields that should be controlled by editable state
+    const editableFields = [
+        'requesterSearch', // Requester name search input
+        'purpose',
+        'departmentId',
+        'transactionType',
+        'remarks',
+        'paidToSearch'
+    ];
+    
+    // Fields that should always be disabled/readonly (autofilled)
+    const alwaysDisabledFields = [
+        'cashAdvanceNo',
+        'status',
+        'departmentId',
+        'employeeNIK',
+        'employeeName'
+    ];
+    
+    // Toggle editable fields
+    editableFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            if ((field.tagName === 'INPUT' && field.type !== 'checkbox' && field.type !== 'radio') || field.tagName === 'TEXTAREA') {
+                field.readOnly = !isEditable;
+            } else {
+                field.disabled = !isEditable;
+            }
+            
+            // Visual indication for non-editable fields
+            if (!isEditable) {
+                field.classList.add('bg-gray-100');
+                field.classList.remove('bg-white');
+            } else {
+                field.classList.remove('bg-gray-100');
+                field.classList.add('bg-white');
+            }
+        }
+    });
+    
+    // Always keep autofilled fields disabled and gray
+    alwaysDisabledFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            if ((field.tagName === 'INPUT' && field.type !== 'checkbox' && field.type !== 'radio') || field.tagName === 'TEXTAREA') {
+                field.readOnly = true;
+            } else {
+                field.disabled = true;
+            }
+            field.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Handle requester dropdown
+    const requesterDropdown = document.getElementById('requesterDropdown');
+    if (requesterDropdown) {
+        if (!isEditable) {
+            requesterDropdown.style.display = 'none';
+        }
+    }
+    
+    // Handle ALL table inputs and textareas - make them non-editable when not Draft
+    const tableInputs = document.querySelectorAll('#tableBody input, #tableBody textarea, #tableBody select');
+    tableInputs.forEach(input => {
+        if (input.type === 'checkbox' || input.type === 'radio') {
+            input.disabled = !isEditable;
+        } else {
+            input.readOnly = !isEditable;
+        }
+        
+        if (!isEditable) {
+            input.classList.add('bg-gray-100');
+            input.classList.remove('bg-white');
+        } else {
+            // For editable state, only remove gray background from non-description/non-uom fields
+            if (!input.classList.contains('coa')) {
+                input.classList.remove('bg-gray-100');
+                input.classList.add('bg-white');
+            }
+        }
+    });
+    
+    // Handle COA fields - always disabled but follow the category selection logic
+    const coaInputs = document.querySelectorAll('.coa');
+    coaInputs.forEach(input => {
+        input.disabled = true; // Always disabled
+        input.classList.add('bg-gray-100'); // Always gray
+    });
+    
+    // Enable/disable add row button
+    const addRowButton = document.querySelector('button[onclick="addRow()"]');
+    if (addRowButton) {
+        addRowButton.style.display = isEditable ? 'block' : 'none';
+    }
+    
+    // Enable/disable delete row buttons
+    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
+    deleteButtons.forEach(button => {
+        button.style.display = isEditable ? 'block' : 'none';
+    });
+    
+    // Disable file upload input when not editable
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.disabled = !isEditable;
+        if (!isEditable) {
+            fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        }
+    }
+    
+    // Update attachments display to show/hide remove buttons based on editable state
+    updateAttachmentsDisplay();
+    
+    // Handle action buttons - enable/disable based on Draft status
+    const deleteButton = document.querySelector('button[onclick="confirmDelete()"]');
+    const updateButton = document.querySelector('button[onclick="updateCash(false)"]');
+    const submitButton = document.querySelector('button[onclick="updateCash(true)"]');
+    
+    [deleteButton, updateButton, submitButton].forEach(button => {
+        if (button) {
+            button.disabled = !isEditable;
+            if (!isEditable) {
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+                button.title = 'You can only perform this action on cash advances with Draft status';
+            } else {
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+                button.title = '';
+            }
+        }
+    });
+    
+    // Handle approval fields
+    const selects = [
+        { id: 'Approval.PreparedById', searchId: 'Approval.PreparedByIdSearch' },
+        { id: 'Approval.CheckedById', searchId: 'Approval.CheckedByIdSearch' },
+        { id: 'Approval.AcknowledgedById', searchId: 'Approval.AcknowledgedByIdSearch' },
+        { id: 'Approval.ApprovedById', searchId: 'Approval.ApprovedByIdSearch' },
+        { id: 'Approval.ReceivedById', searchId: 'Approval.ReceivedByIdSearch' },
+        { id: 'Approval.ClosedById', searchId: 'Approval.ClosedByIdSearch' }
+    ];
+    
+    selects.forEach(fieldInfo => {
+        const field = document.getElementById(fieldInfo.id);
+        const searchInput = document.getElementById(fieldInfo.searchId);
+        if (field && searchInput) {
+            if (fieldInfo.id === 'Approval.PreparedById') {
+                const userId = getUserId();
+                // if (field.value && field.value == userId) {
+                    searchInput.disabled = true;
+                    searchInput.classList.add('bg-gray-100');
+                // } 
+            } else {
+                // Other approval fields follow normal editable logic
+                searchInput.disabled = !isEditable;
+                if (!isEditable) {
+                    searchInput.classList.add('bg-gray-100');
+                    searchInput.classList.remove('bg-white');
+                } else {
+                    searchInput.classList.remove('bg-gray-100');
+                    searchInput.classList.add('bg-white');
+                }
+            }
+        }
+    });
+}
+
 // Function to populate superior employees with existing data from API
 async function populateSuperiorEmployeesWithData(data) {
     console.log('Populating superior employees with data:', data);
     
     // Use the comprehensive approval field handling similar to detailPR.js
-    populateApprovalFields(data);
+    await populateApprovalFields(data);
     
-    // Setup click handlers for approval dropdowns to show dropdown when clicked
-    const approvalFields = [
-        'Approval.PreparedById',
-        'Approval.CheckedById', 
-        'Approval.AcknowledgedById',
-        'Approval.ApprovedById',
-        'Approval.ReceivedById',
-        'Approval.ClosedById'
-    ];
-    
-    approvalFields.forEach(fieldId => {
-        const searchInput = document.getElementById(fieldId + 'Search');
-        const dropdown = document.getElementById(fieldId + 'Dropdown');
-        
-        if (searchInput && dropdown) {
-            // Show dropdown when input is clicked
-            searchInput.addEventListener('click', function() {
-                dropdown.classList.remove('hidden');
-                filterUsers(fieldId);
-            });
-            
-            // Show dropdown when input is focused
-            searchInput.addEventListener('focus', function() {
-                dropdown.classList.remove('hidden');
-                filterUsers(fieldId);
-            });
-            
-            // Show dropdown when input value changes (for backspace, typing, etc.)
-            searchInput.addEventListener('input', function() {
-                dropdown.classList.remove('hidden');
-                filterUsers(fieldId);
-            });
-            
-            // Show dropdown when key is pressed (for backspace, delete, etc.)
-            searchInput.addEventListener('keydown', function() {
-                dropdown.classList.remove('hidden');
-                filterUsers(fieldId);
-            });
-        }
-    });
+    // Setup event listeners for approval field search inputs
+    setupApprovalFieldEventListeners();
 }
 
 // Comprehensive approval field handling similar to detailPR.js
 // Global variable to store approval field values from API
 window.approvalFieldValues = {};
 
-function populateApprovalFields(data) {
+// Helper function to fetch user name by ID
+async function fetchUserNameById(userId) {
+    if (!userId) return null;
+    
+    try {
+        // First try to get from cached users
+        if (window.requesters && window.requesters.length > 0) {
+            const user = window.requesters.find(u => u.id === userId);
+            if (user && user.fullName) {
+                console.log(`Found full name in cache for ${userId}: ${user.fullName}`);
+                return user.fullName;
+            }
+        }
+        
+        // If not in cache, fetch from API
+        const response = await fetch(`${BASE_URL}/api/users/${userId}`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.status && result.data && result.data.fullName) {
+                console.log(`Fetched full name from API for ${userId}: ${result.data.fullName}`);
+                return result.data.fullName;
+            }
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch full name for user ${userId}:`, error);
+    }
+    
+    return null;
+}
+
+async function populateApprovalFields(data) {
     console.log('Populating approval fields with data:', data);
     
     // Store approval field values globally for later use
@@ -1555,7 +1737,7 @@ function populateApprovalFields(data) {
     };
     
     // Populate each approval field
-    Object.entries(approvalFieldMapping).forEach(([fieldKey, fieldConfig]) => {
+    for (const [fieldKey, fieldConfig] of Object.entries(approvalFieldMapping)) {
         const searchInput = document.getElementById(fieldConfig.searchInput);
         const selectElement = document.getElementById(fieldConfig.selectElement);
         
@@ -1565,13 +1747,16 @@ function populateApprovalFields(data) {
         console.log(`Search input found:`, !!searchInput);
         console.log(`Select element found:`, !!selectElement);
         
-        // First, try to populate with the actual API data
-        if (searchInput && data[fieldConfig.apiField]) {
-            console.log(`Setting ${fieldConfig.searchInput} to: ${data[fieldConfig.apiField]}`);
-            searchInput.value = data[fieldConfig.apiField];
+        if (searchInput && data[fieldConfig.apiIdField]) {
+            // Always fetch the full name by user ID to ensure we display the name instead of username
+            const fullName = await fetchUserNameById(data[fieldConfig.apiIdField]);
+            const displayName = fullName || data[fieldConfig.apiField] || '';
+            
+            console.log(`Setting ${fieldConfig.searchInput} to: ${displayName}`);
+            searchInput.value = displayName;
             
             // Handle the select element value
-            if (selectElement && data[fieldConfig.apiIdField]) {
+            if (selectElement) {
                 console.log(`Setting ${fieldConfig.selectElement} to: ${data[fieldConfig.apiIdField]}`);
                 
                 // Check if the user ID already exists in the select options
@@ -1590,7 +1775,7 @@ function populateApprovalFields(data) {
                     console.log(`Adding new option for ${fieldConfig.selectElement} with value: ${data[fieldConfig.apiIdField]}`);
                     const option = document.createElement('option');
                     option.value = data[fieldConfig.apiIdField];
-                    option.textContent = data[fieldConfig.apiField];
+                    option.textContent = displayName;
                     option.selected = true;
                     selectElement.appendChild(option);
                 }
@@ -1603,26 +1788,10 @@ function populateApprovalFields(data) {
                     console.log(`Verification - ${fieldConfig.selectElement} value:`, currentValue);
                 }, 100);
             }
-        } else if (searchInput && data[fieldConfig.apiIdField]) {
-            // If we have the ID but not the name, try to find the name from the select options
-            console.log(`No name found for ${fieldKey}, but ID exists: ${data[fieldConfig.apiIdField]}`);
-            if (selectElement) {
-                for (let i = 0; i < selectElement.options.length; i++) {
-                    if (selectElement.options[i].value === data[fieldConfig.apiIdField]) {
-                        const userName = selectElement.options[i].textContent;
-                        searchInput.value = userName;
-                        selectElement.selectedIndex = i;
-                        console.log(`Found user name from select options: ${userName}`);
-                        break;
-                    }
-                }
-            }
         } else {
-            console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiField}`);
+            console.log(`Field ${fieldConfig.searchInput} not found or no data for ${fieldConfig.apiIdField}`);
         }
-    });
-    
-
+    }
 }
 
 // Function to display revised remarks from API
@@ -1721,9 +1890,12 @@ function displayRejectionRemarks(data) {
     if (rejectionSection && rejectionTextarea) {
         // Check for various possible rejection remarks fields
         let rejectionRemarks = '';
+        let rejectedByName = '';
         
-        // Check for specific rejection remarks by role
-        if (data.remarksRejectByChecker) {
+        // For cash advance, check for rejectedRemarks field first
+        if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarksRejectByChecker) {
             rejectionRemarks = data.remarksRejectByChecker;
         } else if (data.remarksRejectByAcknowledger) {
             rejectionRemarks = data.remarksRejectByAcknowledger;
@@ -1731,15 +1903,30 @@ function displayRejectionRemarks(data) {
             rejectionRemarks = data.remarksRejectByApprover;
         } else if (data.remarksRejectByReceiver) {
             rejectionRemarks = data.remarksRejectByReceiver;
-        } else if (data.rejectedRemarks) {
-            rejectionRemarks = data.rejectedRemarks;
         } else if (data.remarks) {
             rejectionRemarks = data.remarks;
+        }
+        
+        // Get rejected by name for cash advance
+        if (data.rejectedByName) {
+            rejectedByName = data.rejectedByName;
         }
         
         if (rejectionRemarks.trim() !== '') {
             rejectionSection.style.display = 'block';
             rejectionTextarea.value = rejectionRemarks;
+            
+            // Update the rejection info display if it exists
+            const rejectionInfo = document.getElementById('rejectionInfo');
+            if (rejectionInfo && rejectedByName) {
+                rejectionInfo.innerHTML = `
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span class="font-medium">Rejected by:</span> ${rejectedByName}
+                        ${data.rejectedByNIK ? `(${data.rejectedByNIK})` : ''}
+                        ${data.rejectedDate ? `on ${new Date(data.rejectedDate).toLocaleDateString()}` : ''}
+                    </div>
+                `;
+            }
         } else {
             rejectionSection.style.display = 'none';
         }
@@ -1825,18 +2012,15 @@ async function populateTable(cashAdvanceDetails) {
 // Function to filter users for approval fields (same as addCash)
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
+    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
     
-    // Map field IDs to their corresponding role names for display
-    const fieldMapping = {
-        'Approval.PreparedById': 'Proposed',
-        'Approval.CheckedById': 'Checked', 
-        'Approval.ApprovedById': 'Approved',
-        'Approval.AcknowledgedById': 'Acknowledged',
-        'Approval.ReceivedById': 'Received',
-        'Approval.ClosedById': 'Closed'
-    };
+    console.log(`filterUsers called for ${fieldId} with search text: "${searchText}"`);
+    
+    if (!searchInput || !dropdown) {
+        console.error(`Search input or dropdown not found for ${fieldId}`);
+        return;
+    }
     
     // Clear dropdown
     dropdown.innerHTML = '';
@@ -1849,11 +2033,13 @@ function filterUsers(fieldId) {
         const superiorLevel = getSuperiorLevelForField(fieldId);
         console.log(`Filtering for field: ${fieldId}, superiorLevel: ${superiorLevel}`);
         console.log(`window.superiorEmployees:`, window.superiorEmployees);
+        console.log(`Available superior levels:`, Object.keys(window.superiorEmployees || {}));
         
         if (superiorLevel && window.superiorEmployees && window.superiorEmployees[superiorLevel]) {
             usersToFilter = window.superiorEmployees[superiorLevel];
             console.log(`Using superior employees for level ${superiorLevel}:`, usersToFilter);
         } else {
+            console.warn(`No superior employees found for level ${superiorLevel}, falling back to regular users`);
             // Fallback to regular users if superior employees not available
             usersToFilter = window.requesters || [];
             console.log(`Falling back to regular users:`, usersToFilter);
@@ -1864,20 +2050,29 @@ function filterUsers(fieldId) {
         console.log(`Using regular users for non-approval field:`, usersToFilter);
     }
     
+    console.log(`Total users to filter: ${usersToFilter.length}`);
+    
     // Filter users based on search text
     const filteredUsers = usersToFilter.filter(user => {
         const userName = user.fullName || user.superiorFullName || user.name || '';
-        return userName.toLowerCase().includes(searchText);
+        const matches = userName.toLowerCase().includes(searchText);
+        console.log(`User: ${userName}, matches "${searchText}": ${matches}`);
+        return matches;
     });
+    
+    console.log(`Filtered users count: ${filteredUsers.length}`);
     
     // Display search results
     filteredUsers.forEach(user => {
         const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        option.innerText = user.fullName || user.superiorFullName || user.name || '';
+        option.className = 'dropdown-item p-2 cursor-pointer hover:bg-gray-100';
+        const displayName = user.fullName || user.superiorFullName || user.name || '';
+        option.innerText = displayName;
         option.onclick = function() {
-            searchInput.value = user.fullName || user.superiorFullName || user.name || '';
-            document.getElementById(fieldId).value = user.id || user.superiorUserId || '';
+            const userId = user.id || user.superiorUserId || '';
+            console.log(`Selected user: ${displayName} (${userId})`);
+            searchInput.value = displayName;
+            document.getElementById(fieldId).value = userId;
             dropdown.classList.add('hidden');
         };
         dropdown.appendChild(option);
@@ -1887,319 +2082,269 @@ function filterUsers(fieldId) {
     if (filteredUsers.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users';
+        noResults.innerText = `No matching users found for "${searchText}"`;
         dropdown.appendChild(noResults);
     }
     
     // Show dropdown
     dropdown.classList.remove('hidden');
+    console.log(`Dropdown shown with ${filteredUsers.length} results`);
 }
 
 
 
-// Initialize all dropdowns when page loads
-document.addEventListener('DOMContentLoaded', async function() {
-    fetchDepartments();
-    fetchUsers();
-    fetchTransactionType();
-    fetchBusinessPartners();
-    
-    // Get cash advance ID from URL parameters
+// Function to fetch cash advance details when the page loads
+window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
-    const cashAdvanceId = urlParams.get('ca-id'); // Use 'ca-id' to be consistent with existing code
+    cashAdvanceId = urlParams.get('ca-id');
     
     if (cashAdvanceId) {
-        await fetchCashAdvanceDetail(cashAdvanceId);
+        fetchCashAdvanceDetails(cashAdvanceId);
     } else {
         console.warn('No cash advance ID found in URL parameters');
         Swal.fire('Error!', 'Cash advance ID not found in URL.', 'error');
     }
-    
-    // Setup initial rows after a small delay to ensure DOM is ready
-    setTimeout(async () => {
-        const rows = document.querySelectorAll('#tableBody tr');
-        for (const row of rows) {
-            await setupCategoryDropdown(row);
-        }
-        
-        // Add initial emphasis if fields are empty after data load
-        const requesterValue = document.getElementById("requesterSearch")?.value;
-        const transactionTypeValue = document.getElementById("transactionType")?.value; // Use correct field ID
-        
-        if (!requesterValue) {
-            emphasizeRequesterSelection();
-        }
-        
-        if (!transactionTypeValue) {
-            emphasizeTransactionTypeSelection();
-        }
-    }, 500);
-    
-    // Add event listener for department change
-    const departmentSelect = document.getElementById("departmentId"); // Use correct field ID
-    if (departmentSelect) {
-        departmentSelect.addEventListener('change', function() {
-            refreshAllCategoryDropdowns();
+};
+
+async function updateCashAdvance(isSubmit = false) {
+    console.log("masuk");
+    if (!cashAdvanceId) {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Cash advance ID not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
         });
+        return;
     }
-    
-    // Add event listener for transaction type change
-    const transactionTypeSelect = document.getElementById("transactionType"); // Use correct field ID
-    if (transactionTypeSelect) {
-        transactionTypeSelect.addEventListener('change', function() {
-            removeTransactionTypeEmphasis();
-            refreshAllCategoryDropdowns();
-            
 
+    // Check the status before updating
+    const status = window.currentValues?.status || document.getElementById('status')?.value;
+    if (status !== 'Draft') {
+        Swal.fire({
+            title: 'Not Allowed!',
+            text: 'You can only update cash advances with Draft status',
+            icon: 'warning',
+            confirmButtonText: 'OK'
         });
+        return;
     }
-    
 
-});
+    // Show confirmation dialog only for submit
+    if (isSubmit) {
+        const result = await Swal.fire({
+            title: 'Submit Cash Advance',
+            text: 'Are you sure you want to submit this cash advance? You won\'t be able to edit it after submission.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, submit it!',
+            cancelButtonText: 'Cancel'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+    }
 
-function updateCash(isSubmit = false) {
-    const actionText = isSubmit ? 'Submit' : 'Update';
-    const actionConfirmText = isSubmit ? 'submit' : 'update';
-    const actioningText = isSubmit ? 'Submitting' : 'Updating';
-    
-    Swal.fire({
-        title: `${actionText} Cash Advance`,
-        text: `Are you sure you want to ${actionConfirmText} this Cash Advance?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: `Yes, ${actionConfirmText} it!`,
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Validate required fields before submission
-            const validationResult = validateFormFields(isSubmit);
-            if (!validationResult.isValid) {
-                Swal.fire({
-                    title: 'Validation Error',
-                    text: validationResult.message,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            // Get the ID from URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const id = urlParams.get('ca-id');
-            
-            if (!id) {
-                Swal.fire('Error!', 'ID cash advance tidak ditemukan.', 'error');
-                return;
-            }
-
-            // Show loading
+    try {
+        // Create FormData object for the update
+        const formData = new FormData();
+        
+        // Add basic fields
+        formData.append('Id', cashAdvanceId);
+        formData.append('CashAdvanceNo', document.getElementById('cashAdvanceNo').value);
+        
+        const userId = getUserId();
+        if (!userId) {
             Swal.fire({
-                title: `${actioningText}...`,
-                text: `Please wait while we ${actionConfirmText} the Cash Advance.`,
-                icon: 'info',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                title: 'Authentication Error!',
+                text: 'Unable to get user ID from token. Please login again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
             });
-
-            // Create FormData object
-            const formData = new FormData();
-        
-            // Get RequesterId value with fallback
-            const requesterIdElement = document.getElementById('RequesterId');
-            let requesterId = '';
-            
-            console.log('RequesterId element found:', requesterIdElement);
-            console.log('RequesterId element value:', requesterIdElement ? requesterIdElement.value : 'element not found');
-            console.log('Global fallback value:', window.cashAdvanceRequesterId);
-            
-            if (requesterIdElement && requesterIdElement.value) {
-                requesterId = requesterIdElement.value;
-                console.log('Using RequesterId from form element:', requesterId);
-            } else if (window.cashAdvanceRequesterId) {
-                // Use the global fallback variable
-                requesterId = window.cashAdvanceRequesterId;
-                console.warn('Using global fallback RequesterId:', requesterId);
-            } else {
-                // No valid RequesterId found - this is a business logic error
-                console.error('No valid RequesterId found - cannot proceed with update');
-                Swal.fire('Error!', 'RequesterId tidak ditemukan. Data cash advance mungkin rusak.', 'error');
-                return;
-            }
-        
-            // Add all form fields to FormData
-            formData.append('CashAdvanceNo', document.getElementById("cashAdvanceNo").value);
-            formData.append('EmployeeNIK', document.getElementById("employeeNIK").value);
-            formData.append('RequesterId', requesterId);
-            formData.append('Purpose', document.getElementById("purpose").value);
-            formData.append('DepartmentId', document.getElementById("departmentId").value); // Use correct field ID
-            formData.append('SubmissionDate', document.getElementById("submissionDate").value);
-            formData.append('TransactionType', document.getElementById("transactionType").value); // Use correct field ID
-            
-            // Handle remarks if exists
-            const remarksTextarea = document.querySelector('textarea');
-            if (remarksTextarea) {
-                formData.append('Remarks', remarksTextarea.value);
-            }
-            
-            // Approval fields
-            const preparedById = document.getElementById("Approval.PreparedById")?.value || '';
-            const checkedById = document.getElementById("Approval.CheckedById")?.value || '';
-            const approvedById = document.getElementById("Approval.ApprovedById")?.value || '';
-            const acknowledgedById = document.getElementById("Approval.AcknowledgedById")?.value || '';
-            const receivedById = document.getElementById("Approval.ReceivedById")?.value || '';
-            const closedById = document.getElementById("Approval.ClosedById")?.value || '';
-            
-            console.log('Approval field values being sent:');
-            console.log('PreparedById:', preparedById);
-            console.log('CheckedById:', checkedById);
-            console.log('ApprovedById:', approvedById);
-            console.log('AcknowledgedById:', acknowledgedById);
-            console.log('ReceivedById:', receivedById);
-            console.log('ClosedById:', closedById);
-            
-            // Debug: Check if elements exist and their current values
-            console.log('Element existence check:');
-            console.log('Approval.PreparedById element exists:', !!document.getElementById("Approval.PreparedById"));
-            console.log('Approval.CheckedById element exists:', !!document.getElementById("Approval.CheckedById"));
-            console.log('Approval.ApprovedById element exists:', !!document.getElementById("Approval.ApprovedById"));
-            console.log('Approval.AcknowledgedById element exists:', !!document.getElementById("Approval.AcknowledgedById"));
-            console.log('Approval.ReceivedById element exists:', !!document.getElementById("Approval.ReceivedById"));
-            console.log('Approval.ClosedById element exists:', !!document.getElementById("Approval.ClosedById"));
-            
-            // Debug: Check current values of all approval elements
-            const allApprovalElements = [
-                'Approval.PreparedById',
-                'Approval.CheckedById', 
-                'Approval.ApprovedById',
-                'Approval.AcknowledgedById',
-                'Approval.ReceivedById',
-                'Approval.ClosedById'
-            ];
-            
-            allApprovalElements.forEach(elementId => {
-                const element = document.getElementById(elementId);
-                console.log(`${elementId} current value:`, element?.value || 'NOT FOUND');
-            });
-            
-            formData.append('PreparedById', preparedById);
-            formData.append('CheckedById', checkedById);
-            formData.append('ApprovedById', approvedById);
-            formData.append('AcknowledgedById', acknowledgedById);
-            formData.append('ReceivedById', receivedById);
-            formData.append('ClosedById', closedById);
-            
-            // Add CashAdvanceDetails - collect all rows from the table with validation
-            const tableRows = document.querySelectorAll('#tableBody tr');
-            let detailIndex = 0;
-            tableRows.forEach((row) => {
-                const categoryInput = row.querySelector('.category-input');
-                const accountNameSelect = row.querySelector('.account-name');
-                const coaInput = row.querySelector('.coa');
-                const descriptionInput = row.querySelector('.description');
-                const amountInput = row.querySelector('.total');
-                
-                const category = categoryInput?.value;
-                const accountName = accountNameSelect?.value;
-                const coa = coaInput?.value;
-                const description = descriptionInput?.value;
-                const amount = amountInput?.value;
-                
-                if (description && amount) {
-                    formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
-                    formData.append(`CashAdvanceDetails[${detailIndex}][AccountName]`, accountName || '');
-                    formData.append(`CashAdvanceDetails[${detailIndex}][Coa]`, coa || '');
-                    formData.append(`CashAdvanceDetails[${detailIndex}][Description]`, description);
-                    formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, amount);
-                    detailIndex++;
-                }
-            });
-
-            // Add Business Partner Code (Paid To)
-            const paidToCode = document.getElementById("paidTo").value;
-            console.log('PayToCode value being sent:', paidToCode);
-            if (paidToCode) {
-                formData.append('PayToCode', paidToCode);
-            }
-
-            // Handle attachments according to backend logic
-            // Add existing attachments to keep (with their IDs)
-            attachmentsToKeep.forEach((attachmentId, index) => {
-                const existingAttachment = existingAttachments.find(att => att.id === attachmentId);
-                if (existingAttachment) {
-                    formData.append(`Attachments[${index}].Id`, attachmentId);
-                    formData.append(`Attachments[${index}].FileName`, existingAttachment.fileName || '');
-                }
-            });
-            
-            // Add new file uploads (with empty GUIDs)
-            uploadedFiles.forEach((file, index) => {
-                const attachmentIndex = attachmentsToKeep.length + index;
-                formData.append(`Attachments[${attachmentIndex}].Id`, '00000000-0000-0000-0000-000000000000'); // Empty GUID for new files
-                formData.append(`Attachments[${attachmentIndex}].File`, file);
-            });
-            
-            console.log('Attachments to keep:', attachmentsToKeep);
-            console.log('New files to upload:', uploadedFiles);
-            
-            // Set IsSubmit based on the parameter
-            formData.append('IsSubmit', isSubmit);
-            
-            // Log the data being sent for debugging
-            console.log('FormData being sent:');
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-            
-            // Call the PUT API
-            fetch(`${BASE_URL}/api/cash-advance/${id}`, {
-                method: 'PUT',
-                body: formData
-            })
-            .then(response => {
-                if (response.status === 200 || response.status === 204) {
-                    // Success
-                    Swal.fire({
-                        title: 'Success!',
-                        text: `Cash Advance has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        // Reload the cash advance data to show updated information
-                        fetchCashAdvanceDetail(id);
-                        
-                        // Clear uploaded files since they're now saved
-                        uploadedFiles = [];
-                        
-                        // Update file input
-                        const fileInput = document.querySelector('input[type="file"]');
-                        if (fileInput) {
-                            fileInput.value = '';
-                        }
-                    });
-                } else {
-                    // Error handling
-                    return response.json().then(data => {
-                        console.log("Error:", data);
-                        throw new Error(data.message || `Failed to ${actionConfirmText}: ${response.status}`);
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: `Failed to ${actionConfirmText} Cash Advance: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            });
+            return;
         }
-    });
+        
+        // Show loading state
+        const actionText = isSubmit ? 'Submitting' : 'Updating';
+        Swal.fire({
+            title: `${actionText}...`,
+            text: `Please wait while we ${isSubmit ? 'submit' : 'update'} the cash advance.`,
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Always use the original requester ID, don't fallback to logged-in user
+        const requesterIdElement = document.getElementById("RequesterId");
+        console.log("RequesterId element found:", !!requesterIdElement);
+        if (requesterIdElement) {
+            console.log("RequesterId element value:", requesterIdElement.value);
+            console.log("All options in RequesterId select:", Array.from(requesterIdElement.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+        }
+        
+        const requesterIdValue = requesterIdElement?.value;
+        if (!requesterIdValue) {
+            console.log("RequesterId is empty, current value:", requesterIdValue);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Requester ID is missing. Please refresh the page and try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        formData.append('RequesterId', requesterIdValue);
+        console.log("RequesterId:", requesterIdValue);
+        formData.append('IsSubmit', isSubmit.toString()); // Add IsSubmit parameter
+        
+        // Use the department ID from the select
+        const departmentSelect = document.getElementById('departmentId');
+        formData.append('DepartmentId', departmentSelect.value);
+        
+        // Format dates
+        const submissionDate = document.getElementById('submissionDate').value;
+        if (submissionDate) {
+            // Send date value directly without timezone conversion
+            formData.append('SubmissionDate', submissionDate);
+        }
+        
+        // Use the transaction type from the select
+        const transactionTypeSelect = document.getElementById('transactionType');
+        formData.append('TransactionType', transactionTypeSelect.value);
+        
+        formData.append('Purpose', document.getElementById('purpose').value);
+        formData.append('Remarks', document.getElementById('remarks').value || '');
+        // Add EmployeeNIK field which is required by the API
+        formData.append('EmployeeNIK', document.getElementById('employeeNIK').value);
+
+        //pay toCode
+        formData.append('PayToCode', document.getElementById('paidTo').value);
+
+        // Approvals with special handling for preparedBy
+        const preparedByValue = document.getElementById('Approval.PreparedById')?.value;
+        const currentUserId = getUserId();
+ 
+        // Use current user ID if preparedBy is empty
+        const finalPreparedById = preparedByValue || currentUserId;
+        
+        // Debug logging for approval field values
+        console.log('Approval field values being submitted:');
+        console.log('PreparedById:', finalPreparedById);
+        console.log('CheckedById:', document.getElementById('Approval.CheckedById')?.value);
+        console.log('AcknowledgedById:', document.getElementById('Approval.AcknowledgedById')?.value);
+        console.log('ApprovedById:', document.getElementById('Approval.ApprovedById')?.value);
+        console.log('ReceivedById:', document.getElementById('Approval.ReceivedById')?.value);
+        console.log('ClosedById:', document.getElementById('Approval.ClosedById')?.value);
+        
+        formData.append('PreparedById', finalPreparedById);
+        formData.append('CheckedById', document.getElementById('Approval.CheckedById')?.value);
+        formData.append('AcknowledgedById', document.getElementById('Approval.AcknowledgedById')?.value);
+        formData.append('ApprovedById', document.getElementById('Approval.ApprovedById')?.value);
+        formData.append('ReceivedById', document.getElementById('Approval.ReceivedById')?.value);
+        formData.append('ClosedById', document.getElementById('Approval.ClosedById')?.value);
+        
+        // Cash advance details
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        rows.forEach((row, index) => {
+            formData.append(`CashAdvanceDetails[${index}].Category`, row.querySelector('.category-input').value);
+            formData.append(`CashAdvanceDetails[${index}].AccountName`, row.querySelector('.account-name').value);
+            formData.append(`CashAdvanceDetails[${index}].Coa`, row.querySelector('.coa').value);
+            formData.append(`CashAdvanceDetails[${index}].Description`, row.querySelector('.description').value);
+            formData.append(`CashAdvanceDetails[${index}].Amount`, row.querySelector('.total').value);
+        });
+        
+        // Handle attachments according to backend logic
+        // Add existing attachments to keep (with their IDs)
+        attachmentsToKeep.forEach((attachmentId, index) => {
+            const existingAttachment = existingAttachments.find(att => att.id === attachmentId);
+            if (existingAttachment) {
+                formData.append(`Attachments[${index}].Id`, attachmentId);
+                formData.append(`Attachments[${index}].FileName`, existingAttachment.fileName || '');
+            }
+        });
+        
+        // Add new file uploads (with empty GUIDs)
+        uploadedFiles.forEach((file, index) => {
+            const attachmentIndex = attachmentsToKeep.length + index;
+            formData.append(`Attachments[${attachmentIndex}].Id`, '00000000-0000-0000-0000-000000000000'); // Empty GUID for new files
+            formData.append(`Attachments[${attachmentIndex}].File`, file);
+        });
+        
+        console.log('Attachments to keep:', attachmentsToKeep);
+        console.log('New files to upload:', uploadedFiles);
+
+        console.log("formData", formData);
+
+        // Submit the form data
+        makeAuthenticatedRequest(`/api/cash-advance/${cashAdvanceId}`, {
+            method: 'PUT',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("Cash advance submitted successfully");
+                Swal.fire({
+                    title: 'Success!',
+                    text: `Cash advance has been ${isSubmit ? 'submitted' : 'updated'} successfully.`,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Check if this is an update or submit operation for a Draft document
+                    if (status === 'Draft') {
+                        // Redirect to menu page for Draft updates and submissions
+                        goToMenuCash();
+                    } else {
+                        // Reload the cash advance data to show updated information for other cases
+                        fetchCashAdvanceDetails(cashAdvanceId);
+                    }
+                    
+                    // Clear uploaded files since they're now saved
+                    uploadedFiles = [];
+                    
+                    // Update file input
+                    const fileInput = document.querySelector('input[type="file"]');
+                    if (fileInput) {
+                        fileInput.value = '';
+                    }
+                });
+            } else {
+                return response.json().then(errorData => {
+                    console.log("errorData", errorData);
+                    throw new Error(errorData.message || `Failed to ${isSubmit ? 'submit' : 'update'} cash advance. Status: ${response.status}`);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: `Error ${isSubmit ? 'submitting' : 'updating'} cash advance: ` + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Error preparing update data: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function specifically for submitting cash advance
+function updateCash(isSubmit = true) {
+    console.log(isSubmit);
+    updateCashAdvance(isSubmit);
 }
 
 // Function to convert amount to words
@@ -2783,42 +2928,45 @@ function validateFormFields(isSubmit) {
     return { isValid: true };
 }
 
-// Function to fetch cash advance details when the page loads (similar to detailPR.js)
-async function fetchCashAdvanceDetail(cashAdvanceId) {
+async function fetchCashAdvanceDetails(cashAdvanceId) {
     try {
-        // Show loading state
-        console.log('Fetching cash advance details for ID:', cashAdvanceId);
-        
-        const response = await fetch(`${BASE_URL}/api/cash-advance/${cashAdvanceId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (response.status === 200) {
-            const result = await response.json();
-            if (result.status && result.data) {
-                console.log("Cash advance data fetched:", result.data);
-                
-                // Always fetch dropdown options first, then populate form
-                fetchDropdownOptions(result.data);
-                await populateForm(result.data);
-            } else {
-                Swal.fire('Error!', result.message || 'Failed to load cash advance data.', 'error');
-            }
-        } else if (response.status === 404) {
-            Swal.fire('Error!', 'Cash advance not found.', 'error');
-        } else {
-            Swal.fire('Error!', `Error: ${response.status}`, 'error');
+        const response = await makeAuthenticatedRequest(`/api/cash-advance/${cashAdvanceId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+        }
+        const responseData = await response.json();
+        if (responseData.data) {
+            console.log("API Response Data:", responseData.data);
+            console.log("Requester ID from API:", responseData.data.requesterId);
+            console.log("Requester Name from API:", responseData.data.requesterName);
+            console.log("Transaction Type from API:", responseData.data.transactionType);
+            
+            // Store current values first
+            window.currentValues = {
+                department: responseData.data.departmentName,
+                departmentId: responseData.data.departmentId,
+                transactionType: responseData.data.transactionType,
+                status: responseData.data.status 
+            };
+            
+            // Fetch dropdown options FIRST, especially categories
+            await fetchDropdownOptions(responseData.data);
+            
+            // Then populate cash advance details so categories can be properly matched
+            await populateCashAdvanceDetails(responseData.data);
+            
+            const isEditable = responseData.data && responseData.data.status === 'Draft';
+            toggleEditableFields(isEditable);
         }
     } catch (error) {
-        console.error('Error fetching cash advance details:', error);
-        if (error.message.includes('not found')) {
-            Swal.fire('Error!', 'Cash advance not found.', 'error');
-        } else {
-            Swal.fire('Error!', 'An error occurred while loading cash advance data.', 'error');
-        }
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Error fetching cash advance details: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -3195,9 +3343,10 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         
         // Map transaction types from the form to API transaction types
         const transactionTypeMap = {
+            'NRM': 'NRM',
             'Entertainment': 'EN',
             'Medical': 'ME',
-            'Transport': 'TR',
+            'Travelling': 'TR',
             'Personal Loan': 'LO',
             'Others': 'OT',
             'Golf Competition': 'GC'
@@ -3280,6 +3429,75 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     } catch (error) {
         console.error("Error fetching superior employees:", error);
     }
+}
+
+// Function to setup event listeners for approval field search inputs
+function setupApprovalFieldEventListeners() {
+    console.log('Setting up approval field event listeners');
+    
+    // Setup click handlers for approval dropdowns to show dropdown when clicked
+    const approvalFields = [
+        'Approval.PreparedById',
+        'Approval.CheckedById', 
+        'Approval.AcknowledgedById',
+        'Approval.ApprovedById',
+        'Approval.ReceivedById',
+        'Approval.ClosedById'
+    ];
+    
+    approvalFields.forEach(fieldId => {
+        const searchInput = document.getElementById(fieldId + 'Search');
+        const dropdown = document.getElementById(fieldId + 'Dropdown');
+        
+        if (searchInput && dropdown) {
+            console.log(`Setting up event listeners for ${fieldId}`);
+            
+            // Remove existing event listeners to avoid duplicates
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // Show dropdown when input is clicked
+            newSearchInput.addEventListener('click', function() {
+                if (!newSearchInput.readOnly) {
+                    console.log(`Clicked ${fieldId}, showing dropdown`);
+                    dropdown.classList.remove('hidden');
+                    filterUsers(fieldId);
+                }
+            });
+            
+            // Show dropdown when input is focused
+            newSearchInput.addEventListener('focus', function() {
+                if (!newSearchInput.readOnly) {
+                    console.log(`Focused ${fieldId}, showing dropdown`);
+                    dropdown.classList.remove('hidden');
+                    filterUsers(fieldId);
+                }
+            });
+            
+            // Show dropdown when input value changes (for backspace, typing, etc.)
+            newSearchInput.addEventListener('input', function() {
+                if (!newSearchInput.readOnly) {
+                    console.log(`Input changed for ${fieldId}, showing dropdown`);
+                    dropdown.classList.remove('hidden');
+                    filterUsers(fieldId);
+                }
+            });
+            
+            // Show dropdown when key is pressed (for backspace, delete, etc.)
+            newSearchInput.addEventListener('keydown', function(e) {
+                if (!newSearchInput.readOnly) {
+                    // Slight delay to allow the input value to update first
+                    setTimeout(() => {
+                        console.log(`Key pressed for ${fieldId} (${e.key}), showing dropdown`);
+                        dropdown.classList.remove('hidden');
+                        filterUsers(fieldId);
+                    }, 10);
+                }
+            });
+        } else {
+            console.warn(`Search input or dropdown not found for ${fieldId}`);
+        }
+    });
 }
 
 // Initialize amount formatting for existing rows when page loads

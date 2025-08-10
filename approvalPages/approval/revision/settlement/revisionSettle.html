@@ -78,7 +78,9 @@
                 </select>
 
                 <h3 class="text-lg font-semibold mb-2">Cash Advance Reference</h3>
-                <input type="text" id="cashAdvanceReferenceId" placeholder="Cash Advance Reference" class="w-full p-2 border rounded">
+                <select type="" id="cashAdvanceReferenceId" class="w-full p-2 border rounded">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
 
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded" disabled>
@@ -147,7 +149,7 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off">
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
                     <input type="hidden" id="preparedBy" />
                     <div id="preparedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
@@ -155,7 +157,7 @@
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off">
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
                     <input type="hidden" id="acknowledgedBy" />
                     <div id="acknowledgedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
@@ -163,7 +165,7 @@
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off">
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
                     <input type="hidden" id="checkedBy" />
                     <div id="checkedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
@@ -171,7 +173,7 @@
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off">
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
                     <input type="hidden" id="approvedBy" />
                     <div id="approvedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>
@@ -179,7 +181,7 @@
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off">
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off">
                     <input type="hidden" id="receivedBy" />
                     <div id="receivedByDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded search-dropdown"></div>
                 </div>

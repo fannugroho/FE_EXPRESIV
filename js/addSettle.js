@@ -1009,7 +1009,7 @@ async function loadCashAdvanceOptions() {
             responseData.data.forEach(cashAdvance => {
                 const option = document.createElement('option');
                 option.value = cashAdvance.id;
-                option.textContent = cashAdvance.cashAdvanceNo;
+                option.textContent = cashAdvance.cashAdvanceNo + ' - ' + cashAdvance.totalAmount.toFixed(2);
                 dropdown.appendChild(option);           
             });
         } else {
