@@ -399,8 +399,15 @@ function populateInvoiceData(invoice) {
         }
         
         if (visionInvoiceNumberElement) {
-            visionInvoiceNumberElement.textContent = invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '';
-            console.log('Vision Invoice Number set to:', visionInvoiceNumberElement.textContent);
+            const visionFieldContainer = visionInvoiceNumberElement.closest('.invoice-field');
+            const hasQrCodeSrc = invoice.qrCodeSrc && typeof invoice.qrCodeSrc === 'string' && invoice.qrCodeSrc.trim() !== '';
+            if (!hasQrCodeSrc) {
+                if (visionFieldContainer) visionFieldContainer.style.display = 'none';
+            } else {
+                visionInvoiceNumberElement.textContent = invoice.visInv || invoice.u_bsi_invnum || invoice.docNum || '';
+                if (visionFieldContainer) visionFieldContainer.style.display = 'block';
+                console.log('Vision Invoice Number set to:', visionInvoiceNumberElement.textContent);
+            }
         } else {
             console.error('Vision Invoice Number element not found');
         }

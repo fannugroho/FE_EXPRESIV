@@ -318,17 +318,20 @@ function populateInvoiceData(invoice) {
     
     // Invoice details - map from new API structure to print page structure
     document.getElementById('invoiceNumber').textContent = invoice.u_bsi_invnum || invoice.docNum || '';
-    // Handle Vision Invoice Number - hide if visInv is null/empty
+    // Handle Vision Invoice Number
+    // Requirement: hide the field if qrCodeSrc is null/empty
     const visionInvoiceElement = document.getElementById('visionInvoiceNumber');
+    const visionFieldContainer = visionInvoiceElement ? visionInvoiceElement.closest('.invoice-field') : null;
     const visInvValue = invoice.visInv;
-    
-    if (visInvValue && visInvValue.trim() !== '') {
-        // Show the field and populate with visInv value
-        visionInvoiceElement.textContent = visInvValue;
-        visionInvoiceElement.closest('.invoice-field').style.display = 'block';
+    const hasQrCodeSrc = invoice.qrCodeSrc && typeof invoice.qrCodeSrc === 'string' && invoice.qrCodeSrc.trim() !== '';
+
+    if (!hasQrCodeSrc) {
+        if (visionFieldContainer) visionFieldContainer.style.display = 'none';
+    } else if (visInvValue && visInvValue.trim() !== '') {
+        if (visionInvoiceElement) visionInvoiceElement.textContent = visInvValue;
+        if (visionFieldContainer) visionFieldContainer.style.display = 'block';
     } else {
-        // Hide the entire field if visInv is null/empty/whitespace
-        visionInvoiceElement.closest('.invoice-field').style.display = 'none';
+        if (visionFieldContainer) visionFieldContainer.style.display = 'none';
     }
     document.getElementById('invoiceDate').textContent = formatDate(invoice.docDate);
     // Handle NPWP with multiple values

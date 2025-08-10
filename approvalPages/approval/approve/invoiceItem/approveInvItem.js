@@ -23,7 +23,7 @@ const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
  *    - Monospace font for better readability
  * 
  * 3. Status Validation:
- *    - Only allows rejection for "Prepared" or "Checked" status
+ *    - Only allows rejection for "Acknowledged" status
  *    - Clear error messages for invalid actions
  *    - Visual status indicators
  * 
@@ -356,21 +356,34 @@ function updateButtonVisibility() {
             console.log('Reject button shown for rejected document (status:', status, ')');
         }
         console.log('Approve button hidden for rejected document');
-    } else {
-        // For other statuses (Draft, Prepared, Acknowledged, Checked), show approve and reject buttons, hide print button
+    } else if (status === 'Acknowledged') {
+        // For acknowledged status, show both approve and reject buttons, hide print button
         if (approveButton) {
             approveButton.style.display = 'inline-block';
-            console.log('Approve button shown for non-approved/received document (status:', status, ')');
+            console.log('Approve button shown for acknowledged document (status:', status, ')');
         } else {
             console.warn('Approve button not found in DOM');
         }
         if (rejectButton) {
             rejectButton.style.display = 'inline-block';
-            console.log('Reject button shown for non-approved/received document (status:', status, ')');
+            console.log('Reject button shown for acknowledged document (status:', status, ')');
         } else {
             console.warn('Reject button not found in DOM');
         }
-        console.log('Print button hidden for non-approved/received document');
+        console.log('Print button hidden for acknowledged document');
+    } else {
+        // For other statuses (Draft, Prepared, Checked), show only approve button, hide reject and print buttons
+        if (approveButton) {
+            approveButton.style.display = 'inline-block';
+            console.log('Approve button shown for non-acknowledged document (status:', status, ')');
+        } else {
+            console.warn('Approve button not found in DOM');
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'none';
+            console.log('Reject button hidden for non-acknowledged document (status:', status, ')');
+        }
+        console.log('Reject and Print buttons hidden for non-acknowledged document');
     }
 }
 
@@ -708,11 +721,11 @@ function rejectInvItem() {
 
     // Check if document status allows rejection
     const status = getStatusFromInvoice(currentInvItemData);
-    if (status !== 'Prepared' && status !== 'Checked') {
+    if (status !== 'Acknowledged') {
         Swal.fire({
             icon: 'error',
             title: 'Invalid Action',
-            text: `Cannot reject document with status: ${status}. Only documents with status "Prepared" or "Checked" can be rejected.`
+            text: `Cannot reject document with status: ${status}. Only documents with status "Acknowledged" can be rejected.`
         });
         return;
     }
