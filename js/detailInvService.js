@@ -133,6 +133,7 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
 
     // Setup input event listeners
     input.addEventListener('input', function () {
+        if (input.disabled) return;
         const searchTerm = this.value.toLowerCase();
         const filteredEmployees = employeesData.filter(employee =>
             employee.fullName.toLowerCase().includes(searchTerm)
@@ -142,6 +143,7 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
     });
 
     input.addEventListener('focus', function () {
+        if (input.disabled) return;
         const searchTerm = this.value.toLowerCase();
         const filteredEmployees = employeesData.filter(employee =>
             employee.fullName.toLowerCase().includes(searchTerm)
@@ -160,6 +162,12 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
 
 // Display employee dropdown with filtered results
 function displayEmployeeDropdown(dropdown, employees, input, select) {
+    // If input is disabled or not available, don't show dropdown
+    if (!input || input.disabled) {
+        if (dropdown) dropdown.classList.add('hidden');
+        return;
+    }
+
     dropdown.innerHTML = '';
 
     if (employees.length === 0) {
@@ -360,6 +368,8 @@ function populateFormData(data) {
 
     // Check if submit button should be shown based on status
     updateSubmitButtonVisibility(status);
+    // Lock or unlock approval fields based on status
+    updateApprovalFieldsEditability(status);
 
     // Populate approval fields from approval summary - make them editable
     if (data.arInvoiceApprovalSummary) {
@@ -417,16 +427,51 @@ function populateFormData(data) {
     // Try to load saved approval data from localStorage
     loadApprovalDataFromLocalStorage();
 
-    // Populate totals
-    document.getElementById('PriceBefDi').value = data.docTotal - data.vatSum || '0.00';
-    document.getElementById('VatSum').value = data.vatSum || '0.00';
-    document.getElementById('DocTotal').value = data.docTotal || '0.00';
+    // Populate footer totals (align with Item page mapping & formatting)
+    populateFooterTotals(data);
 
     // Populate table with invoice service details - use arInvoiceDetails instead of arInvoiceServiceDetails
     populateInvoiceServiceDetails(data.arInvoiceDetails || [], data);
 
     // Enable submit button after data is loaded
     enableSubmitButton();
+}
+
+// Populate footer totals fields with currency formatting (matching item page logic)
+function populateFooterTotals(data) {
+    try {
+        const currencyCode = data.docCur || 'IDR';
+
+        // Helper to set value safely
+        const safeSet = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value;
+        };
+
+        // Format currency like item page
+        const formatCurrencyIDR = (number) => {
+            if (number === null || number === undefined || number === '') return '0.00';
+            let num = Number(number);
+            if (isNaN(num)) return '0.00';
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        // API fields mapping aligned with item page
+        // 1. Total: data.netPrice
+        safeSet('docTotal', `${currencyCode} ${formatCurrencyIDR(data.netPrice || 0)}`);
+        // 2. Discounted: data.discSum
+        safeSet('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || 0)}`);
+        // 3. Sales Amount: data.netPriceAfterDiscount
+        safeSet('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || 0)}`);
+        // 4. Tax Base Other Value: data.dpp1112
+        safeSet('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || 0)}`);
+        // 5. VAT 12%: data.vatSum
+        safeSet('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || 0)}`);
+        // 6. GRAND TOTAL: data.grandTotal
+        safeSet('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || 0)}`);
+    } catch (e) {
+        console.error('Error populating footer totals:', e);
+    }
 }
 
 // Populate table with invoice service details
@@ -1151,6 +1196,44 @@ function updateSubmitButtonVisibility(status) {
     }
 }
 
+// Enable or disable approval workflow fields based on document status
+function updateApprovalFieldsEditability(status) {
+    const isEditable = status === 'Draft';
+
+    const inputIds = ['acknowledgeByName', 'checkedByName', 'approvedByName', 'receivedByName'];
+    const dropdownIds = ['acknowledgeBySelectDropdown', 'checkedBySelectDropdown', 'approvedBySelectDropdown', 'receivedBySelectDropdown'];
+    const selectIds = ['acknowledgeBy', 'checkedBy', 'approvedBy', 'receivedBy'];
+
+    // Toggle inputs
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.disabled = !isEditable;
+            // subtle visual cue
+            if (!isEditable) {
+                el.classList.add('bg-gray-100');
+            } else {
+                el.classList.remove('bg-gray-100');
+            }
+        }
+    });
+
+    // Hide dropdowns when not editable (and clear contents)
+    dropdownIds.forEach(id => {
+        const dd = document.getElementById(id);
+        if (dd) {
+            dd.classList.add('hidden');
+            if (!isEditable) dd.innerHTML = '';
+        }
+    });
+
+    // Disable selects as well
+    selectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) sel.disabled = !isEditable;
+    });
+}
+
 // Add event listeners for approval inputs to track changes
 function setupApprovalInputListeners() {
     const approvalInputs = [
@@ -1246,31 +1329,102 @@ function loadAttachmentsFromData(attachments) {
     try {
         console.log('Loading attachments from data:', attachments);
 
-        // Hide loading indicator
-        const attachmentLoading = document.getElementById('attachmentLoading');
-        const attachmentList = document.getElementById('attachmentList');
-        const noAttachments = document.getElementById('noAttachments');
+        // Reset uploaded files buffer
+        uploadedFiles = [];
 
-        if (attachmentLoading) {
-            attachmentLoading.style.display = 'none';
-        }
-        if (attachmentList) {
-            attachmentList.innerHTML = '';
-        }
-        if (noAttachments) {
-            noAttachments.style.display = 'none';
-        }
+        // Normalize and validate attachments like item page
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            const validAttachments = attachments.filter(att => {
+                const fileName = att.fileName || att.file_name;
+                return fileName && fileName !== 'string' && fileName.trim() !== '';
+            });
 
-        if (attachments && attachments.length > 0) {
-            displayAttachments(attachments);
+            if (validAttachments.length > 0) {
+                displayExistingAttachments(validAttachments);
+            } else {
+                showNoExistingAttachments();
+            }
         } else {
-            showNoAttachments();
+            showNoExistingAttachments();
         }
-
     } catch (error) {
         console.error('Error loading attachments from data:', error);
-        showNoAttachments();
+        showNoExistingAttachments();
     }
+}
+
+// Display existing attachments (match item page style/behavior)
+function displayExistingAttachments(attachments) {
+    const container = document.getElementById('existingAttachmentsList');
+    if (!container) {
+        console.warn('Element with id "existingAttachmentsList" not found');
+        return;
+    }
+
+    container.innerHTML = '';
+    if (!attachments || attachments.length === 0) {
+        showNoExistingAttachments();
+        return;
+    }
+
+    attachments.forEach((attachment, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'attachment-item flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3 shadow-sm hover:shadow-md transition-shadow';
+
+        const fileName = attachment.fileName || attachment.file_name || attachment.name || `Attachment ${index + 1}`;
+        const fileIcon = getFileIcon(fileName);
+        const fileSize = attachment.fileSize || attachment.file_size || attachment.size;
+        const formattedFileSize = fileSize ? formatFileSize(fileSize) : '';
+        const createdAt = attachment.createdAt || attachment.created_at || attachment.uploadDate || attachment.upload_date;
+        const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleDateString() : '';
+        const fileUrl = attachment.fileUrl || attachment.file_url || attachment.filePath || attachment.file_path || attachment.path || '';
+        const attachmentData = {
+            fileName: fileName,
+            fileUrl: fileUrl,
+            fileSize: fileSize,
+            createdAt: createdAt,
+            description: attachment.description || attachment.desc || '',
+            fileType: attachment.fileType || attachment.contentType || attachment.type || '',
+            id: attachment.id || attachment.attachmentId || ''
+        };
+        const attachmentJson = JSON.stringify(attachmentData).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+        wrapper.innerHTML = `
+            <div class="flex items-center flex-1">
+                <span class="text-blue-600 mr-3 text-xl">${fileIcon}</span>
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">${fileName}</span>
+                    <div class="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                        ${formattedFileSize ? `<span>Size: ${formattedFileSize}</span>` : ''}
+                        ${formattedCreatedAt ? `<span>Created: ${formattedCreatedAt}</span>` : ''}
+                        ${attachmentData.description ? `<span>Description: ${attachmentData.description}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="viewExistingAttachment('${attachmentJson}')" class="text-blue-600 hover:text-blue-800 text-sm font-semibold px-3 py-1 border border-blue-600 rounded hover:bg-blue-50 transition-colors">View</button>
+            </div>
+        `;
+
+        container.appendChild(wrapper);
+    });
+}
+
+function showNoExistingAttachments() {
+    const container = document.getElementById('existingAttachmentsList');
+    if (!container) {
+        console.warn('Element with id "existingAttachmentsList" not found');
+        return;
+    }
+    container.innerHTML = `
+        <div class="p-6 text-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-lg font-medium">No existing attachments found</p>
+            <p class="text-sm">This invoice doesn't have any attachments yet.</p>
+        </div>
+    `;
 }
 
 // Display attachments in the UI
@@ -1350,7 +1504,7 @@ function getFileIcon(fileName) {
     const iconMap = {
         'pdf': '📄',
         'doc': '📝',
-        'docx': '��',
+        'docx': '📝',
         'xls': '📊',
         'xlsx': '📊',
         'ppt': '📽️',
@@ -1631,109 +1785,73 @@ function closeAttachmentModal() {
         document.body.removeChild(modal);
     }
 }
+// View existing attachment (match item page behavior)
+async function viewExistingAttachment(attachmentJson) {
+    try {
+        let attachment;
+        if (typeof attachmentJson === 'string') {
+            try { attachment = JSON.parse(attachmentJson); } catch (e) { throw new Error('Invalid attachment data format'); }
+        } else { attachment = attachmentJson; }
 
-// Function to show debug information for troubleshooting
-function showDebugInfo() {
-    if (!invoiceData) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'No Data Available',
-            text: 'Invoice data has not been loaded yet.',
-            confirmButtonText: 'OK'
-        });
-        return;
-    }
-
-    const stagingID = invoiceData.stagingID || 'N/A';
-    const docNum = invoiceData.docNum || 'N/A';
-    const cardCode = invoiceData.cardCode || 'N/A';
-    const cardName = invoiceData.cardName || 'N/A';
-    const currentStatus = invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft';
-    const approvalSummary = invoiceData.arInvoiceApprovalSummary;
-
-    // Get current form values
-    const preparedByName = document.getElementById('preparedByName')?.value || '';
-    const acknowledgeByName = document.getElementById('acknowledgeByName')?.value || '';
-    const checkedByName = document.getElementById('checkedByName')?.value || '';
-    const approvedByName = document.getElementById('approvedByName')?.value || '';
-    const receivedByName = document.getElementById('receivedByName')?.value || '';
-
-    // Get employee IDs
-    const preparedById = document.getElementById('preparedByName')?.getAttribute('data-employee-id') || '';
-    const acknowledgeById = document.getElementById('acknowledgeByName')?.getAttribute('data-employee-id') || '';
-    const checkedById = document.getElementById('checkedByName')?.getAttribute('data-employee-id') || '';
-    const approvedById = document.getElementById('approvedByName')?.getAttribute('data-employee-id') || '';
-    const receivedById = document.getElementById('receivedByName')?.getAttribute('data-employee-id') || '';
-
-    // Check if approval data has been modified
-    const approvalModified = window.approvalDataModified || false;
-
-    // Get localStorage data
-    const localStorageKey = `approval_${stagingID}`;
-    const savedData = localStorage.getItem(localStorageKey);
-    const hasLocalStorageData = savedData ? 'Yes' : 'No';
-
-    const debugInfo = `
-        <div class="text-left text-sm">
-            <h3 class="font-bold text-lg mb-3 text-blue-600">🔧 Debug Information</h3>
-            
-            <div class="grid grid-cols-1 gap-4">
-                <div class="bg-gray-50 p-3 rounded">
-                    <h4 class="font-semibold text-blue-800 mb-2">📋 Invoice Information</h4>
-                    <p><strong>Staging ID:</strong> ${stagingID}</p>
-                    <p><strong>Invoice Number:</strong> ${docNum}</p>
-                    <p><strong>Customer Code:</strong> ${cardCode}</p>
-                    <p><strong>Customer Name:</strong> ${cardName}</p>
-                    <p><strong>Current Status:</strong> ${currentStatus}</p>
-                </div>
-                
-                <div class="bg-gray-50 p-3 rounded">
-                    <h4 class="font-semibold text-green-800 mb-2">👥 Approval Information</h4>
-                    <p><strong>Prepared By:</strong> ${preparedByName} (ID: ${preparedById || 'N/A'})</p>
-                    <p><strong>Acknowledge By:</strong> ${acknowledgeByName} (ID: ${acknowledgeById || 'N/A'})</p>
-                    <p><strong>Checked By:</strong> ${checkedByName} (ID: ${checkedById || 'N/A'})</p>
-                    <p><strong>Approved By:</strong> ${approvedByName} (ID: ${approvedById || 'N/A'})</p>
-                    <p><strong>Received By:</strong> ${receivedByName} (ID: ${receivedById || 'N/A'})</p>
-                    <p><strong>Data Modified:</strong> ${approvalModified ? 'Yes' : 'No'}</p>
-                </div>
-                
-                <div class="bg-gray-50 p-3 rounded">
-                    <h4 class="font-semibold text-purple-800 mb-2">💾 Storage Information</h4>
-                    <p><strong>LocalStorage Key:</strong> ${localStorageKey}</p>
-                    <p><strong>Has Saved Data:</strong> ${hasLocalStorageData}</p>
-                    <p><strong>API Base URL:</strong> ${API_BASE_URL}</p>
-                </div>
-                
-                <div class="bg-gray-50 p-3 rounded">
-                    <h4 class="font-semibold text-orange-800 mb-2">📊 API Data</h4>
-                    <p><strong>Approval Summary:</strong> ${approvalSummary ? 'Available' : 'Not Available'}</p>
-                    <p><strong>Invoice Details Count:</strong> ${invoiceData.arInvoiceDetails?.length || 0}</p>
-                    <p><strong>Attachments Count:</strong> ${invoiceData.arInvoiceAttachments?.length || 0}</p>
-                </div>
-            </div>
-            
-            <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
-                <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Troubleshooting Tips</h4>
-                <ul class="list-disc list-inside space-y-1 text-xs">
-                    <li>If you see "Sequence contains more than one element" error, it means there are duplicate approval records in the database.</li>
-                    <li>Contact system administrator with the Staging ID: <strong>${stagingID}</strong></li>
-                    <li>The system will automatically retry with different payload formats.</li>
-                    <li>Check browser console for detailed error logs.</li>
-                </ul>
-            </div>
-        </div>
-    `;
-
-    Swal.fire({
-        title: 'Debug Information',
-        html: debugInfo,
-        width: '800px',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#6b7280',
-        showCloseButton: true,
-        customClass: {
-            container: 'debug-modal-container'
+        // Construct full URL if relative
+        let fullUrl = attachment.fileUrl || attachment.filePath || attachment.path;
+        if (!fullUrl) throw new Error('File URL not available');
+        if (!fullUrl.startsWith('http')) {
+            if (fullUrl.startsWith('/api')) {
+                const cleanFileUrl = fullUrl.replace('/api', '');
+                fullUrl = `${API_BASE_URL}${cleanFileUrl}`;
+            } else {
+                fullUrl = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+                fullUrl = `${API_BASE_URL}${fullUrl}`;
+            }
         }
-    });
+
+        const fileName = attachment.fileName || attachment.name || 'attachment';
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        if (fileExtension === 'pdf') {
+            await showPDFViewerDetail(fullUrl, fileName);
+        } else {
+            openInNewTabDetail(fullUrl, fileName);
+        }
+    } catch (error) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'Error', text: `Failed to view attachment: ${error.message}`, icon: 'error', confirmButtonText: 'OK', confirmButtonColor: '#ef4444' });
+        } else {
+            alert(`Failed to view attachment: ${error.message}`);
+        }
+    }
 }
 
+async function showPDFViewerDetail(pdfUrl, fileName) {
+    try {
+        Swal.fire({ title: 'Loading PDF...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        const response = await fetch(pdfUrl, { method: 'GET', headers: { 'accept': 'application/pdf,*/*' } });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        Swal.fire({
+            title: fileName,
+            html: `<div style="width: 100%; height: 70vh; margin: 10px 0;"><iframe src="${blobUrl}" style="width: 100%; height: 100%; border: none;" type="application/pdf"></iframe></div>`,
+            width: '90%', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Close',
+            willClose: () => { URL.revokeObjectURL(blobUrl); }
+        });
+    } catch (error) {
+        Swal.fire({
+            title: fileName,
+            html: `<div style="width: 100%; height: 70vh; margin: 10px 0;"><iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" style="width: 100%; height: 100%; border: none;" allow="fullscreen"></iframe></div>`,
+            width: '90%', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Close'
+        });
+    }
+}
+
+function openInNewTabDetail(fileUrl, fileName) {
+    Swal.fire({ title: 'Opening Document...', text: `Loading ${fileName}`, timer: 1500, timerProgressBar: true, showConfirmButton: false, allowOutsideClick: true, toast: true, position: 'top-end' });
+    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
+    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        Swal.fire({ icon: 'warning', title: 'Popup Blocked', html: `
+                <p>Your browser blocked the popup. Please allow popups for this site or</p>
+                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
+            `, confirmButtonText: 'OK' });
+    }
+}

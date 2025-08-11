@@ -564,16 +564,145 @@
         .attachment-actions .btn-preview:hover {
             background-color: #059669;
         }
+        
+        /* Full screen professional styling (aligned with checkInvItem) */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8fafc;
+            padding: 0;
+        }
+
+        .content-wrapper {
+            max-width: none;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .header-section {
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section,
+        .table-section,
+        .footer-section,
+        .approval-section,
+        .submit-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Table responsive adjustments aligned with item page */
+        .table-container {
+            overflow-x: auto;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow-y: visible;
+            max-height: none !important;
+        }
+
+        #arInvServiceTable {
+            min-width: 1100px;
+            table-layout: fixed;
+        }
+
+        /* Mobile layout styles */
+        @media (max-width: 768px) {
+            .content-wrapper { padding: 1rem; }
+            .header-section { padding: 1rem; margin-bottom: 1rem; }
+            .header-section h2 { font-size: 1.5rem !important; text-align: center; }
+            .header-section button { font-size: 0.875rem !important; padding: 0.5rem 1rem !important; }
+            .form-section { padding: 1rem; margin-bottom: 1rem; }
+            .form-section .grid { grid-template-columns: 1fr !important; gap: 1rem; }
+            .table-section { padding: 1rem; margin-bottom: 1rem; }
+            .table-container { overflow-x: auto; font-size: 0.75rem !important; }
+            #arInvServiceTable { min-width: 800px !important; font-size: 0.75rem !important; }
+            #arInvServiceTable th, #arInvServiceTable td { padding: 0.25rem !important; font-size: 0.75rem !important; }
+            .footer-section { padding: 1rem; margin-bottom: 1rem; }
+            .footer-section .flex { flex-direction: column !important; gap: 0.5rem; align-items: stretch !important; }
+            .footer-section input { width: 100% !important; font-size: 0.875rem !important; padding: 0.5rem !important; }
+            .approval-section { padding: 1rem; margin-bottom: 1rem; }
+            .approval-section .grid { grid-template-columns: 1fr !important; gap: 1rem; }
+            .submit-section { padding: 1rem; }
+            .submit-section .flex { flex-direction: column !important; gap: 1rem; }
+            .submit-section button { font-size: 1rem !important; padding: 0.75rem 1.5rem !important; width: 100% !important; }
+        }
+
+        /* Medium Devices (tablets, 768px and up) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .form-section .grid { grid-template-columns: 1fr 1fr !important; gap: 2rem; }
+            #arInvServiceTable { min-width: 1000px !important; }
+            .footer-section .flex { flex-direction: row !important; gap: 1rem; align-items: center !important; }
+            .footer-section input { width: 300px !important; }
+            .approval-section .grid { grid-template-columns: 1fr 1fr !important; gap: 2rem; }
+        }
+
+        /* Large Devices (desktops, 992px and up) */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            .form-section .grid { grid-template-columns: 1fr 1fr !important; gap: 3rem; }
+            #arInvServiceTable { min-width: 1100px !important; }
+            .footer-section input { width: 350px !important; }
+            .approval-section .grid { grid-template-columns: 1fr 1fr !important; gap: 3rem; }
+        }
+
+        /* Extra Large Devices */
+        @media (min-width: 1200px) {
+            .form-section .grid { grid-template-columns: 1fr 1fr !important; gap: 4rem; }
+            #arInvServiceTable { min-width: 1200px !important; }
+            .footer-section input { width: 400px !important; }
+            .approval-section .grid { grid-template-columns: 1fr 1fr !important; gap: 4rem; }
+        }
+
+        /* Enhanced table responsiveness cue */
+        @media (max-width: 1024px) {
+            .table-container { position: relative; }
+            .table-container::after {
+                content: '← Scroll →';
+                position: absolute;
+                bottom: -20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #3b82f6;
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 0.25rem;
+                font-size: 0.75rem;
+                opacity: 0.8;
+            }
+        }
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
-    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-7xl mx-auto">
-        <button onclick="goToMenuCheckInvService()" type="button"
-            class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Check Invoice Service</h2>
-        <br>
-        <div class="grid grid-cols-2 gap-4">
+<body>
+    <div class="main-container">
+        <div class="content-wrapper" id="main-content">
+            <div class="header-section">
+                <div class="flex justify-between items-center">
+                    <button onclick="goToMenuCheckInvService()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <h2 class="text-3xl font-bold text-gray-800">Check Invoice Service</h2>
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="grid grid-cols-2 gap-8">
             <div>
                 <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
                 <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100"
@@ -669,10 +798,12 @@
                 <input type="text" id="acctName" placeholder="Account Name"
                     class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
             </div>
-        </div>
+                </div>
+            </div>
 
-        <!-- Table for Service details -->
-        <div class="table-container">
+            <div class="table-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Service Details</h3>
+                <div class="table-container">
             <table id="arInvServiceTable" class="w-full text-left border mt-2">
                 <thead class="bg-purple-100">
                     <br>
@@ -691,52 +822,49 @@
                     <!-- Service rows will be populated by JavaScript -->
                 </tbody>
             </table>
-        </div>
-
-        <!-- Footer totals section -->
-        <!--Total Amount Due-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Before Discount :</label>
-            <input type="number" id="PriceBefDi"
-                class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                readonly autocomplete="off">
-        </div>
-
-        <!--Total Tax-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Tax :</label>
-            <input type="number" id="VatSum"
-                class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                readonly autocomplete="off">
-        </div>
-
-        <!--Total Amount-->
-        <div class="mt-4 flex justify-end space-x-2">
-            <label>Total Amount :</label>
-            <input type="number" id="DocTotal"
-                class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                readonly autocomplete="off">
-        </div>
-
-        <!-- Comments section -->
-        <div class="mt-4">
-            <label class="font-semibold">Remarks</label>
-            <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled
-                autocomplete="off"></textarea>
-        </div>
-
-        <!-- Rejection Remarks Display Section -->
-        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                <textarea id="rejectionRemarks"
-                    class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
-                    readonly></textarea>
+                </div>
             </div>
-        </div>
 
-        <!-- Approval -->
-        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div class="footer-section">
+                <!--Total Amount Due-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Before Discount :</label>
+                    <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
+
+                <!--Total Tax-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Tax :</label>
+                    <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
+
+                <!--Total Amount-->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Total Amount :</label>
+                    <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                </div>
+
+                <!-- Comments section -->
+                <div class="mt-6">
+                    <label class="font-semibold text-gray-700">Remarks</label>
+                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                </div>
+            </div>
+
+            <!-- Rejection Remarks Display Section -->
+            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+                <div class="footer-section">
+                    <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                        <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approval -->
+            <div class="approval-section">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
             <div>
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by:</strong></label>
                 <div class="relative">
@@ -796,30 +924,29 @@
                         <option value="" disabled selected>Choose Name</option>
                     </select>
                 </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Action Buttons -->
-        <div id="actionButtonsContainer" class="flex justify-start space-x-4 mt-6" style="display: none;">
-            <button id="rejectButton" onclick="rejectInvService()"
-                class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Reject
-            </button>
-            <button id="submitButton" onclick="approveInvService()"
-                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
-                Submit
-            </button>
-        </div>
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <div id="actionButtonsContainer" class="flex justify-center space-x-8" style="display: none;">
+                    <button id="rejectButton" onclick="rejectInvService()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 text-lg">Reject</button>
+                    <button id="submitButton" onclick="approveInvService()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">Checked</button>
+                </div>
 
-        <!-- Status Message -->
-        <div id="statusMessage" class="mt-4 p-4 rounded-lg hidden">
-            <div id="statusMessageContent" class="text-center"></div>
+                <!-- Status Message -->
+                <div id="statusMessage" class="mt-4 p-4 rounded-lg hidden">
+                    <div id="statusMessageContent" class="text-center"></div>
+                </div>
+            </div>
         </div>
     </div>
 
 
 
     <script>
+        // API base (from auth.js BASE_URL). Defined in checkInvService.js already.
+
         // Function to handle text wrapping based on character length
         function handleTextWrapping(element) {
             const text = element.value || element.textContent || '';
@@ -870,12 +997,12 @@
         // Function to load attachments from API
         async function loadAttachments(stagingID) {
             try {
-                // Use window.BASE_URL to ensure global access
-                const response = await fetch(`${window.BASE_URL}/api/ar-invoices/${stagingID}/details`);
+                const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingID}/attachments`;
+                const response = await fetch(apiUrl, { method: 'GET', headers: { 'accept': '*/*' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result = await response.json();
-
-                if (result.status && result.data && result.data.arInvoiceAttachments) {
-                    displayAttachments(result.data.arInvoiceAttachments);
+                if (result.status && result.data) {
+                    displayAttachments(result.data, stagingID);
                 } else {
                     showNoAttachments();
                 }
@@ -886,7 +1013,7 @@
         }
 
         // Function to display attachments
-        function displayAttachments(attachments) {
+        function displayAttachments(attachments, stagingID) {
             const attachmentList = document.getElementById('attachmentList');
             const noAttachments = document.getElementById('noAttachments');
 
@@ -899,21 +1026,24 @@
             attachmentList.innerHTML = '';
             noAttachments.classList.add('hidden');
 
-            attachments.forEach((attachment, index) => {
-                const attachmentItem = createAttachmentItem(attachment, index);
+            // Allow both legacy and new structures
+            const valid = attachments.filter(a => (a.fileName || a.originalFileName) && (a.fileUrl || a.filePath || a.id));
+            valid.forEach((attachment, index) => {
+                const attachmentItem = createAttachmentItem(attachment, index, stagingID);
                 attachmentList.appendChild(attachmentItem);
             });
         }
 
         // Function to create attachment item
-        function createAttachmentItem(attachment, index) {
+        function createAttachmentItem(attachment, index, stagingID) {
             const item = document.createElement('div');
             item.className = 'attachment-item';
 
             const fileName = attachment.fileName || attachment.originalFileName || `Attachment ${index + 1}`;
-            const fileSize = attachment.fileSize ? formatFileSize(attachment.fileSize) : 'Unknown size';
+            const fileSize = attachment.fileSize ? formatFileSize(attachment.fileSize) : '';
             const fileType = getFileType(fileName);
             const fileIcon = getFileIcon(fileType);
+            const fileUrl = attachment.fileUrl || attachment.filePath || '';
 
             item.innerHTML = `
                 <div class="flex items-start justify-between">
@@ -921,15 +1051,12 @@
                         <div class="file-icon text-2xl">${fileIcon}</div>
                         <div class="flex-1 min-w-0">
                             <div class="file-name font-medium text-gray-900 truncate">${fileName}</div>
-                            <div class="file-size text-sm text-gray-500">${fileSize}</div>
+                            ${fileSize ? `<div class="file-size text-sm text-gray-500">${fileSize}</div>` : ''}
                             ${attachment.description ? `<div class="file-description text-xs text-gray-400 mt-1">${attachment.description}</div>` : ''}
                         </div>
                     </div>
                     <div class="attachment-actions flex space-x-2 ml-4">
-                        <button onclick="downloadAttachment('${attachment.filePath || attachment.id}')" class="btn-download">
-                            Download
-                        </button>
-                        ${fileType === 'pdf' ? `<button onclick="previewAttachment('${attachment.filePath || attachment.id}')" class="btn-preview">Preview</button>` : ''}
+                        <button onclick="viewAttachment('${stagingID}','${fileUrl}','${fileName.replace(/'/g, "\\'")}')" class="btn-preview">View</button>
                     </div>
                 </div>
             `;
@@ -983,22 +1110,74 @@
             return icons[fileType] || '📄';
         }
 
-        // Function to download attachment
-        function downloadAttachment(filePath) {
-            // This would typically open the file in a new tab or trigger download
-            // For now, we'll show an alert
-            alert(`Downloading attachment: ${filePath}`);
-            // In a real implementation, you might use:
-            // window.open(filePath, '_blank');
+        // View attachment in modal/new tab (similar to checkInvItem.js)
+        function viewAttachment(stagingId, fileUrl, fileName) {
+            try {
+                let viewUrl;
+                if (fileUrl && fileUrl.startsWith('http')) {
+                    viewUrl = fileUrl;
+                } else if (fileUrl && fileUrl.startsWith('/api')) {
+                    const clean = fileUrl.replace('/api', '');
+                    viewUrl = `${API_BASE_URL}${clean}`;
+                } else if (fileUrl) {
+                    viewUrl = `${API_BASE_URL}${fileUrl}`;
+                } else {
+                    // Fallback to download by id
+                    viewUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/attachments/${attachment?.id || ''}/download`;
+                }
+
+                const ext = (fileName || '').split('.').pop().toLowerCase();
+                if (ext === 'pdf') {
+                    showPDFViewer(viewUrl, fileName || 'Document.pdf');
+                } else {
+                    openInNewTab(viewUrl, fileName || 'Document');
+                }
+            } catch (error) {
+                console.error('Error viewing attachment:', error);
+                Swal.fire({ icon: 'error', title: 'View Failed', text: `Failed to open ${fileName || 'document'}.` });
+            }
         }
 
-        // Function to preview attachment
-        function previewAttachment(filePath) {
-            // This would typically open the file in a new tab for preview
-            // For now, we'll show an alert
-            alert(`Previewing attachment: ${filePath}`);
-            // In a real implementation, you might use:
-            // window.open(filePath, '_blank');
+        async function showPDFViewer(pdfUrl, fileName) {
+            try {
+                Swal.fire({ title: 'Loading PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const response = await fetch(pdfUrl, { method: 'GET', headers: { accept: 'application/pdf,*/*' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                Swal.fire({
+                    title: fileName,
+                    html: `<div style="width: 100%; height: 70vh; margin: 10px 0;"><iframe src="${blobUrl}" style="width: 100%; height: 100%; border: none;" type="application/pdf"></iframe></div>`,
+                    width: '90%',
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: 'Close',
+                    willClose: () => URL.revokeObjectURL(blobUrl)
+                });
+            } catch (error) {
+                console.error('PDF view error:', error);
+                Swal.fire({
+                    title: fileName,
+                    html: `<div style="width: 100%; height: 70vh; margin: 10px 0;"><iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" style="width: 100%; height: 100%; border: none;" allow="fullscreen"></iframe></div>`,
+                    width: '90%',
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: 'Close'
+                });
+            }
+        }
+
+        function openInNewTab(fileUrl, fileName) {
+            Swal.fire({ title: 'Opening Document...', text: `Loading ${fileName}`, timer: 1200, timerProgressBar: true, showConfirmButton: false, toast: true, position: 'top-end' });
+            const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
+            const win = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+            if (!win || win.closed || typeof win.closed === 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Popup Blocked',
+                    html: `Popup was blocked. <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">Click here to view</a>`
+                });
+            }
         }
 
         // Function to load attachments when page loads

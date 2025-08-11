@@ -1146,6 +1146,130 @@
             outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }
+
+        /* ===== Overrides to align styles with detailINVItem.html (non-functional changes only) ===== */
+        /* Table container behavior and scroll styling */
+        .table-container {
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* Ensure service table follows item table sizing and layout */
+        #arInvServiceTable {
+            min-width: 1100px !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+        }
+
+        /* Remove sticky header to match item page */
+        #arInvServiceTable thead {
+            position: static !important;
+            top: auto !important;
+            background: #f3f4f6 !important;
+        }
+
+        /* Cell spacing and alignment to match item page */
+        #arInvServiceTable th,
+        #arInvServiceTable td {
+            padding: 8px 4px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            vertical-align: middle !important;
+        }
+
+        /* Textareas inside table cells */
+        .table-container textarea {
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+            resize: none !important;
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            line-height: 1.4 !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+            vertical-align: middle !important;
+        }
+
+        /* Consistent input and textarea sizing */
+        #arInvServiceTable input,
+        #arInvServiceTable textarea {
+            border: 1px solid #d1d5db !important;
+            border-radius: 4px !important;
+            padding: 6px 8px !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+
+        /* Row height alignment */
+        #arInvServiceTable tbody tr {
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+
+        /* Column width harmonization */
+        .no-column { width: 60px !important; min-width: 60px !important; }
+        .no-input { width: 50px !important; }
+
+        .description-column { width: 250px !important; min-width: 250px !important; }
+
+        .account-code-column { width: 120px !important; min-width: 120px !important; }
+        .account-name-column { width: 200px !important; min-width: 200px !important; }
+        .tax-code-column { width: 100px !important; min-width: 100px !important; }
+        .total-lc-column { width: 180px !important; min-width: 180px !important; }
+
+        /* Table container scrollbar styling */
+        .table-container::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1 !important; border-radius: 4px !important; }
+        .table-container::-webkit-scrollbar-thumb { background: #c1c1c1 !important; border-radius: 4px !important; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8 !important; }
+
+        /* Responsive min-width behavior matching item page */
+        @media (max-width: 1200px) { #arInvServiceTable { min-width: 1000px !important; } }
+        @media (max-width: 991px) { #arInvServiceTable { min-width: 900px !important; } }
+        @media (max-width: 767px) { #arInvServiceTable { min-width: 800px !important; } }
+        @media (max-width: 575px) { #arInvServiceTable { min-width: 700px !important; font-size: 12px !important; } }
+        @media (max-width: 375px) { #arInvServiceTable { min-width: 600px !important; font-size: 11px !important; } }
+
+        /* Attachment and file list scroll areas to match item page */
+        .file-list-container { max-height: 300px !important; overflow-y: auto !important; padding-right: 4px !important; }
+        .attachment-list-container { max-height: 300px !important; overflow-y: auto !important; padding-right: 4px !important; }
+        .file-list-container::-webkit-scrollbar,
+        .attachment-list-container::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+        .file-list-container::-webkit-scrollbar-track,
+        .attachment-list-container::-webkit-scrollbar-track { background: #f1f1f1 !important; border-radius: 4px !important; }
+        .file-list-container::-webkit-scrollbar-thumb,
+        .attachment-list-container::-webkit-scrollbar-thumb { background: #c1c1c1 !important; border-radius: 4px !important; }
+        .file-list-container::-webkit-scrollbar-thumb:hover,
+        .attachment-list-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8 !important; }
+
+        /* Touch-friendly improvements for mobile – align button sizing */
+        @media (max-width: 767px) {
+            .table-container { border-radius: 4px !important; margin: 0 -0.5rem !important; padding: 0 0.5rem !important; }
+            .submit-section button { min-height: 48px !important; font-size: 1.1rem !important; font-weight: 600 !important; }
+        }
+
+        /* ===== Existing Attachments: responsive handling for long filenames ===== */
+        .attachment-item { flex-wrap: wrap; align-items: flex-start; gap: 0.5rem; }
+        .attachment-actions { flex: 0 0 auto; display: flex; gap: 0.5rem; align-self: center; }
+        .file-name {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+            line-height: 1.25 !important;
+        }
+        .file-description { white-space: normal !important; overflow-wrap: anywhere !important; }
+        @media (max-width: 767px) {
+            .attachment-item { flex-direction: column; align-items: stretch; }
+            .attachment-actions { width: 100%; justify-content: flex-start; }
+        }
     </style>
 </head>
 
@@ -1223,13 +1347,8 @@
                         <!-- Existing Attachments Section -->
                         <h3 class="text-lg font-semibold mb-2 mt-6">Existing Attachments</h3>
                         <div class="attachment-container">
-                            <!-- Loading state -->
-                            <div id="attachmentLoading" class="text-sm text-gray-500">Loading attachments...</div>
-                            <!-- Empty state -->
-                            <div id="noAttachments" class="text-sm text-gray-500" style="display: none;">No attachments
-                                available</div>
-                            <!-- List -->
-                            <div id="attachmentList" class="attachment-list-container"></div>
+                            <!-- List (aligned with JS displayExistingAttachments) -->
+                            <div id="existingAttachmentsList" class="attachment-list-container"></div>
                         </div>
                     </div>
 
@@ -1305,28 +1424,65 @@
             <!-- Footer Totals Section -->
             <div class="footer-section">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
-                <!--Total Amount Due-->
+
+                <!-- Total -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Before Discount :</label>
-                    <input type="number" id="PriceBefDi"
-                        class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                        readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Total :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="docTotal"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
 
-                <!--Total Tax-->
+                <!-- Discounted -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Tax :</label>
-                    <input type="number" id="VatSum"
-                        class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                        readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Discounted :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="discSum"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
 
-                <!--Total Amount-->
+                <!-- Sales Amount -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Amount :</label>
-                    <input type="number" id="DocTotal"
-                        class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100"
-                        readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Sales Amount :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="netPriceAfterDiscount"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Tax Base Other Value -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="dpp1112"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- VAT 12% -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">VAT 12% :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="vatSum"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- GRAND TOTAL -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="grandTotal"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 font-bold"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
 
                 <!-- Remarks section -->
@@ -1445,11 +1601,7 @@
                     <p class="text-sm text-gray-600 mt-2">Click to submit this invoice service data and update approval
                         status from Draft to Prepared</p>
 
-                    <!-- Debug Button -->
-                    <button onclick="showDebugInfo()"
-                        class="mt-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm">
-                        🔧 Debug Info
-                    </button>
+                    
                 </div>
             </div>
         </div>

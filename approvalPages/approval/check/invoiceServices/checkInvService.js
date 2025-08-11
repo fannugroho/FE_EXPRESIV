@@ -116,6 +116,11 @@ function getCurrentUserFullName() {
     return currentUser.username || 'Unknown User';
 }
 
+// Function to get role of the current user (align with Item page behavior)
+function getCurrentUserRole() {
+    return 'Checker';
+}
+
 // Load invoice service data
 function loadInvServiceData() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -585,31 +590,87 @@ function rejectInvService() {
         return;
     }
 
+    // Modal with prefixed textarea (same model as checkInvItem)
     Swal.fire({
         title: 'Reject Invoice Service',
-        input: 'textarea',
-        inputLabel: 'Rejection Remarks',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection remarks',
-            'aria-describedby': 'rejection-remarks-help'
-        },
+        html: `
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3">Please provide a reason for rejection:</p>
+                <div id="rejectionFieldsContainer">
+                    <textarea id="rejectionField1" class="w-full p-2 border rounded-md" placeholder="Enter rejection reason" rows="3"></textarea>
+                </div>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
         confirmButtonText: 'Reject',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value || value.trim() === '') {
-                return 'Please enter rejection remarks';
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        width: '600px',
+        didOpen: () => {
+            const firstField = document.getElementById('rejectionField1');
+            if (firstField) {
+                initializeWithRejectionPrefix(firstField);
             }
+
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            if (field) {
+                field.addEventListener('input', handleRejectionInput);
+            }
+        },
+        preConfirm: () => {
+            const field = document.querySelector('#rejectionFieldsContainer textarea');
+            const remarks = field ? field.value.trim() : '';
+            const prefixLength = parseInt(field?.dataset.prefixLength || '0');
+            const contentAfterPrefix = remarks.substring(prefixLength).trim();
+            if (!contentAfterPrefix) {
+                Swal.showValidationMessage('Please enter a rejection reason');
+                return false;
+            }
+            return remarks;
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Update status to Rejected with remarks
             updateInvServiceStatus('Rejected', result.value);
         }
     });
+}
+
+// Initialize textarea with user prefix for rejection
+function initializeWithRejectionPrefix(textarea) {
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const prefix = `[${userInfo} - ${role}]: `;
+    textarea.value = prefix;
+
+    // Store prefix length for later protection
+    textarea.dataset.prefixLength = prefix.length.toString();
+
+    // Place cursor after prefix
+    try {
+        textarea.setSelectionRange(prefix.length, prefix.length);
+    } catch (_) { /* ignore for non-supported inputs */ }
+    textarea.focus();
+}
+
+// Protect and maintain prefix while typing
+function handleRejectionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+
+    const userInfo = getCurrentUserFullName() || 'Unknown User';
+    const role = getCurrentUserRole();
+    const expectedPrefix = `[${userInfo} - ${role}]: `;
+
+    if (!textarea.value.startsWith(expectedPrefix)) {
+        const userText = textarea.value.substring(prefixLength);
+        textarea.value = expectedPrefix + userText;
+        try { textarea.setSelectionRange(prefixLength, prefixLength); } catch (_) {}
+    } else {
+        if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+            try { textarea.setSelectionRange(prefixLength, prefixLength); } catch (_) {}
+        }
+    }
 }
 
 // Update invoice service status using PATCH API
