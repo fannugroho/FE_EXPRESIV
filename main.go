@@ -23,7 +23,7 @@ func noCacheMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 func main() {
 	// Set the port
-	port := ":5002"
+	port := ":5004"
 	
 	// Create a file server handler for static files
 	fs := http.FileServer(http.Dir("."))

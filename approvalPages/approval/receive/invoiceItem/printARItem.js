@@ -790,49 +790,35 @@ function populateFinancialSummaryForPage(invoice, pageNum) {
     const currency = invoice.docCur || '';
     console.log(`Currency from API docCur field for page ${pageNum}:`, currency);
 
-    // Financial summary field mapping based on API response
-    const financialData = {
-        [`totalAmount${pageNum}`]: {
-            value: invoice.netPrice || 0,
-            currency: currency,
-            label: 'Total'
-        },
-        [`discountAmount${pageNum}`]: {
-            value: invoice.discSum || 0,
-            currency: currency,
-            label: 'Discounted'
-        },
-        [`salesAmount${pageNum}`]: {
-            value: invoice.netPriceAfterDiscount || 0,
-            currency: currency,
-            label: 'Sales Amount'
-        },
-        [`taxBase${pageNum}`]: {
-            value: invoice.dpp1112 || 0,
-            currency: currency,
-            label: 'Tax Base Other Value'
-        },
-        [`vatAmount${pageNum}`]: {
-            value: invoice.vatSum || 0,
-            currency: currency,
-            label: 'VAT 12%'
-        },
-        [`grandTotal${pageNum}`]: {
-            value: invoice.grandTotal || 0,
-            currency: currency,
-            label: 'GRAND TOTAL'
-        }
-    };
+    // Set currency labels for this page
+    const currencyText = currency || 'IDR';
+    [
+        `totalCurrency${pageNum}`,
+        `discountCurrency${pageNum}`,
+        `salesCurrency${pageNum}`,
+        `taxBaseCurrency${pageNum}`,
+        `vatCurrency${pageNum}`,
+        `grandCurrency${pageNum}`,
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = currencyText;
+    });
 
-    // Populate the DOM elements for this page
-    Object.keys(financialData).forEach(key => {
-        const element = document.getElementById(key);
+    // Populate amounts for this page
+    [
+        { id: `totalAmount${pageNum}`, value: invoice.netPrice || 0, label: 'Total' },
+        { id: `discountAmount${pageNum}`, value: invoice.discSum || 0, label: 'Discounted' },
+        { id: `salesAmount${pageNum}`, value: invoice.netPriceAfterDiscount || 0, label: 'Sales Amount' },
+        { id: `taxBase${pageNum}`, value: invoice.dpp1112 || 0, label: 'Tax Base Other Value' },
+        { id: `vatAmount${pageNum}`, value: invoice.vatSum || 0, label: 'VAT 12%' },
+        { id: `grandTotal${pageNum}`, value: invoice.grandTotal || 0, label: 'GRAND TOTAL' },
+    ].forEach(item => {
+        const element = document.getElementById(item.id);
         if (element) {
-            const data = financialData[key];
-            element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
-            console.log(`Page ${pageNum} - ${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
+            element.textContent = formatCurrencyRounded(item.value);
+            console.log(`Page ${pageNum} - ${item.label}: ${currencyText} ${formatCurrencyRounded(item.value)}`);
         } else {
-            console.warn(`Financial summary element not found for page ${pageNum}: ${key}`);
+            console.warn(`Financial summary element not found for page ${pageNum}: ${item.id}`);
         }
     });
 
@@ -927,55 +913,31 @@ function populateFinancialSummary(invoice) {
     const currency = invoice.docCur || '';
     console.log('Currency from API docCur field:', currency);
 
-    // Financial summary field mapping based on API response
-    const financialData = {
-        // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
-        totalAmount: {
-            value: invoice.netPrice || 0,
-            currency: currency,
-            label: 'Total'
-        },
-        // 2. Discounted (discountAmount) - API Field: "docCur" "discSum"
-        discountAmount: {
-            value: invoice.discSum || 0,
-            currency: currency,
-            label: 'Discounted'
-        },
-        // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
-        salesAmount: {
-            value: invoice.netPriceAfterDiscount || 0,
-            currency: currency,
-            label: 'Sales Amount'
-        },
-        // 4. Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
-        taxBase: {
-            value: invoice.dpp1112 || 0,
-            currency: currency,
-            label: 'Tax Base Other Value'
-        },
-        // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
-        vatAmount: {
-            value: invoice.vatSum || 0,
-            currency: currency,
-            label: 'VAT 12%'
-        },
-        // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
-        grandTotal: {
-            value: invoice.grandTotal || 0,
-            currency: currency,
-            label: 'GRAND TOTAL'
-        }
-    };
+    // Set currency labels consistently in the middle column
+    const currencyText = currency || 'IDR';
+    const currencyIds = ['totalCurrency','discountCurrency','salesCurrency','taxBaseCurrency','vatCurrency','grandCurrency'];
+    currencyIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = currencyText;
+    });
 
-    // Populate the DOM elements
-    Object.keys(financialData).forEach(key => {
-        const element = document.getElementById(key);
+    // Populate the amounts (right column), rounded
+    const financialData = [
+        { id: 'totalAmount', value: invoice.netPrice || 0, label: 'Total' },
+        { id: 'discountAmount', value: invoice.discSum || 0, label: 'Discounted' },
+        { id: 'salesAmount', value: invoice.netPriceAfterDiscount || 0, label: 'Sales Amount' },
+        { id: 'taxBase', value: invoice.dpp1112 || 0, label: 'Tax Base Other Value' },
+        { id: 'vatAmount', value: invoice.vatSum || 0, label: 'VAT 12%' },
+        { id: 'grandTotal', value: invoice.grandTotal || 0, label: 'GRAND TOTAL' },
+    ];
+
+    financialData.forEach(item => {
+        const element = document.getElementById(item.id);
         if (element) {
-            const data = financialData[key];
-            element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
-            console.log(`${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
+            element.textContent = formatCurrencyRounded(item.value);
+            console.log(`${item.label}: ${currencyText} ${formatCurrencyRounded(item.value)}`);
         } else {
-            console.warn(`Financial summary element not found: ${key}`);
+            console.warn(`Financial summary element not found: ${item.id}`);
         }
     });
 
@@ -1880,7 +1842,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             }
         }
 
-        const currency = currentInvoiceData?.docCur || '';
+    const currency = currentInvoiceData?.docCur || 'IDR';
         paymentSummaryHTML = `
             <div class="payment-summary">
                 <div class="payment-instructions">
@@ -1888,30 +1850,40 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     <div id="bankInformation${pageNum}"></div>
                 </div>
                 <div class="financial-summary">
-                    <div class="summary-row">
-                        <span class="summary-label">Total</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Discounted</span>
-                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Sales Amount</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.dpp1112 || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">VAT 12%</span>
-                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
-                    </div>
+                    <table class="summary-table">
+                        <tbody>
+                            <tr>
+                                <td class="summary-label">Total</td>
+                                <td class="summary-currency" id="totalCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="totalAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPrice || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Discounted</td>
+                                <td class="summary-currency" id="discountCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="discountAmount${pageNum}">${formatCurrency(currentInvoiceData?.discSum || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Sales Amount</td>
+                                <td class="summary-currency" id="salesCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="salesAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPriceAfterDiscount || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Tax Base Other Value</td>
+                                <td class="summary-currency" id="taxBaseCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="taxBase${pageNum}">${formatCurrency(currentInvoiceData?.dpp1112 || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">VAT 12%</td>
+                                <td class="summary-currency" id="vatCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="vatAmount${pageNum}">${formatCurrency(currentInvoiceData?.vatSum || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label total-line">GRAND TOTAL</td>
+                                <td class="summary-currency total-line" id="grandCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount total-line" id="grandTotal${pageNum}">${formatCurrency(currentInvoiceData?.grandTotal || 0)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
@@ -2171,11 +2143,17 @@ function formatDate(dateString) {
     return date.toLocaleDateString('en-US', options);
 }
 
-// Utility function to format currency
+// Utility function to format currency (no forced rounding)
 function formatCurrency(amount) {
     if (amount === null || amount === undefined) return '0';
+    return new Intl.NumberFormat('en-US').format(Number(amount));
+}
 
-    return new Intl.NumberFormat('en-US').format(amount);
+// Utility to format currency rounded to whole rupiah
+function formatCurrencyRounded(amount) {
+    if (amount === null || amount === undefined) return '0';
+    const rounded = Math.round(Number(amount));
+    return new Intl.NumberFormat('en-US').format(rounded);
 }
 
 // Utility function to format numbers
