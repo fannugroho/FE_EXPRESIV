@@ -409,13 +409,10 @@ function updateCAStatusWithRemarks(status, remarks) {
     });
 }
 
-function goToMenuCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
-}
 
 // Function for Back button navigation
 function goToMenuAcknowCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknowledge.html";
+    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
 }
 
 // Initialize total amount calculation when page loads

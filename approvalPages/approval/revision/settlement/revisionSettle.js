@@ -473,6 +473,11 @@ window.onload = function() {
             event.target.value = '';
         });
     }
+    
+    // Apply tab-based behavior after data is loaded
+    setTimeout(() => {
+        applyTabBasedBehavior();
+    }, 1000);
 };
 
 function fetchSettlementDetails(settlementId) {
@@ -598,6 +603,9 @@ function populateSettlementDetails(data) {
     
     // Fetch dropdown options with approval data
     fetchDropdownOptions(data);
+    
+    // Apply tab-based behavior after form is populated
+    applyTabBasedBehavior();
 }
 
 // Function to fetch dropdown options
@@ -1382,49 +1390,108 @@ async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
 function displayRevisionRemarks(data) {
     const revisedRemarksSection = document.getElementById('revisedRemarksSection');
     
-    // Check if there are revisions
-    if (data.revisions && data.revisions.length > 0) {
-        if (revisedRemarksSection) {
-            revisedRemarksSection.style.display = 'block';
-            revisedRemarksSection.innerHTML = '';
+    const hasRevisions = data.revisions && data.revisions.length > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        
+        revisedRemarksSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
+                </div>
+            </div>
+        `;
+        
+        const revisionsByStage = {};
+        data.revisions.forEach(revision => {
+            let stageName = 'Unknown';
+            if (revision.stage === 'Checked' || revision.stage === 1) {
+                stageName = 'Checked';
+            } else if (revision.stage === 'Acknowledged' || revision.stage === 2) {
+                stageName = 'Acknowledged';
+            } else if (revision.stage === 'Approved' || revision.stage === 3) {
+                stageName = 'Approved';
+            } else if (revision.stage === 'Received' || revision.stage === 4) {
+                stageName = 'Received';
+            }
             
-            const title = document.createElement('label');
-            title.className = 'font-semibold text-orange-600';
-            title.textContent = `Revision History (${data.revisions.length} revision(s))`;
-            revisedRemarksSection.appendChild(title);
+            if (!revisionsByStage[stageName]) {
+                revisionsByStage[stageName] = [];
+            }
+            revisionsByStage[stageName].push(revision);
+        });
+        
+        Object.keys(revisionsByStage).forEach(stage => {
+            const stageRevisions = revisionsByStage[stage];
             
-            data.revisions.forEach((revision, index) => {
-                const revisionDiv = document.createElement('div');
-                revisionDiv.className = 'mt-2 p-3 bg-orange-50 border border-orange-200 rounded';
-                revisionDiv.innerHTML = `
-                    <p class="text-sm text-gray-600">Revision ${index + 1}:</p>
-                    <p class="text-sm">${revision.remarks || 'No remarks'}</p>
+            const stageHeader = document.createElement('div');
+            stageHeader.className = 'mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded';
+            stageHeader.innerHTML = `
+                <h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${stageRevisions.length})</h4>
+            `;
+            revisedRemarksSection.appendChild(stageHeader);
+            
+            stageRevisions.forEach((revision, index) => {
+                const revisionContainer = document.createElement('div');
+                revisionContainer.className = 'mb-3 ml-4';
+                revisionContainer.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700">Revision ${index + 1}:</label>
+                            <div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${revision.remarks || ''}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Date: ${revision.revisionDate ? new Date(revision.revisionDate).toLocaleDateString() : 'N/A'}
+                                ${revision.revisedByName ? ` | By: ${revision.revisedByName}` : ''}
+                            </div>
+                        </div>
+                    </div>
                 `;
-                revisedRemarksSection.appendChild(revisionDiv);
+                revisedRemarksSection.appendChild(revisionContainer);
             });
-        }
+        });
     } else {
-        if (revisedRemarksSection) {
-            revisedRemarksSection.style.display = 'none';
-        }
+        revisedRemarksSection.style.display = 'none';
     }
 }
 
 // Function to display rejection remarks
 function displayRejectionRemarks(data) {
-    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
-    const rejectionRemarks = document.getElementById('rejectionRemarks');
+    if (data.status !== 'Rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+        return;
+    }
     
-    if (data.rejectedRemarks && data.rejectedRemarks.trim() !== '') {
-        if (rejectionRemarksSection) {
-            rejectionRemarksSection.style.display = 'block';
+    const rejectionSection = document.getElementById('rejectionRemarksSection');
+    const rejectionTextarea = document.getElementById('rejectionRemarks');
+    
+    if (rejectionSection && rejectionTextarea) {
+        let rejectionRemarks = '';
+        
+        if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
         }
-        if (rejectionRemarks) {
-            rejectionRemarks.value = data.rejectedRemarks;
-        }
-    } else {
-        if (rejectionRemarksSection) {
-            rejectionRemarksSection.style.display = 'none';
+        
+        if (rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
+        } else {
+            rejectionSection.style.display = 'none';
         }
     }
 }
@@ -2341,6 +2408,128 @@ async function loadCashAdvanceOptions() {
 function getSettlementIdFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('settle-id') || urlParams.get('settlement-id');
+}
+
+// Function to apply tab-based behavior
+function applyTabBasedBehavior() {
+    console.log('Applying tab-based behavior for tab:', currentTab);
+    
+    if (currentTab === 'prepared') {
+        // For "prepared" tab: Make all fields read-only and hide submit button
+        makeAllFieldsReadOnly();
+        hideSubmitButton();
+        console.log('Applied read-only mode for prepared tab');
+    } else if (currentTab === 'revision') {
+        // For "revision" tab: Allow editing and show submit button
+        makeAllFieldsEditable();
+        showSubmitButton();
+        console.log('Applied editable mode for revision tab');
+    } else {
+        // Default: Make fields read-only for any other tab
+        makeAllFieldsReadOnly();
+        hideSubmitButton();
+        console.log('Applied read-only mode for unknown tab:', currentTab);
+    }
+}
+
+// Function to make all fields read-only
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = true;
+            el.disabled = true;
+            el.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Make table rows read-only
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.readOnly = true;
+            input.disabled = true;
+            input.classList.add('bg-gray-100');
+        });
+        
+        // Hide delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'none';
+        });
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Disable file upload
+    const fileInput = document.getElementById('attachments');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to make all fields editable
+function makeAllFieldsEditable() {
+    // Make all input fields editable
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = false;
+            el.disabled = false;
+            el.classList.remove('bg-gray-100');
+        }
+    });
+    
+    // Make table rows editable
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.readOnly = false;
+            input.disabled = false;
+            input.classList.remove('bg-gray-100');
+        });
+        
+        // Show delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'inline-block';
+        });
+    });
+    
+    // Show add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'inline-block';
+    }
+    
+    // Enable file upload
+    const fileInput = document.getElementById('attachments');
+    if (fileInput) {
+        fileInput.disabled = false;
+        fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to hide submit button
+function hideSubmitButton() {
+    const submitButton = document.querySelector('button[onclick="submitDocument(true)"]');
+    if (submitButton) {
+        submitButton.style.display = 'none';
+    }
+}
+
+// Function to show submit button
+function showSubmitButton() {
+    const submitButton = document.querySelector('button[onclick="submitDocument(true)"]');
+    if (submitButton) {
+        submitButton.style.display = 'inline-block';
+    }
 }
 
  

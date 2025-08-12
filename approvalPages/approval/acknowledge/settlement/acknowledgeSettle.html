@@ -122,6 +122,17 @@
             <label>Remarks</label>
             <textarea id="remarks" class="w-full p-2 border rounded-md" placeholder="Add remarks for approval/rejection"></textarea>
         </div>
+        
+        <!-- Revision History Section -->
+        <div id="revisedRemarksSection" class="mt-4 hidden">
+            <!-- Revision history will be displayed here -->
+        </div>
+        
+        <!-- Rejection Remarks Section -->
+        <div id="rejectionRemarksSection" class="mt-4 hidden">
+            <label class="font-semibold text-red-600">Rejection Remarks:</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-red-50" readonly></textarea>
+        </div>
 
         <!-- Revision Remarks Section -->
         <div class="mt-4">
@@ -138,7 +149,7 @@
             <div> 
                 <label id="preparedByLabel" class="mr-1"><strong>Prepared by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="prepared" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -148,7 +159,7 @@
             <div>
                 <label id="checkedByLabel" class="mr-1"><strong>Checked by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Checked" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -158,7 +169,7 @@
             <div>
                 <label id="acknowledgedByLabel" class="mr-1"><strong>Acknowledged by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Acknowledged" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -168,7 +179,7 @@
             <div>
                 <label id="approvedByLabel" class="mr-1"><strong>Approved by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Approved" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -178,7 +189,7 @@
             <div>
                 <label id="receivedByLabel" class="mr-1"><strong>Received by:</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Received" class="hidden">
                         <option value="">Select User</option>
                     </select>

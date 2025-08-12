@@ -10,6 +10,9 @@ window.onload = function() {
     currentTab = urlParams.get('tab');
     if (caId) fetchCADetails(caId);
     if (currentTab === 'received' || currentTab === 'rejected') hideApprovalButtons();
+    if (currentTab === 'received' || currentTab === 'rejected') hideRevisionButton();
+    // Apply tab-based behavior for field editability and button visibility
+    applyTabBasedBehavior();
 };
 
 function fetchCADetails(caId) {
@@ -79,6 +82,9 @@ function populateCADetails(data) {
         el.classList.add('bg-gray-100');
       }
     });
+    
+    // Apply tab-based behavior after populating data
+    applyTabBasedBehavior();
 }
 
 function populateCashAdvanceDetails(details) {
@@ -369,6 +375,7 @@ function makeAllFieldsReadOnly() {
 function hideApprovalButtons() {
     const approveButton = document.querySelector('button[onclick="approveCash()"]');
     const rejectButton = document.querySelector('button[onclick="rejectCash()"]');
+    const receiveButton = document.querySelector('button[onclick="receiveCash()"]');
     
     if (approveButton) {
         approveButton.style.display = 'none';
@@ -376,11 +383,86 @@ function hideApprovalButtons() {
     if (rejectButton) {
         rejectButton.style.display = 'none';
     }
+    if (receiveButton) {
+        receiveButton.style.display = 'none';
+    }
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
     if (buttonContainer && currentTab !== 'approved') {
         buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to hide revision button
+function hideRevisionButton() {
+    const revisionButton = document.querySelector('button[onclick="reviseCash()"]');
+    const revisionBtn = document.getElementById('revisionBtn');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionContainer = document.getElementById('revisionContainer');
+    const revisionLabel = document.getElementById('revisionLabel');
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+    if (revisionBtn) {
+        revisionBtn.style.display = 'none';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
+    }
+}
+
+// Function to apply tab-based behavior for field editability and button visibility
+function applyTabBasedBehavior() {
+    if (currentTab === 'received' || currentTab === 'rejected') {
+        // For received/rejected tabs, make all fields read-only and hide action buttons
+        makeAllFieldsReadOnly();
+        hideApprovalButtons();
+        hideRevisionButton();
+    } else {
+        // For other tabs (like 'approved'), make fields read-only but show action buttons
+        makeAllFieldsReadOnly();
+        showApprovalButtons();
+        showRevisionButton();
+    }
+}
+
+// Function to show approval buttons
+function showApprovalButtons() {
+    const receiveButton = document.querySelector('button[onclick="receiveCash()"]');
+    
+    if (receiveButton) {
+        receiveButton.style.display = 'inline-block';
+    }
+    
+    // Show button container if it exists
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer) {
+        buttonContainer.style.display = 'flex';
+    }
+}
+
+// Function to show revision button
+function showRevisionButton() {
+    const revisionButton = document.querySelector('button[onclick="reviseCash()"]');
+    const revisionBtn = document.getElementById('revisionBtn');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'inline-block';
+    }
+    if (revisionBtn) {
+        revisionBtn.style.display = 'inline-block';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'inline-block';
     }
 }
 

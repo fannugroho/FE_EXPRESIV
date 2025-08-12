@@ -43,7 +43,8 @@ window.onload = function() {
     currentTab = urlParams.get('tab');
     if (caId) fetchCADetails(caId);
     if (currentTab === 'checked' || currentTab === 'rejected') hideApprovalButtons();
-    if (currentTab === 'checked' || currentTab === 'rejected') hideRevisionButton();
+    // Only show revision functionality on 'prepared' tab (first tab)
+    if (currentTab !== 'prepared') hideRevisionButton();
 };
 
 function fetchCADetails(caId) {
@@ -308,16 +309,30 @@ function hideApprovalButtons() {
     }
 }
 
-// Function to hide revision button
+// Function to hide revision button and all revision-related elements
 function hideRevisionButton() {
-    const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
-    const revisionBtn = document.getElementById('revisionBtn');
-    
+    // Hide the revision button
+    const revisionButton = document.querySelector('button[onclick="revisionCash()"]');
     if (revisionButton) {
         revisionButton.style.display = 'none';
     }
-    if (revisionBtn) {
-        revisionBtn.style.display = 'none';
+    
+    // Hide the add revision button
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    // Hide the revision container if it exists
+    const revisionContainer = document.getElementById('revisionContainer');
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    
+    // Hide the revision section label
+    const revisionLabel = document.querySelector('label[for="addRevisionBtn"]');
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
     }
 }
 

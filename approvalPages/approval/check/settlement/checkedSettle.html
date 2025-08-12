@@ -127,6 +127,17 @@
             <textarea id="remarks" class="w-full p-2 border rounded-md" placeholder="Add remarks for approval/rejection"></textarea>
         </div>
         
+        <!-- Revision History Section -->
+        <div id="revisedRemarksSection" class="mt-4 hidden">
+            <!-- Revision history will be displayed here -->
+        </div>
+        
+        <!-- Rejection Remarks Section -->
+        <div id="rejectionRemarksSection" class="mt-4 hidden">
+            <label class="font-semibold text-red-600">Rejection Remarks:</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-red-50" readonly></textarea>
+        </div>
+        
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
@@ -144,7 +155,7 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="prepared" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -154,7 +165,7 @@
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Checked" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -164,7 +175,7 @@
                         <div>
                 <label id="acknowledgedByCheck" class="mr-1"><strong>Acknowledged by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Acknowledged" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -174,7 +185,7 @@
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Approved" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -184,7 +195,7 @@
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="Received" class="hidden">
                         <option value="">Select User</option>
                     </select>
@@ -196,14 +207,14 @@
         <br>
         <div class="flex justify-between space-x-4 mt-6">
             <div class="flex space-x-4">
-                <button onclick="onReject()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="rejectSettle()" class="bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Reject
             </button>
-                <button onclick="onChecked()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+                <button onclick="approveSettle()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
             Checked
             </button>
             </div>
-            <button onclick="revisionReim()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+            <button onclick="revisionSettle()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
             Revision
             </button>
         </div>
@@ -473,8 +484,8 @@
             }
         }
         
-        // Modify the revisionReim function to collect all revision remarks
-        function revisionReim() {
+        // Modify the revisionSettle function to collect all revision remarks
+        function revisionSettle() {
             const revisionFields = document.querySelectorAll('#revisionContainer textarea');
             
             // Check if revision button is disabled

@@ -120,6 +120,17 @@
           <textarea id="remarks" class="w-full p-2 border rounded-md" readonly></textarea>
         </div>
         
+        <!-- Revision History Section -->
+        <div id="revisedRemarksSection" class="mt-4 hidden">
+            <!-- Revision history will be displayed here -->
+        </div>
+        
+        <!-- Rejection Remarks Section -->
+        <div id="rejectionRemarksSection" class="mt-4 hidden">
+            <label class="font-semibold text-red-600">Rejection Remarks:</label>
+            <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-red-50" readonly></textarea>
+        </div>
+        
         <!-- Revision Remarks Section -->
         <div class="mt-4">
             <div class="flex justify-between items-center">
@@ -134,7 +145,7 @@
             <div> 
                 <label id="preparedByCheck" class="mr-1"><strong>Prepared by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('preparedBy')" autocomplete="off" readonly>
+                    <input type="text" id="preparedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="preparedDropdown" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>
@@ -144,7 +155,7 @@
             <div>
                 <label id="acknowledgeByCheck" class="mr-1"><strong>Acknowledge by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('acknowledgedBy')" autocomplete="off" readonly>
+                    <input type="text" id="acknowledgedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="acknowledgedDropdown" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>
@@ -154,7 +165,7 @@
             <div>
                 <label id="checkedByCheck" class="mr-1"><strong>Checked by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('checkedBy')" autocomplete="off" readonly>
+                    <input type="text" id="checkedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="checkedDropdown" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>
@@ -164,7 +175,7 @@
             <div>
                 <label id="approvedByCheck" class="mr-1"><strong>Approved by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('approvedBy')" autocomplete="off" readonly>
+                    <input type="text" id="approvedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="approvedDropdown" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>
@@ -174,7 +185,7 @@
             <div>
                 <label id="receivedByCheck" class="mr-1"><strong>Received by :</strong></label>
                 <div class="relative">
-                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" onkeyup="filterUsers('receivedBy')" autocomplete="off" readonly>
+                    <input type="text" id="receivedBySearch" placeholder="Search User" class="w-full p-1 border rounded search-input" autocomplete="off" readonly>
                     <select id="receivedDropdown" class="hidden">
                         <!-- Options will be populated by JavaScript -->
                     </select>

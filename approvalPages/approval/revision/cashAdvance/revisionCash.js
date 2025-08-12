@@ -1084,6 +1084,11 @@ window.onload = function() {
         // Setup approval field event listeners early
         setupApprovalFieldEventListeners();
     });
+    
+    // Apply tab-based behavior after data is loaded
+    setTimeout(() => {
+        applyTabBasedBehavior();
+    }, 1000);
 };
 
 function fetchCADetails(caId) {
@@ -1194,6 +1199,9 @@ async function populateForm(data) {
         // Setup event listeners for approval fields after superior employees are loaded
         setupApprovalFieldEventListeners();
     }
+    
+    // Apply tab-based behavior after form is populated
+    applyTabBasedBehavior();
 }
 
 async function populateTable(cashAdvanceDetails) {
@@ -2025,3 +2033,125 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculate initial total
     calculateTotalAmount();
 }); 
+
+// Function to apply tab-based behavior
+function applyTabBasedBehavior() {
+    console.log('Applying tab-based behavior for tab:', currentTab);
+    
+    if (currentTab === 'prepared') {
+        // For "prepared" tab: Make all fields read-only and hide submit button
+        makeAllFieldsReadOnly();
+        hideSubmitButton();
+        console.log('Applied read-only mode for prepared tab');
+    } else if (currentTab === 'revision') {
+        // For "revision" tab: Allow editing and show submit button
+        makeAllFieldsEditable();
+        showSubmitButton();
+        console.log('Applied editable mode for revision tab');
+    } else {
+        // Default: Make fields read-only for any other tab
+        makeAllFieldsReadOnly();
+        hideSubmitButton();
+        console.log('Applied read-only mode for unknown tab:', currentTab);
+    }
+}
+
+// Function to make all fields read-only (like detailCash.js)
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = true;
+            el.disabled = true;
+            el.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Make table rows read-only
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.readOnly = true;
+            input.disabled = true;
+            input.classList.add('bg-gray-100');
+        });
+        
+        // Hide delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'none';
+        });
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Disable file upload
+    const fileInput = document.getElementById('Reference');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to make all fields editable
+function makeAllFieldsEditable() {
+    // Make all input fields editable
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = false;
+            el.disabled = false;
+            el.classList.remove('bg-gray-100');
+        }
+    });
+    
+    // Make table rows editable
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.readOnly = false;
+            input.disabled = false;
+            input.classList.remove('bg-gray-100');
+        });
+        
+        // Show delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'inline-block';
+        });
+    });
+    
+    // Show add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'inline-block';
+    }
+    
+    // Enable file upload
+    const fileInput = document.getElementById('Reference');
+    if (fileInput) {
+        fileInput.disabled = false;
+        fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to hide submit button
+function hideSubmitButton() {
+    const submitButton = document.querySelector('button[onclick="submitRevision()"]');
+    if (submitButton) {
+        submitButton.style.display = 'none';
+    }
+}
+
+// Function to show submit button
+function showSubmitButton() {
+    const submitButton = document.querySelector('button[onclick="submitRevision()"]');
+    if (submitButton) {
+        submitButton.style.display = 'inline-block';
+    }
+}

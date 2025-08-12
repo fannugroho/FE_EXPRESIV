@@ -61,6 +61,8 @@ window.onload = function() {
     if (caId) fetchCADetails(caId);
     if (currentTab === 'approved' || currentTab === 'rejected') hideApprovalButtons();
     if (currentTab === 'approved' || currentTab === 'rejected') hideRevisionButton();
+    // Apply tab-based behavior for field editability and button visibility
+    applyTabBasedBehavior();
 };
 
 async function fetchCADetails(caId) {
@@ -105,6 +107,17 @@ async function populateCADetails(data) {
         departmentSelect.appendChild(option);
     }
     if (data && data.status) {
+        const statusSelect = document.getElementById('docStatus');
+        if (statusSelect) {
+            statusSelect.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = data.status;
+            option.textContent = data.status;
+            option.selected = true;
+            statusSelect.appendChild(option);
+        }
+    }
+    if (data && data.status) {
         // Populate approval fields from detail data
         await populateApprovalFieldsFromDetail(data);
     }
@@ -136,6 +149,9 @@ async function populateCADetails(data) {
         el.classList.add('bg-gray-100');
       }
     });
+    
+    // Apply tab-based behavior after populating data
+    applyTabBasedBehavior();
 }
 
 // Helper function to fetch user name by ID
@@ -592,14 +608,26 @@ function hideApprovalButtons() {
 
 // Function to hide revision button
 function hideRevisionButton() {
-    const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
+    const revisionButton = document.querySelector('button[onclick="revisionCash()"]');
     const revisionBtn = document.getElementById('revisionBtn');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionContainer = document.getElementById('revisionContainer');
+    const revisionLabel = document.getElementById('revisionLabel');
     
     if (revisionButton) {
         revisionButton.style.display = 'none';
     }
     if (revisionBtn) {
         revisionBtn.style.display = 'none';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
     }
 }
 
@@ -763,4 +791,392 @@ function revisionCash() {
             updateCAStatusWithRemarks('revise', allRemarks);
         }
     });
+}
+
+// Function to apply tab-based behavior for field editability and button visibility
+function applyTabBasedBehavior() {
+    if (currentTab === 'approved' || currentTab === 'rejected') {
+        // For approved/rejected tabs, make all fields read-only and hide action buttons
+        makeAllFieldsReadOnly();
+        hideApprovalButtons();
+        hideRevisionButton();
+    } else {
+        // For other tabs (like 'approve'), make fields read-only but show action buttons
+        makeAllFieldsReadOnly();
+        showApprovalButtons();
+        showRevisionButton();
+    }
+}
+
+// Function to show approval buttons
+function showApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="approveCash()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectCash()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'inline-block';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'inline-block';
+    }
+    
+    // Show button container if it exists
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer) {
+        buttonContainer.style.display = 'flex';
+    }
+}
+
+// Function to show revision button
+function showRevisionButton() {
+    const revisionButton = document.querySelector('button[onclick="revisionCash()"]');
+    const revisionBtn = document.getElementById('revisionBtn');
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'inline-block';
+    }
+    if (revisionBtn) {
+        revisionBtn.style.display = 'inline-block';
+    }
+}
+
+// Function to submit revision with multiple fields
+function submitRevision() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    const revisionBtn = document.getElementById('revisionBtn');
+    if (revisionBtn && revisionBtn.disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+
+    if (!caId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'CA ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateCAStatusWithRemarks('revise', allRemarks);
+        }
+    });
+}
+
+// Function to toggle revision field visibility and add first field
+function toggleRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if maximum limit is reached
+    if (revisionFields.length >= 4) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit',
+            text: 'Maximum 4 revision fields allowed'
+        });
+        return;
+    }
+    
+    // Check if current user already has a revision field
+    if (hasUserAlreadyAddedRevision()) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Revision Already Added',
+            text: 'You have already added a revision. Each user is only allowed to add one revision.'
+        });
+        return;
+    }
+    
+    if (container.classList.contains('hidden')) {
+        // Show container and add first field
+        container.classList.remove('hidden');
+        addRevisionField();
+        updateAddButton();
+    } else {
+        // Add another field
+        addRevisionField();
+        updateAddButton();
+    }
+}
+
+// Function to add revision field
+function addRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    
+    // Create wrapper div for the textarea and delete button
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+    
+    // Create textarea
+    const newField = document.createElement('textarea');
+    newField.className = 'w-full p-2 border rounded-md';
+    newField.placeholder = 'Enter additional revision details';
+    
+    // Add event listener for input to handle protected prefix
+    newField.addEventListener('input', handleRevisionInput);
+    
+    // Initialize with user prefix
+    initializeWithUserPrefix(newField);
+    
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.innerHTML = '&times;'; // × symbol
+    deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+    deleteButton.title = 'Delete this revision field';
+    deleteButton.onclick = function() {
+        // Check if user can delete this field (only allow deleting own field)
+        const userInfo = getUserInfo();
+        const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        if (!newField.value.startsWith(userPrefix)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Not Allowed',
+                text: 'You can only delete revision fields that you created'
+            });
+            return;
+        }
+        
+        fieldWrapper.remove();
+        checkRevisionButton(); // Update button state after removing a field
+        checkRevisionContainer(); // Check if container should be hidden
+    };
+    
+    // Add textarea and delete button to wrapper
+    fieldWrapper.appendChild(newField);
+    fieldWrapper.appendChild(deleteButton);
+    
+    // Add wrapper to container
+    container.appendChild(fieldWrapper);
+    
+    // Update the revision button state
+    checkRevisionButton();
+    updateAddButton();
+}
+
+// Check if revision container should be hidden when all fields are removed
+function checkRevisionContainer() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    if (revisionFields.length === 0) {
+        container.classList.add('hidden');
+        addBtn.textContent = '+ Add revision';
+        addBtn.style.display = 'block';
+    } else {
+        updateAddButton();
+    }
+}
+
+// Check if current user already has a revision field
+function hasUserAlreadyAddedRevision() {
+    const userInfo = getUserInfo();
+    const userPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    for (let field of revisionFields) {
+        if (field.value.startsWith(userPrefix)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Update add button based on current state
+function updateAddButton() {
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    const hasUserRevision = hasUserAlreadyAddedRevision();
+    
+    if (revisionFields.length >= 4) {
+        // Maximum limit reached
+        addBtn.textContent = 'Maximum 4 revisions reached';
+        addBtn.style.display = 'none';
+    } else if (hasUserRevision) {
+        // User already has a revision
+        addBtn.textContent = 'You have already added a revision';
+        addBtn.style.display = 'none';
+    } else {
+        // User can still add revision
+        if (revisionFields.length === 0) {
+            addBtn.textContent = '+ Add revision';
+        } else {
+            addBtn.textContent = '+ Add more revision';
+        }
+        addBtn.style.display = 'block';
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Approver'; // Default role for this page since we're on the approver page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the approver page, the role is Approver
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
+// Function to initialize textarea with user prefix
+function initializeWithUserPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix
+function handleRevisionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        // Restore the prefix
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            
+            // Reset cursor position after the prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+    
+    // Update revision button state
+    checkRevisionButton();
+}
+
+// Check if revision remarks are filled to enable/disable revision button
+function checkRevisionButton() {
+    const revisionButton = document.getElementById('revisionButton');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    let hasContent = false;
+    
+    // Check if there are any revision fields and if they have content
+    if (revisionFields.length > 0) {
+        revisionFields.forEach(field => {
+            const prefixLength = parseInt(field.dataset.prefixLength || '0');
+            // Check if there's content beyond the prefix
+            if (field.value.trim().length > prefixLength) {
+                hasContent = true;
+            }
+        });
+    }
+    
+    // Enable/disable revision button based on content
+    if (revisionButton) {
+        if (hasContent) {
+            revisionButton.disabled = false;
+            revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            revisionButton.classList.add('opacity-100', 'cursor-pointer');
+        } else {
+            revisionButton.disabled = true;
+            revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+            revisionButton.classList.remove('opacity-100', 'cursor-pointer');
+        }
+    }
+}
+
+// Function to update add button state (for compatibility)
+function updateAddButtonState() {
+    updateAddButton();
+}
+
+// Function to preview PDF files
+function previewPDF(event) {
+    const files = event.target.files;
+    if (files.length + uploadedFiles.length > 5) {
+        alert('Maximum 5 PDF files are allowed.');
+        return;
+    }
+    Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+            uploadedFiles.push(file);
+        } else {
+            alert('Please upload a valid PDF file');
+        }
+    });
+    
+    // Show file names instead of calling displayFileList
+    const fileInput = document.getElementById('Reference');
+    let fileNames = Array.from(files).map(file => file.name).join(', ');
+    if (fileNames) {
+        fileInput.title = fileNames;
+    }
 }

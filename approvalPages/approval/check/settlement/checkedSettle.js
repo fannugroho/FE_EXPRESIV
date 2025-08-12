@@ -46,6 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentTab === 'checked' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Only show revision functionality on 'prepared' tab (first tab)
+    if (currentTab !== 'prepared') {
+        hideRevisionButton();
+    }
 });
 
 // Function to fetch and populate settlement details
@@ -635,6 +640,33 @@ function hideApprovalButtons() {
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
     if (buttonContainer && currentTab !== 'prepared') {
         buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to hide revision button and all revision-related elements
+function hideRevisionButton() {
+    // Hide the revision button
+    const revisionButton = document.querySelector('button[onclick="revisionReim()"]');
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+    
+    // Hide the add revision button
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    // Hide the revision container if it exists
+    const revisionContainer = document.getElementById('revisionContainer');
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    
+    // Hide the revision section label
+    const revisionLabel = document.querySelector('label[for="addRevisionBtn"]');
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
     }
 }
 
