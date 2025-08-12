@@ -1399,6 +1399,7 @@ function createAttachmentItem(attachment, index) {
     // Determine file type icon
     const fileExtension = fileName.split('.').pop().toLowerCase();
     const fileIcon = getFileIcon(fileExtension);
+    const viewHref = buildInlineViewUrl(attachment.fileUrl);
 
     attachmentDiv.innerHTML = `
         <div class="flex items-center justify-between">
@@ -1417,16 +1418,13 @@ function createAttachmentItem(attachment, index) {
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <button type="button" 
-                        class="view-btn px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                        onclick="viewAttachment('${attachment.stagingID}', '${attachment.fileUrl}', '${fileName.replace(/'/g, "\\'")}')"
-                        title="View ${fileName}">
-                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
-                    </svg>
-                    View
-                </button>
+                <a href="${viewHref}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                   title="View ${fileName}">
+                   View
+                </a>
             </div>
         </div>
     `;
@@ -1495,168 +1493,52 @@ function formatAttachmentDate(dateString) {
 
 
 
-// View attachment in modal/new tab
-function viewAttachment(stagingId, fileUrl, fileName) {
+// Resolve attachment URL to absolute, similar behavior to PR page links
+function resolveAttachmentUrl(fileUrl) {
     try {
-        console.log('Viewing attachment:', { stagingId, fileUrl, fileName });
-
-        // Construct full view URL
-        let viewUrl;
-        if (fileUrl.startsWith('http')) {
-            viewUrl = fileUrl;
-        } else if (fileUrl.startsWith('/api')) {
-            // Remove duplicate /api since API_BASE_URL already includes it
-            const cleanFileUrl = fileUrl.replace('/api', '');
-            viewUrl = `${API_BASE_URL}${cleanFileUrl}`;
-        } else {
-            viewUrl = `${API_BASE_URL}${fileUrl}`;
+        if (!fileUrl) return '#';
+        if (fileUrl.startsWith('http')) return fileUrl;
+        if (typeof API_BASE_URL === 'string' && API_BASE_URL.length > 0) {
+            if (fileUrl.startsWith('/api')) {
+                const clean = fileUrl.replace('/api', '');
+                return `${API_BASE_URL}${clean}`;
+            }
+            return `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
         }
-        console.log('View URL:', viewUrl);
-
-        // Determine file type
-        const fileExtension = fileName.split('.').pop().toLowerCase();
-
-        if (fileExtension === 'pdf') {
-            // For PDF files, try to embed in iframe first, fallback to new tab
-            showPDFViewer(viewUrl, fileName);
-        } else {
-            // For other file types, open in new tab with specific headers
-            openInNewTab(viewUrl, fileName);
-        }
-
-    } catch (error) {
-        console.error('Error viewing attachment:', error);
-
-        Swal.fire({
-            icon: 'error',
-            title: 'View Failed',
-            text: `Failed to open ${fileName}. Please try again.`,
-            confirmButtonText: 'OK'
-        });
+        return fileUrl;
+    } catch (e) {
+        console.error('Error resolving attachment URL:', e);
+        return fileUrl || '#';
     }
 }
 
-// Show PDF in a modal viewer
-async function showPDFViewer(pdfUrl, fileName) {
-    try {
-        // Show loading
-        Swal.fire({
-            title: 'Loading PDF...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
 
-        // Fetch the PDF as blob for viewing
-        const response = await fetch(pdfUrl, {
-            method: 'GET',
-            headers: {
-                'accept': 'application/pdf,*/*'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-
-        // Close loading and show PDF viewer
-        Swal.fire({
-            title: fileName,
-            html: `
-                <div style="width: 100%; height: 70vh; margin: 10px 0;">
-                    <iframe 
-                        src="${blobUrl}" 
-                        style="width: 100%; height: 100%; border: none;"
-                        type="application/pdf">
-                        <p>Your browser doesn't support PDF viewing. 
-                           <a href="${blobUrl}" target="_blank">Click here to open the PDF</a>
-                        </p>
-                    </iframe>
-                </div>
-            `,
-            width: '90%',
-            showConfirmButton: false,
-            showCancelButton: true,
-            cancelButtonText: 'Close',
-            customClass: {
-                container: 'pdf-viewer-modal'
-            },
-            willClose: () => {
-                // Clean up blob URL when modal closes
-                URL.revokeObjectURL(blobUrl);
-            }
-        });
-
-    } catch (error) {
-        console.error('Error loading PDF for viewing:', error);
-
-        // Fallback to Google Docs viewer
-        Swal.fire({
-            title: fileName,
-            html: `
-                <div style="width: 100%; height: 70vh; margin: 10px 0;">
-                    <iframe 
-                        src="https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true" 
-                        style="width: 100%; height: 100%; border: none;"
-                        allow="fullscreen">
-                    </iframe>
-                </div>
-            `,
-            width: '90%',
-            showConfirmButton: false,
-            showCancelButton: true,
-            cancelButtonText: 'Close'
-        });
+// Force open in new window as a view (avoid download) by routing through a viewer URL
+function buildInlineViewUrl(rawUrl) {
+    const absUrl = resolveAttachmentUrl(rawUrl);
+    // Try using Google Docs Viewer for common inline-able types and servers that force download
+    const lower = absUrl.toLowerCase();
+    const isPdf = lower.endsWith('.pdf');
+    const isOffice = /(\.docx?|\.xlsx?|\.pptx?)$/i.test(lower);
+    if (isPdf) {
+        // Force render via Google Docs Viewer to avoid download behavior
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(absUrl)}&embedded=true`;
     }
+    if (isOffice) {
+        // Use Google Docs viewer to render in browser
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(absUrl)}&embedded=true`;
+    }
+    // Default: still try to hint inline view
+    const hint = absUrl.includes('?') ? '&' : '?';
+    return `${absUrl}${hint}inline=1&view=1`;
 }
 
-// Open in new tab with proper handling
-function openInNewTab(fileUrl, fileName) {
-    // Show loading message
-    const loadingToast = Swal.fire({
-        title: 'Opening Document...',
-        text: `Loading ${fileName}`,
-        timer: 1500,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        allowOutsideClick: true,
-        toast: true,
-        position: 'top-end'
-    });
+// (Removed explicit window.open flow to avoid popup blocked messages)
 
-    // Create a temporary link to force view behavior
-    const tempLink = document.createElement('a');
-    tempLink.href = fileUrl;
-    tempLink.target = '_blank';
-    tempLink.rel = 'noopener noreferrer';
 
-    // Add parameters to hint at viewing instead of downloading
-    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
-
-    // Try to open in new tab
-    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
-
-    // Check if popup was blocked
-    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-        loadingToast.close();
-        Swal.fire({
-            icon: 'warning',
-            title: 'Popup Blocked',
-            html: `
-                <p>Your browser blocked the popup. Please allow popups for this site or</p>
-                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
-            `,
-            confirmButtonText: 'OK'
-        });
-    }
-}
+// (Removed modal-based viewers to enforce new window/tab behavior only)
 
 // Export functions for global access
 window.approveInvItem = approveInvItem;
 window.rejectInvItem = rejectInvItem;
 window.goToMenuCheckInvItem = goToMenuCheckInvItem;
-window.viewAttachment = viewAttachment; 

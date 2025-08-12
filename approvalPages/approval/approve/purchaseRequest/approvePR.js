@@ -1042,6 +1042,10 @@ function printPR() {
         
         // Buat URL dengan parameter
         const url = new URL('printPR.html', window.location.href);
+        // Sertakan ID PR agar halaman cetak dapat memuat dari API
+        if (typeof prId !== 'undefined' && prId) {
+            url.searchParams.set('id', prId);
+        }
         
         // Get current date for approval dates (fallback jika tidak ada dari API)
         const currentDate = new Date().toISOString().split('T')[0]; // Tanggal saat ini dalam format YYYY-MM-DD
@@ -1259,9 +1263,9 @@ function updateButtonVisibility() {
     if (statusInput) {
         const currentStatus = statusInput.value;
         
-        // Tampilkan tombol print hanya jika status = "Approved"
+        // Tampilkan tombol print jika status = "Approved" atau "Received"
         if (printButton) {
-            if (currentStatus === "Approved") {
+            if (currentStatus === "Approved" || currentStatus === "Received") {
                 printButton.style.display = "block";
             } else {
                 printButton.style.display = "none";
