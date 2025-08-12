@@ -293,48 +293,20 @@ function displayPrintOutReimbursement(reimbursementData) {
         return;
     }
 
-    // Build the Print Receive Reimbursement URL with parameters
+    // Build the Print Receive Reimbursement URL with minimal parameters
     const baseUrl = window.location.origin;
     const params = new URLSearchParams();
 
-    // Clean and add the reimbursement ID
+    // Clean and add the reimbursement ID as 'reim-id' parameter
     const cleanReimId = reimbursementId ? reimbursementId.trim() : '';
     params.append('reim-id', cleanReimId);
 
-    // Add additional parameters if available from reimbursement data
-    if (reimbursementData) {
-        // Add all available parameters from reimbursement data with proper cleaning
-        if (reimbursementData.payToName) params.append('payTo', reimbursementData.payToName.trim());
-        if (reimbursementData.voucherNo) params.append('voucherNo', reimbursementData.voucherNo.trim());
-        if (reimbursementData.submissionDate) params.append('submissionDate', reimbursementData.submissionDate);
-        if (reimbursementData.department) params.append('department', reimbursementData.department.trim());
-        if (reimbursementData.referenceDoc) params.append('referenceDoc', reimbursementData.referenceDoc.trim());
-        if (reimbursementData.preparedByName) params.append('preparedBy', reimbursementData.preparedByName.trim());
-        if (reimbursementData.checkedByName) params.append('checkedBy', reimbursementData.checkedByName.trim());
-        if (reimbursementData.acknowledgedByName) params.append('acknowledgeBy', reimbursementData.acknowledgedByName.trim());
-        if (reimbursementData.approvedByName) params.append('approvedBy', reimbursementData.approvedByName.trim());
-        if (reimbursementData.receivedByName) params.append('receivedBy', reimbursementData.receivedByName.trim());
-        if (reimbursementData.totalAmount) params.append('totalAmount', reimbursementData.totalAmount.toString());
-        if (reimbursementData.currency) params.append('currency', reimbursementData.currency.trim());
-        if (reimbursementData.remarks) params.append('remarks', reimbursementData.remarks.trim());
-        if (reimbursementData.typeOfTransaction) params.append('typeOfTransaction', reimbursementData.typeOfTransaction.trim());
+    // Add timestamp to prevent caching
+    params.append('timestamp', Date.now().toString());
 
-        // Add details if available
-        if (reimbursementData.reimbursementDetails && reimbursementData.reimbursementDetails.length > 0) {
-            const details = reimbursementData.reimbursementDetails.map(detail => ({
-                category: detail.category || '',
-                accountName: detail.accountName || '',
-                glAccount: detail.glAccount || '',
-                description: detail.description || '',
-                amount: detail.amount || 0
-            }));
-            params.append('details', encodeURIComponent(JSON.stringify(details)));
-        }
-
-        // Construct the final URL with all parameters
-        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?${params.toString()}`;
-        fullUrl = printReimUrl;
-    }
+    // Construct the final URL pointing to GetPrintReim.html
+    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html?${params.toString()}`;
+    fullUrl = printReimUrl;
 
     // Create the document item
     const documentItem = document.createElement('div');

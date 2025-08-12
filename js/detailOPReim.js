@@ -907,10 +907,10 @@ async function handleReimbursementData(result) {
  */
 function formatDateSafely(dateValue) {
     if (!dateValue) return '';
-    
+
     try {
         let date;
-        
+
         // Handle different date formats
         if (typeof dateValue === 'string') {
             // If the date already contains time info, parse it carefully
@@ -929,20 +929,20 @@ function formatDateSafely(dateValue) {
         } else {
             date = new Date(dateValue);
         }
-        
+
         // Check if date is valid
         if (isNaN(date.getTime())) {
             console.warn('Invalid date value:', dateValue);
             return '';
         }
-        
+
         // Format safely without timezone conversion
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        
+
         return `${year}-${month}-${day}`;
-        
+
     } catch (error) {
         console.error('Error formatting date:', error, 'Original value:', dateValue);
         return '';
@@ -956,22 +956,22 @@ function formatDateSafely(dateValue) {
  */
 function formatDateLocal(dateValue) {
     if (!dateValue) return '';
-    
+
     try {
         const date = new Date(dateValue);
-        
+
         if (isNaN(date.getTime())) {
             console.warn('Invalid date value:', dateValue);
             return '';
         }
-        
+
         // Use local date methods to avoid timezone issues
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        
+
         return `${year}-${month}-${day}`;
-        
+
     } catch (error) {
         console.error('Error formatting date:', error);
         return '';

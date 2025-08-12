@@ -62,7 +62,8 @@
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuReceiveOPReim()" type="button"
             class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200 w-32">Back</button>
-        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Receive Outgoing Payment Reimbursement</h2>
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Receive Outgoing Payment
+            Reimbursementaaaaaaaaaaaaaaa</h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
             <div>
@@ -288,6 +289,9 @@
     <script>
         // Function to display Print Out Reimbursement document
         function displayPrintOutReimbursement(reimbursementData) {
+            console.log('🔍 DEBUG: displayPrintOutReimbursement called with:', reimbursementData);
+            console.log('📍 Current location:', window.location);
+
             const container = document.getElementById('printOutReimbursementList');
             if (!container) {
                 console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
@@ -303,6 +307,7 @@
             // Try to get from URL parameters first
             const urlParams = new URLSearchParams(window.location.search);
             reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
+            console.log('🆔 Reimbursement ID from URL:', reimbursementId);
 
             // If not in URL, try to get from form data
             if (!reimbursementId) {
@@ -322,9 +327,17 @@
                 return;
             }
 
-            // Build the Print Receive Reimbursement URL with parameters
+            // Build the Print Receive Reimbursement URL with parameters - DYNAMIC PATH RESOLUTION
             const baseUrl = window.location.origin;
-            const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+            const currentPath = window.location.pathname;
+            const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/'));
+
+            // Construct relative path to GetPrintReim.html (same directory)
+            const printReimUrl = `${baseUrl}${currentDir}/GetPrintReim.html?reim-id=${reimbursementId}`;
+
+            console.log('🔗 Dynamic Print URL constructed:', printReimUrl);
+            console.log('📂 Current directory:', currentDir);
+            console.log('🏠 Base URL:', baseUrl);
 
             // Add additional parameters if available from reimbursement data
             let fullUrl = printReimUrl;
@@ -401,6 +414,12 @@
         // Function to view Print Reimbursement document
         async function viewPrintReimbursement(url) {
             try {
+                console.log('🚀 Attempting to open Print URL:', url);
+
+                // Add cache busting parameter to ensure fresh load
+                const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                console.log('🔄 Cache-busted URL:', cacheBustUrl);
+
                 // Show loading indicator
                 Swal.fire({
                     title: 'Loading...',
@@ -415,8 +434,8 @@
                     }
                 });
 
-                // Open the URL in a new window/tab
-                const newWindow = window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                // Open the URL in a new window/tab with cache-busted URL
+                const newWindow = window.open(cacheBustUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
 
                 if (newWindow) {
                     // Close loading indicator
@@ -448,7 +467,13 @@
         // Function to open Print Reimbursement document in new tab
         function openPrintReimbursement(url) {
             try {
-                window.open(url, '_blank');
+                console.log('🔗 Opening Print URL directly:', url);
+
+                // Add cache busting parameter
+                const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                console.log('🔄 Cache-busted direct URL:', cacheBustUrl);
+
+                window.open(cacheBustUrl, '_blank');
             } catch (error) {
                 console.error('Error opening Print Reimbursement document:', error);
 
