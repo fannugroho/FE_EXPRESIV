@@ -293,7 +293,7 @@ function populateInvItemData(data) {
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
         dpp1112: data.dpp1112,
-        vatSum: data.vatSum,
+        vatSum: data.docTax,
         grandTotal: data.grandTotal
     });
 
@@ -309,14 +309,14 @@ function populateInvItemData(data) {
     // Tax Base Other Value (taxBase) - API Field: "docCur" "dpp1112"
     safeSetValue('dpp1112', data.dpp1112 || 0);
 
-    // VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
-    safeSetValue('VatSum', data.vatSum || 0);
+    // VAT 12% (vatAmount) - API Field: "docCur" "docTax"
+    safeSetValue('VatSum', data.docTax || 0);
 
     // GRAND TOTAL (grandTotal) - API Field: "grandTotal" only
     safeSetValue('grandTotal', data.grandTotal || 0);
 
     // Legacy fields for compatibility
-    safeSetValue('PriceBefDi', data.docTotal - data.vatSum || 0);
+    safeSetValue('PriceBefDi', data.docTotal - data.docTax || 0);
 
     // Populate comments
     safeSetValue('comments', data.comments || '');
