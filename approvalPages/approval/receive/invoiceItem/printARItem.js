@@ -1078,7 +1078,7 @@ function populateFinancialSummaryForPage(invoice, pageNum) {
         { id: `discountAmount${pageNum}`, value: invoice.discSum || 0, label: 'Discounted' },
         { id: `salesAmount${pageNum}`, value: invoice.netPriceAfterDiscount || 0, label: 'Sales Amount' },
         { id: `taxBase${pageNum}`, value: invoice.dpp1112 || 0, label: 'Tax Base Other Value' },
-        { id: `vatAmount${pageNum}`, value: invoice.vatSum || 0, label: 'VAT 12%' },
+        { id: `vatAmount${pageNum}`, value: invoice.docTax || 0, label: 'VAT 12%' },
         { id: `grandTotal${pageNum}`, value: invoice.grandTotal || 0, label: 'GRAND TOTAL' },
     ].forEach(item => {
         const element = document.getElementById(item.id);
