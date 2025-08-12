@@ -675,9 +675,9 @@ function populateFinancialSummary(invoice) {
             currency: currency,
             label: 'Tax Base Other Value'
         },
-        // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
+        // 5. VAT 12% (vatAmount) - API Field: "docCur" "docTax"
         vatAmount: {
-            value: invoice.vatSum || 0,
+            value: invoice.docTax || 0,
             currency: currency,
             label: 'VAT 12%'
         },
@@ -694,10 +694,20 @@ function populateFinancialSummary(invoice) {
         const element = document.getElementById(key);
         if (element) {
             const data = financialData[key];
-            element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
-            console.log(`${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
+            element.textContent = formatCurrency(data.value);
+            console.log(`${data.label}: ${formatCurrency(data.value)}`);
         } else {
             console.warn(`Financial summary element not found: ${key}`);
+        }
+    });
+
+    // Populate currency fields
+    const currencyFields = ['totalCurrency', 'discountCurrency', 'salesCurrency', 'taxBaseCurrency', 'vatCurrency', 'grandCurrency'];
+    currencyFields.forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            element.textContent = currency;
+            console.log(`Currency field ${fieldId}: ${currency}`);
         }
     });
 
@@ -1242,30 +1252,40 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     <div id="bankInformation${pageNum}"></div>
                 </div>
                 <div class="financial-summary">
-                    <div class="summary-row">
-                        <span class="summary-label">Total</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Discounted</span>
-                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Sales Amount</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.dpp1112 || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">VAT 12%</span>
-                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
-                    </div>
+                    <table class="summary-table">
+                        <tbody>
+                            <tr>
+                                <td class="summary-label">Total</td>
+                                <td class="summary-currency" id="totalCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="totalAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPrice || 0)}</td>
+                            </tr>
+                            <tr class="line-after-discounted">
+                                <td class="summary-label">Discounted</td>
+                                <td class="summary-currency" id="discountCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="discountAmount${pageNum}">${formatCurrency(currentInvoiceData?.discSum || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Sales Amount</td>
+                                <td class="summary-currency" id="salesCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="salesAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPriceAfterDiscount || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Tax Base Other Value</td>
+                                <td class="summary-currency" id="taxBaseCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="taxBase${pageNum}">${formatCurrency(currentInvoiceData?.dpp1112 || 0)}</td>
+                            </tr>
+                            <tr class="line-after-vat">
+                                <td class="summary-label">VAT 12%</td>
+                                <td class="summary-currency" id="vatCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="vatAmount${pageNum}">${formatCurrency(currentInvoiceData?.docTax || 0)}</td>
+                            </tr>
+                            <tr class="line-after-grand-total">
+                                <td class="summary-label total-line">GRAND TOTAL</td>
+                                <td class="summary-currency total-line" id="grandCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount total-line" id="grandTotal${pageNum}">${formatCurrency(currentInvoiceData?.grandTotal || 0)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
