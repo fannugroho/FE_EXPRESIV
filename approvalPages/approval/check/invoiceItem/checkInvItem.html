@@ -1572,6 +1572,131 @@
                 padding: 0.75rem;
             }
         }
+        /* Align currency input styling with detailINVItem (inherit font, keep right align) */
+        .currency-input-idr {
+            text-align: right !important;
+            font-family: inherit !important;
+            font-weight: normal !important;
+        }
+
+        /* Add scroll indicator similar to detailINVItem */
+        .table-container {
+            position: relative;
+        }
+        .table-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .table-container:hover::after {
+            opacity: 1;
+        }
+
+        /* Ensure table layout consistency */
+        #arInvTable {
+            border-collapse: collapse;
+        }
+
+        /* Focus improvements for keyboard navigation */
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* Print styles aligned with detailINVItem */
+        @media print {
+            .header-section .flex button,
+            .submit-section,
+            .attachment-actions {
+                display: none !important;
+            }
+
+            .content-wrapper {
+                padding: 0 !important;
+            }
+
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section {
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+            }
+        }
+
+        /* Extra Small Mobile (up to 375px) */
+        @media (max-width: 375px) {
+            .content-wrapper { padding: 0.25rem; }
+            .header-section { padding: 0.5rem; }
+            .header-section h2 { font-size: 1.125rem; }
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section { padding: 0.5rem; }
+
+            #arInvTable {
+                min-width: 600px !important;
+                font-size: 11px !important;
+            }
+
+            .description-column { width: 80px !important; min-width: 80px !important; }
+            .item-code-column { width: 60px !important; min-width: 60px !important; }
+            .price-column { width: 50px !important; min-width: 50px !important; }
+            .line-total-column { width: 70px !important; min-width: 70px !important; }
+
+            .footer-section input[type="text"] { width: 100px !important; }
+        }
+
+        /* Mobile Small (up to 575px) header and submit adjustments for consistency */
+        @media (max-width: 575px) {
+            .header-section .flex { flex-direction: column; gap: 0.75rem; align-items: stretch; }
+            .header-section .flex button { width: 100%; text-align: center; padding: 0.75rem; }
+            .submit-section button { width: 100%; padding: 1rem; font-size: 1rem; }
+        }
+
+        /* Landscape orientation adjustments for mobile */
+        @media (max-width: 767px) and (orientation: landscape) {
+            .header-section { padding: 0.5rem 1rem; }
+            .header-section h2 { font-size: 1.25rem; }
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section { padding: 0.75rem; }
+            #arInvTable { min-width: 900px; }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .table-container { border-width: 0.5px; }
+            .form-section,
+            .table-section,
+            .footer-section,
+            .approval-section,
+            .submit-section { border-width: 0.5px; }
+        }
+
+        /* Reduced motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            .attachment-item:hover { transform: none !important; }
+            .submit-section button:hover { transform: none !important; }
+        }
     </style>
 </head>
 
