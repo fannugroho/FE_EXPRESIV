@@ -2808,7 +2808,7 @@ function isFinancialDataComplete(invoice) {
     }
 
     // Check if all required financial fields are present and have valid values
-    const requiredFields = ['netPrice', 'discSum', 'dpp1112', 'vatSum', 'grandTotal'];
+    const requiredFields = ['netPrice', 'discSum', 'dpp1112', 'docTax', 'grandTotal'];
     const hasAllFields = requiredFields.every(field => {
         const value = invoice[field];
         const isValid = value !== null && value !== undefined && value !== '';
@@ -2835,7 +2835,7 @@ function isFinancialDataComplete(invoice) {
         netPrice: invoice.netPrice,
         discSum: invoice.discSum,
         dpp1112: invoice.dpp1112,
-        vatSum: invoice.vatSum,
+        vatSum: invoice.docTax,
         grandTotal: invoice.grandTotal
     });
 
