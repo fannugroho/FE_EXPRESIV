@@ -384,7 +384,7 @@ function populateInvItemData(data) {
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
         docTax: data.docTax,
-        vatSum: data.vatSum,
+        vatSum: data.docTax,
         grandTotal: data.grandTotal,
         note: 'Using specific API fields with currency'
     });
@@ -393,8 +393,8 @@ function populateInvItemData(data) {
     const taxBase = data.dpp1112 || '0.00';
     document.getElementById('dpp1112').value = formatCurrencyIDR(taxBase);
 
-    // VAT 12% (vatAmount) - from docCur and vatSum fields
-    const vatAmount = data.vatSum || '0.00';
+    // VAT 12% (vatAmount) - from docCur and docTax fields
+    const vatAmount = data.docTax || '0.00';
     document.getElementById('vatSum').value = formatCurrencyIDR(vatAmount);
 
     // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields
