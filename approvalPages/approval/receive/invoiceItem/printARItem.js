@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('💰 Cached discSum:', parsedData.discSum);
                 console.log('💲 Cached netPriceAfterDiscount:', parsedData.netPriceAfterDiscount);
                 console.log('📊 Cached dpp1112:', parsedData.dpp1112);
-                console.log('🏷️ Cached vatSum:', parsedData.vatSum);
+                console.log('🏷️ Cached docTax:', parsedData.docTax);
                 console.log('🎯 Cached grandTotal:', parsedData.grandTotal);
                 console.log('🪙 Cached docCur:', parsedData.docCur);
                 console.log('=========================================');
@@ -2102,7 +2102,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     discSum: 0,
                     netPriceAfterDiscount: 0,
                     dpp1112: 0,
-                    vatSum: 0,
+                    docTax: 0,
                     grandTotal: 0,
                     acctName: '',
                     account: ''
@@ -2143,7 +2143,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                             <tr class="line-after-vat">
                                 <td class="summary-label">VAT 12%</td>
                                 <td class="summary-currency" id="vatCurrency${pageNum}">${currency}</td>
-                                <td class="summary-amount" id="vatAmount${pageNum}">${formatCurrency(currentInvoiceData?.vatSum || 0)}</td>
+                                <td class="summary-amount" id="vatAmount${pageNum}">${formatCurrency(currentInvoiceData?.docTax || 0)}</td>
                             </tr>
                             <tr class="line-after-grand-total">
                                 <td class="summary-label total-line">GRAND TOTAL</td>
