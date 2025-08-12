@@ -1582,6 +1582,25 @@ async function startEStampingProcess() {
         }
         
         updateStampStatus('Sending document for e-stamping...', 30);
+
+        // Detect QR code presence to inform stamping API
+        let qrcodeSrcForStamp = '';
+        let hasQrCodeForStamp = false;
+        try {
+            if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
+                qrcodeSrcForStamp = currentInvItemData.qrCodeSrc;
+            } else {
+                const qrElement = document.getElementById('qrcodeSrc');
+                if (qrElement) {
+                    qrcodeSrcForStamp = qrElement.value || '';
+                }
+            }
+            hasQrCodeForStamp = !!(qrcodeSrcForStamp && qrcodeSrcForStamp !== null &&
+                String(qrcodeSrcForStamp).trim() !== '' && String(qrcodeSrcForStamp).toLowerCase() !== 'null');
+            console.log('🔍 [E-Stamp] Has QR Code (auto):', hasQrCodeForStamp);
+        } catch (e) {
+            console.warn('⚠️ [E-Stamp] QR code detection failed:', e);
+        }
         
         // Generate unique UUID for document reference
         function generateUUID() {
@@ -1597,7 +1616,8 @@ async function startEStampingProcess() {
             document_base64: signedBase64,
             document_type: "ARInvoices",
             document_id: stagingId,
-            specific_document_ref: specificDocRef
+            specific_document_ref: specificDocRef,
+            is_document_withqrcode: hasQrCodeForStamp
         };
         
         console.log('📝 E-Stamp API payload:', {
@@ -1915,6 +1935,25 @@ async function processManualEStamping(file) {
         });
         
         updateStampStatus('Sending document for e-stamping...', 30);
+
+        // Detect QR code presence to inform stamping API
+        let qrcodeSrcManual = '';
+        let hasQrCodeManual = false;
+        try {
+            if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
+                qrcodeSrcManual = currentInvItemData.qrCodeSrc;
+            } else {
+                const qrElement = document.getElementById('qrcodeSrc');
+                if (qrElement) {
+                    qrcodeSrcManual = qrElement.value || '';
+                }
+            }
+            hasQrCodeManual = !!(qrcodeSrcManual && qrcodeSrcManual !== null &&
+                String(qrcodeSrcManual).trim() !== '' && String(qrcodeSrcManual).toLowerCase() !== 'null');
+            console.log('🔍 [E-Stamp] Has QR Code (manual):', hasQrCodeManual);
+        } catch (e) {
+            console.warn('⚠️ [E-Stamp] QR code detection (manual) failed:', e);
+        }
         
         // Generate unique UUID for document reference
         function generateUUID() {
@@ -1930,7 +1969,8 @@ async function processManualEStamping(file) {
             document_base64: signedBase64,
             document_type: "ARInvoices",
             document_id: stagingId,
-            specific_document_ref: specificDocRef
+            specific_document_ref: specificDocRef,
+            is_document_withqrcode: hasQrCodeManual
         };
         
         console.log('📝 Manual E-Stamp API payload:', {
