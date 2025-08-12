@@ -418,10 +418,13 @@ function updateTable(invoices) {
         console.log(`Invoice ${index + 1} status:`, invoice.status);
         console.log(`Invoice ${index + 1} status class:`, `status-${invoice.status.toLowerCase()}`);
         
+        const customerCellHtml = (invoice.customerName && invoice.customerName.length > 15)
+            ? `<div class="scrollable-cell-sm">${invoice.customerName}</div>`
+            : `${invoice.customerName}`;
         row.innerHTML = `
             <td class="p-2">${rowNumber}</td>
-            <td class="p-2 scrollable-cell">${invoice.invoiceNo}</td>
-            <td class="p-2 scrollable-cell">${invoice.customerName}</td>
+            <td class="p-2">${invoice.invoiceNo}</td>
+            <td class="p-2">${customerCellHtml}</td>
             <td class="p-2">${formatDate(invoice.invoiceDate)}</td>
             <td class="p-2">${formatDate(invoice.dueDate)}</td>
             <td class="p-2">

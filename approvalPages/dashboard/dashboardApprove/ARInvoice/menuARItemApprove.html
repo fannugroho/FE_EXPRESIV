@@ -47,6 +47,19 @@
         .scrollable-cell::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Small scrollable cell for compact content (e.g., long customer names) */
+        .scrollable-cell-sm {
+            max-width: 120px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 2px 4px;
+            scrollbar-width: thin;
+        }
+        .scrollable-cell-sm::-webkit-scrollbar { height: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
     
 </head>

@@ -517,15 +517,18 @@ function updateTable(invoices) {
         cellNo.className = 'p-2 text-center';
         cellNo.textContent = startIndex + index + 1;
         
-        // Invoice Number
+        // Invoice Number (no scroll)
         const cellInvoice = row.insertCell();
         cellInvoice.className = 'p-2';
-        cellInvoice.innerHTML = `<div class="scrollable-cell">${invoice.invoiceNo}</div>`;
+        cellInvoice.textContent = `${invoice.invoiceNo}`;
         
-        // Customer
+        // Customer (small scroll if > 15 chars)
         const cellCustomer = row.insertCell();
+        const useSmallScroll = invoice.customerName && invoice.customerName.length > 15;
         cellCustomer.className = 'p-2';
-        cellCustomer.innerHTML = `<div class="scrollable-cell">${invoice.customerName}</div>`;
+        cellCustomer.innerHTML = useSmallScroll
+            ? `<div class=\"scrollable-cell-sm\">${invoice.customerName}</div>`
+            : `${invoice.customerName}`;
         
         // Date
         const cellDate = row.insertCell();

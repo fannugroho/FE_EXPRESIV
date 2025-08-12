@@ -1697,6 +1697,14 @@
             .attachment-item:hover { transform: none !important; }
             .submit-section button:hover { transform: none !important; }
         }
+
+        /* Invoice No. column: wrap text and remove scrollbars (match detail behavior) */
+        .invoice-no-cell {
+            white-space: normal !important;
+            overflow: visible !important;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
     </style>
 </head>
 
@@ -3302,6 +3310,28 @@
             }, 500);
         });
         
+    </script>
+
+    <!-- Normalize Invoice No. column (wrap, no scrollbar) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const tables = document.querySelectorAll('table');
+                tables.forEach(table => {
+                    const headerRow = table.querySelector('thead tr');
+                    if (!headerRow) return;
+                    const headers = Array.from(headerRow.children);
+                    const invoiceIdx = headers.findIndex(th => (th.textContent || '').toLowerCase().includes('invoice no'));
+                    if (invoiceIdx < 0) return;
+                    table.querySelectorAll('tbody tr').forEach(tr => {
+                        const cell = tr.children[invoiceIdx];
+                        if (cell) cell.classList.add('invoice-no-cell');
+                    });
+                });
+            } catch (e) {
+                console.warn('Invoice No. normalization skipped:', e);
+            }
+        });
     </script>
 </body>
 </html> 

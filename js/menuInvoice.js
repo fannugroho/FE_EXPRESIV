@@ -558,10 +558,13 @@ function displayInvoices() {
         const totalAmount = invoice.docTotal || invoice.grandTotal || 0;
         const documentType = getDocumentType(invoice.docType);
 
+        const customerCellHtml = (customerName && customerName.length > 15)
+            ? `<div class="scrollable-cell-sm">${customerName}</div>`
+            : `${customerName}`;
         row.innerHTML = `
             <td class="p-2 border-b">${startIndex + index + 1}</td>
-            <td class="p-2 border-b scrollable-cell">${invoiceNumber}</td>
-            <td class="p-2 border-b">${customerName}</td>
+            <td class="p-2 border-b">${invoiceNumber}</td>
+            <td class="p-2 border-b">${customerCellHtml}</td>
             <td class="p-2 border-b">${formattedDate}</td>
             <td class="p-2 border-b">${formattedDueDate}</td>
             <td class="p-2 border-b"><span class="px-2 py-1 rounded-full text-xs ${statusClass}">${status}</span></td>
