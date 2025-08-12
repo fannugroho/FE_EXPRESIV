@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             console.log('💰 API discSum:', result.data.discSum);
                             console.log('💲 API netPriceAfterDiscount:', result.data.netPriceAfterDiscount);
                             console.log('📊 API dpp1112:', result.data.dpp1112);
-                            console.log('🏷️ API vatSum:', result.data.vatSum);
+                            console.log('🏷️ API docTax:', result.data.docTax);
                             console.log('🎯 API grandTotal:', result.data.grandTotal);
                             console.log('🪙 API docCur:', result.data.docCur);
                             console.log('==================================');
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('💰 Parent discSum:', parentData.discSum);
             console.log('💲 Parent netPriceAfterDiscount:', parentData.netPriceAfterDiscount);
             console.log('📊 Parent dpp1112:', parentData.dpp1112);
-            console.log('🏷️ Parent vatSum:', parentData.vatSum);
+            console.log('🏷️ Parent docTax:', parentData.docTax);
             console.log('🎯 Parent grandTotal:', parentData.grandTotal);
             console.log('🪙 Parent docCur:', parentData.docCur);
             console.log('============================================');
@@ -551,7 +551,7 @@ function populateInvoiceData(invoice) {
     console.log('💰 Discount Sum:', invoice.discSum, '(Type:', typeof invoice.discSum, ')');
     console.log('💲 Net After Discount:', invoice.netPriceAfterDiscount, '(Type:', typeof invoice.netPriceAfterDiscount, ')');
     console.log('📊 DPP 11/12:', invoice.dpp1112, '(Type:', typeof invoice.dpp1112, ')');
-    console.log('🏷️ VAT Sum:', invoice.vatSum, '(Type:', typeof invoice.vatSum, ')');
+    console.log('🏷️ Document Tax:', invoice.docTax, '(Type:', typeof invoice.docTax, ')');
     console.log('🎯 Grand Total:', invoice.grandTotal, '(Type:', typeof invoice.grandTotal, ')');
     console.log('🪙 Currency:', invoice.docCur, '(Type:', typeof invoice.docCur, ')');
     console.log('===============================');
@@ -874,7 +874,7 @@ function getCurrentInvoiceData() {
                     console.log('💰 Financial fields:');
                     console.log('  - Net Price:', parsedData.netPrice);
                     console.log('  - Grand Total:', parsedData.grandTotal);
-                    console.log('  - VAT Sum:', parsedData.vatSum);
+                    console.log('  - VAT Sum:', parsedData.docTax);
                     return null;
                 }
             } catch (parseError) {
@@ -904,7 +904,7 @@ function getCurrentInvoiceData() {
                     console.log('💰 Financial fields:');
                     console.log('  - Net Price:', parsedData.netPrice);
                     console.log('  - Grand Total:', parsedData.grandTotal);
-                    console.log('  - VAT Sum:', parsedData.vatSum);
+                    console.log('  - Document Tax:', parsedData.docTax);
                     return null;
                 }
             } catch (parseError) {
@@ -2566,7 +2566,7 @@ function generateIndonesianInvoiceQRCode(invoice) {
             subtotal: invoice.netPrice || 0,  // API Field: "netPrice"
             discount: invoice.discSum || 0,   // API Field: "discSum"
             taxBase: invoice.dpp1112 || 0,     // API Field: "dpp1112"
-            vatAmount: invoice.docTax|| 0,   // API Field: "vatSum"
+            vatAmount: invoice.docTax || 0,   // API Field: "vatSum"
             grandTotal: invoice.grandTotal || 0,  // API Field: "grandTotal"
             currency: invoice.docCur || 'IDR',
 
