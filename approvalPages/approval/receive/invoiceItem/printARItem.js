@@ -2566,7 +2566,7 @@ function generateIndonesianInvoiceQRCode(invoice) {
             subtotal: invoice.netPrice || 0,  // API Field: "netPrice"
             discount: invoice.discSum || 0,   // API Field: "discSum"
             taxBase: invoice.dpp1112 || 0,     // API Field: "dpp1112"
-            vatAmount: invoice.vatSum || 0,   // API Field: "vatSum"
+            vatAmount: invoice.docTax|| 0,   // API Field: "vatSum"
             grandTotal: invoice.grandTotal || 0,  // API Field: "grandTotal"
             currency: invoice.docCur || 'IDR',
 
